@@ -39,6 +39,7 @@ class BitbucketUninstalledEndpoint(Endpoint):
             id__in=[oi.organization_id for oi in org_integrations]
         )
 
+        # TODO: Replace with repository_service; support status write
         Repository.objects.filter(
             organization_id__in=organizations.values_list("id", flat=True),
             provider="integrations:bitbucket",

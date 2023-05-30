@@ -4,8 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, cast
+from typing import List, Optional, cast
 
+from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -24,7 +25,16 @@ class RepositoryService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_repositories(self, *, organization_id: int) -> List[RpcRepository]:
+    def get_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: Optional[int] = None,
+        providers: Optional[List[str]] = None,
+        has_integration: Optional[bool] = None,
+        has_provider: Optional[bool] = None,
+        status: Optional[ObjectStatus] = None,
+    ) -> List[RpcRepository]:
         pass
 
 

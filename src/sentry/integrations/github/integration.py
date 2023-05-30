@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
@@ -26,6 +26,7 @@ from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
@@ -171,12 +172,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_unmigratable_repositories(self) -> Sequence[Repository]:
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
-        existing_repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="github"
+        existing_repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["github"]
         )
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
@@ -289,16 +290,16 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
         organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["github", "integrations:github"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["github", "integrations:github"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

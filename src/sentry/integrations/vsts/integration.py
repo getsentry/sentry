@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 import re
 from time import time
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.db.models import QuerySet
 from django.utils.translation import ugettext as _
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,6 +36,7 @@ from sentry.models import (
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -143,10 +143,12 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
             )
         return data
 
-    def get_unmigratable_repositories(self) -> QuerySet:
-        return Repository.objects.filter(
-            organization_id=self.organization_id, provider="visualstudio"
-        ).exclude(external_id__in=[r["identifier"] for r in self.get_repositories()])
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["visualstudio"]
+        )
+        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
+        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
     def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()
@@ -360,16 +362,16 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["visualstudio", "integrations:vsts"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["visualstudio", "integrations:vsts"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

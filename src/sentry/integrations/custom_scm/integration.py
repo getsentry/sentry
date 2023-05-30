@@ -18,6 +18,7 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.repository import repository_service
 from sentry.web.helpers import render_to_response
 
 from .repository import CustomSCMRepositoryProvider
@@ -76,7 +77,7 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
         Used to get any repositories that are not already tied
         to an integration.
         """
-        repos = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=self.organization_id,
             provider__isnull=True,
             integration_id__isnull=True,

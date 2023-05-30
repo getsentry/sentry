@@ -21,9 +21,10 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Identity, Integration, Repository
+from sentry.models import Identity, Integration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import repository_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
@@ -284,8 +285,8 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
         return True
 
     def get_unmigratable_repositories(self):
-        repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="bitbucket_server"
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["bitbucket_server"]
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
@@ -315,16 +316,16 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["bitbucket_server", "integrations:bitbucket_server"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["bitbucket_server", "integrations:bitbucket_server"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

@@ -10,3 +10,4 @@ class RpcRepository(RpcModel):
     id: int
     organization_id: int
     name: str
+    external_id: str

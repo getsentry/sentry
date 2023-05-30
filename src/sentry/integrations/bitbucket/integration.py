@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List
 
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import ugettext_lazy as _
@@ -17,9 +17,10 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import Integration, Repository
+from sentry.models import Integration
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
@@ -123,9 +124,9 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             return False
         return True
 
-    def get_unmigratable_repositories(self):
-        repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="bitbucket"
+    def get_unmigratable_repositories(self) -> List[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["bitbucket"]
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
@@ -160,16 +161,16 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["bitbucket", "integrations:bitbucket"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["bitbucket", "integrations:bitbucket"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

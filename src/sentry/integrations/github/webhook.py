@@ -87,6 +87,7 @@ class Webhook:
                 )
             }
 
+            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
