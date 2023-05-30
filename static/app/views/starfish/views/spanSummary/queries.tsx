@@ -2,12 +2,12 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import {DefinedUseQueryResult, useQueries, useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getEndpointDetailSeriesQuery} from 'sentry/views/starfish/modules/APIModule/queries';
-import {getDateQueryFilter} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 
 export enum SamplePopulationType {
   FASTEST = 'fastest',

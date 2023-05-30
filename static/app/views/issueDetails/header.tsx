@@ -19,7 +19,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
@@ -178,7 +177,6 @@ function GroupHeaderTabs({
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
-        <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
       </TabList.Item>
     </StyledTabList>
   );
