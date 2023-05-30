@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
+import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
@@ -46,10 +47,17 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
       transactionName,
     });
 
-  const sampledSpanDataSeries = sampleListData.map(({timestamp, spanDuration}) => ({
-    name: timestamp,
-    value: spanDuration,
-  }));
+  const sampledSpanDataSeries: Series[] = sampleListData.map(
+    ({timestamp, spanDuration, transaction_id}) => ({
+      data: [
+        {
+          name: timestamp,
+          value: spanDuration,
+        },
+      ],
+      seriesName: transaction_id.split('-')[0],
+    })
+  );
 
   return (
     <Chart
@@ -59,16 +67,7 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
       start=""
       end=""
       loading={isLoading || isLoadingSeriesData}
-      scatterPlot={
-        isSamplesLoading
-          ? undefined
-          : [
-              {
-                data: sampledSpanDataSeries,
-                seriesName: 'Sampled Span Duration',
-              },
-            ]
-      }
+      scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
       utc={false}
       chartColors={theme.charts.getColorPalette(4).slice(3, 6)}
       stacked
