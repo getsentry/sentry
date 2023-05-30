@@ -97,7 +97,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
 
 @instrumented_task(
     name="sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-    queue="span.descs.clusterer",  # XXX(iker): we should use a different queue
+    queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
     default_retry_delay=5,
     max_retries=5,
     soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
