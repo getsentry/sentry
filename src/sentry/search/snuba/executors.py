@@ -54,7 +54,6 @@ from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_
 
 class PrioritySortWeights(TypedDict):
     log_level: int
-    frequency: int
     has_stacktrace: int
     event_halflife_hours: int
     v2: bool
@@ -63,7 +62,6 @@ class PrioritySortWeights(TypedDict):
 
 DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
-    "frequency": 0,
     "has_stacktrace": 0,
     "event_halflife_hours": 4,
     "v2": False,
@@ -72,7 +70,6 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
 
 V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
-    "frequency": 0,
     "has_stacktrace": 0,
     "event_halflife_hours": 12,
     "v2": False,

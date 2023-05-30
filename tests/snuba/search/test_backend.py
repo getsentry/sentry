@@ -364,7 +364,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
                 "log_level": 5,
-                "frequency": 5,
                 "has_stacktrace": 5,
                 "event_halflife_hours": 4,
                 "v2": False,
@@ -2154,10 +2153,10 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
                 "v2": True,
+                "norm": False,
             }
             results = self.make_query(
                 sort_by="betterPriority",
@@ -2201,10 +2200,10 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         agg_kwargs = {
             "better_priority": {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
                 "v2": False,
+                "norm": False,
             }
         }
         query_executor = self.backend._get_query_executor()
@@ -2248,10 +2247,10 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         agg_kwargs = {
             "better_priority": {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
                 "v2": False,
+                "norm": False,
             }
         }
         query_executor = self.backend._get_query_executor()
@@ -2355,10 +2354,10 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         agg_kwargs = {
             "better_priority": {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
                 "v2": False,
+                "norm": False,
             }
         }
         query_executor = self.backend._get_query_executor()

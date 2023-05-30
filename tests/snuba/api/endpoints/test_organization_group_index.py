@@ -156,10 +156,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         aggregate_kwargs: PrioritySortWeights = {
             "log_level": 3,
-            "frequency": 5,
             "has_stacktrace": 5,
-            "eventHalflifeHours": 4,
+            "event_halflife_hours": 4,
             "v2": False,
+            "norm": False,
         }
 
         response = self.get_success_response(

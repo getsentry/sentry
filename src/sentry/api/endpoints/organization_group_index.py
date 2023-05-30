@@ -185,9 +185,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     "log_level": request.GET.get(
                         "logLevel", V2_DEFAULT_PRIORITY_WEIGHTS["log_level"]
                     ),
-                    "frequency": request.GET.get(
-                        "frequency", V2_DEFAULT_PRIORITY_WEIGHTS["frequency"]
-                    ),
                     "has_stacktrace": request.GET.get(
                         "hasStacktrace", V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
                     ),
@@ -202,9 +199,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return {
                 "better_priority": {
                     "log_level": request.GET.get("logLevel", DEFAULT_PRIORITY_WEIGHTS["log_level"]),
-                    "frequency": request.GET.get(
-                        "frequency", DEFAULT_PRIORITY_WEIGHTS["frequency"]
-                    ),
                     "has_stacktrace": request.GET.get(
                         "hasStacktrace", DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
                     ),
