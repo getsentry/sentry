@@ -280,6 +280,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count(group) == 1
 
+
 class ManageIssueStatesTest(TestCase):  # type: ignore[misc]
     def test_status_changes(self) -> None:
         state_change_details = [
@@ -321,7 +322,7 @@ class ManageIssueStatesTest(TestCase):  # type: ignore[misc]
         self.group = self.create_group()
         with pytest.raises(NotImplementedError):
             manage_issue_states(self.group, GroupInboxReason.REPROCESSED)
-            
+
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
         """
