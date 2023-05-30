@@ -76,6 +76,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "spm",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("span.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            Function("divide", [args["interval"], 60]),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
                     "count",
                     snql_distribution=lambda args, alias: Function(
                         "countIf",
