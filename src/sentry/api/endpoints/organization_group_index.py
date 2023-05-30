@@ -172,7 +172,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         Temporary function to be used while developing the new priority sort. Parses the query params in the request.
 
         :param logLevel: the weight (number from 0 to 10) to apply for events
-        :param frequency: currently unused
         :param hasStacktrace: the weight (number from 0 to 3) to apply for error events with stacktraces or not
         :param eventHalflifeHours: each multiple of eventHalflifeHours halves the contribution score of an event
         :param v2: boolean to switch between using v1 or v2 priority sort
