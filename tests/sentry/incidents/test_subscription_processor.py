@@ -645,10 +645,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            [self.action, other_action],
+            [other_action, self.action],
             [
                 (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (trigger.alert_threshold + 1, IncidentStatus.WARNING),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
             ],
         )
 
@@ -662,7 +662,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [other_action, self.action],
             [
                 (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (other_trigger.alert_threshold - 1, IncidentStatus.WARNING),
+                (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
             ],
         )
 
