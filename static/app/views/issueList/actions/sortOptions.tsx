@@ -1,7 +1,7 @@
-import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
 type Props = {
@@ -30,21 +30,14 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-function getSortOptions(sortKeys: IssueSortOptions[], hasBetterPrioritySort = false) {
-  const combinedSortKeys = [
-    ...sortKeys,
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
-  ];
-  return combinedSortKeys.map(key => ({
-    value: key,
-    label: getSortLabel(key),
-    details: getSortTooltip(key),
-  }));
-}
-
 function IssueListSortOptions({onSelect, sort, query}: Props) {
+  const organization = useOrganization();
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
     ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
@@ -54,20 +47,20 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   ];
 
   return (
-    <Feature features={['issue-list-better-priority-sort']}>
-      {({hasFeature: hasBetterPrioritySort}) => (
-        <CompactSelect
-          size="sm"
-          onChange={opt => onSelect(opt.value)}
-          options={getSortOptions(sortKeys, hasBetterPrioritySort)}
-          value={sortKey}
-          triggerProps={{
-            size: 'xs',
-            icon: <IconSort size="xs" />,
-          }}
-        />
-      )}
-    </Feature>
+    <CompactSelect
+      size="sm"
+      onChange={opt => onSelect(opt.value)}
+      options={sortKeys.map(key => ({
+        value: key,
+        label: getSortLabel(key),
+        details: getSortTooltip(key),
+      }))}
+      value={sortKey}
+      triggerProps={{
+        size: 'xs',
+        icon: <IconSort size="xs" />,
+      }}
+    />
   );
 }
 
