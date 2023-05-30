@@ -309,7 +309,7 @@ function CreateProject() {
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => setTeam(choice.value)}
-              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
+              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
             />
             <Button
               borderless
