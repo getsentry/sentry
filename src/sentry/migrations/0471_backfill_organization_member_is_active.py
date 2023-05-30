@@ -11,7 +11,8 @@ def backfill_om_is_active(apps, schema_editor):
     for om in RangeQuerySetWrapperWithProgressBar(OrganizationMember.objects.all()):
         # Default is true, so update only on False.
         if not om.user.is_active:
-            om.update(user_is_active=False)
+            om.user_is_active = False
+            om.save(update_fields=["user_is_active"])
 
 
 class Migration(CheckedMigration):
