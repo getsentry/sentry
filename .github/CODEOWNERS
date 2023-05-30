@@ -410,7 +410,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/utils/analytics.tsx                                 @getsentry/growth
 /static/app/utils/routeAnalytics*                               @getsentry/growth
 /static/app/views/onboarding*                                   @getsentry/growth
-/src/sentry/api/endpoints/source_map_debug.py                   @getsentry/growth
 ## End of Growth
 
 
