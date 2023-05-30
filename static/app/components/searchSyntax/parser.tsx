@@ -253,7 +253,9 @@ export const filterTypeConfig = {
 type FilterTypeConfig = typeof filterTypeConfig;
 
 /**
- * Enum representing invalid reason types.
+ * The invalid reason is used to mark fields invalid fields and can be 
+ * used to determine why the field was invalid. This is primarily use for the
+ * invalidMessages option
  */
 export enum InvalidReason {
   WILDCARD_NOT_ALLOWED = 'wildcard-not-allowed',
