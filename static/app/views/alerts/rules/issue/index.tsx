@@ -906,7 +906,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           project={project}
           onChange={this.handleOwnerChange}
           teamFilter={(team: Team) =>
-            team.access.includes('team:read') || team.id === ownerId
+            team.isMember || team.id === ownerId || team.access.includes('team:admin')
           }
           useId
           includeUnassigned

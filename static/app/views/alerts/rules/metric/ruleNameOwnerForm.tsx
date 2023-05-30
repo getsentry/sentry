@@ -46,7 +46,7 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
             project={project}
             onChange={({value}) => model.setValue('owner', value && `team:${value}`)}
             teamFilter={(team: Team) =>
-              team.access.includes('team:read') || team.id === ownerId
+              team.isMember || team.id === ownerId || team.access.includes('team:admin')
             }
             useId
             includeUnassigned
