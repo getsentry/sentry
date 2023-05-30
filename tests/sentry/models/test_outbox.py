@@ -60,7 +60,7 @@ class ControlOutboxTest(TestCase):
                 user_id=user1.id,
             )
 
-        for outbox in User.outboxes_for_update(user1.id):
+        for outbox in User.outboxes_for_user_update(user1.id):
             outbox.save()
 
         expected_counts = 1 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 2
@@ -84,9 +84,9 @@ class ControlOutboxTest(TestCase):
                 user_id=user2.id,
             )
 
-        for inst in User.outboxes_for_update(user1.id):
+        for inst in User.outboxes_for_user_update(user1.id):
             inst.save()
-        for inst in User.outboxes_for_update(user2.id):
+        for inst in User.outboxes_for_user_update(user2.id):
             inst.save()
 
         for inst in ControlOutbox.for_webhook_update(

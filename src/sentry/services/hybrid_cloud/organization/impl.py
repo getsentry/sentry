@@ -27,6 +27,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
+    RpcRegionUser,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -448,3 +449,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 .bitand(~OrganizationMember.flags["idp:provisioned"])
                 .bitand(~OrganizationMember.flags["idp:role-restricted"])
             )
+
+    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user_id=user.id).update(user_is_active=user.is_active)
