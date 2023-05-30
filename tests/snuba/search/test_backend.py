@@ -2105,10 +2105,10 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
                 "v2": False,
+                "norm": False,
             }
             results = self.make_query(
                 sort_by="betterPriority",
