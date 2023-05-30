@@ -4,11 +4,11 @@ import moment from 'moment';
 import {Series} from 'sentry/types/echarts';
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Span} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 const INTERVAL = 12;
 

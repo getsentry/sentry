@@ -4,12 +4,12 @@ import moment from 'moment';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList/queries';
+import {queryDataToChartData} from 'sentry/views/starfish/utils/queryDataToChartData';
 import {
   useQueryGetSpanSeriesData,
   useQuerySpansInTransaction,
-} from 'sentry/views/starfish/views/spanSummary/queries';
-import {queryDataToChartData} from 'sentry/views/starfish/views/spanSummary/sidebar';
+} from 'sentry/views/starfish/views/spanSummaryPage/queries';
+import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
 
 type Props = {
   groupId: string;

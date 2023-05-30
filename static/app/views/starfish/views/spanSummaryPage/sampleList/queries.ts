@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   useQueryGetSpanSamples,
   useQuerySpansInTransaction,
-} from 'sentry/views/starfish/views/spanSummary/queries';
+} from 'sentry/views/starfish/views/spanSummaryPage/queries';
 
 type SampleListDatRow = {
   exclusive_time: number;
