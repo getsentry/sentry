@@ -57,6 +57,7 @@ export type HookName = keyof Hooks;
 export type RouteHooks = {
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
+  'routes:root': RoutesHook;
 };
 
 /**
