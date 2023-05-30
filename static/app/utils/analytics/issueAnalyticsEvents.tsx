@@ -50,6 +50,7 @@ export type IssueEventParameters = {
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
+  'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -208,6 +209,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
   'issue_details.view_hierarchy.select_from_wireframe':
     'View Hierarchy: Selection from wireframe',
+  'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
