@@ -987,7 +987,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [other_action, self.action],
+            [
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+            ],
         )
 
         # Now send through two updates where we're below threshold for the rule. This
@@ -1015,7 +1020,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [other_action, self.action],
             [
                 (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
-                (rule.resolve_threshold - 1, IncidentStatus.WARNING),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
             ],
         )
 
