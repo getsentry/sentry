@@ -235,7 +235,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         )
     else:
         log_sample_rate_source(
-            org_id, None, "prioritise_by_transaction", "get_blended_sample_rate", sample_rate
+            org_id, None, "prioritise_by_transaction", "blended_sample_rate", sample_rate
         )
 
     if sample_rate is None or sample_rate == 1.0:
@@ -331,7 +331,7 @@ def adjust_sample_rates(
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
         log_sample_rate_source(
-            org_id, None, "prioritise_by_project", "get_blended_sample_rate", sample_rate
+            org_id, None, "prioritise_by_project", "blended_sample_rate", sample_rate
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
@@ -412,15 +412,9 @@ def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]
             org_ids=[org_id], window_size=window_size
         )
         if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            try:
-                # We want to compute the sliding window sample rate by considering a window of time.
-                # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-                return compute_sliding_window_sample_rate(
-                    org_id, None, org_total_root_count, window_size
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-                return None
+            return compute_guarded_sliding_window_sample_rate(
+                org_id, None, org_total_root_count, window_size
+            )
 
     return None
 
@@ -477,15 +471,9 @@ def adjust_base_sample_rate_per_project(
     projects_with_rebalanced_sample_rate = []
 
     for project_id, total_root_count in projects_with_total_root_count:
-        try:
-            # We want to compute the sliding window sample rate by considering a window of time.
-            # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-            sample_rate = compute_sliding_window_sample_rate(
-                org_id, project_id, total_root_count, window_size
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            sample_rate = None
+        sample_rate = compute_guarded_sliding_window_sample_rate(
+            org_id, project_id, total_root_count, window_size
+        )
 
         # If the sample rate is None, we want to add a sentinel value into Redis, the goal being that when generating
         # rules we can distinguish between:
@@ -558,16 +546,9 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
-    try:
-        # We want to compute the sliding window sample rate by considering a window of time.
-        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-        sample_rate = compute_sliding_window_sample_rate(
-            org_id, None, total_root_count, window_size
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        sample_rate = None
-
+    sample_rate = compute_guarded_sliding_window_sample_rate(
+        org_id, None, total_root_count, window_size
+    )
     # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
     # with the old value.
     if sample_rate is None:
@@ -579,6 +560,18 @@ def adjust_base_sample_rate_per_org(org_id: int, total_root_count: int, window_s
         pipeline.set(cache_key, sample_rate)
         pipeline.pexpire(cache_key, CACHE_KEY_TTL)
         pipeline.execute()
+
+
+def compute_guarded_sliding_window_sample_rate(
+    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+) -> Optional[float]:
+    try:
+        # We want to compute the sliding window sample rate by considering a window of time.
+        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
+        return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
 
 
 def compute_sliding_window_sample_rate(
