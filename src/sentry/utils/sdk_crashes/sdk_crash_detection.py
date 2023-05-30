@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from django.conf import settings
 
@@ -34,7 +34,7 @@ class SDKCrashDetection:
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
-    def detect_sdk_crash(self, event: Event) -> Event:
+    def detect_sdk_crash(self, event: Event) -> Optional[Event]:
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR

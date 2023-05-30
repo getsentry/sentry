@@ -1022,7 +1022,7 @@ def sdk_crash_monitoring(job: PostProcessJob):
 
     if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
         logger.warning(
-            "SDK crash detection is enabled but SDK_CRASH_DETECTION_PROJECT_ID is not set"
+            "SDK crash detection is enabled but SDK_CRASH_DETECTION_PROJECT_ID is not set."
         )
         return None
 
