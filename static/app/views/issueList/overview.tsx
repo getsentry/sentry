@@ -864,6 +864,7 @@ class IssueListOverview extends Component<Props, State> {
     if (sort === IssueSortOptions.BETTER_PRIORITY) {
       this.transitionTo({
         sort,
+        statsPeriod: '7d',
         logLevel: 0,
         hasStacktrace: 0,
         eventHalflifeHours: 4,
