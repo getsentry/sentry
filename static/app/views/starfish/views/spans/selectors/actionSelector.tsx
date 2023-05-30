@@ -23,7 +23,7 @@ export function ActionSelector({value = '', moduleName = ModuleName.ALL}: Props)
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<[{action: string}]>({
+  const {data: actions} = useSpansQuery<[{'span.action': string}]>({
     eventView,
     queryString: query,
     initialData: [],
@@ -34,9 +34,9 @@ export function ActionSelector({value = '', moduleName = ModuleName.ALL}: Props)
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...actions.map(({action}) => ({
-          value: action,
-          label: action,
+        ...actions.map(datum => ({
+          value: datum['span.action'],
+          label: datum['span.action'],
         })),
       ];
 
@@ -76,7 +76,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getQuery(moduleName?: string) {
-  return `SELECT action, count()
+  return `SELECT action as "span.action", count()
     FROM spans_experimental_starfish
     WHERE 1 = 1
     ${moduleName ? `AND module = '${moduleName}'` : ''}
@@ -90,10 +90,10 @@ function getQuery(moduleName?: string) {
 function getEventView(moduleName?: string) {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['action', 'count()'],
+    fields: ['span.action', 'count()'],
     orderby: '-count',
-    query: moduleName ? `module:${moduleName}` : '',
-    dataset: DiscoverDatasets.SPANS_INDEXED,
+    query: moduleName ? `!span.action:"" span.module:${moduleName}` : '!span.action:""',
+    dataset: DiscoverDatasets.SPANS_METRICS,
     projects: [1],
     version: 2,
   });

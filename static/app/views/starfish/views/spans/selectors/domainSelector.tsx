@@ -21,7 +21,7 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
   const query = getQuery(moduleName);
   const eventView = getEventView(moduleName);
 
-  const {data: operations} = useSpansQuery<[{domain: string}]>({
+  const {data: operations} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     queryString: query,
     initialData: [],
@@ -30,9 +30,9 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(({domain}) => ({
-      value: domain,
-      label: domain,
+    ...operations.map(datum => ({
+      value: datum['span.domain'],
+      label: datum['span.domain'],
     })),
   ];
 
@@ -64,7 +64,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getQuery(moduleName?: string) {
-  return `SELECT domain, count()
+  return `SELECT domain as "span.domain", count()
     FROM spans_experimental_starfish
     WHERE 1 = 1
     ${moduleName ? `AND module = '${moduleName}'` : ''}
@@ -78,9 +78,9 @@ function getQuery(moduleName?: string) {
 function getEventView(moduleName?: string) {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['domain', 'count()'],
+    fields: ['span.domain', 'count()'],
     orderby: '-count',
-    query: moduleName ? `module:${moduleName}` : '',
+    query: moduleName ? `!span.domain:"" module:${moduleName}` : '!span.domain:""',
     dataset: DiscoverDatasets.SPANS_INDEXED,
     projects: [1],
     version: 2,
