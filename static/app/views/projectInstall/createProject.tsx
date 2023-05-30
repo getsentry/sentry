@@ -301,7 +301,7 @@ function CreateProject() {
   );
 
   return (
-    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
+    <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
         <HelpText>
