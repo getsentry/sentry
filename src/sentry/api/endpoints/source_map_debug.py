@@ -107,17 +107,16 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             except (SourceMapException, Release.DoesNotExist):
                 return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
 
-        user_agent = release.user_agent
-        if not user_agent:
-            return self._create_response(
-                issue=SourceMapProcessingIssue.MISSING_USER_AGENT,
-                data={"version": release.version, "filename": filename},
-            )
+            user_agent = release.user_agent
+            if not user_agent:
+                return self._create_response(
+                    issue=SourceMapProcessingIssue.MISSING_USER_AGENT,
+                    data={"version": release.version, "filename": filename},
+                )
+            num_artifacts = release.count_artifacts()
 
-        num_artifacts = release.count_artifacts()
-
-        if num_artifacts == 0:
-            return self._create_response(issue=SourceMapProcessingIssue.MISSING_SOURCEMAPS)
+            if num_artifacts == 0:
+                return self._create_response(issue=SourceMapProcessingIssue.MISSING_SOURCEMAPS)
 
         urlparts = urlparse(abs_path)
 
