@@ -91,6 +91,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 3
@@ -113,6 +114,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="-project",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 3
@@ -135,6 +137,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project.name",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 3
@@ -166,6 +169,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 2
@@ -240,6 +244,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query="",
                 params=self.params,
                 orderby=orderby,
+                referrer="test_discover_query",
             )
             data = result["data"]
             assert len(data) == len(expected)
@@ -287,6 +292,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 params=self.params,
                 orderby=column,
+                referrer="test_discover_query",
             )
             data = result["data"]
             assert len(data) == len(expected), (column, query, expected)
@@ -319,6 +325,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 params=self.params,
                 orderby=column,
+                referrer="test_discover_query",
             )
             data = result["data"]
             assert len(data) == len(expected), (query, expected)
@@ -364,6 +371,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query="",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 1
@@ -395,6 +403,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 1
@@ -448,6 +457,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["user.display"],
             query="",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 4
@@ -476,6 +486,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["user.display"],
             query="has:user.display user.display:bruce@example.com",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 1
@@ -505,6 +516,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query="",
                 params=self.params,
                 orderby=orderby,
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -543,6 +555,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 params=self.params,
                 orderby="message",
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -602,6 +615,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "organization_id": self.organization.id,
                     "team_id": [team1.id, team2.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -676,6 +690,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id, project2.id],
                 "organization_id": self.organization.id,
             },
+            referrer="test_discover_query",
         )
 
         assert len(result["data"]) == 5
@@ -706,6 +721,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [project2.id],
                 "organization_id": self.organization.id,
             },
+            referrer="test_discover_query",
         )
 
         assert len(result["data"]) == 1
@@ -756,6 +772,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [project.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -809,6 +826,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [self.project.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -854,6 +872,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [self.project.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
