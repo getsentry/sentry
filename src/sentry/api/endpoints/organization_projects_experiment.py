@@ -114,7 +114,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                     organization=organization,
                 )
                 member = OrganizationMember.objects.get(
-                    user=request.user, organization=organization
+                    user_id=request.user.id, organization=organization
                 )
                 OrganizationMemberTeam.objects.create(
                     team=team,
