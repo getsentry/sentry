@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
@@ -29,6 +30,18 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
+function getSortOptions(sortKeys: IssueSortOptions[], hasBetterPrioritySort = false) {
+  const combinedSortKeys = [
+    ...sortKeys,
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
+  ];
+  return combinedSortKeys.map(key => ({
+    value: key,
+    label: getSortLabel(key),
+    details: getSortTooltip(key),
+  }));
+}
+
 function IssueListSortOptions({onSelect, sort, query}: Props) {
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
@@ -36,26 +49,25 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.PRIORITY,
-    IssueSortOptions.BETTER_PRIORITY,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
 
   return (
-    <CompactSelect
-      size="sm"
-      onChange={opt => onSelect(opt.value)}
-      options={sortKeys.map(key => ({
-        value: key,
-        label: getSortLabel(key),
-        details: getSortTooltip(key),
-      }))}
-      value={sortKey}
-      triggerProps={{
-        size: 'xs',
-        icon: <IconSort size="xs" />,
-      }}
-    />
+    <Feature features={['issue-list-better-priority-sort']}>
+      {({hasFeature: hasBetterPrioritySort}) => (
+        <CompactSelect
+          size="sm"
+          onChange={opt => onSelect(opt.value)}
+          options={getSortOptions(sortKeys, hasBetterPrioritySort)}
+          value={sortKey}
+          triggerProps={{
+            size: 'xs',
+            icon: <IconSort size="xs" />,
+          }}
+        />
+      )}
+    </Feature>
   );
 }
 
