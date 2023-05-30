@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -72,6 +72,7 @@ type Props = {
   organization: Organization;
   totalValue: number | null;
   withoutZerofill: boolean;
+  project?: Project;
 };
 
 function TransactionSummaryCharts({
@@ -81,6 +82,7 @@ function TransactionSummaryCharts({
   location,
   currentFilter,
   withoutZerofill,
+  project,
 }: Props) {
   function handleDisplayChange(value: string) {
     const display = decodeScalar(location.query.display, DisplayModes.DURATION);
@@ -201,6 +203,7 @@ function TransactionSummaryCharts({
         )}
         {display === DisplayModes.TREND && (
           <TrendChart
+            eventView={eventView}
             trendFunction={trendFunction}
             trendParameter={trendColumn}
             organization={organization}
@@ -212,6 +215,8 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             withoutZerofill={withoutZerofill}
+            projects={project ? [project] : []}
+            withBreakpoint={organization.features.includes('performance-new-trends')}
           />
         )}
         {display === DisplayModes.VITALS && (

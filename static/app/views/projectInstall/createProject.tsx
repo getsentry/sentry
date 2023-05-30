@@ -5,7 +5,9 @@ import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
@@ -13,7 +15,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
-import {canCreateProject} from 'sentry/components/projects/utils';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -36,8 +38,9 @@ type IssueAlertFragment = Parameters<
 function CreateProject() {
   const api = useApi();
   const organization = useOrganization();
+  const {teams} = useTeams();
 
-  const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
+  const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
 
   useRouteAnalyticsEventNames(
     'project_creation_page.viewed',
@@ -75,6 +78,7 @@ function CreateProject() {
       const selectedPlatform = selectedFramework?.key ?? platform?.key;
 
       if (!selectedPlatform) {
+        addErrorMessage(t('Please select a platform in Step 1'));
         return;
       }
 
@@ -147,6 +151,7 @@ function CreateProject() {
     const selectedPlatform = platform;
 
     if (!selectedPlatform) {
+      addErrorMessage(t('Please select a platform in Step 1'));
       return;
     }
 
@@ -178,6 +183,12 @@ function CreateProject() {
       ),
       {
         modalCss,
+        onClose: () => {
+          trackAnalytics('project_creation.select_framework_modal_close_button_clicked', {
+            platform: selectedPlatform.key,
+            organization,
+          });
+        },
       }
     );
   }, [platform, createProject, organization]);
@@ -201,11 +212,12 @@ function CreateProject() {
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
+  const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
   const canSubmitForm =
     !inFlight &&
     team &&
-    canCreateProject(organization) &&
+    canCreateProject &&
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
 
@@ -246,7 +258,7 @@ function CreateProject() {
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => setTeam(choice.value)}
-              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
+              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
             />
             <Button
               borderless
@@ -278,7 +290,7 @@ function CreateProject() {
   );
 
   return (
-    <Fragment>
+    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
       {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
@@ -303,7 +315,7 @@ function CreateProject() {
         <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
         {createProjectForm}
       </div>
-    </Fragment>
+    </Access>
   );
 }
 

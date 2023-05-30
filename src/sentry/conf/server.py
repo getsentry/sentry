@@ -107,6 +107,13 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
+SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
+SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
+SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
+SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
+SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -707,7 +714,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.auto_archive_issues",
 )
+
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
@@ -1020,6 +1029,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
+    "schedule_auto_archive_issues": {
+        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
+        "options": {"expires": 3600},
+    },
 }
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
@@ -1131,7 +1146,7 @@ REST_FRAMEWORK = {
 
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
@@ -1150,6 +1165,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "SERVERS": [{"url": "https://sentry.io/"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
         "SORT_OPERATION_PARAMETERS": False,
     }
 
@@ -1211,12 +1227,12 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable escalating forecast threshold a/b experiment
+    "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow features in v2
+    "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-new-ongoing": False,
-    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-regressed-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1419,7 +1435,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enables subquery optimizations for the replay_index page
+    # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
@@ -1427,6 +1443,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1487,6 +1505,8 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable project creation for all
     "organizations:team-project-creation-all": False,
+    # Enable project creation for all and puts organization into test group
+    "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
@@ -1616,6 +1636,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # end APM config
 # ----
 
+# DSN to use for Sentry monitors
+SENTRY_MONITOR_DSN = None
+SENTRY_MONITOR_API_ROOT = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -1677,6 +1700,8 @@ SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
         "sentry.utils.email.PreviewBackend",
     )
 )
+
+SENTRY_UPLOAD_RETRY_TIME = 60  # 1 min
 
 # Should users without superuser permissions be allowed to
 # make projects public
@@ -1813,6 +1838,7 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product

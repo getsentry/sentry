@@ -1,24 +1,22 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
+import {BaseGroup, GroupTombstoneHelper, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {getTitle} from 'sentry/utils/events';
+import {getTitle, isTombstone} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
 import GroupPreviewTooltip from './groupPreviewTooltip';
 
-type Props = {
-  data: Event | BaseGroup | GroupTombstone;
+interface EventOrGroupTitleProps {
+  data: Event | BaseGroup | GroupTombstoneHelper;
   organization: Organization;
   className?: string;
   /* is issue breakdown? */
   grouping?: boolean;
-  hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
-};
+}
 
 function EventOrGroupTitle({
   organization,
@@ -26,32 +24,30 @@ function EventOrGroupTitle({
   withStackTracePreview,
   grouping = false,
   className,
-}: Props) {
-  const event = data as Event;
-  const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
-  const groupingIssueCategory = (data as BaseGroup)?.issueCategory;
+}: EventOrGroupTitleProps) {
+  const {id, eventID, groupID, projectID} = data as Event;
 
-  const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
-  const {id, eventID, groupID, projectID} = event;
-
-  const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
+  const {title, subtitle, treeLabel} = getTitle(data, organization?.features, grouping);
+  const titleLabel = treeLabel ? (
+    <EventTitleTreeLabel treeLabel={treeLabel} />
+  ) : (
+    title ?? ''
+  );
 
   return (
-    <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
-      {withStackTracePreview ? (
+    <Wrapper className={className}>
+      {!isTombstone(data) && withStackTracePreview ? (
         <GroupPreviewTooltip
           groupId={groupID ? groupID : id}
-          issueCategory={groupingIssueCategory}
-          groupingCurrentLevel={groupingCurrentLevel}
+          issueCategory={data.issueCategory}
+          groupingCurrentLevel={data.metadata?.current_level}
           eventId={eventID}
           projectId={projectID}
         >
-          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title ?? ''}
+          {titleLabel}
         </GroupPreviewTooltip>
-      ) : treeLabel ? (
-        <EventTitleTreeLabel treeLabel={treeLabel} />
       ) : (
-        title
+        titleLabel
       )}
       {subtitle && (
         <Fragment>
@@ -76,23 +72,16 @@ function Spacer() {
 }
 
 const Subtitle = styled('em')`
+  ${p => p.theme.overflowEllipsis};
+  display: inline-block;
   color: ${p => p.theme.gray300};
   font-style: normal;
+  height: 100%;
 `;
 
-const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
+const Wrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};
-  ${p =>
-    p.hasGroupingTreeUI &&
-    css`
-      display: inline-grid;
-      grid-template-columns: auto max-content 1fr max-content;
-      align-items: baseline;
-
-      ${Subtitle} {
-        ${p.theme.overflowEllipsis};
-        display: inline-block;
-        height: 100%;
-      }
-    `}
+  display: inline-grid;
+  grid-template-columns: auto max-content 1fr max-content;
+  align-items: baseline;
 `;

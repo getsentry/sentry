@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,6 +11,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,13 +25,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
-import {SampleEvents} from 'sentry/views/starfish/components/sampleEvents';
-import EndpointTable from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import DatabaseTableView, {
   DataRow,
-} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+} from 'sentry/views/starfish/components/databaseTableView';
+import EndpointTable from 'sentry/views/starfish/components/endpointTable';
+import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
+import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
+import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {
   getDbAggregatesQuery,
   useQueryMainTable,
@@ -38,6 +39,7 @@ import {
 import combineTableDataWithSparklineData from 'sentry/views/starfish/utils/combineTableDataWithSparklineData';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {GenericSpansTable} from 'sentry/views/starfish/views/webServiceView/endpointOverview/genericSpansTable';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -50,86 +52,59 @@ const HTTP_SPAN_COLUMN_ORDER = [
   },
   {
     key: 'throughput',
-    name: 'Throughput',
+    name: 'Throughput (SPM)',
     width: 350,
   },
   {
     key: 'p50_trend',
-    name: 'p50 Trend',
-    width: 200,
-  },
-  {
-    key: 'p50(exclusive_time)',
     name: 'p50',
-    width: COL_WIDTH_UNDEFINED,
+    width: 175,
   },
   {
-    key: 'transaction_count',
+    key: 'p95_trend',
+    name: 'p95',
+    width: 175,
+  },
+  {
+    key: 'count_unique(transaction)',
     name: 'Transactions',
     width: COL_WIDTH_UNDEFINED,
   },
 
   {
-    key: 'total_exclusive_time',
+    key: 'sum(span.self_time)',
     name: 'Total Time',
     width: COL_WIDTH_UNDEFINED,
   },
 ];
+
+type State = {
+  spansFilter: string;
+};
 
 export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
 
-  const {endpoint: transaction, method, statsPeriod} = location.query;
+  const {endpoint, method, statsPeriod} = location.query;
+  const transaction = endpoint
+    ? Array.isArray(endpoint)
+      ? endpoint[0]
+      : endpoint
+    : undefined;
   const pageFilter = usePageFilters();
 
-  const {
-    isLoading: isTableDataLoading,
-    data: tableData,
-    isRefetching: isTableRefetching,
-  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 8});
+  const [state, setState] = useState<State>({spansFilter: 'all'});
 
-  const {data: dbAggregateData} = useQuery({
-    queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getDbAggregatesQuery({
-          datetime: pageFilter.selection.datetime,
-          transaction,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const aggregatesGroupedByQuery = {};
-  dbAggregateData.forEach(({description, interval, count, p75}) => {
-    if (description in aggregatesGroupedByQuery) {
-      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
-    } else {
-      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
-    }
-  });
-
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
-    pageFilter.selection.datetime
-  );
-
-  const combinedDbData = combineTableDataWithSparklineData(
-    tableData,
-    dbAggregateData,
-    moment.duration(12, 'hours'),
-    moment(start_timestamp),
-    moment(end_timestamp)
-  );
-
-  const query = new MutableSearch([
+  const queryConditions = [
     'has:http.method',
     'transaction.op:http.server',
     `transaction:${transaction}`,
     `http.method:${method}`,
-  ]);
+  ];
+
+  const query = new MutableSearch(queryConditions);
 
   const savedQuery: NewQuery = {
     id: undefined,
@@ -227,9 +202,9 @@ export default function EndpointOverview() {
                 <SpanGroupBreakdownContainer transaction={transaction as string} />
               </ChartsContainerItem>
               <ChartsContainerItem2>
-                <ChartPanel title={t('Error Rate')}>
+                <MiniChartPanel title={t('Error Rate')}>
                   {renderFailureRateChart()}
-                </ChartPanel>
+                </MiniChartPanel>
                 <EventsRequest
                   query={query.formatString()}
                   includePrevious={false}
@@ -244,26 +219,29 @@ export default function EndpointOverview() {
                   start={pageFilter.selection.datetime.start}
                   end={pageFilter.selection.datetime.end}
                   organization={organization}
-                  yAxis={['tpm()', 'p50(transaction.duration)']}
+                  yAxis={[
+                    'tpm()',
+                    'p95(transaction.duration)',
+                    'p50(transaction.duration)',
+                  ]}
                   queryExtras={{dataset: 'metrics'}}
                 >
                   {({results, loading}) => {
                     return (
                       <Fragment>
-                        <ChartPanel title={t('p50(duration)')}>
+                        <MiniChartPanel title={t('Duration')}>
                           <Chart
                             statsPeriod={(statsPeriod as string) ?? '24h'}
-                            height={80}
-                            data={results?.[1] ? [results?.[1]] : []}
+                            height={110}
+                            data={results?.[1] ? [results?.[1], results?.[2]] : []}
                             start=""
                             end=""
                             loading={loading}
                             utc={false}
-                            stacked
                             isLineChart
                             disableXAxis
                             definedAxisTicks={2}
-                            chartColors={[theme.charts.getColorPalette(0)[1]]}
+                            chartColors={theme.charts.getColorPalette(2)}
                             grid={{
                               left: '0',
                               right: '0',
@@ -271,8 +249,8 @@ export default function EndpointOverview() {
                               bottom: '16px',
                             }}
                           />
-                        </ChartPanel>
-                        <ChartPanel title={t('Througput')}>
+                        </MiniChartPanel>
+                        <MiniChartPanel title={t('Throughput')}>
                           <Chart
                             statsPeriod={(statsPeriod as string) ?? '24h'}
                             height={80}
@@ -293,7 +271,7 @@ export default function EndpointOverview() {
                               bottom: '16px',
                             }}
                           />
-                        </ChartPanel>
+                        </MiniChartPanel>
                       </Fragment>
                     );
                   }}
@@ -302,43 +280,117 @@ export default function EndpointOverview() {
             </ChartsContainer>
           </StyledRow>
           <SubHeader>{t('Sample Events')}</SubHeader>
-          <SampleEvents eventView={eventView} />
+          <TransactionSamplesTable eventView={eventView} />
+          <SegmentedControlContainer>
+            <SegmentedControl
+              size="xs"
+              aria-label={t('Filter Spans')}
+              value={state.spansFilter}
+              onChange={key => setState({...state, spansFilter: key})}
+            >
+              <SegmentedControl.Item key="all">{t('All Spans')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="http">{t('http')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
+            </SegmentedControl>
+          </SegmentedControlContainer>
+          <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
           <FacetInsights eventView={eventView} />
-          <SubHeader>{t('HTTP Spans')}</SubHeader>
-          <EndpointTable
-            location={location}
-            onSelect={r => {
-              browserHistory.push(
-                `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-                  transaction,
-                })}`
-              );
-            }}
-            columns={HTTP_SPAN_COLUMN_ORDER}
-            filterOptions={{
-              action: '',
-              domain: '',
-              transaction: (transaction as string) ?? '',
-              datetime: pageFilter.selection.datetime,
-            }}
-          />
-          <SubHeader>{t('Database Spans')}</SubHeader>
-          <DatabaseTableView
-            location={location}
-            data={combinedDbData as DataRow[]}
-            isDataLoading={isTableDataLoading || isTableRefetching}
-            onSelect={r => {
-              browserHistory.push(
-                `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
-                  transaction,
-                })}`
-              );
-            }}
-          />
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
   );
+}
+
+function SpanMetricsTable({
+  filter,
+  transaction,
+}: {
+  filter: string;
+  transaction: string | undefined;
+}) {
+  const location = useLocation();
+  const pageFilter = usePageFilters();
+
+  const {
+    isLoading: isTableDataLoading,
+    data: tableData,
+    isRefetching: isTableRefetching,
+  } = useQueryMainTable({transaction: (transaction as string) ?? '', limit: 8});
+
+  const {data: dbAggregateData} = useQuery({
+    queryKey: ['dbAggregates', transaction, pageFilter.selection.datetime],
+    queryFn: () =>
+      fetch(
+        `${HOST}/?query=${getDbAggregatesQuery({
+          datetime: pageFilter.selection.datetime,
+          transaction,
+        })}`
+      ).then(res => res.json()),
+    retry: false,
+    initialData: [],
+  });
+
+  const aggregatesGroupedByQuery = {};
+  dbAggregateData.forEach(({description, interval, count, p75}) => {
+    if (description in aggregatesGroupedByQuery) {
+      aggregatesGroupedByQuery[description].push({name: interval, count, p75});
+    } else {
+      aggregatesGroupedByQuery[description] = [{name: interval, count, p75}];
+    }
+  });
+
+  switch (filter) {
+    case 'all':
+    case 'resource':
+    default:
+      return <GenericSpansTable transaction={transaction} />;
+    case 'http':
+      return (
+        <EndpointTable
+          location={location}
+          onSelect={r => {
+            browserHistory.push(
+              `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+                transaction,
+              })}`
+            );
+          }}
+          columns={HTTP_SPAN_COLUMN_ORDER}
+          filterOptions={{
+            action: '',
+            domain: '',
+            transaction: (transaction as string) ?? '',
+            datetime: pageFilter.selection.datetime,
+          }}
+        />
+      );
+    case 'db':
+      const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+        pageFilter.selection.datetime
+      );
+      const combinedDbData = combineTableDataWithSparklineData(
+        tableData,
+        dbAggregateData,
+        moment.duration(12, 'hours'),
+        moment(start_timestamp),
+        moment(end_timestamp)
+      );
+
+      return (
+        <DatabaseTableView
+          location={location}
+          data={combinedDbData as DataRow[]}
+          isDataLoading={isTableDataLoading || isTableRefetching}
+          onSelect={r => {
+            browserHistory.push(
+              `/starfish/span/${encodeURIComponent(r.group_id)}/?${qs.stringify({
+                transaction,
+              })}`
+            );
+          }}
+        />
+      );
+  }
 }
 
 const SubHeader = styled('h3')`
@@ -377,4 +429,8 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
+`;
+
+const SegmentedControlContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
