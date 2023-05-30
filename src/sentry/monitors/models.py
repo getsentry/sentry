@@ -34,6 +34,8 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.locks import locks
 from sentry.models import Environment, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
@@ -456,12 +458,7 @@ class MonitorEnvironment(Model):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from confluent_kafka import Producer
-        from django.conf import settings
-
         from sentry.signals import monitor_environment_failed
-        from sentry.utils import json
-        from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
         if last_checkin is None:
             next_checkin_base = timezone.now()
@@ -489,46 +486,44 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
-        failure_occurrence = {
-            "event": {
+        group_type, level = get_group_type_and_level(reason)
+        current_timestamp = timezone.now()
+
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            resource_id=None,
+            project_id=self.monitor.project.id,
+            event_id=uuid.uuid4().hex,
+            fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
+            type=group_type,
+            issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
+            subtitle="",
+            evidence_display=[
+                {"name": "Failure reason", "value": reason, "important": True},
+                {"name": "Environment", "value": self.environment.name, "important": False},
+                {"name": "Last check-in", "value": last_checkin, "important": False},
+            ],
+            detection_time=current_timestamp,
+            level=level,
+        )
+
+        produce_occurrence_to_kafka(
+            occurrence,
+            {
                 "environment": self.environment.name,
-                "event_id": uuid.uuid4().hex,
+                "event_id": occurrence.event_id,
                 "platform": "crons",
                 "project_id": self.monitor.project_id,
-                "received": timezone.now(),
+                "received": current_timestamp,
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(self.monitor.guid),
                     "monitor.slug": self.monitor.slug,
                 },
-                "timestamp": timezone.now(),
+                "timestamp": current_timestamp,
             },
-            "issue_title": f"Monitor failure: {self.monitor.name} ({reason})",
-            "subtitle": f"{self.environment.name}",
-            "resource_id": None,
-            "evidence_data": {"Timestamp": last_checkin},
-            "evidence_display": [
-                {"name": "Failure reason", "value": reason, "important": True},
-                {"name": "Environment", "value": self.environment.name, "important": False},
-            ],
-            "detection_time": timezone.now(),
-            "id": uuid.uuid4().hex,
-            "project_id": self.monitor.project_id,
-            "fingerprint": [f"monitor-{str(self.monitor.guid)}-{reason}"],
-        }
-        failure_occurrence["type"], failure_occurrence["level"] = get_group_type_and_level(reason)
-
-        topic = settings.KAFKA_INGEST_OCCURRENCES
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-        cluster_options = get_kafka_producer_cluster_options(cluster_name)
-        producer = Producer(cluster_options)
-
-        producer.produce(
-            topic=topic,
-            key=None,
-            value=json.dumps(failure_occurrence, default=str),
         )
-        producer.flush()
+
         monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
