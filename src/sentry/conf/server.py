@@ -1427,6 +1427,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enable session replay click search banner rollout for eligible SDKs
+    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program
