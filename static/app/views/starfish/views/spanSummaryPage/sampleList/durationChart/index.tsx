@@ -72,7 +72,6 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
       chartColors={theme.charts.getColorPalette(4).slice(3, 6)}
       stacked
       isLineChart
-      disableXAxis
       definedAxisTicks={4}
     />
   );
