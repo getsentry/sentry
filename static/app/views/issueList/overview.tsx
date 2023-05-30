@@ -898,6 +898,7 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
+      ...this.props.location.query,
       referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,
