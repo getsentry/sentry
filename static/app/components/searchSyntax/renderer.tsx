@@ -36,11 +36,7 @@ function renderResult(result: ParseResult, cursor: number) {
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
-function renderToken(token: TokenResult<Token> | string, cursor: number) {
-  if (typeof token === 'string') {
-    return token;
-  }
-
+function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
     case Token.Spaces:
       return token.value;
