@@ -16,20 +16,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {renderHeadCell} from 'sentry/views/starfish/components/endpointTable';
 import {
   OverflowEllipsisTextContainer,
-  renderHeadCell,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 

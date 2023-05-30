@@ -4,13 +4,15 @@ import {
   isValidElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
+import * as qs from 'query-string';
 
-import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -19,7 +21,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -33,7 +34,12 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {
+  ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -41,7 +47,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -54,6 +59,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
 
@@ -64,8 +70,6 @@ type RouteProps = RouteComponentProps<RouterParams, {}>;
 
 type GroupDetailsProps = {
   children: React.ReactNode;
-  environments: string[];
-  isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
 };
@@ -75,11 +79,9 @@ type FetchGroupDetailsState = {
   errorType: Error;
   event: Event | null;
   eventError: boolean;
-  fetchData: () => Promise<void>;
   group: Group | null;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  project: Project | null;
   refetchData: () => void;
   refetchGroup: () => void;
 };
@@ -89,15 +91,18 @@ interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsS
   project: Project;
 }
 
-function getGroupQuery({
-  environments,
-}: Pick<GroupDetailsProps, 'environments'>): Record<string, string | string[]> {
-  // Note, we do not want to include the environment key at all if there are no environments
+function getGroupQuery({environments}: {environments: string[]}) {
   const query: Record<string, string | string[]> = {
-    ...(environments ? {environment: environments} : {}),
+    ...(!isEmpty(environments) ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
     collapse: ['release', 'tags'],
   };
+
+  return query;
+}
+
+function getEventQuery({environments}: {environments: string[]}) {
+  const query = !isEmpty(environments) ? {environment: environments} : {};
 
   return query;
 }
@@ -240,19 +245,6 @@ function useRefetchGroupForReprocessing({
   }, [hasReprocessingV2Feature, refetchGroup]);
 }
 
-function useFetchOnMount({fetchData}: Pick<FetchGroupDetailsState, 'fetchData'>) {
-  const api = useApi();
-  const organization = useOrganization();
-
-  useEffect(() => {
-    fetchData();
-
-    // Fetch environments early - used in GroupEventDetailsContainer
-    fetchOrganizationEnvironments(api, organization.slug);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
-
 function useEventApiQuery(
   eventID: string,
   queryKey: [string, {query: {environment?: string[]}}]
@@ -273,34 +265,69 @@ function useEventApiQuery(
   return isLatest ? latestEventQuery : otherEventQuery;
 }
 
-function useFetchGroupDetails({
-  isGlobalSelectionReady,
+type FetchGroupQueryParameters = {
+  environments: string[];
+  groupId: string;
+};
+
+function makeFetchGroupQueryKey({
+  groupId,
   environments,
-}: Pick<
-  GroupDetailsProps,
-  'isGlobalSelectionReady' | 'environments'
->): FetchGroupDetailsState {
+}: FetchGroupQueryParameters): ApiQueryKey {
+  return [`/issues/${groupId}/`, {query: getGroupQuery({environments})}];
+}
+
+/**
+ * This is a temporary measure to ensure that the GroupStore and query cache
+ * are both up to date while we are still using both in the issue details page.
+ * Once we remove all references to GroupStore in the issue details page we
+ * should remove this.
+ */
+function useSyncGroupStore(incomingEnvs: string[]) {
+  const queryClient = useQueryClient();
+
+  const environmentsRef = useRef<string[]>(incomingEnvs);
+  environmentsRef.current = incomingEnvs;
+
+  const unlisten = useRef<Function>();
+  if (unlisten.current === undefined) {
+    unlisten.current = GroupStore.listen(() => {
+      const [storeGroup] = GroupStore.getState();
+      const environments = environmentsRef.current;
+      if (defined(storeGroup)) {
+        setApiQueryData(
+          queryClient,
+          makeFetchGroupQueryKey({groupId: storeGroup.id, environments}),
+          storeGroup
+        );
+      }
+    }, undefined);
+  }
+
+  useEffect(() => {
+    return () => unlisten.current?.();
+  }, []);
+}
+
+function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
-  const location = useLocation();
-  const {projects} = useProjects();
-  const allGroups = useLegacyStore(GroupStore);
-  const group = allGroups.find(({id}) => id === params.groupId) as Group;
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [loadingGroup, setLoadingGroup] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
   const [errorType, setErrorType] = useState<Error | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
+  const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
+
+  const environments = useEnvironmentsFromUrl();
 
   const groupId = params.groupId;
   const eventId = params.eventId ?? 'latest';
 
   const eventUrl = `/issues/${groupId}/events/${eventId}/`;
 
-  const eventQuery: {environment?: string[]} = {};
+  const eventQuery: Record<string, string | string[]> = {collapse: ['fullRelease']};
   if (environments.length !== 0) {
     eventQuery.environment = environments;
   }
@@ -310,7 +337,28 @@ function useFetchGroupDetails({
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery(eventId, [eventUrl, {query: eventQuery}]);
+  } = useEventApiQuery(eventId, [eventUrl, {query: getEventQuery({environments})}]);
+
+  const {
+    data: groupData,
+    isLoading: loadingGroup,
+    isError: isGroupError,
+    error: groupError,
+    refetch: refetchGroupCall,
+  } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
+    staleTime: 30000,
+    cacheTime: 30000,
+  });
+
+  const group = groupData ?? null;
+
+  useEffect(() => {
+    if (defined(group)) {
+      GroupStore.loadInitialData([group]);
+    }
+  }, [groupId, group]);
+
+  useSyncGroupStore(environments);
 
   useEffect(() => {
     if (eventData) {
@@ -318,35 +366,10 @@ function useFetchGroupDetails({
     }
   }, [eventData]);
 
-  const fetchGroupReleases = useCallback(async () => {
-    const releases = await api.requestPromise(
-      `/issues/${params.groupId}/first-last-release/`
-    );
-    GroupStore.onPopulateReleases(params.groupId, releases);
-  }, [api, params.groupId]);
-
-  const handleError = useCallback((e: RequestError) => {
-    Sentry.captureException(e);
-
-    setLoadingGroup(false);
-    setErrorType(getFetchDataRequestErrorType(e?.status));
-    setError(true);
-  }, []);
-
-  const fetchData = useCallback(async () => {
-    // Need to wait for global selection store to be ready before making request
-    if (!isGlobalSelectionReady) {
-      return;
-    }
-
-    try {
-      const groupResponse = await api.requestPromise(`/issues/${params.groupId}/`, {
-        query: getGroupQuery({environments}),
-      });
-      fetchGroupReleases();
-
+  useEffect(() => {
+    if (group && event) {
       const reprocessingNewRoute = getReprocessingNewRoute({
-        group: groupResponse,
+        group,
         event,
         router,
         organization,
@@ -356,90 +379,80 @@ function useFetchGroupDetails({
         browserHistory.push(reprocessingNewRoute);
         return;
       }
+    }
+  }, [group, event, router, organization]);
 
-      const matchingProject = projects?.find(p => p.id === groupResponse.project.id);
+  useEffect(() => {
+    const matchingProjectSlug = group?.project?.slug;
 
-      if (!matchingProject) {
-        Sentry.withScope(scope => {
-          const projectIds = projects.map(item => item.id);
-          scope.setContext('missingProject', {
-            projectId: groupResponse.project.id,
-            availableProjects: projectIds,
-          });
-          Sentry.captureException(new Error('Project not found'));
-        });
-      } else {
-        markEventSeen(api, organization.slug, matchingProject.slug, params.groupId);
-        const locationQuery = {...location.query};
-        if (locationQuery.project === undefined && locationQuery._allp === undefined) {
-          // We use _allp as a temporary measure to know they came from the
-          // issue list page with no project selected (all projects included in
-          // filter).
-          //
-          // If it is not defined, we add the locked project id to the URL
-          // (this is because if someone navigates directly to an issue on
-          // single-project priveleges, then goes back - they were getting
-          // assigned to the first project).
-          //
-          // If it is defined, we do not so that our back button will bring us
-          // to the issue list page with no project selected instead of the
-          // locked project.
-          locationQuery.project = matchingProject.id;
-        }
-        // We delete _allp from the URL to keep the hack a bit cleaner, but
-        // this is not an ideal solution and will ultimately be replaced with
-        // something smarter.
-        delete locationQuery._allp;
-        browserHistory.replace({...window.location, query: locationQuery});
-      }
+    if (!matchingProjectSlug) {
+      return;
+    }
 
-      setProject(matchingProject || groupResponse.project);
-      setLoadingGroup(false);
-
-      GroupStore.loadInitialData([groupResponse]);
-    } catch (e) {
-      handleError(e);
+    if (!group.hasSeen) {
+      markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
     }
   }, [
     api,
-    environments,
-    fetchGroupReleases,
-    handleError,
-    isGlobalSelectionReady,
-    location,
-    organization,
-    params,
-    projects,
-    event,
-    router,
+    group?.hasSeen,
+    group?.project?.id,
+    group?.project?.slug,
+    organization.slug,
+    params.groupId,
   ]);
 
-  // Refetch when group is stale
+  const allProjectsFlag = router.location.query._allp;
+
   useEffect(() => {
-    if (group) {
-      // TODO(ts) This needs a better approach. issueActions is splicing attributes onto
-      // group objects to cheat here.
-      if ((group as Group & {stale?: boolean}).stale) {
-        fetchData();
-        return;
-      }
+    const locationQuery = qs.parse(window.location.search) || {};
+
+    // We use _allp as a temporary measure to know they came from the
+    // issue list page with no project selected (all projects included in
+    // filter).
+    //
+    // If it is not defined, we add the locked project id to the URL
+    // (this is because if someone navigates directly to an issue on
+    // single-project priveleges, then goes back - they were getting
+    // assigned to the first project).
+    //
+    // If it is defined, we do not so that our back button will bring us
+    // to the issue list page with no project selected instead of the
+    // locked project.
+    if (
+      locationQuery.project === undefined &&
+      !allProjectsFlag &&
+      !allProjectChanged &&
+      group?.project.id
+    ) {
+      locationQuery.project = group?.project.id;
+      browserHistory.replace({...window.location, query: locationQuery});
     }
-  }, [fetchData, group]);
 
-  useTrackView({group, event, project});
+    if (allProjectsFlag && !allProjectChanged) {
+      delete locationQuery.project;
+      // We delete _allp from the URL to keep the hack a bit cleaner, but
+      // this is not an ideal solution and will ultimately be replaced with
+      // something smarter.
+      delete locationQuery._allp;
+      browserHistory.replace({...window.location, query: locationQuery});
+      setAllProjectChanged(true);
+    }
+  }, [allProjectsFlag, group?.project.id, allProjectChanged]);
 
-  const refetchData = useCallback(() => {
-    // Set initial state
-    setLoadingGroup(true);
-    setError(false);
-    setErrorType(null);
+  const handleError = useCallback((e: RequestError) => {
+    Sentry.captureException(e);
 
-    // refetchEvent comes from useApiQuery since event and group data are separately fetched
-    refetchEvent();
-    fetchData();
-  }, [fetchData, refetchEvent]);
+    setErrorType(getFetchDataRequestErrorType(e?.status));
+    setError(true);
+  }, []);
 
-  const refetchGroup = useCallback(async () => {
+  useEffect(() => {
+    if (isGroupError) {
+      handleError(groupError);
+    }
+  }, [isGroupError, groupError, handleError]);
+
+  const refetchGroup = useCallback(() => {
     if (
       group?.status !== ReprocessingStatus.REPROCESSING ||
       loadingGroup ||
@@ -448,44 +461,29 @@ function useFetchGroupDetails({
       return;
     }
 
-    setLoadingGroup(true);
+    refetchGroupCall();
+  }, [group, loadingGroup, loadingEvent, refetchGroupCall]);
 
-    try {
-      const updatedGroup = await api.requestPromise(`/issues/${params.groupId}/`, {
-        query: getGroupQuery({environments}),
-      });
+  const refetchData = useCallback(() => {
+    // Set initial state
+    setError(false);
+    setErrorType(null);
 
-      const reprocessingNewRoute = getReprocessingNewRoute({
-        group: updatedGroup,
-        event,
-        organization,
-        router,
-      });
+    // refetchEvent comes from useApiQuery since event and group data are separately fetched
+    refetchEvent();
+    refetchGroup();
+  }, [refetchGroup, refetchEvent]);
 
-      if (reprocessingNewRoute) {
-        browserHistory.push(reprocessingNewRoute);
+  // Refetch when group is stale
+  useEffect(() => {
+    if (group) {
+      if ((group as Group & {stale?: boolean}).stale) {
+        refetchGroup();
         return;
       }
-
-      setLoadingGroup(false);
-      GroupStore.loadInitialData([updatedGroup]);
-    } catch (e) {
-      handleError(e);
     }
-  }, [
-    api,
-    environments,
-    group?.status,
-    handleError,
-    loadingEvent,
-    loadingGroup,
-    params.groupId,
-    event,
-    organization,
-    router,
-  ]);
+  }, [refetchGroup, group]);
 
-  useFetchOnMount({fetchData});
   useRefetchGroupForReprocessing({refetchGroup});
 
   useEffect(() => {
@@ -495,10 +493,8 @@ function useFetchGroupDetails({
   }, []);
 
   return {
-    project,
     loadingGroup,
     loadingEvent,
-    fetchData,
     group,
     event,
     errorType,
@@ -516,7 +512,7 @@ function useTrackView({
 }: {
   event: Event | null;
   group: Group | null;
-  project: Project | null;
+  project?: Project;
 }) {
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
@@ -619,7 +615,6 @@ function GroupDetailsContentError({
 }
 
 function GroupDetailsContent({
-  environments,
   children,
   group,
   project,
@@ -633,6 +628,10 @@ function GroupDetailsContent({
 
   const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, router, organization});
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+
+  const environments = useEnvironmentsFromUrl();
+
+  useTrackView({group, event, project});
 
   useEffect(() => {
     if (
@@ -684,16 +683,28 @@ function GroupDetailsContent({
 }
 
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
+  const projectSlug = props.group?.project?.slug;
   const {
     projects,
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
-  } = useProjects({slugs: props.project?.slug ? [props.project.slug] : []});
+  } = useProjects({slugs: projectSlug ? [projectSlug] : []});
 
-  const project =
-    (props.project?.slug
-      ? projects.find(({slug}) => slug === props.project?.slug)
-      : undefined) ?? projects[0];
+  const project = projects.find(({slug}) => slug === projectSlug);
+  const projectWithFallback = project ?? projects[0];
+
+  useEffect(() => {
+    if (props.group && projectsLoaded && !project) {
+      Sentry.withScope(scope => {
+        const projectIds = projects.map(item => item.id);
+        scope.setContext('missingProject', {
+          projectId: props.group?.project.id,
+          availableProjects: projectIds,
+        });
+        Sentry.captureException(new Error('Project not found'));
+      });
+    }
+  }, [props.group, project, projects, projectsLoaded]);
 
   if (props.error) {
     return (
@@ -705,52 +716,32 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
-  if (!projectsLoaded || !project || !props.group) {
+  if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
 
-  return <GroupDetailsContent {...props} project={project} group={props.group} />;
+  return (
+    <GroupDetailsContent {...props} project={projectWithFallback} group={props.group} />
+  );
 }
 
 function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
-  const location = useLocation();
   const router = useRouter();
 
-  const {fetchData, project, group, ...fetchGroupDetailsProps} =
-    useFetchGroupDetails(props);
+  const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
 
-  const previousPathname = usePrevious(location.pathname);
-  const previousEventId = usePrevious(router.params.eventId);
-  const previousIsGlobalSelectionReady = usePrevious(props.isGlobalSelectionReady);
+  const environments = useEnvironmentsFromUrl();
 
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
-      environment: props.environments,
+      environment: environments,
     },
     // Don't want this query to take precedence over the main requests
-    {enabled: props.isGlobalSelectionReady && defined(group)}
+    {enabled: defined(group)}
   );
   const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
-
-  useEffect(() => {
-    const globalSelectionReadyChanged =
-      previousIsGlobalSelectionReady !== props.isGlobalSelectionReady;
-
-    if (globalSelectionReadyChanged || location.pathname !== previousPathname) {
-      fetchData();
-    }
-  }, [
-    fetchData,
-    group,
-    location.pathname,
-    previousEventId,
-    previousIsGlobalSelectionReady,
-    previousPathname,
-    props.isGlobalSelectionReady,
-    router.params.eventId,
-  ]);
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
@@ -762,28 +753,30 @@ function GroupDetails(props: GroupDetailsProps) {
     const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
-    const eventDetails = `${organization.slug} - ${group.project.slug}`;
+    const eventDetails = `${organization.slug} — ${group.project.slug}`;
 
     if (title && message) {
-      return `${title}: ${message} - ${eventDetails}`;
+      return `${title}: ${message} — ${eventDetails}`;
     }
 
-    return `${title || message || defaultTitle} - ${eventDetails}`;
+    return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
   return (
     <Fragment>
-      {isSampleError && project && (
-        <SampleEventAlert project={project} organization={organization} />
+      {isSampleError && group && (
+        <SampleEventAlert project={group.project} organization={organization} />
       )}
       <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
-        <PageFiltersContainer skipLoadLastUsed forceProject={project} shouldForceProject>
+        <PageFiltersContainer
+          skipLoadLastUsed
+          forceProject={group?.project}
+          shouldForceProject
+        >
           <GroupDetailsPageContent
             {...props}
             {...{
               group,
-              project,
-              fetchData,
               ...fetchGroupDetailsProps,
             }}
           />

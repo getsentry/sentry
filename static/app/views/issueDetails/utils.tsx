@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
@@ -5,6 +6,7 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export function markEventSeen(
   api: Client,
@@ -154,3 +156,14 @@ export const useFetchIssueTagsForDetailsPage = (
     {enabled}
   );
 };
+
+export function useEnvironmentsFromUrl(): string[] {
+  const location = useLocation();
+  const envs = location.query.environment;
+
+  const envsArray = useMemo(() => {
+    return typeof envs === 'string' ? [envs] : envs ?? [];
+  }, [envs]);
+
+  return envsArray;
+}

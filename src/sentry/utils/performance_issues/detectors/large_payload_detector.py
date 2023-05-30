@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+from datetime import timedelta
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -10,10 +13,17 @@ from ..base import (
     PerformanceDetector,
     fingerprint_http_spans,
     get_notification_attachment_body,
+    get_span_duration,
     get_span_evidence_value,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+# Matches a file extension, ignoring query parameters at the end
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+EXTENSION_ALLOW_LIST = ("JSON",)
+
+MINIMUM_SPAN_DURATION = timedelta(milliseconds=100)  # ms
 
 
 class LargeHTTPPayloadDetector(PerformanceDetector):
@@ -91,16 +101,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not span_id or not op or not hash or not description:
             return False
 
-        normalized_description = description.strip().upper()
-
-        if not normalized_description.startswith(
-            ("GET", "POST", "DELETE", "PUT", "PATCH")
-        ):  # Just using all methods to see if anything interesting pops up
+        # This detector is only available for HTTP spans
+        if not op.startswith("http"):
             return False
 
-        if normalized_description.endswith(
-            (".JS", ".CSS", ".SVG", ".PNG", ".MP3", ".JPG", ".JPEG")
-        ):
+        if get_span_duration(span) < MINIMUM_SPAN_DURATION:
+            return False
+
+        normalized_description = description.strip().upper()
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False
 
         if any([x in description for x in ["_next/static/", "_next/data/"]]):

@@ -360,6 +360,8 @@ register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 # Use a fraction of Symbolicator Source Maps processing events for A/B testing.
 register("symbolicator.sourcemaps-processing-ab-test", default=0.0)
+# Gradually migrate from file_id to download_id
+register("symbolicator.sourcemap-lookup-id-rate", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -708,3 +710,5 @@ register("hybrid_cloud.outbox_rate", default=0.0)
 register("sourcemaps.enable-artifact-bundles", default=0.0)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1)
+# Decides whether artifact bundles asynchronous renewal is enabled.
+register("sourcemaps.artifact-bundles.enable-renewal", default=0.0)

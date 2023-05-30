@@ -115,6 +115,8 @@ const CloseButtonWrapper = styled('div')`
   height: 100%;
   padding: ${space(1)};
   z-index: ${p => p.theme.zIndex.initial};
+  display: flex;
+  align-items: center;
 `;
 
 const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
