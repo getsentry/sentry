@@ -98,10 +98,8 @@ def cluster_projects(projects: Sequence[Project]) -> None:
 @instrumented_task(
     name="sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
     queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
-    time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,
+    default_retry_delay=5,  # copied from transaction name clusterer
+    max_retries=5,  # copied from transaction name clusterer
 )  # type: ignore
 def spawn_span_cluster_projects(**kwargs: Any) -> None:
     """Look for existing span description sets in redis and spawn clusterers for each"""
