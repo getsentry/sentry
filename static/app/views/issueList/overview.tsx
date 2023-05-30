@@ -147,6 +147,7 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
 type BetterPriorityEndpointParams = Partial<EndpointParams> & {
   eventHalflifeHours?: number;
   hasStacktrace?: number;
+  issueHalflifeHours?: number;
   logLevel?: number;
   norm?: boolean;
   v2?: boolean;
@@ -868,6 +869,7 @@ class IssueListOverview extends Component<Props, State> {
         logLevel: 0,
         hasStacktrace: 0,
         eventHalflifeHours: 4,
+        issueHalflifeHours: 24 * 7,
         v2: false,
         norm: false,
       });
