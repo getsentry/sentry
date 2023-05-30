@@ -1,7 +1,7 @@
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 
-def _generate_cache_key(org_id: int) -> str:
+def generate_prioritise_by_project_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:prioritise_projects"
 
 
@@ -13,7 +13,7 @@ def get_prioritise_by_project_sample_rate(
     celery task or fallback to None
     """
     redis_client = get_redis_client_for_ds()
-    cache_key = _generate_cache_key(org_id=org_id)
+    cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
 
     try:
         return float(redis_client.hget(cache_key, project_id))

@@ -26,7 +26,7 @@ from sentry.dynamic_sampling.rules.base import (
     is_sliding_window_org_enabled,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    _generate_cache_key,
+    generate_prioritise_by_project_cache_key,
     get_prioritise_by_project_sample_rate,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
@@ -224,18 +224,18 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
         log_sample_rate_source(
-            org_id, None, "prioritize_transactions", "sliding_window", sample_rate
+            org_id, None, "prioritise_by_transaction", "sliding_window", sample_rate
         )
     elif organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_prioritise_by_project_sample_rate(
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
         log_sample_rate_source(
-            org_id, None, "prioritize_transactions", "sliding_window_org", sample_rate
+            org_id, None, "prioritise_by_transaction", "sliding_window_org", sample_rate
         )
     else:
         log_sample_rate_source(
-            org_id, None, "prioritize_transactions", "get_blended_sample_rate", sample_rate
+            org_id, None, "prioritise_by_transaction", "get_blended_sample_rate", sample_rate
         )
 
     if sample_rate is None or sample_rate == 1.0:
@@ -326,12 +326,12 @@ def adjust_sample_rates(
     if organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
         log_sample_rate_source(
-            org_id, None, "prioritize_projects", "sliding_window_org", sample_rate
+            org_id, None, "prioritise_by_project", "sliding_window_org", sample_rate
         )
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
         log_sample_rate_source(
-            org_id, None, "prioritize_projects", "get_blended_sample_rate", sample_rate
+            org_id, None, "prioritise_by_project", "get_blended_sample_rate", sample_rate
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
@@ -371,7 +371,7 @@ def adjust_sample_rates(
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
         for ds_project in ds_projects:
-            cache_key = _generate_cache_key(org_id=org_id)
+            cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
             old_sample_rate = sample_rate_to_float(redis_client.hget(cache_key, ds_project.id))
 
@@ -412,9 +412,15 @@ def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]
             org_ids=[org_id], window_size=window_size
         )
         if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            return compute_sliding_window_sample_rate(
-                org_id, None, org_total_root_count, window_size
-            )
+            try:
+                # We want to compute the sliding window sample rate by considering a window of time.
+                # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
+                return compute_sliding_window_sample_rate(
+                    org_id, None, org_total_root_count, window_size
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                return None
 
     return None
 
