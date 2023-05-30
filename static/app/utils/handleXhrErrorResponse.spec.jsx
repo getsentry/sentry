@@ -16,7 +16,7 @@ describe('handleXhrErrorResponse', function () {
   it('does nothing if we have invalid response', function () {
     handleXhrErrorResponse('', null);
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    handleXhrErrorResponse('', {});
+    handleXhrErrorResponse('', undefined);
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
