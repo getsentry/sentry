@@ -101,7 +101,10 @@ export default function SpansView(props: Props) {
       </FilterOptionsContainer>
 
       <PaddedContainer>
-        <SpanTimeCharts queryConditions={queryConditions} />
+        <SpanTimeCharts
+          moduleName={props.moduleName || ModuleName.ALL}
+          appliedFilters={appliedFilters}
+        />
       </PaddedContainer>
 
       <PaddedContainer>

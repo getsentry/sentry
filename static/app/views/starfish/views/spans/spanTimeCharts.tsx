@@ -1,15 +1,18 @@
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {DateTimeObject} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {PageFilters} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {
   datetimeToClickhouseFilterTimestamps,
   PERIOD_REGEX,
@@ -18,25 +21,34 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 type Props = {
-  queryConditions: string[];
+  appliedFilters: AppliedFilters;
+  moduleName: ModuleName;
 };
 
-export function SpanTimeCharts({queryConditions}: Props) {
+type AppliedFilters = {
+  action: string;
+  domain: string;
+  group_id: string;
+  span_operation: string;
+};
+
+export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
   const location = useLocation();
 
-  const pageFilter = usePageFilters();
-  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
+  const {selection} = usePageFilters();
+  const [_, num, unit] = selection.datetime.period?.match(PERIOD_REGEX) ?? [];
   const startTime =
     num && unit
       ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(pageFilter.selection.datetime.start);
-  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
+      : moment(selection.datetime.start);
+  const endTime = moment(selection.datetime.end ?? undefined);
+
+  const query = getQuery(moduleName, selection, appliedFilters);
+  const eventView = getEventView(moduleName, selection, appliedFilters);
 
   const {isLoading, data} = useSpansQuery({
-    queryString: `${getSpanTotalTimeChartQuery(
-      pageFilter.selection.datetime,
-      queryConditions
-    )}&referrer=span-time-charts`,
+    eventView,
+    queryString: `${query}&referrer=span-time-charts`,
     initialData: [],
   });
 
@@ -52,7 +64,7 @@ export function SpanTimeCharts({queryConditions}: Props) {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum.spm,
+          value: datum['spm()'],
           name: datum.interval,
         })),
       },
@@ -69,7 +81,7 @@ export function SpanTimeCharts({queryConditions}: Props) {
       {
         seriesName: label ?? 'p50()',
         data: groupData.map(datum => ({
-          value: datum.p50,
+          value: datum['p50(span.duration)'],
           name: datum.interval,
         })),
       },
@@ -139,26 +151,87 @@ export function SpanTimeCharts({queryConditions}: Props) {
   );
 }
 
-export const getSpanTotalTimeChartQuery = (
-  datetime: DateTimeObject,
-  conditions: string[] = []
+const getQuery = (
+  moduleName: ModuleName,
+  pageFilters: PageFilters,
+  appliedFilters: AppliedFilters
 ) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  const validConditions = conditions.filter(Boolean);
+  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
+    pageFilters.datetime
+  );
+
+  const conditions = buildSQLQueryConditions(moduleName, appliedFilters);
 
   return `SELECT
-    divide(count(), multiply(12, 60)) as spm,
-    sum(exclusive_time) AS total_time,
-    quantile(0.50)(exclusive_time) AS p50,
+    divide(count(), multiply(12, 60)) as "spm()",
+    quantile(0.50)(exclusive_time) AS "p50(span.duration)",
     toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    ${validConditions.length > 0 ? 'AND' : ''}
-    ${validConditions.join(' AND ')}
+    ${conditions ? `AND ${conditions}` : ''}
     GROUP BY interval
     ORDER BY interval ASC
   `;
+};
+
+const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
+
+const buildSQLQueryConditions = (
+  moduleName: ModuleName,
+  appliedFilters: AppliedFilters
+) => {
+  const result = Object.keys(appliedFilters)
+    .filter(key => SPAN_FILTER_KEYS.includes(key))
+    .filter(key => Boolean(appliedFilters[key]))
+    .map(key => {
+      return `${key} = '${appliedFilters[key]}'`;
+    });
+
+  if (moduleName !== ModuleName.ALL) {
+    result.push(`module = '${moduleName}'`);
+  }
+
+  return result.join(' ');
+};
+
+const getEventView = (
+  moduleName: ModuleName,
+  pageFilters: PageFilters,
+  appliedFilters: AppliedFilters
+) => {
+  const query = buildDiscoverQueryConditions(moduleName, appliedFilters);
+
+  return EventView.fromSavedQuery({
+    name: '',
+    fields: [''],
+    yAxis: ['spm()', 'p50(span.duration)'],
+    query,
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    start: pageFilters.datetime.start ?? undefined,
+    end: pageFilters.datetime.end ?? undefined,
+    range: pageFilters.datetime.period ?? undefined,
+    projects: [1],
+    version: 2,
+  });
+};
+
+const buildDiscoverQueryConditions = (
+  moduleName: ModuleName,
+  appliedFilters: AppliedFilters
+) => {
+  const result = Object.keys(appliedFilters)
+    .filter(key => SPAN_FILTER_KEYS.includes(key))
+    .filter(key => Boolean(appliedFilters[key]))
+    .map(key => {
+      return `${key}:${appliedFilters[key]}`;
+    });
+
+  if (moduleName !== ModuleName.ALL) {
+    result.push(`span.module:'${moduleName}'`);
+  }
+
+  return result.join(' ');
 };
 
 const ChartsContainer = styled('div')`

@@ -212,7 +212,7 @@ export interface NewQuery {
   createdBy?: User;
   dataset?: DiscoverDatasets;
   display?: string;
-  end?: string;
+  end?: string | Date;
   environment?: Readonly<string[]>;
   expired?: boolean;
   id?: string;
@@ -220,7 +220,7 @@ export interface NewQuery {
   orderby?: string;
   query?: string;
   range?: string;
-  start?: string;
+  start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
   utc?: boolean | string;
