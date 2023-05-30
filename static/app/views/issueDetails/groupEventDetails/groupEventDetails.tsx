@@ -145,6 +145,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             <ArchivedBox
               substatus={group.substatus}
               statusDetails={group.statusDetails}
+              organization={organization}
             />
           ) : (
             <MutedBox statusDetails={group.statusDetails} />
