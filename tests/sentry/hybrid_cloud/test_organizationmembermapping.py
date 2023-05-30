@@ -205,26 +205,30 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
 
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
-        om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert not om.user_is_active
 
     def test_save_user_pushes_is_active(self):
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
-        om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert om.user_is_active
 
         with outbox_runner():
             self.user.is_active = False
             self.user.save()
 
-        om.refresh_from_db()
+        with exempt_from_silo_limits():
+            om.refresh_from_db()
         assert not om.user_is_active
 
     def test_update_user_pushes_is_active(self):
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
-        om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert om.user_is_active
 
         with outbox_runner():
