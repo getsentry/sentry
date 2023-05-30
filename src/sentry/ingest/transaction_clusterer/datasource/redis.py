@@ -161,9 +161,6 @@ def record_span_descriptions(
     if not features.has("projects:span-metrics-extraction", project):
         return
 
-    client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-
     spans = event_data.get("spans", [])
     for span in spans:
         description = _get_span_description_to_store(span)
@@ -171,7 +168,7 @@ def record_span_descriptions(
             continue
         url_path = _get_url_path_from_description(description)
         if url_path:
-            safe_execute(_store_span_description, client, redis_key, project, url_path)
+            safe_execute(_store_span_description, project, url_path)
 
 
 def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
@@ -194,6 +191,8 @@ def _get_url_path_from_description(description: str) -> Optional[str]:
     return urlparse(url).path
 
 
-def _store_span_description(client: Any, key: str, project: Project, span_description: str) -> None:
+def _store_span_description(project: Project, span_description: str) -> None:
     with sentry_sdk.start_span(op="clusterer.store_span_description"):
-        add_to_set(client, [key], [span_description, MAX_SET_SIZE, SET_TTL])
+        client = get_redis_client()
+        redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
+        add_to_set(client, [redis_key], [span_description, MAX_SET_SIZE, SET_TTL])
