@@ -46,6 +46,7 @@ export const useSpanTransactionMetrics = (
       'span-transactions-metrics',
       span?.group_id,
       transactions?.join(',') || '',
+      dateFilters,
     ],
     queryFn: () =>
       fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),

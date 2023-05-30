@@ -153,7 +153,7 @@ export const useQuerySpansInTransaction = (options: {
   `;
 
   return useQuery({
-    queryKey: ['spansInTransaction', groupId],
+    queryKey: ['spansInTransaction', groupId, dateFilters],
     queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],
