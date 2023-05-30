@@ -2,23 +2,24 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
-import GridEditable, {GridColumnHeader as Column} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader as Column,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetrics';
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanTransactions';
-
-type Props = {
-  span: Span;
-};
 
 type Metric = {
   p50: number;
@@ -32,8 +33,15 @@ type Row = {
   transaction: string;
 };
 
-export function SpanTransactionsTable({span}: Props) {
+type Props = {
+  span: Span;
+  onClickTransaction?: (row: Row) => void;
+  openSidebar?: boolean;
+};
+
+export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
   const location = useLocation();
+  const {data: applicationMetrics} = useApplicationMetrics();
 
   const {data: spanTransactions, isLoading} = useSpanTransactions(span);
   const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
@@ -48,6 +56,10 @@ export function SpanTransactionsTable({span}: Props) {
   const spanTransactionsWithMetrics = spanTransactions.map(row => {
     return {
       ...row,
+      app_impact: formatPercentage(
+        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
+          applicationMetrics.total_time
+      ),
       metrics: spanTransactionMetrics[row.transaction],
       metricSeries: spanTransactionMetricsSeries[row.transaction],
     };
@@ -58,7 +70,15 @@ export function SpanTransactionsTable({span}: Props) {
   };
 
   const renderBodyCell = (column, row: Row) => {
-    return <BodyCell span={span} column={column} row={row} />;
+    return (
+      <BodyCell
+        span={span}
+        column={column}
+        row={row}
+        openSidebar={openSidebar}
+        onClickTransactionName={onClickTransaction}
+      />
+    );
   };
 
   return (
@@ -76,19 +96,33 @@ export function SpanTransactionsTable({span}: Props) {
   );
 }
 
-type CellProps = {column: Column; row: Row; span: Span};
+type CellProps = {
+  column: Column;
+  row: Row;
+  span: Span;
+  onClickTransactionName?: (row: Row) => void;
+  openSidebar?: boolean;
+};
 
-function BodyCell({span, column, row}: CellProps) {
+function BodyCell({span, column, row, openSidebar, onClickTransactionName}: CellProps) {
   if (column.key === 'transaction') {
-    return <TransactionCell span={span} row={row} column={column} />;
+    return (
+      <TransactionCell
+        span={span}
+        row={row}
+        column={column}
+        openSidebar={openSidebar}
+        onClickTransactionName={onClickTransactionName}
+      />
+    );
   }
 
-  if (column.key === 'p50') {
+  if (column.key === 'p50(transaction.duration)') {
     return <P50Cell span={span} row={row} column={column} />;
   }
 
-  if (column.key === 'spm') {
-    return <SPMCell span={span} row={row} column={column} />;
+  if (column.key === 'epm()') {
+    return <EPMCell span={span} row={row} column={column} />;
   }
 
   return <span>{row[column.key]}</span>;
@@ -98,35 +132,29 @@ function TransactionCell({span, column, row}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/span-summary/${encodeURIComponent(span.group_id)}?${qs.stringify({
           transaction: row.transaction,
         })}`}
       >
-        <Truncate value={row[column.key]} maxLength={50} />
+        <Truncate value={row[column.key]} maxLength={75} />
       </Link>
-
-      <span>{row.count} spans</span>
     </Fragment>
   );
 }
 
 function P50Cell({row}: CellProps) {
   const theme = useTheme();
+  const p50 = row.metrics?.p50;
+  const p50Series = row.metricSeries?.p50;
 
   return (
     <Fragment>
-      {row.metricSeries?.p50 ? (
+      {p50Series ? (
         <Sparkline
-          color={CHART_PALETTE[3][0]}
-          series={row.metricSeries.p50}
+          color={DURATION_COLOR}
+          series={p50Series}
           markLine={
-            row.metrics?.p50
-              ? generateHorizontalLine(
-                  `${row.metrics.p50.toFixed(2)}`,
-                  row.metrics.p50,
-                  theme
-                )
-              : undefined
+            p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
           }
         />
       ) : null}
@@ -134,23 +162,19 @@ function P50Cell({row}: CellProps) {
   );
 }
 
-function SPMCell({row}: CellProps) {
+function EPMCell({row}: CellProps) {
   const theme = useTheme();
+  const epm = row.metrics?.spm;
+  const epmSeries = row.metricSeries?.spm;
 
   return (
     <Fragment>
-      {row.metricSeries?.spm ? (
+      {epmSeries ? (
         <Sparkline
-          color={CHART_PALETTE[3][1]}
-          series={row.metricSeries.spm}
+          color={THROUGHPUT_COLOR}
+          series={epmSeries}
           markLine={
-            row.metrics?.spm
-              ? generateHorizontalLine(
-                  `${row.metrics.spm.toFixed(2)}`,
-                  row.metrics.spm,
-                  theme
-                )
-              : undefined
+            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
           }
         />
       ) : null}
@@ -161,17 +185,22 @@ function SPMCell({row}: CellProps) {
 const COLUMN_ORDER = [
   {
     key: 'transaction',
-    name: 'Transaction',
-    width: -1,
+    name: 'In Endpoint',
+    width: 500,
   },
   {
-    key: 'spm',
-    name: 'SPM',
-    width: -1,
+    key: 'epm()',
+    name: 'Throughput (TPM)',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50',
-    name: 'p50',
-    width: -1,
+    key: 'p50(transaction.duration)',
+    name: 'Duration (P50)',
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'app_impact',
+    name: 'App Impact',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];

@@ -1,7 +1,10 @@
 import keyBy from 'lodash/keyBy';
 
 import {useQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 const INTERVAL = 12;
@@ -16,8 +19,25 @@ export const useSpanTransactionMetrics = (
   transactions?: string[],
   referrer = 'span-transaction-metrics'
 ) => {
+  const pageFilters = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilters);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+
   const query =
-    span && transactions && transactions.length > 0 ? getQuery(span, transactions) : '';
+    span && transactions && transactions.length > 0
+      ? `
+    SELECT
+      transaction,
+      quantile(0.5)(exclusive_time) as p50,
+      sum(exclusive_time) as "sum(span.self_time)",
+      divide(count(), multiply(${INTERVAL}, 60)) as spm
+    FROM spans_experimental_starfish
+    WHERE group_id = '${span.group_id}'
+    ${dateFilters}
+    AND transaction IN ('${transactions.join("','")}')
+    GROUP BY transaction
+ `
+      : '';
 
   const {isLoading, error, data} = useQuery<Metric[]>({
     queryKey: [
@@ -35,17 +55,4 @@ export const useSpanTransactionMetrics = (
   const parsedData = keyBy(data, 'transaction');
 
   return {isLoading, error, data: parsedData};
-};
-
-const getQuery = (span: Span, transactions: string[]) => {
-  return `
-    SELECT
-      transaction,
-      quantile(0.5)(exclusive_time) as p50,
-      divide(count(), multiply(${INTERVAL}, 60)) as spm
-    FROM spans_experimental_starfish
-    WHERE group_id = '${span.group_id}'
-    AND transaction IN ('${transactions.join("','")}')
-    GROUP BY transaction
- `;
 };
