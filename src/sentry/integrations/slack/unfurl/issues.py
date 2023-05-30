@@ -60,7 +60,7 @@ def unfurl_issues(
                 else None
             )
             out[link.url] = build_group_attachment(
-                group_by_id[issue_id], event=event, link_to_event=True
+                group_by_id[issue_id], event=event, link_to_event=True, is_unfurl=True
             )
     return out
 

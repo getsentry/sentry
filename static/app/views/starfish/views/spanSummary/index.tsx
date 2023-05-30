@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,11 +7,9 @@ import keyBy from 'lodash/keyBy';
 import moment from 'moment';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DateTime from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,22 +19,16 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import Chart from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import {
-  FlexRowContainer,
-  FlexRowItem,
-  highlightSql,
-} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {getDateFilters, PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
 import Sidebar, {
   getTransactionBasedSeries,
   queryDataToChartData,
-  SidebarChart,
 } from 'sentry/views/starfish/views/spanSummary/sidebar';
 
 import {
@@ -44,34 +36,6 @@ import {
   useQueryGetSpanSeriesData,
   useQuerySpansInTransaction,
 } from './queries';
-
-const COLUMN_ORDER = [
-  {
-    key: 'transaction_id',
-    name: 'Event ID',
-    width: 200,
-  },
-  {
-    key: 'user',
-    name: 'User',
-    width: 200,
-  },
-  {
-    key: 'timestamp',
-    name: 'Timestamp',
-    width: 300,
-  },
-  {
-    key: 'duration',
-    name: 'Span Duration',
-    width: 200,
-  },
-  {
-    key: 'p50_comparison',
-    name: 'Compared to P50',
-    width: 200,
-  },
-];
 
 type SpanTableRow = {
   exclusive_time: number;
@@ -109,7 +73,6 @@ export default function SpanSummary({location, params}: Props) {
   });
   const pageFilter = usePageFilters();
   const theme = useTheme();
-  const chartColors = theme.charts.getColorPalette(2);
 
   const dateFilter = getDateFilters(pageFilter);
 
@@ -146,6 +109,7 @@ export default function SpanSummary({location, params}: Props) {
   const spanDescription = spanSampleData?.[0]?.description;
   const spanDomain = spanSampleData?.[0]?.domain;
   const spanGroupOperation = data?.[0]?.span_operation;
+  const spanAction = data?.[0]?.action;
   const module = data?.[0]?.module;
   const formattedDescription = data?.[0]?.formatted_desc;
   const action = data?.[0]?.action;
@@ -168,14 +132,15 @@ export default function SpanSummary({location, params}: Props) {
   const {isLoading: isTransactionAggregateDataLoading, data: transactionAggregateData} =
     useQueryTransactionByTPMAndDuration([transactionName], 12);
 
-  const {p50TransactionSeries, p95TransactionSeries, throughputTransactionSeries} =
-    getTransactionBasedSeries(transactionAggregateData, dateFilter);
-
-  const [p50Series, p95Series, , spmSeries, _errorCountSeries] = queryDataToChartData(
-    seriesData
-  ).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hours'), startTime, endTime)
+  const {p50TransactionSeries, throughputTransactionSeries} = getTransactionBasedSeries(
+    transactionAggregateData,
+    dateFilter
   );
+  const {
+    p50: p50Series,
+    spm: spmSeries,
+    failure_count: _errorCountSeries,
+  } = queryDataToChartData(seriesData, startTime, endTime, {lineStyle: {type: 'dotted'}});
 
   const {data: transactionData, isLoading: isTransactionDataLoading} = useApiQuery<{
     data: {data: Transaction[]};
@@ -220,61 +185,6 @@ export default function SpanSummary({location, params}: Props) {
     value: spanDuration,
   }));
 
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p50_comparison') {
-      return (
-        <TextAlignRight>
-          <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
-        </TextAlignRight>
-      );
-    }
-
-    return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
-  }
-
-  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    if (column.key === 'transaction_id') {
-      return (
-        <Link
-          to={`/performance/${row['project.name']}:${
-            row.transaction_id
-          }#span-${row.span_id.slice(19).replace('-', '')}`}
-        >
-          {row.transaction_id.slice(0, 8)}
-        </Link>
-      );
-    }
-
-    if (column.key === 'duration') {
-      return (
-        <SpanDurationBar
-          spanOp={row.spanOp}
-          spanDuration={row.spanDuration}
-          transactionDuration={row.transactionDuration}
-        />
-      );
-    }
-
-    if (column.key === 'p50_comparison') {
-      const diff = row.spanDuration - p50;
-
-      if (Math.floor(row.spanDuration) === Math.floor(p50)) {
-        return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
-      }
-
-      const labelString =
-        diff > 0 ? `+${diff.toFixed(2)}ms above` : `${diff.toFixed(2)}ms below`;
-
-      return <ComparisonLabel value={diff}>{labelString}</ComparisonLabel>;
-    }
-
-    if (column.key === 'timestamp') {
-      return <DateTime date={row.timestamp} year timeZone seconds />;
-    }
-
-    return <span>{row[column.key]}</span>;
-  }
-
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -285,142 +195,137 @@ export default function SpanSummary({location, params}: Props) {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <PageErrorAlert />
-            <FilterOptionsContainer>
-              <DatePageFilter alignDropdown="left" />
-              <FilterOptionsSubContainer>
-                <ToggleLabel active={state.plotSamples}>
-                  {t('Plot samples on charts')}
-                </ToggleLabel>
-                <SwitchButton
-                  isActive={state.plotSamples}
-                  toggle={() => {
-                    setState({...state, plotSamples: !state.plotSamples});
-                  }}
-                />
-              </FilterOptionsSubContainer>
-            </FilterOptionsContainer>
-            <FlexContainer>
-              <MainSpanSummaryContainer>
-                {isLoading ? (
-                  <span>LOADING</span>
-                ) : (
-                  <div>
-                    <h3>{t('Info')}</h3>
-                    <SpanGroupKeyValueList
-                      data={data}
-                      spanGroupOperation={spanGroupOperation}
-                      spanDescription={spanDescription}
-                      formattedDescription={formattedDescription}
-                      spanDomain={spanDomain}
-                      action={action}
-                      transactionName={transactionName}
-                    />
-                  </div>
-                )}
-                <FlexRowContainer>
-                  <FlexRowItem>
-                    <h4>{t('Throughput (SPM)')}</h4>
-                    <SidebarChart
-                      series={spmSeries}
-                      isLoading={isLoadingSeriesData}
-                      chartColor={chartColors[0]}
-                    />
-                  </FlexRowItem>
-                  <FlexRowItem>
-                    <h4>{t('Span Duration (P50 / P95)')}</h4>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[p50Series ?? [], p95Series ?? []]}
-                      start=""
-                      end=""
-                      loading={isLoadingSeriesData}
-                      utc={false}
-                      chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-                      scatterPlot={
-                        state.plotSamples
-                          ? [
-                              {
-                                data: sampledSpanDataSeries,
-                                seriesName: 'Sampled Span Duration',
-                              },
-                            ]
-                          : undefined
-                      }
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      hideYAxisSplitLine
-                    />
-                  </FlexRowItem>
-                </FlexRowContainer>
+            <PageFiltersContainer>
+              <PageErrorAlert />
+              <FilterOptionsContainer>
+                <DatePageFilter alignDropdown="left" />
+                <FilterOptionsSubContainer>
+                  <ToggleLabel active={state.plotSamples}>
+                    {t('Plot samples on charts')}
+                  </ToggleLabel>
+                  <SwitchButton
+                    isActive={state.plotSamples}
+                    toggle={() => {
+                      setState({...state, plotSamples: !state.plotSamples});
+                    }}
+                  />
+                </FilterOptionsSubContainer>
+              </FilterOptionsContainer>
+              <FlexContainer>
+                <MainSpanSummaryContainer>
+                  {isLoading ? (
+                    <span>LOADING</span>
+                  ) : (
+                    <div>
+                      <h3>{t('Info')}</h3>
+                      <SpanGroupKeyValueList
+                        data={data}
+                        spanAction={spanAction}
+                        spanGroupOperation={spanGroupOperation}
+                        spanDescription={spanDescription}
+                        formattedDescription={formattedDescription}
+                        spanDomain={spanDomain}
+                        action={action}
+                        transactionName={transactionName}
+                      />
+                    </div>
+                  )}
 
-                <FlexRowContainer>
-                  <FlexRowItem>
-                    <h4>{t('Throughput (TPM)')}</h4>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[throughputTransactionSeries ?? []]}
-                      start=""
-                      end=""
-                      loading={isTransactionAggregateDataLoading}
-                      utc={false}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      hideYAxisSplitLine
-                    />
-                  </FlexRowItem>
-                  <FlexRowItem>
-                    <h4>{t('Transaction Duration (P50 / P95)')}</h4>
-                    <Chart
-                      statsPeriod="24h"
-                      height={140}
-                      data={[p50TransactionSeries ?? [], p95TransactionSeries ?? []]}
-                      start=""
-                      end=""
-                      loading={isTransactionAggregateDataLoading}
-                      utc={false}
-                      chartColors={theme.charts.getColorPalette(4).slice(3, 5)}
-                      stacked
-                      isLineChart
-                      disableXAxis
-                      hideYAxisSplitLine
-                    />
-                  </FlexRowItem>
-                </FlexRowContainer>
+                  <ChartGrid>
+                    <ChartPanel title={t('Throughput (TPM)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[throughputTransactionSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isTransactionAggregateDataLoading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
 
-                {areSpanSamplesLoading ? (
-                  <span>LOADING SAMPLE LIST</span>
-                ) : (
-                  <div>
-                    <h3>{t('Samples')}</h3>
-                    <GridEditable
-                      isLoading={isLoading || isTransactionDataLoading}
-                      data={sampledSpanData}
-                      columnOrder={COLUMN_ORDER}
-                      columnSortBy={[]}
-                      grid={{
-                        renderHeadCell,
-                        renderBodyCell,
-                      }}
-                      location={location}
-                    />
-                  </div>
-                )}
-              </MainSpanSummaryContainer>
-              <SidebarContainer>
-                <Sidebar
-                  groupId={groupId}
-                  spanGroupOperation={spanGroupOperation}
-                  transactionName={transactionName}
-                  sampledSpanData={state.plotSamples ? sampledSpanData : []}
-                  module={module}
-                />
-              </SidebarContainer>
-            </FlexContainer>
+                    <ChartPanel title={t('Transaction Duration (P50)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+                        data={[p50TransactionSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isTransactionAggregateDataLoading}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+
+                    <ChartPanel title={t('Throughput (SPM)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spmSeries ?? []]}
+                        start=""
+                        end=""
+                        loading={isLoadingSeriesData}
+                        utc={false}
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+
+                    <ChartPanel title={t('Span Duration (P50)')}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[p50Series ?? []]}
+                        start=""
+                        end=""
+                        loading={isLoadingSeriesData}
+                        utc={false}
+                        chartColors={theme.charts.getColorPalette(4).slice(5, 6)}
+                        scatterPlot={
+                          state.plotSamples
+                            ? [
+                                {
+                                  data: sampledSpanDataSeries,
+                                  seriesName: 'Sampled Span Duration',
+                                },
+                              ]
+                            : undefined
+                        }
+                        stacked
+                        isLineChart
+                        disableXAxis
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </ChartGrid>
+
+                  <SpanSamplesTable
+                    isLoading={areSpanSamplesLoading || isTransactionDataLoading}
+                    data={sampledSpanData}
+                    p50={p50}
+                  />
+                </MainSpanSummaryContainer>
+                <SidebarContainer>
+                  <Sidebar
+                    groupId={groupId}
+                    spanGroupOperation={spanGroupOperation}
+                    transactionName={transactionName}
+                    sampledSpanData={state.plotSamples ? sampledSpanData : []}
+                    module={module}
+                  />
+                </SidebarContainer>
+              </FlexContainer>
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
@@ -470,16 +375,14 @@ const ToggleLabel = styled('span')<{active?: boolean}>`
   color: ${p => (p.active ? p.theme.purple300 : p.theme.gray300)};
 `;
 
-const PlaintextLabel = styled('div')`
-  text-align: right;
-`;
-
-const ComparisonLabel = styled('div')<{value: number}>`
-  text-align: right;
-  color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
+const ChartGrid = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: ${space(1.5)};
 `;
 
 function SpanGroupKeyValueList({
+  spanAction,
   spanDescription,
   spanGroupOperation,
   spanDomain,
@@ -488,6 +391,7 @@ function SpanGroupKeyValueList({
 }: {
   data: any;
   formattedDescription: string;
+  spanAction: string;
   // TODO: type this
   spanDescription: string;
   action?: string;
@@ -504,6 +408,11 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
             {
               key: 'desc',
               value:
@@ -524,13 +433,39 @@ function SpanGroupKeyValueList({
       return (
         <KeyValueList
           data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'HTTP Method',
+            },
             {key: 'desc', value: spanDescription, subject: 'URL'},
-            {key: 'domain', value: spanDomain, subject: 'Domain'},
           ]}
           shouldSort={false}
         />
       );
     default:
-      return null;
+      return (
+        <KeyValueList
+          data={[
+            {
+              key: 'op',
+              value: spanGroupOperation,
+              subject: 'Operation',
+            },
+            {
+              key: 'action',
+              value: spanAction,
+              subject: 'Action',
+            },
+            {key: 'desc', value: spanDescription, subject: 'Description'},
+          ]}
+          shouldSort={false}
+        />
+      );
   }
 }

@@ -1024,7 +1024,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       >
         <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
+          component={make(async () => {
+            const {ProjectInstallOverview} = await import(
+              'sentry/views/projectInstall/overview'
+            );
+            return {
+              default: ProjectInstallOverview,
+            };
+          })}
         />
         <Route
           path=":platform/"
@@ -1226,10 +1233,7 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
-          <Route
-            path=":projectId/:ruleId/details/"
-            component={make(() => import('sentry/views/alerts/rules/issue/details'))}
-          >
+          <Route path=":projectId/:ruleId/details/">
             <IndexRoute
               component={make(
                 () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
@@ -1709,11 +1713,11 @@ function buildRoutes() {
       />
       <Route
         path="database/"
-        component={make(() => import('sentry/views/starfish/modules/databaseModule'))}
+        component={make(() => import('sentry/views/starfish/modules/DBModule'))}
       />
       <Route
         path="api/"
-        component={make(() => import('sentry/views/starfish/modules/APIModule'))}
+        component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
       />
       <Route
         path="spans/"
@@ -1722,6 +1726,12 @@ function buildRoutes() {
       <Route
         path="span/:groupId/"
         component={make(() => import('sentry/views/starfish/views/spanSummary'))}
+      />
+      <Route
+        path="span-summary/:groupId/"
+        component={make(
+          () => import('sentry/views/starfish/views/spans/spanSummaryPage')
+        )}
       />
     </Fragment>
   );
@@ -1994,7 +2004,14 @@ function buildRoutes() {
   const gettingStartedChildRoutes = (
     <Fragment>
       <IndexRoute
-        component={make(() => import('sentry/views/projectInstall/overview'))}
+        component={make(async () => {
+          const {ProjectInstallOverview} = await import(
+            'sentry/views/projectInstall/overview'
+          );
+          return {
+            default: ProjectInstallOverview,
+          };
+        })}
       />
       <Route
         path=":platform/"

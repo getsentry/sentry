@@ -9,7 +9,7 @@ from requests import Request
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
 from sentry.silo.util import clean_proxy_headers
-from sentry.types.region import Region, get_region_by_id
+from sentry.types.region import Region, get_region_by_name
 
 INVALID_PROXY_HEADERS = ["Host"]
 
@@ -64,8 +64,10 @@ class BaseSiloClient(BaseApiClient):
         method: str,
         path: str,
         headers: Mapping[str, Any] | None = None,
-        data: Mapping[str, Any] | None = None,
+        data: Any | None = None,
         params: Mapping[str, Any] | None = None,
+        json: bool = True,
+        raw_response: bool = False,
     ) -> BaseApiResponseX:
         """
         Use the BaseApiClient interface to send a cross-region request.
@@ -79,8 +81,9 @@ class BaseSiloClient(BaseApiClient):
             headers=clean_proxy_headers(headers),
             data=data,
             params=params,
-            json=True,
+            json=json,
             allow_text=True,
+            raw_response=raw_response,
         )
         # TODO: Establish a scheme to check/log the Sentry Version of the requestor and server
         # optionally raising an error to alert developers of version drift
@@ -100,7 +103,7 @@ class RegionSiloClient(BaseSiloClient):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
 
         # Ensure the region is registered
-        self.region = get_region_by_id(region.id)
+        self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
 
 

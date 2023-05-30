@@ -13,12 +13,12 @@ import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
+import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
@@ -177,7 +177,6 @@ function GroupHeaderTabs({
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
-        <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
       </TabList.Item>
     </StyledTabList>
   );
@@ -192,6 +191,7 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -332,9 +332,18 @@ function GroupHeader({
           <TitleWrapper>
             <TitleHeading>
               <h3>
-                <StyledEventOrGroupTitle hasGuideAnchor data={group} />
+                <StyledEventOrGroupTitle data={group} />
               </h3>
-              {group.inbox && <InboxReason inbox={group.inbox} fontSize="md" />}
+              {!hasEscalatingIssuesUi && group.inbox && (
+                <InboxReason inbox={group.inbox} fontSize="md" />
+              )}
+              {hasEscalatingIssuesUi && (
+                <GroupStatusBadge
+                  status={group.status}
+                  substatus={group.substatus}
+                  fontSize="md"
+                />
+              )}
             </TitleHeading>
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}

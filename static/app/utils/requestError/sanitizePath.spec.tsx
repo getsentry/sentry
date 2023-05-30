@@ -1,85 +1,176 @@
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 describe('sanitizePath', function () {
-  test.each([
-    // /organizations/ endpoints
-    ['/organizations/sentry-test/issues/', '/organizations/{orgSlug}/issues/'],
-    ['/organizations/sentry-test/issues/123/', '/organizations/{orgSlug}/issues/123/'],
-    ['/issues/123/', '/issues/{issueId}/'],
-    ['/issues/3679937913/events/latest/', '/issues/{issueId}/events/latest/'],
+  for (const prefix of ['https://sentry.io/api/0', '']) {
+    test.each([
+      // /organizations/ endpoints
+      [
+        // OrganizationGroupIndexEndpoint
+        '/organizations/sentry/issues/',
+        '/organizations/{orgSlug}/issues/',
+      ],
 
-    // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1004
-    // r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-    [
-      '/organizations/sentry-test/events/project-test:123/',
-      '/organizations/{orgSlug}/events/{projectSlug}:123/',
-    ],
+      [
+        // OrganizationEventDetailsEndpoint
+        '/organizations/sentry/events/javascript:11a21f2012e12b31c2012a09d08a2013/',
+        '/organizations/{orgSlug}/events/{projectSlug}:{eventId}/',
+      ],
 
-    [
-      'https://sentry.io/api/0/organizations/sentry-test/events/',
-      'https://sentry.io/api/0/organizations/{orgSlug}/events/',
-    ],
+      [
+        // OrganizationEventsEndpoint
+        '/organizations/sentry/events/',
+        '/organizations/{orgSlug}/events/',
+      ],
 
-    // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1235
-    // r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
-    [
-      '/organizations/sentry-test/members/123/teams/team-test/',
-      '/organizations/{orgSlug}/members/123/teams/{teamSlug}/',
-    ],
+      [
+        // OrganizationEnvironmentsEndpoint
+        '/organizations/sentry/environments/',
+        '/organizations/{orgSlug}/environments/',
+      ],
 
-    [
-      'https://sentry.io/api/0/organizations/sentry-test/issues/123/',
-      'https://sentry.io/api/0/organizations/{orgSlug}/issues/123/',
-    ],
+      [
+        // OrganizationSentryAppComponentsEndpoint
+        '/organizations/sentry/sentry-app-components/?projectId=4152013',
+        '/organizations/{orgSlug}/sentry-app-components/',
+      ],
 
-    // /projects/ endpoints
-    [
-      '/projects/sentry-test/project-test/alert-rules/123/',
-      '/projects/{orgSlug}/{projectSlug}/alert-rules/123/',
-    ],
+      [
+        // OrganizationPluginsConfigsEndpoint
+        '/organizations/sentry/plugins/configs/',
+        '/organizations/{orgSlug}/plugins/configs/',
+      ],
 
-    [
-      'https://sentry.io/api/0/projects/sentry-test/project-test/alert-rules/123/',
-      'https://sentry.io/api/0/projects/{orgSlug}/{projectSlug}/alert-rules/123/',
-    ],
+      [
+        // OrganizationMemberTeamDetailsEndpoint
+        '/organizations/sentry/members/90813/teams/search-and-storage/',
+        '/organizations/{orgSlug}/members/{memberId}/teams/{teamSlug}/',
+      ],
 
-    // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1894
-    // r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
-    [
-      '/projects/sentry-test/project-test/teams/test-team/',
-      '/projects/{orgSlug}/{projectSlug}/teams/{teamSlug}/',
-    ],
+      [
+        // OrganizationReleaseDetailsEndpoint
+        '/organizations/sentry/releases/v4.15.13/',
+        '/organizations/{orgSlug}/releases/{releaseId}/',
+      ],
 
-    // XXX: This should probably be an organization endpoint...
-    // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1595
-    // r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
-    ['/projects/sentry-test/rule-conditions/', '/projects/{orgSlug}/rule-conditions/'],
+      [
+        // ReleaseDeploysEndpoint
+        '/organizations/sentry/releases/v4.15.13/deploys/',
+        '/organizations/{orgSlug}/releases/{releaseId}/deploys/',
+      ],
 
-    [
-      '/teams/sentry-test/team-test/release-count/',
-      '/teams/{orgSlug}/{teamSlug}/release-count/',
-    ],
+      // /projects/ endpoints
+      [
+        // ProjectAlertRuleDetailsEndpoint
+        '/projects/sentry/javascript/alert-rules/123113/',
+        '/projects/{orgSlug}/{projectSlug}/alert-rules/{ruleId}/',
+      ],
 
-    [
-      'https://sentry.io/api/0/teams/sentry-test/team-test/release-count/',
-      'https://sentry.io/api/0/teams/{orgSlug}/{teamSlug}/release-count/',
-    ],
+      [
+        // ProjectStacktraceLinkEndpoint
+        '/projects/sentry/javascript/stacktrace-link/',
+        '/projects/{orgSlug}/{projectSlug}/stacktrace-link/',
+      ],
 
-    // customers is org-like
-    ['/customers/sentry-test/', '/customers/{orgSlug}/'],
-    ['/customers/sentry-test/issues/', '/customers/{orgSlug}/issues/'],
-    ['/customers/sentry-test/issues/123/', '/customers/{orgSlug}/issues/123/'],
+      [
+        // EventOwnersEndpoint
+        '/projects/sentry/javascript/events/11a21f2012e12b31c2012a09d08a2013/owners/',
+        '/projects/{orgSlug}/{projectSlug}/events/{eventId}/owners/',
+      ],
 
-    // replays endpionts
-    [
-      '/projects/sentry/javascript/replays/123/',
-      '/projects/{orgSlug}/{projectSlug}/replays/{replayId}/',
-    ],
-    [
-      '/organizations/sentry/replays/abc123/',
-      '/organizations/{orgSlug}/replays/{replayId}/',
-    ],
-  ])('sanitizes %s', (path, expected) => {
-    expect(sanitizePath(path)).toBe(expected);
-  });
+      [
+        // ProjectReleaseDetailsEndpoint
+        '/projects/sentry/javascript/releases/v4.15.13/',
+        '/projects/{orgSlug}/{projectSlug}/releases/{releaseId}/',
+      ],
+
+      [
+        // ProjectTeamDetailsEndpoint
+        '/projects/sentry/javascript/teams/search-and-storage/',
+        '/projects/{orgSlug}/{projectSlug}/teams/{teamSlug}/',
+      ],
+
+      [
+        // XXX: This should probably be an organization endpoint...
+        // ProjectAgnosticRuleConditionsEndpoint
+        '/projects/sentry/rule-conditions/',
+        '/projects/{orgSlug}/rule-conditions/',
+      ],
+
+      [
+        // TeamReleaseCountEndpoint
+        '/teams/sentry/search-and-storage/release-count/',
+        '/teams/{orgSlug}/{teamSlug}/release-count/',
+      ],
+
+      [
+        // CustomerDetailsEndpoint
+        '/customers/sentry/',
+        '/customers/{orgSlug}/',
+      ],
+
+      [
+        // CustomerDetailsEndpoint
+        '/subscriptions/sentry/',
+        '/subscriptions/{orgSlug}/',
+      ],
+
+      // replays endpionts
+      [
+        // ProjectReplayDetailsEndpoint
+        '/projects/sentry/javascript/replays/9081341513/',
+        '/projects/{orgSlug}/{projectSlug}/replays/{replayId}/',
+      ],
+
+      [
+        // OrganizationReplayDetailsEndpoint
+        '/organizations/sentry/replays/9081341513/',
+        '/organizations/{orgSlug}/replays/{replayId}/',
+      ],
+
+      // groups endpoints
+      [
+        // GroupDetailsEndpoint
+        '/issues/11211231/',
+        '/issues/{issueId}/',
+      ],
+
+      [
+        // GroupEventDetailsEndpoint
+        '/issues/11211231/events/latest/',
+        '/issues/{issueId}/events/latest/',
+      ],
+
+      [
+        // GroupEventDetailsEndpoint
+        '/issues/11211231/events/oldest/',
+        '/issues/{issueId}/events/oldest/',
+      ],
+
+      [
+        // GroupEventDetailsEndpoint
+        '/issues/11211231/events/11a21f2012e12b31c2012a09d08a2013/',
+        '/issues/{issueId}/events/{eventId}/',
+      ],
+
+      [
+        // GroupIntegrationsEndpoint
+        '/groups/11211231/integrations/',
+        '/groups/{groupId}/integrations/',
+      ],
+
+      [
+        // GroupExternalIssuesEndpoint
+        '/groups/11211231/external-issues/',
+        '/groups/{groupId}/external-issues/',
+      ],
+
+      [
+        // SentryAppsEndpoint
+        '/sentry-apps/',
+        '/sentry-apps/',
+      ],
+    ])(`sanitizes ${prefix}%s`, (path, expected) => {
+      expect(sanitizePath(prefix + path)).toBe(prefix + expected);
+    });
+  }
 });

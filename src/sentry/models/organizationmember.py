@@ -35,7 +35,7 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import coerce_id_from, extract_id_from
+from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -238,29 +238,30 @@ class OrganizationMember(Model):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
-    @transaction.atomic
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
         ), "Must set either user or email"
-        if self.token and not self.token_expires_at:
-            self.refresh_expires_at()
-        is_new = bool(self.id)
-        super().save(*args, **kwargs)
-        region_outbox = None
-        if is_new:
-            region_outbox = self.save_outbox_for_create()
-        else:
-            region_outbox = self.save_outbox_for_update()
-        self.__org_roles_from_teams = None
-        return region_outbox
+
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            if self.token and not self.token_expires_at:
+                self.refresh_expires_at()
+            is_new = not bool(self.id)
+            super().save(*args, **kwargs)
+            region_outbox = None
+            if is_new:
+                region_outbox = self.save_outbox_for_create()
+            else:
+                region_outbox = self.save_outbox_for_update()
+            self.__org_roles_from_teams = None
+            return region_outbox
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
         self.__org_roles_from_teams = None
 
-    def set_user(self, user):
-        self.user_id = coerce_id_from(user)
+    def set_user(self, user_id: int):
+        self.user_id = user_id
         self.email = None
         self.token = None
         self.token_expires_at = None
@@ -343,9 +344,12 @@ class OrganizationMember(Model):
 
     @property
     def legacy_token(self):
+        email = self.get_email()
+        if not email:
+            return ""
         checksum = md5()
         checksum.update(str(self.organization_id).encode("utf-8"))
-        checksum.update(self.get_email().encode("utf-8"))
+        checksum.update(email.encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 

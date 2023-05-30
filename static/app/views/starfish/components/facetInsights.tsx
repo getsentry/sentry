@@ -1,9 +1,12 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import Placeholder from 'sentry/components/placeholder';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -18,7 +21,7 @@ import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 
 type Props = {
   eventView: EventView;
@@ -137,38 +140,52 @@ export function FacetInsights({eventView}: Props) {
   });
 
   if (isLoading) {
-    return <Placeholder height="400px" />;
+    return null;
   }
 
   const transformedData: DataRow[] = [];
 
   const totals = data?.totals;
   const keys = Object.keys(totals);
+  let showCorrelation = false;
   for (let index = 0; index < keys.length; index++) {
     const element = keys[index];
-    transformedData.push({
-      tagKey: element.split(',')[0],
-      tagValue: element.split(',')[1],
-      throughput: transformSeries('throughput', data![element]['count()'].data),
-      p50: transformSeries('p50', data![element]['p75(transaction.duration)'].data),
-      tpmCorrelation: categorizeCorrelation(totals[element].sum_correlation),
-    });
+    const tpmCorrelation = categorizeCorrelation(totals[element].sum_correlation);
+    if (tpmCorrelation !== NO_CORRELATION) {
+      showCorrelation = true;
+      transformedData.push({
+        tagKey: element.split(',')[0],
+        tagValue: element.split(',')[1],
+        throughput: transformSeries('throughput', data![element]['count()'].data),
+        p50: transformSeries('p50', data![element]['p75(transaction.duration)'].data),
+        tpmCorrelation,
+      });
+    }
+  }
+
+  if (showCorrelation === false) {
+    return null;
   }
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={transformedData}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      location={location}
-      grid={{
-        renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
-          renderBodyCell(column, row),
-      }}
-    />
+    <Fragment>
+      <SubHeader>{t('Correlations')}</SubHeader>
+      <GridEditable
+        isLoading={isLoading}
+        data={transformedData}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        location={location}
+        grid={{
+          renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
+            renderBodyCell(column, row),
+        }}
+      />
+    </Fragment>
   );
 }
+
+const NO_CORRELATION = 'no/low correlation';
 
 function categorizeCorrelation(correlation: number): string {
   if (correlation >= 0.8) {
@@ -180,5 +197,12 @@ function categorizeCorrelation(correlation: number): string {
   if (correlation >= 0.4) {
     return 'correlated';
   }
-  return 'no/low correlation';
+  return NO_CORRELATION;
 }
+
+const SubHeader = styled('h3')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin: 0;
+  margin-bottom: ${space(1)};
+`;

@@ -251,13 +251,6 @@ function Sidebar({location, organization}: Props) {
           id="starfish"
           icon={<SubitemDot collapsed={collapsed} />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Span Explorer')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/spans/`}
-          id="starfish"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
       </SidebarAccordion>
     </Feature>
   );
@@ -318,7 +311,6 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
-        isNew
       />
     </Feature>
   );

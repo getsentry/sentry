@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
-import Chart from 'sentry/views/starfish/components/chart';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {
   datetimeToClickhouseFilterTimestamps,
@@ -55,7 +55,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum.throughput,
+          value: datum.spm,
           name: datum.interval,
         })),
       },
@@ -87,7 +87,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
 
     return zeroFillSeries(
       {
-        seriesName: label ?? 'P50',
+        seriesName: label ?? 'p50()',
         data: groupData.map(datum => ({
           value: datum.p50,
           name: datum.interval,
@@ -98,6 +98,8 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       endTime
     );
   });
+
+  useSynchronizeCharts([!isLoading]);
 
   return (
     <ChartsContainer>
@@ -126,7 +128,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <ChartPanel title={t('Throughput')}>
+        <ChartPanel title={t('Throughput (SPM)')}>
           <Chart
             statsPeriod="24h"
             height={100}
@@ -146,6 +148,9 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
             isLineChart
             chartColors={themes.charts.getColorPalette(2)}
             disableXAxis
+            tooltipFormatterOptions={{
+              valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
+            }}
           />
         </ChartPanel>
       </ChartsContainerItem>
@@ -187,7 +192,7 @@ export const getSpanTotalTimeChartQuery = (
   const validConditions = conditions.filter(Boolean);
 
   return `SELECT
-    count() AS throughput,
+    divide(count(), multiply(12, 60)) as spm,
     sum(exclusive_time) AS total_time,
     quantile(0.50)(exclusive_time) AS p50,
     toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval

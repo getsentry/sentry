@@ -1,5 +1,6 @@
+import pytest
+
 from sentry.constants import ObjectStatus
-from sentry.mediators.project_rules import Creator
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
@@ -45,6 +46,16 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
             self.organization.slug, monitor.slug, environment="production"
         )
         assert len(response.data["environments"]) == 1
+
+    def test_expand_alert_rule(self):
+        monitor = self._create_monitor()
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert resp.data["alertRule"] is None
+
+        self._create_alert_rule(monitor)
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert resp.data["alertRule"] is not None
 
 
 @region_silo_test(stable=True)
@@ -181,6 +192,44 @@ class UpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["max_runtime"] == 30
+
+    def test_existing_alert_rule(self):
+        monitor = self._create_monitor()
+        rule = self._create_alert_rule(monitor)
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                }
+            },
+        )
+        assert resp.data["slug"] == monitor.slug
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        monitor_rule = monitor.get_alert_rule()
+        assert monitor_rule.id == rule.id
+        assert monitor_rule.data["actions"] != rule.data["actions"]
+
+    def test_without_existing_alert_rule(self):
+        monitor = self._create_monitor()
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                }
+            },
+        )
+        assert resp.data["slug"] == monitor.slug
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        rule = monitor.get_alert_rule()
+        assert rule is not None
 
     def test_invalid_config_param(self):
         monitor = self._create_monitor()
@@ -445,20 +494,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_simple_with_alert_rule(self):
         monitor = self._create_monitor()
-        rule = Creator(
-            name="New Cool Rule",
-            owner=None,
-            project=self.project,
-            action_match="all",
-            filter_match="any",
-            conditions=[],
-            actions=[],
-            frequency=5,
-        ).call()
-        config = monitor.config
-        config["alert_rule_id"] = rule.id
-        monitor.config = config
-        monitor.save()
+        self._create_alert_rule(monitor)
 
         self.get_success_response(
             self.organization.slug, monitor.slug, method="DELETE", status_code=202
@@ -467,3 +503,15 @@ class DeleteMonitorTest(MonitorTestCase):
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
         assert rule.status == RuleStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
+
+    def test_simple_with_alert_rule_deleted(self):
+        monitor = self._create_monitor()
+        rule = self._create_alert_rule(monitor)
+        rule.delete()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
+        )
+
+        with pytest.raises(Rule.DoesNotExist):
+            Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])

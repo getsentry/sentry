@@ -267,8 +267,20 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           ),
         });
       }
-      case GroupActivityType.SET_UNRESOLVED:
+      case GroupActivityType.SET_UNRESOLVED: {
+        const {data} = activity;
+        if (data.forecast) {
+          return tct(
+            '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+            {
+              author,
+              forecast: data.forecast,
+              event: data.forecast === 1 ? 'event' : 'events',
+            }
+          );
+        }
         return tct('[author] marked this issue as unresolved', {author});
+      }
       case GroupActivityType.SET_IGNORED: {
         const {data} = activity;
         return getIgnoredMessage(data);
@@ -368,6 +380,16 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         return tct('[author] marked this issue as reviewed', {
           author,
         });
+      }
+      case GroupActivityType.AUTO_SET_ONGOING: {
+        return activity.data?.afterDays
+          ? tct(
+              '[author] automatically marked this issue as ongoing after [afterDays] days',
+              {author, afterDays: activity.data.afterDays}
+            )
+          : tct('[author] automatically marked this issue as ongoing', {
+              author,
+            });
       }
       default:
         return ''; // should never hit (?)

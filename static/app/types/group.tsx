@@ -6,7 +6,6 @@ import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
 import type {Project} from './project';
-import type {Release} from './release';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -202,9 +201,9 @@ export const enum GroupInboxReason {
 }
 
 export type InboxDetails = {
-  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: GroupInboxReason;
+  reason_details?: InboxReasonDetails | null;
 };
 
 export type SuggestedOwnerReason =
@@ -261,6 +260,7 @@ export enum GroupActivityType {
   MERGE = 'merge',
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
+  AUTO_SET_ONGOING = 'auto_set_ongoing',
 }
 
 interface GroupActivityBase {
@@ -400,6 +400,13 @@ interface GroupActivityMerge extends GroupActivityBase {
   type: GroupActivityType.MERGE;
 }
 
+interface GroupActivityAutoSetOngoing extends GroupActivityBase {
+  data: {
+    afterDays?: number;
+  };
+  type: GroupActivityType.AUTO_SET_ONGOING;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -445,7 +452,8 @@ export type GroupActivity =
   | GroupActivityRegression
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
-  | GroupActivityCreateIssue;
+  | GroupActivityCreateIssue
+  | GroupActivityAutoSetOngoing;
 
 export type Activity = GroupActivity;
 
@@ -510,16 +518,11 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: 'until_escalating';
-};
-
-export type GroupRelease = {
-  firstRelease: Release;
-  lastRelease: Release;
+  substatus?: GroupSubstatus;
 };
 
 // TODO(ts): incomplete
-export interface BaseGroup extends GroupRelease {
+export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
   assignedTo: Actor;
@@ -571,21 +574,22 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    Omit<GroupStatusResolution, 'substatus'> {}
+    GroupStatusResolution {}
 
 export type Group = GroupResolution | GroupReprocessing;
-export interface GroupCollapseRelease
-  extends Omit<Group, keyof GroupRelease>,
-    Partial<GroupRelease> {}
 
-export type GroupTombstone = {
+export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
   level: Level;
   metadata: EventMetadata;
-  title: string;
-};
+  type: EventOrGroupType;
+  title?: string;
+}
+export interface GroupTombstoneHelper extends GroupTombstone {
+  isTombstone: true;
+}
 
 export type ProcessingIssueItem = {
   checksum: string;

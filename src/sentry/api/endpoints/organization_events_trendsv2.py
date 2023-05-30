@@ -1,4 +1,5 @@
 import logging
+import re
 
 import sentry_sdk
 from django.conf import settings
@@ -73,7 +74,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         _query = request.GET.get("query")
 
         selected_columns.append(trend_function)
-        selected_columns.append("count()")
         request.yAxis = selected_columns
         top_events_limit = 56
         events_per_query = 8
@@ -91,16 +91,21 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
         def generate_top_transaction_query(events):
-            top_transaction_names = [event.get("transaction") for event in events]
+            top_transaction_names = [
+                re.sub(r'"', '\\"', event.get("transaction")) for event in events
+            ]
             top_transaction_as_str = ", ".join(
                 f'"{transaction}"' for transaction in top_transaction_names
             )
             return f" transaction:[{top_transaction_as_str}]"
 
         def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+            columns = selected_columns
+            columns.append("count()")
+
             # Get top events
             top_events = get_top_events(
-                selected_columns,
+                columns,
                 user_query=user_query,
                 params=params,
                 orderby=["-count()"],
@@ -111,7 +116,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             sentry_sdk.set_tag(
                 "performance.trendsv2.top_events", top_events.get("data", None) is not None
             )
-            if top_events.get("data", None) is None:
+            if len(top_events.get("data", [])) == 0:
                 return {}
 
             data = top_events["data"]
@@ -179,7 +184,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 query_column=trend_function,
                 params=params,
                 query=_query,
-                additional_query_column="count()",
             )
 
             sentry_sdk.set_tag("performance.trendsv2.stats_data", bool(stats_data))
@@ -206,29 +210,30 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "data": None,
                 "sort": None,
                 "trendFunction": None,
-                "start": None,
-                "end": None,
             }
 
             trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
             trends_request["trendFunction"] = trend_function
             trends_request["data"] = response.data
 
-            # get start and end from the first transaction
-            trends_request["start"] = response.data[list(response.data)[0]][trend_function]["start"]
-            trends_request["end"] = response.data[list(response.data)[0]][trend_function]["end"]
-
             # send the data to microservice
             trends = get_trends(trends_request)
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
 
             trending_transaction_names_stats = {}
-            trending_events = trends["data"]
+            # TODO add proper pagination
+            trending_events = trends["data"][:5]
             for t in trending_events:
                 transaction_name = t["transaction"]
                 project = t["project"]
                 t_p_key = project + "," + transaction_name
-                trending_transaction_names_stats[t_p_key] = response.data[t_p_key][trend_function]
+                if t_p_key in response.data:
+                    trending_transaction_names_stats[t_p_key] = response.data[t_p_key]
+                else:
+                    logger.warning(
+                        "trends.trends-request.timeseries.key-mismatch",
+                        extra={"result_key": t_p_key, "timeseries_keys": response.data.keys()},
+                    )
 
             # send the results back to the client
             return Response(
@@ -242,7 +247,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     ),
                     "stats": trending_transaction_names_stats,
                     # temporary change to see what stats data is returned
-                    "raw_stats": trends_request,
+                    "raw_stats": trends_request
+                    if features.has(
+                        "organizations:performance-trendsv2-dev-only",
+                        organization,
+                        actor=request.user,
+                    )
+                    else {},
                 },
                 status=200,
             )

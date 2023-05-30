@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from typing import Any, Callable, Dict, Mapping, MutableMapping
+from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
@@ -22,17 +22,21 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     CommitFileChange,
-    Identity,
-    Integration,
     Organization,
     PullRequest,
     Repository,
 )
+from sentry.services.hybrid_cloud.identity.service import identity_service
+from sentry.services.hybrid_cloud.integration.model import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+)
+from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
-from ...services.hybrid_cloud.integration import RpcIntegration, integration_service
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -43,7 +47,7 @@ class Webhook:
 
     def _handle(
         self,
-        integration: Integration,
+        integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
@@ -127,12 +131,13 @@ class InstallationEventWebhook(Webhook):
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
-            try:
-                integration = Integration.objects.get(
-                    external_id=external_id, provider=self.provider
-                )
-                self._handle_delete(event, integration)
-            except Integration.DoesNotExist:
+            integration, org_integrations = integration_service.get_organization_contexts(
+                provider=self.provider,
+                external_id=external_id,
+            )
+            if integration is not None:
+                self._handle_delete(event, integration, org_integrations)
+            else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
                 # Sentry first or from a failed install flow (where the integration
@@ -147,43 +152,30 @@ class InstallationEventWebhook(Webhook):
                 )
                 logger.exception("Installation is missing.")
 
-    def _handle_delete(self, event: Mapping[str, Any], integration: Integration) -> None:
-        org_integrations = integration_service.get_organization_integrations(
-            integration_id=integration.id
-        )
-        organizations = Organization.objects.filter(
-            id__in=[oi.organization_id for oi in org_integrations]
-        )
+    def _handle_delete(
+        self,
+        event: Mapping[str, Any],
+        integration: RpcIntegration,
+        org_integrations: List[RpcOrganizationIntegration],
+    ) -> None:
+        org_ids = {oi.organization_id for oi in org_integrations}
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
             extra={
                 "external_id": event["installation"]["id"],
                 "integration_id": integration.id,
-                "organization_id_list": organizations.values_list("id", flat=True),
+                "organization_id_list": org_ids,
             },
         )
-
-        integration.update(status=ObjectStatus.DISABLED)
-
+        integration_service.update_integration(
+            integration_id=integration.id, status=ObjectStatus.DISABLED
+        )
         Repository.objects.filter(
-            organization_id__in=organizations.values_list("id", flat=True),
+            organization_id__in=org_ids,
             provider=f"integrations:{self.provider}",
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
-
-
-class InstallationRepositoryEventWebhook(Webhook):
-    # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def _handle(
-        self,
-        integration: Integration,
-        event: Mapping[str, Any],
-        organization: Organization,
-        repo: Repository,
-        host: str | None = None,
-    ) -> None:
-        pass
 
 
 class PushEventWebhook(Webhook):
@@ -195,7 +187,7 @@ class PushEventWebhook(Webhook):
     def get_external_id(self, username: str) -> str:
         return f"github:{username}"
 
-    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         # Explicitly typing to satisfy mypy.
         external_id: str = options.get("github-app.id")
         return external_id
@@ -207,7 +199,7 @@ class PushEventWebhook(Webhook):
 
     def _handle(
         self,
-        integration: Integration | RpcIntegration,
+        integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
@@ -254,23 +246,26 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError:
-                                logger.exception("Github user is missing.")
+                                logger.warning("Github user is missing.")
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
-                                try:
-                                    identity = Identity.objects.get(
-                                        external_id=gh_user["id"],
-                                        idp__type=self.provider,
-                                        idp__external_id=self.get_idp_external_id(
+                                identity_user = None
+                                # TODO(hybrid-cloud): Combine into a single RPC call if possible
+                                identity = identity_service.get_identity(
+                                    filter={
+                                        "identity_ext_id": gh_user["id"],
+                                        "provider_type": self.provider,
+                                        "provider_ext_id": self.get_idp_external_id(
                                             integration, host
                                         ),
-                                    )
-                                except Identity.DoesNotExist:
-                                    pass
-                                else:
-                                    author_email = identity.user.email
+                                    }
+                                )
+                                if identity is not None:
+                                    identity_user = user_service.get_user(user_id=identity.user_id)
+                                if identity_user is not None:
+                                    author_email = identity_user.email
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
@@ -352,14 +347,14 @@ class PullRequestEventWebhook(Webhook):
     def get_external_id(self, username: str) -> str:
         return f"github:{username}"
 
-    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         # Explicitly typing to satisfy mypy.
         external_id: str = options.get("github-app.id")
         return external_id
 
     def _handle(
         self,
-        integration: Integration,
+        integration: RpcIntegration,
         event: Mapping[str, Any],
         organization: Organization,
         repo: Repository,
@@ -395,16 +390,18 @@ class PullRequestEventWebhook(Webhook):
             )
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
-            try:
-                identity = Identity.objects.get(
-                    external_id=user["id"],
-                    idp__type=self.provider,
-                    idp__external_id=self.get_idp_external_id(integration, host),
-                )
-            except Identity.DoesNotExist:
-                pass
-            else:
-                author_email = identity.user.email
+            identity_user = None
+            identity = identity_service.get_identity(
+                filter={
+                    "identity_ext_id": user["id"],
+                    "provider_type": self.provider,
+                    "provider_ext_id": self.get_idp_external_id(integration, host),
+                }
+            )
+            if identity is not None:
+                identity_user = user_service.get_user(user_id=identity.user_id)
+            if identity_user is not None:
+                author_email = identity_user.email
 
         try:
             author = CommitAuthor.objects.get(
@@ -490,6 +487,10 @@ class GitHubWebhookBase(View):  # type: ignore
             return HttpResponse(status=400)
 
         if not handler:
+            logger.error(
+                "github.webhook.missing-handler",
+                extra={"event": request.META["HTTP_X_GITHUB_EVENT"]},
+            )
             return HttpResponse(status=204)
 
         try:
@@ -521,7 +522,6 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
-        "installation_repositories": InstallationRepositoryEventWebhook,
     }
 
     @method_decorator(csrf_exempt)  # type: ignore
