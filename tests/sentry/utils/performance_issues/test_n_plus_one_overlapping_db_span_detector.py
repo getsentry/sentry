@@ -5,12 +5,10 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType
-from sentry.utils.performance_issues.detectors import NPlusOneDBSpanDetector
+from sentry.utils.performance_issues.detectors import NPlusOneDBSpanDetectorExtended
 from sentry.utils.performance_issues.performance_detection import (
     PerformanceProblem,
     get_detection_settings,
@@ -20,7 +18,7 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class NPlusOneDbDetectorTest(unittest.TestCase):
+class NPlusOneOverlappingDbDetectorTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -32,7 +30,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
             for option_name, value in setting_overides.items():
                 self.settings[DetectorType.N_PLUS_ONE_DB_QUERIES][option_name] = value
 
-        detector = NPlusOneDBSpanDetector(self.settings, event)
+        detector = NPlusOneDBSpanDetectorExtended(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -189,30 +187,45 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
             ),
         ]
 
-    def test_does_not_detect_overlapping_n_plus_one(self):
+    def test_detects_overlapping_n_plus_one(self):
         event = get_event("parallel-n-plus-one-in-django-index-view")
-        assert self.find_problems(event) == []
-
-
-@pytest.mark.django_db
-class NPlusOneDbSettingTest(TestCase):
-    def test_respects_project_option(self):
-        project = self.create_project()
-        event = get_event("n-plus-one-in-django-index-view-activerecord")
-        event["project_id"] = project.id
-
-        settings = get_detection_settings(project.id)
-        detector = NPlusOneDBSpanDetector(settings, event)
-
-        assert detector.is_creation_allowed_for_project(project)
-
-        ProjectOption.objects.set_value(
-            project=project,
-            key="sentry:performance_issue_settings",
-            value={"n_plus_one_db_detection_rate": 0.0},
-        )
-
-        settings = get_detection_settings(project.id)
-        detector = NPlusOneDBSpanDetector(settings, event)
-
-        assert not detector.is_creation_allowed_for_project(project)
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                op="db",
+                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                type=PerformanceNPlusOneGroupType,
+                parent_span_ids=["8dd7a5869a4f4583"],
+                cause_span_ids=["9179e43ae844b174"],
+                offender_span_ids=[
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": ["8dd7a5869a4f4583"],
+                    "cause_span_ids": ["9179e43ae844b174"],
+                    "offender_span_ids": [
+                        "b8be6138369491dd",
+                        "b2d4826e7b618f1b",
+                        "b3fdeea42536dbf1",
+                        "b409e78a092e642f",
+                        "86d2ede57bbf48d4",
+                        "8e554c84cdc9731e",
+                        "94d6230f3f910e12",
+                        "a210b87a2191ceb6",
+                        "88a5ccaf25b9bd8f",
+                        "bb32cf50fc56b296",
+                    ],
+                },
+                evidence_display=[],
+            )
+        ]
