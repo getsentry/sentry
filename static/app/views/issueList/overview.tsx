@@ -854,7 +854,13 @@ class IssueListOverview extends Component<Props, State> {
       sort,
     });
     if (sort === 'betterPriority') {
-      this.transitionTo({sort, logLevel: 0, hasStacktrace: 0, eventHalflifeHours: 4});
+      this.transitionTo({
+        sort,
+        logLevel: 0,
+        hasStacktrace: 0,
+        eventHalflifeHours: 4,
+        v2: false,
+      });
     } else {
       this.transitionTo({sort});
     }
