@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,17 +12,16 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import SampleList from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList';
-import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPage/spanBaselineTable';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
-import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
-import {useSpanById} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanById';
-import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
+import {ReleasePreview} from 'sentry/views/starfish/components/releasePreview';
+import {useSpanById} from 'sentry/views/starfish/queries/useSpanById';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {
   useSpanFirstSeenEvent,
   useSpanLastSeenEvent,
-} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanSeenEvent';
+} from 'sentry/views/starfish/queries/useSpanSeenEvent';
+import SampleList from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
+import {SpanBaselineTable} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Props = {
   location: Location;
@@ -96,6 +96,57 @@ const FilterOptionsContainer = styled('div')`
   gap: ${space(1)};
   align-items: center;
   margin-bottom: ${space(2)};
+`;
+
+type BlockProps = {
+  children: React.ReactNode;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+};
+
+export function Block({title, description, children}: BlockProps) {
+  return (
+    <BlockWrapper>
+      <BlockTitle>
+        {title}
+        {description && (
+          <BlockTooltipContainer>
+            <QuestionTooltip size="sm" position="right" title={description} />
+          </BlockTooltipContainer>
+        )}
+      </BlockTitle>
+      <BlockContent>{children}</BlockContent>
+    </BlockWrapper>
+  );
+}
+
+const BlockTitle = styled('h3')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
+  margin-bottom: ${space(1)};
+`;
+
+const BlockContent = styled('h4')`
+  margin: 0;
+  font-weight: normal;
+`;
+
+const BlockTooltipContainer = styled('span')`
+  margin-left: ${space(1)};
+`;
+
+export const BlockContainer = styled('div')`
+  display: flex;
+  & > div:last-child {
+    padding-right: ${space(1)};
+  }
+  padding-bottom: ${space(2)};
+`;
+
+const BlockWrapper = styled('div')`
+  padding-right: ${space(4)};
+  flex: 1;
 `;
 
 export default SpanSummaryPage;

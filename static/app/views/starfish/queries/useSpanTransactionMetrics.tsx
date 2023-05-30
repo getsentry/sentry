@@ -2,10 +2,10 @@ import keyBy from 'lodash/keyBy';
 
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Span} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 const INTERVAL = 12;
 

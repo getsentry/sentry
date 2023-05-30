@@ -1,6 +1,6 @@
 import {useQuery} from 'sentry/utils/queryClient';
+import type {Span} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 export const useSpanById = (groupId: string, referrer: string) => {
   const query = `

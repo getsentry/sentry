@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
+import type {Span} from 'sentry/views/starfish/queries/types';
 import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 export function SpanDescription({span}: {span: Span}) {
   if (span.span_operation.startsWith('db')) {

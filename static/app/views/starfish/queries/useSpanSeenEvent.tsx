@@ -1,7 +1,7 @@
 import {useQuery} from 'sentry/utils/queryClient';
 import {useQueryGetEvent} from 'sentry/views/starfish/modules/databaseModule/queries';
+import type {Span} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 type HasTransaction = {
   transaction_id: string;
