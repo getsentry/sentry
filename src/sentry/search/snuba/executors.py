@@ -56,6 +56,7 @@ class PrioritySortWeights(TypedDict):
     log_level: int
     has_stacktrace: int
     event_halflife_hours: int
+    issue_halflife_hours: int
     v2: bool
     norm: bool
 
@@ -64,6 +65,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
     "event_halflife_hours": 4,
+    "issue_halflife_hours": 24 * 7,
     "v2": False,
     "norm": False,
 }
@@ -72,6 +74,7 @@ V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
     "event_halflife_hours": 12,
+    "issue_halflife_hours": 4,
     "v2": False,
     "norm": False,
 }
@@ -485,6 +488,7 @@ def better_priority_aggregation(
     min_score = 0.01
     event_age_hours = "divide(now() - timestamp, 3600)"
     event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every x hours
+    issue_halflife_hours = aggregate_kwargs["issue_halflife_hours"]  # halves score every x hours
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
 
     log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
@@ -510,18 +514,15 @@ def better_priority_aggregation(
     v2 = aggregate_kwargs["v2"]
 
     if not v2:
-        issue_halflife_hours = 24 * 7  # issues half in value every week
         aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
         aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
         return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
     else:
-        #  * more aggressive issue half-life decay (24*7 hours -> to 4 hours)
         #  * apply log to event score summation to clamp the contribution of event scores to a reasonable maximum
         #  * add an extra 'relative volume score' (# of events in past 60 mins / # of events in the past 7 days)
         #    to factor in the volume of events that recently were fired versus the past. This will up-rank issues
         #    that are more recently active as a function of the overall amount of events grouped to that issue
         #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0 -
-        issue_halflife_hours = 4  # issues half in value every 4 hours
 
         # aggregate_event_score:
         #

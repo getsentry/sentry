@@ -366,6 +366,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "log_level": 5,
                 "has_stacktrace": 5,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
                 "v2": False,
                 "norm": False,
             }
@@ -2107,6 +2108,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
                 "v2": False,
                 "norm": False,
             }
@@ -2155,6 +2157,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
                 "v2": True,
                 "norm": False,
             }
@@ -2202,6 +2205,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
                 "v2": False,
                 "norm": False,
             }
@@ -2249,6 +2253,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
                 "v2": False,
                 "norm": False,
             }
@@ -2356,6 +2361,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
                 "v2": False,
                 "norm": False,
             }

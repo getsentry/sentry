@@ -158,6 +158,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             "log_level": 3,
             "has_stacktrace": 5,
             "event_halflife_hours": 4,
+            "issue_halflife_hours": 4,
             "v2": False,
             "norm": False,
         }

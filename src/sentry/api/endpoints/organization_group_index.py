@@ -190,6 +190,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     "event_halflife_hours": request.GET.get(
                         "eventHalflifeHours", V2_DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"]
                     ),
+                    "issue_halflife_hours": request.GET.get(
+                        "issueHalflifeHours", V2_DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"]
+                    ),
                     "v2": True,
                     "norm": request.GET.get("norm", V2_DEFAULT_PRIORITY_WEIGHTS["norm"]),
                 }
@@ -202,6 +205,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                         "hasStacktrace", DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
                     ),
                     "event_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
+                    "issue_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
                     "v2": False,
                     "norm": False,
                 }
