@@ -63,9 +63,6 @@ class SDKCrashDetection:
                 sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
             )
 
-            if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
-                return None
-
             return self.sdk_crash_reporter.report(
                 sdk_crash_event_data, settings.SDK_CRASH_DETECTION_PROJECT_ID
             )

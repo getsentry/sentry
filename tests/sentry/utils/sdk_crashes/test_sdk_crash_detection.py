@@ -31,9 +31,8 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         event_data,
         should_be_reported,
         mock_sdk_crash_reporter,
-        project_id=1234,
     ):
-        with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=project_id):
+        with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234):
             event = self.create_event(
                 data=event_data,
                 project_id=self.project.id,
@@ -70,9 +69,6 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransaction
 class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_unhandled_is_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(), True, mock_sdk_crash_reporter)
-
-    def test_no_project_id_is_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(get_crash_event(), False, mock_sdk_crash_reporter, project_id=None)
 
     def test_handled_is_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(handled=True), False, mock_sdk_crash_reporter)
