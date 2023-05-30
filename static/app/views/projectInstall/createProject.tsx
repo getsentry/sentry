@@ -219,9 +219,12 @@ function CreateProject() {
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
+  const isOrgMemberWithNoAccess =
+    accessTeams.length === 0 && !organization.access.includes('project:admin');
+
   const canSubmitForm =
     !inFlight &&
-    (team || accessTeams.length === 0) &&
+    (team || isOrgMemberWithNoAccess) &&
     canCreateProject &&
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
@@ -252,7 +255,7 @@ function CreateProject() {
             />
           </ProjectNameInputWrap>
         </div>
-        {accessTeams.length > 0 && (
+        {!isOrgMemberWithNoAccess && (
           <div>
             <FormLabel>{t('Team')}</FormLabel>
             <TeamSelectInput>
@@ -297,7 +300,7 @@ function CreateProject() {
   );
 
   return (
-    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
+    <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
       {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
