@@ -23,7 +23,6 @@ from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
-    AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
     IncidentStatus,
@@ -657,8 +656,8 @@ class SubscriptionProcessor:
             else:
                 warning_actions.append(action)
 
-        actions_to_fire: list[AlertRuleTriggerAction] = []
-        new_status: int = IncidentStatus.CLOSED.value
+        actions_to_fire = []
+        new_status = IncidentStatus.CLOSED.value
 
         if method == "resolve":
             if incident.status != IncidentStatus.CLOSED.value:
