@@ -35,6 +35,26 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
       field: 'timestamp',
       kind: 'field',
     },
+    {
+      field: 'spans.browser',
+      kind: 'field',
+    },
+    {
+      field: 'spans.db',
+      kind: 'field',
+    },
+    {
+      field: 'spans.http',
+      kind: 'field',
+    },
+    {
+      field: 'spans.resource',
+      kind: 'field',
+    },
+    {
+      field: 'spans.ui',
+      kind: 'field',
+    },
   ];
 
   const eventViewAggregates = eventView.clone().withColumns([
