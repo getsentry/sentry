@@ -19,6 +19,7 @@ from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team,
 from sentry.models.authenticator import available_authenticators
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import metrics
 
@@ -55,8 +56,11 @@ class OrganizationMemberSerializer(serializers.Serializer):
     regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
+        users = user_service.get_many_by_email(
+            emails=[email], is_active=True, organization_id=self.context["organization"].id
+        )
         queryset = OrganizationMember.objects.filter(
-            Q(email=email) | Q(user__email__iexact=email, user__is_active=True),
+            Q(email=email) | Q(user_id__in=[u.id for u in users]),
             organization=self.context["organization"],
         )
 
