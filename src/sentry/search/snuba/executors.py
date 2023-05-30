@@ -479,6 +479,8 @@ def better_priority_aggregation(
     event_age_weight = 1  # [1, 5]
     log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
     stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
+    # (event or issue age_hours) / (event or issue halflife hours)
+    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
     max_pow = 16
     min_score = 0.01
     event_age_hours = "divide(now() - timestamp, 3600)"
@@ -520,6 +522,25 @@ def better_priority_aggregation(
         #    that are more recently active as a function of the overall amount of events grouped to that issue
         #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0 -
         issue_halflife_hours = 4  # issues half in value every 4 hours
+
+        # aggregate_event_score:
+        #
+        # ------------------------------------------------------------------------------
+        # part 1 (summation over all events in group)
+        #   x = event_age_hours
+        #   k = event_halflife_hours (fixed to a constant)
+        #      1
+        # Σ ------- = Σ ([1, 0), [1, 0), [1, 0), ...) ~= [0, +inf] = g(x)
+        #   2^(x/k)
+        #
+        # ------------------------------------------------------------------------------
+        # part 2a (offset by 1 to remove possibility of ln(0))
+        # g(x) + 1 = [1, +inf] = h(x)
+        #
+        # ------------------------------------------------------------------------------
+        # part 2b (apply ln to clamp exponential growth and apply a 'fixed' maximum)
+        #                            x = 1, e,    10,  1000, 1000000, 1000000000, ...
+        # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72, +inf
         aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
 
         event_count_60_mins = "countIf(lessOrEquals(minus(now(), timestamp), 3600))"
@@ -551,30 +572,11 @@ def better_priority_aggregation(
                 relative_volume_score  # already normalized since it's a percentage
             )
 
-            # aggregate_event_score:
-            #
-            # ------------------------------------------------------------------------------
-            # part 1 (summation over all events in group)
-            #   x = event_age_hours
-            #   k = event_halflife_hours (fixed to a constant)
-            #      1
-            # Σ ------- = Σ ([1, 0), [1, 0), [1, 0), ...) ~= [0, +inf] = g(x)
-            #   2^(x/k)
-            #
-            # ------------------------------------------------------------------------------
-            # part 2a (offset by 1 to remove possibility of ln(0))
-            # g(x) + 1 = [1, +inf] = h(x)
-            #
-            # ------------------------------------------------------------------------------
-            # part 2b (apply ln to clamp exponential growth and apply a 'fixed' maximum)
-            #                            x = 1, e,    10,  1000, 1000000, 1000000000
-            # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72
-            #
-            # tldr: aggregate_event_score ranges from [0, +inf], as the amount of events grouped to this issue
-            #        increases. we apply an upper bound of 21 to the log of the summation of the event scores
-            #        and then divide by 21 so the normalized score sweeps from [0, 1]
-            #       in practice, itll take a degenerate issue with an absurd amount of events for the
-            #       aggregate_event_score to reach to upper limit of ~21 (and normalized score of 1)
+            # aggregate_event_score ranges from [0, +inf], as the amount of events grouped to this issue
+            # increases. we apply an upper bound of 21 to the log of the summation of the event scores
+            # and then divide by 21 so the normalized score sweeps from [0, 1]
+            # In practice, itll take a degenerate issue with an absurd amount of events for the
+            # aggregate_event_score to reach to upper limit of ~21 (and normalized score of 1)
             normalized_aggregate_event_score = f"divide(least({aggregate_event_score}, 21), 21)"
 
             return [
