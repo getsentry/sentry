@@ -930,9 +930,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.WARNING)]
-        )
+        self.assert_action_handler_called_with_actions(None, [])
 
         processor = self.send_update(
             rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
@@ -942,7 +940,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
-        self.assert_action_handler_called_with_actions(None, [])
+        self.assert_actions_resolved_for_incident(
+            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)]
+        )
 
     def test_multiple_triggers_threshold_period(self):
         rule = self.rule
