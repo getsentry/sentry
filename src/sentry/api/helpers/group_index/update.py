@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, MutableMapping, Sequence
 
 import rest_framework
@@ -53,6 +54,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import issue_resolved
+from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
@@ -540,6 +542,11 @@ def update_groups(
         )
         if new_substatus is None and new_status == GroupStatus.UNRESOLVED:
             new_substatus = GroupSubStatus.ONGOING
+            if len(group_list) == 1 and group_list[0].status == GroupStatus.IGNORED:
+                is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
+                    days=TRANSITION_AFTER_DAYS
+                )
+                new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
 
         has_escalating_issues = features.has(
             "organizations:escalating-issues", group_list[0].organization
