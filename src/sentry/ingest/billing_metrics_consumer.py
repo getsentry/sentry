@@ -115,18 +115,37 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
         return cast(MetricsBucket, payload)
 
-    def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
+    def _count_processed_items(self, bucket_payload: MetricsBucket) -> Mapping[DataCategory, int]:
         if bucket_payload["metric_id"] != self.metric_id:
             return 0
         value = bucket_payload["value"]
         try:
-            return len(value)
+            quantity = len(value)
         except TypeError:
             # Unexpected value type for this metric ID, skip.
-            return 0
+            quantity = 0
+
+        items = {DataCategory.TRANSACTION: quantity}
+
+        if bucket_payload.get("tags", {}).get("has_profile") == "1":
+            # TODO: need to account for possibility that tags are integers?
+            # TODO: decode number of profiles?
+            items[DataCategory.PROFILE] = quantity
+
+        return items
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
-        quantity = self._count_processed_transactions(payload)
+        for category, quantity in self._count_processed_transactions(payload):
+            self._produce_billing_outcome(
+                org_id=payload["org_id"],
+                project_id=payload["project_id"],
+                category=category,
+                quantity=quantity,
+            )
+
+    def _produce_billing_outcome(
+        self, *, org_id: int, project_id: int, category: DataCategory, quantity: int
+    ) -> None:
         if quantity < 1:
             return
 
@@ -137,14 +156,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # we may have to revisit this part to achieve a
         # better approximation of exactly-once delivery.
         track_outcome(
-            org_id=payload["org_id"],
-            project_id=payload["project_id"],
+            org_id=org_id,
+            project_id=project_id,
             key_id=None,
             outcome=Outcome.ACCEPTED,
             reason=None,
             timestamp=datetime.now(timezone.utc),
             event_id=None,
-            category=DataCategory.TRANSACTION,
+            category=category,
             quantity=quantity,
         )
 
