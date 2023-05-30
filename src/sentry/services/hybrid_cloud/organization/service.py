@@ -10,6 +10,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
+    RpcRegionUser,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -17,6 +18,7 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
+    ByRegionName,
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -228,6 +230,11 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

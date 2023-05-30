@@ -34,7 +34,8 @@ class ProcessControlOutboxTest(TestCase):
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_user_updates(self, mock_maybe_process):
-        process_user_updates(object_identifier=self.identifier)
+        mock_maybe_process.return_value = User(id=1, is_active=True)
+        process_user_updates(object_identifier=self.identifier, region_name="us")
         mock_maybe_process.assert_called_with(User, self.identifier)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")

@@ -198,6 +198,45 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         )
         self.assert_org_member_mapping(org_member=org_member)
 
+    def test_create_mapping_updates_org_members(self):
+        assert self.user.is_active
+        self.user.is_active = False
+        self.user.save()
+
+        with outbox_runner():
+            org = self.create_organization("test", owner=self.user)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
+        assert not om.user_is_active
+
+    def test_save_user_pushes_is_active(self):
+        with outbox_runner():
+            org = self.create_organization("test", owner=self.user)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
+        assert om.user_is_active
+
+        with outbox_runner():
+            self.user.is_active = False
+            self.user.save()
+
+        with exempt_from_silo_limits():
+            om.refresh_from_db()
+        assert not om.user_is_active
+
+    def test_update_user_pushes_is_active(self):
+        with outbox_runner():
+            org = self.create_organization("test", owner=self.user)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
+        assert om.user_is_active
+
+        with outbox_runner():
+            self.user.update(is_active=False)
+
+        om.refresh_from_db()
+        assert not om.user_is_active
+
     def test_create_mapping_on_update(self):
         with exempt_from_silo_limits():
             inviter = self.create_user("bob@example.com")
