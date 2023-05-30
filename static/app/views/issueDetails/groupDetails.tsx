@@ -102,7 +102,10 @@ function getGroupQuery({environments}: {environments: string[]}) {
 }
 
 function getEventQuery({environments}: {environments: string[]}) {
-  const query = !isEmpty(environments) ? {environment: environments} : {};
+  const query = {
+    ...(!isEmpty(environments) ? {environment: environments} : {}),
+    collapse: ['fullRelease'],
+  };
 
   return query;
 }
@@ -326,11 +329,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const eventId = params.eventId ?? 'latest';
 
   const eventUrl = `/issues/${groupId}/events/${eventId}/`;
-
-  const eventQuery: Record<string, string | string[]> = {collapse: ['fullRelease']};
-  if (environments.length !== 0) {
-    eventQuery.environment = environments;
-  }
 
   const {
     data: eventData,
