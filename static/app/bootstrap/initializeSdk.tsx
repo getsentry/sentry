@@ -19,6 +19,12 @@ const SPA_MODE_ALLOW_URLS = [
   'webpack-internal://',
 ];
 
+// We don't care about recording breadcrumbs for these hosts. These typically
+// pollute our breadcrumbs since they may occur a LOT.
+//
+// XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
+const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
+
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
@@ -140,10 +146,25 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
     ],
 
+    beforeBreadcrumb(crumb) {
+      const isFetch = crumb.category === 'fetch' || crumb.category === 'xhr';
+
+      // Ignore
+      if (
+        isFetch &&
+        IGNORED_BREADCRUMB_FETCH_HOSTS.some(host => crumb.data?.url?.includes(host))
+      ) {
+        return null;
+      }
+
+      return crumb;
+    },
+
     beforeSend(event, _hint) {
       if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
+
       return event;
     },
   });
