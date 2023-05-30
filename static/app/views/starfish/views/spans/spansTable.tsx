@@ -19,19 +19,18 @@ import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
   location: Location;
-  onSelect: (row: SpanDataRow) => void;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
+  columnOrder?: GridColumnOrder[];
 };
 
 export type SpanDataRow = {
@@ -39,6 +38,7 @@ export type SpanDataRow = {
   description: string;
   domain: string;
   epm: number;
+  formatted_desc: string;
   group_id: string;
   p50: number;
   p95: number;
@@ -61,7 +61,7 @@ export default function SpansTable({
   queryConditions,
   spansTrendsData,
   isLoading,
-  onSelect,
+  columnOrder,
 }: Props) {
   const theme = useTheme();
   const {data: applicationMetrics} = useApplicationMetrics();
@@ -126,13 +126,13 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(queryConditions)}
+      columnOrder={columnOrder ?? getColumns(queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, theme, onSelect),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, theme),
       }}
       location={location}
     />
@@ -165,8 +165,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
-  onSelect?: (row: SpanDataRow) => void
+  theme: Theme
 ): React.ReactNode {
   if (column.key === 'throughput_trend' && row[column.key]) {
     const horizontalLine = generateHorizontalLine(
@@ -217,13 +216,12 @@ function renderBodyCell(
   }
 
   if (column.key === 'description') {
-    const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link onClick={() => onSelect?.(formattedRow)} to="">
+        <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
-              {(row as unknown as DataRow).formatted_desc}
+              {(row as unknown as SpanDataRow).formatted_desc}
             </StyledFormattedCode>
           ) : (
             row.description || '<null>'

@@ -5,7 +5,9 @@ import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
@@ -43,12 +45,13 @@ function CreateProject() {
   const organization = useOrganization();
   const location = useLocation();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
+  const {teams} = useTeams();
 
   const autoFill =
     location.query.referrer === 'getting-started' &&
     location.query.project === gettingStartedWithProjectContext.project?.id;
 
-  const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
+  const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
 
   useRouteAnalyticsEventNames(
     'project_creation_page.viewed',
@@ -94,6 +97,7 @@ function CreateProject() {
       const selectedPlatform = selectedFramework ?? platform;
 
       if (!selectedPlatform) {
+        addErrorMessage(t('Please select a platform in Step 1'));
         return;
       }
 
@@ -166,6 +170,7 @@ function CreateProject() {
     const selectedPlatform = platform;
 
     if (!selectedPlatform) {
+      addErrorMessage(t('Please select a platform in Step 1'));
       return;
     }
 
@@ -226,7 +231,8 @@ function CreateProject() {
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const {canCreateProject} = useProjectCreationAccess(organization);
+  const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
+
   const canSubmitForm =
     !inFlight &&
     team &&
@@ -266,8 +272,76 @@ function CreateProject() {
     };
   }, [gettingStartedWithProjectContext, autoFill]);
 
-  return (
+  const createProjectForm = (
     <Fragment>
+      <Layout.Title withMargins>
+        {t('3. Name your project and assign it a team')}
+      </Layout.Title>
+      <CreateProjectForm
+        onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
+          // Prevent the page from reloading
+          event.preventDefault();
+          frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+        }}
+      >
+        <div>
+          <FormLabel>{t('Project name')}</FormLabel>
+          <ProjectNameInputWrap>
+            <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
+            <ProjectNameInput
+              type="text"
+              name="name"
+              placeholder={t('project-name')}
+              autoComplete="off"
+              value={projectName}
+              onChange={e => setProjectName(slugify(e.target.value))}
+            />
+          </ProjectNameInputWrap>
+        </div>
+        <div>
+          <FormLabel>{t('Team')}</FormLabel>
+          <TeamSelectInput>
+            <TeamSelector
+              name="select-team"
+              aria-label={t('Select a Team')}
+              menuPlacement="auto"
+              clearable={false}
+              value={team}
+              placeholder={t('Select a Team')}
+              onChange={choice => setTeam(choice.value)}
+              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
+            />
+            <Button
+              borderless
+              data-test-id="create-team"
+              icon={<IconAdd isCircled />}
+              onClick={() =>
+                openCreateTeamModal({
+                  organization,
+                  onClose: ({slug}) => setTeam(slug),
+                })
+              }
+              title={t('Create a team')}
+              aria-label={t('Create a team')}
+            />
+          </TeamSelectInput>
+        </div>
+        <div>
+          <Button
+            type="submit"
+            data-test-id="create-project"
+            priority="primary"
+            disabled={!canSubmitForm}
+          >
+            {t('Create Project')}
+          </Button>
+        </div>
+      </CreateProjectForm>
+    </Fragment>
+  );
+
+  return (
+    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
       {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
@@ -294,71 +368,9 @@ function CreateProject() {
           {...alertFrequencyDefaultValues}
           onChange={updatedData => setAlertRuleConfig(updatedData)}
         />
-        <Layout.Title withMargins>
-          {t('3. Name your project and assign it a team')}
-        </Layout.Title>
-        <CreateProjectForm
-          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
-            // Prevent the page from reloading
-            event.preventDefault();
-            frameworkSelectionEnabled ? handleProjectCreation() : createProject();
-          }}
-        >
-          <div>
-            <FormLabel>{t('Project name')}</FormLabel>
-            <ProjectNameInputWrap>
-              <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
-              <ProjectNameInput
-                type="text"
-                name="name"
-                placeholder={t('project-name')}
-                autoComplete="off"
-                value={projectName}
-                onChange={e => setProjectName(slugify(e.target.value))}
-              />
-            </ProjectNameInputWrap>
-          </div>
-          <div>
-            <FormLabel>{t('Team')}</FormLabel>
-            <TeamSelectInput>
-              <TeamSelector
-                name="select-team"
-                aria-label={t('Select a Team')}
-                menuPlacement="auto"
-                clearable={false}
-                value={team}
-                placeholder={t('Select a Team')}
-                onChange={choice => setTeam(choice.value)}
-                teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
-              />
-              <Button
-                borderless
-                data-test-id="create-team"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => setTeam(slug),
-                  })
-                }
-                title={t('Create a team')}
-                aria-label={t('Create a team')}
-              />
-            </TeamSelectInput>
-          </div>
-          <div>
-            <Button
-              type="submit"
-              data-test-id="create-project"
-              priority="primary"
-              disabled={!canSubmitForm}
-            >
-              {t('Create Project')}
-            </Button>
-          </div>
-        </CreateProjectForm>
+        {createProjectForm}
       </div>
-    </Fragment>
+    </Access>
   );
 }
 

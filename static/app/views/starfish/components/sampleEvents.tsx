@@ -9,7 +9,7 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TextAlignLeft} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+import {TextAlignLeft} from 'sentry/views/starfish/components/textAlign';
 
 type Props = {
   eventView: EventView;

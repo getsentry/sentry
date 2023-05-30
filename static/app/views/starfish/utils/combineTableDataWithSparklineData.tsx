@@ -1,8 +1,14 @@
 import {Duration, Moment} from 'moment';
 
 import {Series} from 'sentry/types/echarts';
-import {DataRow} from 'sentry/views/starfish/modules/APIModule/endpointTable';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+
+type DataRow = {
+  count: number;
+  description: string;
+  domain: string;
+  group_id: string;
+};
 
 export default function combineTableDataWithSparklineData(
   tableData: DataRow[],
