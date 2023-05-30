@@ -47,6 +47,9 @@ export function usePreviewEvent<T = Event>({
   projectSlug?: string;
 }) {
   const organization = useOrganization();
+  const hasPrefetchIssueFeature = organization.features.includes(
+    'issue-list-prefetch-issue-on-hover'
+  );
 
   // This query should match the one on group details so that the event will
   // be fully loaded already if you preview then click.
@@ -55,7 +58,7 @@ export function usePreviewEvent<T = Event>({
       eventId && projectSlug
         ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
         : `/issues/${groupId}/events/latest/`,
-      {query: getGroupEventDetailsQueryData()},
+      {query: getGroupEventDetailsQueryData({stacktraceOnly: !hasPrefetchIssueFeature})},
     ],
     {staleTime: 30000, cacheTime: 30000}
   );
@@ -64,7 +67,7 @@ export function usePreviewEvent<T = Event>({
   useApiQuery([`/issues/${groupId}/`, {query: getGroupDetailsQueryData()}], {
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: defined(groupId),
+    enabled: defined(groupId) && hasPrefetchIssueFeature,
   });
 
   return eventQuery;
