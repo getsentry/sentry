@@ -633,7 +633,7 @@ class SubscriptionProcessor:
             return incident_trigger
 
     def handle_trigger_actions(
-        self, incident_triggers: list[IncidentTrigger], metric_value: float
+        self, incident_triggers: List[IncidentTrigger], metric_value: float
     ) -> None:
         actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
