@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from sentry.integrations.msteams.card_builder import AdaptiveCard, ColumnSetBlock
 from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.utils.http import absolute_uri
 
 from .base import MSTeamsMessageBuilder
@@ -76,7 +79,9 @@ def build_installation_confirmation_message(
     )
 
 
-def build_team_installation_confirmation_message(organization: Organization) -> AdaptiveCard:
+def build_team_installation_confirmation_message(
+    organization: Organization | RpcOrganizationSummary,
+) -> AdaptiveCard:
     alert_rule_url = absolute_uri(
         InstallationMessages.ALERT_RULE_URL.format(organization_slug=organization.slug)
     )

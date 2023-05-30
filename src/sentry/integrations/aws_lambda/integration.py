@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
@@ -17,8 +20,9 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import OrganizationIntegration, Project
+from sentry.models import Integration, OrganizationIntegration, Project
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client
@@ -225,7 +229,12 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         }
         return integration
 
-    def post_install(self, integration, organization, extra):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         default_project_id = extra["default_project_id"]
         OrganizationIntegration.objects.filter(
             organization_id=organization.id, integration=integration

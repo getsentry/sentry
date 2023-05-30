@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
@@ -13,8 +17,9 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import Repository
+from sentry.models import Integration, Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
@@ -149,7 +154,12 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         )
         return [identity_pipeline_view, VerifyInstallation()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["bitbucket", "integrations:bitbucket"],

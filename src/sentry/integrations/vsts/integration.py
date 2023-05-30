@@ -36,6 +36,7 @@ from sentry.models import (
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -356,7 +357,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
     def post_install(
         self,
         integration: IntegrationModel,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
         repo_ids = Repository.objects.filter(

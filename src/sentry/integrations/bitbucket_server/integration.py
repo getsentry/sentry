@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -18,8 +21,9 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Identity, Repository
+from sentry.models import Identity, Integration, Repository
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
@@ -305,7 +309,12 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["bitbucket_server", "integrations:bitbucket_server"],
