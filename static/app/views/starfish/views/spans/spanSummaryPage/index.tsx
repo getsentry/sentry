@@ -11,17 +11,17 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import SampleList from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList';
-import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPage/spanBaselineTable';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
-import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
-import {useSpanById} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanById';
-import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
+import {ReleasePreview} from 'sentry/views/starfish/components/releasePreview';
+import {useSpanById} from 'sentry/views/starfish/queries/useSpanById';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {
   useSpanFirstSeenEvent,
   useSpanLastSeenEvent,
-} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanSeenEvent';
+} from 'sentry/views/starfish/queries/useSpanSeenEvent';
+import SampleList from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList';
+import {SpanBaselineTable} from 'sentry/views/starfish/views/spans/spanSummaryPage/spanBaselineTable';
+import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
+import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 
 type Props = {
   location: Location;

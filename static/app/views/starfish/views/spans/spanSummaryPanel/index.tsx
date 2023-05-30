@@ -9,17 +9,17 @@ import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
-import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
-import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
-import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
-import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
+import {ReleasePreview} from 'sentry/views/starfish/components/releasePreview';
+import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import type {Span} from 'sentry/views/starfish/queries/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
 import {
   useSpanFirstSeenEvent,
   useSpanLastSeenEvent,
-} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanSeenEvent';
+} from 'sentry/views/starfish/queries/useSpanSeenEvent';
+import {SpanTransactionsTable} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanTransactionsTable';
 
 type Props = {
   onClose: () => void;

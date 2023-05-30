@@ -19,8 +19,8 @@ import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
