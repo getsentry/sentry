@@ -996,9 +996,6 @@ def sort_by_priority_list(triggers: list[AlertRuleTrigger]) -> list[AlertRuleTri
     priority_dict = {
         WARNING_TRIGGER_LABEL: 0,
         CRITICAL_TRIGGER_LABEL: 1,
-        # TODO: DO WE NEED TRIGGER STATUS HERE?
-        #        (CRITICAL_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 2,
-        #        (WARNING_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 3,
     }
     return sorted(
         triggers,
