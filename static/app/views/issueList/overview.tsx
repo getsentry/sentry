@@ -853,8 +853,11 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       sort,
     });
-
-    this.transitionTo({sort});
+    if (sort === 'betterPriority') {
+      this.transitionTo({sort, logLevel: 0, hasStacktrace: 0, eventHalflifeHours: 4});
+    } else {
+      this.transitionTo({sort});
+    }
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
