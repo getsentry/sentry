@@ -50,6 +50,10 @@ def is_sliding_window_enabled(organization: Organization) -> bool:
     ) and features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
+def can_boost_new_projects(organization: Organization) -> bool:
+    return features.has("organizations:ds-boost-new-projects", organization, actor=None)
+
+
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)
 
@@ -65,7 +69,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     #
     # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
     # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
-    if is_sliding_window_enabled(organization) and (
+    if can_boost_new_projects(organization) and (
         is_recently_added(model=organization) or is_recently_added(model=project)
     ):
         return 1.0
