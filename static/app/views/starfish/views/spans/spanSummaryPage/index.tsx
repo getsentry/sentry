@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,6 +16,7 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import Chart from 'sentry/views/starfish/components/chart';
+import SampleList from 'sentry/views/starfish/views/spans/spanSummaryPage/sampleList';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spans/spanSummaryPanel';
 import {ReleasePreview} from 'sentry/views/starfish/views/spans/spanSummaryPanel/releasePreview';
 import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
@@ -36,6 +38,7 @@ function SpanSummaryPage({params}: Props) {
   const {groupId} = params;
 
   const theme = useTheme();
+  const [transactionName, setTransactionName] = useState<string | undefined>();
 
   const {data: span} = useSpanById(groupId, 'span-summary-page');
   const {data: applicationMetrics} = useApplicationMetrics();
@@ -206,8 +209,22 @@ function SpanSummaryPage({params}: Props) {
                 ) : null}
               </BlockContainer>
               <BlockContainer>
-                {span && <SpanTransactionsTable span={span} />}
+                {span && (
+                  <SpanTransactionsTable
+                    span={span}
+                    openSidebar
+                    onClickTransaction={row => setTransactionName(row.transaction)}
+                  />
+                )}
               </BlockContainer>
+              {transactionName && (
+                <SampleList
+                  spanDescription={span.description}
+                  groupId={span.group_id}
+                  onClose={() => setTransactionName(undefined)}
+                  transactionName={transactionName}
+                />
+              )}
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
