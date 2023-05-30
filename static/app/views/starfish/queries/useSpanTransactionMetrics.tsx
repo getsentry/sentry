@@ -12,10 +12,11 @@ const INTERVAL = 12;
 type Metric = {
   p50: number;
   spm: number;
+  total_time: number;
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Span,
+  span?: Pick<Span, 'group_id'>,
   transactions?: string[],
   referrer = 'span-transaction-metrics'
 ) => {
@@ -30,6 +31,7 @@ export const useSpanTransactionMetrics = (
       transaction,
       quantile(0.5)(exclusive_time) as p50,
       sum(exclusive_time) as "sum(span.self_time)",
+      sum(exclusive_time) as total_time,
       divide(count(), multiply(${INTERVAL}, 60)) as spm
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group_id}'
