@@ -83,6 +83,9 @@ class RpcUser(RpcModel):
     def has_usable_password(self) -> bool:
         return self.password_usable
 
+    def get_username(self) -> str:  # API compatibility with ORM User
+        return self.username
+
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
 

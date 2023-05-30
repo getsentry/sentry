@@ -223,6 +223,11 @@ class OrganizationMember(Model):
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
+    user_is_active = models.BooleanField(
+        null=False,
+        default=True,
+    )
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmember"
@@ -238,22 +243,23 @@ class OrganizationMember(Model):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
-    @transaction.atomic
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
         ), "Must set either user or email"
-        if self.token and not self.token_expires_at:
-            self.refresh_expires_at()
-        is_new = not bool(self.id)
-        super().save(*args, **kwargs)
-        region_outbox = None
-        if is_new:
-            region_outbox = self.save_outbox_for_create()
-        else:
-            region_outbox = self.save_outbox_for_update()
-        self.__org_roles_from_teams = None
-        return region_outbox
+
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            if self.token and not self.token_expires_at:
+                self.refresh_expires_at()
+            is_new = not bool(self.id)
+            super().save(*args, **kwargs)
+            region_outbox = None
+            if is_new:
+                region_outbox = self.save_outbox_for_create()
+            else:
+                region_outbox = self.save_outbox_for_update()
+            self.__org_roles_from_teams = None
+            return region_outbox
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
@@ -343,9 +349,12 @@ class OrganizationMember(Model):
 
     @property
     def legacy_token(self):
+        email = self.get_email()
+        if not email:
+            return ""
         checksum = md5()
         checksum.update(str(self.organization_id).encode("utf-8"))
-        checksum.update(self.get_email().encode("utf-8"))
+        checksum.update(email.encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 

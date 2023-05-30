@@ -327,6 +327,7 @@ class ReferrerBase(Enum):
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
+    API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"

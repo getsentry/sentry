@@ -262,7 +262,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_EDIT"),
             data=member.get_audit_log_data(),
         )
@@ -295,9 +295,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 organizationmember=member, role__in=lesser_team_roles
             ).update(role=None)
 
-            member.update(role=role)
-            region_outbox = member.save_outbox_for_update()
-        if region_outbox:
+            member.role = role
+            region_outbox = member.save()
             region_outbox.drain_shard(max_updates_to_drain=10)
         if omt_update_count > 0:
             metrics.incr(
@@ -383,7 +382,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_REMOVE"),
             data=audit_data,
         )

@@ -318,7 +318,8 @@ describe('GroupActivity', function () {
         GroupStore.removeActivity('1337', 'note-1');
       });
 
-      await userEvent.click(screen.getByText('Remove'));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
       ).toBeInTheDocument();
@@ -331,7 +332,8 @@ describe('GroupActivity', function () {
       createWrapper();
       renderGlobalModal();
 
-      await userEvent.click(screen.getByText('Remove'));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
       ).toBeInTheDocument();

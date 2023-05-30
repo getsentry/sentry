@@ -9,7 +9,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -24,19 +29,22 @@ export default function EditMonitor() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKeyUrl = `/organizations/${organization.slug}/monitors/${monitorSlug}/`;
+  const queryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
+    {query: {expand: ['alertRule']}},
+  ];
 
   const {
     isLoading,
     isError,
     data: monitor,
     refetch,
-  } = useApiQuery<Monitor>([queryKeyUrl], {
+  } = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
   });
 
   function onSubmitSuccess(data: Monitor) {
-    setApiQueryData(queryClient, [queryKeyUrl], data);
+    setApiQueryData(queryClient, queryKey, data);
     browserHistory.push(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,

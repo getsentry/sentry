@@ -8,7 +8,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class RepositoryMixin:
@@ -36,7 +36,7 @@ class RepositoryMixin:
         filepath = filepath.lstrip("/")
         try:
             client = self.get_client()
-        except Identity.DoesNotExist:
+        except (Identity.DoesNotExist, IntegrationError):
             return None
         try:
             response = client.check_file(repo, filepath, branch)

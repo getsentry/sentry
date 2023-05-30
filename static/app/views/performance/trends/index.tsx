@@ -58,7 +58,7 @@ class TrendsSummary extends Component<Props, State> {
   };
 
   getDocumentTitle(): string {
-    return [t('Trends'), t('Performance')].join(' - ');
+    return [t('Trends'), t('Performance')].join(' — ');
   }
 
   setError = (error: string | undefined) => {
