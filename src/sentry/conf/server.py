@@ -978,12 +978,13 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=42),
         "options": {"expires": 3600},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
-        "options": {"expires": 3600},
-    },
+    # TODO(HC) Remove or re-enable this once a decision is made on org mapping creation
+    # "hybrid-cloud-repair-mappings": {
+    #     "task": "sentry.tasks.organization_mapping.repair_mappings",
+    #     # Run every hour
+    #     "schedule": crontab(minute=0, hour="*/1"),
+    #     "options": {"expires": 3600},
+    # },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30

@@ -779,16 +779,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
 
         # Drain outbox
-        outbox = Organization.outbox_to_verify_mapping(org.id)
-        outbox.drain_shard()
+        with outbox_runner():
+            pass
 
         with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
-            ).exists()
-
-            assert not OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="test"
+                organization_id=org.id, slug="santry"
             ).exists()
 
     def test_update_name_with_mapping(self):
