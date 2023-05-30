@@ -101,7 +101,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
     default_retry_delay=5,  # copied from transaction name clusterer
     max_retries=5,  # copied from transaction name clusterer
 )  # type: ignore
-def spawn_span_cluster_projects(**kwargs: Any) -> None:
+def spawn_clusterers_span_descs(**kwargs: Any) -> None:
     """Look for existing span description sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="span_descs-cluster_spawn"):
         project_count = 0

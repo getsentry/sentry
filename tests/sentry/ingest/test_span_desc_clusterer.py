@@ -21,7 +21,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.ingest.transaction_clusterer.tasks import (
     cluster_projects_span_descs,
-    spawn_span_cluster_projects,
+    spawn_clusterers_span_descs,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -240,7 +240,7 @@ def test_run_clusterer_task(cluster_projects_span_descs, default_organization):
             == {"first_run": 0, "last_run": 0, "runs": 0}
         )
 
-        spawn_span_cluster_projects()
+        spawn_clusterers_span_descs()
 
         assert cluster_projects_span_descs.call_count == 1
         cluster_projects_span_descs.reset_mock()
@@ -273,7 +273,7 @@ def test_run_clusterer_task(cluster_projects_span_descs, default_organization):
         with mock.patch(
             "sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1
         ), freeze_time("2000-01-01 01:00:01"):
-            spawn_span_cluster_projects()
+            spawn_clusterers_span_descs()
 
         # One project per batch now:
         assert cluster_projects_span_descs.call_count == 2, cluster_projects_span_descs.call_args
