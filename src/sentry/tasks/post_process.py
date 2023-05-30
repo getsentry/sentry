@@ -1017,7 +1017,7 @@ def sdk_crash_monitoring(job: PostProcessJob):
 
     event = job["event"]
 
-    if not features.has("organizations:sdk-crash-reporting", event.project.organization):
+    if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
