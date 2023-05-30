@@ -19,10 +19,15 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
       responseStatus: status,
       endpoint,
     });
-    scope.setExtras({
-      status,
-      responseJSON,
-    });
+
+    // TODO: If we discover that undefind response bodies don't break anything,
+    // we can revert to bailing when `responseJSON` is falsy and always calling `setExtras`
+    if (err.name !== 'UndefinedResponseBodyError') {
+      scope.setExtras({
+        status,
+        responseJSON,
+      });
+    }
 
     Sentry.captureException(
       // We need to typecheck here even though `err` is typed in the function
