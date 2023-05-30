@@ -3,9 +3,11 @@ import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -17,9 +19,11 @@ type Props = {
 export function ActionSelector({value = '', moduleName = ModuleName.ALL}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
+  const {selection} = usePageFilters();
+
   const location = useLocation();
   const query = getQuery(moduleName);
-  const eventView = getEventView(moduleName);
+  const eventView = getEventView(moduleName, selection);
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
@@ -87,13 +91,16 @@ function getQuery(moduleName?: string) {
   `;
 }
 
-function getEventView(moduleName?: string) {
+function getEventView(moduleName: ModuleName, pageFilters: PageFilters) {
   return EventView.fromSavedQuery({
     name: '',
     fields: ['span.action', 'count()'],
     orderby: '-count',
     query: moduleName ? `!span.action:"" span.module:${moduleName}` : '!span.action:""',
     dataset: DiscoverDatasets.SPANS_METRICS,
+    start: pageFilters.datetime.start ?? undefined,
+    end: pageFilters.datetime.end ?? undefined,
+    range: pageFilters.datetime.period ?? undefined,
     projects: [1],
     version: 2,
   });
