@@ -1725,9 +1725,7 @@ function buildRoutes() {
       />
       <Route
         path="span/:groupId/"
-        component={make(
-          () => import('sentry/views/starfish/views/spans/spanSummaryPage')
-        )}
+        component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
       />
     </Fragment>
   );

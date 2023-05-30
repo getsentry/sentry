@@ -3,7 +3,7 @@ import omit from 'lodash/omit';
 import {t} from 'sentry/locale';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import DurationChart from 'sentry/views/starfish/views/spans/spanSummaryPage/durationChart';
+import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/durationChart';
 
 type Props = {
   groupId: string;

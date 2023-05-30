@@ -8,7 +8,7 @@ import {queryDataToChartData} from 'sentry/views/starfish/utils/queryDataToChart
 import {
   useQueryGetSpanSeriesData,
   useQuerySpansInTransaction,
-} from 'sentry/views/starfish/views/spans/spanSummaryPage/queries';
+} from 'sentry/views/starfish/views/spanSummaryPage/queries';
 
 type Props = {
   groupId: string;
