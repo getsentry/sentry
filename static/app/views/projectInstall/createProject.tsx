@@ -85,14 +85,19 @@ function CreateProject() {
       setInFlight(true);
 
       try {
-        const projectData = await api.requestPromise(`/teams/${slug}/${team}/projects/`, {
-          method: 'POST',
-          data: {
-            name: projectName,
-            platform: selectedPlatform,
-            default_rules: defaultRules ?? true,
-          },
-        });
+        const projectData = await api.requestPromise(
+          team === null
+            ? `/organizations/${slug}/experimental/projects/`
+            : `/teams/${slug}/${team}/projects/`,
+          {
+            method: 'POST',
+            data: {
+              name: projectName,
+              platform: selectedPlatform,
+              default_rules: defaultRules ?? true,
+            },
+          }
+        );
 
         let ruleId: string | undefined;
         if (shouldCreateCustomRule) {
@@ -214,9 +219,12 @@ function CreateProject() {
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
+  const isOrgMemberWithNoAccess =
+    accessTeams.length === 0 && !organization.access.includes('project:admin');
+
   const canSubmitForm =
     !inFlight &&
-    team &&
+    (team || isOrgMemberWithNoAccess) &&
     canCreateProject &&
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
@@ -247,34 +255,36 @@ function CreateProject() {
             />
           </ProjectNameInputWrap>
         </div>
-        <div>
-          <FormLabel>{t('Team')}</FormLabel>
-          <TeamSelectInput>
-            <TeamSelector
-              name="select-team"
-              aria-label={t('Select a Team')}
-              menuPlacement="auto"
-              clearable={false}
-              value={team}
-              placeholder={t('Select a Team')}
-              onChange={choice => setTeam(choice.value)}
-              teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-            />
-            <Button
-              borderless
-              data-test-id="create-team"
-              icon={<IconAdd isCircled />}
-              onClick={() =>
-                openCreateTeamModal({
-                  organization,
-                  onClose: ({slug}) => setTeam(slug),
-                })
-              }
-              title={t('Create a team')}
-              aria-label={t('Create a team')}
-            />
-          </TeamSelectInput>
-        </div>
+        {!isOrgMemberWithNoAccess && (
+          <div>
+            <FormLabel>{t('Team')}</FormLabel>
+            <TeamSelectInput>
+              <TeamSelector
+                name="select-team"
+                aria-label={t('Select a Team')}
+                menuPlacement="auto"
+                clearable={false}
+                value={team}
+                placeholder={t('Select a Team')}
+                onChange={choice => setTeam(choice.value)}
+                teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+              />
+              <Button
+                borderless
+                data-test-id="create-team"
+                icon={<IconAdd isCircled />}
+                onClick={() =>
+                  openCreateTeamModal({
+                    organization,
+                    onClose: ({slug}) => setTeam(slug),
+                  })
+                }
+                title={t('Create a team')}
+                aria-label={t('Create a team')}
+              />
+            </TeamSelectInput>
+          </div>
+        )}
         <div>
           <Button
             type="submit"
@@ -290,7 +300,7 @@ function CreateProject() {
   );
 
   return (
-    <Access access={canCreateProject ? ['project:read'] : ['project:write']}>
+    <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
       {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
