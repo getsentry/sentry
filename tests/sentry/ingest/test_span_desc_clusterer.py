@@ -15,6 +15,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
+    get_redis_rules,
     get_rules,
     get_sorted_rules,
     update_rules,
@@ -27,6 +28,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.helpers.options import override_options
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
@@ -363,3 +365,61 @@ def test_transaction_clusterer_generates_rules(default_project):
                 "redaction": {"method": "replace", "substitution": "*"},
             },
         ]
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
+    wraps=cluster_projects_span_descs,  # call immediately
+)
+@pytest.mark.django_db
+def test_transaction_clusterer_bumps_rules(_, default_organization):
+    with Feature("projects:span-metrics-extraction"), override_options(
+        {"span_descs.bump-lifetime-sample-rate": 1.0}
+    ):
+        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+        project1.save()
+
+        for i in range(10):
+            _store_span_description(project1, f"/remains/to-scrub-{project1.name}-{i}/settings")
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
+            spawn_clusterers_span_descs()
+
+        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 1}
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
+            record_span_descriptions(
+                project1,
+                {
+                    "spans": [
+                        {
+                            "description": "GET domain/remains/to-scrub/remains",
+                            "op": "http.client",
+                            "data": {"description.scrubbed": "GET domain/remains/*/remains"},
+                        }
+                    ],
+                    "_meta": {
+                        "spans": {
+                            "0": {
+                                "data": {
+                                    "description.scrubbed": {
+                                        "": {"rem": [["description.scrubbed:**/remains/*/**", "s"]]}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                },
+            )
+
+        # _get_rules fetches from project options, which arent updated yet.
+        assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
+        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 1}
+        # Update rules to update the project option storage.
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
+            assert 0 == update_rules(ClustererNamespace.SPANS, project1, [])
+        # After project options are updated, the last_seen should also be updated.
+        assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
+        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
