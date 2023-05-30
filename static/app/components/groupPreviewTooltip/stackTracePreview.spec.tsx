@@ -17,19 +17,19 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 beforeEach(() => {
   MockApiClient.clearMockResponses();
   MockApiClient.addMockResponse({
-    url: '/issues/group-id/',
+    url: '/issues/123/',
   });
 });
 
 describe('StackTracePreview', () => {
   it('fetches from projects when eventId and projectSlug are provided', async () => {
     const mockGet = MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project_slug/events/event_id/`,
-      body: makeEvent({id: 'event_id', entries: []}),
+      url: `/projects/org-slug/project_slug/events/456/`,
+      body: makeEvent({id: '456', entries: []}),
     });
 
     render(
-      <StackTracePreview groupId="group-id" eventId="event_id" projectSlug="project_slug">
+      <StackTracePreview groupId="123" eventId="456" projectSlug="project_slug">
         Preview Trigger
       </StackTracePreview>
     );
@@ -43,11 +43,11 @@ describe('StackTracePreview', () => {
 
   it('fetches from issues when eventId and projectSlug are not provided', async () => {
     const mockGet = MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
-      body: makeEvent({id: 'event_id', entries: []}),
+      url: `/issues/123/events/latest/`,
+      body: makeEvent({id: '456', entries: []}),
     });
 
-    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -58,11 +58,11 @@ describe('StackTracePreview', () => {
 
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/issues/123/events/latest/`,
       statusCode: 400,
     });
 
-    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -71,11 +71,11 @@ describe('StackTracePreview', () => {
 
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
-      body: makeEvent({id: 'event_id', entries: []}),
+      url: `/issues/123/events/latest/`,
+      body: makeEvent({id: '456', entries: []}),
     });
 
-    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -129,7 +129,7 @@ describe('StackTracePreview', () => {
     };
 
     const errorEvent: EventError = {
-      id: 'event_id',
+      id: '456',
       entries: [
         {
           type: EntryType.EXCEPTION,
@@ -139,11 +139,11 @@ describe('StackTracePreview', () => {
     } as EventError;
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/issues/123/events/latest/`,
       body: makeEvent(errorEvent),
     });
 
-    render(<StackTracePreview groupId="group-id">Preview Trigger</StackTracePreview>, {
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>, {
       organization: {features},
     });
 
