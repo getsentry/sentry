@@ -30,3 +30,11 @@ class ClustererNamespace(Enum):
         tracker="txcluster.rules_per_project",
         meta_store="sentry:transaction_name_cluster_meta",
     )
+    SPANS = NamespaceOption(
+        name="spans",
+        data="span.descs.data",
+        rules="span.descs.rules",
+        persistent_storage="sentry:span_description_cluster_rules",
+        tracker="span.descs.rules_per_project",
+        meta_store="sentry:span_descriptions_cluster_meta",
+    )
