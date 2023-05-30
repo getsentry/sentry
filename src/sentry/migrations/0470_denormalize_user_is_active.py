@@ -23,9 +23,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="organizationmember",
-            name="user_is_active",
-            field=models.BooleanField(default=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_organizationmember" ADD COLUMN "user_is_active" BOOLEAN NOT NULL DEFAULT TRUE;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_organizationmember" DROP COLUMN "user_is_active";
+                    """,
+                    hints={"tables": ["sentry_organizationmember"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="organizationmember",
+                    name="user_is_active",
+                    field=models.BooleanField(default=True),
+                ),
+            ],
+        )
     ]
