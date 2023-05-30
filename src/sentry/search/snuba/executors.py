@@ -477,11 +477,6 @@ def better_priority_aggregation(
     event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every x hours
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
 
-    # TODO: we have no way of aggregating to account for frequency
-    #  (errors within group) / (total events grouped by project)
-    # frequency_weight = aggregate_kwargs["frequency"]  # [0, 5]
-    # frequency_score = f"countIf(and(greater(toDateTime('{start_str}'), timestamp), lessOrEquals(toDateTime('{end_str}'), timestamp))) / count()"
-
     log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
     stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
     event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
@@ -491,28 +486,34 @@ def better_priority_aggregation(
     event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"
 
     v2 = aggregate_kwargs["v2"]
-    event_count_60_mins = "countIf(lessOrEquals(minus(now(), timestamp), 3600))"
-    week = 3600 * 24 * 7
-    avg_hourly_event_count_last_7_days = f"countIf(lessOrEquals(minus(now(), timestamp), {week}))"
-    relative_volume_score = 1
-    if v2:
+
+    if not v2:
+        issue_halflife_hours = 24 * 7  # issues half in value every week
+        aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+        return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
+    else:
+        #  * more aggressive issue half-life decay (24*7 hours -> to 4 hours)
+        #  * apply log to event score summation to clamp the contribution of event scores to a reasonable maximum
+        #  * add an extra 'relative volume score' (# of events in past 60 mins / # of events in the past 7 days)
+        #    to factor in the volume of events that recently were fired versus the past. This will up-rank issues
+        #    that are more recently active as a function of the overall amount of events grouped to that issue
         issue_halflife_hours = 4  # issues half in value every 4 hours
         aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
+
+        event_count_60_mins = "countIf(lessOrEquals(minus(now(), timestamp), 3600))"
+        avg_hourly_event_count_last_7_days = (
+            "countIf(lessOrEquals(minus(now(), timestamp), 604800))"  # 604800 = 3600 * 24 * 7
+        )
         relative_volume_score = (
             f"divide(plus({event_count_60_mins}, 1), plus({avg_hourly_event_count_last_7_days}, 1))"
         )
-    else:
-        issue_halflife_hours = 24 * 7  # issues half in value every week
-        aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
-    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
-
-    if v2:
         return [
             f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), {relative_volume_score})",
             "",
         ]
-    return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
