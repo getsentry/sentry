@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -7,6 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -18,12 +18,10 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 type Props = {
-  descriptionFilter: string;
   queryConditions: string[];
 };
 
-export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
-  const themes = useTheme();
+export function SpanTimeCharts({queryConditions}: Props) {
   const location = useLocation();
 
   const pageFilter = usePageFilters();
@@ -37,7 +35,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   const {isLoading, data} = useSpansQuery({
     queryString: `${getSpanTotalTimeChartQuery(
       pageFilter.selection.datetime,
-      descriptionFilter,
       queryConditions
     )}&referrer=span-time-charts`,
     initialData: [],
@@ -56,23 +53,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
           value: datum.spm,
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
-  });
-
-  const totalTimeSeries = Object.keys(dataByGroup).map(groupName => {
-    const groupData = dataByGroup[groupName];
-
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'Total Time',
-        data: groupData.map(datum => ({
-          value: datum.total_time,
           name: datum.interval,
         })),
       },
@@ -104,31 +84,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
   return (
     <ChartsContainer>
       <ChartsContainerItem>
-        <ChartPanel title={t('Total Time')}>
-          <Chart
-            statsPeriod="24h"
-            height={100}
-            data={totalTimeSeries}
-            start=""
-            end=""
-            loading={isLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '8px',
-              bottom: '0',
-            }}
-            definedAxisTicks={4}
-            stacked
-            chartColors={themes.charts.getColorPalette(2)}
-            disableXAxis
-          />
-        </ChartPanel>
-      </ChartsContainerItem>
-
-      <ChartsContainerItem>
-        <ChartPanel title={t('Throughput (SPM)')}>
+        <ChartPanel title={t('Throughput')}>
           <Chart
             statsPeriod="24h"
             height={100}
@@ -146,7 +102,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={themes.charts.getColorPalette(2)}
+            chartColors={[THROUGHPUT_COLOR]}
             disableXAxis
             tooltipFormatterOptions={{
               valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
@@ -156,7 +112,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <ChartPanel title={t('p50')}>
+        <ChartPanel title={t('Duration (P50)')}>
           <Chart
             statsPeriod="24h"
             height={100}
@@ -174,7 +130,7 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={themes.charts.getColorPalette(2)}
+            chartColors={[DURATION_COLOR]}
             disableXAxis
           />
         </ChartPanel>
@@ -185,7 +141,6 @@ export function SpanTimeCharts({descriptionFilter, queryConditions}: Props) {
 
 export const getSpanTotalTimeChartQuery = (
   datetime: DateTimeObject,
-  descriptionFilter: string | undefined,
   conditions: string[] = []
 ) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
@@ -201,7 +156,6 @@ export const getSpanTotalTimeChartQuery = (
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
-    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY interval
     ORDER BY interval ASC
   `;

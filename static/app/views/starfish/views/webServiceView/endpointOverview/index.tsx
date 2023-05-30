@@ -284,7 +284,6 @@ function SpanMetricsTable({
   }
 
   const query = getSpanListQuery(
-    undefined,
     pageFilter.selection.datetime,
     queryConditions,
     'count',
@@ -307,11 +306,7 @@ function SpanMetricsTable({
     queryKey: ['spansTrends'],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(
-          undefined,
-          pageFilter.selection.datetime,
-          groupIDs
-        )}`
+        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
       ).then(res => res.json()),
     retry: false,
     refetchOnWindowFocus: false,
@@ -322,6 +317,7 @@ function SpanMetricsTable({
   return (
     <SpansTable
       location={location}
+      moduleName={ModuleName.ALL}
       queryConditions={queryConditions}
       isLoading={areSpansLoading || areSpansTrendsLoading}
       spansData={spansData}
