@@ -1,39 +1,58 @@
 import keyBy from 'lodash/keyBy';
 
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {HOST} from 'sentry/views/starfish/utils/constants';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
+
+const INTERVAL = 12;
+
+type Metric = {
+  p50: number;
+  spm: number;
+};
 
 export const useSpanTransactionMetrics = (
+  span?: Span,
   transactions?: string[],
   referrer = 'span-transaction-metrics'
 ) => {
-  const {
-    selection: {datetime},
-  } = usePageFilters();
-  const {isLoading, data} = useWrappedDiscoverQuery({
-    eventView: getEventView({transactions: transactions ?? [], datetime}),
+  const pageFilters = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilters);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
+
+  const query =
+    span && transactions && transactions.length > 0
+      ? `
+    SELECT
+      transaction,
+      quantile(0.5)(exclusive_time) as p50,
+      sum(exclusive_time) as "sum(span.self_time)",
+      divide(count(), multiply(${INTERVAL}, 60)) as spm
+    FROM spans_experimental_starfish
+    WHERE group_id = '${span.group_id}'
+    ${dateFilters}
+    AND transaction IN ('${transactions.join("','")}')
+    GROUP BY transaction
+ `
+      : '';
+
+  const {isLoading, error, data} = useQuery<Metric[]>({
+    queryKey: [
+      'span-transactions-metrics',
+      span?.group_id,
+      transactions?.join(',') || '',
+    ],
+    queryFn: () =>
+      fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
+    retry: false,
     initialData: [],
-    referrer,
+    enabled: Boolean(query),
   });
 
   const parsedData = keyBy(data, 'transaction');
 
-  return {isLoading, data: parsedData};
-};
-
-const getEventView = ({transactions, datetime}: {datetime; transactions: string[]}) => {
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: ['transaction', 'epm()', 'p50(transaction.duration)'],
-    orderby: 'transaction',
-    query: `transaction:["${transactions.join('","')}"]`,
-    start: datetime.start as string,
-    end: datetime.end as string,
-    range: datetime.period as string,
-    dataset: DiscoverDatasets.METRICS,
-    projects: [1],
-    version: 2,
-  });
+  return {isLoading, error, data: parsedData};
 };
