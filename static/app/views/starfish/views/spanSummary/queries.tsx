@@ -2,12 +2,12 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import {DefinedUseQueryResult, useQueries, useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getEndpointDetailSeriesQuery} from 'sentry/views/starfish/modules/APIModule/queries';
-import {getDateQueryFilter} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 
 export enum SamplePopulationType {
   FASTEST = 'fastest',
@@ -18,8 +18,8 @@ export enum SamplePopulationType {
 export const useQueryGetSpanSamples = (options: {
   groupId: string;
   transactionName: string;
-  user: string;
   p50?: number;
+  user?: string;
 }) => {
   const {groupId, transactionName, user, p50} = options;
 
@@ -35,6 +35,7 @@ export const useQueryGetSpanSamples = (options: {
     ],
     retry: false,
     initialData: [],
+    enabled: Boolean(groupId && transactionName && p50),
   };
 
   const commonSamplesQueryOptions = {

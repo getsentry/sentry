@@ -214,6 +214,7 @@ default_manager.add("organizations:dynamic-sampling-transaction-name-priority", 
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues-experiment-group", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-states", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:remove-mark-reviewed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:event-attachments", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -248,6 +249,7 @@ default_manager.add("organizations:codecov-integration", OrganizationFeature, Fe
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:ds-boost-new-projects", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

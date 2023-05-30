@@ -8,7 +8,7 @@ export const useSpanById = (groupId: string, referrer: string) => {
     group_id,
     action,
     description,
-    span_operation,
+    span_operation
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
     LIMIT 1

@@ -23,7 +23,6 @@ export const getTimeSpentQuery = (
 };
 
 export const getSpanListQuery = (
-  descriptionFilter: string | undefined,
   datetime: DateTimeObject,
   conditions: string[] = [],
   orderBy: string,
@@ -48,17 +47,12 @@ export const getSpanListQuery = (
     ${validConditions.length > 0 ? 'AND' : ''}
     ${validConditions.join(' AND ')}
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY group_id, span_operation, domain, description
     ORDER BY ${orderBy ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 };
 
-export const getSpansTrendsQuery = (
-  descriptionFilter: string | undefined,
-  datetime: DateTimeObject,
-  groupIDs: string[]
-) => {
+export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
 
   return `
@@ -72,7 +66,6 @@ export const getSpansTrendsQuery = (
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
     ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
     AND group_id IN (${groupIDs.map(id => `'${id}'`).join(',')})
-    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY group_id, span_operation, interval
     ORDER BY interval asc
   `;

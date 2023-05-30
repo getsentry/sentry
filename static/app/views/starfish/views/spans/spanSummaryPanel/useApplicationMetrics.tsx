@@ -1,8 +1,8 @@
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDateQueryFilter} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 
 type Metrics = {
   count: number;
@@ -31,5 +31,5 @@ export const useApplicationMetrics = (referrer = 'application-metrics') => {
     initialData: [],
   });
 
-  return {isLoading, error, data: data[0]};
+  return {isLoading, error, data: data[0] ?? {}};
 };
