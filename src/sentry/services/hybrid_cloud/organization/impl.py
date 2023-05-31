@@ -237,6 +237,27 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def close(self) -> None:
         pass
 
+    def get_organizations(
+        self,
+        *,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
+    ) -> List[RpcOrganizationSummary]:
+        # This needs to query the control tables for organization data and not the region ones, because spanning out
+        # would be very expansive.
+        if user_id is not None:
+            organizations = self._query_organizations(user_id, scope, only_visible)
+        elif organization_ids is not None:
+            qs = Organization.objects.filter(id__in=organization_ids)
+            if only_visible:
+                qs = qs.filter(status=OrganizationStatus.ACTIVE)
+            organizations = list(qs)
+        else:
+            organizations = []
+        return [serialize_organization_summary(o) for o in organizations]
+
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
     ) -> List[Organization]:

@@ -12,7 +12,7 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
-from sentry.models import OrganizationMapping, OrganizationMemberMapping, OrganizationStatus
+from sentry.models import OrganizationMapping, OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
@@ -91,18 +91,11 @@ class DatabaseBackedUserService(UserService):
                 return list(qs.filter(email__iexact=username))
         return []
 
-    def get_organizations(
-        self,
-        *,
-        user_id: int,
-        only_visible: bool = False,
-    ) -> List[RpcOrganizationSummary]:
+    def get_organizations(self, *, user_id: int) -> List[RpcOrganizationSummary]:
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
         org_query = OrganizationMapping.objects.filter(organization_id__in=org_ids)
-        if only_visible:
-            org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
 
     def flush_nonce(self, *, user_id: int) -> None:

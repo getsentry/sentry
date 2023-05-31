@@ -84,12 +84,7 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_organizations(
-        self,
-        *,
-        user_id: int,
-        only_visible: bool = False,
-    ) -> List[RpcOrganizationSummary]:
+    def get_organizations(self, *, user_id: int) -> List[RpcOrganizationSummary]:
         """Get summary data for all organizations of which the user is a member.
 
         The organizations may span multiple regions.

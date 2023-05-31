@@ -6,7 +6,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus, OrganizationIntegration
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.organization import organization_service
 
 
 @control_silo_endpoint
@@ -21,7 +21,10 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         :auth: required
         """
         org_ids = [
-            o.id for o in user_service.get_organizations(user_id=request.user.id, only_visible=True)
+            o.id
+            for o in organization_service.get_organizations(
+                user_id=request.user.id, only_visible=True, scope=None
+            )
         ]
         queryset = OrganizationIntegration.objects.filter(
             organization_id__in=org_ids,

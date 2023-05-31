@@ -6,7 +6,6 @@ from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, User
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
@@ -38,7 +37,9 @@ def get_identity_or_404(
         integration_id=integration_id,
     )
     organization_ids = {oi.organization_id for oi in organization_integrations}
-    organizations = user_service.get_organizations(user_id=user.id, only_visible=True)
+    organizations = organization_service.get_organizations(
+        user_id=user.id, scope=None, only_visible=True
+    )
     valid_organization_ids = [o.id for o in organizations if o.id in organization_ids]
     if len(valid_organization_ids) <= 0:
         raise Http404
