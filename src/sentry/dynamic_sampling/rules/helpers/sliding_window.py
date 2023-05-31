@@ -59,7 +59,7 @@ def get_sliding_window_sample_rate(
             return error_sample_rate_fallback
 
         return float(value)
-    # Throw if the input is not a string or a float (e.g., None).
+    # Thrown if the input is not a string or a float (e.g., None).
     except TypeError:
         # In case we couldn't convert the value to float, that is, it is a string or the value is not there, we want
         # to fall back to 100% in case we know that the sliding window was executed. We track whether the task was
@@ -78,6 +78,25 @@ def get_sliding_window_sample_rate(
     except ValueError:
         sentry_sdk.capture_message("Invalid sliding window value stored in cache")
         return error_sample_rate_fallback
+
+
+def generate_sliding_window_org_executed_cache_key() -> str:
+    return "ds::sliding_window_org_executed"
+
+
+def mark_sliding_window_org_executed() -> None:
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_sliding_window_org_executed_cache_key()
+
+    redis_client.set(cache_key, 1)
+    redis_client.pexpire(cache_key, EXECUTED_CACHE_KEY_TTL)
+
+
+def was_sliding_window_org_executed() -> bool:
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_sliding_window_executed_cache_key()
+
+    return bool(redis_client.exists(cache_key))
 
 
 def generate_sliding_window_org_cache_key(org_id: int) -> str:
