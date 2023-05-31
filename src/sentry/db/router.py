@@ -63,7 +63,7 @@ class SiloRouter:
         active_mode = SiloMode.get_current_mode()
 
         # In monolith mode we only use a single database.
-        if active_mode == "MONOLITH":
+        if active_mode == SiloMode.MONOLITH:
             return "default"
 
         for silo_mode in silo_modes:

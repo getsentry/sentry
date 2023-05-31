@@ -433,7 +433,7 @@ def dispatch_to_local_service(
                 output[key] = result_to_dict(val)
             return output
 
-        if isinstance(value, Iterable) and not isinstance(value, (str, dict)):
+        if isinstance(value, Iterable) and not isinstance(value, str):
             output = []
             for item in value:
                 output.append(result_to_dict(item))
