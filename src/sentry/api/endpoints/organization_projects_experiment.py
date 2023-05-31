@@ -33,7 +33,7 @@ def _generate_suffix() -> str:
     return "".join(random.choice(letters) for _ in range(3))
 
 
-def fetch_email_local_part(email: str) -> str:
+def fetch_email_username(email: str) -> str:
     return Address(addr_spec=email).username
 
 
@@ -92,7 +92,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"
-        parsed_email = fetch_email_local_part(request.user.email)
+        parsed_email = fetch_email_username(request.user.email)
 
         project_name = result["name"]
         default_team_slug = f"{parsed_email}-team"
