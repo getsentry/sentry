@@ -126,7 +126,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         queryset = (
             OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
+                Q(user_is_active=True) | Q(user_id__isnull=True),
                 organization=organization,
                 invite_status=InviteStatus.APPROVED.value,
             )
@@ -162,7 +162,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
                 elif key == "isInvited":
                     isInvited = "true" in value
-                    queryset = queryset.filter(user__isnull=isInvited)
+                    queryset = queryset.filter(user_id__isnull=isInvited)
 
                 elif key == "ssoLinked":
                     ssoFlag = OrganizationMember.flags["sso:linked"]

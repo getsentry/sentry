@@ -1,7 +1,5 @@
 import logging
 
-from django.db import IntegrityError
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,7 +8,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember, User
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
@@ -26,22 +24,22 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    if OrganizationMember.objects.filter(
-        Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
-        organization=organization,
-    ).exists():
+    if member := organization_service.check_membership_by_email(
+        organization_id=organization.id, email=email
+    ):
+        if member.user_id and (user := User.objects.get(id=member.user_id)):
+            if not user.is_active:
+                return
+    if organization_service.get_invite_by_id(organization_id=organization.id, email=email):
         return
 
-    try:
-        rpc_org_member = organization_service.add_organization_member(
-            organization_id=organization.id,
-            default_org_role=organization.default_role,
-            email=email,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
-        return OrganizationMember.objects.get(id=rpc_org_member.id)
-    except IntegrityError:
-        pass
+    rpc_org_member = organization_service.add_organization_member(
+        organization_id=organization.id,
+        default_org_role=organization.default_role,
+        email=email,
+        invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+    )
+    return OrganizationMember.objects.get(id=rpc_org_member.id)
 
 
 @region_silo_endpoint

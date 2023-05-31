@@ -437,7 +437,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         queryset = (
             OrganizationMember.objects.filter(
                 Q(invite_status=InviteStatus.APPROVED.value),
-                Q(user__is_active=True) | Q(user__isnull=True),
+                Q(user_is_active=True) | Q(user_id__isnull=True),
                 organization=organization,
             )
             .select_related("user")

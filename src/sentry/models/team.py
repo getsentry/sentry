@@ -195,7 +195,7 @@ class Team(Model, SnowflakeIdMixin):
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
-            user__is_active=True,
+            user_is_active=True,
         ).distinct()
 
     def has_access(self, user, access=None):

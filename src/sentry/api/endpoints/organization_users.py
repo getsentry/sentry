@@ -28,7 +28,7 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
         with sentry_sdk.start_span(op="OrganizationUsersEndpoint.get_members") as span:
             qs = (
                 OrganizationMember.objects.filter(
-                    user__is_active=True,
+                    user_is_active=True,
                     organization=organization,
                     id__in=OrganizationMemberTeam.objects.filter(
                         team_id__in=ProjectTeam.objects.filter(project_id__in=projects)

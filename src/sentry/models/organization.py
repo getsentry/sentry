@@ -390,7 +390,7 @@ class Organization(Model, SnowflakeIdMixin):
 
         logger = logging.getLogger("sentry.merge")
         for from_member in OrganizationMember.objects.filter(
-            organization=from_org, user__isnull=False
+            organization=from_org, user_id__isnull=False
         ):
             try:
                 to_member = OrganizationMember.objects.get(

@@ -94,7 +94,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, email__iexact=email
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
@@ -168,7 +170,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = OrganizationMember.objects.filter(organization_id=org.id, email=email).first()
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, email__iexact=email
+            ).first()
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, id=organization_member_id
@@ -304,19 +308,33 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
         region_outbox = None
+        org_member: OrganizationMember | None = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
-            org_member: OrganizationMember = OrganizationMember.objects.create(
-                organization_id=organization_id,
-                user_id=user_id,
-                email=email,
-                flags=self._deserialize_member_flags(flags) if flags else 0,
-                role=role or default_org_role,
-                inviter_id=inviter_id,
-                invite_status=invite_status,
-            )
-            region_outbox = org_member.save_outbox_for_create()
+            try:
+                org_member = OrganizationMember.objects.create(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    flags=self._deserialize_member_flags(flags) if flags else 0,
+                    role=role or default_org_role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
+                region_outbox = org_member.save_outbox_for_create()
+            except IntegrityError:
+                pass
         if region_outbox:
             region_outbox.drain_shard(max_updates_to_drain=10)
+
+        if user_id is not None:
+            org_member = OrganizationMember.objects.get(
+                user_id=user_id, organization_id=organization_id
+            )
+        if email is not None:
+            org_member = OrganizationMember.objects.get(user_id=user_id, email__iexact=email)
+
+        assert org_member
+
         return serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:

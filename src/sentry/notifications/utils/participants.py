@@ -27,7 +27,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    ProjectTeam,
     Release,
     Rule,
     RuleSnooze,
@@ -186,24 +185,21 @@ def get_participants_for_release(
     # Collect all users with verified emails on a team in the related projects.
     user_ids = (
         OrganizationMember.objects.filter(
-            teams__in=Team.objects.filter(
-                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
-                    "team_id", flat=True
-                )
-            )
+            teams__projectteam__project__in=projects,
+            user_is_active=True,
         )
         .distinct()
         .values_list("user_id", flat=True)
     )
 
     # filter those user ids
-    user_ids = user_service.get_many_ids(
-        filter=dict(
-            user_ids=user_ids,
-            email_verified=True,
-            is_active=True,
-        )
-    )
+    # user_ids = user_service.get_many_ids(
+    #     filter=dict(
+    #         user_ids=user_ids,
+    #         email_verified=True,
+    #         is_active=True,
+    #     )
+    # )
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
 

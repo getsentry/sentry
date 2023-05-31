@@ -114,7 +114,7 @@ class OrganizationComplianceTask(abc.ABC):
                 self.call_to_action(org, user, member)
 
         for member in OrganizationMember.objects.select_related("user").filter(
-            organization_id=org_id, user__isnull=False
+            organization_id=org_id, user_id__isnull=False
         ):
             if not self.is_compliant(member):
                 remove_member(member)

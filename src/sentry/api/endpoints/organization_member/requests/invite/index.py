@@ -31,7 +31,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
-            Q(user__isnull=True),
+            Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
             | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
             organization=organization,

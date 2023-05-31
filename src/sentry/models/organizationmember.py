@@ -83,7 +83,7 @@ class OrganizationMemberManager(BaseManager):
         return self.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
-            user__isnull=False,
+            user_id__isnull=False,
         )
 
     def delete_expired(self, threshold: int) -> None:
@@ -136,7 +136,7 @@ class OrganizationMemberManager(BaseManager):
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 InviteStatus.REQUESTED_TO_JOIN.value,
             ],
-            user__isnull=True,
+            user_id__isnull=True,
             id=id,
         )
 
