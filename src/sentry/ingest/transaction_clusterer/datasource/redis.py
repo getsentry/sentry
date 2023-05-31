@@ -208,9 +208,8 @@ def _update_span_description_rule_lifetime(project: Project, event_data: Mapping
     from sentry.ingest.transaction_clusterer import rules as clusterer_rules
 
     spans = event_data.get("_meta", {}).get("spans", {})
-    keys = spans.keys()
-    for key in keys:
-        data = spans[key].get("data", {})
+    for span in spans.values():
+        data = span.get("data", {})
         applied_rule = data.get("description.scrubbed", {}).get("", {}).get("rem", [[]])[0]
         if not applied_rule:
             continue
