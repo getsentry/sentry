@@ -5,11 +5,19 @@ import GroupReleaseStats from 'sentry/components/group/releaseStats';
 describe('GroupReleaseStats', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
+  const group = TestStubs.Group();
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+    });
+  });
 
   const createWrapper = props =>
     render(
       <GroupReleaseStats
-        group={TestStubs.Group()}
+        group={group}
         project={project}
         organization={organization}
         allEnvironments={TestStubs.Group()}

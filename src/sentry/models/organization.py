@@ -285,15 +285,6 @@ class Organization(Model, SnowflakeIdMixin):
             object_identifier=org_id,
         )
 
-    @staticmethod
-    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
-            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
-            object_identifier=org_id,
-        )
-
     @cached_property
     def is_default(self):
         if not settings.SENTRY_SINGLE_ORGANIZATION:
@@ -406,7 +397,9 @@ class Organization(Model, SnowflakeIdMixin):
                     organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
+                with transaction.atomic():
+                    from_member.organization = to_org
+                    from_member.save()
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(
