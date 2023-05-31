@@ -4,6 +4,7 @@ import progressbar
 from django.db import connections, router
 
 from sentry import eventstore
+from sentry.db.models.manager.base_query_set import using_replica
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -196,7 +197,7 @@ class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgress
 
     def get_total_count(self):
         query = f"SELECT reltuples AS estimate FROM pg_class WHERE relname = '{self.queryset.model._meta.db_table}';"
-        cursor = connections[self.queryset.using_replica().db].cursor()
+        cursor = connections[using_replica(self.queryset).db].cursor()
         cursor.execute(query)
         return cursor.fetchone()[0]
 
