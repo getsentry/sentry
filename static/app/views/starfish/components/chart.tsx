@@ -32,7 +32,9 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DAY, HOUR} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -133,6 +135,8 @@ function Chart({
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -292,6 +296,8 @@ function Chart({
     xAxisIndex: 0,
   }));
 
+  const xAxisInterval = getXAxisInterval(startTime, endTime);
+
   const xAxis: XAXisOption = disableXAxis
     ? {
         show: false,
@@ -300,9 +306,12 @@ function Chart({
       }
     : {
         type: 'time',
-        maxInterval: getXAxisInterval(series),
+        maxInterval: xAxisInterval,
         axisLabel: {
-          formatter: function (value) {
+          formatter: function (value: number) {
+            if (startTime.isSame(endTime, 'day')) {
+              return moment(value).format('HH:mm');
+            }
             return moment(value).format('MMMM DD HH:mm');
           },
         },
@@ -396,17 +405,13 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
   }, [deps, synchronized]);
 }
 
-const getXAxisInterval = (series: Series[]) => {
-  if (series[0].data.length > 2) {
-    const minDate = new Date(series[0].data[0].name);
-    const maxDate = new Date(series[0].data[series[0].data.length - 1].name);
-    const dateRange = maxDate.getTime() - minDate.getTime();
-    if (dateRange > 3 * DAY) {
-      return DAY;
-    }
-    if (dateRange > 1 * DAY) {
-      return 12 * HOUR;
-    }
+const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
+  const dateRange = endTime.diff(startTime);
+  if (dateRange >= 3 * DAY) {
+    return DAY;
+  }
+  if (dateRange >= 1 * DAY) {
+    return 12 * HOUR;
   }
   return HOUR;
 };
