@@ -1,7 +1,7 @@
 import uuid
 from unittest import mock
 
-from sentry.replays.usecases.ingest.dom_index import (
+from sentry.replays.usecases.ingest.clicks import (
     _get_testid,
     encode_as_uuid,
     get_user_actions,

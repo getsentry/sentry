@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import Optional, TypedDict, cast
+from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
@@ -16,7 +16,27 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
+from sentry.replays.usecases.ingest.breadcrumbs import (
+    is_breadcrumb_event,
+    is_click_event,
+    is_fetch_or_xhr_span,
+    is_mutations_event,
+    is_options_event,
+    is_performance_span_event,
+    is_slow_click_event,
+    iter_sentry_events,
+)
+from sentry.replays.usecases.ingest.clicks import (
+    ReplayActionsEventPayloadClick,
+    commit_click_events,
+    process_click_event,
+)
+from sentry.replays.usecases.ingest.logs import (
+    log_large_mutations,
+    log_request_response_sizes,
+    log_sdk_options,
+    log_slow_click,
+)
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -102,7 +122,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    replay_click_post_processor(message, headers, recording_segment, transaction)
+    replay_post_processor(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -168,7 +188,7 @@ def _report_size_metrics(
         metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
 
 
-def replay_click_post_processor(
+def replay_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
@@ -193,11 +213,11 @@ def replay_click_post_processor(
             op="replays.usecases.ingest.parse_and_emit_replay_actions",
             description="parse_and_emit_replay_actions",
         ):
-            parse_and_emit_replay_actions(
+            _process_parsed_events(
                 retention_days=message.retention_days,
                 project_id=message.project_id,
                 replay_id=message.replay_id,
-                segment_data=parsed_segment_data,
+                events=parsed_segment_data,
             )
     except Exception:
         logging.exception(
@@ -208,3 +228,40 @@ def replay_click_post_processor(
                 headers["segment_id"],
             )
         )
+
+
+class BreadcrumbContext:
+    def __init__(self):
+        self.clicks = []
+
+
+def _process_parsed_events(
+    retention_days: int,
+    project_id: str,
+    replay_id: str,
+    events: List[Dict[str, Any]],
+) -> None:
+    clicks: List[Optional[ReplayActionsEventPayloadClick]] = []
+
+    for event in iter_sentry_events(events):
+        if is_breadcrumb_event(event):
+            # Clicks are indexed and made searchable.
+            if is_click_event(event):
+                clicks.append(process_click_event(replay_id, event))
+            # Slow clicks raise an issue event.
+            elif is_slow_click_event(event):
+                log_slow_click(project_id, replay_id, event)
+            # Large mutation events are tracked to aid the SDK in debugging problematic
+            # web apps.
+            elif is_mutations_event(event):
+                log_large_mutations(project_id, replay_id, event)
+        elif is_performance_span_event(event):
+            # resource.xhr or resource.fetch emit datadog metrics.
+            if is_fetch_or_xhr_span(event):
+                log_request_response_sizes(event)
+        elif is_options_event(event):
+            # SDK options are logged for tracking in BigTable.
+            log_sdk_options(project_id, replay_id, event)
+
+    # Commit clicks aggregated during the iteration process.
+    commit_click_events(retention_days, project_id, replay_id, list(filter(None, clicks)))
