@@ -115,7 +115,7 @@ def test_outcomes_consumed(track_outcome):
         assert fake_commit.call_count == (i + 1)
         if i < 3:
             assert track_outcome.call_count == 0
-        else:
+        elif i < 5:
             assert track_outcome.mock_calls == [
                 mock.call(
                     org_id=1,
@@ -128,6 +128,9 @@ def test_outcomes_consumed(track_outcome):
                     category=DataCategory.TRANSACTION,
                     quantity=3,
                 ),
+            ]
+        else:
+            assert track_outcome.mock_calls[1:] == [
                 mock.call(
                     org_id=1,
                     project_id=2,
@@ -152,9 +155,9 @@ def test_outcomes_consumed(track_outcome):
                 ),
             ]
 
-    assert fake_commit.call_count == 5
+    assert fake_commit.call_count == 6
 
     # Joining should commit the offset of the last message:
     strategy.join()
 
-    assert fake_commit.call_count == 6
+    assert fake_commit.call_count == 7

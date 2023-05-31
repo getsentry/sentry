@@ -88,7 +88,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     #: The ID of the metric used to count transactions
     metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
-    profile_tag = SHARED_TAG_STRINGS["has_profile"]
+    profile_tag = str(SHARED_TAG_STRINGS["has_profile"])
 
     def __init__(
         self,
@@ -133,6 +133,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # The bucket is tagged with the "has_profile" tag,
             # so we also count the quantity of this bucket towards profiles.
             # This assumes a "1 to 0..1" relationship between transactions and profiles.
+            # NOTE: This will only work when the indexer is configured to forward tag values as the original strings.
             items[DataCategory.PROFILE] = quantity
 
         return items
