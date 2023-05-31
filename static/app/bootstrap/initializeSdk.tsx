@@ -25,6 +25,9 @@ const SPA_MODE_ALLOW_URLS = [
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
 const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
 
+// Ignore analytics in spans as well
+const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
+
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
@@ -110,8 +113,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addUIElementTag(event);
 
       event.spans = event.spans?.filter(span => {
-        // Filter analytic timeout spans.
-        return ['reload.getsentry.net', 'amplitude.com'].every(
+        return IGNORED_SPANS_BY_DESCRIPTION.every(
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
