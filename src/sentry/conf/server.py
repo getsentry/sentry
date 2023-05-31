@@ -973,12 +973,18 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=17),
         "options": {"expires": 3600},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
+    "span.descs.clusterer": {
+        "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
+        "schedule": crontab(minute=42),
         "options": {"expires": 3600},
     },
+    # TODO(HC) Remove or re-enable this once a decision is made on org mapping creation
+    # "hybrid-cloud-repair-mappings": {
+    #     "task": "sentry.tasks.organization_mapping.repair_mappings",
+    #     # Run every hour
+    #     "schedule": crontab(minute=0, hour="*/1"),
+    #     "options": {"expires": 3600},
+    # },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
@@ -1227,6 +1233,10 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable escalating forecast threshold a/b experiment
+    "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow features in v2
+    "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
     # Enable the new issue states and substates
@@ -1350,6 +1360,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items and performance spans
     "organizations:sql-format": False,
+    # Enable prefetching of issues from the issue list when hovered
+    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Enable better priority sort algorithm.
@@ -1418,6 +1430,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enable session replay click search banner rollout for eligible SDKs
+    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program

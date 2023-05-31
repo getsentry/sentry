@@ -19,7 +19,6 @@ import ResolutionBox from 'sentry/components/resolutionBox';
 import {space} from 'sentry/styles/space';
 import {
   BaseGroupStatusReprocessing,
-  Environment,
   Group,
   GroupActivityReprocess,
   Organization,
@@ -42,6 +41,7 @@ import {
   getEventEnvironment,
   getGroupMostRecentActivity,
   ReprocessingStatus,
+  useEnvironmentsFromUrl,
 } from '../utils';
 
 const IssuePriorityFeedback = HookOrDefault({
@@ -51,7 +51,6 @@ const IssuePriorityFeedback = HookOrDefault({
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
   api: Client;
-  environments: Environment[];
   eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
@@ -67,7 +66,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     group,
     project,
     organization,
-    environments,
     location,
     event,
     groupReprocessingStatus,
@@ -85,6 +83,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const mostRecentActivity = getGroupMostRecentActivity(activities);
   const orgSlug = organization.slug;
   const projectId = project.id;
+  const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
 
@@ -116,7 +115,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     ) {
       const shouldRedirect =
         environments.length > 0 &&
-        !environments.find(env => env.name === getEventEnvironment(prevEvent as Event));
+        !environments.find(env => env === getEventEnvironment(prevEvent as Event));
 
       if (shouldRedirect) {
         browserHistory.replace(
@@ -146,6 +145,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             <ArchivedBox
               substatus={group.substatus}
               statusDetails={group.statusDetails}
+              organization={organization}
             />
           ) : (
             <MutedBox statusDetails={group.statusDetails} />

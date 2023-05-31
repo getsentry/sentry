@@ -10,7 +10,8 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
+from sentry.models import Commit, CommitAuthor, Integration, Repository
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
@@ -118,8 +119,8 @@ class BitbucketServerWebhookEndpoint(View):
 
     def post(self, request: Request, organization_id, integration_id) -> Response:
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
-        except Organization.DoesNotExist:
+            organization = OrganizationMapping.objects.get(organization_id=organization_id)
+        except OrganizationMapping.DoesNotExist:
             logger.error(
                 f"{PROVIDER_NAME}.webhook.invalid-organization",
                 extra={"organization_id": organization_id, "integration_id": integration_id},
