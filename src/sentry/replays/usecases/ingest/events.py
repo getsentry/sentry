@@ -1,10 +1,4 @@
-from typing import Any, Dict, Iterator, List, Tuple, TypedDict
-
-
-class Event(TypedDict):
-    data: Dict[str, Any]
-    timestamp: int
-    type: int
+from typing import Any, Dict, Iterator, List, TypedDict, cast
 
 
 class SentryEventData(TypedDict):
@@ -18,51 +12,58 @@ class SentryEvent(TypedDict):
     type: int
 
 
-def iter_sentry_events(events: List[Event]) -> Iterator[Tuple[SentryEvent]]:
+def iter_sentry_events(events: List[Dict[str, Any]]) -> Iterator[SentryEvent]:
     """Return an iterator of Sentry events."""
     for event in events:
         if event.get("type") == 5:
             if event["data"].get("tag"):
-                yield event
+                yield cast(SentryEvent, event)
 
 
 def is_breadcrumb_event(event: SentryEvent) -> bool:
     """Return "True" if this is a breadcrumb event."""
     # return event.get("data", {}).get("tag")
-    return event["data"]["tag"] == "breadcrumb"
+    tag: str = event["data"]["tag"]
+    return tag == "breadcrumb"
 
 
 def is_options_event(event: SentryEvent) -> bool:
     """Return "True" if this is a breadcrumb event."""
     # return event.get("data", {}).get("tag")
-    return event["data"]["tag"] == "breadcrumb"
+    tag: str = event["data"]["tag"]
+    return tag == "breadcrumb"
 
 
 def is_performance_span_event(event: SentryEvent) -> bool:
     """Return "True" if this is a performanceSpan event."""
     # return event.get("data", {}).get("tag")
-    return event["data"]["tag"] == "performanceSpan"
+    tag: str = event["data"]["tag"]
+    return tag == "performanceSpan"
 
 
 def is_click_breadcrumb(event: SentryEvent) -> bool:
     """Return "True" if this is a click event."""
-    # return event.get("data", {}).get("payload", {}).get("category") == "ui.click"
-    return event["data"]["payload"]["category"] == "ui.click"
+    # x = event.get("data", {}).get("payload", {}).get("category") == "ui.click"
+    category: str = event["data"]["payload"]["category"]
+    return category == "ui.click"
 
 
 def is_mutations_breadcrumb(event: SentryEvent) -> bool:
     """Return "True" if this is a click event."""
     # return event.get("data", {}).get("payload", {}).get("category") == "mutation"
-    return event["data"]["payload"]["category"] == "mutations"
+    category: str = event["data"]["payload"]["category"]
+    return category == "mutations"
 
 
 def is_slow_click_breadcrumb(event: SentryEvent) -> bool:
     """Return "True" if this is a slow click event."""
     # return event.get("data", {}).get("payload", {}).get("category") == "ui.slowClickDetected"
-    return event["data"]["payload"]["category"] == "ui.slowClickDetected"
+    category: str = event["data"]["payload"]["category"]
+    return category == "ui.slowClickDetected"
 
 
 def is_fetch_or_xhr_span(event: SentryEvent) -> bool:
     """Return "True" if this is a fetch or XHR span."""
     # return event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr")
-    return event["data"]["payload"]["op"] in ("resource.fetch", "resource.xhr")
+    op: str = event["data"]["payload"]["op"]
+    return op in ("resource.fetch", "resource.xhr")

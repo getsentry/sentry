@@ -7,7 +7,7 @@ from sentry.utils import metrics
 logger = logging.getLogger()
 
 
-def log_sdk_options(project_id: int, replay_id: str, event: SentryEvent):
+def log_sdk_options(project_id: int, replay_id: str, event: SentryEvent) -> None:
     if random.randint(0, 499) < 1:
         log = event["data"].get("payload", {}).copy()
         log["project_id"] = project_id
@@ -15,7 +15,7 @@ def log_sdk_options(project_id: int, replay_id: str, event: SentryEvent):
         logger.info("SDK Options:", extra=log)
 
 
-def log_large_mutations(project_id: int, replay_id: str, event: SentryEvent):
+def log_large_mutations(project_id: int, replay_id: str, event: SentryEvent) -> None:
     if random.randint(0, 99) < 1:
         log = event["data"].get("payload", {}).copy()
         log["project_id"] = project_id
@@ -23,7 +23,7 @@ def log_large_mutations(project_id: int, replay_id: str, event: SentryEvent):
         logger.info("Large DOM Mutations List:", extra=log)
 
 
-def log_slow_click(project_id: int, replay_id: str, event: SentryEvent):
+def log_slow_click(project_id: int, replay_id: str, event: SentryEvent) -> None:
     log = event["data"].get("payload", {}).copy()
     log["project_id"] = project_id
     log["replay_id"] = replay_id
@@ -31,7 +31,7 @@ def log_slow_click(project_id: int, replay_id: str, event: SentryEvent):
     logger.info("sentry.replays.slow_click", extra=log)
 
 
-def log_request_response_sizes(event: SentryEvent):
+def log_request_response_sizes(event: SentryEvent) -> None:
     event_payload_data = event["data"]["payload"]["data"]
 
     # these first two cover SDKs 7.44 and 7.45

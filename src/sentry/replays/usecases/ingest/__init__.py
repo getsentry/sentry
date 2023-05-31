@@ -231,14 +231,9 @@ def replay_post_processor(
         )
 
 
-class BreadcrumbContext:
-    def __init__(self):
-        self.clicks = []
-
-
 def _process_parsed_events(
     retention_days: int,
-    project_id: str,
+    project_id: int,
     replay_id: str,
     events: List[Dict[str, Any]],
 ) -> None:
@@ -251,7 +246,7 @@ def _process_parsed_events(
                 clicks.append(process_click_event(replay_id, event))
             # Slow clicks raise an issue event.
             elif is_slow_click_breadcrumb(event):
-                report_slow_click_issue(project_id, replay_id, event)
+                report_slow_click_issue(project_id, event)
                 log_slow_click(project_id, replay_id, event)
             # Large mutation events are tracked to aid the SDK in debugging problematic
             # web apps.
