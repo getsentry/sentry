@@ -345,6 +345,21 @@ class IssueListOverview extends Component<Props, State> {
       : DEFAULT_GRAPH_STATS_PERIOD;
   }
 
+  getBetterPriorityParams(): BetterPriorityEndpointParams {
+    const query = this.props.location.query ?? {};
+    const {eventHalflifeHours, hasStacktrace, issueHalflifeHours, logLevel, norm, v2} =
+      query;
+
+    return {
+      eventHalflifeHours,
+      hasStacktrace,
+      issueHalflifeHours,
+      logLevel,
+      norm,
+      v2,
+    };
+  }
+
   getEndpointParams = (): EndpointParams => {
     const {selection} = this.props;
 
@@ -376,8 +391,10 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
+    const mergedParams = {...params, ...this.getBetterPriorityParams()};
+
     // only include defined values.
-    return pickBy(params, v => defined(v)) as EndpointParams;
+    return pickBy(mergedParams, v => defined(v)) as EndpointParams;
   };
 
   getSelectedProjectIds = (): string[] => {
