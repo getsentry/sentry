@@ -363,7 +363,7 @@ def _create_artifact_bundle(
         if len(debug_ids_with_types) > 0 or version:
             now = timezone.now()
 
-            # We want to run everything in a transaction, since we don't want the database to be into an inconsistent
+            # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
             # state after all of these updates.
             with atomic_transaction(
                 using=(
