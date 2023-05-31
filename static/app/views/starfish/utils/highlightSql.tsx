@@ -90,7 +90,7 @@ const Domain = styled('b')`
 `;
 
 const Parameter = styled('b')`
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.red400};
   margin-right: -${space(0.5)};
 `;
 
