@@ -38,7 +38,12 @@ from sentry.models import (
 )
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import get_search_filter
+from sentry.search.snuba.executors import (
+    DEFAULT_PRIORITY_WEIGHTS,
+    V2_DEFAULT_PRIORITY_WEIGHTS,
+    PrioritySortWeights,
+    get_search_filter,
+)
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
@@ -160,15 +165,51 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
-    def build_better_priority_sort_kwargs(self, request: Request):
-        """Temporary function to be used while developing the new priority sort"""
-        return {
-            "better_priority": {
-                "log_level": request.GET.get("logLevel", 5),
-                "frequency": request.GET.get("frequency", 5),
-                "has_stacktrace": request.GET.get("hasStacktrace", 5),
+    def build_better_priority_sort_kwargs(
+        self, request: Request
+    ) -> Mapping[str, PrioritySortWeights]:
+        """
+        Temporary function to be used while developing the new priority sort. Parses the query params in the request.
+
+        :param logLevel: the weight (number from 0 to 10) to apply for events
+        :param hasStacktrace: the weight (number from 0 to 3) to apply for error events with stacktraces or not
+        :param eventHalflifeHours: each multiple of eventHalflifeHours halves the contribution score of an event
+        :param v2: boolean to switch between using v1 or v2 priority sort
+        :param norm: boolean to switch between normalizing the individual contribution scores to [0, 1] or not
+        """
+
+        if request.GET.get("v2", False):
+            return {
+                "better_priority": {
+                    "log_level": request.GET.get(
+                        "logLevel", V2_DEFAULT_PRIORITY_WEIGHTS["log_level"]
+                    ),
+                    "has_stacktrace": request.GET.get(
+                        "hasStacktrace", V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
+                    ),
+                    "event_halflife_hours": request.GET.get(
+                        "eventHalflifeHours", V2_DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"]
+                    ),
+                    "issue_halflife_hours": request.GET.get(
+                        "issueHalflifeHours", V2_DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"]
+                    ),
+                    "v2": True,
+                    "norm": request.GET.get("norm", V2_DEFAULT_PRIORITY_WEIGHTS["norm"]),
+                }
             }
-        }
+        else:
+            return {
+                "better_priority": {
+                    "log_level": request.GET.get("logLevel", DEFAULT_PRIORITY_WEIGHTS["log_level"]),
+                    "has_stacktrace": request.GET.get(
+                        "hasStacktrace", DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
+                    ),
+                    "event_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
+                    "issue_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
+                    "v2": False,
+                    "norm": False,
+                }
+            }
 
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None

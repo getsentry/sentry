@@ -1,11 +1,13 @@
+import {useMemo} from 'react';
+
 import {Project} from 'sentry/types';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
 import {
   useProfileEvents,
   UseProfileEventsOptions,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 interface UseProfilingTransactionQuickSummaryOptions {
@@ -28,20 +30,19 @@ export function useProfilingTransactionQuickSummary(
     skipLatestProfile = false,
     skipSlowestProfile = false,
   } = options;
-  const {selection} = usePageFilters();
 
-  const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort'> = {
+  const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort' | 'referrer'> = {
     query: `transaction:"${transaction}"`,
     fields: getProfilesTableFields(project.platform),
     enabled: Boolean(transaction),
     limit: 1,
-    referrer,
     refetchOnMount: false,
     projects: [project.id],
   };
 
   const slowestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
+    referrer: `${referrer}.slowest`,
     sort: {
       key: 'transaction.duration',
       order: 'desc',
@@ -51,6 +52,7 @@ export function useProfilingTransactionQuickSummary(
 
   const latestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
+    referrer: `${referrer}.latest`,
     sort: {
       key: 'timestamp',
       order: 'desc',
@@ -58,13 +60,22 @@ export function useProfilingTransactionQuickSummary(
     enabled: !skipLatestProfile,
   });
 
-  const functionsQuery = useFunctions({
-    project,
-    query: '',
-    selection,
-    transaction,
-    sort: '-sum',
-    functionType: 'application',
+  const query = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction]);
+    conditions.setFilterValues('is_application', ['1']);
+    return conditions.formatString();
+  }, [transaction]);
+
+  const functionsQuery = useProfileFunctions<FunctionsField>({
+    fields: functionsFields,
+    referrer: `${referrer}.functions`,
+    sort: {
+      key: 'sum()',
+      order: 'desc',
+    },
+    query,
+    limit: 5,
     enabled: !skipFunctions,
   });
 
@@ -75,7 +86,7 @@ export function useProfilingTransactionQuickSummary(
     : 1;
 
   const latestProfile = latestProfileQuery?.data?.data[0] ?? null;
-  const functions = functionsQuery?.data?.[0]?.functions;
+  const functions = functionsQuery?.data?.data;
 
   return {
     // slowest
@@ -95,3 +106,13 @@ export function useProfilingTransactionQuickSummary(
       functionsQuery.isLoading,
   };
 }
+
+const functionsFields = [
+  'package',
+  'function',
+  'count()',
+  'sum()',
+  'examples()',
+] as const;
+
+type FunctionsField = (typeof functionsFields)[number];

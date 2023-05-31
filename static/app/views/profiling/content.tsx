@@ -32,12 +32,9 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  formatError,
-  formatSort,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
+import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -270,7 +267,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 <Fragment>
                   <PanelsGrid>
                     <ProfilingSlowestTransactionsPanel />
-                    <ProfileCharts query={query} selection={selection} hideCount />
+                    <ProfileCharts
+                      referrer="api.profiling.landing-chart"
+                      query={query}
+                      selection={selection}
+                      hideCount
+                    />
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}

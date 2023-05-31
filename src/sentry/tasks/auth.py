@@ -13,7 +13,7 @@ from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import ApiKey, AuditLogEntry, Organization, OrganizationMember, User, UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -148,6 +148,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
 )
+@retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
@@ -202,6 +203,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
 )
+@retry
 def remove_email_verification_non_compliant_members(
     org_id, actor_id=None, actor_key_id=None, ip_address=None
 ):

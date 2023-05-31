@@ -10,11 +10,11 @@ import {StackTracePreview} from './stackTracePreview';
 type GroupPreviewTooltipProps = {
   children: ReactChild;
   groupId: string;
-  issueCategory: IssueCategory;
   // we need eventId only when hovering over Event, not Group
   // (different API call is made to get the stack trace then)
   eventId?: string;
   groupingCurrentLevel?: number;
+  issueCategory?: IssueCategory;
   projectId?: string;
 };
 
@@ -32,7 +32,7 @@ function GroupPreviewTooltip({
     case IssueCategory.ERROR:
       return (
         <StackTracePreview
-          issueId={groupId}
+          groupId={groupId}
           groupingCurrentLevel={groupingCurrentLevel}
           eventId={eventId}
           projectSlug={projectSlug}

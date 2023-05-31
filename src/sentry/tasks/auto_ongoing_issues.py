@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import pytz
+from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
@@ -15,22 +16,28 @@ from sentry.models import (
     OrganizationStatus,
     Project,
 )
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
+
+TRANSITION_AFTER_DAYS = 3
 
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_new",
     queue="auto_transition_issue_states",
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))  # type: ignore
 @monitor(monitor_slug="schedule_auto_transition_new")
 def schedule_auto_transition_new() -> None:
     now = datetime.now(tz=pytz.UTC)
-    three_days_past = now - timedelta(days=3)
+    three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:issue-states-auto-transition-new-ongoing", org):
+        if features.has("organizations:escalating-issues", org):
             for project_id in Project.objects.filter(organization_id=org.id).values_list(
                 "id", flat=True
             ):
@@ -46,7 +53,11 @@ def schedule_auto_transition_new() -> None:
     queue="auto_transition_issue_states",
     time_limit=25 * 60,
     soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))  # type: ignore
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
     first_seen_lte: int,
@@ -71,6 +82,7 @@ def auto_transition_issues_new_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
             group,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
         )
 
     if len(new_groups) == chunk_size:
@@ -86,14 +98,18 @@ def auto_transition_issues_new_to_ongoing(
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_regressed",
     queue="auto_transition_issue_states",
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))  # type: ignore
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
     now = datetime.now(tz=pytz.UTC)
-    three_days_past = now - timedelta(days=3)
+    three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:issue-states-auto-transition-regressed-ongoing", org):
+        if features.has("organizations:escalating-issues", org):
             for project_id in Project.objects.filter(organization_id=org.id).values_list(
                 "id", flat=True
             ):
@@ -109,7 +125,11 @@ def schedule_auto_transition_regressed() -> None:
     queue="auto_transition_issue_states",
     time_limit=25 * 60,
     soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
 )  # type: ignore
+@retry(on=(OperationalError,))  # type: ignore
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
     date_added_lte: int,
@@ -140,6 +160,7 @@ def auto_transition_issues_regressed_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
             group,
+            activity_data={"after_days": TRANSITION_AFTER_DAYS},
         )
 
     if len(groups_with_regressed_history) == chunk_size:

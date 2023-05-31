@@ -6,6 +6,9 @@ from sentry.api.endpoints.organization_events_facets_stats_performance import (
     OrganizationEventsFacetsStatsPerformanceEndpoint,
 )
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
+from sentry.api.endpoints.organization_projects_experiment import (
+    OrganizationProjectsExperimentEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -332,7 +335,10 @@ from .endpoints.organization_onboarding_continuation_email import (
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
-from .endpoints.organization_profiling_profiles import OrganizationProfilingFiltersEndpoint
+from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingFlamegraphEndpoint,
+)
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -450,6 +456,7 @@ from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndp
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
+from .endpoints.project_stacktrace_links import ProjectStacktraceLinksEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
@@ -1471,6 +1478,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-projects",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/experimental/projects/$",
+        OrganizationProjectsExperimentEndpoint.as_view(),
+        name="sentry-api-0-organization-projects-experiment",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/projects-count/$",
         OrganizationProjectsCountEndpoint.as_view(),
         name="sentry-api-0-organization-projects-count",
@@ -1751,6 +1763,11 @@ ORGANIZATION_URLS = [
                     r"^filters/$",
                     OrganizationProfilingFiltersEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-filters",
+                ),
+                url(
+                    r"^flamegraph/$",
+                    OrganizationProfilingFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-flamegraph",
                 ),
             ],
         ),
@@ -2241,6 +2258,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-links/$",
+        ProjectStacktraceLinksEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-links",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",

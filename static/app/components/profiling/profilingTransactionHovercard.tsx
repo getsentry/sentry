@@ -98,7 +98,7 @@ export function ProfilingTransactionHovercardBody({
   } = useProfilingTransactionQuickSummary({
     transaction,
     project,
-    referrer: 'api.profiling.profiling-transaction-hovercard',
+    referrer: 'api.profiling.transaction-hovercard',
   });
 
   const linkToFlamechartRoute = (

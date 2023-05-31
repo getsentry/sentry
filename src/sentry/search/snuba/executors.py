@@ -54,8 +54,30 @@ from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_
 
 class PrioritySortWeights(TypedDict):
     log_level: int
-    frequency: int
     has_stacktrace: int
+    event_halflife_hours: int
+    issue_halflife_hours: int
+    v2: bool
+    norm: bool
+
+
+DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+    "log_level": 0,
+    "has_stacktrace": 0,
+    "event_halflife_hours": 4,
+    "issue_halflife_hours": 24 * 7,
+    "v2": False,
+    "norm": False,
+}
+
+V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+    "log_level": 0,
+    "has_stacktrace": 0,
+    "event_halflife_hours": 12,
+    "issue_halflife_hours": 4,
+    "v2": False,
+    "norm": False,
+}
 
 
 def get_search_filter(
@@ -213,7 +235,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
-                    aggregation = aggregation(start, end)
+                    aggregation = aggregation(start, end, DEFAULT_PRIORITY_WEIGHTS)
             aggregations.append(aggregation + [alias])
 
         return aggregations
@@ -399,7 +421,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
-
         query_params_for_categories = {
             gc: query_params
             for gc, query_params in query_params_for_categories.items()
@@ -455,20 +476,114 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 def better_priority_aggregation(
     start: datetime,
     end: datetime,
-    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    event_age_hours = "divide(now() - timestamp, 3600)"
-    event_score = 1
-    min_score = 0.01
+    issue_age_weight = 1  # [1, 5]
+    event_age_weight = 1  # [1, 5]
+    log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
+    stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
+    # (event or issue age_hours) / (event or issue halflife hours)
+    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
     max_pow = 16
-    event_halflife_hours = 4  # halves score every 4 hours
-    aggregate_event_score = f"greatest({min_score}, sum(divide({event_score}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+    min_score = 0.01
+    event_age_hours = "divide(now() - timestamp, 3600)"
+    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every x hours
+    issue_halflife_hours = aggregate_kwargs["issue_halflife_hours"]  # halves score every x hours
     issue_age_hours = "divide(now() - min(timestamp), 3600)"
-    issue_score = 1
-    issue_halflife_hours = 24 * 7  # issues half in value every week
-    aggregate_issue_score = f"greatest({min_score}, divide({issue_score}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
-    return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
+    log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
+    stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
+    # event_agg_rank:
+    #   ls = log_level_score    {1.0, 0.66, 0.33, 0}
+    #   lw = log_level_weight   [0, 10]
+    #   ss = stacktrace_score   {1.0, 0.0}
+    #   sw = stacktrace_weight  [0, 3]
+    #   as = event_age_score    [1, 0]
+    #   aw = event_age_weight   [1, 5]
+    #
+    #        (ls * lw) + (ss * sw) + (as * aw)     min(f(x)  = 0, when individual scores are all 0
+    # f(x) = ---------------------------------  ,  max(f(x)) = 1, when individual scores are all 1
+    #                  lw + sw + aw
+    #
+    event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    event_agg_denominator = (
+        f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
+    )
+    event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"  # values from [0, 1]
+
+    v2 = aggregate_kwargs["v2"]
+
+    if not v2:
+        aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
+        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+        return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
+    else:
+        #  * apply log to event score summation to clamp the contribution of event scores to a reasonable maximum
+        #  * add an extra 'relative volume score' (# of events in past 60 mins / # of events in the past 7 days)
+        #    to factor in the volume of events that recently were fired versus the past. This will up-rank issues
+        #    that are more recently active as a function of the overall amount of events grouped to that issue
+        #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0 -
+
+        # aggregate_event_score:
+        #
+        # ------------------------------------------------------------------------------
+        # part 1 (summation over all events in group)
+        #   x = event_age_hours
+        #   k = event_halflife_hours (fixed to a constant)
+        #      1
+        # Σ ------- = Σ ([1, 0), [1, 0), [1, 0), ...) ~= [0, +inf] = g(x)
+        #   2^(x/k)
+        #
+        # ------------------------------------------------------------------------------
+        # part 2a (offset by 1 to remove possibility of ln(0))
+        # g(x) + 1 = [1, +inf] = h(x)
+        #
+        # ------------------------------------------------------------------------------
+        # part 2b (apply ln to clamp exponential growth and apply a 'fixed' maximum)
+        #                            x = 1, e,    10,  1000, 1000000, 1000000000, ...
+        # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72, +inf
+        aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
+
+        event_count_60_mins = "countIf(lessOrEquals(minus(now(), timestamp), 3600))"
+        avg_hourly_event_count_last_7_days = (
+            "countIf(lessOrEquals(minus(now(), timestamp), 604800))"  # 604800 = 3600 * 24 * 7
+        )
+        relative_volume_score = (
+            f"divide(plus({event_count_60_mins}, 1), plus({avg_hourly_event_count_last_7_days}, 1))"
+        )
+        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+
+        normalize = aggregate_kwargs["norm"]
+
+        if not normalize:
+            return [
+                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), {relative_volume_score})",
+                "",
+            ]
+        else:
+            # aggregate_issue_score:
+            #   x = issue_age_hours
+            #   k = issue_halflife_hours (fixed to a constant)
+            #                          k = 4
+            # lim           1          x = 0,     1,     10,  100000000
+            # x -> inf   -------    f(x) = 1, ~0.84,  ~0.16,  ~0
+            #            2^(x/k)
+            normalized_aggregate_issue_score = aggregate_issue_score  # already ranges from 1 to 0
+            normalized_relative_volume_score = (
+                relative_volume_score  # already normalized since it's a percentage
+            )
+
+            # aggregate_event_score ranges from [0, +inf], as the amount of events grouped to this issue
+            # increases. we apply an upper bound of 21 to the log of the summation of the event scores
+            # and then divide by 21 so the normalized score sweeps from [0, 1]
+            # In practice, itll take a degenerate issue with an absurd amount of events for the
+            # aggregate_event_score to reach to upper limit of ~21 (and normalized score of 1)
+            normalized_aggregate_event_score = f"divide(least({aggregate_event_score}, 21), 21)"
+
+            return [
+                f"plus(plus({normalized_aggregate_issue_score}, {normalized_aggregate_event_score}), {normalized_relative_volume_score})",
+                "",
+            ]
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):

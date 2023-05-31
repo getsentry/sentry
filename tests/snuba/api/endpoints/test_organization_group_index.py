@@ -156,8 +156,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         aggregate_kwargs: PrioritySortWeights = {
             "log_level": 3,
-            "frequency": 5,
             "has_stacktrace": 5,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 4,
+            "v2": False,
+            "norm": False,
         }
 
         response = self.get_success_response(
@@ -1666,7 +1669,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_inbox_fields_issue_states(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1935,7 +1938,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query="is:unresolved",
         )
 
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             response1 = get_query_response(
                 query="is:ongoing"
             )  # (status=unresolved, substatus=(ongoing))
@@ -1988,7 +1991,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
         )
 
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             response1 = get_query_response(query="is:escalating")
             response2 = get_query_response(query="is:new")
             response3 = get_query_response(query="is:regressed")

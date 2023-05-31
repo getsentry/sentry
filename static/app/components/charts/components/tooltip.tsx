@@ -102,7 +102,10 @@ export type TooltipSubLabel = {
   parentLabel: string;
 };
 
-type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
+export type FormatterOptions = Pick<
+  NonNullable<ChartProps['tooltip']>,
+  TooltipFormatters
+> &
   Pick<ChartProps, NeededChartProps> & {
     /**
      * If true seconds will be added to the Axis label time format

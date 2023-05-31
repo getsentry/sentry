@@ -111,7 +111,6 @@ function TableRow({
     <Fragment>
       <IssueDetailsWrapper>
         <EventOrGroupHeader
-          includeLink
           data={issue}
           organization={organization}
           size="normal"

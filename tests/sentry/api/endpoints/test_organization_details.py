@@ -69,7 +69,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -88,7 +87,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -181,17 +179,19 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
+    def get_onboard_tasks(self, tasks, task_type):
+        return [task for task in tasks if task["task"] == task_type]
+
     def test_onboarding_tasks(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data["onboardingTasks"] == []
+        assert not self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
         assert response.data["id"] == str(self.organization.id)
 
         project = self.create_project(organization=self.organization)
         project_created.send(project=project, user=self.user, sender=type(project))
 
         response = self.get_success_response(self.organization.slug)
-        assert len(response.data["onboardingTasks"]) == 1
-        assert response.data["onboardingTasks"][0]["task"] == "create_project"
+        assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
         with exempt_from_silo_limits():
@@ -757,40 +757,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_slug_with_mapping(self):
-        self.create_organization_mapping(self.organization, slug="test")
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=self.organization.id, slug="test"
-            ).exists()
-
-        response = self.get_success_response(
-            self.organization.slug, slug="santry", idempotencyKey="1234"
-        )
-
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "santry"
-
-        with exempt_from_silo_limits():
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
-            assert not org_mapping.verified
-            assert org_mapping.idempotency_key
-
-            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
-
-        # Drain outbox
-        outbox = Organization.outbox_to_verify_mapping(org.id)
-        outbox.drain_shard()
-
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
-            ).exists()
-
-            assert not OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="test"
-            ).exists()
-
     def test_update_name_with_mapping(self):
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
@@ -804,8 +770,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_org_mapping_already_taken(self):
-        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
+        self.create_organization(slug="taken")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
 @region_silo_test

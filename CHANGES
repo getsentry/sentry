@@ -1,3 +1,85 @@
+23.5.2
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#50020), @armenzg (#49907)
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#49642, #49626, #49517, #49587, #49582)
+
+### Various fixes & improvements
+
+- feat(replay): Change min version in replay onboarding (#50072) by @billyvg
+- bug(replays): Fix Replay Search box overflow/wrapping (#50074) by @ryan953
+- feat(replays): add replay clicks field to replay index endpoint (#49873) by @JoshFerge
+- fix(analytics): Change actor_id to user_id in slack status analytic (#49966) by @jangjodi
+- dep(relay): Upgrade librelay to 0.8.25 (#50063) by @iker-barriocanal
+- chore(HC): Remove org mapping write paths in preparation of organization mapping updates (#50015) by @GabeVillalobos
+- feat(escalating-issues): Define analytic for escalating feedback (#50000) by @jangjodi
+- chore(profiling): Add referrers to profiling queries frontend (#49923) by @Zylphrex
+- feat(starfish) Hook up span view filter selectors to production data (#49987) by @gggritso
+- fix(hybridcloud) Fix serialization errors in RPC responses (#49922) by @markstory
+- feat(dashboar-widget-description) Added description field to Widget model (#49992) by @Abdkhan14
+- fix(starfish) Small fixes to spans table (#50001) by @gggritso
+- chore(profiling) Add referrers to profiling queries backend (#49924) by @Zylphrex
+- Revert "ref(project_creation): Add project deletion to the go back button (#49844)" (fda9548a) by @getsentry-bot
+- ref(sessionstorage): use wrapper (#50051) by @JonasBa
+- ref(project_creation): Add project deletion to the go back button (#49844) by @priscilawebdev
+- feat: Return how an artifact was resolved (#49959) by @loewenheim
+- fix(clusterer): Fix clusterer datasource in test endpoint (#50040) by @iker-barriocanal
+- ref(spans): Sample all discovered rules (#49970) by @iker-barriocanal
+- ref(js): Remove unnecessary AsyncComponent props (#50034) by @evanpurkhiser
+- ref(js): Remove unnecessary extends AsyncComponentProps (#50031) by @evanpurkhiser
+- fix(dynamic-sampling): Fix logging with missing parameter (#50038) by @iambriccardo
+- fix(js): Avoid anchor nesting in monitor edit page (#50026) by @evanpurkhiser
+- ref(js): Add IGNORED_SPANS_BY_DESCRIPTION in initializeSdk (#50025) by @evanpurkhiser
+
+_Plus 268 more_
+
+23.5.1
+------
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#49578, #49157)
+
+### JS Project Cleanup (ongoing)
+
+By: @scttcper (#49381, #49255, #49210, #49159)
+
+### Various fixes & improvements
+
+- fix(hc): Change integration search endpoint to control silo (#49589) by @RyanSkonnord
+- fix(starfish): Zerofill round up (#49598) by @shruthilayaj
+- feat(starfish): Update endpoint overview to be consistent (#49607) by @shruthilayaj
+- ref(performance): Move metrics histogram outlier filtering (#48731) by @mjq-sentry
+- feat(starfish): Add top endpoints chart to web service view (#49603) by @shruthilayaj
+- feat(starfish): Fix span summary chart styling (#49463) by @0Calories
+- feat(starfish): Updated WSV span group chart (#49499) by @shruthilayaj
+- ref(perf): Mark long-task with sentry-tracing-init (#49481) by @k-fish
+- chore(profiling): Add flags for more profiling features (#49461) by @Zylphrex
+- feat(starfish): Switch top graph to p50 (#49510) by @wmak
+- feat(starfish): adds synchronized axis markers to starfish charts (#49504) by @edwardgou-sentry
+- deps: bump profiling to alpha.6 (#49127) by @JonasBa
+- feat(create-project): Add framework selection modal tests (#49305) by @priscilawebdev
+- chore(discover-transactions-cell-action): Removed go to summary cell … (#49406) by @Abdkhan14
+- Add index on sentry_monitorchecking.date_added to avoid seq scans during cleanup (#49310) by @beezz
+- Add a utility to query the memory usage percentage of a configured redis cluster (#49459) by @Swatinem
+- ref(createProject): convert test from jsx to tsx (#49304) by @priscilawebdev
+- ref(project-creation): Convert overview from class to func (#49303) by @priscilawebdev
+- feat(project-creation): Add framework selection modal (#49300) by @priscilawebdev
+- chore(js): Use FormFieldProps vs FormField['props'] (#49591) by @evanpurkhiser
+- feat(hybrid-cloud): Update api invite helper (#48829) by @dashed
+- chore(js): Convert Form to a FC (#49525) by @evanpurkhiser
+- ref(js): Convert SentryAppExternalIssueForm for a FC (#49581) by @evanpurkhiser
+- feat(issue-states): auto transition new and regressed issues to ongoing (#49522) by @barkbarkimashark
+
+_Plus 306 more_
+
 23.5.0
 ------
 

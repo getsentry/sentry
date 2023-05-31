@@ -144,6 +144,15 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   expand?: string | string[];
 };
 
+type BetterPriorityEndpointParams = Partial<EndpointParams> & {
+  eventHalflifeHours?: number;
+  hasStacktrace?: number;
+  issueHalflifeHours?: number;
+  logLevel?: number;
+  norm?: boolean;
+  v2?: boolean;
+};
+
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
@@ -336,6 +345,21 @@ class IssueListOverview extends Component<Props, State> {
       : DEFAULT_GRAPH_STATS_PERIOD;
   }
 
+  getBetterPriorityParams(): BetterPriorityEndpointParams {
+    const query = this.props.location.query ?? {};
+    const {eventHalflifeHours, hasStacktrace, issueHalflifeHours, logLevel, norm, v2} =
+      query;
+
+    return {
+      eventHalflifeHours,
+      hasStacktrace,
+      issueHalflifeHours,
+      logLevel,
+      norm,
+      v2,
+    };
+  }
+
   getEndpointParams = (): EndpointParams => {
     const {selection} = this.props;
 
@@ -367,8 +391,10 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
+    const mergedParams = {...params, ...this.getBetterPriorityParams()};
+
     // only include defined values.
-    return pickBy(params, v => defined(v)) as EndpointParams;
+    return pickBy(mergedParams, v => defined(v)) as EndpointParams;
   };
 
   getSelectedProjectIds = (): string[] => {
@@ -853,8 +879,20 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       sort,
     });
-
-    this.transitionTo({sort});
+    if (sort === IssueSortOptions.BETTER_PRIORITY) {
+      this.transitionTo({
+        sort,
+        statsPeriod: '7d',
+        logLevel: 0,
+        hasStacktrace: 0,
+        eventHalflifeHours: 4,
+        issueHalflifeHours: 24 * 7,
+        v2: false,
+        norm: false,
+      });
+    } else {
+      this.transitionTo({sort});
+    }
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -894,10 +932,11 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   transitionTo = (
-    newParams: Partial<EndpointParams> = {},
+    newParams: Partial<EndpointParams> | Partial<BetterPriorityEndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
+      ...omit(this.props.location.query, ['page', 'cursor']),
       referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,
