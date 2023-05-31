@@ -25,7 +25,7 @@ class OrganizationMapping(Model):
     name = models.CharField(max_length=64)
     date_created = models.DateTimeField(default=timezone.now)
     customer_id = models.CharField(max_length=255, db_index=True, null=True)
-    verified = models.BooleanField(default=False)
+    verified = models.BooleanField(default=False, null=True)
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
