@@ -751,13 +751,12 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
-        # TODO: Uncomment this once perf issues are fixed here
-        # assert "issue_short_id" in response.data[0]["performance_issues"][0]
-        # assert response.data[0]["performance_issues"][0]["culprit"] == "/country_by_code/"
-        # assert (
-        #     response.data[0]["performance_issues"][0]["type"]
-        #     == PerformanceFileIOMainThreadGroupType.type_id
-        # )
+        assert "issue_short_id" in response.data[0]["performance_issues"][0]
+        assert response.data[0]["performance_issues"][0]["culprit"] == "root"
+        assert (
+            response.data[0]["performance_issues"][0]["type"]
+            == PerformanceFileIOMainThreadGroupType.type_id
+        )
 
     def test_detailed_trace_with_bad_tags(self):
         """Basically test that we're actually using the event serializer's method for tags"""
