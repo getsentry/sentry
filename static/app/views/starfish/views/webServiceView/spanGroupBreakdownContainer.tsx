@@ -8,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
@@ -28,15 +27,10 @@ type Props = {
 };
 
 type Group = {
-  action: string;
-  domain: string;
   module: string;
-  span_operation: string;
-  transaction?: string;
 };
 
 export type Segment = Group & {
-  num_spans: number;
   sum: number;
 };
 
@@ -88,11 +82,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     transformedData.push({
       cumulativeTime: element.sum,
       group: {
-        action: element.action,
-        domain: element.domain,
         module: element.module,
-        span_operation: element.span_operation,
-        transaction: element.transaction,
       },
     });
   }
@@ -100,29 +90,15 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   transformedData.push({
     cumulativeTime: otherValue,
     group: {
-      action: '',
-      domain: '',
       module: OTHER_SPAN_GROUP_MODULE,
-      span_operation: 'Other',
-      transaction: '',
     },
   });
 
-  let topConditions =
-    segments.length > 0
-      ? ` (span_operation = '${segments[0].span_operation}' ${
-          segments[0].action ? `AND action = '${segments[0].action}'` : ''
-        } ${segments[0].domain ? `AND domain = '${segments[0].domain}'` : ''})`
-      : '';
+  let topConditions = segments.length > 0 ? ` module = '${segments[0].module}'` : '';
 
   for (let index = 1; index < segments.length; index++) {
     const element = segments[index];
-    topConditions = topConditions.concat(
-      ' OR ',
-      `(span_operation = '${element.span_operation}' ${
-        element.action ? `AND action = '${element.action}'` : ''
-      } ${element.domain ? `AND domain = '${element.domain}'` : ''})`
-    );
+    topConditions = topConditions.concat(' OR ', ` module = '${element.module}'`);
   }
 
   const {isLoading: isTopDataLoading, data: topData} = useQuery({
@@ -170,11 +146,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
 
   if (!isTopDataLoading && !isOtherDataLoading && segments.length > 0) {
     segments.forEach((segment, index) => {
-      const label = getSegmentLabel(
-        segment.span_operation,
-        segment.action,
-        segment.domain
-      );
+      const label = segment.module;
       seriesByDomain[label] = {
         seriesName: `${label}`,
         data: [],
@@ -183,9 +155,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     });
 
     topData.forEach(value => {
-      seriesByDomain[
-        getSegmentLabel(value.span_operation, value.action, value.domain)
-      ].data.push({value: value.p50, name: value.interval});
+      seriesByDomain[value.module].data.push({value: value.p50, name: value.interval});
     });
 
     seriesByDomain.Other = {
