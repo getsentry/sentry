@@ -74,6 +74,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     const {
       location,
       router,

@@ -13,17 +13,27 @@ import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {DataRow} from 'sentry/views/starfish/components/databaseTableView';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {
   UseSpansQueryReturnType,
   useWrappedDiscoverTimeseriesQuery,
 } from 'sentry/views/starfish/utils/useSpansQuery';
+
+export type TransactionListDataRow = {
+  count: number;
+  example: string;
+  frequency: number;
+  group_id: string;
+  p75: number;
+  transaction: string;
+  uniqueEvents: number;
+};
 
 export const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
@@ -669,17 +679,6 @@ const getOrderByFromKey = (
   }
   sortDirection ??= '';
   return `${sortKey} ${sortDirection}`;
-};
-
-export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
-    start: startTime.format('YYYY-MM-DD HH:mm:ss'),
-    end: endTime.format('YYYY-MM-DD HH:mm:ss'),
-  });
-  return `
-  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-  `;
 };
 
 const shouldRefetchData = (

@@ -32,7 +32,7 @@ function GroupPreviewTooltip({
     case IssueCategory.ERROR:
       return (
         <StackTracePreview
-          issueId={groupId}
+          groupId={groupId}
           groupingCurrentLevel={groupingCurrentLevel}
           eventId={eventId}
           projectSlug={projectSlug}

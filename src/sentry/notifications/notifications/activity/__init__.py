@@ -1,4 +1,5 @@
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.new_processing_issues import (
     NewProcessingIssuesActivityNotification,
 )
@@ -21,4 +22,5 @@ EMAIL_CLASSES_BY_TYPE = {
     ActivityType.SET_RESOLVED.value: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolvedInReleaseActivityNotification,
     ActivityType.UNASSIGNED.value: UnassignedActivityNotification,
+    ActivityType.SET_ESCALATING.value: EscalatingActivityNotification,
 }
