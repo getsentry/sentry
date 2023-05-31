@@ -94,16 +94,17 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
             )
 
         def serialize_results(r):
-            # TODO: here we will have to show the user multiple release/dist pair.
-            release, dist = ArtifactBundle.get_release_dist_pair(
+            # Here we don't query with project_id under the assumption that the above's code checks for it. In case
+            # the get_release_associations method is going to be used in other places, a project_id check should
+            # still be performed to avoid any security problems.
+            associations = ArtifactBundle.get_release_associations(
                 project.organization.id, artifact_bundle
             )
 
             return serialize(
                 {
                     "bundleId": str(artifact_bundle.bundle_id),
-                    "release": release,
-                    "dist": dist if dist != "" else None,
+                    "associations": associations,
                     "files": serialize(
                         # We need to convert the dictionary to a list in order to properly use the serializer.
                         r,
