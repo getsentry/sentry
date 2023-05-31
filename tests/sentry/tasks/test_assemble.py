@@ -1,9 +1,11 @@
 import io
 import os
+from datetime import datetime, timezone
 from hashlib import sha1
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
+from freezegun import freeze_time
 
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
@@ -301,19 +303,27 @@ class AssembleArtifactsTest(BaseAssembleTest):
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
         debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
-        for i in range(0, 3):
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version="1.0",
-                dist="android",
-                checksum=total_checksum,
-                chunks=[blob1.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        for time in ("2023-05-31T10:00:00", "2023-05-31T11:00:00", "2023-05-31T12:00:00"):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                    upload_as_artifact_bundle=True,
+                )
+
+        # Since we are uploading the same bundle 3 times, we expect that all of them will result with the same
+        # `date_added` or the last upload.
+        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00").replace(
+            tzinfo=timezone.utc
+        )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
+        assert artifact_bundles[0].date_added == expected_updated_date
 
         files = File.objects.filter()
         assert len(files) == 1
@@ -321,14 +331,18 @@ class AssembleArtifactsTest(BaseAssembleTest):
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have two entries, since we have multiple files in the artifact bundle.
         assert len(debug_id_artifact_bundles) == 2
+        assert debug_id_artifact_bundles[0].date_added == expected_updated_date
+        assert debug_id_artifact_bundles[1].date_added == expected_updated_date
 
         release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
             release_name="1.0", dist_name="android"
         )
         assert len(release_artifact_bundle) == 1
+        assert release_artifact_bundle[0].date_added == expected_updated_date
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
+        assert project_artifact_bundle[0].date_added == expected_updated_date
 
     def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self):
         bundle_file = self.create_artifact_bundle_zip(
