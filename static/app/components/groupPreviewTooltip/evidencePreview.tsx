@@ -1,62 +1,41 @@
-import {Fragment, ReactChild, useEffect} from 'react';
+import {ReactChild, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
+import {
+  useDelayedLoadingState,
+  usePreviewEvent,
+} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type SpanEvidencePreviewProps = {
   children: ReactChild;
+  groupId: string;
   eventId?: string;
-  groupId?: string;
   projectSlug?: string;
 };
 
 type SpanEvidencePreviewBodyProps = {
-  endpointUrl: string;
+  groupId: string;
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
-};
-
-const makeGroupPreviewRequestUrl = ({
-  orgSlug,
-  eventId,
-  groupId,
-  projectSlug,
-}: {
-  orgSlug: string;
   eventId?: string;
-  groupId?: string;
   projectSlug?: string;
-}) => {
-  if (eventId && projectSlug) {
-    return `/projects/${orgSlug}/${projectSlug}/events/${eventId}/`;
-  }
-
-  if (groupId) {
-    return `/issues/${groupId}/events/latest/`;
-  }
-
-  return null;
 };
 
 function SpanEvidencePreviewBody({
-  endpointUrl,
   onRequestBegin,
   onRequestEnd,
   onUnmount,
+  groupId,
+  eventId,
+  projectSlug,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isLoading, isError} = useApiQuery<EventTransaction>(
-    [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
-    {staleTime: 60000}
-  );
+  const {data, isLoading, isError} = usePreviewEvent({groupId, eventId, projectSlug});
 
   useEffect(() => {
     if (isLoading) {
@@ -108,19 +87,8 @@ export function EvidencePreview({
   eventId,
   projectSlug,
 }: SpanEvidencePreviewProps) {
-  const organization = useOrganization();
-  const endpointUrl = makeGroupPreviewRequestUrl({
-    groupId,
-    eventId,
-    projectSlug,
-    orgSlug: organization.slug,
-  });
   const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
     useDelayedLoadingState();
-
-  if (!endpointUrl) {
-    return <Fragment>{children}</Fragment>;
-  }
 
   return (
     <GroupPreviewHovercard
@@ -130,7 +98,9 @@ export function EvidencePreview({
           onRequestBegin={onRequestBegin}
           onRequestEnd={onRequestEnd}
           onUnmount={reset}
-          endpointUrl={endpointUrl}
+          groupId={groupId}
+          eventId={eventId}
+          projectSlug={projectSlug}
         />
       }
     >
