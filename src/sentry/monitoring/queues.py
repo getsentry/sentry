@@ -112,7 +112,7 @@ queue_monitoring_cluster = redis.redis_clusters.get(CLUSTER_NAME)
 
 
 def unhealthy_queue_key(queue_name: str) -> str:
-    return f"{KEY_NAME}:queue_name"
+    return f"{KEY_NAME}:{queue_name}"
 
 
 def is_queue_healthy(queue_name: str) -> bool:
