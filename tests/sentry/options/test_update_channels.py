@@ -17,6 +17,7 @@ from sentry.options.manager import (
 )
 from sentry.options.store import OptionsStore
 
+# Test cases for test_can_update
 TEST_CASES = [
     pytest.param(
         "manager",
@@ -95,6 +96,10 @@ TEST_CASES = [
 
 @pytest.fixture()
 def manager():
+    """
+    Initializes an options storage, an options cache and an options manager
+    """
+
     c = LocMemCache("test", {})
     c.clear()
     store = OptionsStore(cache=c)
@@ -124,14 +129,17 @@ def test_can_update(
     request: Any,
 ) -> None:
     """
-    The option in this test is reset multiple times.
+    Tests a multi-step update workflow for two options:
+    1) check that the provided channel can update the option after registration
+    2) updates the option with another channel
+    3) check whether the original channel can update it to the same value
+    4) check whether the original channel can update it to a different value
 
     @param set_channel: the channel that sets the option first
     @param check_channel: the channel we call can_update with
-    @param set_to_same_value_reason: We try to set the option without changing value.
-           this is the NotWritableReason we expect
-    @param reset_reason: The NotWritableReason we expect when trying to set to
-           a different value.
+    @param set_to_same_value_reason: The NotWritableReason we expect at point 3
+    above.
+    @param reset_reason: The NotWritableReason we expect at point 4 above.
     """
     manager = request.getfixturevalue(manager_fixture)
     manager.register("option", flags=options_flags)
@@ -206,6 +214,10 @@ def test_non_writable_options(
     outcome: Optional[NotWritableReason],
     request: Any,
 ) -> None:
+    """
+    Test some variations of the `can_update` method when dealing
+    with readonly options.
+    """
     manager = request.getfixturevalue(manager_fixture)
     manager.register("option", flags=flags)
     if set_settings_val:
@@ -221,7 +233,9 @@ def test_non_writable_options(
 @pytest.mark.django_db
 def test_legacy_option(manager) -> None:
     """
-    Tests legacy unregistered options.
+    Test the update process of legacy options.
+    These options are not registered so we cannot reuse the use cases
+    above.
     """
     manager.set("sentry:something", "val")
     assert manager.get("sentry:something") == "val"
