@@ -1,11 +1,16 @@
 from typing import Any, Dict
 
+from sentry import options
 from sentry.issues.grouptype import ReplaySlowClickType
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
 
 
 def report_slow_click_issue(project_id: int, event: SentryEvent) -> None:
+    # Only report slow clicks if the option is enabled.
+    if not options.get("replay.issues.slow_click"):
+        return None
+
     payload = event["data"]["payload"]
 
     # Only timeout reasons on <a> and <button> tags are accepted.
@@ -14,32 +19,13 @@ def report_slow_click_issue(project_id: int, event: SentryEvent) -> None:
     elif payload["data"]["endReason"] != "timeout":
         return None
 
-    _report_sentry_slow_click_issue(
+    _report_slow_click_issue(
+        environment="prod",
         fingerprint=payload["message"],
         project_id=project_id,
+        release="",
         subtitle=payload["message"],
         timestamp=int(payload["timestamp"]),
-    )
-
-
-def _report_sentry_slow_click_issue(
-    fingerprint: str,
-    project_id: int,
-    subtitle: str,
-    timestamp: int,
-) -> None:
-    """Temporary measure.
-
-    We don't have all of the metadata yet so we're going to emulate while we experiment. This
-    is a simple wrapper around "new_slow_click_issue".
-    """
-    _report_slow_click_issue(
-        fingerprint=fingerprint,
-        project_id=project_id,
-        timestamp=timestamp,
-        release="",
-        environment="prod",
-        subtitle=subtitle,
         extra_event_data={
             "user": {
                 "id": "1",
