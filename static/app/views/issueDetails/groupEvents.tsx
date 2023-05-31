@@ -44,6 +44,16 @@ class GroupEvents extends Component<Props, State> {
     };
   }
 
+  componentDidMount() {
+    this._unsubscribeHandleRouteLeave = browserHistory.listen(newLocation =>
+      handleRouteLeave({
+        fieldsToClean: ['cursor'],
+        newLocation,
+        oldPathname: this.props.location.pathname,
+      })
+    );
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.props.location.search !== nextProps.location.search) {
       const queryParams = nextProps.location.query;
@@ -54,17 +64,7 @@ class GroupEvents extends Component<Props, State> {
     }
   }
 
-  UNSAFE_componentDidMount() {
-    this._unsubscribeHandleRouteLeave = browserHistory.listen(newLocation =>
-      handleRouteLeave({
-        fieldsToClean: ['cursor'],
-        newLocation,
-        oldPathname: this.props.location.pathname,
-      })
-    );
-  }
-
-  UNSAFE_componentWillUnmount() {
+  componentWillUnmount() {
     this._unsubscribeHandleRouteLeave?.();
   }
 
