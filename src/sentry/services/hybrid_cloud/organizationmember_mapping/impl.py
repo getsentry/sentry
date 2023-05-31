@@ -3,8 +3,9 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Optional
+from typing import Any, Optional
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
@@ -17,6 +18,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
+from sentry.types.region import get_local_region
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -67,18 +69,53 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 )
         return serialize_org_member_mapping(org_member_mapping)
 
+    def _find_organization_member(
+        self,
+        organization_id: int,
+        email: Optional[str] = None,
+        user_id: Optional[str] = None,
+        organizationmember_id: Optional[int] = None,
+    ) -> Optional[OrganizationMemberMapping]:
+        if user_id is not None:
+            return OrganizationMemberMapping.objects.filter(
+                organization_id=organization_id, user_id=user_id
+            ).first()
+        if email is not None:
+            return OrganizationMemberMapping.objects.filter(
+                organization_id=organization_id, email=email
+            ).first()
+        if organizationmember_id is not None and _was_monolith():
+            return OrganizationMemberMapping.objects.filter(
+                organization_id=organization_id, organizationmember_id=organizationmember_id
+            ).first()
+        return None
+
     def update_with_organization_member(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
         rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
+        organizationmember_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcOrganizationMemberMapping]:
+        base_update: Any = dict(
+            organization_id=organization_id,
+        )
+
+        if _was_monolith() and organizationmember_id:
+            base_update["organizationmember_id"] = organizationmember_id
+
         try:
-            org_member_map = OrganizationMemberMapping.objects.get(
+            org_member_map = self._find_organization_member(
                 organization_id=organization_id,
+                email=email,
+                user_id=user_id,
                 organizationmember_id=organizationmember_id,
             )
+            if org_member_map:
+                return None
+
             org_member_map.update(**rpc_update_org_member.dict())
             return serialize_org_member_mapping(org_member_map)
         except OrganizationMemberMapping.DoesNotExist:
@@ -91,13 +128,25 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
     def delete_with_organization_member(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
+        organizationmember_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
     ) -> None:
-        OrganizationMemberMapping.objects.filter(
+        org_member_map = self._find_organization_member(
             organization_id=organization_id,
+            email=email,
+            user_id=user_id,
             organizationmember_id=organizationmember_id,
-        ).delete()
+        )
+        if org_member_map:
+            org_member_map.delete()
 
     def close(self) -> None:
         pass
+
+
+def _was_monolith() -> bool:
+    if not settings.SENTRY_REGION:
+        return True
+    return get_local_region().was_monolith

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.conf import settings
 from django.dispatch import receiver
 
 from sentry import roles
@@ -34,7 +33,6 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
 )
 from sentry.signals import member_joined
-from sentry.types.region import get_local_region
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -77,31 +75,29 @@ def process_organization_member_updates(
 ):
     if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         # Delete all identities that may have been associated.  This is an implicit cascade.
-        if payload and "user_id" in payload:
+        if payload and payload.get("user_id") is not None:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
             )
         organizationmember_mapping_service.delete_with_organization_member(
-            organizationmember_id=object_identifier, organization_id=shard_identifier
+            organizationmember_id=object_identifier,
+            organization_id=shard_identifier,
+            user_id=payload.get("user_id"),
+            email=payload.get("email"),
         )
         return
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    if _was_monolith():
-        organizationmember_mapping_service.update_with_organization_member(
-            organizationmember_id=org_member.id,
-            organization_id=shard_identifier,
-            rpc_update_org_member=rpc_org_member_update,
-        )
+    organizationmember_mapping_service.update_with_organization_member(
+        organizationmember_id=org_member.id,
+        organization_id=shard_identifier,
+        user_id=payload.get("user_id"),
+        email=payload.get("email"),
+        rpc_update_org_member=rpc_org_member_update,
+    )
 
     maybe_handle_joined_user(org_member)
-
-
-def _was_monolith() -> bool:
-    if not settings.SENTRY_REGION:
-        return True
-    return get_local_region().was_monolith
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)

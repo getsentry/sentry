@@ -60,10 +60,12 @@ class OrganizationMemberMappingService(RpcService):
     def update_with_organization_member(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
         rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
+        organizationmember_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcOrganizationMemberMapping]:
         pass
 
     @rpc_method
@@ -71,8 +73,10 @@ class OrganizationMemberMappingService(RpcService):
     def delete_with_organization_member(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
+        organizationmember_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
     ) -> None:
         pass
 

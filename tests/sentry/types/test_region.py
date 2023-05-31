@@ -51,7 +51,7 @@ class RegionMappingTest(TestCase):
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
-                    MONOLITH_REGION_NAME, 0, "/", RegionCategory.MULTI_TENANT
+                    MONOLITH_REGION_NAME, 0, "/", RegionCategory.MULTI_TENANT, was_monolith=True
                 )
 
     def test_validate_region(self):

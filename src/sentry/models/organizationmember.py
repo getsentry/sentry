@@ -300,7 +300,7 @@ class OrganizationMember(Model):
             shard_identifier=self.organization_id,
             category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
             object_identifier=self.id,
-            payload=dict(user_id=self.user_id),
+            payload=dict(user_id=self.user_id, email=self.email),
         )
 
     def save_outbox_for_update(self) -> RegionOutbox:
