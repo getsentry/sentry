@@ -423,7 +423,7 @@ def dispatch_to_local_service(
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
 
-    def result_to_dict(value: Any):
+    def result_to_dict(value: Any) -> Any:
         if isinstance(value, RpcModel):
             return value.dict()
 
