@@ -220,8 +220,8 @@ function CreateProject() {
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
-  const isOrgMemberWithNoAccess =
-    accessTeams.length === 0 && !organization.access.includes('project:admin');
+  const canCreateTeam = organization.access.includes('project:admin');
+  const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
   const canSubmitForm =
     !inFlight &&
@@ -270,19 +270,21 @@ function CreateProject() {
                 onChange={choice => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
-              <Button
-                borderless
-                data-test-id="create-team"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => setTeam(slug),
-                  })
-                }
-                title={t('Create a team')}
-                aria-label={t('Create a team')}
-              />
+              {canCreateTeam && (
+                <Button
+                  borderless
+                  data-test-id="create-team"
+                  icon={<IconAdd isCircled />}
+                  onClick={() =>
+                    openCreateTeamModal({
+                      organization,
+                      onClose: ({slug}) => setTeam(slug),
+                    })
+                  }
+                  title={t('Create a team')}
+                  aria-label={t('Create a team')}
+                />
+              )}
             </TeamSelectInput>
           </div>
         )}
