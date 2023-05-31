@@ -79,8 +79,8 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-
-    # For organizations:issue-states
+    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
+    # organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -168,7 +168,7 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
-    has_issue_states = features.has("organizations:issue-states", organization)
+    has_issue_states = features.has("organizations:escalating-issues", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -413,7 +413,7 @@ def fetch_key_error_groups(ctx):
         group_id_to_group[group.id] = group
 
     group_id_to_group_history = {}
-    if not features.has("organizations:issue-states", ctx.organization):
+    if not features.has("organizations:escalating-issues", ctx.organization):
         group_history = (
             GroupHistory.objects.filter(
                 group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
@@ -701,7 +701,7 @@ def render_template_context(ctx, user):
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
 
-    has_issue_states = features.has("organizations:issue-states", ctx.organization)
+    has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
