@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import {AsyncComponentProps} from 'sentry/components/asyncComponent';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
@@ -678,7 +677,7 @@ function PerformanceCardTable({
   );
 }
 
-interface Props extends AsyncComponentProps {
+interface Props {
   allReleasesEventView: EventView;
   location: Location;
   organization: Organization;
