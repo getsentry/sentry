@@ -971,12 +971,11 @@ def get_triggers_for_alert_rule(alert_rule):
 def trigger_incident_triggers(incident):
     from sentry.incidents.tasks import handle_trigger_action
 
-    triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
-        "alert_rule_trigger"
-    )
+    incident_triggers = IncidentTrigger.objects.filter(incident=incident)
+    triggers = AlertRuleTrigger.objects.filter(alert_rule=incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=triggers)
     with transaction.atomic():
-        for trigger in triggers:
+        for trigger in incident_triggers:
             trigger.status = TriggerStatus.RESOLVED.value
             trigger.save()
 
@@ -988,6 +987,7 @@ def trigger_incident_triggers(incident):
                         incident_id=incident.id,
                         project_id=project.id,
                         method="resolve",
+                        new_status=IncidentStatus.CLOSED.value,
                     ).delay
                 )
 
