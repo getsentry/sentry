@@ -28,7 +28,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0472_delete_past_organization_mappings"),
+        ("sentry", "0471_dashboard_widget_description"),
     ]
 
     operations = [
