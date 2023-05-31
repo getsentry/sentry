@@ -5,7 +5,6 @@ import {Location} from 'history';
 import _orderBy from 'lodash/orderBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import SearchBar from 'sentry/components/searchBar';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -15,7 +14,6 @@ import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/action
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
-import {Top5DomainsCharts} from 'sentry/views/starfish/views/spans/top5DomainCharts';
 
 import {getSpanListQuery, getSpansTrendsQuery} from './queries';
 import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
@@ -44,17 +42,13 @@ export default function SpansView(props: Props) {
   const pageFilter = usePageFilters();
   const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
 
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [didConfirmSearch, setDidConfirmSearch] = useState<boolean>(false);
   const {orderBy} = state;
 
-  const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
   const queryConditions = buildQueryConditions(
     props.moduleName || ModuleName.ALL,
     location
   );
   const query = getSpanListQuery(
-    descriptionFilter,
     pageFilter.selection.datetime,
     queryConditions,
     orderBy,
@@ -74,14 +68,10 @@ export default function SpansView(props: Props) {
   const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
     SpanTrendDataRow[]
   >({
-    queryKey: ['spansTrends', descriptionFilter],
+    queryKey: ['spansTrends'],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(
-          descriptionFilter,
-          pageFilter.selection.datetime,
-          groupIDs
-        )}`
+        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
       ).then(res => res.json()),
     retry: false,
     refetchOnWindowFocus: false,
@@ -111,35 +101,15 @@ export default function SpansView(props: Props) {
       </FilterOptionsContainer>
 
       <PaddedContainer>
-        <SearchBar
-          onChange={value => {
-            setSearchTerm(value);
-            setDidConfirmSearch(false);
-          }}
-          placeholder="Search Spans"
-          query={searchTerm}
-          onSearch={() => {
-            setDidConfirmSearch(true);
-          }}
+        <SpanTimeCharts
+          moduleName={props.moduleName || ModuleName.ALL}
+          appliedFilters={appliedFilters}
         />
       </PaddedContainer>
 
       <PaddedContainer>
-        {props.moduleName &&
-        [ModuleName.DB, ModuleName.HTTP].includes(props.moduleName) ? (
-          <Top5DomainsCharts moduleName={props.moduleName} />
-        ) : (
-          <SpanTimeCharts
-            descriptionFilter={descriptionFilter || ''}
-            queryConditions={queryConditions}
-          />
-        )}
-      </PaddedContainer>
-
-      <PaddedContainer>
         <SpansTable
-          location={location}
-          queryConditions={queryConditions}
+          moduleName={props.moduleName || ModuleName.ALL}
           isLoading={areSpansLoading || areSpansTrendsLoading}
           spansData={spansData}
           orderBy={orderBy}

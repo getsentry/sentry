@@ -43,6 +43,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     window.scrollTo(0, 0);
 
     const {platform} = this.props.params;
