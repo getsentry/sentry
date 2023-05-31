@@ -14,12 +14,11 @@ import {Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import withOrganization from 'sentry/utils/withOrganization';
 
-export enum MetricValues {
+enum MetricValues {
   ERRORS,
   USERS,
 }
-
-export enum RuleAction {
+enum Actions {
   ALERT_ON_EVERY_ISSUE,
   CUSTOMIZED_ALERTS,
   CREATE_ALERT_LATER,
@@ -52,10 +51,6 @@ type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
   onChange: StateUpdater;
   organization: Organization;
-  alertSetting?: string;
-  interval?: string;
-  metric?: MetricValues;
-  threshold?: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -122,10 +117,10 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
-      metric: this.props.metric ?? MetricValues.ERRORS,
-      interval: this.props.interval ?? '',
-      threshold: this.props.threshold ?? '',
+      alertSetting: Actions.ALERT_ON_EVERY_ISSUE.toString(),
+      metric: MetricValues.ERRORS,
+      interval: '',
+      threshold: '',
     };
   }
 
@@ -144,15 +139,15 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     hasProperlyLoadedConditions: boolean
   ): [string, string | React.ReactElement][] {
     const customizedAlertOption: [string, React.ReactNode] = [
-      RuleAction.CUSTOMIZED_ALERTS.toString(),
+      Actions.CUSTOMIZED_ALERTS.toString(),
       <CustomizeAlertsGrid
-        key={RuleAction.CUSTOMIZED_ALERTS}
+        key={Actions.CUSTOMIZED_ALERTS}
         onClick={e => {
           // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
           // propagation of the click up to the label, causing it to focus
           // the radio input and lose focus on the select.
           e.preventDefault();
-          const alertSetting = RuleAction.CUSTOMIZED_ALERTS.toString();
+          const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();
           this.setStateAndUpdateParents({alertSetting});
         }}
       >
@@ -186,9 +181,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     ];
 
     const options: [string, React.ReactNode][] = [
-      [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
-      [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
+      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
     return options.map(([choiceValue, node]) => [
       choiceValue,
@@ -199,17 +194,17 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   getUpdatedData(): RequestDataFragment {
     let defaultRules: boolean;
     let shouldCreateCustomRule: boolean;
-    const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
+    const alertSetting: Actions = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
-      case RuleAction.ALERT_ON_EVERY_ISSUE:
+      case Actions.ALERT_ON_EVERY_ISSUE:
         defaultRules = true;
         shouldCreateCustomRule = false;
         break;
-      case RuleAction.CREATE_ALERT_LATER:
+      case Actions.CREATE_ALERT_LATER:
         defaultRules = false;
         shouldCreateCustomRule = false;
         break;
-      case RuleAction.CUSTOMIZED_ALERTS:
+      case Actions.CUSTOMIZED_ALERTS:
         defaultRules = false;
         shouldCreateCustomRule = true;
         break;
@@ -290,16 +285,10 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       return;
     }
 
-    const newInterval =
-      this.props.interval &&
-      intervalChoices.some(intervalChoice => intervalChoice[0] === this.props.interval)
-        ? this.props.interval
-        : interval;
-
     this.setStateAndUpdateParents({
       conditions,
       intervalChoices,
-      interval: newInterval,
+      interval,
     });
   }
 

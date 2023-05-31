@@ -342,7 +342,7 @@ export function removeProject({
 }: {
   api: Client;
   orgSlug: string;
-  origin: 'onboarding' | 'settings' | 'getting_started';
+  origin: 'onboarding' | 'settings';
   projectSlug: Project['slug'];
 }) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
