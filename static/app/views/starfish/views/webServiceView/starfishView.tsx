@@ -20,6 +20,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {P50_COLOR, P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
@@ -226,7 +227,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['p95(transaction.duration)', 'p50(transaction.duration)']}
+        yAxis={['p50(transaction.duration)', 'p95(transaction.duration)']}
         queryExtras={{dataset: 'metrics'}}
       >
         {({loading, results}) => {
@@ -255,7 +256,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               }}
               definedAxisTicks={2}
               isLineChart
-              chartColors={theme.charts.getColorPalette(2)}
+              chartColors={[P50_COLOR, P95_COLOR]}
               disableXAxis
               aggregateOutputFormat="duration"
             />
