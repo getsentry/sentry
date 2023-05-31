@@ -102,7 +102,10 @@ function getGroupQuery({environments}: {environments: string[]}) {
 }
 
 function getEventQuery({environments}: {environments: string[]}) {
-  const query = !isEmpty(environments) ? {environment: environments} : {};
+  const query = {
+    ...(!isEmpty(environments) ? {environment: environments} : {}),
+    collapse: ['fullRelease'],
+  };
 
   return query;
 }
@@ -326,11 +329,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const eventId = params.eventId ?? 'latest';
 
   const eventUrl = `/issues/${groupId}/events/${eventId}/`;
-
-  const eventQuery: Record<string, string | string[]> = {collapse: ['fullRelease']};
-  if (environments.length !== 0) {
-    eventQuery.environment = environments;
-  }
 
   const {
     data: eventData,
@@ -716,6 +714,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
+  if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
+    return (
+      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+    );
+  }
+
   if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
@@ -753,13 +757,13 @@ function GroupDetails(props: GroupDetailsProps) {
     const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
-    const eventDetails = `${organization.slug} - ${group.project.slug}`;
+    const eventDetails = `${organization.slug} — ${group.project.slug}`;
 
     if (title && message) {
-      return `${title}: ${message} - ${eventDetails}`;
+      return `${title}: ${message} — ${eventDetails}`;
     }
 
-    return `${title || message || defaultTitle} - ${eventDetails}`;
+    return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
   return (

@@ -1,35 +1,43 @@
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Span} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 
-type Metrics = {
+type Transaction = {
   count: number;
-  total_time: number;
+  transaction: string;
 };
 
-export const useApplicationMetrics = (referrer = 'application-metrics') => {
+export const useSpanTransactions = (span?: Span, referrer = 'span-transactions') => {
   const pageFilters = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilters);
   const dateFilters = getDateQueryFilter(startTime, endTime);
 
-  const query = `
+  const query = span
+    ? `
   SELECT
-  count() as count,
-  sum(exclusive_time) as total_time
+    transaction,
+    count() AS count
   FROM spans_experimental_starfish
-  WHERE 1 = 1
-  ${dateFilters}
-`;
+  WHERE
+    group_id = '${span.group_id}'
+    ${dateFilters}
+  GROUP BY transaction
+  ORDER BY -power(10, floor(log10(count()))), -quantile(0.75)(exclusive_time)
+  LIMIT 5
+`
+    : '';
 
-  const {isLoading, error, data} = useQuery<Metrics[]>({
-    queryKey: ['span-metrics'],
+  const {isLoading, error, data} = useQuery<Transaction[]>({
+    queryKey: ['span-transactions', span?.group_id],
     queryFn: () =>
       fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
     retry: false,
     initialData: [],
+    enabled: Boolean(span),
   });
 
-  return {isLoading, error, data: data[0]};
+  return {isLoading, error, data};
 };

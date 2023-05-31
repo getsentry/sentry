@@ -127,7 +127,7 @@ export function Setup({
   const {isFetching, needsUpdate} = useProjectSdkNeedsUpdate({
     minVersion,
     organization,
-    projectId,
+    projectId: [projectId],
   });
   const sdkNeedsUpdate = !isFetching && needsUpdate;
 

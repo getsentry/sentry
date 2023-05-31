@@ -41,6 +41,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.trackOpened();
   }
 
