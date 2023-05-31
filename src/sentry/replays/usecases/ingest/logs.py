@@ -1,7 +1,7 @@
 import logging
 import random
 
-from sentry.replays.usecases.ingest.breadcrumbs import SentryEvent
+from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger()

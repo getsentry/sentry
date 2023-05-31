@@ -6,7 +6,7 @@ from typing import Dict, List, Literal, Optional, TypedDict
 
 from django.conf import settings
 
-from sentry.replays.usecases.ingest.breadcrumbs import SentryEvent
+from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.utils import json, kafka_config
 from sentry.utils.pubsub import KafkaPublisher
 

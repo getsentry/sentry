@@ -16,7 +16,12 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.usecases.ingest.breadcrumbs import (
+from sentry.replays.usecases.ingest.clicks import (
+    ReplayActionsEventPayloadClick,
+    commit_click_events,
+    process_click_event,
+)
+from sentry.replays.usecases.ingest.events import (
     is_breadcrumb_event,
     is_click_event,
     is_fetch_or_xhr_span,
@@ -26,17 +31,13 @@ from sentry.replays.usecases.ingest.breadcrumbs import (
     is_slow_click_event,
     iter_sentry_events,
 )
-from sentry.replays.usecases.ingest.clicks import (
-    ReplayActionsEventPayloadClick,
-    commit_click_events,
-    process_click_event,
-)
 from sentry.replays.usecases.ingest.logs import (
     log_large_mutations,
     log_request_response_sizes,
     log_sdk_options,
     log_slow_click,
 )
+from sentry.replays.usecases.ingest.slow_click import report_slow_click_issue
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -250,6 +251,7 @@ def _process_parsed_events(
                 clicks.append(process_click_event(replay_id, event))
             # Slow clicks raise an issue event.
             elif is_slow_click_event(event):
+                report_slow_click_issue(project_id, replay_id, event)
                 log_slow_click(project_id, replay_id, event)
             # Large mutation events are tracked to aid the SDK in debugging problematic
             # web apps.
