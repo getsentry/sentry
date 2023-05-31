@@ -576,7 +576,7 @@ class Factories:
     def create_artifact_bundle(
         cls,
         org,
-        bundle_id,
+        bundle_id=None,
         artifact_count=0,
         fixture_path="artifact_bundle_debug_ids",
         date_uploaded=None,

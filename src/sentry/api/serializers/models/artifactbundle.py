@@ -1,20 +1,41 @@
 import base64
+from collections import defaultdict
 
 from sentry.api.serializers import Serializer
-from sentry.models import SourceFileType
+from sentry.models import ReleaseArtifactBundle, SourceFileType
 
 INVALID_SOURCE_FILE_TYPE = 0
 
 
 class ArtifactBundlesSerializer(Serializer):
+    @staticmethod
+    def _compute_associations(item, grouped_bundles):
+        associations = []
+
+        grouped_bundle = grouped_bundles.get(item.id, [])
+        # We want to sort the set, since we want consistent ordering in the UI.
+        for release, dist in sorted(grouped_bundle):
+            associations.append({"release": release or None, "dist": dist or None})
+
+        return associations
+
     def get_attrs(self, item_list, user):
+        release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+            artifact_bundle_id__in=[r.id for r in item_list]
+        )
+
+        grouped_bundles = defaultdict(set)
+        for release in release_artifact_bundles:
+            grouped_bundles[release.artifact_bundle_id].add(
+                (release.release_name, release.dist_name)
+            )
+
         return {
             item: {
-                "bundle_id": item[0],
-                "release": item[1],
-                "dist": item[2],
-                "file_count": item[3],
-                "date": item[4],
+                "bundle_id": item.bundle_id,
+                "associations": self._compute_associations(item, grouped_bundles),
+                "file_count": item.artifact_count,
+                "date": item.date_uploaded,
             }
             for item in item_list
         }
@@ -22,8 +43,7 @@ class ArtifactBundlesSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             "bundleId": str(attrs["bundle_id"]),
-            "release": attrs["release"] if attrs["release"] != "" else None,
-            "dist": attrs["dist"] if attrs["dist"] != "" else None,
+            "associations": attrs["associations"],
             "fileCount": attrs["file_count"],
             "date": attrs["date"].isoformat()[:19] + "Z",
         }

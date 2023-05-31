@@ -69,27 +69,34 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
+        # By default, we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_3.bundle_id),
+                "associations": [
+                    {
+                        "release": "v2.0",
+                        "dist": None,
+                    }
+                ],
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
-                "release": "v2.0",
-                "dist": None,
             },
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
+                "associations": [
+                    {
+                        "release": "v1.0",
+                        "dist": "android",
+                    }
+                ],
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "release": "v1.0",
-                "dist": "android",
             },
             {
                 "bundleId": str(artifact_bundle_1.bundle_id),
+                "associations": [],
                 "date": "2023-03-15T00:00:00Z",
-                "release": None,
-                "dist": None,
                 "fileCount": 2,
             },
         ]
@@ -103,10 +110,14 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
+                "associations": [
+                    {
+                        "release": "v1.0",
+                        "dist": "android",
+                    }
+                ],
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "release": "v1.0",
-                "dist": "android",
             },
         ]
 
@@ -119,10 +130,14 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_3.bundle_id),
+                "associations": [
+                    {
+                        "release": "v2.0",
+                        "dist": None,
+                    }
+                ],
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
-                "release": "v2.0",
-                "dist": None,
             },
         ]
 
@@ -135,10 +150,14 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
+                "associations": [
+                    {
+                        "release": "v1.0",
+                        "dist": "android",
+                    }
+                ],
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "release": "v1.0",
-                "dist": "android",
             },
         ]
 
@@ -168,10 +187,9 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [],
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
-                "release": None,
-                "dist": None,
             }
         ]
 
@@ -225,31 +243,26 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [
+                    {
+                        "release": "1.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "ios",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "ios",
+                    },
+                ],
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
-                "release": "1.0",
-                "dist": "android",
-            },
-            {
-                "bundleId": str(artifact_bundle.bundle_id),
-                "date": "2023-03-15T00:00:00Z",
-                "fileCount": 2,
-                "release": "1.0",
-                "dist": "ios",
-            },
-            {
-                "bundleId": str(artifact_bundle.bundle_id),
-                "date": "2023-03-15T00:00:00Z",
-                "fileCount": 2,
-                "release": "2.0",
-                "dist": "android",
-            },
-            {
-                "bundleId": str(artifact_bundle.bundle_id),
-                "date": "2023-03-15T00:00:00Z",
-                "fileCount": 2,
-                "release": "2.0",
-                "dist": "ios",
             },
         ]
 
@@ -475,7 +488,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.delete(url + f"?bundleId={bundle_id}")
 
         assert response.status_code == 204
-        # We expect the first bundle to be there and only the project reference to be deleted.
+        # We expect the first bundle to be there and only the project reference to be deleted since not
+        # all its projects references have been deleted.
         assert ArtifactBundle.objects.filter(id=artifact_bundle_a.id).exists()
         assert ProjectArtifactBundle.objects.filter(
             project_id=project_b.id, artifact_bundle_id=artifact_bundle_a.id

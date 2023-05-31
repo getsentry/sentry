@@ -55,38 +55,21 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         """
         query = request.GET.get("query")
 
-        # TODO: since we do a left join here, in case a bundle has at least one occurrence in the
-        #  ReleaseArtifactBundle table, we will not show its variant without a release. For example if a customer
-        #  uploads a bundle without a release and then re-uploads the same bundle with a release. We need to see if this
-        #  requires work on our end if customers do not like this behavior.
-        q = Q()
-        if query:
-            q |= Q(bundle_id__icontains=query)
-            q |= Q(
-                releaseartifactbundle__isnull=False,
-                releaseartifactbundle__release_name__icontains=query,
-            )
-            q |= Q(
-                releaseartifactbundle__isnull=False,
-                releaseartifactbundle__dist_name__icontains=query,
-            )
-        else:
-            q = Q(releaseartifactbundle__isnull=False) | Q(releaseartifactbundle__isnull=True)
-
         try:
             queryset = ArtifactBundle.objects.filter(
-                q,
                 organization_id=project.organization_id,
                 projectartifactbundle__project_id=project.id,
-            ).values_list(
-                "bundle_id",
-                "releaseartifactbundle__release_name",
-                "releaseartifactbundle__dist_name",
-                "artifact_count",
-                "date_uploaded",
             )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if query:
+            query_q = (
+                Q(bundle_id__icontains=query)
+                | Q(releaseartifactbundle__release_name__icontains=query)
+                | Q(releaseartifactbundle__dist_name__icontains=query)
+            )
+            queryset = queryset.filter(query_q)
 
         return self.paginate(
             request=request,
