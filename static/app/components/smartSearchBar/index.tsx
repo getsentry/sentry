@@ -171,6 +171,10 @@ type DefaultProps = {
    * form
    */
   useFormWrapper: boolean;
+  /**
+   * Allows for customization of the invalid token messages.
+   */
+  invalidMessages?: SearchConfig['invalidMessages'];
 };
 
 type Props = WithRouterProps &
@@ -354,6 +358,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
+      invalidMessages: this.props.invalidMessages,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -415,6 +420,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
+      invalidMessages: this.props.invalidMessages,
     };
     return {
       query,
@@ -1923,6 +1929,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
             disallowWildcard={this.props.disallowWildcard}
+            invalidMessages={this.props.invalidMessages}
           />
         )}
       </Container>
