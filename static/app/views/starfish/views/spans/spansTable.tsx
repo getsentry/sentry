@@ -1,6 +1,5 @@
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import moment from 'moment';
 
 import Duration from 'sentry/components/duration';
@@ -13,6 +12,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
@@ -25,11 +25,9 @@ import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 type Props = {
   isLoading: boolean;
-  location: Location;
   moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
   columnOrder?: GridColumnOrder[];
@@ -56,16 +54,15 @@ export type SpanTrendDataRow = {
 };
 
 export default function SpansTable({
-  location,
   moduleName,
   spansData,
   orderBy,
   onSetOrderBy,
-  queryConditions,
   spansTrendsData,
   isLoading,
   columnOrder,
 }: Props) {
+  const location = useLocation();
   const theme = useTheme();
   const {data: applicationMetrics} = useApplicationMetrics();
 
@@ -129,7 +126,7 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={columnOrder ?? getColumns(moduleName, queryConditions)}
+      columnOrder={columnOrder ?? getColumns(moduleName)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
@@ -267,24 +264,13 @@ function getDescriptionHeader(moduleName: ModuleName) {
   return 'Description';
 }
 
-function getColumns(
-  moduleName: ModuleName,
-  queryConditions: string[]
-): GridColumnOrder[] {
+function getColumns(moduleName: ModuleName): GridColumnOrder[] {
   const description = getDescriptionHeader(moduleName);
 
   const domain = getDomainHeader(moduleName);
 
-  const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
-    condition.includes('domain =')
-  );
-
-  const doQueryConditionsIncludeSpanOperation = queryConditions.some(condition =>
-    condition.includes('span_operation =')
-  );
-
   const order: Array<GridColumnOrder | false> = [
-    !doQueryConditionsIncludeSpanOperation && {
+    {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
@@ -294,12 +280,11 @@ function getColumns(
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !doQueryConditionsIncludeDomain &&
-      moduleName !== ModuleName.ALL && {
-        key: 'domain',
-        name: domain,
-        width: COL_WIDTH_UNDEFINED,
-      },
+    moduleName !== ModuleName.ALL && {
+      key: 'domain',
+      name: domain,
+      width: COL_WIDTH_UNDEFINED,
+    },
     {
       key: 'throughput_trend',
       name: 'Throughput',

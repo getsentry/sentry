@@ -17,6 +17,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 interface ProfileChartsProps {
   query: string;
+  referrer: string;
   compact?: boolean;
   hideCount?: boolean;
   selection?: PageFilters;
@@ -29,6 +30,7 @@ const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
 export function ProfileCharts({
   query,
+  referrer,
   selection,
   hideCount,
   compact = false,
@@ -45,7 +47,7 @@ export function ProfileCharts({
 
   const profileStats = useProfileEventsStats({
     query,
-    referrer: 'api.profiling.landing-chart',
+    referrer,
     yAxes: seriesOrder,
   });
 

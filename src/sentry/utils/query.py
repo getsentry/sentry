@@ -195,9 +195,11 @@ class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgress
     """
 
     def get_total_count(self):
-        query = f"SELECT reltuples AS estimate FROM pg_class WHERE relname = '{self.queryset.model._meta.db_table}';"
-        cursor = connections[self.queryset.using_replica().db].cursor()
-        cursor.execute(query)
+        cursor = connections[self.queryset.db].cursor()
+        cursor.execute(
+            "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = %s",
+            (self.queryset.model._meta.db_table,),
+        )
         return cursor.fetchone()[0]
 
 
@@ -218,7 +220,13 @@ class WithProgressBar:
             " ",
             progressbar.ETA(),
         ]
-        pbar = progressbar.ProgressBar(widgets=widgets, max_value=self.count)
+        pbar = progressbar.ProgressBar(
+            widgets=widgets,
+            max_value=self.count,
+            # The default update interval is every 0.1s,
+            # which for large migrations would easily logspam GoCD.
+            min_poll_interval=10,
+        )
         pbar.start()
         for idx, item in enumerate(self.iterator):
             yield item
