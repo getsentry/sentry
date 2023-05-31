@@ -115,7 +115,6 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
             stacked
             isLineChart
             chartColors={[THROUGHPUT_COLOR]}
-            disableXAxis
             tooltipFormatterOptions={{
               valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
             }}
@@ -143,7 +142,6 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
             stacked
             isLineChart
             chartColors={[DURATION_COLOR]}
-            disableXAxis
           />
         </ChartPanel>
       </ChartsContainerItem>
