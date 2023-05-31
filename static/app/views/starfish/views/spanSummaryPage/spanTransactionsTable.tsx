@@ -11,7 +11,7 @@ import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
@@ -20,6 +20,7 @@ import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicatio
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Metric = {
   p50: number;
@@ -151,7 +152,7 @@ function P50Cell({row}: CellProps) {
     <Fragment>
       {p50Series ? (
         <Sparkline
-          color={DURATION_COLOR}
+          color={P50_COLOR}
           series={p50Series}
           markLine={
             p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
@@ -195,7 +196,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'p50(transaction.duration)',
-    name: 'Duration (P50)',
+    name: DataTitles.p50,
     width: COL_WIDTH_UNDEFINED,
   },
   {

@@ -8,7 +8,7 @@ import GridEditable, {
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import Sparkline, {
   generateHorizontalLine,
@@ -17,6 +17,7 @@ import type {Span} from 'sentry/views/starfish/queries/types';
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   span: Span;
@@ -104,7 +105,7 @@ function P50Cell({row}: CellProps) {
     <Fragment>
       {p50Series ? (
         <Sparkline
-          color={DURATION_COLOR}
+          color={P50_COLOR}
           series={p50Series}
           markLine={
             p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
@@ -148,7 +149,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'p50(span.self_time)',
-    name: 'Duration (P50)',
+    name: DataTitles.p50,
     width: COL_WIDTH_UNDEFINED,
   },
   {
