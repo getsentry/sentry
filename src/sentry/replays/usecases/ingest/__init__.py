@@ -6,6 +6,7 @@ import zlib
 from datetime import datetime, timezone
 from typing import Optional, TypedDict, cast
 
+import msgpack
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import Hub
@@ -16,6 +17,7 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
+from sentry.replays.publishers import initialize_replay_event_publisher
 from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -58,7 +60,8 @@ class RecordingIngestMessage:
     replay_id: str
     key_id: int | None
     received: int
-    payload_with_headers: bytes
+    payload: bytes
+    version: int
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
@@ -76,18 +79,32 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 project_id=message_dict["project_id"],
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
-                payload_with_headers=cast(bytes, message_dict["payload"]),
+                payload=cast(bytes, message_dict["payload"]),
+                version=message_dict.get("version", 0),
             )
             _ingest_recording(message, transaction)
 
 
 def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
     """Ingest recording messages."""
-    try:
-        headers, recording_segment = process_headers(message.payload_with_headers)
-    except MissingRecordingSegmentHeaders:
-        logger.warning(f"missing header on {message.replay_id}")
-        return None
+    if message.version == 1:
+        # Version 1 payloads are sent as msgpacked bytes.
+        payload = msgpack.unpackb(message.payload)
+
+        # We publish the replay-event payload to the snuba consumer since its no longer being
+        # published in relay.
+        publish_replay_event(message)
+
+        # Headers and recording-segment extraction was done on Relay so we can just extract the
+        # keys here.
+        headers = payload["replay_recording_headers"]
+        recording_segment = payload["replay_recording"]
+    else:
+        try:
+            headers, recording_segment = process_headers(message.payload)
+        except MissingRecordingSegmentHeaders:
+            logger.warning(f"missing header on {message.replay_id}")
+            return None
 
     # Normalize ingest data into a standardized ingest format.
     segment_data = RecordingSegmentStorageMeta(
@@ -208,3 +225,20 @@ def replay_click_post_processor(
                 headers["segment_id"],
             )
         )
+
+
+def publish_replay_event(message: RecordingIngestMessage):
+    publisher = initialize_replay_event_publisher()
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(
+            {
+                "payload": list(bytes(json.dumps(message["payload"]["replay_event"]).encode())),
+                "start_time": message.received,
+                "replay_id": message.replay_id,
+                "project_id": message.project_id,
+                "retention_days": message.retention_days,
+                "type": "replay_event",
+            }
+        ),
+    )
