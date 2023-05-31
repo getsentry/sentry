@@ -1009,6 +1009,77 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
 
+    def test_get_replays_click_fields(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="myid",
+                class_=["class1", "class3"],
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=clicks")
+            assert response.status_code == 200, response.content
+            response_data = response.json()
+            assert response_data["data"] == [
+                {
+                    "clicks": [
+                        {
+                            "click.alt": "Alt",
+                            "click.classes": ["class1", "class3"],
+                            "click.id": "myid",
+                            "click.role": "button",
+                            "click.tag": "button",
+                            "click.testid": "1",
+                            "click.text": "Hello",
+                            "click.title": "MyTitle",
+                            "click.label": "AriaLabel",
+                        },
+                        {
+                            "click.alt": None,
+                            "click.classes": ["class1", "class2"],
+                            "click.id": "myid",
+                            "click.role": None,
+                            "click.tag": "div",
+                            "click.testid": None,
+                            "click.text": None,
+                            "click.title": None,
+                            "click.label": None,
+                        },
+                    ]
+                }
+            ]
+
     def test_get_replays_filter_clicks_nested_selector(self):
         """Test replays do not support nested selectors."""
         project = self.create_project(teams=[self.team])

@@ -803,6 +803,17 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.text",
         "click.title",
     ],
+    "clicks": [
+        "click.alt",
+        "click.aria_label",
+        "click.classes",
+        "click.id",
+        "click.role",
+        "click.tag",
+        "click.testid",
+        "click.text",
+        "click.title",
+    ],
 }
 
 
