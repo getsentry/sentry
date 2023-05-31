@@ -54,7 +54,7 @@ describe('ProjectInstallPlatform', function () {
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should redirect to neutal docs if no matching platform', async function () {
+  it('should redirect to neutral docs if no matching platform', async function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
     };
