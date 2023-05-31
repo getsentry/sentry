@@ -309,6 +309,9 @@ function Chart({
         maxInterval: xAxisInterval,
         axisLabel: {
           formatter: function (value: number) {
+            if (endTime.diff(startTime, 'days') > 30) {
+              return moment(value).format('MMMM DD');
+            }
             if (startTime.isSame(endTime, 'day')) {
               return moment(value).format('HH:mm');
             }
@@ -407,6 +410,9 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
 
 const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
   const dateRange = endTime.diff(startTime);
+  if (dateRange >= 30 * DAY) {
+    return 7 * DAY;
+  }
   if (dateRange >= 3 * DAY) {
     return DAY;
   }
