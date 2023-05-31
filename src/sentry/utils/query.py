@@ -195,9 +195,11 @@ class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgress
     """
 
     def get_total_count(self):
-        query = f"SELECT reltuples AS estimate FROM pg_class WHERE relname = '{self.queryset.model._meta.db_table}';"
-        cursor = connections[self.queryset.using_replica().db].cursor()
-        cursor.execute(query)
+        cursor = connections[self.queryset.db].cursor()
+        cursor.execute(
+            "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = %s",
+            (self.queryset.model._meta.db_table,),
+        )
         return cursor.fetchone()[0]
 
 
