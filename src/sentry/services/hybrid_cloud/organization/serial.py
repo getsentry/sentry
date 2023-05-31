@@ -20,10 +20,10 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
     RpcOrganizationSummary,
-    RpcProject,
     RpcTeam,
     RpcTeamMember,
 )
+from sentry.services.hybrid_cloud.project.serial import serialize_project
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -125,16 +125,6 @@ def _serialize_team_member(
     return result
 
 
-def _serialize_project(project: Project) -> RpcProject:
-    return RpcProject(
-        id=project.id,
-        slug=project.slug,
-        name=project.name,
-        organization_id=project.organization_id,
-        status=project.status,
-    )
-
-
 def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     return RpcOrganizationSummary(
         slug=org.slug,
@@ -155,6 +145,6 @@ def serialize_organization(org: Organization) -> RpcOrganization:
 
     projects: List[Project] = Project.objects.filter(organization=org)
     teams: List[Team] = Team.objects.filter(organization=org)
-    rpc_org.projects.extend(_serialize_project(project) for project in projects)
+    rpc_org.projects.extend(serialize_project(project) for project in projects)
     rpc_org.teams.extend(_serialize_team(team) for team in teams)
     return rpc_org

@@ -7,10 +7,10 @@ from typing import Any, List, Mapping, Optional, TypedDict
 
 from pydantic import Field
 
-from sentry.constants import ObjectStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.project import RpcProject
 
 
 class _DefaultEnumHelpers:
@@ -59,18 +59,6 @@ class RpcTeamMember(RpcModel):
     @property
     def role(self) -> Optional[TeamRole]:
         return team_roles.get(self.role_id) if self.role_id else None
-
-
-def project_status_visible() -> int:
-    return int(ObjectStatus.ACTIVE)
-
-
-class RpcProject(RpcModel):
-    id: int = -1
-    slug: str = ""
-    name: str = ""
-    organization_id: int = -1
-    status: int = Field(default_factory=project_status_visible)
 
 
 class RpcOrganizationMemberFlags(RpcModel):

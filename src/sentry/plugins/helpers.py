@@ -3,6 +3,8 @@ from sentry.models import ProjectOption, UserOption
 
 __all__ = ("set_option", "get_option", "unset_option")
 
+from sentry.services.hybrid_cloud.project import RpcProject, project_service
+
 
 def reset_options(prefix, project=None, user=None):
     if user:
@@ -21,7 +23,10 @@ def set_option(key, value, project=None, user=None):
     if user:
         result = UserOption.objects.set_value(user=user, key=key, value=value, project=project)
     elif project:
-        result = ProjectOption.objects.set_value(project, key, value)
+        if isinstance(project, RpcProject):
+            result = project_service.set_option(project=project, key=key, value=value)
+        else:
+            result = ProjectOption.objects.set_value(project, key, value)
     else:
         raise NotImplementedError
 
