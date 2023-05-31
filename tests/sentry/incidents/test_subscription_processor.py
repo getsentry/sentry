@@ -2027,8 +2027,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         trigger = self.crash_rate_alert_critical_trigger
         trigger_warning = self.crash_rate_alert_warning_trigger
-
-        action_critical = self.crash_rate_alert_critical_action
         action_warning = self.crash_rate_alert_warning_action
 
         # Send Critical Update
@@ -2041,7 +2039,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         incident = self.assert_active_incident(rule)
         self.assert_actions_fired_for_incident(
-            incident, [action_critical], [(75.0, IncidentStatus.CRITICAL)]
+            incident, [action_warning], [(75.0, IncidentStatus.CRITICAL)]
         )
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
@@ -2056,7 +2054,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         incident = self.assert_active_incident(rule)
         self.assert_actions_resolved_for_incident(
-            incident, [action_critical], [(85.0, IncidentStatus.WARNING)]
+            incident, [action_warning], [(85.0, IncidentStatus.WARNING)]
         )
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
@@ -2085,7 +2083,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         trigger = self.crash_rate_alert_critical_trigger
         trigger_warning = self.crash_rate_alert_warning_trigger
 
-        action_critical = self.crash_rate_alert_critical_action
+        action_warning = self.crash_rate_alert_warning_action
         self.crash_rate_alert_warning_action
 
         # Send Critical Update
@@ -2098,7 +2096,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         incident = self.assert_active_incident(rule)
         self.assert_actions_fired_for_incident(
-            incident, [action_critical], [(75.0, IncidentStatus.CRITICAL)]
+            incident, [action_warning], [(75.0, IncidentStatus.CRITICAL)]
         )
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
@@ -2113,7 +2111,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         incident = self.assert_active_incident(rule)
         self.assert_actions_resolved_for_incident(
-            incident, [action_critical], [(85.0, IncidentStatus.WARNING)]
+            incident, [action_warning], [(85.0, IncidentStatus.WARNING)]
         )
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
