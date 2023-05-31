@@ -284,7 +284,7 @@ def convert_query_values(
         includes_substatus_filter = False
         for search_filter in search_filters:
             if search_filter.key.name == "substatus":
-                if not features.has("organizations:issue-states", org):
+                if not features.has("organizations:escalating-issues", org):
                     raise InvalidSearchQuery(
                         "The substatus filter is not supported for this organization"
                     )

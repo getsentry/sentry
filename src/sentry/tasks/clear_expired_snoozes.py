@@ -25,13 +25,7 @@ def clear_expired_snoozes():
 
     for group in ignored_groups:
         if features.has("organizations:escalating-issues", group.organization):
-            snooze_details = {"until": groups_with_snoozes.get(group.id, {}).get("until")}
-
-            manage_issue_states(group, GroupInboxReason.ESCALATING, snooze_details=snooze_details)
-
-        elif features.has("organizations:issue-states", group.organization):
-            manage_issue_states(group, GroupInboxReason.ONGOING)
-
+            manage_issue_states(group, GroupInboxReason.ESCALATING)
         else:
             manage_issue_states(group, GroupInboxReason.UNIGNORED)
 
