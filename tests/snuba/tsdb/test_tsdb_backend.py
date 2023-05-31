@@ -403,6 +403,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.now,
             self.now + timedelta(hours=4),
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: 2  # 2 unique users overall
         }
@@ -413,6 +414,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.now,
             self.now,
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
             self.proj1group1.id: 1  # Only 1 unique user in the first hour
         }
@@ -423,6 +425,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.now,
             self.now + timedelta(hours=4),
             rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1.id: 2}
 
         assert (
@@ -432,6 +435,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                 self.now,
                 self.now + timedelta(hours=4),
                 rollup=3600,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
             == {}
         )
@@ -788,6 +792,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             dts[0],
             dts[-1],
             rollup=3600,
+            tenant_ids={"referrer": "test", "organization_id": 1},
         ) == {
             self.proj1group1.id: [
                 (timestamp(dts[0]), 3),
