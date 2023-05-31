@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import Any, Dict, Type
 
@@ -14,12 +15,13 @@ def new_issue_occurrence(
     project_id: int,
     release: str,
     subtitle: str,
-    timestamp: int,
+    timestamp: datetime.datetime,
     title: str,
-    **extra_event_data: Dict[str, Any],
+    extra_event_data: Dict[str, Any],
 ) -> None:
     """Produce a new issue occurence to Kafka."""
     event_id = uuid.uuid4().hex
+    extra_event_data["event_id"] = event_id
 
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
@@ -33,7 +35,7 @@ def new_issue_occurrence(
         evidence_display=[],
         type=issue_type,
         detection_time=timestamp,
-        level="warn",
+        level="info",
         culprit=None,
     )
 
@@ -42,9 +44,9 @@ def new_issue_occurrence(
         "environment": environment,
         "platform": platform,
         "project_id": project_id,
-        "received": timestamp,
+        "received": timestamp.isoformat(),
         "release": release,
-        "timestamp": timestamp,
+        "timestamp": timestamp.isoformat(),
     }
     event_data.update(extra_event_data)
 

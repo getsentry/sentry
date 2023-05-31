@@ -35,8 +35,6 @@ def save_event_from_occurrence(
     from sentry.event_manager import EventManager
 
     data["type"] = "generic"
-    data["timestamp"] = data.pop("timestamp").isoformat()
-    data["received"] = data.pop("received").isoformat()
 
     project_id = data.pop("project_id")
 
