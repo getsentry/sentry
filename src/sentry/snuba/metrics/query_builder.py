@@ -57,6 +57,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     get_operation_with_public_name,
     parse_expression,
 )
+from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
@@ -84,7 +85,10 @@ from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
 
 
-def parse_field(field: str) -> MetricField:
+def parse_field(field: str, is_mri: bool = False) -> MetricField:
+    if is_mri:
+        return parse_mri_field(field)
+
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
     try:
         if matches is None:
@@ -95,6 +99,19 @@ def parse_field(field: str) -> MetricField:
         operation = None
         metric_name = field
     return MetricField(operation, get_mri(metric_name))
+
+
+def parse_mri_field(field: str) -> MetricField:
+    matches = MRI_EXPRESSION_REGEX.match(field)
+    try:
+        if matches is None:
+            raise TypeError
+        operation = matches[1]
+        mri = matches[2]
+    except (IndexError, TypeError):
+        operation = None
+        mri = field
+    return MetricField(operation, mri, alias=mri)
 
 
 def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
@@ -391,7 +408,13 @@ class QueryDefinition:
 
     """
 
-    def __init__(self, projects, query_params, paginator_kwargs: Optional[Dict] = None):
+    def __init__(
+        self,
+        projects,
+        query_params,
+        identifier: str = "alias",
+        paginator_kwargs: Optional[Dict] = None,
+    ):
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
@@ -400,8 +423,11 @@ class QueryDefinition:
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
-        self.fields = [parse_field(key) for key in query_params.getlist("field", [])]
-        self.orderby = self._parse_orderby(query_params)
+        self.fields = [
+            parse_field(key, is_mri=identifier == "mri")
+            for key in query_params.getlist("field", [])
+        ]
+        self.orderby = self._parse_orderby(query_params, is_mri=identifier == "mri")
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
@@ -432,7 +458,7 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params):
+    def _parse_orderby(query_params, is_mri: bool = False):
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -444,7 +470,7 @@ class QueryDefinition:
                 orderby = orderby[1:]
                 direction = Direction.DESC
 
-            field = parse_field(orderby)
+            field = parse_field(orderby, is_mri)
             orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list

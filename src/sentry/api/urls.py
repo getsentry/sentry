@@ -322,6 +322,8 @@ from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsEndpoint,
+    OrganizationMetricsRawDataEndpoint,
+    OrganizationMetricsRawEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -1754,6 +1756,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^/]+)/metrics/tags/(?P<tag_name>[^/]+)/$",
         OrganizationMetricsTagDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tag-details",
+    ),
+    url(
+        r"^(?P<organization_slug>[^/]+)/metrics/raw/meta/$",
+        OrganizationMetricsRawEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-raw",
+    ),
+    url(
+        r"^(?P<organization_slug>[^/]+)/metrics/raw/data/$",
+        OrganizationMetricsRawDataEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-raw-data",
     ),
     url(
         r"^(?P<organization_slug>[^/]+)/profiling/",

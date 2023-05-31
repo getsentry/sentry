@@ -20,7 +20,7 @@ from sentry.snuba.metrics.fields import (
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, MetricsAPIBaseTestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
@@ -54,6 +54,21 @@ def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
+
+
+# @region_silo_test(stable=True)
+class OrganizationMetricsRawMetaTest(MetricsAPIBaseTestCase):
+
+    endpoint = "sentry-api-0-organization-metrics-raw"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.proj = self.create_project(organization=self.organization)
+
+    def test_raw_meta(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data
 
 
 @region_silo_test(stable=True)
