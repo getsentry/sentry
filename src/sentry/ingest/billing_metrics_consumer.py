@@ -12,7 +12,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -76,7 +76,7 @@ class MetricsBucket(TypedDict):
     metric_id: int
     timestamp: int
     value: Any
-    tags: Mapping[str, str]  # TODO: need to account for possibility that tags are integers?
+    tags: Union[Mapping[str, str], Mapping[str, int]]
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -88,6 +88,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     #: The ID of the metric used to count transactions
     metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+    profile_tag = SHARED_TAG_STRINGS["has_profile"]
 
     def __init__(
         self,
@@ -128,8 +129,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         items = {DataCategory.TRANSACTION: quantity}
 
-        if bucket_payload["tags"].get("has_profile") == "1":
-            # TODO: decode number of profiles?
+        if bucket_payload["tags"].get(self.profile_tag) == "true":
+            # The bucket is tagged with the "has_profile" tag,
+            # so we also count the quantity of this bucket towards profiles.
+            # This assumes a "1 to 0..1" relationship between transactions and profiles.
             items[DataCategory.PROFILE] = quantity
 
         return items
