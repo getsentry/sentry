@@ -7,6 +7,7 @@ from abc import abstractmethod
 from typing import Iterable, List, Optional, cast
 
 from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -35,6 +36,10 @@ class OrganizationService(RpcService):
         from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 
         return DatabaseBackedOrganizationService()
+
+    def get(self, id: int) -> Optional[RpcOrganization]:
+        org_context = self.get_organization_by_id(id=id)
+        return org_context.organization if org_context else None
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
