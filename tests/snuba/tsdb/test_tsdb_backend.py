@@ -219,7 +219,17 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             ],
         }
 
-        assert self.db.get_range(TSDBModel.group, [], dts[0], dts[-1], rollup=3600) == {}
+        assert (
+            self.db.get_range(
+                TSDBModel.group,
+                [],
+                dts[0],
+                dts[-1],
+                rollup=3600,
+                tenant_ids={"referrer": "test", "organization_id": 1},
+            )
+            == {}
+        )
 
     def test_range_releases(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
@@ -822,6 +832,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             self.now,
             self.now,
             rollup=3600,
+            tenant_ids={"referrer": "test", "organization_id": 1},
         ) == {
             self.proj1group1.id: 1  # Only 1 unique user in the first hour
         }
@@ -833,6 +844,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
                 self.now,
                 self.now + timedelta(hours=4),
                 rollup=3600,
+                tenant_ids={"referrer": "test", "organization_id": 1},
             )
             == {}
         )

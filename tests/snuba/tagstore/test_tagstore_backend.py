@@ -1290,9 +1290,13 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             [self.project.id],
             group_ids=[first_group.id, second_group.id],
             environment_ids=[self.environment.id],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {first_group.id: 2, second_group.id: 3}
         assert self.ts.get_generic_groups_user_counts(
-            [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
+            [self.project.id],
+            group_ids=[first_group.id, second_group.id],
+            environment_ids=None,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {first_group.id: 3, second_group.id: 4}
 
     def test_get_profiling_group_list_tag_value_by_environment(self):
@@ -1322,6 +1326,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             [self.environment.id],
             "environment",
             self.environment.name,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         assert group_seen_stats == {
