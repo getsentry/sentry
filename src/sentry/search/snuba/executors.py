@@ -553,10 +553,13 @@ def better_priority_aggregation(
             "countIf(lessOrEquals(minus(now(), timestamp), 604800))"  # 604800 = 3600 * 24 * 7
         )
         relative_volume_weight = aggregate_kwargs["relative_volume"]  # [0, 10]
+        max_relative_volume_weight = 10
+        if relative_volume_weight > max_relative_volume_weight:
+            relative_volume_weight = max_relative_volume_weight
         relative_volume_score = (
             f"divide({event_count_60_mins}, plus({avg_hourly_event_count_last_7_days}, 1))"
         )
-        scaled_relative_volume_score = f"if({relative_volume_weight}==0, {min_score}, divide({relative_volume_score}, {relative_volume_weight}))"
+        scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
         aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
         normalize = aggregate_kwargs["norm"]
