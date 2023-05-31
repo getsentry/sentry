@@ -23,12 +23,12 @@ from sentry.replays.usecases.ingest.clicks import (
 )
 from sentry.replays.usecases.ingest.events import (
     is_breadcrumb_event,
-    is_click_event,
+    is_click_breadcrumb,
     is_fetch_or_xhr_span,
-    is_mutations_event,
+    is_mutations_breadcrumb,
     is_options_event,
     is_performance_span_event,
-    is_slow_click_event,
+    is_slow_click_breadcrumb,
     iter_sentry_events,
 )
 from sentry.replays.usecases.ingest.logs import (
@@ -247,15 +247,15 @@ def _process_parsed_events(
     for event in iter_sentry_events(events):
         if is_breadcrumb_event(event):
             # Clicks are indexed and made searchable.
-            if is_click_event(event):
+            if is_click_breadcrumb(event):
                 clicks.append(process_click_event(replay_id, event))
             # Slow clicks raise an issue event.
-            elif is_slow_click_event(event):
+            elif is_slow_click_breadcrumb(event):
                 report_slow_click_issue(project_id, replay_id, event)
                 log_slow_click(project_id, replay_id, event)
             # Large mutation events are tracked to aid the SDK in debugging problematic
             # web apps.
-            elif is_mutations_event(event):
+            elif is_mutations_breadcrumb(event):
                 log_large_mutations(project_id, replay_id, event)
         elif is_performance_span_event(event):
             # resource.xhr or resource.fetch emit datadog metrics.
