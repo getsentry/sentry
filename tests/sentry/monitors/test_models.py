@@ -352,7 +352,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
-                "platform": "crons",
+                "platform": "",
                 "project_id": monitor.project_id,
                 "sdk": None,
                 "tags": {
@@ -421,7 +421,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
-                "platform": "crons",
+                "platform": "",
                 "project_id": monitor.project_id,
                 "sdk": None,
                 "tags": {
@@ -494,7 +494,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
-                "platform": "crons",
+                "platform": "",
                 "project_id": monitor.project_id,
                 "sdk": None,
                 "tags": {
