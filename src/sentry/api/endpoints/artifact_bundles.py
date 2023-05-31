@@ -118,33 +118,34 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         if bundle_id:
             error = None
 
-            all_artifact_bundles = ArtifactBundle.objects.filter(
+            project_artifact_bundles = ProjectArtifactBundle.objects.filter(
                 organization_id=project.organization_id,
-                bundle_id=bundle_id,
-                projectartifactbundle__isnull=False,
-            )
+                artifact_bundle__bundle_id=bundle_id,
+            ).select_related("artifact_bundle")
             # We group the bundles by their id, since we might have multiple bundles with the same bundle_id due to a
             # problem that was fixed in https://github.com/getsentry/sentry/pull/49836.
             grouped_bundles = defaultdict(list)
-            for artifact_bundle in all_artifact_bundles:
-                grouped_bundles[artifact_bundle.id].append(artifact_bundle)
+            for project_artifact_bundle in project_artifact_bundles:
+                grouped_bundles[project_artifact_bundle.artifact_bundle].append(
+                    project_artifact_bundle
+                )
 
             # We loop for each group of bundles with the same id, in order to check how many projects are connected to
             # the same bundle.
-            for _, artifact_bundles in grouped_bundles:
+            for artifact_bundle, project_artifact_bundles in grouped_bundles.items():
                 # Technically for each bundle we will have always different project ids bound to it but to make the
                 # system more robust we compute the set of project ids to work avoid considering duplicates in the
                 # next code.
                 found_project_ids = set()
-                for artifact_bundle in artifact_bundles:
-                    found_project_ids.add(artifact_bundle.projectartifactbundle.project_id)
+                for project_artifact_bundle in project_artifact_bundles:
+                    found_project_ids.add(project_artifact_bundle.project_id)
 
                 # In case there are no project ids, which shouldn't happen, there is a db problem, thus we want to track
                 # it.
                 if len(found_project_ids) == 0:
                     with sentry_sdk.push_scope() as scope:
-                        scope.set_tag("project_id", project_id)
                         scope.set_tag("bundle_id", bundle_id)
+                        scope.set_tag("org_id", project.organization.id)
                         sentry_sdk.capture_message(
                             "An artifact bundle without project(s) has been detected."
                         )
@@ -164,11 +165,13 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                             # If there is one project id we know that artifact_bundles must contain at least one
                             # element, so we just take it out and delete it. This deletion will cascade delete every
                             # connected entity.
-                            artifact_bundles[0].delete()
+                            artifact_bundle.delete()
                         else:
-                            for artifact_bundle in artifact_bundles:
-                                if project_id == artifact_bundle.projectartifactbundle.project_id:
-                                    artifact_bundle.projectartifactbundle.delete()
+                            # If there are more than one project, we will just delete ProjectArtifactBundle entry
+                            # corresponding to project id of the requesting project.
+                            for project_artifact_bundle in project_artifact_bundles:
+                                if project_artifact_bundle == project_artifact_bundle.project_id:
+                                    project_artifact_bundle.delete()
                 else:
                     error = f"Artifact bundle with {bundle_id} found but it is not connected to project {project_id}"
 

@@ -334,7 +334,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             == "You can either sort via 'date_added' or '-date_added'"
         )
 
-    def test_delete_artifact_bundles(self):
+    def test_delete_artifact_bundle_with_single_project_connected(self):
         project = self.create_project(name="foo")
         artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
@@ -375,3 +375,50 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle_id=artifact_bundle.id
         ).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+
+    def test_delete_artifact_bundle_with_multiple_projects_connected(self):
+        project_a = self.create_project(name="foo")
+        artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
+
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_a.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+            artifact_bundle=artifact_bundle,
+        )
+
+        # We also add an additional project_b to the bundle created above.
+        project_b = self.create_project(name="bar")
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_b.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={
+                "organization_slug": project_a.organization.slug,
+                "project_slug": project_a.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.delete(url + f"?bundleId={artifact_bundle.bundle_id}")
+
+        assert response.status_code == 204
+        assert ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
+        assert not ProjectArtifactBundle.objects.filter(
+            project_id=project_b.id, artifact_bundle=artifact_bundle
+        ).exists()
