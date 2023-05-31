@@ -17,7 +17,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PlatformIntegration, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -68,12 +68,33 @@ function MissingExampleWarning({
   );
 }
 
+function LoadGettingStartedDoc({platform}: {platform: PlatformIntegration | null}) {
+  const [gettingStartedDoc, setGettingStartedDoc] = useState<React.ReactNode>(null);
+
+  const platformPath =
+    platform?.type === 'framework'
+      ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      : platform?.id;
+
+  useEffect(() => {
+    async function getGettingStartedDoc() {
+      const module = await import(
+        /* webpackChunkName: "GettingStartedDocs" */ `sentry/gettingStartedDocs/${platformPath}`
+      );
+      setGettingStartedDoc(module.default);
+    }
+    getGettingStartedDoc();
+  }, [platformPath]);
+
+  return <Fragment>{gettingStartedDoc}</Fragment>;
+}
+
 export function DocWithProductSelection({
   organization,
   location,
   projectSlug,
   newOrg,
-  currentPlatform,
+  currentPlatform: currentPlatformKey,
 }: {
   currentPlatform: PlatformKey;
   location: Location;
@@ -85,64 +106,81 @@ export function DocWithProductSelection({
     const products = location.query.product ?? [];
     return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
       products.includes(PRODUCT.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
+      ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
       : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? `${currentPlatform}-with-error-monitoring-and-performance`
+      ? `${currentPlatformKey}-with-error-monitoring-and-performance`
       : products.includes(PRODUCT.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-and-replay`
-      : `${currentPlatform}-with-error-monitoring`;
-  }, [location.query.product, currentPlatform]);
+      ? `${currentPlatformKey}-with-error-monitoring-and-replay`
+      : `${currentPlatformKey}-with-error-monitoring`;
+  }, [location.query.product, currentPlatformKey]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
-      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
+      enabled:
+        !!projectSlug &&
+        !!organization.slug &&
+        !!loadPlatform &&
+        currentPlatformKey !== 'javascript-react',
     }
   );
 
-  const platformName = platforms.find(p => p.id === currentPlatform)?.name ?? '';
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const platformName = currentPlatform?.name ?? '';
 
   return (
     <Fragment>
       {newOrg && (
         <SetupIntroduction
           stepHeaderText={t('Configure %s SDK', platformName)}
-          platform={currentPlatform}
+          platform={currentPlatformKey}
         />
       )}
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-      />
-      {isLoading ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError
-          message={t('Failed to load documentation for the %s platform.', platformName)}
-          onRetry={refetch}
-        />
+      {currentPlatform && currentPlatformKey === 'javascript-react' ? (
+        <LoadGettingStartedDoc platform={currentPlatform} />
       ) : (
-        getDynamicText({
-          value: (
-            <DocsWrapper>
-              <DocumentationWrapper
-                dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
-              />
-              <MissingExampleWarning
-                platform={currentPlatform}
-                platformDocs={{
-                  html: data?.html ?? '',
-                  link: data?.link ?? '',
-                }}
-              />
-            </DocsWrapper>
-          ),
-          fixed: (
-            <Alert type="warning">
-              Platform documentation is not rendered in for tests in CI
-            </Alert>
-          ),
-        })
+        <Fragment>
+          <ProductSelection
+            defaultSelectedProducts={[
+              PRODUCT.PERFORMANCE_MONITORING,
+              PRODUCT.SESSION_REPLAY,
+            ]}
+          />
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : isError ? (
+            <LoadingError
+              message={t(
+                'Failed to load documentation for the %s platform.',
+                platformName
+              )}
+              onRetry={refetch}
+            />
+          ) : (
+            getDynamicText({
+              value: (
+                <DocsWrapper>
+                  <DocumentationWrapper
+                    dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
+                  />
+                  <MissingExampleWarning
+                    platform={currentPlatformKey}
+                    platformDocs={{
+                      html: data?.html ?? '',
+                      link: data?.link ?? '',
+                    }}
+                  />
+                </DocsWrapper>
+              ),
+              fixed: (
+                <Alert type="warning">
+                  Platform documentation is not rendered in for tests in CI
+                </Alert>
+              ),
+            })
+          )}
+        </Fragment>
       )}
     </Fragment>
   );
