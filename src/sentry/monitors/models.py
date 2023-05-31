@@ -528,7 +528,7 @@ class MonitorEnvironment(Model):
                 {
                     "environment": self.environment.name,
                     "event_id": occurrence.event_id,
-                    "platform": "",
+                    "platform": "other",
                     "project_id": self.monitor.project_id,
                     "received": current_timestamp.isoformat(),
                     "sdk": None,
