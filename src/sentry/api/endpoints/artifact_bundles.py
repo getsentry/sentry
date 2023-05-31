@@ -170,7 +170,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                             # If there are more than one project, we will just delete ProjectArtifactBundle entry
                             # corresponding to project id of the requesting project.
                             for project_artifact_bundle in project_artifact_bundles:
-                                if project_artifact_bundle == project_artifact_bundle.project_id:
+                                if project_id == project_artifact_bundle.project_id:
                                     project_artifact_bundle.delete()
                 else:
                     error = f"Artifact bundle with {bundle_id} found but it is not connected to project {project_id}"

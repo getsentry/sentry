@@ -574,7 +574,12 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_artifact_bundle(
-        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
+        cls,
+        org,
+        bundle_id,
+        artifact_count=0,
+        fixture_path="artifact_bundle_debug_ids",
+        date_uploaded=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -586,7 +591,7 @@ class Factories:
         # mock it with an arbitrary value.
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=org.id,
-            bundle_id=uuid4(),
+            bundle_id=bundle_id or uuid4(),
             file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
