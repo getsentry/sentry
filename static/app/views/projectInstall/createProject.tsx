@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
@@ -129,6 +129,20 @@ function CreateProject() {
         });
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
+        addSuccessMessage(
+          tct('Created [project] in the [organization] organization', {
+            project: `#${projectData.slug}`,
+            organization: organization.slug,
+          })
+        );
+        if (team) {
+          addSuccessMessage(
+            tct('[team] has been added to the [organization] organization', {
+              team: `#${data.slug}`,
+              organization: organization.slug,
+            })
+          );
+        }
 
         browserHistory.push(
           normalizeUrl(
@@ -138,6 +152,12 @@ function CreateProject() {
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
+        addErrorMessage(
+          tct('Unable to create [project] in the [organization] organization', {
+            project: `#${projectName}`,
+            organization: organization.slug,
+          })
+        );
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
