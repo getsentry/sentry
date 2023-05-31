@@ -111,9 +111,13 @@ def get_queue_by_name(name):
 queue_monitoring_cluster = redis.redis_clusters.get(CLUSTER_NAME)
 
 
+def unhealthy_queue_key(queue_name: str) -> str:
+    return f"{KEY_NAME}:queue_name"
+
+
 def is_queue_healthy(queue_name: str) -> bool:
     # check if queue is healthy by pinging Redis
-    return not queue_monitoring_cluster.sismember(KEY_NAME, queue_name)
+    return not queue_monitoring_cluster.exists(unhealthy_queue_key(queue_name))
 
 
 def _is_healthy(queue_size) -> bool:
@@ -121,12 +125,13 @@ def _is_healthy(queue_size) -> bool:
 
 
 def _update_queue_stats(redis_cluster, unhealthy) -> None:
+    if not unhealthy:
+        return
+
     with redis_cluster.pipeline(transaction=True) as pipeline:
-        pipeline.delete(KEY_NAME)
-        if unhealthy:
-            pipeline.sadd(KEY_NAME, *unhealthy)
-            # expire in 1min if we haven't checked in
-            pipeline.expire(KEY_NAME, 60)
+        # can't use mset because it doesn't support expiry
+        for queue in unhealthy:
+            pipeline.set(unhealthy_queue_key(queue), "", ex=UNHEALTHY_QUEUE_CHECK_INTERVAL)
         pipeline.execute()
 
 
