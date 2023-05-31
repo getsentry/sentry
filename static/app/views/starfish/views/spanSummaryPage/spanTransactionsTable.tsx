@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
-  GridColumnHeader as Column,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
@@ -16,21 +16,23 @@ import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
 import type {Span} from 'sentry/views/starfish/queries/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {
+  ApplicationMetrics,
+  useApplicationMetrics,
+} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {
+  SpanTransactionMetrics,
+  useSpanTransactionMetrics,
+} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-
-type Metric = {
-  p50: number;
-  spm: number;
-};
+import {TimeSpentCell} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Row = {
   count: number;
   metricSeries: Record<string, Series>;
-  metrics: Metric;
+  metrics: SpanTransactionMetrics;
   transaction: string;
 };
 
@@ -39,6 +41,9 @@ type Props = {
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
+
+export type Keys = 'transaction' | 'epm()' | 'p50(transaction.duration)' | 'timeSpent';
+export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
   const location = useLocation();
@@ -66,11 +71,11 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
     };
   });
 
-  const renderHeadCell = column => {
+  const renderHeadCell = (column: TableColumnHeader) => {
     return <span>{column.name}</span>;
   };
 
-  const renderBodyCell = (column, row: Row) => {
+  const renderBodyCell = (column: TableColumnHeader, row: Row) => {
     return (
       <BodyCell
         span={span}
@@ -78,6 +83,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
         row={row}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
+        applicationMetrics={applicationMetrics}
       />
     );
   };
@@ -98,14 +104,21 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 }
 
 type CellProps = {
-  column: Column;
+  column: TableColumnHeader;
   row: Row;
   span: Span;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-function BodyCell({span, column, row, openSidebar, onClickTransactionName}: CellProps) {
+function BodyCell({
+  span,
+  column,
+  row,
+  openSidebar,
+  applicationMetrics,
+  onClickTransactionName,
+}: CellProps & {applicationMetrics: ApplicationMetrics}) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
@@ -124,6 +137,16 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
 
   if (column.key === 'epm()') {
     return <EPMCell span={span} row={row} column={column} />;
+  }
+
+  if (column.key === 'timeSpent') {
+    return (
+      <TimeSpentCell
+        formattedTimeSpent={row[column.key]}
+        totalAppTime={applicationMetrics['sum(span.duration)']}
+        totalSpanTime={row.metrics?.total_time}
+      />
+    );
   }
 
   return <span>{row[column.key]}</span>;
@@ -183,7 +206,7 @@ function EPMCell({row}: CellProps) {
   );
 }
 
-const COLUMN_ORDER = [
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction',
     name: 'In Endpoint',
