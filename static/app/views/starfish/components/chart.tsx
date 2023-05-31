@@ -5,10 +5,12 @@ import * as echarts from 'echarts/core';
 import {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
+  XAXisOption,
   YAXisOption,
 } from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
+import moment from 'moment';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -29,6 +31,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DAY, HOUR} from 'sentry/utils/formatters';
 import useRouter from 'sentry/utils/useRouter';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
@@ -283,19 +286,27 @@ function Chart({
     }
     return <AreaChart height={height} series={[]} {...areaChartProps} />;
   }
-  const series = data.map((values, _) => ({
+  const series: Series[] = data.map((values, _) => ({
     ...values,
     yAxisIndex: 0,
     xAxisIndex: 0,
   }));
 
-  const xAxis = disableXAxis
+  const xAxis: XAXisOption = disableXAxis
     ? {
         show: false,
         axisLabel: {show: true, margin: 0},
         axisLine: {show: false},
       }
-    : undefined;
+    : {
+        type: 'time',
+        maxInterval: getXAxisInterval(series),
+        axisLabel: {
+          formatter: function (value) {
+            return moment(value).format('MMMM DD HH:mm');
+          },
+        },
+      };
 
   return (
     <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
@@ -384,3 +395,18 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
     }
   }, [deps, synchronized]);
 }
+
+const getXAxisInterval = (series: Series[]) => {
+  if (series[0].data.length > 2) {
+    const minDate = new Date(series[0].data[0].name);
+    const maxDate = new Date(series[0].data[series[0].data.length - 1].name);
+    const dateRange = maxDate.getTime() - minDate.getTime();
+    if (dateRange > 3 * DAY) {
+      return DAY;
+    }
+    if (dateRange > 1 * DAY) {
+      return 12 * HOUR;
+    }
+  }
+  return HOUR;
+};
