@@ -1,8 +1,7 @@
-from django.core.exceptions import ObjectDoesNotExist
-
 from sentry.db.models import control_silo_only_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
+from sentry.options.manager import UnknownOption
 from sentry.tasks.files import delete_file_control
 
 
@@ -25,8 +24,10 @@ class ControlFileBlob(AbstractFileBlob):
         config = None
         try:
             # If these options exist, use them. Otherwise fallback to default behavior
-            config["backend"] = options_store.get("filestore.backend.control")
-            config["options"] = options_store.get("filestore.options.control")
-        except ObjectDoesNotExist:
+            config = {
+                "backend": options_store.get("filestore.control.backend"),
+                "options": options_store.get("filestore.control.options"),
+            }
+        except UnknownOption:
             pass
         return config
