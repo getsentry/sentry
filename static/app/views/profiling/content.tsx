@@ -267,7 +267,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 <Fragment>
                   <PanelsGrid>
                     <ProfilingSlowestTransactionsPanel />
-                    <ProfileCharts query={query} selection={selection} hideCount />
+                    <ProfileCharts
+                      referrer="api.profiling.landing-chart"
+                      query={query}
+                      selection={selection}
+                      hideCount
+                    />
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
