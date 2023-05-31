@@ -116,11 +116,11 @@ def is_queue_healthy(queue_name: str) -> bool:
     return not queue_monitoring_cluster.sismember(KEY_NAME, queue_name)
 
 
-def is_healthy(queue_size):
+def _is_healthy(queue_size) -> bool:
     return queue_size < UNHEALTHY_QUEUE_SIZE_THRESHOLD
 
 
-def update_queue_stats(redis_cluster, unhealthy) -> None:
+def _update_queue_stats(redis_cluster, unhealthy) -> None:
     with redis_cluster.pipeline(transaction=True) as pipeline:
         pipeline.delete(KEY_NAME)
         if unhealthy:
@@ -130,7 +130,7 @@ def update_queue_stats(redis_cluster, unhealthy) -> None:
         pipeline.execute()
 
 
-def run_queue_stats_updater(redis_cluster: str) -> None:
+def _run_queue_stats_updater(redis_cluster: str) -> None:
     # bonus point if we manage to use asyncio and launch all tasks at once
     # in case we have many queues to check
     cluster = redis.redis_clusters.get(redis_cluster)
@@ -143,7 +143,7 @@ def run_queue_stats_updater(redis_cluster: str) -> None:
     while True:
         new_sizes = backend.bulk_get_sizes(QUEUES)
         for (queue, size) in new_sizes:
-            if is_healthy(size):
+            if _is_healthy(size):
                 queue_history[queue] = 0
             else:
                 queue_history[queue] += 1
@@ -151,12 +151,12 @@ def run_queue_stats_updater(redis_cluster: str) -> None:
         unhealthy = [
             queue for (queue, count) in queue_history if count >= UNHEALTHY_QUEUE_STRIKE_THRESHOLD
         ]
-        update_queue_stats(cluster, unhealthy)
+        _update_queue_stats(cluster, unhealthy)
         sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
 
 
 def monitor_queues():
-    queue_stats_updater_process = Thread(target=run_queue_stats_updater, args=(CLUSTER_NAME,))
+    queue_stats_updater_process = Thread(target=_run_queue_stats_updater, args=(CLUSTER_NAME,))
     queue_stats_updater_process.start()
 
 
