@@ -6,15 +6,12 @@ from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
-from django.conf import settings
-
 from sentry import features
 from sentry.features.base import OrganizationFeature
-from sentry.utils import metrics, redis
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
-    from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
 
 class GroupCategory(Enum):
@@ -323,31 +320,6 @@ class ReplaySlowClickType(GroupType):
     slug = "replay_slock_click_type"
     description = "Slow response after click"
     category = GroupCategory.REPLAY.value
-
-
-def reduce_noise(
-    new_grouphashes: Set[str],
-    performance_problems_by_hash: Dict[str, PerformanceProblem],
-    project: Project,
-) -> Set[str]:
-
-    groups_to_ignore = set()
-    cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
-    client = redis.redis_clusters.get(cluster_key)
-
-    for new_grouphash in new_grouphashes:
-        group_type = performance_problems_by_hash[new_grouphash].type
-        noise_config = group_type.noise_config
-        if not noise_config:
-            continue
-
-        if noise_config.ignore_limit and not should_create_group(
-            group_type, client, new_grouphash, project
-        ):
-            groups_to_ignore.add(new_grouphash)
-
-    new_grouphashes = new_grouphashes - groups_to_ignore
-    return new_grouphashes
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
