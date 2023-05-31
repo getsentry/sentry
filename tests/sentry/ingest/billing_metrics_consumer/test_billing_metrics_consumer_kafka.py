@@ -37,7 +37,7 @@ def test_outcomes_consumed(track_outcome):
             "type": "d",
             "org_id": 1,
             "project_id": 2,
-            "timestamp": 123,
+            "timestamp": 123456,
             "value": [1.0, 2.0],
             "tags": {},
         },
@@ -47,7 +47,7 @@ def test_outcomes_consumed(track_outcome):
             "type": "d",
             "org_id": 1,
             "project_id": 2,
-            "timestamp": 123,
+            "timestamp": 123456,
             "value": [],
             "tags": {},
         },
@@ -65,9 +65,18 @@ def test_outcomes_consumed(track_outcome):
             "type": "c",
             "org_id": 1,
             "project_id": 2,
-            "timestamp": 123,
+            "timestamp": 123456,
             "value": 123.4,
             "tags": {},
+        },
+        {  # Bucket with profiles
+            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+            "type": "d",
+            "org_id": 1,
+            "project_id": 2,
+            "timestamp": 123456,
+            "value": [4.0],
+            "tags": {f"{(1 << 63) + 300}": "true"},
         },
     ]
 
@@ -118,7 +127,29 @@ def test_outcomes_consumed(track_outcome):
                     event_id=None,
                     category=DataCategory.TRANSACTION,
                     quantity=3,
-                )
+                ),
+                mock.call(
+                    org_id=1,
+                    project_id=2,
+                    key_id=None,
+                    outcome=Outcome.ACCEPTED,
+                    reason=None,
+                    timestamp=datetime(1985, 10, 26, 21, 00, 00, tzinfo=timezone.utc),
+                    event_id=None,
+                    category=DataCategory.TRANSACTION,
+                    quantity=1,
+                ),
+                mock.call(
+                    org_id=1,
+                    project_id=2,
+                    key_id=None,
+                    outcome=Outcome.ACCEPTED,
+                    reason=None,
+                    timestamp=datetime(1985, 10, 26, 21, 00, 00, tzinfo=timezone.utc),
+                    event_id=None,
+                    category=DataCategory.PROFILE,
+                    quantity=1,
+                ),
             ]
 
     assert fake_commit.call_count == 5
