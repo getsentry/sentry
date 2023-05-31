@@ -1,6 +1,7 @@
 import logging
+import math
 from datetime import timedelta
-from typing import Dict, Mapping, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -33,6 +34,7 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     get_sliding_window_org_sample_rate,
     get_sliding_window_sample_rate,
     get_sliding_window_size,
+    mark_sliding_window_executed,
 )
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
@@ -345,6 +347,10 @@ def adjust_sample_rates(
     with redis_client.pipeline(transaction=False) as pipeline:
         for ds_project in ds_projects:
             cache_key = _generate_cache_key(org_id=org_id)
+            # We want to get the old sample rate, which will be None in case it was not set.
+            old_sample_rate = sample_rate_to_float(redis_client.hget(cache_key, ds_project.id))
+
+            # We want to store the new sample rate as a string.
             pipeline.hset(
                 cache_key,
                 ds_project.id,
@@ -352,9 +358,12 @@ def adjust_sample_rates(
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
-            schedule_invalidate_project_config(
-                project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
-            )
+            # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
+            # system with project config invalidations, especially for projects with no volume.
+            if not are_equal_with_epsilon(old_sample_rate, ds_project.new_sample_rate):
+                schedule_invalidate_project_config(
+                    project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
+                )
 
         pipeline.execute()
 
@@ -399,37 +408,32 @@ def sliding_window() -> None:
     if window_size is not None:
         metrics.incr("sentry.dynamic_sampling.tasks.sliding_window.start", sample_rate=1.0)
         with metrics.timer("sentry.dynamic_sampling.tasks.sliding_window", sample_rate=1.0):
+            # It is important to note that this query will return orgs that in the last hour have had at least 1
+            # transaction.
             for orgs in get_orgs_with_project_counts_without_modulo(
                 MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY
             ):
+                # This query on the other hand, fetches with a dynamic window size because we care about being able
+                # to extrapolate monthly volume with a bigger window than the hour used in the orgs query. Thus, it can
+                # be that an org is not detected because it didn't have traffic for this hour but its projects have
+                # traffic in the last window_size, however this isn't a big deal since we cache the sample rate and if
+                # not found we fall back to 100% (only if the sliding window has run).
                 for (
                     org_id,
                     projects_with_total_root_count,
                 ) in fetch_projects_with_total_root_transactions_count(
                     org_ids=orgs, window_size=window_size
                 ).items():
-                    adjust_base_sample_rate_per_project(
-                        org_id, projects_with_total_root_count, window_size
-                    )
+                    with metrics.timer(
+                        "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
+                    ):
+                        adjust_base_sample_rate_per_project(
+                            org_id, projects_with_total_root_count, window_size
+                        )
 
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.process_sliding_window",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=25 * 60,  # 25 mins
-    time_limit=2 * 60 + 5,
-)  # type: ignore
-def process_sliding_window(
-    org_id: OrganizationId,
-    projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
-    window_size: int,
-) -> None:
-    with metrics.timer(
-        "sentry.tasks.dynamic_sampling.process_sliding_window.adjust_base_sample_rate_per_project"
-    ):
-        adjust_base_sample_rate_per_project(org_id, projects_with_total_root_count, window_size)
+            # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+            # execution of the sliding window was successful. We will keep this state for 1 hour.
+            mark_sliding_window_executed()
 
 
 def adjust_base_sample_rate_per_project(
@@ -465,44 +469,35 @@ def adjust_base_sample_rate_per_project(
         )
 
     redis_client = get_redis_client_for_ds()
+    cache_key = generate_sliding_window_cache_key(org_id=org_id)
+
+    # We want to get all the old sample rates in memory because we will remove the entire hash in the next step.
+    old_sample_rates = redis_client.hgetall(cache_key)
+
+    # For efficiency reasons, we start a pipeline that will apply a set of operations without multiple round trips.
     with redis_client.pipeline(transaction=False) as pipeline:
+        # We want to delete the Redis hash before adding new sample rate since we don't back-fill projects that have no
+        # root count metrics in the considered window.
+        pipeline.delete(cache_key)
+
+        # For each project we want to now save the new sample rate.
         for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
-            cache_key = generate_sliding_window_cache_key(org_id=org_id)
+            # We store the new updated sample rate.
             pipeline.hset(cache_key, project_id, sample_rate)
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
-            schedule_invalidate_project_config(
-                project_id=project_id, trigger="dynamic_sampling_sliding_window"
-            )
+            # We want to get the old sample rate, which will be None in case it was not set.
+            old_sample_rate = sample_rate_to_float(old_sample_rates.get(str(project_id), ""))
+            # We also get the new sample rate, which will be None in case we stored a SLIDING_WINDOW_CALCULATION_ERROR.
+            sample_rate = sample_rate_to_float(sample_rate)  # type:ignore
+            # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
+            # system with project config invalidations.
+            if not are_equal_with_epsilon(old_sample_rate, sample_rate):
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="dynamic_sampling_sliding_window"
+                )
 
         pipeline.execute()
-
-
-def augment_with_empty_projects(
-    org_id: int, projects_with_total_root_count: Sequence[Tuple[ProjectId, int]]
-) -> Mapping[ProjectId, int]:
-    """
-    Augments the incoming sequence of projects and counts with all the projects that are not in the list. This projects
-    will be added with count 0, to mark that they didn't have any metrics.
-    """
-    projects_with_counts = {
-        project_id: count_per_root for project_id, count_per_root in projects_with_total_root_count
-    }
-
-    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
-    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
-    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
-    # new projects.
-    all_projects_ids = (
-        Project.objects.using_replica().filter(organization_id=org_id).values_list("id", flat=True)
-    )
-    for project_id in all_projects_ids:
-        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
-        # for it, thus we consider it as having 0 transactions for the query's time window.
-        if project_id not in projects_with_counts:
-            projects_with_counts[project_id] = 0
-
-    return projects_with_counts
 
 
 @instrumented_task(
@@ -598,3 +593,29 @@ def log_extrapolated_monthly_volume(
         "compute_sliding_window_sample_rate.extrapolate_monthly_volume",
         extra=extra,
     )
+
+
+def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
+    """
+    Converts a sample rate to a float or returns None in case the conversion failed.
+    """
+    if sample_rate is None:
+        return None
+
+    try:
+        return float(sample_rate)
+    except (TypeError, ValueError):
+        return None
+
+
+def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
+    """
+    Checks if two floating point numbers are equal within an error boundary.
+    """
+    if a is None and b is None:
+        return True
+
+    if a is None or b is None:
+        return False
+
+    return math.isclose(a, b)

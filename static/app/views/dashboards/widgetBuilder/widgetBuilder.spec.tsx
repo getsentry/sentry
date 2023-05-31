@@ -12,7 +12,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -361,7 +360,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
-    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+    expect(screen.getByText('Custom Widget')).toBeInTheDocument();
 
     // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
@@ -426,7 +425,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
-    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+    expect(screen.getByText('Custom Widget')).toBeInTheDocument();
 
     // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
@@ -462,11 +461,10 @@ describe('WidgetBuilder', function () {
       query: {source: DashboardWidgetSource.DISCOVERV2},
     });
 
-    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
+    expect(customWidgetLabels).toBeInTheDocument();
 
-    await userEvent.click(customWidgetLabels[0]);
     await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.paste('Unique Users');
@@ -474,7 +472,7 @@ describe('WidgetBuilder', function () {
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
 
-    expect(screen.getAllByText('Unique Users')).toHaveLength(2);
+    expect(screen.getByText('Unique Users')).toBeInTheDocument();
   });
 
   it('can add query conditions', async function () {
@@ -525,7 +523,7 @@ describe('WidgetBuilder', function () {
       dashboard: testDashboard,
     });
 
-    expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+    expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
     // No delete button as there is only one query.
     expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
@@ -648,22 +646,28 @@ describe('WidgetBuilder', function () {
   });
 
   it('can respond to validation feedback', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        title: ['This field may not be blank.'],
+      },
+    });
 
     renderTestComponent();
 
     await userEvent.click(await screen.findByText('Table'));
 
-    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
+    expect(customWidgetLabels).toBeInTheDocument();
 
-    await userEvent.click(customWidgetLabels[0]);
     await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
-    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByText('Add Widget'));
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
+    await screen.findByText('This field may not be blank.');
   });
 
   it('sets up widget data in edit correctly', async function () {
@@ -779,10 +783,9 @@ describe('WidgetBuilder', function () {
     // Should be in edit 'mode'
     expect(screen.getByText('Update Widget')).toBeInTheDocument();
 
-    const customWidgetLabels = screen.getAllByText(widget.title);
+    const customWidgetLabels = screen.getByText(widget.title);
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
-    await userEvent.click(customWidgetLabels[0]);
+    expect(customWidgetLabels).toBeInTheDocument();
 
     await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
@@ -828,7 +831,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
 
     // Should set widget data up.
-    expect(screen.getByRole('heading', {name: widget.title})).toBeInTheDocument();
+    expect(screen.getByText(widget.title)).toBeInTheDocument();
     expect(screen.getByText('Table')).toBeInTheDocument();
     expect(screen.getByLabelText('Search events')).toBeInTheDocument();
 
@@ -1343,13 +1346,12 @@ describe('WidgetBuilder', function () {
       alertMock();
     });
 
-    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
+    expect(customWidgetLabels).toBeInTheDocument();
 
     // Change title text
-    await userEvent.click(customWidgetLabels[0]);
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.paste('Unique Users');
     await userEvent.keyboard('{Enter}');
@@ -1672,7 +1674,7 @@ describe('WidgetBuilder', function () {
       await userEvent.click(screen.getByText('Duration Distribution'));
 
       // Widget Library, Builder title, and Chart title
-      expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
+      expect(screen.getAllByText('Duration Distribution')).toHaveLength(2);
 
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
@@ -1681,7 +1683,7 @@ describe('WidgetBuilder', function () {
       await userEvent.click(screen.getByText('High Throughput Transactions'));
 
       // Should not have overwritten widget data, and confirm modal should open
-      expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
+      expect(screen.getAllByText('Duration Distribution')).toHaveLength(2);
       expect(mockModal).toHaveBeenCalled();
     });
   });

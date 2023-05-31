@@ -123,6 +123,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
                 "timestamp": event1_timestamp,
                 "stacktrace": {"frames": [{"module": "group1"}]},
+                "level": "fatal",
             },
             project_id=self.project.id,
         )
@@ -135,6 +136,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
                 "timestamp": iso_format(self.base_datetime),
                 "stacktrace": {"frames": [{"module": "group1"}]},
+                "level": "fatal",
             },
             project_id=self.project.id,
         )
@@ -166,6 +168,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                     "url": "http://example.com",
                     "sentry:user": "event2@example.com",
                 },
+                "level": "error",
             },
             project_id=self.project.id,
         )
@@ -359,53 +362,17 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
     def test_better_priority_sort(self):
         with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
+            weights: PrioritySortWeights = {
+                "log_level": 5,
+                "frequency": 5,
+                "has_stacktrace": 5,
+                "event_halflife_hours": 4,
+            }
             results = self.make_query(
                 sort_by="betterPriority",
                 aggregate_kwargs=weights,
             )
         assert list(results) == [self.group2, self.group1]
-
-    def test_better_priority_sort_old_and_new_events(self):
-        """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
-        new_project = self.create_project(organization=self.project.organization)
-
-        recent_event = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-recent-group"],
-                "event_id": "c" * 32,
-                "message": "group1",
-                "environment": "production",
-                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
-                "timestamp": iso_format(self.base_datetime),
-                "stacktrace": {"frames": [{"module": "group1"}]},
-            },
-            project_id=new_project.id,
-        )
-        old_event = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-old-group"],
-                "event_id": "a" * 32,
-                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
-                "environment": "production",
-                "tags": {"server": "example.com", "sentry:user": "old_event@example.com"},
-                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "stacktrace": {"frames": [{"module": "group1"}]},
-            },
-            project_id=new_project.id,
-        )
-        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {"log_level": 5, "frequency": 5, "has_stacktrace": 5}
-            results = self.make_query(
-                sort_by="betterPriority",
-                projects=[new_project],
-                aggregate_kwargs=weights,
-            )
-        recent_group = Group.objects.get(id=recent_event.group.id)
-        old_group = Group.objects.get(id=old_event.group.id)
-        assert list(results) == [recent_group, old_group]
 
     def test_sort_with_environment(self):
         for dt in [
@@ -2096,6 +2063,290 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         assert len(results) == 0
+
+
+class EventsBetterPriorityTest(SharedSnubaTest):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
+    def test_better_priority_sort_old_and_new_events(self):
+        """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
+        new_project = self.create_project(organization=self.project.organization)
+        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-recent-group"],
+                "event_id": "c" * 32,
+                "message": "group1",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
+                "timestamp": iso_format(base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-old-group"],
+                "event_id": "a" * 32,
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "old_event@example.com"},
+                "timestamp": iso_format(base_datetime - timedelta(days=20)),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+
+        with self.feature("organizations:issue-list-better-priority-sort"):
+            weights: PrioritySortWeights = {
+                "log_level": 5,
+                "frequency": 5,
+                "has_stacktrace": 5,
+                "event_halflife_hours": 4,
+            }
+            results = self.make_query(
+                sort_by="betterPriority",
+                projects=[new_project],
+                aggregate_kwargs=weights,
+            )
+        recent_group = Group.objects.get(id=recent_event.group.id)
+        old_group = Group.objects.get(id=old_event.group.id)
+        assert list(results) == [recent_group, old_group]
+
+    def test_better_priority_log_level_results(self):
+        """Test that the scoring results change when we pass in different log level weights"""
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "c" * 32,
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+                "message": "foo",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+                "environment": "staging",
+                "level": "fatal",
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "event_id": "d" * 32,
+                "timestamp": iso_format(base_datetime),
+                "message": "bar",
+                "stacktrace": {"frames": [{"module": "group2"}]},
+                "environment": "staging",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        group1 = Group.objects.get(id=event1.group.id)
+        group2 = Group.objects.get(id=event2.group.id)
+
+        agg_kwargs = {
+            "better_priority": {
+                "log_level": 0,
+                "frequency": 0,
+                "has_stacktrace": 0,
+                "event_halflife_hours": 4,
+            }
+        }
+        query_executor = self.backend._get_query_executor()
+        results_zero_log_level = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score_before = results_zero_log_level[0][1]
+        group2_score_before = results_zero_log_level[1][1]
+        # initially group 2's score is higher since it has a more recent event
+        assert group2_score_before > group1_score_before
+
+        # agg_kwargs["better_priority"].update({"log_level": 5})
+        agg_kwargs_after = {
+            "better_priority": {
+                "log_level": 10,
+                "frequency": 0,
+                "has_stacktrace": 0,
+                "event_halflife_hours": 4,
+            }
+        }
+
+        results2 = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs_after,
+        )[0]
+        group1_score_after = results2[0][1]
+        group2_score_after = results2[1][1]
+        # ensure fatal has a higher score than error
+        assert group1_score_after > group2_score_after
+
+    def test_better_priority_has_stacktrace_results(self):
+        """Test that the scoring results change when we pass in different has_stacktrace weights"""
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        agg_kwargs = {
+            "better_priority": {
+                "log_level": 0,
+                "frequency": 0,
+                "has_stacktrace": 0,
+                "event_halflife_hours": 4,
+            }
+        }
+        query_executor = self.backend._get_query_executor()
+
+        no_stacktrace_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+            },
+            project_id=self.project.id,
+        )
+        group1 = Group.objects.get(id=no_stacktrace_event.group.id)
+
+        stacktrace_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "AnError",
+                            "value": "Bad request",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "module": "<my module>",
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+            },
+            project_id=self.project.id,
+        )
+        group2 = Group.objects.get(id=stacktrace_event.group.id)
+
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score = results[0][1]
+        group2_score = results[1][1]
+        assert group1_score == group2_score
+
+        agg_kwargs["better_priority"].update({"has_stacktrace": 3})
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score = results[0][1]
+        group2_score = results[1][1]
+        # check that a group with an event with a stacktrace has a higher weight than one without
+        assert group1_score < group2_score
+
+    def test_better_priority_event_halflife_results(self):
+        """Test that the scoring results change when we pass in different event halflife weights"""
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "a" * 32,
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+                "message": "foo",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+                "environment": "staging",
+                "level": "fatal",
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "event_id": "b" * 32,
+                "timestamp": iso_format(base_datetime),
+                "message": "bar",
+                "stacktrace": {"frames": [{"module": "group2"}]},
+                "environment": "staging",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        group1 = Group.objects.get(id=event1.group.id)
+        group2 = Group.objects.get(id=event2.group.id)
+
+        agg_kwargs = {
+            "better_priority": {
+                "log_level": 0,
+                "frequency": 0,
+                "has_stacktrace": 0,
+                "event_halflife_hours": 4,
+            }
+        }
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score_before = results[0][1]
+        group2_score_before = results[1][1]
+        # initially group 2's score is higher since it has a more recent event
+        assert group2_score_before > group1_score_before
+
+        agg_kwargs["better_priority"].update({"event_halflife_hours": 2})
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="better_priority",
+            organization=self.organization,
+            group_ids=[group1.id, group2.id],
+            limit=150,
+            aggregate_kwargs=agg_kwargs,
+        )[0]
+        group1_score_after = results[0][1]
+        group2_score_after = results[1][1]
+        assert group1_score_after < group2_score_after
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):

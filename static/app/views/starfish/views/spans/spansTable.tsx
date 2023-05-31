@@ -11,26 +11,28 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
-import {getDuration} from 'sentry/utils/formatters';
+import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
   location: Location;
-  onSelect: (row: SpanDataRow) => void;
+  moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
+  columnOrder?: GridColumnOrder[];
 };
 
 export type SpanDataRow = {
@@ -38,6 +40,7 @@ export type SpanDataRow = {
   description: string;
   domain: string;
   epm: number;
+  formatted_desc: string;
   group_id: string;
   p50: number;
   p95: number;
@@ -54,15 +57,18 @@ export type SpanTrendDataRow = {
 
 export default function SpansTable({
   location,
+  moduleName,
   spansData,
   orderBy,
   onSetOrderBy,
   queryConditions,
   spansTrendsData,
   isLoading,
-  onSelect,
+  columnOrder,
 }: Props) {
   const theme = useTheme();
+  const {data: applicationMetrics} = useApplicationMetrics();
+
   const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
 
   spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
@@ -110,6 +116,9 @@ export default function SpansTable({
     );
     return {
       ...spanData,
+      app_impact: formatPercentage(
+        spanData.total_exclusive_time / applicationMetrics.total_time
+      ),
       p50_trend: zeroFilledP50,
       p95_trend: zeroFilledP95,
       throughput_trend: zeroFilledThroughput,
@@ -120,13 +129,13 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(queryConditions)}
+      columnOrder={columnOrder ?? getColumns(moduleName, queryConditions)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, theme, onSelect),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, theme),
       }}
       location={location}
     />
@@ -159,8 +168,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: GridColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
-  onSelect?: (row: SpanDataRow) => void
+  theme: Theme
 ): React.ReactNode {
   if (column.key === 'throughput_trend' && row[column.key]) {
     const horizontalLine = generateHorizontalLine(
@@ -170,7 +178,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={CHART_PALETTE[3][0]}
+        color={THROUGHPUT_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
@@ -186,23 +194,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={CHART_PALETTE[3][1]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
-      />
-    );
-  }
-
-  if (column.key === 'p95_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${getDuration(row.p95 / 1000, 2, true)}`,
-      row.p95,
-      theme
-    );
-    return (
-      <Sparkline
-        color={CHART_PALETTE[3][2]}
+        color={DURATION_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
@@ -211,13 +203,12 @@ function renderBodyCell(
   }
 
   if (column.key === 'description') {
-    const formattedRow = mapRowKeys(row, row.span_operation);
     return (
       <OverflowEllipsisTextContainer>
-        <Link onClick={() => onSelect?.(formattedRow)} to="">
+        <Link to={`/starfish/span-summary/${row.group_id}`}>
           {row.span_operation === 'db' ? (
             <StyledFormattedCode>
-              {(row as unknown as DataRow).formatted_desc}
+              {(row as unknown as SpanDataRow).formatted_desc}
             </StyledFormattedCode>
           ) : (
             row.description || '<null>'
@@ -238,7 +229,7 @@ function renderBodyCell(
 // So we need to map them to the appropriate keys for the module details drawer
 // Not ideal, but this is a temporary fix until we match the column keys.
 // Also the type for this is not very consistent. We should fix that too.
-const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
+export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   switch (spanOperation) {
     case 'http.client':
       return {
@@ -257,29 +248,32 @@ const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   }
 };
 
-function getDomainHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Table';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDomainHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'Host';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Table';
   }
   return 'Domain';
 }
-function getDescriptionHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Query';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDescriptionHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'URL';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Query';
   }
   return 'Description';
 }
 
-function getColumns(queryConditions: string[]): GridColumnOrder[] {
-  const description = getDescriptionHeader(queryConditions);
+function getColumns(
+  moduleName: ModuleName,
+  queryConditions: string[]
+): GridColumnOrder[] {
+  const description = getDescriptionHeader(moduleName);
 
-  const domain = getDomainHeader(queryConditions);
+  const domain = getDomainHeader(moduleName);
 
   const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
     condition.includes('domain =')
@@ -300,35 +294,26 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !doQueryConditionsIncludeDomain && {
-      key: 'domain',
-      name: domain,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'total_exclusive_time',
-      name: 'Total Time',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'transactions',
-      name: 'Transactions',
-      width: COL_WIDTH_UNDEFINED,
-    },
+    !doQueryConditionsIncludeDomain &&
+      moduleName !== ModuleName.ALL && {
+        key: 'domain',
+        name: domain,
+        width: COL_WIDTH_UNDEFINED,
+      },
     {
       key: 'throughput_trend',
-      name: 'throughput (spm)',
+      name: 'Throughput',
       width: 175,
     },
     {
       key: 'p50_trend',
-      name: 'p50 trend',
+      name: 'Duration (p50)',
       width: 175,
     },
     {
-      key: 'p95_trend',
-      name: 'p95 trend',
-      width: 175,
+      key: 'app_impact',
+      name: 'App Impact',
+      width: COL_WIDTH_UNDEFINED,
     },
   ];
 

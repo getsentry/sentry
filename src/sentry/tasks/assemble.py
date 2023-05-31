@@ -382,7 +382,6 @@ def _create_artifact_bundle(
                     artifact_count=artifact_count,
                 )
 
-                # TODO: fix create_or_update by fetching irrespectively of the date_added.
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
                 if version:
                     ReleaseArtifactBundle.objects.create_or_update(

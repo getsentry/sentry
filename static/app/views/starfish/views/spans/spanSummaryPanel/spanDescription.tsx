@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import {highlightSql} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
 import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
 
 export function SpanDescription({span}: {span: Span}) {

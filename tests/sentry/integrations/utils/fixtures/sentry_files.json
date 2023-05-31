@@ -2475,8 +2475,6 @@
     "src/sentry_plugins/bitbucket/testutils.py",
     "src/sentry_plugins/bitbucket/urls.py",
     "src/sentry_plugins/client.py",
-    "src/sentry_plugins/freight/__init__.py",
-    "src/sentry_plugins/freight/plugin.py",
     "src/sentry_plugins/github/__init__.py",
     "src/sentry_plugins/github/client.py",
     "src/sentry_plugins/github/options.py",

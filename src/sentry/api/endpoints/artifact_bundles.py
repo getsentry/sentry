@@ -1,5 +1,7 @@
+from collections import defaultdict
 from typing import Optional
 
+import sentry_sdk
 from django.db import router
 from django.db.models import Q
 from rest_framework import status
@@ -110,22 +112,71 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         :auth: required
         """
 
+        project_id = project.id
         bundle_id = request.GET.get("bundleId")
 
         if bundle_id:
-            try:
-                # TODO: if we delete a specific bundle with a bundle_id, do we want to do reference counting before
-                #  actually deleting it? Or we just delete it and all of its release associations? This heavily depends
-                #  on the UI that we will develop above.
-                with atomic_transaction(using=(router.db_for_write(ArtifactBundle))):
-                    ArtifactBundle.objects.get(
-                        organization_id=project.organization_id, bundle_id=bundle_id
-                    ).delete()
+            error = None
 
+            all_artifact_bundles = ArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+                bundle_id=bundle_id,
+                projectartifactbundle__isnull=False,
+            )
+            # We group the bundles by their id, since we might have multiple bundles with the same bundle_id due to a
+            # problem that was fixed in https://github.com/getsentry/sentry/pull/49836.
+            grouped_bundles = defaultdict(list)
+            for artifact_bundle in all_artifact_bundles:
+                grouped_bundles[artifact_bundle.id].append(artifact_bundle)
+
+            # We loop for each group of bundles with the same id, in order to check how many projects are connected to
+            # the same bundle.
+            for _, artifact_bundles in grouped_bundles:
+                # Technically for each bundle we will have always different project ids bound to it but to make the
+                # system more robust we compute the set of project ids to work avoid considering duplicates in the
+                # next code.
+                found_project_ids = set()
+                for artifact_bundle in artifact_bundles:
+                    found_project_ids.add(artifact_bundle.projectartifactbundle.project_id)
+
+                # In case there are no project ids, which shouldn't happen, there is a db problem, thus we want to track
+                # it.
+                if len(found_project_ids) == 0:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_tag("project_id", project_id)
+                        scope.set_tag("bundle_id", bundle_id)
+                        sentry_sdk.capture_message(
+                            "An artifact bundle without project(s) has been detected."
+                        )
+
+                    break
+
+                has_one_project_left = len(found_project_ids) == 1
+                if project_id in found_project_ids:
+                    # We delete the ProjectArtifactBundle entries that are bound to project requesting the deletion.
+                    with atomic_transaction(
+                        using=(
+                            router.db_for_write(ArtifactBundle),
+                            router.db_for_write(ProjectArtifactBundle),
+                        )
+                    ):
+                        if has_one_project_left:
+                            # If there is one project id we know that artifact_bundles must contain at least one
+                            # element, so we just take it out and delete it. This deletion will cascade delete every
+                            # connected entity.
+                            artifact_bundles[0].delete()
+                        else:
+                            for artifact_bundle in artifact_bundles:
+                                if project_id == artifact_bundle.projectartifactbundle.project_id:
+                                    artifact_bundle.projectartifactbundle.delete()
+                else:
+                    error = f"Artifact bundle with {bundle_id} found but it is not connected to project {project_id}"
+
+            # TODO: here we might end up having artifact bundles without a project connected, thus it would be better
+            #  to also perform deletion of a bundle without any projects.
+            if error is None:
                 return Response(status=204)
-            except ArtifactBundle.DoesNotExist:
-                return Response(
-                    {"error": f"Couldn't find a bundle with bundle_id {bundle_id}"}, status=404
-                )
+            else:
+                return Response({"error": error}, status=404)
 
         return Response({"error": f"Supplied an invalid bundle_id {bundle_id}"}, status=404)
