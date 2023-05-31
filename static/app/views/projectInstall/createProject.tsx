@@ -87,9 +87,9 @@ function CreateProject() {
 
       try {
         const projectData = await api.requestPromise(
-          team === null
-            ? `/organizations/${slug}/experimental/projects/`
-            : `/teams/${slug}/${team}/projects/`,
+          team
+            ? `/teams/${slug}/${team}/projects/`
+            : `/organizations/${slug}/experimental/projects/`,
           {
             method: 'POST',
             data: {
