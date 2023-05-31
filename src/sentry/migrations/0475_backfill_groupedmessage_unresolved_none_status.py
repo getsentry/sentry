@@ -71,7 +71,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0474_backfill_groupedmessage_unresolved_none_status"),
+        ("sentry", "0474_make_organization_mapping_org_id_unique"),
     ]
 
     operations = [
