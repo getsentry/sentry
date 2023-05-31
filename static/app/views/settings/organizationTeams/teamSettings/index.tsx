@@ -68,6 +68,7 @@ class TeamSettings extends AsyncView<Props, State> {
 
     const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
     const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
+    const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization});
 
     return (
       <Fragment>
@@ -91,6 +92,7 @@ class TeamSettings extends AsyncView<Props, State> {
               idpProvisioned,
               hasOrgRoleFlag,
               hasTeamWrite,
+              hasOrgAdmin,
               orgRoleList,
             }}
             forms={teamSettingsFields}
