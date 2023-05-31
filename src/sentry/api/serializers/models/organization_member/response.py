@@ -74,7 +74,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     role: str  # Deprecated: use orgRole
     roleName: str  # Deprecated
     orgRole: str
-    orgRolesFromTeams: List[RoleSerializerResponse]
+    groupOrgRoles: List[RoleSerializerResponse]
     pending: bool
     expired: str
     flags: _OrganizationMemberFlags

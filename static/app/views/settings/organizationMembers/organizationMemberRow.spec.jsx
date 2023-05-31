@@ -18,7 +18,7 @@ describe('OrganizationMemberRow', function () {
       has2fa: false,
       name: 'sentry@test.com',
     },
-    orgRolesFromTeams: [],
+    groupOrgRoles: [],
   };
 
   const managerTeam = TestStubs.Team({
@@ -29,7 +29,7 @@ describe('OrganizationMemberRow', function () {
     id: '2',
     orgRole: 'member',
     teams: [managerTeam.slug],
-    orgRolesFromTeams: [
+    groupOrgRoles: [
       {
         teamSlug: managerTeam.slug,
         role: {name: 'Manager'},

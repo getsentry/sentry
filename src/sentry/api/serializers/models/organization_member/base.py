@@ -115,7 +115,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
-                "orgRolesFromTeams": self.__sorted_org_roles_for_user(item),
+                "groupOrgRoles": self.__sorted_org_roles_for_user(item),
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
             }
@@ -151,7 +151,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
-            "orgRolesFromTeams": attrs.get("orgRolesFromTeams", []),
+            "groupOrgRoles": attrs.get("groupOrgRoles", []),
         }
 
         if "externalUsers" in self.expand:
