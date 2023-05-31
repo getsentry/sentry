@@ -150,7 +150,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                             # connected entity.
                             artifact_bundle.delete()
                         else:
-                            # If there are more than one project, we will just delete ProjectArtifactBundle entry
+                            # If there is more than one project, we will just delete the ProjectArtifactBundle entry
                             # corresponding to project id of the requesting project.
                             for project_artifact_bundle in project_artifact_bundles:
                                 if project_id == project_artifact_bundle.project_id:
