@@ -18,8 +18,8 @@ export enum SamplePopulationType {
 export const useQueryGetSpanSamples = (options: {
   groupId: string;
   transactionName: string;
-  user: string;
   p50?: number;
+  user?: string;
 }) => {
   const {groupId, transactionName, user, p50} = options;
 
@@ -35,6 +35,7 @@ export const useQueryGetSpanSamples = (options: {
     ],
     retry: false,
     initialData: [],
+    enabled: Boolean(groupId && transactionName && p50),
   };
 
   const commonSamplesQueryOptions = {
@@ -152,7 +153,7 @@ export const useQuerySpansInTransaction = (options: {
   `;
 
   return useQuery({
-    queryKey: ['spansInTransaction', groupId],
+    queryKey: ['spansInTransaction', groupId, dateFilters],
     queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
     retry: false,
     initialData: [],

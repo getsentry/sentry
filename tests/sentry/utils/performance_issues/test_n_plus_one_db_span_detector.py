@@ -189,6 +189,10 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
             ),
         ]
 
+    def test_does_not_detect_overlapping_n_plus_one(self):
+        event = get_event("parallel-n-plus-one-in-django-index-view")
+        assert self.find_problems(event) == []
+
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):

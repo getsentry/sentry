@@ -28,7 +28,7 @@ export function useProjectCreationAccess({
       return true;
     }
 
-    if (!organization.features.includes('organizations:team-project-creation-all')) {
+    if (!organization.features.includes('team-project-creation-all')) {
       return false;
     }
 

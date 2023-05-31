@@ -12,7 +12,7 @@
         "value": "freeTextWith*",
         "quoted": false,
         "invalid": {
-          "reason": "Invalid query. Wildcards are not supported."
+          "reason": "Wildcards not supported in search"
         }
       },
       {"type": "spaces", "value": ""}
@@ -29,7 +29,7 @@
       {
         "type": "filter",
         "filter": "textIn",
-        "invalid": {"reason": "Lists should not have wildcard values"},
+        "invalid": {"reason": "Wildcards not supported in search"},
         "key": {"type": "keySimple", "value": "release", "quoted": false},
         "operator": "",
         "negated": false,
@@ -91,7 +91,29 @@
         "value": "release*:1",
         "quoted": false,
         "invalid": {
-          "reason": "Invalid query. Wildcards are not supported."
+          "reason": "Wildcards not supported in search"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "If disallowWildcard is true and a custom reason is provided, it shall be shown",
+    "query": "rele*ase",
+    "additionalConfig": {
+      "disallowWildcard": true,
+      "invalidMessages": {
+        "wildcard-not-allowed": "Release queries don't support wildcards"
+      }
+    },
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "freeText",
+        "value": "rele*ase",
+        "quoted": false,
+        "invalid": {
+          "reason": "Release queries don't support wildcards"
         }
       },
       {"type": "spaces", "value": ""}

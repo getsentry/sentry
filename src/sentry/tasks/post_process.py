@@ -740,10 +740,6 @@ def process_snoozes(job: PostProcessJob) -> None:
 
             if features.has("organizations:escalating-issues", group.organization):
                 manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
-
-            elif features.has("organizations:issue-states", group.organization):
-                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
-
             else:
                 manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 

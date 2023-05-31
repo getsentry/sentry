@@ -9,14 +9,14 @@ import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {SpanDescription} from 'sentry/views/starfish/views/spans/spanSummaryPanel/spanDescription';
-import type {Span} from 'sentry/views/starfish/views/spans/spanSummaryPanel/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
-import {useSpanMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetrics';
-import {useSpanMetricSeries} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useSpanMetricSeries';
+import type {Span} from 'sentry/views/starfish/queries/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
 
 type Props = {
   span: Span;
@@ -58,7 +58,7 @@ export function SpanBaselineTable({span}: Props) {
           metrics: spanMetrics,
           metricSeries: spanMetricSeries,
           app_impact: formatPercentage(
-            spanMetrics.total_time / applicationMetrics.total_time
+            spanMetrics.total_time / applicationMetrics['sum(span.duration)']
           ),
         },
       ]}
