@@ -365,6 +365,9 @@ def _create_artifact_bundle(
         # a release for the upload.
         if len(debug_ids_with_types) > 0 or version:
             now = timezone.now()
+            # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
+            # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
+            new_date_added = {"date_added": now}
 
             # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
             # state after all of these updates.
@@ -394,9 +397,8 @@ def _create_artifact_bundle(
                         # tables.
                         dist_name=dist or "",
                         artifact_bundle=artifact_bundle,
-                        defaults={
-                            "date_added": now,
-                        },
+                        values=new_date_added,
+                        defaults=new_date_added,
                     )
 
                 for project_id in project_ids or ():
@@ -404,9 +406,8 @@ def _create_artifact_bundle(
                         organization_id=org_id,
                         project_id=project_id,
                         artifact_bundle=artifact_bundle,
-                        defaults={
-                            "date_added": now,
-                        },
+                        values=new_date_added,
+                        defaults=new_date_added,
                     )
 
                 for source_file_type, debug_id in debug_ids_with_types:
@@ -415,9 +416,8 @@ def _create_artifact_bundle(
                         debug_id=debug_id,
                         artifact_bundle=artifact_bundle,
                         source_file_type=source_file_type.value,
-                        defaults={
-                            "date_added": now,
-                        },
+                        values=new_date_added,
+                        defaults=new_date_added,
                     )
         else:
             raise AssembleArtifactsError(
