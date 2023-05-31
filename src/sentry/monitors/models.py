@@ -35,8 +35,6 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.locks import locks
 from sentry.models import Environment, Organization, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
@@ -494,12 +492,15 @@ class MonitorEnvironment(Model):
         try:
             organization = Organization.objects.get(id=self.monitor.organization_id)
             use_issue_platform = features.has(
-                "organizations:issue-platform", organization_id=self.monitor.organization_id
+                "organizations:issue-platform", organization=organization
             ) and features.has("organizations:crons-issue-platform", organization=organization)
         except Organization.DoesNotExist:
             pass
 
         if use_issue_platform:
+            from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+            from sentry.issues.producer import produce_occurrence_to_kafka
+
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
@@ -516,8 +517,8 @@ class MonitorEnvironment(Model):
                         name="Last check-in", value=last_checkin.isoformat(), important=False
                     ),
                 ],
-                evidence_data=None,
-                culprit=None,
+                evidence_data={},
+                culprit="",
                 detection_time=current_timestamp,
                 level=level,
             )
@@ -562,8 +563,8 @@ class MonitorEnvironment(Model):
             data = event_manager.get_data()
             insert_data_to_database_legacy(data)
 
-            monitor_environment_failed.send(monitor_environment=self, sender=type(self))
-            return True
+        monitor_environment_failed.send(monitor_environment=self, sender=type(self))
+        return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
         params = {
