@@ -135,9 +135,10 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             new_values["suspect_committer_auto_assignment"] = False
         if auto_assignment == "Turn off Auto-Assignment":
             autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-            GroupOwner.invalidate_autoassigned_owner_cache(
-                ownership.project_id, autoassignment_types
-            )
+            if autoassignment_types:
+                GroupOwner.invalidate_autoassigned_owner_cache(
+                    ownership.project_id, autoassignment_types
+                )
             new_values["auto_assignment"] = False
             new_values["suspect_committer_auto_assignment"] = False
 
