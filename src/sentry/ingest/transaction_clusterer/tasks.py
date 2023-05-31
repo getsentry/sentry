@@ -151,7 +151,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                 num_rules_added = rules.update_rules(ClustererNamespace.SPANS, project, new_rules)
 
                 # Track a global counter of new rules:
-                metrics.incr("span_descs.new_rules_discovered", num_rules_added)
+                metrics.incr("span_descs.new_rules_discovered", num_rules_added, sample_rate=1.0)
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
