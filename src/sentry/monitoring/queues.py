@@ -131,7 +131,7 @@ def _update_queue_stats(redis_cluster, unhealthy) -> None:
     with redis_cluster.pipeline(transaction=True) as pipeline:
         # can't use mset because it doesn't support expiry
         for queue in unhealthy:
-            pipeline.set(unhealthy_queue_key(queue), "", ex=UNHEALTHY_QUEUE_CHECK_INTERVAL)
+            pipeline.set(unhealthy_queue_key(queue), "1", ex=UNHEALTHY_QUEUE_CHECK_INTERVAL)
         pipeline.execute()
 
 
