@@ -44,7 +44,7 @@ const SetUpSdkDoc = HookOrDefault({
   hookName: 'component:set-up-sdk-doc',
 });
 
-type Props = RouteComponentProps<{platform: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}, {}>;
 
 export function SetUpGeneralSdkDoc({
   organization,
@@ -206,7 +206,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     // if the project is older than one hour, we don't delete it
     recentCreatedProject.olderThanOneHour === false;
 
-  const currentPlatform = params.platform ?? 'other';
+  const currentPlatform = project?.platform ?? 'other';
   const platformIntegration = platforms.find(p => p.id === currentPlatform);
   const platform: Platform = {
     key: currentPlatform as PlatformKey,
