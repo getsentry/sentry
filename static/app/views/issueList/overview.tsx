@@ -150,7 +150,7 @@ type BetterPriorityEndpointParams = Partial<EndpointParams> & {
   issueHalflifeHours?: number;
   logLevel?: number;
   norm?: boolean;
-  relativeVolumeScore?: number;
+  relativeVolume?: number;
   v2?: boolean;
 };
 
@@ -355,7 +355,7 @@ class IssueListOverview extends Component<Props, State> {
       logLevel,
       norm,
       v2,
-      relativeVolumeScore,
+      relativeVolume,
     } = query;
 
     return {
@@ -365,7 +365,7 @@ class IssueListOverview extends Component<Props, State> {
       logLevel,
       norm,
       v2,
-      relativeVolumeScore,
+      relativeVolume,
     };
   }
 
@@ -898,7 +898,7 @@ class IssueListOverview extends Component<Props, State> {
         issueHalflifeHours: 24 * 7,
         v2: false,
         norm: false,
-        relativeVolumeScore: 1,
+        relativeVolume: 1,
       });
     } else {
       this.transitionTo({sort});
