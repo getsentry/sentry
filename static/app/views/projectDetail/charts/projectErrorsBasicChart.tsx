@@ -55,6 +55,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     const {location} = this.props;
     if (!ERRORS_BASIC_CHART_PERIODS.includes(location.query.statsPeriod)) {
       browserHistory.replace({

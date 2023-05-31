@@ -29,6 +29,8 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
   submitTimeout: number | undefined = undefined;
 
   componentDidMount() {
+    super.componentDidMount();
+
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty

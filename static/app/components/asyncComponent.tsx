@@ -91,6 +91,9 @@ class AsyncComponent<
     }
   }
 
+  // TODO(epurkhiser): Move UNSAFE_componentWillMount into here
+  componentDidMount() {}
+
   componentDidUpdate(prevProps: P, prevContext: any) {
     const isRouterInContext = !!prevContext.router;
     const isLocationInProps = prevProps.location !== undefined;
