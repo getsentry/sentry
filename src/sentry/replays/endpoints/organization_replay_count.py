@@ -27,6 +27,8 @@ MAX_VALS_PROVIDED = {
     "replay_id": 100,
 }
 
+FILTER_HAS_A_REPLAY = "AND !replayId:''"
+
 
 @region_silo_endpoint
 class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
@@ -100,6 +102,9 @@ def get_replay_id_mappings(
 ) -> dict[str, list[str]]:
 
     select_column, value = get_select_column(request.GET.get("query"))
+    query = request.GET.get("query")
+
+    query = query + FILTER_HAS_A_REPLAY
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover
