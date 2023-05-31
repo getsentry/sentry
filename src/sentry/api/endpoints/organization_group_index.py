@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence, Type, TypeVar
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -178,31 +178,48 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :param norm: boolean to switch between normalizing the individual contribution scores to [0, 1] or not
         """
 
-        if request.GET.get("v2", False):
+        R = TypeVar("R")
+
+        def _coerce(val: Optional[str], func: Type[R], default: R) -> R:
+            return func(val) if val is not None else default
+
+        if _coerce(request.GET.get("v2"), bool, "false"):
             return {
                 "better_priority": {
-                    "log_level": request.GET.get(
-                        "logLevel", V2_DEFAULT_PRIORITY_WEIGHTS["log_level"]
+                    "log_level": _coerce(
+                        request.GET.get("logLevel"), int, V2_DEFAULT_PRIORITY_WEIGHTS["log_level"]
                     ),
-                    "has_stacktrace": request.GET.get(
-                        "hasStacktrace", V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
+                    "has_stacktrace": _coerce(
+                        request.GET.get("hasStacktrace"),
+                        int,
+                        V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
                     ),
-                    "event_halflife_hours": request.GET.get(
-                        "eventHalflifeHours", V2_DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"]
+                    "event_halflife_hours": _coerce(
+                        request.GET.get("eventHalflifeHours"),
+                        int,
+                        V2_DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
                     ),
-                    "issue_halflife_hours": request.GET.get(
-                        "issueHalflifeHours", V2_DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"]
+                    "issue_halflife_hours": _coerce(
+                        request.GET.get("issueHalflifeHours"),
+                        int,
+                        V2_DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
                     ),
                     "v2": True,
-                    "norm": request.GET.get("norm", V2_DEFAULT_PRIORITY_WEIGHTS["norm"]),
+                    "norm": _coerce(
+                        request.GET.get("norm"), bool, V2_DEFAULT_PRIORITY_WEIGHTS["norm"]
+                    ),
                 }
             }
         else:
             return {
                 "better_priority": {
-                    "log_level": request.GET.get("logLevel", DEFAULT_PRIORITY_WEIGHTS["log_level"]),
-                    "has_stacktrace": request.GET.get(
-                        "hasStacktrace", DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"]
+                    "log_level": _coerce(
+                        request.GET.get("logLevel"), int, DEFAULT_PRIORITY_WEIGHTS["log_level"]
+                    ),
+                    "has_stacktrace": _coerce(
+                        request.GET.get("hasStacktrace"),
+                        int,
+                        DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
                     ),
                     "event_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
                     "issue_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
