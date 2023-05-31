@@ -4,6 +4,7 @@ import {sanitizePath} from './sanitizePath';
 
 export const ERROR_MAP = {
   0: 'CancelledError',
+  200: 'UndefinedResponseBodyError',
   400: 'BadRequestError',
   401: 'UnauthorizedError',
   403: 'ForbiddenError',
@@ -53,6 +54,17 @@ export default class RequestError extends Error {
    */
   addResponseMetadata(resp: ResponseMeta | undefined) {
     if (resp) {
+      // We filter 200's out unless they're the specific case of an undefined
+      // body. For the ones which will eventually get filtered, we don't care
+      // about the data added here and we don't want to change the name (or it
+      // won't match the filter) so bail before any of that happens.
+      //
+      // TODO: If it turns out the undefined ones aren't really a problem, we
+      // can remove this and the `200` entry in `ERROR_MAP` above
+      if (resp.status === 200 && resp.responseText !== undefined) {
+        return;
+      }
+
       this.setNameFromStatus(resp.status);
 
       this.message = `${this.message} ${

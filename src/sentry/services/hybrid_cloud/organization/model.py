@@ -213,3 +213,13 @@ class RpcUserInviteContext(RpcUserOrganizationContext):
     """
 
     invite_organization_member_id: int = 0
+
+
+class RpcRegionUser(RpcModel):
+    """
+    Represents user information that may be propagated to each region that a user belongs to, often to make
+    more performant queries on organization member information.
+    """
+
+    id: int = -1
+    is_active: bool = True

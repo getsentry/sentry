@@ -10,7 +10,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -217,7 +216,6 @@ function TransactionHeader({
               >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
-                <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
                 key={Tab.Profiling}

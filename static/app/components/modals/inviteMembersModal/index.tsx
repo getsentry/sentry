@@ -60,6 +60,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   sessionId = '';
 
   componentDidMount() {
+    super.componentDidMount();
     this.sessionId = uniqueId();
 
     const {organization, source} = this.props;

@@ -171,6 +171,10 @@ type DefaultProps = {
    * form
    */
   useFormWrapper: boolean;
+  /**
+   * Allows for customization of the invalid token messages.
+   */
+  invalidMessages?: SearchConfig['invalidMessages'];
 };
 
 type Props = WithRouterProps &
@@ -194,6 +198,10 @@ type Props = WithRouterProps &
      * Disabled control (e.g. read-only)
      */
     disabled?: boolean;
+    /**
+     * Disables wildcard searches (in freeText and in the value of key:value searches mode)
+     */
+    disallowWildcard?: boolean;
     dropdownClassName?: string;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
@@ -349,6 +357,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+      disallowWildcard: this.props.disallowWildcard,
+      invalidMessages: this.props.invalidMessages,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -409,6 +419,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+      disallowWildcard: this.props.disallowWildcard,
+      invalidMessages: this.props.invalidMessages,
     };
     return {
       query,
@@ -917,12 +929,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     return treeResultLocator<boolean>({
       tree: parsedQuery,
       noResultValue: true,
-      visitorTest: ({token, returnResult, skipToken}) =>
-        token.type !== Token.Filter
+      visitorTest: ({token, returnResult, skipToken}) => {
+        return token.type !== Token.Filter && token.type !== Token.FreeText
           ? null
           : token.invalid
           ? returnResult(false)
-          : skipToken,
+          : skipToken;
+      },
     });
   }
 
@@ -1915,6 +1928,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
+            disallowWildcard={this.props.disallowWildcard}
+            invalidMessages={this.props.invalidMessages}
           />
         )}
       </Container>
