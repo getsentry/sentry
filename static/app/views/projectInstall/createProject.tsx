@@ -314,7 +314,6 @@ function CreateProject() {
               <TeamSelector
                 name="select-team"
                 aria-label={t('Select a Team')}
-                menuPlacement="auto"
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}

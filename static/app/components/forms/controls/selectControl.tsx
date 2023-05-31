@@ -449,6 +449,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   return (
     <SelectPicker<OptionType>
+      menuPlacement="auto"
       filterOption={filterOptions}
       styles={mappedStyles}
       components={{...replacedComponents, ...components}}

@@ -81,7 +81,6 @@ export function SortBySelectors({
         <SelectControl
           name="sortDirection"
           aria-label="Sort direction"
-          menuPlacement="auto"
           disabled={disableSortDirection}
           options={Object.keys(sortDirections).map(value => ({
             label: sortDirections[value],
@@ -104,7 +103,6 @@ export function SortBySelectors({
           <SelectControl
             name="sortBy"
             aria-label="Sort by"
-            menuPlacement="auto"
             disabled={disableSort}
             placeholder={`${t('Select a column')}\u{2026}`}
             value={values.sortBy}
