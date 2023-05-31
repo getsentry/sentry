@@ -165,9 +165,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
-    def build_better_priority_sort_kwargs(
-        self, request: Request
-    ) -> Mapping[str, PrioritySortWeights]:
+    @staticmethod
+    def build_better_priority_sort_kwargs(request: Request) -> Mapping[str, PrioritySortWeights]:
         """
         Temporary function to be used while developing the new priority sort. Parses the query params in the request.
 
@@ -181,9 +180,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         R = TypeVar("R")
 
         def _coerce(val: Optional[str], func: Type[R], default: R) -> R:
+            if func == bool:
+                func = lambda x: str(x).lower() == "true"
+
             return func(val) if val is not None else default
 
-        if _coerce(request.GET.get("v2"), bool, "false"):
+        if _coerce(request.GET.get("v2"), bool, False):
             return {
                 "better_priority": {
                     "log_level": _coerce(
