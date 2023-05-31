@@ -972,7 +972,7 @@ def trigger_incident_triggers(incident):
     from sentry.incidents.tasks import handle_trigger_action
 
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
-    triggers = AlertRuleTrigger.objects.filter(alert_rule=incident.alert_rule)
+    triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=triggers)
     with transaction.atomic():
         for trigger in incident_triggers:
