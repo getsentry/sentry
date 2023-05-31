@@ -126,7 +126,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['organizations:team-project-creation-all'],
+        features: ['team-project-creation-all'],
       },
     });
 
