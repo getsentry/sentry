@@ -2,7 +2,6 @@ import sys
 from typing import List
 
 from django.apps import apps
-from django.conf import settings
 from django.db import connections
 from django.db.utils import ConnectionDoesNotExist
 
@@ -55,7 +54,8 @@ class SiloRouter:
         self.__is_simulated = value
 
     def _resolve_silo_connection(self, silo_modes: List[SiloMode], table: str):
-        active_mode = settings.SILO_MODE
+        # XXX This method has an override in getsentry for region silo primary splits.
+        active_mode = SiloMode.get_current_mode()
 
         # In monolith mode we only use a single database.
         if active_mode == "MONOLITH":
@@ -72,8 +72,6 @@ class SiloRouter:
             )
 
     def _db_for_model(self, model: Model):
-        # TODO this method will need to be overridden in by sass
-        # to handle database partitioning in regions.
         silo_limit = getattr(model._meta, "silo_limit", None)  # type: ignore
         if not silo_limit:
             return "default"
