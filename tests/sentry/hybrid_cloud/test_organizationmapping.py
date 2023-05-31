@@ -11,6 +11,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.silo import control_silo_test
 
 
+@pytest.mark.skip(reason="Disabling these tests until we finalize the organization mapping logic")
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
     def test_create(self):

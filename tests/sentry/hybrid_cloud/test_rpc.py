@@ -6,6 +6,7 @@ from django.test import override_settings
 
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,
@@ -119,6 +120,16 @@ class RpcServiceTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
+
+    def test_dispatch_to_local_service_list_result(self):
+        organization = self.create_organization()
+
+        args = {"organization_ids": [organization.id]}
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            service = AuthService.create_delegation()
+            result = dispatch_to_local_service(service.key, "get_org_auth_config", args)
+            assert len(result) == 1
+            assert result[0]["organization_id"] == organization.id
 
 
 class DispatchRemoteCallTest(TestCase):

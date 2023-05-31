@@ -526,18 +526,30 @@ export const addSlowAppInit = (transaction: TransactionEvent) => {
   if (!appInitSpan || !transaction.spans) {
     return;
   }
-  const longTaskSpan = transaction.spans.find(
+  const longTaskSpans = transaction.spans.filter(
     s =>
       s.op === 'ui.long-task' &&
       s.endTimestamp &&
       appInitSpan.endTimestamp &&
-      s.endTimestamp > appInitSpan.endTimestamp &&
       s.startTimestamp < appInitSpan.startTimestamp
   );
-  if (!longTaskSpan) {
-    return;
+  longTaskSpans.forEach(s => {
+    s.op = `ui.long-task.app-init`;
+  });
+  if (longTaskSpans.length) {
+    const sum = longTaskSpans.reduce(
+      (acc, span) =>
+        span.endTimestamp ? acc + (span.endTimestamp - span.startTimestamp) * 1000 : acc,
+      0
+    );
+    transaction.measurements = {
+      ...transaction.measurements,
+      app_init_long_tasks: {
+        value: sum,
+        unit: 'millisecond',
+      },
+    };
   }
-  longTaskSpan.op = `ui.long-task.app-init`;
 };
 
 /**

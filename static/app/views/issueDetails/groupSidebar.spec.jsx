@@ -8,7 +8,7 @@ import GroupSidebar from './groupSidebar';
 describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
   const {organization, project} = initializeOrg();
-  const environment = {name: 'production', displayName: 'Production', id: '1'};
+  const environment = 'production';
   let tagsMock;
 
   beforeEach(function () {
@@ -68,6 +68,10 @@ describe('GroupSidebar', function () {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/first-last-release/`,
+      method: 'GET',
+    });
   });
 
   afterEach(function () {
@@ -114,7 +118,7 @@ describe('GroupSidebar', function () {
 
   describe('environment toggle', function () {
     it('re-requests tags with correct environment', async function () {
-      const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
+      const stagingEnv = 'staging';
       const {rerender} = render(
         <GroupSidebar
           group={group}

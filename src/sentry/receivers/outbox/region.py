@@ -37,14 +37,6 @@ from sentry.signals import member_joined
 from sentry.types.region import get_local_region
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
-def process_organization_mapping_verifications(object_identifier: int, **kwds: Any):
-    if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
-        return
-
-    organization_mapping_service.verify_mappings(organization_id=org.id, slug=org.slug)
-
-
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
 def process_audit_log_event(payload: Any, **kwds: Any):
     # TODO: This will become explicit rpc
