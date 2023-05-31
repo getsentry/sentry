@@ -58,6 +58,18 @@ describe('sanitizePath', function () {
         '/organizations/{orgSlug}/releases/{releaseId}/deploys/',
       ],
 
+      [
+        // OrganizationTagsEndpoint
+        '/organizations/sentry/tags/',
+        '/organizations/{orgSlug}/tags/',
+      ],
+
+      [
+        // OrganizationTagKeyValuesEndpoint
+        '/organizations/sentry/tags/browser/values/',
+        '/organizations/{orgSlug}/tags/{tagName}/values/',
+      ],
+
       // /projects/ endpoints
       [
         // ProjectAlertRuleDetailsEndpoint
@@ -173,4 +185,10 @@ describe('sanitizePath', function () {
       expect(sanitizePath(prefix + path)).toBe(prefix + expected);
     });
   }
+
+  it('uses original value if placeholder type not found', () => {
+    expect(sanitizePath('/organizations/sentry/dogName/maisey')).toEqual(
+      '/organizations/{orgSlug}/dogName/maisey'
+    );
+  });
 });

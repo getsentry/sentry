@@ -29,7 +29,7 @@ function SentryMemberTeamSelectorField({
   ...props
 }: RenderFieldProps) {
   const {form} = useContext(FormContext);
-  const currentItems = form?.getValue(props.name) as string[] | null;
+  const currentItems = form?.getValue<string[]>(props.name, []);
 
   // Ensure the current value of the fields members is loaded
   const ensureUserIds = useMemo(

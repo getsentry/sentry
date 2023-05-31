@@ -126,7 +126,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['organizations:team-project-creation-all'],
+        features: ['team-project-creation-all'],
       },
     });
 
@@ -187,6 +187,27 @@ describe('CreateProject', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('should not show create team button to team-admin with no org access', function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+      },
+    });
+    renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
+
+    OrganizationStore.onUpdate(organization);
+    TeamStore.loadUserTeams([
+      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
+    ]);
+    render(<CreateProject />, {
+      context: TestStubs.routerContext([{organization}]),
+      organization,
+    });
+
+    const createTeamButton = screen.queryByRole('button', {name: 'Create a team'});
+    expect(createTeamButton).not.toBeInTheDocument();
   });
 
   it('should only allow teams which the user is a team-admin', async function () {

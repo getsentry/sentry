@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
+import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -51,7 +52,7 @@ function CreateProject() {
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [team, setTeam] = useState(accessTeams?.[0]?.slug);
 
-  const [error, setError] = useState(false);
+  const [errors, setErrors] = useState(false);
   const [inFlight, setInFlight] = useState(false);
 
   const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
@@ -86,9 +87,9 @@ function CreateProject() {
 
       try {
         const projectData = await api.requestPromise(
-          team === null
-            ? `/organizations/${slug}/experimental/projects/`
-            : `/teams/${slug}/${team}/projects/`,
+          team
+            ? `/teams/${slug}/${team}/projects/`
+            : `/organizations/${slug}/experimental/projects/`,
           {
             method: 'POST',
             data: {
@@ -136,7 +137,7 @@ function CreateProject() {
         );
       } catch (err) {
         setInFlight(false);
-        setError(err.responseJSON.detail);
+        setErrors(err.responseJSON);
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -219,8 +220,8 @@ function CreateProject() {
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
-  const isOrgMemberWithNoAccess =
-    accessTeams.length === 0 && !organization.access.includes('project:admin');
+  const canCreateTeam = organization.access.includes('project:admin');
+  const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
   const canSubmitForm =
     !inFlight &&
@@ -269,19 +270,21 @@ function CreateProject() {
                 onChange={choice => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
-              <Button
-                borderless
-                data-test-id="create-team"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => setTeam(slug),
-                  })
-                }
-                title={t('Create a team')}
-                aria-label={t('Create a team')}
-              />
+              {canCreateTeam && (
+                <Button
+                  borderless
+                  data-test-id="create-team"
+                  icon={<IconAdd isCircled />}
+                  onClick={() =>
+                    openCreateTeamModal({
+                      organization,
+                      onClose: ({slug}) => setTeam(slug),
+                    })
+                  }
+                  title={t('Create a team')}
+                  aria-label={t('Create a team')}
+                />
+              )}
             </TeamSelectInput>
           </div>
         )}
@@ -301,7 +304,6 @@ function CreateProject() {
 
   return (
     <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
-      {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
         <HelpText>
@@ -324,6 +326,16 @@ function CreateProject() {
         />
         <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
         {createProjectForm}
+
+        {errors && (
+          <Alert type="error">
+            {Object.keys(errors).map(key => (
+              <div key={key}>
+                <strong>{startCase(key)}</strong>: {errors[key]}
+              </div>
+            ))}
+          </Alert>
+        )}
       </div>
     </Access>
   );
