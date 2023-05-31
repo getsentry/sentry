@@ -4,6 +4,7 @@ import inspect
 import logging
 import urllib.response
 from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 from urllib.request import Request, urlopen
@@ -421,7 +422,20 @@ def dispatch_to_local_service(
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
-    return result.dict() if isinstance(result, RpcModel) else result
+
+    def result_to_dict(value: Any) -> Any:
+        if isinstance(value, RpcModel):
+            return value.dict()
+
+        if isinstance(value, Iterable) and not isinstance(value, str):
+            output = []
+            for item in value:
+                output.append(result_to_dict(item))
+            return output
+
+        return value
+
+    return result_to_dict(result)
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -467,7 +481,6 @@ def dispatch_remote_call(
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
-
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
     request = Request(url)
