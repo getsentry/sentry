@@ -44,7 +44,7 @@ const SetUpSdkDoc = HookOrDefault({
   hookName: 'component:set-up-sdk-doc',
 });
 
-type Props = RouteComponentProps<{platform: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}, {}>;
 
 export function SetUpGeneralSdkDoc({
   organization,
