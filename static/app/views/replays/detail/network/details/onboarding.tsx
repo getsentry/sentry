@@ -121,7 +121,8 @@ export function Setup({
   showSnippet: Output;
   visibleTab: TabKey;
 }) {
-  const minVersion = '7.50.0';
+  // 7.53.1 as it fixes a bug introduced in 7.50.0
+  const minVersion = '7.53.1';
 
   const organization = useOrganization();
   const {isFetching, needsUpdate} = useProjectSdkNeedsUpdate({
