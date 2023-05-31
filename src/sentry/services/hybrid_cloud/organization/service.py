@@ -176,7 +176,7 @@ class OrganizationService(RpcService):
         pass
 
     def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool
+        self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
     ) -> Optional[RpcUserOrganizationContext]:
         """
         Defers to check_organization_by_slug -> get_organization_by_id
