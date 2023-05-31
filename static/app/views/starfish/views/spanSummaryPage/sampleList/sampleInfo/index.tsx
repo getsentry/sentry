@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
 
 type Props = {
@@ -23,7 +24,7 @@ function SampleInfo(props: Props) {
     <BlockContainer>
       <Block title={t('Throughput')}>{spm?.toFixed(2)} / min</Block>
       <Block title={t('Duration (P50)')}>{p50?.toFixed(2)} ms</Block>
-      <Block title={t('App Impact')}>
+      <Block title={DataTitles.timeSpent}>
         {formatPercentage(total_time / applicationMetrics['sum(span.duration)'])} %
       </Block>
     </BlockContainer>

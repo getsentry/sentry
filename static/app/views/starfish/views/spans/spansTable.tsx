@@ -22,6 +22,7 @@ import Sparkline, {
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   isLoading: boolean;
@@ -113,7 +114,7 @@ export default function SpansTable({
     );
     return {
       ...spanData,
-      app_impact: formatPercentage(
+      timeSpent: formatPercentage(
         spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
       ),
       p50_trend: zeroFilledP50,
@@ -296,8 +297,8 @@ function getColumns(moduleName: ModuleName): GridColumnOrder[] {
       width: 175,
     },
     {
-      key: 'app_impact',
-      name: 'App Impact',
+      key: 'timeSpent',
+      name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
     },
   ];

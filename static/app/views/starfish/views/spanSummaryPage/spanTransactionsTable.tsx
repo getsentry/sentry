@@ -20,6 +20,7 @@ import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicatio
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Metric = {
   p50: number;
@@ -56,7 +57,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
   const spanTransactionsWithMetrics = spanTransactions.map(row => {
     return {
       ...row,
-      app_impact: formatPercentage(
+      timeSpent: formatPercentage(
         spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
           applicationMetrics['sum(span.duration)']
       ),
@@ -199,8 +200,8 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'app_impact',
-    name: 'App Impact',
+    key: 'timeSpent',
+    name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];

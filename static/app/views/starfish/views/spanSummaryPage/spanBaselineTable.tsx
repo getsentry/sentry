@@ -17,6 +17,7 @@ import type {Span} from 'sentry/views/starfish/queries/types';
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   span: Span;
@@ -28,10 +29,10 @@ type Metric = {
 };
 
 type Row = {
-  app_impact: string;
   description: string;
   metricSeries: Record<string, Series>;
   metrics: Metric;
+  timeSpent: string;
 };
 
 export function SpanBaselineTable({span}: Props) {
@@ -57,7 +58,7 @@ export function SpanBaselineTable({span}: Props) {
           description: span.description ?? '',
           metrics: spanMetrics,
           metricSeries: spanMetricSeries,
-          app_impact: formatPercentage(
+          timeSpent: formatPercentage(
             spanMetrics.total_time / applicationMetrics['sum(span.duration)']
           ),
         },
@@ -152,8 +153,8 @@ const COLUMN_ORDER = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'app_impact',
-    name: 'App Impact',
+    key: 'timeSpent',
+    name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
