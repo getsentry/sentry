@@ -574,6 +574,19 @@ def test_txnames_ready(default_project, num_clusterer_runs):
 
 
 @pytest.mark.django_db
+def test_accept_span_desc_rules(default_project):
+    with mock.patch(
+        "sentry.relay.config.get_span_descriptions_config",
+        return_value=[
+            {"pattern": "**/test/*/**", "expiry": "1", "scope": "http", "redaction": "*"}
+        ],
+    ):
+        config = get_project_config(default_project).to_dict()["config"]
+        _validate_project_config(config)
+        assert "spanDescriptionRules" in config
+
+
+@pytest.mark.django_db
 @region_silo_test(stable=True)
 def test_project_config_setattr(default_project):
     project_cfg = ProjectConfig(default_project)
