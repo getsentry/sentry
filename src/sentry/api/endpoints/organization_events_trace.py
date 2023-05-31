@@ -22,7 +22,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk import AliasedExpression, Column, Function
+from snuba_sdk import Column, Function
 
 from sentry import constants, eventstore, features
 from sentry.api.base import region_silo_endpoint
@@ -202,6 +202,7 @@ class TraceEvent:
                         for eventproblem in EventPerformanceProblem.fetch_multi(
                             [(self.nodestore_event, event_hash) for event_hash in hashes]
                         )
+                        if eventproblem
                     ]
                     unique_spans: Set[str] = set()
                     for problem in problems:
@@ -365,7 +366,19 @@ def query_trace_data(
         orderby=["-root", "timestamp", "id"],
         limit=MAX_TRACE_SIZE,
     )
-    transaction_query.columns.append(AliasedExpression(Column("group_ids"), "issue.ids"))
+    occurrence_query = QueryBuilder(
+        Dataset.IssuePlatform,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=["event_id"],
+        groupby_columns=["event_id"],
+        functions_acl=["groupArray"],
+    )
+    occurrence_query.columns.append(
+        Function("groupArray", parameters=[Column("group_id")], alias="issue.ids")
+    )
+    occurrence_query.groupby = [Column("event_id")]
+
     error_query = QueryBuilder(
         Dataset.Events,
         params,
@@ -387,13 +400,24 @@ def query_trace_data(
         limit=MAX_TRACE_SIZE,
     )
     results = bulk_snql_query(
-        [transaction_query.get_snql_query(), error_query.get_snql_query()],
+        [
+            transaction_query.get_snql_query(),
+            error_query.get_snql_query(),
+            occurrence_query.get_snql_query(),
+        ],
         referrer="api.trace-view.get-events",
     )
+
     transformed_results = [
         query.process_results(result)["data"]
-        for result, query in zip(results, [transaction_query, error_query])
+        for result, query in zip(results, [transaction_query, error_query, occurrence_query])
     ]
+
+    # Join group IDs from the occurrence dataset to transactions data
+    occurrence_dict = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
+    for result in transformed_results[0]:
+        result["issue.ids"] = occurrence_dict.get(result["id"], [])
+
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
         Sequence[SnubaError], transformed_results[1]
     )
