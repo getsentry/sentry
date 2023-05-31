@@ -45,40 +45,29 @@ class UpdateChannel(Enum):
         return [(i.name, i.value) for i in cls]
 
 
-def required_flag_to_write(channel: UpdateChannel) -> int:
-    """
-    Returns the flag required in an option definition to allow
-    an update channel to write.
-    """
-    if channel == UpdateChannel.ADMIN:
-        return FLAG_ADMIN_MODIFIABLE
-    elif channel == UpdateChannel.AUTOMATOR:
-        return FLAG_AUTOMATOR_MODIFIABLE
-    else:
-        # Other channels do not require any flag.
-        return 0
-
-
 class NotWritableReason(Enum):
     """
-    Represent the reason why an option cannot be updated on a
-    specific UpdateChannel.
+    Represent the reason that prevents us from attempting an update
+    of an option on a specific UpdateChannel.
     """
 
     # The option is registered with the FLAG_PRIORITIZE_DISK flag and it is
-    # also stored on disk as part of settings. Nobody can update this.
+    # also stored on disk as part of sentry settings. Nobody can update this.
     OPTION_ON_DISK = "option_on_disk"
     # The option definition is read only. It cannot be updated by anybody.
-    NOT_WRITABLE = "not_writable"
+    READONLY = "readonly"
     # The option cannot be updated by a specific channel because it is missing
     # the required flag.
-    READONLY_DEFINITION = "readonly_definition"
+    CHANNEL_NOT_ALLOWED = "channel_not_allowed"
     # The option could be updated but it drifted and the channel we are trying
     # to update with cannot overwrite.
     DRIFTED = "drifted"
 
 
-# These are the forbidden updates in case of drift.
+# In case there is drift between the value on the external source the
+# Options Automator maintains, the Automator is not allowed to overwrite
+# the drift in several cases. This map contains the forbidden transitions
+# of the last_updated_by column on the storage.
 FORBIDDEN_TRANSITIONS = {
     UpdateChannel.UNKNOWN: {UpdateChannel.AUTOMATOR},
     UpdateChannel.APPLICATION: {UpdateChannel.AUTOMATOR},
@@ -142,6 +131,15 @@ DEFAULT_KEY_TTL = 10
 # How long will a cache key exist in local memory *after ttl* while the backing store is erroring
 DEFAULT_KEY_GRACE = 60
 
+# Some update channel can only update options that have a specific flag.
+# This dictionary contains the mapping between update channels and required
+# flag.
+# If a channel is not in the dictionary it does not have restrictions.
+WRITE_REQUIRED_FLAGS = {
+    UpdateChannel.ADMIN: FLAG_ADMIN_MODIFIABLE,
+    UpdateChannel.AUTOMATOR: FLAG_AUTOMATOR_MODIFIABLE,
+}
+
 
 def _make_cache_key(key):
     return "o:%s" % md5_text(key).hexdigest()
@@ -184,8 +182,8 @@ class OptionsManager:
 
         # If an option isn't able to exist in the store or is immutable, we can't set it at runtime
         assert not_writable_reason not in [
-            NotWritableReason.READONLY_DEFINITION,
-            NotWritableReason.NOT_WRITABLE,
+            NotWritableReason.READONLY,
+            NotWritableReason.CHANNEL_NOT_ALLOWED,
         ], (
             "%r cannot be changed at runtime" % key
         )
@@ -194,7 +192,7 @@ class OptionsManager:
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
         # Enforce that the option has not been changed by a different UpdateChannel
-        # thus it cannot be overwritten.
+        # that we cannot overwrite.
         assert not not_writable_reason == NotWritableReason.DRIFTED, (
             "Option %r has drifted. Cannot overwrite" % key
         )
@@ -471,15 +469,15 @@ class OptionsManager:
         is allowed.
         """
 
-        required_flag = required_flag_to_write(channel)
+        required_flag = WRITE_REQUIRED_FLAGS.get(channel)
         opt = self.lookup_key(key)
         if opt.flags & (FLAG_NOSTORE | FLAG_IMMUTABLE):
-            return NotWritableReason.NOT_WRITABLE
+            return NotWritableReason.READONLY
         if opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key):
             return NotWritableReason.OPTION_ON_DISK
 
         if required_flag and not (opt.flags & required_flag):
-            return NotWritableReason.READONLY_DEFINITION
+            return NotWritableReason.CHANNEL_NOT_ALLOWED
 
         if not self.isset(key):
             # If the option is not readonly and it is not stored in the
@@ -501,9 +499,9 @@ class OptionsManager:
 
         last_updater = self.get_last_update_channel(key)
         if last_updater is None:
-            return
+            return None
         forbidden_states = FORBIDDEN_TRANSITIONS.get(last_updater)
-        if forbidden_states is not None and channel in forbidden_states:
+        if forbidden_states and channel in forbidden_states:
             return NotWritableReason.DRIFTED
 
         return None

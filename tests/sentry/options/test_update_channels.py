@@ -32,8 +32,8 @@ TEST_CASES = [
         DEFAULT_FLAGS,
         None,
         UpdateChannel.ADMIN,
-        NotWritableReason.READONLY_DEFINITION,
-        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
         id="Default option cannot be updated by admin",
     ),
     pytest.param(
@@ -41,8 +41,8 @@ TEST_CASES = [
         FLAG_CREDENTIAL,
         None,
         UpdateChannel.ADMIN,
-        NotWritableReason.READONLY_DEFINITION,
-        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
         id="Credentials cannot be updated by admin",
     ),
     pytest.param(
@@ -50,8 +50,8 @@ TEST_CASES = [
         DEFAULT_FLAGS,
         None,
         UpdateChannel.AUTOMATOR,
-        NotWritableReason.READONLY_DEFINITION,
-        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
         id="Default option cannot be updated by automator",
     ),
     pytest.param(
@@ -59,8 +59,8 @@ TEST_CASES = [
         FLAG_CREDENTIAL,
         None,
         UpdateChannel.AUTOMATOR,
-        NotWritableReason.READONLY_DEFINITION,
-        NotWritableReason.READONLY_DEFINITION,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
         id="Credentials cannot be updated by automator",
     ),
     pytest.param(
@@ -167,14 +167,14 @@ TEST_CASES_READONLY = [
         "manager",
         FLAG_IMMUTABLE,
         False,
-        NotWritableReason.NOT_WRITABLE,
+        NotWritableReason.READONLY,
         id="Immutable option",
     ),
     pytest.param(
         "manager",
         FLAG_NOSTORE,
         False,
-        NotWritableReason.NOT_WRITABLE,
+        NotWritableReason.READONLY,
         id="Non storable option",
     ),
     pytest.param(
@@ -231,5 +231,5 @@ def test_legacy_option(manager) -> None:
 
     assert (
         manager.can_update("sentry:something_else", "val", channel=UpdateChannel.AUTOMATOR)
-        == NotWritableReason.READONLY_DEFINITION
+        == NotWritableReason.CHANNEL_NOT_ALLOWED
     )
