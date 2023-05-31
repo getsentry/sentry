@@ -13,7 +13,7 @@ class SlackIntegrationStatus(analytics.Event):
     attributes = (
         analytics.Attribute("status"),
         analytics.Attribute("resolve_type", required=False),
-        analytics.Attribute("actor_id", required=False),
+        analytics.Attribute("user_id", required=False),
     )
 
 
