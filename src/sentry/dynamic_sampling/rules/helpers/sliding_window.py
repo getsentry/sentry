@@ -94,7 +94,7 @@ def mark_sliding_window_org_executed() -> None:
 
 def was_sliding_window_org_executed() -> bool:
     redis_client = get_redis_client_for_ds()
-    cache_key = generate_sliding_window_executed_cache_key()
+    cache_key = generate_sliding_window_org_executed_cache_key()
 
     return bool(redis_client.exists(cache_key))
 
