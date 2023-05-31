@@ -58,13 +58,13 @@ class SiloRouter:
         active_mode = SiloMode.get_current_mode()
 
         # In monolith mode we only use a single database.
-        if active_mode == "MONOLITH":
+        if active_mode == SiloMode.MONOLITH:
             return "default"
 
         for silo_mode in silo_modes:
             if self.__is_simulated:
                 return self.__simulated_map[silo_mode]
-            if active_mode == silo_mode.value:
+            if active_mode == silo_mode:
                 return "default"
             raise ValueError(
                 f"Cannot resolve table {table} in {silo_mode}. "
