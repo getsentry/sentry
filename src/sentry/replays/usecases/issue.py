@@ -1,9 +1,25 @@
 import uuid
-from typing import Type
+from typing import Any, Dict, Type
 
 from sentry.issues.grouptype import GroupType, ReplaySlowClickType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
+
+
+def new_sentry_slow_click_issue(fingerprint: str, project_id: int, timestamp: int) -> None:
+    """Temporary measure.
+
+    We don't have all of the metadata yet so we're going to emulate while we experiment. This
+    is a simple wrapper around "new_slow_click_issue".
+    """
+    new_slow_click_issue(
+        fingerprint=fingerprint,
+        project_id=project_id,
+        timestamp=timestamp,
+        release="",
+        environment="prod",
+        user={"user": {"id": "1", "username": "Test User", "email": "test.user@sentry.io"}},
+    )
 
 
 def new_slow_click_issue(
@@ -12,6 +28,7 @@ def new_slow_click_issue(
     project_id: int,
     release: str,
     timestamp: int,
+    **extra_event_data: Dict[str, Any],
 ) -> None:
     """Produce a new slow click issue occurence to Kafka."""
     _new_issue_occurrence(
@@ -24,6 +41,7 @@ def new_slow_click_issue(
         subtitle=ReplaySlowClickType.description,
         timestamp=timestamp,
         title="Slow Click Detected",
+        **extra_event_data,
     )
 
 
@@ -37,6 +55,7 @@ def _new_issue_occurrence(
     subtitle: str,
     timestamp: int,
     title: str,
+    **extra_event_data: Dict[str, Any],
 ) -> None:
     """Produce a new issue occurence to Kafka."""
     event_id = uuid.uuid4().hex
@@ -53,7 +72,7 @@ def _new_issue_occurrence(
         evidence_display=[],
         type=issue_type,
         detection_time=timestamp,
-        level="info",
+        level="warn",
         culprit=None,
     )
 
@@ -66,5 +85,6 @@ def _new_issue_occurrence(
         "release": release,
         "timestamp": timestamp,
     }
+    event_data.update(extra_event_data)
 
     produce_occurrence_to_kafka(occurrence, event_data=event_data)
