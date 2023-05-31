@@ -2,36 +2,39 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
+import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {useQuery} from 'sentry/utils/queryClient';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {
-  getOtherDomainsActionsAndOpTimeseries,
-  getTopDomainsActionsAndOp,
-  getTopDomainsActionsAndOpTimeseries,
+  getOtherModulesTimeseries,
+  getTopModules,
+  getTopModulesTimeseries,
   totalCumulativeTime,
 } from 'sentry/views/starfish/views/webServiceView/queries';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
-const HOST = 'http://localhost:8080';
-
 export const OTHER_SPAN_GROUP_MODULE = 'other';
+const FORCE_USE_DISCOVER = true;
 
 type Props = {
   transaction?: string;
 };
 
 type Group = {
-  module: string;
+  'span.module': string;
 };
 
 export type Segment = Group & {
-  sum: number;
+  'p50(span.duration)': number;
+  'sum(span.duration)': number;
 };
 
 export type DataRow = {
@@ -45,34 +48,34 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   const {selection} = pageFilter;
   const theme = useTheme();
 
-  const {data: segments, isLoading: isSegmentsLoading} = useQuery<Segment[]>({
-    queryKey: ['webServiceSpanGrouping', transaction, selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getTopDomainsActionsAndOp({
-          transaction,
-          datetime: selection.datetime,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
+  const {data: segments, isLoading: isSegmentsLoading} = useSpansQuery<Segment[]>({
+    queryString: `${getTopModules({
+      transaction,
+      datetime: selection.datetime,
+    })}`,
+    eventView: getEventView(selection, 'span.module:[db,http]', ['span.module']),
     initialData: [],
+    forceUseDiscover: FORCE_USE_DISCOVER,
   });
 
-  const {data: cumulativeTime} = useQuery({
-    queryKey: ['totalCumulativeTime', transaction, selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${totalCumulativeTime({
-          transaction,
-          datetime: selection.datetime,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
+  const {data: cumulativeTime} = useSpansQuery({
+    queryString: `${totalCumulativeTime({
+      transaction,
+      datetime: selection.datetime,
+    })}`,
+    eventView: getEventView(selection, '', []),
     initialData: [],
+    forceUseDiscover: FORCE_USE_DISCOVER,
   });
 
-  const totalValues = cumulativeTime.reduce((acc, segment) => acc + segment.sum, 0);
-  const totalSegments = segments.reduce((acc, segment) => acc + segment.sum, 0);
+  const totalValues = cumulativeTime.reduce(
+    (acc, segment) => acc + segment['sum(span.duration)'],
+    0
+  );
+  const totalSegments = segments.reduce(
+    (acc, segment) => acc + segment['sum(span.duration)'],
+    0
+  );
   const otherValue = totalValues - totalSegments;
 
   const transformedData: DataRow[] = [];
@@ -80,9 +83,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   for (let index = 0; index < segments.length; index++) {
     const element = segments[index];
     transformedData.push({
-      cumulativeTime: element.sum,
+      cumulativeTime: element['sum(span.duration)'],
       group: {
-        module: element.module,
+        'span.module': element['span.module'],
       },
     });
   }
@@ -90,48 +93,41 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   transformedData.push({
     cumulativeTime: otherValue,
     group: {
-      module: OTHER_SPAN_GROUP_MODULE,
+      'span.module': OTHER_SPAN_GROUP_MODULE,
     },
   });
 
-  let topConditions = segments.length > 0 ? ` module = '${segments[0].module}'` : '';
+  let topConditions =
+    segments.length > 0 ? ` span.module = '${segments[0]['span.module']}'` : '';
 
   for (let index = 1; index < segments.length; index++) {
     const element = segments[index];
-    topConditions = topConditions.concat(' OR ', ` module = '${element.module}'`);
+    topConditions = topConditions.concat(
+      ' OR ',
+      ` span.module = '${element['span.module']}'`
+    );
   }
 
-  const {isLoading: isTopDataLoading, data: topData} = useQuery({
-    queryKey: ['topSpanGroupTimeseries', transaction, topConditions, selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getTopDomainsActionsAndOpTimeseries({
-          transaction,
-          topConditions,
-          datetime: selection.datetime,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-
-  const {isLoading: isOtherDataLoading, data: otherData} = useQuery({
-    queryKey: [
-      'otherSpanGroupTimeseries',
+  const {isLoading: isTopDataLoading, data: topData} = useSpansQuery({
+    queryString: `${getTopModulesTimeseries({
       transaction,
       topConditions,
-      selection.datetime,
-    ],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getOtherDomainsActionsAndOpTimeseries({
-          transaction,
-          topConditions,
-          datetime: selection.datetime,
-        })}`
-      ).then(res => res.json()),
-    retry: false,
+      datetime: selection.datetime,
+    })}`,
+    eventView: getEventView(selection, 'span.module:[db,http]', ['span.module'], true),
     initialData: [],
+    forceUseDiscover: FORCE_USE_DISCOVER,
+  });
+
+  const {isLoading: isOtherDataLoading, data: otherData} = useSpansQuery({
+    queryString: `${getOtherModulesTimeseries({
+      transaction,
+      topConditions,
+      datetime: selection.datetime,
+    })}`,
+    eventView: getEventView(selection, '!span.module:[db,http]', [], true),
+    initialData: [],
+    forceUseDiscover: FORCE_USE_DISCOVER,
   });
 
   const seriesByDomain: {[module: string]: Series} = {};
@@ -144,9 +140,14 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
 
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 3);
 
-  if (!isTopDataLoading && !isOtherDataLoading && segments.length > 0) {
+  if (
+    !isTopDataLoading &&
+    !isOtherDataLoading &&
+    topData.length > 0 &&
+    segments.length > 0
+  ) {
     segments.forEach((segment, index) => {
-      const label = segment.module;
+      const label = segment['span.module'];
       seriesByDomain[label] = {
         seriesName: `${label}`,
         data: [],
@@ -155,7 +156,10 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     });
 
     topData.forEach(value => {
-      seriesByDomain[value.module].data.push({value: value.p50, name: value.interval});
+      seriesByDomain[value['span.module'] ?? value.group].data.push({
+        value: value['p50(span.duration)'],
+        name: value.interval,
+      });
     });
 
     seriesByDomain.Other = {
@@ -165,7 +169,10 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     };
 
     otherData.forEach(value => {
-      seriesByDomain.Other.data.push({value: value.p50, name: value.interval});
+      seriesByDomain.Other.data.push({
+        value: value['p50(span.duration)'],
+        name: value.interval,
+      });
     });
   }
 
@@ -174,16 +181,8 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   );
 
   const initialShowSeries = transformedData.map(
-    segment => segment.group.module !== OTHER_SPAN_GROUP_MODULE
+    segment => segment.group['span.module'] !== OTHER_SPAN_GROUP_MODULE
   );
-
-  if (isTopDataLoading || isSegmentsLoading) {
-    return (
-      <Panel>
-        <Placeholder height="600px" />
-      </Panel>
-    );
-  }
 
   return (
     <StyledPanel>
@@ -203,3 +202,25 @@ const StyledPanel = styled(Panel)`
   padding-top: ${space(2)};
   margin-bottom: 0;
 `;
+
+const getEventView = (
+  pageFilters: PageFilters,
+  query: string,
+  groups: string[],
+  getTimeseries?: boolean
+) => {
+  return EventView.fromSavedQuery({
+    name: '',
+    fields: ['sum(span.duration)', 'p50(span.duration)', ...groups],
+    yAxis: getTimeseries ? ['sum(span.duration)', 'p50(span.duration)'] : [],
+    query,
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    start: pageFilters.datetime.start ?? undefined,
+    end: pageFilters.datetime.end ?? undefined,
+    range: pageFilters.datetime.period ?? undefined,
+    projects: [1],
+    version: 2,
+    topEvents: groups.length > 0 ? '5' : undefined,
+    interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
+  });
+};

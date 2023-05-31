@@ -54,7 +54,7 @@ export function SpanGroupBreakdown({
     <Fragment>
       <ChartPadding>
         <Header>
-          <ChartLabel>{'p50 of Span Groups With Highest Cumulative Times'}</ChartLabel>
+          <ChartLabel>{'App Time Breakdown'}</ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
@@ -84,18 +84,18 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          ['module'].forEach(key => {
+          ['span.module'].forEach(key => {
             if (group[key] !== undefined && group[key] !== null) {
               spansLinkQueryParams[key] = group[key];
             }
           });
 
           const spansLink =
-            group.module === 'other'
+            group['span.module'] === 'other'
               ? `/starfish/spans/`
               : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
-            <StyledLineItem key={`${group.module}`}>
+            <StyledLineItem key={`${group['span.module']}`}>
               <ListItemContainer>
                 <StyledTopResultsIndicator
                   count={Math.max(transformedData.length - 1, 1)}
@@ -112,7 +112,7 @@ export function SpanGroupBreakdown({
                 />
                 <TextAlignLeft>
                   <Link to={spansLink}>
-                    <TextOverflow>{group.module}</TextOverflow>
+                    <TextOverflow>{group['span.module']}</TextOverflow>
                   </Link>
                 </TextAlignLeft>
                 <RightAlignedCell>
