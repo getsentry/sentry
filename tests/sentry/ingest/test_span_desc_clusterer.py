@@ -331,7 +331,7 @@ def test_get_deleted_project():
 
 
 @pytest.mark.django_db
-def test_transaction_clusterer_generates_rules(default_project):
+def test_span_descs_clusterer_generates_rules(default_project):
     def _get_projconfig_span_desc_rules(project: Project):
         return (
             get_project_config(project, full_config=True)
@@ -376,7 +376,7 @@ def test_transaction_clusterer_generates_rules(default_project):
     wraps=cluster_projects_span_descs,  # call immediately
 )
 @pytest.mark.django_db
-def test_transaction_clusterer_bumps_rules(_, default_organization):
+def test_span_descs_clusterer_bumps_rules(_, default_organization):
     with Feature("projects:span-metrics-extraction"), override_options(
         {"span_descs.bump-lifetime-sample-rate": 1.0}
     ):
