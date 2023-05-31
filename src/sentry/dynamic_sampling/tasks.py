@@ -224,18 +224,18 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
         log_sample_rate_source(
-            org_id, None, "prioritise_by_transaction", "sliding_window", sample_rate
+            org_id, project_id, "prioritise_by_transaction", "sliding_window", sample_rate
         )
     elif organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_prioritise_by_project_sample_rate(
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
         log_sample_rate_source(
-            org_id, None, "prioritise_by_transaction", "sliding_window_org", sample_rate
+            org_id, project_id, "prioritise_by_transaction", "prioritise_by_project", sample_rate
         )
     else:
         log_sample_rate_source(
-            org_id, None, "prioritise_by_transaction", "blended_sample_rate", sample_rate
+            org_id, project_id, "prioritise_by_transaction", "blended_sample_rate", sample_rate
         )
 
     if sample_rate is None or sample_rate == 1.0:
