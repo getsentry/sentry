@@ -29,7 +29,7 @@ def map_unresolved_none_substatus(apps, schema_editor):
         Group.objects.all().values_list("id", "status", "substatus"),
         result_value_getter=lambda item: item[0],
     ):
-        if status is not GroupStatus.UNRESOLVED and substatus is not None:
+        if status != GroupStatus.UNRESOLVED and substatus is not None:
             continue
 
         try:
