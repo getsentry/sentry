@@ -57,10 +57,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         OrganizationProjectsExperimentEndpoint, "should_add_creator_to_team", return_value=False
     )
     def test_not_authenticated(self, mock_add_creator):
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=400)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
+        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=401)
+        assert response.data == {"detail": "User is not authenticated"}
         mock_add_creator.assert_called_once()
 
     def test_missing_team_roles_flag(self):

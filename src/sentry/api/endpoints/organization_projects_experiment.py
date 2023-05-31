@@ -3,7 +3,7 @@ import random
 import string
 
 from django.db import IntegrityError, transaction
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -72,9 +72,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
         if not self.should_add_creator_to_team(request):
-            raise ValidationError(
-                {"detail": MISSING_PERMISSION_ERROR_STRING},
-            )
+            raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
         exposed = expt_manager.get(
