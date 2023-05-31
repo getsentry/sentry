@@ -156,6 +156,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         aggregate_kwargs: dict = {
             "log_level": "3",
             "has_stacktrace": "5",
+            "relative_volume": "1",
             "event_halflife_hours": "4",
             "issue_halflife_hours": "4",
             "v2": "true",
