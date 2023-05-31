@@ -15,6 +15,8 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
+    RedisRuleStore,
+    bump_last_used,
     get_redis_rules,
     get_rules,
     get_sorted_rules,
@@ -423,3 +425,91 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
         # After project options are updated, the last_seen should also be updated.
         assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
         assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
+
+
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch(
+    "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
+    wraps=cluster_projects_span_descs,  # call immediately
+)
+@pytest.mark.django_db
+def test_dont_store_inexisting_rules(_, default_organization):
+    with Feature("projects:span-metrics-extraction"), override_options(
+        {"span_descs.bump-lifetime-sample-rate": 1.0}
+    ):
+        rogue_span_payload = {
+            "spans": [
+                {
+                    "description": "GET domain/remains/to-scrub/remains",
+                    "op": "http.client",
+                    "data": {"description.scrubbed": "GET domain/remains/*/remains"},
+                }
+            ],
+            "_meta": {
+                "spans": {
+                    "0": {
+                        "data": {
+                            "description.scrubbed": {
+                                "": {
+                                    "rem": [
+                                        [
+                                            "description.scrubbed:**/i/am/a/rogue/rule/dont/store/me/**",
+                                            "s",
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        }
+
+        project1 = Project(id=234, name="project1", organization_id=default_organization.id)
+        project1.save()
+        for i in range(3):
+            _store_span_description(project1, f"/user/span_descs-{project1.name}-{i}/settings")
+
+        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
+            spawn_clusterers_span_descs()
+
+        record_span_descriptions(
+            project1,
+            rogue_span_payload,
+        )
+
+        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/user/*/**": 1}
+
+
+@pytest.mark.django_db
+def test_stale_rules_arent_saved(default_project):
+    assert len(get_sorted_rules(ClustererNamespace.SPANS, default_project)) == 0
+
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(ClustererNamespace.SPANS, default_project, [ReplacementRule("foo/foo")])
+    assert get_sorted_rules(ClustererNamespace.SPANS, default_project) == [("foo/foo", 946688400)]
+
+    with freeze_time("2000-02-02 02:00:00"):
+        update_rules(ClustererNamespace.SPANS, default_project, [ReplacementRule("bar/bar")])
+    assert get_sorted_rules(ClustererNamespace.SPANS, default_project) == [
+        ("bar/bar", 949456800),
+        ("foo/foo", 946688400),
+    ]
+
+    with freeze_time("2001-01-01 01:00:00"):
+        update_rules(ClustererNamespace.SPANS, default_project, [ReplacementRule("baz/baz")])
+    assert get_sorted_rules(ClustererNamespace.SPANS, default_project) == [("baz/baz", 978310800)]
+
+
+def test_bump_last_used():
+    """Redis update works and does not delete other keys in the set."""
+    project1 = Project(id=123, name="project1")
+    RedisRuleStore(namespace=ClustererNamespace.SPANS).write(project1, {"foo": 1, "bar": 2})
+    assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"foo": 1, "bar": 2}
+    with freeze_time("2000-01-01 01:00:00"):
+        bump_last_used(ClustererNamespace.SPANS, project1, "bar")
+    assert get_redis_rules(ClustererNamespace.SPANS, project1) == {
+        "foo": 1,
+        "bar": 946688400,
+    }
