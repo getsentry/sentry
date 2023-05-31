@@ -113,7 +113,7 @@ function CreateProject() {
             method: 'POST',
             data: {
               name: projectName,
-              platform: selectedPlatform,
+              platform: selectedPlatform.key,
               default_rules: defaultRules ?? true,
             },
           }
