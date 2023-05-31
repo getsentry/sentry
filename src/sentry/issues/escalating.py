@@ -343,7 +343,7 @@ def manage_issue_states(
                 sender=manage_issue_states,
                 was_until_escalating=True if has_forecast else False,
             )
-            if has_forecast:
+            if data and activity_data and has_forecast:  # Redundant checks needed for typing
                 data.update(activity_data)
             if data and snooze_details:
                 try:
