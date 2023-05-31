@@ -113,7 +113,7 @@
     "plugins": [
       // The styled plugin provides language server autocompletion for styled
       // component template strings
-      {"name": "typescript-styled-plugin"}
+      {"name": "@styled/typescript-styled-plugin"}
     ]
   },
   "include": ["../static/app", "../tests/js", "../fixtures/js-stubs"],

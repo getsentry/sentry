@@ -169,6 +169,7 @@
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/jest-environment": "^4.0.0",
+    "@styled/typescript-styled-plugin": "^1.0.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^8.0.1",
@@ -199,7 +200,6 @@
     "terser": "5.16.9",
     "tocbot": "^4.20.0",
     "tsconfig-paths": "^4.2.0",
-    "typescript-styled-plugin": "^0.18.2",
     "webpack-dev-server": "^4.13.2"
   },
   "optionalDependencies": {
