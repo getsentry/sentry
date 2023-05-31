@@ -97,7 +97,6 @@ export function SortByStep({
               <ResultsLimitSelector
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
-                menuPlacement="auto"
                 options={[...Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {

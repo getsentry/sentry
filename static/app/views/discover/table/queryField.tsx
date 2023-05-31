@@ -533,7 +533,6 @@ class QueryField extends Component<Props> {
           <SelectControl
             key="dropdown"
             name="dropdown"
-            menuPlacement="auto"
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
