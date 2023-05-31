@@ -218,7 +218,13 @@ class WithProgressBar:
             " ",
             progressbar.ETA(),
         ]
-        pbar = progressbar.ProgressBar(widgets=widgets, max_value=self.count)
+        pbar = progressbar.ProgressBar(
+            widgets=widgets,
+            max_value=self.count,
+            # The default update interval is every 0.1s,
+            # which for large migrations would easily logspam GoCD.
+            min_poll_interval=10,
+        )
         pbar.start()
         for idx, item in enumerate(self.iterator):
             yield item
