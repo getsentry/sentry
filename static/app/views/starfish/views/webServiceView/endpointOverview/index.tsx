@@ -316,9 +316,7 @@ function SpanMetricsTable({
 
   return (
     <SpansTable
-      location={location}
       moduleName={ModuleName.ALL}
-      queryConditions={queryConditions}
       isLoading={areSpansLoading || areSpansTrendsLoading}
       spansData={spansData}
       orderBy="count"
