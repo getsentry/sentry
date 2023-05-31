@@ -10,7 +10,6 @@ import {
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import isEmpty from 'lodash/isEmpty';
 import * as qs from 'query-string';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -56,6 +55,8 @@ import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
 import {Tab, TabPaths} from './types';
 import {
+  getGroupDetailsQueryData,
+  getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
@@ -89,25 +90,6 @@ type FetchGroupDetailsState = {
 interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsState {
   group: Group;
   project: Project;
-}
-
-function getGroupQuery({environments}: {environments: string[]}) {
-  const query: Record<string, string | string[]> = {
-    ...(!isEmpty(environments) ? {environment: environments} : {}),
-    expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
-  };
-
-  return query;
-}
-
-function getEventQuery({environments}: {environments: string[]}) {
-  const query = {
-    ...(!isEmpty(environments) ? {environment: environments} : {}),
-    collapse: ['fullRelease'],
-  };
-
-  return query;
 }
 
 function getFetchDataRequestErrorType(status?: number | null): Error {
@@ -277,7 +259,7 @@ function makeFetchGroupQueryKey({
   groupId,
   environments,
 }: FetchGroupQueryParameters): ApiQueryKey {
-  return [`/issues/${groupId}/`, {query: getGroupQuery({environments})}];
+  return [`/issues/${groupId}/`, {query: getGroupDetailsQueryData({environments})}];
 }
 
 /**
@@ -335,7 +317,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery(eventId, [eventUrl, {query: getEventQuery({environments})}]);
+  } = useEventApiQuery(eventId, [
+    eventUrl,
+    {query: getGroupEventDetailsQueryData({environments})},
+  ]);
 
   const {
     data: groupData,
@@ -712,6 +697,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
 
   if (errorFetchingProjects) {
     return <StyledLoadingError message={t('Error loading the specified project')} />;
+  }
+
+  if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
+    return (
+      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+    );
   }
 
   if (!projectsLoaded || !projectWithFallback || !props.group) {

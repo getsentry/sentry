@@ -25,6 +25,9 @@ const SPA_MODE_ALLOW_URLS = [
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
 const IGNORED_BREADCRUMB_FETCH_HOSTS = ['amplitude.com', 'reload.getsentry.net'];
 
+// Ignore analytics in spans as well
+const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
+
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
@@ -110,8 +113,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addUIElementTag(event);
 
       event.spans = event.spans?.filter(span => {
-        // Filter analytic timeout spans.
-        return ['reload.getsentry.net', 'amplitude.com'].every(
+        return IGNORED_SPANS_BY_DESCRIPTION.every(
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
@@ -164,6 +166,8 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
+
+      handlePossibleUndefinedResponseBodyErrors(event);
 
       return event;
     },
@@ -234,4 +238,21 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/** Tag and set fingerprint for UndefinedResponseBodyError events */
+function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
+  // One or both of these may be undefined, depending on the type of event
+  const [mainError, causeError] = event.exception?.values?.slice(-2).reverse() || [];
+
+  const mainErrorIsURBE = mainError?.type === 'UndefinedResponseBodyError';
+  const causeErrorIsURBE = causeError?.type === 'UndefinedResponseBodyError';
+
+  if (mainErrorIsURBE || causeErrorIsURBE) {
+    mainError.type = 'UndefinedResponseBodyError';
+    event.tags = {...event.tags, undefinedResponseBody: true};
+    event.fingerprint = mainErrorIsURBE
+      ? ['UndefinedResponseBodyError as main error']
+      : ['UndefinedResponseBodyError as cause error'];
+  }
 }

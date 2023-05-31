@@ -1360,6 +1360,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items and performance spans
     "organizations:sql-format": False,
+    # Enable prefetching of issues from the issue list when hovered
+    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Enable better priority sort algorithm.
