@@ -17,6 +17,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TAG_EXPLORER_COLUMN_ORDER} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
+import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {
   OverflowEllipsisTextContainer,
@@ -92,7 +93,7 @@ export function FacetInsights({eventView}: Props) {
     if (column.key === 'throughput' || column.key === 'p95') {
       return (
         <Sparkline
-          color={column.key === 'throughput' ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1]}
+          color={column.key === 'throughput' ? CHART_PALETTE[3][0] : P95_COLOR}
           series={row[column.key]}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
