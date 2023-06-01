@@ -712,3 +712,5 @@ register("sourcemaps.enable-artifact-bundles", default=0.0)
 register("txnames.bump-lifetime-sample-rate", default=0.1)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0)
+# Enables queue monitoring for backpressure management.
+register("backpressure.enable_monitor_queues", default=False)

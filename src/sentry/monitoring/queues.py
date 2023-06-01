@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.utils.functional import cached_property
 
+from sentry import options
 from sentry.utils import redis
 
 QUEUES = ["profiles.process"]
@@ -124,6 +125,8 @@ def unhealthy_queue_key(queue_name: str) -> str:
 
 
 def is_queue_healthy(queue_name: str) -> bool:
+    if not options.get("backpressure.enable_monitor_queues"):
+        return True
     # check if queue is healthy by pinging Redis
     return not queue_monitoring_cluster.exists(unhealthy_queue_key(queue_name))
 
@@ -150,6 +153,8 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
 
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
+        if not options.get("backpressure.enable_monitor_queues"):
+            continue
         # Get the sizes three times so we query each of the three
         # brokers (which are scheduled round-robin) and take the maxmimum size
         # of each queue.
@@ -173,8 +178,6 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
 
 def monitor_queues():
     if backend is None:
-        # TODO: log a warning here?
-        pass
-    else:
-        queue_stats_updater_process = Thread(target=_run_queue_stats_updater, args=(CLUSTER_NAME,))
-        queue_stats_updater_process.start()
+        return
+    queue_stats_updater_process = Thread(target=_run_queue_stats_updater, args=(CLUSTER_NAME,))
+    queue_stats_updater_process.start()
