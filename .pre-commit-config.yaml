@@ -58,8 +58,8 @@ repos:
       files: ^src/
       types: [ python ]
       require_serial: true
-      additional_dependencies: [ "pyright@1.1.186" ]
-      args: [ '--project', 'pyrightconfig-commithook.json' ]
+      additional_dependencies: [ "pyright@1.1.311" ]
+      args: [ '--project', 'config/pyrightconfig-commithook.json' ]
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.21.0
