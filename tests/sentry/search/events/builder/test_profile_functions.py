@@ -43,6 +43,21 @@ def params():
             Condition(Column("package"), Op("="), ""),
             id="empty package",
         ),
+        pytest.param(
+            '!package:""',
+            Condition(Column("package"), Op("!="), ""),
+            id="not empty package",
+        ),
+        pytest.param(
+            'function:""',
+            Condition(Column("name"), Op("="), ""),
+            id="empty function",
+        ),
+        pytest.param(
+            '!function:""',
+            Condition(Column("name"), Op("!="), ""),
+            id="not empty function",
+        ),
     ],
 )
 @pytest.mark.django_db
