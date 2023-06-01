@@ -26,6 +26,7 @@ class DatasetTest(SnubaTestCase, TestCase):  # type: ignore[misc]
             ],
             "aggregations": [["count()", "", "count"]],
             "consistent": False,
+            "tenant_ids": {"referrer": "search_issues", "organization_id": 1},
         }
         request = json_to_snql(json_body, "search_issues")
         request.validate()
