@@ -642,7 +642,7 @@ class SubscriptionProcessor:
         try:
             incident = Incident.objects.get(id=incident_trigger.incident_id)
         except Incident.DoesNotExist:
-            # TODO: increment metric??
+            metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
             return
 
         incident_activities = IncidentActivity.objects.filter(incident=incident)
