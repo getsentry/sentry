@@ -251,14 +251,8 @@ def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
-        elif group_category == GroupCategory.PERFORMANCE:
-            strategy = functools.partial(
-                _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
-            )
         else:
-            strategy = functools.partial(
-                _query_params_for_generic, categories=[GroupCategory.PROFILE]
-            )
+            strategy = functools.partial(_query_params_for_generic, categories=[group_category])
         strategies[group_category.value] = strategy
     return strategies
 
