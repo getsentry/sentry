@@ -106,6 +106,9 @@ export function ReleaseSearchBar({
                 <SearchInvalidTag
                   message={t("Wildcards aren't supported here.")}
                   docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                  highlightMessage={t(
+                    'For more information, please see the documentation'
+                  )}
                 />
               );
             }

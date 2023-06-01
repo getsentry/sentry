@@ -310,30 +310,23 @@ function DropdownItem({
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
     children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
-  } else if (item.type && invalidTypes.includes(item.type)) {
+  } else if (
+    item.type === ItemType.INVALID_TAG ||
+    item.type === ItemType.INVALID_TAG_VALUE ||
+    item.type === ItemType.INVALID_FREE_TEXT
+  ) {
     const customInvalidMessage = customInvalidTagMessage?.(item);
     children = customInvalidMessage ?? (
       <SearchInvalidTag
-        highlightMessage={
-          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
-            ? t('For more information, please see the documentation')
-            : undefined
-        }
         message={
-          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
-            ? t("Wildcards aren't supported here.")
-            : tct("The field [field] isn't supported here.", {
+          item.type === ItemType.INVALID_TAG
+            ? tct("The field [field] isn't supported here.", {
                 field: <code>{item.desc}</code>,
               })
+            : item.type === ItemType.INVALID_TAG_VALUE
+            ? t("The entered value isn't supported here.")
+            : t("The entered query isn't supported here.")
         }
-      />
-    );
-  } else if (item.type === ItemType.INVALID_FREE_TEXT_WITH_WILDCARD) {
-    children = (
-      <SearchInvalidTag
-        message={tct("Wildcards aren't supported here.", {
-          field: <code>{item.desc}</code>,
-        })}
       />
     );
   } else if (item.type === ItemType.LINK) {

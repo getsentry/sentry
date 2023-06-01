@@ -38,7 +38,6 @@ export type SearchItem = {
   children?: SearchItem[];
   deprecated?: boolean;
   desc?: string;
-  docLinkDescription?: string;
   documentation?: React.ReactNode;
   /**
    * The feature flag gating the search item
