@@ -62,7 +62,10 @@ import {
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
-import {SESSION_DURATION_ALERT} from 'sentry/views/dashboards/widgetCard';
+import {
+  SESSION_DURATION_ALERT,
+  WidgetDescription,
+} from 'sentry/views/dashboards/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
@@ -994,6 +997,9 @@ function WidgetViewerModal(props: Props) {
                   <Header closeButton>
                     <WidgetTitle>
                       <h3>{widget.title}</h3>
+                      {widget.description && (
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      )}
                       <DashboardsMEPConsumer>
                         {({}) => {
                           // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -1194,8 +1200,8 @@ const EmptyQueryContainer = styled('span')`
 
 const WidgetTitle = styled('div')`
   display: flex;
+  flex-direction: column;
   gap: ${space(1)};
-  align-items: center;
 `;
 
 export default withPageFilters(WidgetViewerModal);
