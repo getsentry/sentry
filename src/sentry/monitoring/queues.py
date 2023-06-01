@@ -155,15 +155,8 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
     while True:
         if not options.get("backpressure.enable_monitor_queues"):
             continue
-        # Get the sizes three times so we query each of the three
-        # brokers (which are scheduled round-robin) and take the maxmimum size
-        # of each queue.
-        sizes = [0 for queue in QUEUES]
-        for i in range(3):
-            new_sizes = backend.bulk_get_sizes(QUEUES)
-            sizes = [max(cur, new) for (cur, new) in zip(sizes, new_sizes)]
-
-        for (queue, size) in zip(QUEUES, sizes):
+        new_sizes = backend.bulk_get_sizes(QUEUES)
+        for (queue, size) in new_sizes:
             if _is_healthy(size):
                 queue_history[queue] = 0
             else:
