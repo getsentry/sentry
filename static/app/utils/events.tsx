@@ -15,7 +15,7 @@ import {
   IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {EntryType, Event, HasStacktrace} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
@@ -239,10 +239,14 @@ export function eventHasSourceMaps(event: Event) {
  * (rawStacktrace is backfilled by stacktrace processors after processing)
  */
 export function eventIsSymbolicated(event: Event) {
+  function isSymbolicated(withStacktrace: HasStacktrace) {
+    return !!withStacktrace.rawStacktrace && !!withStacktrace.stacktrace;
+  }
+
   return event.entries?.some(entry => {
     return (
-      entry.type === EntryType.EXCEPTION &&
-      entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
+      (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
+      entry.data.values?.some((value: HasStacktrace) => isSymbolicated(value))
     );
   });
 }

@@ -781,3 +781,6 @@ export type EventIdResponse = {
   organizationSlug: string;
   projectSlug: string;
 };
+
+// generic type for types with stacktraces
+export type HasStacktrace = Thread | ExceptionValue;
