@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db.models import F
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -15,6 +16,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberMapping,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -166,9 +168,10 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self.login_as(self.user)
 
-            om = OrganizationMember.objects.create(
-                email="newuser@example.com", token="abc", organization_id=self.organization.id
-            )
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.create(
+                    email="newuser@example.com", token="abc", organization_id=self.organization.id
+                )
             OrganizationMemberMapping.objects.create(
                 organization_id=101010, organizationmember_id=om.id
             )
@@ -202,16 +205,18 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self.login_as(self.user)
 
-            om = OrganizationMember.objects.create(
-                email="newuser@example.com", token="abc", organization_id=self.organization.id
-            )
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.create(
+                    email="newuser@example.com", token="abc", organization_id=self.organization.id
+                )
             OrganizationMemberMapping.objects.create(
                 organization_id=self.organization.id, organizationmember_id=om.id
             )
 
-            resp = self.client.get(
-                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-            )
+            with override_settings(SILO_MODE=SiloMode.CONTROL):
+                resp = self.client.get(
+                    reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+                )
             assert resp.status_code == 400
 
     def test_user_has_2fa(self):

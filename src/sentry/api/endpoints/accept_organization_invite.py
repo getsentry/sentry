@@ -57,7 +57,6 @@ class AcceptOrganizationInvite(Endpoint):
                 organization_id__in=list(member_mappings.keys())
             )
             for mapping in org_mappings:
-                member_mapping = member_mappings.get(mapping.organization_id)
                 try:
                     if (
                         SiloMode.get_current_mode() == SiloMode.MONOLITH
