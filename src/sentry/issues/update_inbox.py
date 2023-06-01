@@ -26,6 +26,9 @@ def update_inbox(
 
     Returns a boolean indicating whether or not the groups are now in the inbox.
     """
+    if not group_list:
+        return in_inbox
+
     if in_inbox:
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)

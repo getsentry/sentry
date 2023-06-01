@@ -26,6 +26,17 @@ class MarkReviewedTest(TestCase):  # type: ignore
         )
         assert not GroupInbox.objects.filter(group=self.group).exists()
 
+    def test_no_group_list(self) -> None:
+        update_inbox(
+            in_inbox=False,
+            group_list=[],
+            project_lookup=self.project_lookup,
+            acting_user=self.user,
+            http_referrer="",
+            sender=self,
+        )
+        assert GroupInbox.objects.filter(group=self.group).exists()
+
     def test_add_to_inbox(self) -> None:
         new_group = self.create_group()
         update_inbox(
