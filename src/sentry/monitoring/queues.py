@@ -120,7 +120,7 @@ except KeyError:
 queue_monitoring_cluster = redis.redis_clusters.get(CLUSTER_NAME)
 
 
-def unhealthy_queue_key(queue_name: str) -> str:
+def _unhealthy_queue_key(queue_name: str) -> str:
     return f"{KEY_NAME}:{queue_name}"
 
 
@@ -128,7 +128,7 @@ def is_queue_healthy(queue_name: str) -> bool:
     if not options.get("backpressure.enable_monitor_queues"):
         return True
     # check if queue is healthy by pinging Redis
-    return not queue_monitoring_cluster.exists(unhealthy_queue_key(queue_name))
+    return not queue_monitoring_cluster.exists(_unhealthy_queue_key(queue_name))
 
 
 def _is_healthy(queue_size) -> bool:
@@ -142,7 +142,7 @@ def _update_queue_stats(redis_cluster, unhealthy) -> None:
     with redis_cluster.pipeline(transaction=True) as pipeline:
         # can't use mset because it doesn't support expiry
         for queue in unhealthy:
-            pipeline.set(unhealthy_queue_key(queue), "1", ex=UNHEALTHY_QUEUE_CHECK_INTERVAL)
+            pipeline.set(_unhealthy_queue_key(queue), "1", ex=UNHEALTHY_QUEUE_CHECK_INTERVAL)
         pipeline.execute()
 
 
