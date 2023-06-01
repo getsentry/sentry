@@ -393,7 +393,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
         {
-          id: '123',
+          id: '124',
           type: GroupActivityType.SET_ESCALATING,
           data: {
             forecast: 400,
