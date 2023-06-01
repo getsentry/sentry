@@ -9,6 +9,7 @@ from django.conf import settings
 PROXY_BASE_PATH = "/api/0/internal/integration-proxy"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
+PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 
 INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [

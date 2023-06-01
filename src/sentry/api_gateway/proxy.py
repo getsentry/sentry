@@ -11,6 +11,7 @@ from requests.exceptions import Timeout
 from rest_framework.request import Request
 
 from sentry.api.exceptions import RequestTimeout
+from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
@@ -37,7 +38,7 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
         if not is_hop_by_hop(header):
             streamed_response[header] = value
 
-    streamed_response["X-Sentry-Proxy-URL"] = remote_url
+    streamed_response[PROXY_DIRECT_LOCATION_HEADER] = remote_url
     return streamed_response
 
 

@@ -9,7 +9,11 @@ from requests import Request, Response
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_CLIENT_HEADER, clean_outbound_headers, clean_proxy_headers
+from sentry.silo.util import (
+    PROXY_DIRECT_LOCATION_HEADER,
+    clean_outbound_headers,
+    clean_proxy_headers,
+)
 from sentry.types.region import Region, get_region_by_name
 
 
@@ -69,7 +73,7 @@ class BaseSiloClient(BaseApiClient):
         valid_headers = clean_outbound_headers(raw_response.headers)
         for header, value in valid_headers.items():
             http_response[header] = value
-        http_response[PROXY_CLIENT_HEADER] = full_url
+        http_response[PROXY_DIRECT_LOCATION_HEADER] = full_url
         return http_response
 
     def request(
