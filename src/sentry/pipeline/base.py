@@ -11,10 +11,10 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
