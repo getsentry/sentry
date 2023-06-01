@@ -25,6 +25,7 @@ from sentry.utils.sdk import configure_scope
 from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
 def get_installation_metadata(event, host):
@@ -55,7 +56,7 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
 
-    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
     def should_ignore_commit(self, commit):
@@ -72,7 +73,7 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
 
-    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
 
