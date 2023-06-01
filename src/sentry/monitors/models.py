@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -16,7 +15,6 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -30,13 +28,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.issues.grouptype import (
-    MonitorCheckInFailure,
-    MonitorCheckInMissed,
-    MonitorCheckInTimeout,
-)
 from sentry.locks import locks
-from sentry.models import Environment, Organization, Rule, RuleSource
+from sentry.models import Environment, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -457,6 +450,9 @@ class MonitorEnvironment(Model):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
+        from sentry.coreapi import insert_data_to_database_legacy
+        from sentry.event_manager import EventManager
+        from sentry.models import Project
         from sentry.signals import monitor_environment_failed
 
         if last_checkin is None:
@@ -485,84 +481,21 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
-        group_type, level = get_group_type_and_level(reason)
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
-
-        use_issue_platform = False
-        try:
-            organization = Organization.objects.get(id=self.monitor.organization_id)
-            use_issue_platform = features.has(
-                "organizations:issue-platform", organization=organization
-            ) and features.has("organizations:crons-issue-platform", organization=organization)
-        except Organization.DoesNotExist:
-            pass
-
-        if use_issue_platform:
-            from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-            from sentry.issues.producer import produce_occurrence_to_kafka
-
-            occurrence = IssueOccurrence(
-                id=uuid.uuid4().hex,
-                resource_id=None,
-                project_id=self.monitor.project_id,
-                event_id=uuid.uuid4().hex,
-                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
-                type=group_type,
-                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
-                subtitle="",
-                evidence_display=[
-                    IssueEvidence(name="Failure reason", value=reason, important=True),
-                    IssueEvidence(name="Environment", value=self.environment.name, important=False),
-                    IssueEvidence(
-                        name="Last check-in", value=last_checkin.isoformat(), important=False
-                    ),
-                ],
-                evidence_data={},
-                culprit="",
-                detection_time=current_timestamp,
-                level=level,
-            )
-
-            produce_occurrence_to_kafka(
-                occurrence,
-                {
-                    "environment": self.environment.name,
-                    "event_id": occurrence.event_id,
-                    "platform": "other",
-                    "project_id": self.monitor.project_id,
-                    "received": current_timestamp.isoformat(),
-                    "sdk": None,
-                    "tags": {
-                        "monitor.id": str(self.monitor.guid),
-                        "monitor.slug": self.monitor.slug,
-                    },
-                    "timestamp": current_timestamp.isoformat(),
-                },
-            )
-        else:
-            from sentry.coreapi import insert_data_to_database_legacy
-            from sentry.event_manager import EventManager
-            from sentry.models import Project
-
-            event_manager = EventManager(
-                {
-                    "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
-                    "contexts": {"monitor": get_monitor_environment_context(self)},
-                    "fingerprint": ["monitor", str(self.monitor.guid), reason],
-                    "environment": self.environment.name,
-                    # TODO: Both of these values should be get transformed from context to tags
-                    # We should understand why that is not happening and remove these when it correctly is
-                    "tags": {
-                        "monitor.id": str(self.monitor.guid),
-                        "monitor.slug": self.monitor.slug,
-                    },
-                },
-                project=Project(id=self.monitor.project_id),
-            )
-            event_manager.normalize()
-            data = event_manager.get_data()
-            insert_data_to_database_legacy(data)
-
+        event_manager = EventManager(
+            {
+                "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
+                "contexts": {"monitor": get_monitor_environment_context(self)},
+                "fingerprint": ["monitor", str(self.monitor.guid), reason],
+                "environment": self.environment.name,
+                # TODO: Both of these values should be get transformed from context to tags
+                # We should understand why that is not happening and remove these when it correctly is
+                "tags": {"monitor.id": str(self.monitor.guid), "monitor.slug": self.monitor.slug},
+            },
+            project=Project(id=self.monitor.project_id),
+        )
+        event_manager.normalize()
+        data = event_manager.get_data()
+        insert_data_to_database_legacy(data)
         monitor_environment_failed.send(monitor_environment=self, sender=type(self))
         return True
 
@@ -575,15 +508,6 @@ class MonitorEnvironment(Model):
             params["status"] = MonitorStatus.OK
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
-
-
-def get_group_type_and_level(reason: str):
-    if reason == MonitorFailure.MISSED_CHECKIN:
-        return MonitorCheckInMissed, "warning"
-    elif reason == MonitorFailure.DURATION:
-        return MonitorCheckInTimeout, "error"
-
-    return MonitorCheckInFailure, "error"
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
