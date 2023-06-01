@@ -23,6 +23,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 logger = logging.getLogger(__name__)
 
 ALREADY_ENROLLED_ERR = {"details": "Already enrolled"}
+INVALID_AUTH_STATE = {"details": "Invalid auth state"}
 INVALID_OTP_ERR = ({"details": "Invalid OTP"},)
 SEND_SMS_ERR = {"details": "Error sending SMS"}
 DISALLOWED_NEW_ENROLLMENT_ERR = {
@@ -246,7 +247,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # Try u2f enrollment
         if interface_id == "u2f":
-            # What happens when this fails?
+            if "webauthn_register_state" not in request.session:
+                return Response(INVALID_AUTH_STATE, status=status.HTTP_400_BAD_REQUEST)
             state = request.session["webauthn_register_state"]
             interface.try_enroll(
                 serializer.data["challenge"],
