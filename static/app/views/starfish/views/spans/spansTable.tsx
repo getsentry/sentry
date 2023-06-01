@@ -6,22 +6,29 @@ import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {
+  ApplicationMetrics,
+  useApplicationMetrics,
+} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {
+  DurationTrendCell,
+  TimeSpentCell,
+} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Props = {
   isLoading: boolean;
@@ -30,7 +37,7 @@ type Props = {
   orderBy: string;
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
-  columnOrder?: GridColumnOrder[];
+  columnOrder?: TableColumnHeader[];
 };
 
 export type SpanDataRow = {
@@ -52,6 +59,19 @@ export type SpanTrendDataRow = {
   percentile_value: string;
   span_operation: string;
 };
+
+export type Keys =
+  | 'description'
+  | 'p50_trend'
+  | 'p95_trend'
+  | 'throughput_trend'
+  | 'span_operation'
+  | 'domain'
+  | 'epm()'
+  | 'p95(span.self_time)'
+  | 'timeSpent'
+  | 'total_exclusive_time';
+export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
   moduleName,
@@ -113,7 +133,7 @@ export default function SpansTable({
     );
     return {
       ...spanData,
-      app_impact: formatPercentage(
+      timeSpent: formatPercentage(
         spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
       ),
       p50_trend: zeroFilledP50,
@@ -128,11 +148,12 @@ export default function SpansTable({
       data={combinedSpansData}
       columnOrder={columnOrder ?? getColumns(moduleName)}
       columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
+        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, theme),
+        renderBodyCell: (column, row) =>
+          renderBodyCell(column, row, theme, applicationMetrics),
       }}
       location={location}
     />
@@ -140,7 +161,7 @@ export default function SpansTable({
 }
 
 function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => void) {
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  function renderHeadCell(column: TableColumnHeader): React.ReactNode {
     return (
       <SortLink
         align="left"
@@ -163,9 +184,10 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 }
 
 function renderBodyCell(
-  column: GridColumnHeader,
+  column: TableColumnHeader,
   row: SpanDataRow,
-  theme: Theme
+  theme: Theme,
+  applicationMetrics: ApplicationMetrics
 ): React.ReactNode {
   if (column.key === 'throughput_trend' && row[column.key]) {
     const horizontalLine = generateHorizontalLine(
@@ -183,32 +205,25 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'p50_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${getDuration(row.p50 / 1000, 2, true)}`,
-      row.p50,
-      theme
-    );
+  if (column.key === 'p95_trend' && row[column.key]) {
     return (
-      <Sparkline
-        color={DURATION_COLOR}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
+      <DurationTrendCell
+        color={P95_COLOR}
+        duration={row.p95}
+        durationSeries={row[column.key]}
       />
     );
   }
 
   if (column.key === 'description') {
+    const description = row.description;
     return (
       <OverflowEllipsisTextContainer>
         <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
-            <StyledFormattedCode>
-              {(row as unknown as SpanDataRow).formatted_desc}
-            </StyledFormattedCode>
+            <StyledFormattedCode>{description}</StyledFormattedCode>
           ) : (
-            row.description || '<null>'
+            description || '<null>'
           )}
         </Link>
       </OverflowEllipsisTextContainer>
@@ -217,6 +232,16 @@ function renderBodyCell(
 
   if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
     return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  }
+
+  if (column.key === 'timeSpent') {
+    return (
+      <TimeSpentCell
+        formattedTimeSpent={row[column.key]}
+        totalAppTime={applicationMetrics['sum(span.duration)']}
+        totalSpanTime={row.total_exclusive_time}
+      />
+    );
   }
 
   return row[column.key];
@@ -264,12 +289,12 @@ function getDescriptionHeader(moduleName: ModuleName) {
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName): GridColumnOrder[] {
+function getColumns(moduleName: ModuleName): TableColumnHeader[] {
   const description = getDescriptionHeader(moduleName);
 
   const domain = getDomainHeader(moduleName);
 
-  const order: Array<GridColumnOrder | false> = [
+  const order: TableColumnHeader[] = [
     {
       key: 'span_operation',
       name: 'Operation',
@@ -280,29 +305,33 @@ function getColumns(moduleName: ModuleName): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    moduleName !== ModuleName.ALL && {
-      key: 'domain',
-      name: domain,
-      width: COL_WIDTH_UNDEFINED,
-    },
+    ...(moduleName !== ModuleName.ALL
+      ? [
+          {
+            key: 'domain',
+            name: domain,
+            width: COL_WIDTH_UNDEFINED,
+          } as TableColumnHeader,
+        ]
+      : []),
     {
       key: 'throughput_trend',
       name: 'Throughput',
       width: 175,
     },
     {
-      key: 'p50_trend',
-      name: 'Duration (p50)',
+      key: 'p95_trend',
+      name: DataTitles.p95,
       width: 175,
     },
     {
-      key: 'app_impact',
-      name: 'App Impact',
+      key: 'timeSpent',
+      name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
     },
   ];
 
-  return order.filter((x): x is GridColumnOrder => Boolean(x));
+  return order;
 }
 
 const StyledFormattedCode = styled(FormattedCode)`

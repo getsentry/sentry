@@ -1213,6 +1213,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Use issue platform for crons issues
+    "organizations:crons-issue-platform": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1480,6 +1482,12 @@ SENTRY_FEATURES = {
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
+    # Enable the sliding window per project
+    "organizations:ds-sliding-window": False,
+    # Enable the sliding window per org
+    "organizations:ds-sliding-window-org": False,
+    # Enable new project/org boost
+    "organizations:ds-boost-new-projects": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
@@ -1525,10 +1533,10 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # Enable sliding window for dynamic sampling
-    "organizations:ds-sliding-window": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
+    # If true, allow to create/use org access tokens
+    "organizations:org-access-tokens": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
