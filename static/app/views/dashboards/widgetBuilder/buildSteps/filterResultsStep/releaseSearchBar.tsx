@@ -6,8 +6,6 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
-import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, SavedSearchType, Tag, TagValue} from 'sentry/types';
@@ -99,20 +97,6 @@ export function ReleaseSearchBar({
             [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
               "Release queries don't support wildcards."
             ),
-          }}
-          customInvalidTagMessage={item => {
-            if (item.type === ItemType.INVALID_FREE_TEXT && item.desc?.includes('*')) {
-              return (
-                <SearchInvalidTag
-                  message={t("Wildcards aren't supported here.")}
-                  docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
-                  highlightMessage={t(
-                    'For more information, please see the documentation'
-                  )}
-                />
-              );
-            }
-            return null;
           }}
           hasRecentSearches
           highlightUnsupportedTags

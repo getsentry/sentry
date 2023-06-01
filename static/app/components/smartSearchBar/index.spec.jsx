@@ -798,18 +798,14 @@ describe('SmartSearchBar', function () {
     // Value
     await userEvent.type(textbox, 'release:*');
     expect(
-      await screen.findByRole('option', {
-        name: /The entered query isn't supported here./i,
-      })
+      await screen.findByRole('option', {name: /Wildcards aren't supported here/i})
     ).toBeInTheDocument();
     await userEvent.clear(textbox);
 
     // FreeText
     await userEvent.type(textbox, 'rel*ease');
     expect(
-      await screen.findByRole('option', {
-        name: /The entered query isn't supported here./i,
-      })
+      await screen.findByRole('option', {name: /Wildcards aren't supported here/i})
     ).toBeInTheDocument();
   });
 
