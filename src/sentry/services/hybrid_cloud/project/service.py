@@ -24,6 +24,11 @@ class ProjectService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
+    def get_option(self, *, project: RpcProject, key: str) -> Union[str, int, bool]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
+    @abstractmethod
     def set_option(self, *, project: RpcProject, key: str, value: Union[str, int, bool]) -> None:
         pass
 

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from sentry import options
-from sentry.models import ProjectOption, UserOption
+from sentry.models import Project, ProjectOption, UserOption
+from sentry.services.hybrid_cloud.project import RpcProject, project_service
 
 __all__ = ("set_option", "get_option", "unset_option")
-
-from sentry.services.hybrid_cloud.project import RpcProject, project_service
 
 
 def reset_options(prefix, project=None, user=None):
@@ -19,7 +20,7 @@ def reset_options(prefix, project=None, user=None):
         raise NotImplementedError
 
 
-def set_option(key, value, project=None, user=None):
+def set_option(key, value, project: Project | RpcProject | None = None, user=None):
     if user:
         result = UserOption.objects.set_value(user=user, key=key, value=value, project=project)
     elif project:
@@ -33,11 +34,14 @@ def set_option(key, value, project=None, user=None):
     return result
 
 
-def get_option(key, project=None, user=None):
+def get_option(key, project: Project | RpcProject | None = None, user=None):
     if user:
         result = UserOption.objects.get_value(user, key, project=project)
     elif project:
-        result = ProjectOption.objects.get_value(project, key, None)
+        if isinstance(project, RpcProject):
+            result = project_service.get_option(project=project, key=key)
+        else:
+            result = ProjectOption.objects.get_value(project, key, None)
     else:
         result = options.get(key)
 
