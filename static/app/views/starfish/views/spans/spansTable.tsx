@@ -13,8 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
+import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
@@ -209,7 +208,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={DURATION_COLOR}
+        color={P50_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
@@ -221,13 +220,7 @@ function renderBodyCell(
     const description = row.description;
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span/${row.group_id}`}>
-          {row.span_operation === 'db' ? (
-            <StyledFormattedCode>{description}</StyledFormattedCode>
-          ) : (
-            description || '<null>'
-          )}
-        </Link>
+        <Link to={`/starfish/span/${row.group_id}`}>{description || '<null>'}</Link>
       </OverflowEllipsisTextContainer>
     );
   }
@@ -300,7 +293,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
     {
       key: 'span_operation',
       name: 'Operation',
-      width: COL_WIDTH_UNDEFINED,
+      width: 120,
     },
     {
       key: 'description',
@@ -323,7 +316,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
     },
     {
       key: 'p50_trend',
-      name: 'Duration (p50)',
+      name: DataTitles.p50,
       width: 175,
     },
     {
@@ -335,11 +328,6 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
 
   return order;
 }
-
-const StyledFormattedCode = styled(FormattedCode)`
-  background: none;
-  text-overflow: ellipsis;
-`;
 
 export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
