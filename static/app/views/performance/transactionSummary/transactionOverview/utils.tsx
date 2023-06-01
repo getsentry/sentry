@@ -43,7 +43,7 @@ export function getTransactionMEPParamsIfApplicable(
     return undefined;
   }
 
-  return getMEPQueryParams(mepSetting, false);
+  return getMEPQueryParams(mepSetting, true);
 }
 
 export function getUnfilteredTotalsEventView(

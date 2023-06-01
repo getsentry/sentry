@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -80,10 +81,20 @@ function TransactionOverview(props: Props) {
         tab={Tab.TransactionSummary}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={OverviewContentWrapper}
+        childComponent={CardinalityLoadingWrapper}
       />
     </MEPSettingProvider>
   );
+}
+
+function CardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OverviewContentWrapper {...props} />;
 }
 
 function OverviewContentWrapper(props: ChildProps) {
@@ -97,9 +108,9 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
 
+  const mepContext = useMEPDataContext();
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();
-  const mepContext = useMEPDataContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
     mepSetting,
     mepCardinalityContext,
