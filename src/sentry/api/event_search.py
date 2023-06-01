@@ -1131,6 +1131,7 @@ default_config = SearchConfig(
         "error.unhandled",
         "error.main_thread",
         "stack.in_app",
+        "is_application",
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )

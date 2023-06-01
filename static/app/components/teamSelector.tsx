@@ -17,7 +17,6 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useTeams} from 'sentry/utils/useTeams';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -212,12 +211,7 @@ function TeamSelector(props: Props) {
   }
 
   function getOptions() {
-    const isSuperuser = isActiveSuperuser();
-    const filteredTeams = isSuperuser
-      ? teams
-      : teamFilter
-      ? teams.filter(teamFilter)
-      : teams;
+    const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
 
     if (project) {
       const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
