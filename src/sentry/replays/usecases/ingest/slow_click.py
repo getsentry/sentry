@@ -32,8 +32,9 @@ def report_slow_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         subtitle=payload["message"],
         timestamp=timestamp,
         extra_event_data={
+            "contexts": {"replay": {"replay_id": replay_id}},
             "level": "info",
-            "tags": {"replay_id": replay_id},
+            "tags": {"replayId": replay_id},
             "user": {
                 "id": "1",
                 "username": "Test User",
