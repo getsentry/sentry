@@ -364,8 +364,22 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
             release_id=release.id,
+            file=File.objects.create(name="incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/incorrect_application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="~/dist/static/js/application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="also_incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/also_incorrect_application.js",
         )
 
         resp = self.get_success_response(
@@ -385,7 +399,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/static/js/application.js",
             "unifiedPath": "~/static/js/application.js",
             "urlPrefix": "~/dist",
-            "artifactNames": ["~/dist/static/js/application.js"],
+            "artifactNames": [
+                "~/dist/static/js/also_incorrect_application.js",
+                "~/dist/static/js/application.js",
+                "~/dist/static/js/incorrect_application.js",
+            ],
         }
 
     def test_no_url_match(self):
