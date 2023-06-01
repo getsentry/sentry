@@ -145,7 +145,7 @@ class TestPrToIssueQuery(TestCase):
         """PRs that are too old should be omitted"""
 
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit, date_added=iso_format(before_now(days=30, seconds=1)))
+        self.add_pr_to_commit(commit, date_added=iso_format(before_now(days=31)))
         self.add_groupowner_to_commit(commit, self.project, self.user)
 
         results = pr_comment.pr_to_issue_query()
