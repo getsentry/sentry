@@ -153,15 +153,13 @@ function CreateProject() {
           addSuccessMessage(
             tct('Created project [project]', {
               project: `${projectData.slug}`,
-              organization: organization.slug,
             })
           );
         } else {
           addSuccessMessage(
-            tct('Created project [project] under new team [team]', {
+            tct('Created project [project] and added it to new team [team]', {
               project: `${projectData.slug}`,
               team: `#${projectData.team_slug}`,
-              organization: organization.slug,
             })
           );
         }
@@ -175,9 +173,8 @@ function CreateProject() {
         setInFlight(false);
         setErrors(err.responseJSON);
         addErrorMessage(
-          tct('Unable to create [project] in the [organization] organization', {
-            project: `#${projectName}`,
-            organization: organization.slug,
+          tct('Failed to create project [project]', {
+            project: `${projectName}`,
           })
         );
 
