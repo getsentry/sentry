@@ -31,12 +31,12 @@ def new_issue_occurrence(
         issue_title=title,
         subtitle=subtitle,
         resource_id=None,
-        evidence_data=[],
+        evidence_data={},
         evidence_display=[],
         type=issue_type,
         detection_time=timestamp,
         level="info",
-        culprit=None,
+        culprit="user",
     )
 
     event_data = {
