@@ -149,15 +149,15 @@ function CreateProject() {
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
         addSuccessMessage(
-          tct('Created [project] in the [organization] organization', {
+          tct('Created project [project]', {
             project: `#${projectData.slug}`,
             organization: organization.slug,
           })
         );
-        if (team) {
+        if (!team) {
           addSuccessMessage(
             tct('[team] has been added to the [organization] organization', {
-              team: `#${data.slug}`,
+              team: `#${projectData.team_slug}`,
               organization: organization.slug,
             })
           );
