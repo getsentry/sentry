@@ -14,7 +14,6 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
@@ -219,13 +218,7 @@ function renderBodyCell(
     const description = row.description;
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span/${row.group_id}`}>
-          {row.span_operation === 'db' ? (
-            <StyledFormattedCode>{description}</StyledFormattedCode>
-          ) : (
-            description || '<null>'
-          )}
-        </Link>
+        <Link to={`/starfish/span/${row.group_id}`}>{description || '<null>'}</Link>
       </OverflowEllipsisTextContainer>
     );
   }
@@ -298,7 +291,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
     {
       key: 'span_operation',
       name: 'Operation',
-      width: COL_WIDTH_UNDEFINED,
+      width: 120,
     },
     {
       key: 'description',
@@ -333,11 +326,6 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
 
   return order;
 }
-
-const StyledFormattedCode = styled(FormattedCode)`
-  background: none;
-  text-overflow: ellipsis;
-`;
 
 export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
