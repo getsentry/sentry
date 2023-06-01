@@ -18,6 +18,7 @@ class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
     PROFILE = 3
+    MONITOR = 4
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -335,6 +336,32 @@ class ProfileViewIsSlowType(GroupType):
     slug = "profile_view_is_slow"
     description = "View Render/Layout/Update is slow"
     category = GroupCategory.PERFORMANCE.value
+
+
+class MonitorCheckInFailure(GroupType):
+    type_id = 4001
+    slug = "monitor_check_in_failure"
+    description = "Monitor Check In Failed"
+    category = GroupCategory.MONITOR.value
+    released = True
+
+
+@dataclass(frozen=True)
+class MonitorCheckInTimeout(GroupType):
+    type_id = 4002
+    slug = "monitor_check_in_timeout"
+    description = "Monitor Check In Timeout"
+    category = GroupCategory.MONITOR.value
+    released = True
+
+
+@dataclass(frozen=True)
+class MonitorCheckInMissed(GroupType):
+    type_id = 4003
+    slug = "monitor_check_in_missed"
+    description = "Monitor Check In Missed"
+    category = GroupCategory.MONITOR.value
+    released = True
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)

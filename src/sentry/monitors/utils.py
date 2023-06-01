@@ -112,7 +112,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             }
         ],
         "frequency": 1440,
-        "name": f"{monitor.name} Monitor Alert (All environments) - All members",
+        "name": f"Monitor Alert: {monitor.name}"[:64],
         "owner": None,
         "projects": [project.slug],
         "snooze": False,
