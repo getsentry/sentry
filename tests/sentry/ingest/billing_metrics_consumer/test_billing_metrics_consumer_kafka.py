@@ -76,7 +76,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123456,
             "value": [4.0],
-            "tags": {f"{(1 << 63) + 300}": "true"},
+            "tags": {f"{(1 << 63) + 252}": "true"},
         },
     ]
 
