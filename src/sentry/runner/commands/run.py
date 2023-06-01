@@ -491,6 +491,7 @@ def query_subscription_consumer(**options):
         processes=options["processes"],
         input_block_size=options["input_block_size"],
         output_block_size=options["output_block_size"],
+        multi_proc=True,
     )
     run_processor_with_signals(subscriber)
 
