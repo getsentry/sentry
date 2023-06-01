@@ -185,11 +185,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         abs_path = frame.abs_path
         return frame, filename, abs_path
 
-    def _find_matches(self, release_artifacts, unified_path, filename, release, event):
+    def _find_matches(self, release_artifacts, abs_path, unified_path, filename, release, event):
         full_matches = [
             artifact
             for artifact in release_artifacts
-            if artifact.name == unified_path
+            if (artifact.name == unified_path or artifact.name == abs_path)
             and self._verify_dist_matches(release, event, artifact, filename)
         ]
         partial_matches = self._find_partial_matches(unified_path, release_artifacts)
@@ -235,7 +235,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     ):
         unified_path = self._unify_url(urlparts)
         full_matches, partial_matches = self._find_matches(
-            release_artifacts, unified_path, filename, release, event
+            release_artifacts, abs_path, unified_path, filename, release, event
         )
 
         artifact_names = [artifact.name for artifact in release_artifacts]
