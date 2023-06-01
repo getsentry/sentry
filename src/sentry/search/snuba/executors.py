@@ -514,11 +514,12 @@ def better_priority_aggregation(
     )
     event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"  # values from [0, 1]
 
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+
     v2 = aggregate_kwargs["v2"]
 
     if not v2:
         aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
-        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
         return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
     else:
         #  * apply log to event score summation to clamp the contribution of event scores to a reasonable maximum
@@ -560,13 +561,12 @@ def better_priority_aggregation(
             f"divide({event_count_60_mins}, plus({avg_hourly_event_count_last_7_days}, 1))"
         )
         scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
-        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
         normalize = aggregate_kwargs["norm"]
 
         if not normalize:
             return [
-                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), greatest({min_score}, {scaled_relative_volume_score}))",
+                f"multiply(multiply({aggregate_issue_score}, greatest({min_score}, {aggregate_event_score})), greatest({min_score}, {scaled_relative_volume_score}))",
                 "",
             ]
         else:
