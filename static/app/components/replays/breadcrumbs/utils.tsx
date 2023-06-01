@@ -49,9 +49,18 @@ export function getDescription(crumb: Crumb) {
 
   if (crumb.category === 'ui.slowClickDetected') {
     const node = crumbData!.node as {attributes: Record<string, string>; tagName: string};
+    if (crumbData!.endReason !== 'timeout') {
+      return t(
+        'Click on %s took %s ms to have a visible effect',
+        stringifyNodeAttributes(node.tagName, node.attributes),
+        crumbData!.timeAfterClickMs
+      );
+    }
+
     return t(
-      'A click on %s took %s ms to respond to',
-      stringifyNodeAttributes(node.tagName, node.attributes)
+      'Click on %s did not cause a visible effect within %s ms',
+      stringifyNodeAttributes(node.tagName, node.attributes),
+      crumbData!.timeAfterClickMs
     );
   }
 
