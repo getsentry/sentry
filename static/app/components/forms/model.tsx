@@ -292,7 +292,7 @@ class FormModel {
     return fieldState[key];
   }
 
-  getValue<T = FieldValue>(id: string, defaltValue?: T): T {
+  getValue<T = FieldValue>(id: string, defaultValue?: T): T {
     if (this.fields.has(id)) {
       return this.fields.get(id) as T;
     }
@@ -300,7 +300,7 @@ class FormModel {
     // XXX(epurkhiser): When you don't specify a default value it WILL become a
     // empty string, which is not correctly accounted for in the types. We're
     // doing this for legacy reasons
-    return defaltValue ?? ('' as T);
+    return defaultValue ?? ('' as T);
   }
 
   getTransformedValue(id: string) {

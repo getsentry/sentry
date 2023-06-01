@@ -23,6 +23,7 @@ import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -277,7 +278,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <MiniChartPanel title={t('Error Rate')}>
               {renderFailureRateChart()}
             </MiniChartPanel>
-            <MiniChartPanel title={t('Duration')}>
+            <MiniChartPanel title={DataTitles.p50p95}>
               {renderEndpointPercentileChart()}
             </MiniChartPanel>
             <MiniChartPanel title={t('Throughput')}>

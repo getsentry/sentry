@@ -1,9 +1,10 @@
 import logging
 import random
 import string
+from email.headerregistry import Address
 
 from django.db import IntegrityError, transaction
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -27,9 +28,13 @@ CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
 MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
 
 
-def _generate_suffix():
+def _generate_suffix() -> str:
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for _ in range(3))
+
+
+def fetch_email_username(email: str) -> str:
+    return Address(addr_spec=email).username
 
 
 # This endpoint is intended to be available to all members of an
@@ -72,9 +77,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
         if not self.should_add_creator_to_team(request):
-            raise ValidationError(
-                {"detail": MISSING_PERMISSION_ERROR_STRING},
-            )
+            raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
         exposed = expt_manager.get(
@@ -88,8 +91,11 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         ):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
+        # parse the email to retrieve the username before the "@"
+        parsed_email = fetch_email_username(request.user.email)
+
         project_name = result["name"]
-        default_team_slug = f"default-team-{request.user.username}"
+        default_team_slug = f"team-{parsed_email}"
         suffixed_team_slug = default_team_slug
 
         # attempt to a maximum of 5 times to add a suffix to team slug until it is unique

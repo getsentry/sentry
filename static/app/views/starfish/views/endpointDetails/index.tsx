@@ -32,6 +32,7 @@ import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 export type EndpointDataRow = {
   count: number;
@@ -169,7 +170,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
       <pre>{row?.domain}</pre>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Duration (P50)')}</SubHeader>
+          <SubHeader>{DataTitles.p50}</SubHeader>
           <SubSubHeader>
             <Duration
               seconds={row['p50(span.self_time)'] / 1000}
