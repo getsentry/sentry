@@ -237,6 +237,13 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# Whether to allow slow click issue ingest or not.
+register(
+    "replay.issues.slow_click",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
