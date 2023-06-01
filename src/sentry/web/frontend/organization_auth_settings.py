@@ -192,7 +192,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request: Request, organization) -> Response:
+    def handle(self, request: Request, organization: RpcOrganization) -> Response:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:

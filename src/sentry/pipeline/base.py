@@ -100,6 +100,12 @@ class Pipeline(abc.ABC):
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
+        if organization is not None and not isinstance(organization, RpcOrganization):
+            raise TypeError(
+                f"Pipeline can't be initialized with {type(organization)!r} "
+                "(RpcOrganization is required)"
+            )
+
         self.request = request
         self.organization = organization
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)

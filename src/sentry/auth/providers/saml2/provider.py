@@ -16,6 +16,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
@@ -110,21 +111,22 @@ class SAML2AcceptACSView(BaseView):
         # IdP initiated authentication. The organization_slug must be valid and
         # an auth provider must exist for this organization to proceed with
         # IdP initiated SAML auth.
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        org_context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=False
+        )
+        if org_context is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
         try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+            auth_provider = AuthProvider.objects.get(organization_id=org_context.organization.id)
         except AuthProvider.DoesNotExist:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
         helper = AuthHelper(
             request=request,
-            organization=organization,
+            organization=(org_context.organization),
             auth_provider=auth_provider,
             flow=AuthHelper.FLOW_LOGIN,
         )

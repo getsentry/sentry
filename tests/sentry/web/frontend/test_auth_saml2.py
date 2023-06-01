@@ -16,7 +16,7 @@ from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organizatio
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 dummy_provider_config = {
     "idp": {
@@ -45,7 +45,7 @@ class DummySAML2Provider(SAML2Provider):
 
 
 @pytest.mark.skipif(not HAS_SAML2, reason="SAML2 library is not installed")
-@control_silo_test
+@control_silo_test(stable=True)
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
@@ -209,7 +209,8 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_setup(self, auth_log):
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
-        self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        with exempt_from_silo_limits():
+            self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set
 
         self.auth_provider.delete()
