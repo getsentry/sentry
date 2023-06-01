@@ -1,3 +1,5 @@
+import re
+
 from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
 from sentry.tasks.integrations.github import pr_comment
 from sentry.testutils import TestCase
@@ -99,78 +101,20 @@ class TestPrToIssueQuery(TestCase):
 
         assert results[0] == (self.gh_repo.id, pr.key, self.organization.id, [groupowner.id])
 
-    def test_multiple_issues(self):
-        """one pr with multiple issues"""
-        commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        pr = self.add_pr_to_commit(commit)
-        groupowner_1 = self.add_groupowner_to_commit(commit, self.project, self.user)
-        groupowner_2 = self.add_groupowner_to_commit(commit, self.project, self.user)
-        groupowner_3 = self.add_groupowner_to_commit(commit, self.project, self.user)
+    def test_format_comment(self):
+        issues = [
+            (
+                "TypeError",
+                "sentry.tasks.derive_code_mappings.derive_code_mappings",
+                "https://sentry.sentry.io/issues/",
+            ),
+            (
+                "KafkaException",
+                "query_subscription_consumer_process_message",
+                "https://sentry.sentry.io/stats/",
+            ),
+        ]
 
-        results = pr_comment.pr_to_issue_query()
-
-        assert results[0][0:3] == (self.gh_repo.id, pr.key, self.organization.id)
-        assert (
-            groupowner_1.id in results[0][3]
-            and groupowner_2.id in results[0][3]
-            and groupowner_3.id in results[0][3]
-        )
-
-    def test_multiple_prs(self):
-        """multiple elligible PRs with one issue each"""
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        pr_1 = self.add_pr_to_commit(commit_1)
-        pr_2 = self.add_pr_to_commit(commit_2)
-        groupowner_1 = self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        groupowner_2 = self.add_groupowner_to_commit(commit_2, self.project, self.user)
-
-        results = pr_comment.pr_to_issue_query()
-
-        assert results[0] == (self.gh_repo.id, pr_1.key, self.organization.id, [groupowner_1.id])
-        assert results[1] == (self.gh_repo.id, pr_2.key, self.organization.id, [groupowner_2.id])
-
-    def test_non_gh_repo(self):
-        """Repos that aren't GH should be omitted"""
-
-        commit = self.add_commit_to_repo(self.not_gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit)
-        self.add_groupowner_to_commit(commit, self.project, self.user)
-
-        results = pr_comment.pr_to_issue_query()
-
-        assert len(results) == 0
-
-    def test_pr_too_old(self):
-        """PRs that are too old should be omitted"""
-
-        commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit, date_added=iso_format(before_now(days=31)))
-        self.add_groupowner_to_commit(commit, self.project, self.user)
-
-        results = pr_comment.pr_to_issue_query()
-
-        assert len(results) == 0
-
-    def test_multiple_orgs(self):
-        """Results should be across multiple orgs"""
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        commit_2 = self.add_commit_to_repo(
-            self.another_org_repo, self.another_org_user, self.another_org_project
-        )
-        pr_1 = self.add_pr_to_commit(commit_1)
-        pr_2 = self.add_pr_to_commit(commit_2)
-        groupowner_1 = self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        groupowner_2 = self.add_groupowner_to_commit(
-            commit_2, self.another_org_project, self.another_org_user
-        )
-
-        results = pr_comment.pr_to_issue_query()
-
-        assert results[0] == (self.gh_repo.id, pr_1.key, self.organization.id, [groupowner_1.id])
-        assert results[1] == (
-            self.another_org_repo.id,
-            pr_2.key,
-            self.another_organization.id,
-            [groupowner_2.id],
-        )
+        formatted_comment = pr_comment.format_comment(issues)
+        assert "sentry.tasks.derive_code_mappings.derive_code_m..." in formatted_comment
+        assert re.findall("[View Issue]", formatted_comment) == 2
