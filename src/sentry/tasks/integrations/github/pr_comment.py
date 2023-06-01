@@ -6,7 +6,7 @@ from sentry.models import GroupOwnerType
 
 
 def format_comment(issues: List[Tuple[str]]):
-    body = "# Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n"
+    body = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n"
 
     for issue in issues:
         title = issue[0]
