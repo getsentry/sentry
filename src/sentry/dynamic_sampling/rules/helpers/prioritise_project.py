@@ -24,10 +24,10 @@ def get_prioritise_by_project_sample_rate(
         if was_sliding_window_org_executed():
             return 1.0
 
-        # In the other case were the sliding window was not run, maybe because of an issue, we will just fallback to
+        # In the other case were the sliding window was not run, maybe because of an issue, we will just fall back to
         # blended sample rate, to avoid oversampling.
         sentry_sdk.capture_message(
-            "Sliding window org value not stored in cache and sliding window not executed"
+            "Sliding window org value not stored in cache and sliding window org not executed"
         )
         return error_sample_rate_fallback
     # Thrown if the input is not a valid float.
