@@ -605,6 +605,17 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.per-org", default=[
 register("sentry-metrics.writes-limiter.limits.performance.global", default=[])
 register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[])
 
+# The new, use case-specific options for the writes rate limiter
+register("sentry-metrics.writes-limiter.limits.spans.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.transactions.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.sessions.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.spans.global", default=[])
+register("sentry-metrics.writes-limiter.limits.transactions.global", default=[])
+register("sentry-metrics.writes-limiter.limits.sessions.global", default=[])
+# The default options to fall back to
+register("sentry-metrics.writes-limiter.limits.generic-metrics.per-org", default=[])
+register("sentry-metrics.writes-limiter.limits.generic-metrics.global", default=[])
+
 # per-organization limits on the number of timeseries that can be observed in
 # each window.
 #
@@ -623,6 +634,12 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
+
+# The new, use case-specific options for the cardinality rate limiter
+register("sentry-metrics.cardinality-limiter.limits.transactions.per-org", default=[])
+register("sentry-metrics.cardinality-limiter.limits.sessions.per-org", default=[])
+# The default option to fall back to
+register("sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org", default=[])
 
 register("sentry-metrics.producer-schema-validation.release-health.rollout-rate", default=0.0)
 register("sentry-metrics.producer-schema-validation.performance.rollout-rate", default=0.0)
