@@ -65,9 +65,7 @@ class TestPrToIssueQuery(TestCase):
         self.commit_sha += 1
         return commit
 
-    def add_pr_to_commit(self, commit: Commit, date_added=None):
-        if date_added is None:
-            date_added = iso_format(before_now(minutes=1))
+    def add_pr_to_commit(self, commit: Commit):
         pr = PullRequest.objects.create(
             organization_id=commit.organization_id,
             repository_id=commit.repository_id,
@@ -76,13 +74,8 @@ class TestPrToIssueQuery(TestCase):
             message="foo",
             title="bar",
             merge_commit_sha=commit.key,
-            date_added=date_added,
         )
         self.pr_key += 1
-        return pr
-
-    def add_groupowner_to_commit(self, commit: Commit, project, user):
-        event = self.store_event(data={}, project_id=project.id)
         groupowner = GroupOwner.objects.create(
             group=event.group,
             user_id=user.id,
@@ -97,6 +90,8 @@ class TestPrToIssueQuery(TestCase):
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
+        pr.date_added = iso_format(before_now(minutes=1))
+        pr.save()
         groupowner = self.add_groupowner_to_commit(commit, self.project, self.user)
 
         results = pr_comment.pr_to_issue_query()
