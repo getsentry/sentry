@@ -7,7 +7,7 @@ from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
 
 
-def report_slow_click_issue(project_id: int, event: SentryEvent) -> bool:
+def report_slow_click_issue(project_id: int, replay_id: str, event: SentryEvent) -> bool:
     # Only report slow clicks if the option is enabled.
     if not options.get("replay.issues.slow_click"):
         return False
@@ -33,6 +33,7 @@ def report_slow_click_issue(project_id: int, event: SentryEvent) -> bool:
         timestamp=timestamp,
         extra_event_data={
             "level": "info",
+            "tags": {"replay_id": replay_id},
             "user": {
                 "id": "1",
                 "username": "Test User",
