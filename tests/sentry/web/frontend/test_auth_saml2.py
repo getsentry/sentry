@@ -45,7 +45,7 @@ class DummySAML2Provider(SAML2Provider):
 
 
 @pytest.mark.skipif(not HAS_SAML2, reason="SAML2 library is not installed")
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
