@@ -8,7 +8,7 @@ import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {EntryException, EntryType, Event, Frame, Thread} from 'sentry/types';
-import { defined } from 'sentry/utils';
+import {defined} from 'sentry/utils';
 
 type SuspectFrame = {
   module: string | RegExp;
