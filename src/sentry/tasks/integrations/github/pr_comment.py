@@ -14,7 +14,7 @@ class PullRequestIssue:
 
 
 body = """## Suspect Issues
-This pull request has been deployed and Sentry has observed the following issues
+This pull request has been deployed and Sentry has observed the following issues:
 
 {issue_list}
 
