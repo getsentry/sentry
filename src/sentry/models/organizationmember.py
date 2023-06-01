@@ -573,12 +573,10 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
-        region_outbox = None
         with transaction.atomic():
             self.approve_invite()
-            region_outbox = self.save()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            self.save()
+        self.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if settings.SENTRY_ENABLE_INVITES:
             self.send_invite_email()
