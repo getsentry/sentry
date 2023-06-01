@@ -121,13 +121,14 @@ export function Setup({
   showSnippet: Output;
   visibleTab: TabKey;
 }) {
-  const minVersion = '7.50.0';
-
   const organization = useOrganization();
   const {isFetching, needsUpdate} = useProjectSdkNeedsUpdate({
-    minVersion,
+    // Only show update instructions if not >= 7.50.0, but our instructions
+    // will show a different min version as there are known bugs in 7.50 ->
+    // 7.53
+    minVersion: '7.50.0',
     organization,
-    projectId,
+    projectId: [projectId],
   });
   const sdkNeedsUpdate = !isFetching && needsUpdate;
 
@@ -135,7 +136,7 @@ export function Setup({
 
   return (
     <SetupInstructions
-      minVersion={minVersion}
+      minVersion="7.53.1"
       sdkNeedsUpdate={sdkNeedsUpdate}
       showSnippet={showSnippet}
       url={url}

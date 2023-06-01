@@ -231,13 +231,53 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
 
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
     return TransactionNameRule(
         pattern=pattern,
         expiry=expiry_at,
         # Some more hardcoded fields for future compatibility. These are not
         # currently used.
         scope={"source": "url"},
+        redaction={"method": "replace", "substitution": "*"},
+    )
+
+
+class SpanDescriptionScope(TypedDict):
+    op: Literal["http"]
+    """Top scope to match on. Subscopes match all top scopes; for example, the
+    scope `http` matches `http.client` and `http.server` operations."""
+
+
+class SpanDescriptionRuleRedaction(TypedDict):
+    method: Literal["replace"]
+    substitution: str
+
+
+class SpanDescriptionRule(TypedDict):
+    pattern: str
+    expiry: str
+    scope: SpanDescriptionScope
+    redaction: SpanDescriptionRuleRedaction
+
+
+def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
+    if not features.has("projects:span-metrics-extraction", project):
+        return None
+
+    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
+    if not rules:
+        return None
+
+    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
+
+
+def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
+    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    return SpanDescriptionRule(
+        pattern=pattern,
+        expiry=expiry_at,
+        scope={"op": "http"},
         redaction={"method": "replace", "substitution": "*"},
     )
 
@@ -317,9 +357,12 @@ def _get_project_config(
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
+    # Rules to replace high cardinality span descriptions
+    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
+
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
-    if get_clusterer_meta(project)["runs"] >= MIN_CLUSTERER_RUNS:
+    if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
         config["txNameReady"] = True
 
     if not full_config:

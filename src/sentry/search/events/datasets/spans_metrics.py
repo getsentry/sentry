@@ -76,6 +76,72 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "spm",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("span.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            Function("divide", [args["interval"], 60]),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "count",
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric("span.duration"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "sum",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["span.duration"],
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "p50",
                     optional_args=[
                         fields.with_default(
@@ -126,6 +192,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.95
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p99",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["span.duration"],
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args, alias=alias, fixed_percentile=0.99
                     ),
                     default_result_type="duration",
                 ),

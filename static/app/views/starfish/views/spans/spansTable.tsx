@@ -1,6 +1,5 @@
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import moment from 'moment';
 
 import Duration from 'sentry/components/duration';
@@ -11,26 +10,27 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {useApplicationMetrics} from 'sentry/views/starfish/views/spans/spanSummaryPanel/useApplicationMetrics';
 
 type Props = {
   isLoading: boolean;
-  location: Location;
+  moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  queryConditions: string[];
   spansData: SpanDataRow[];
   spansTrendsData: SpanTrendDataRow[];
+  columnOrder?: GridColumnOrder[];
 };
 
 export type SpanDataRow = {
@@ -38,6 +38,7 @@ export type SpanDataRow = {
   description: string;
   domain: string;
   epm: number;
+  formatted_desc: string;
   group_id: string;
   p50: number;
   p95: number;
@@ -53,14 +54,15 @@ export type SpanTrendDataRow = {
 };
 
 export default function SpansTable({
-  location,
+  moduleName,
   spansData,
   orderBy,
   onSetOrderBy,
-  queryConditions,
   spansTrendsData,
   isLoading,
+  columnOrder,
 }: Props) {
+  const location = useLocation();
   const theme = useTheme();
   const {data: applicationMetrics} = useApplicationMetrics();
 
@@ -112,7 +114,7 @@ export default function SpansTable({
     return {
       ...spanData,
       app_impact: formatPercentage(
-        spanData.total_exclusive_time / applicationMetrics.total_time
+        spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
       ),
       p50_trend: zeroFilledP50,
       p95_trend: zeroFilledP95,
@@ -124,7 +126,7 @@ export default function SpansTable({
     <GridEditable
       isLoading={isLoading}
       data={combinedSpansData}
-      columnOrder={getColumns(queryConditions)}
+      columnOrder={columnOrder ?? getColumns(moduleName)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
       }
@@ -173,7 +175,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={CHART_PALETTE[3][0]}
+        color={THROUGHPUT_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
@@ -189,23 +191,7 @@ function renderBodyCell(
     );
     return (
       <Sparkline
-        color={CHART_PALETTE[3][1]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
-      />
-    );
-  }
-
-  if (column.key === 'p95_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${getDuration(row.p95 / 1000, 2, true)}`,
-      row.p95,
-      theme
-    );
-    return (
-      <Sparkline
-        color={CHART_PALETTE[3][2]}
+        color={DURATION_COLOR}
         series={row[column.key]}
         width={column.width ? column.width - column.width / 5 : undefined}
         markLine={horizontalLine}
@@ -214,15 +200,14 @@ function renderBodyCell(
   }
 
   if (column.key === 'description') {
+    const description = row.description;
     return (
       <OverflowEllipsisTextContainer>
         <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
-            <StyledFormattedCode>
-              {(row as unknown as DataRow).formatted_desc}
-            </StyledFormattedCode>
+            <StyledFormattedCode>{description}</StyledFormattedCode>
           ) : (
-            row.description || '<null>'
+            description || '<null>'
           )}
         </Link>
       </OverflowEllipsisTextContainer>
@@ -259,40 +244,32 @@ export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
   }
 };
 
-function getDomainHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Table';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDomainHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'Host';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Table';
   }
   return 'Domain';
 }
-function getDescriptionHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Query';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDescriptionHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'URL';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Query';
   }
   return 'Description';
 }
 
-function getColumns(queryConditions: string[]): GridColumnOrder[] {
-  const description = getDescriptionHeader(queryConditions);
+function getColumns(moduleName: ModuleName): GridColumnOrder[] {
+  const description = getDescriptionHeader(moduleName);
 
-  const domain = getDomainHeader(queryConditions);
-
-  const doQueryConditionsIncludeDomain = queryConditions.some(condition =>
-    condition.includes('domain =')
-  );
-
-  const doQueryConditionsIncludeSpanOperation = queryConditions.some(condition =>
-    condition.includes('span_operation =')
-  );
+  const domain = getDomainHeader(moduleName);
 
   const order: Array<GridColumnOrder | false> = [
-    !doQueryConditionsIncludeSpanOperation && {
+    {
       key: 'span_operation',
       name: 'Operation',
       width: COL_WIDTH_UNDEFINED,
@@ -302,24 +279,14 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !doQueryConditionsIncludeDomain && {
+    moduleName !== ModuleName.ALL && {
       key: 'domain',
       name: domain,
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'app_impact',
-      name: 'App Impact',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'transactions',
-      name: 'Transactions',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
       key: 'throughput_trend',
-      name: 'Throughput (SPM)',
+      name: 'Throughput',
       width: 175,
     },
     {
@@ -328,9 +295,9 @@ function getColumns(queryConditions: string[]): GridColumnOrder[] {
       width: 175,
     },
     {
-      key: 'p95_trend',
-      name: 'Duration (p95)',
-      width: 175,
+      key: 'app_impact',
+      name: 'App Impact',
+      width: COL_WIDTH_UNDEFINED,
     },
   ];
 
