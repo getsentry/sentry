@@ -554,9 +554,6 @@ describe('ProjectAlertsCreate', function () {
   });
 
   describe('test incompatible conditions', () => {
-    const organization = TestStubs.Organization({
-      features: ['issue-alert-incompatible-rules'],
-    });
     const errorText =
       'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
