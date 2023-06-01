@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import Optional, TypedDict, cast
+from typing import Any, Dict, Optional, TypedDict, cast
 
 import msgpack
 from django.conf import settings
@@ -93,7 +93,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
         # We publish the replay-event payload to the snuba consumer since its no longer being
         # published in relay.
-        publish_replay_event(message)
+        publish_replay_event(message, payload["replay_event"])
 
         # Headers and recording-segment extraction was done on Relay so we can just extract the
         # keys here.
@@ -227,13 +227,13 @@ def replay_click_post_processor(
         )
 
 
-def publish_replay_event(message: RecordingIngestMessage):
+def publish_replay_event(message: RecordingIngestMessage, replay_event: Dict[str, Any]):
     publisher = initialize_replay_event_publisher()
     publisher.publish(
         "ingest-replay-events",
         json.dumps(
             {
-                "payload": list(bytes(json.dumps(message["payload"]["replay_event"]).encode())),
+                "payload": list(bytes(json.dumps(replay_event).encode())),
                 "start_time": message.received,
                 "replay_id": message.replay_id,
                 "project_id": message.project_id,
