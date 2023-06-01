@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0469_backfill_orgmembermapping"),
+        ("sentry", "0475_backfill_groupedmessage_unresolved_none_status"),
     ]
 
     operations = [
