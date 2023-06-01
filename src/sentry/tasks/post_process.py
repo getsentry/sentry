@@ -494,7 +494,7 @@ def post_process_group(
                 return event_or_none
 
             event = get_event_with_retry(
-                lambda _: eventstore.get_event_by_id(
+                lambda: eventstore.get_event_by_id(
                     project_id,
                     occurrence.event_id,
                     group_id=group_id,
