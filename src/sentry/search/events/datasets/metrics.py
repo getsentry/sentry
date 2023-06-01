@@ -657,8 +657,32 @@ class MetricsDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 fields.MetricsFunction(
-                    "total_time_percentage",
-                    snql_distribution=self._resolve_total_time_percentage,
+                    "time_spent_percentage",
+                    snql_distribution=self._resolve_time_spent_percentage,
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_500_rate",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            self._resolve_http_500_count(args),
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
                     default_result_type="percentage",
                 ),
             ]
@@ -984,6 +1008,32 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_http_500_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.HTTP_SERVER_ERROR_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("transaction.duration"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("http.status_code"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
+            alias,
+        )
+
     def _resolve_percentile(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
@@ -1083,7 +1133,7 @@ class MetricsDatasetConfig(DatasetConfig):
         self.total_transaction_duration = results["data"][0]["sum_transaction_duration"]
         return Function("toFloat64", [self.total_transaction_duration], alias)
 
-    def _resolve_total_time_percentage(
+    def _resolve_time_spent_percentage(
         self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
     ) -> SelectType:
         total_time = self._resolve_total_transaction_duration(
