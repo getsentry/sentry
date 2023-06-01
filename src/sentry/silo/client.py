@@ -51,7 +51,7 @@ class BaseSiloClient(BaseApiClient):
             headers=clean_proxy_headers(incoming_request.headers),
             data=incoming_request.body,
         ).prepare()
-        raw_response: Response = super()._request(
+        raw_response: Response = super()._request(  # type: ignore
             incoming_request.method,
             incoming_request.path,
             raw_response=True,
