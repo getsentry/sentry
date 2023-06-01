@@ -215,31 +215,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     link: platformIntegration?.link,
   };
 
-  const deleteRecentCreatedProject = useCallback(async () => {
-    if (!recentCreatedProject) {
-      return;
-    }
-
-    try {
-      await removeProject({
-        api,
-        orgSlug: organization.slug,
-        projectSlug: recentCreatedProject.slug,
-        origin: 'getting_started',
-      });
-
-      trackAnalytics('project_creation.data_removed', {
-        organization,
-        date_created: recentCreatedProject.dateCreated,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    } catch (error) {
-      handleXhrErrorResponse(t('Unable to delete project in project creation'), error);
-      // we don't give the user any feedback regarding this error as this shall be silent
-    }
-  }, [api, organization, recentCreatedProject]);
-
   const redirectToNeutralDocs = useCallback(() => {
     if (!project?.slug) {
       return;
@@ -252,7 +227,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     );
   }, [organization.slug, project?.slug, router]);
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {
       return;
     }
@@ -268,7 +243,24 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         project_id: recentCreatedProject.id,
       });
 
-      deleteRecentCreatedProject();
+      try {
+        await removeProject({
+          api,
+          orgSlug: organization.slug,
+          projectSlug: recentCreatedProject.slug,
+          origin: 'getting_started',
+        });
+
+        trackAnalytics('project_creation.data_removed', {
+          organization,
+          date_created: recentCreatedProject.dateCreated,
+          platform: recentCreatedProject.slug,
+          project_id: recentCreatedProject.id,
+        });
+      } catch (error) {
+        handleXhrErrorResponse(t('Unable to delete project in project creation'), error);
+        // we don't give the user any feedback regarding this error as this shall be silent
+      }
     }
 
     router.replace(
@@ -276,13 +268,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         `/organizations/${organization.slug}/projects/new/?referrer=getting-started&project=${recentCreatedProject.id}`
       )
     );
-  }, [
-    recentCreatedProject,
-    organization,
-    shallProjectBeDeleted,
-    deleteRecentCreatedProject,
-    router,
-  ]);
+  }, [api, recentCreatedProject, organization, shallProjectBeDeleted, router]);
 
   useEffect(() => {
     // redirect if platform is not known.
