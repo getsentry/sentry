@@ -71,6 +71,7 @@ describe('SlowestFunctionsWidget', function () {
           dataset: 'profileFunctions',
           query: 'is_application:1',
           field: ['project.id', 'sum()'],
+          project: [1],
         }),
       ],
     });
