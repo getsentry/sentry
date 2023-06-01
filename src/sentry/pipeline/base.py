@@ -11,6 +11,7 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.integrations.base import IntegrationProvider
 from sentry.models import Organization
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
@@ -102,7 +103,7 @@ class Pipeline(abc.ABC):
         self.organization = organization
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key)
+        self.provider: Type[IntegrationProvider] = self.get_provider(provider_key)
 
         self.config = config or {}
         self.provider.set_pipeline(self)

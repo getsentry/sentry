@@ -57,7 +57,8 @@ class JiraRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         if view_class in self.immediate_response_region_classes:
-            # XXX: For now, we just refer to the first region of the list for responding
+            # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
+            # first region to forward along to.
             return self.get_response_from_region_silo(region=regions[0])
 
         if view_class in self.outbox_response_region_classes:
