@@ -1,8 +1,19 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 import sentry_sdk
 from django.conf import settings
@@ -468,9 +479,31 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(
-                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
+
+            def get_event_with_retry(
+                getter_func: Callable[[], Optional[Event]], attempts=3
+            ) -> Optional[Event]:
+                attempt = 1
+                delay_exponent = 0
+                event_or_none = None
+                while event_or_none is None or attempt <= attempts:
+                    time.sleep(pow(2, delay_exponent))
+                    event_or_none = getter_func()
+                    delay_exponent += 1
+                    attempt += 1
+                return event_or_none
+
+            event = get_event_with_retry(
+                lambda _: eventstore.get_event_by_id(
+                    project_id,
+                    occurrence.event_id,
+                    group_id=group_id,
+                    skip_transaction_groupevent=True,
+                )
             )
+
+        if event is None:
+            return
 
         set_current_event_project(event.project_id)
 
