@@ -39,6 +39,7 @@ class SiloRouter:
     """Whether or not we're operating in a simulated silo environment"""
 
     def __init__(self):
+        self.__table_to_silo = {}
         try:
             # By accessing the connections Django will raise
             # Use `assert` to appease linters
