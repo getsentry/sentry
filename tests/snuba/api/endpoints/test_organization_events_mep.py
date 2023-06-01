@@ -2192,7 +2192,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["http_500_rate"] == 0.5
+        assert data[0]["http_500_rate()"] == 0.5
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 
@@ -2222,7 +2222,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["time_spent_percentage"] == 0.5
+        assert data[0]["time_spent_percentage()"] == 0.5
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 

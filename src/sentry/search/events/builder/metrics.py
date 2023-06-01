@@ -73,7 +73,9 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-        org_id = self.filter_params.get("organization_id") or self.params.organization.id
+        org_id = self.filter_params.get("organization_id")
+        if org_id is None and self.params.organization is not None:
+            org_id = self.params.organization.id
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
