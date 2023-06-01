@@ -1024,8 +1024,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def setup_for_multiple_triggers_multiple_actions_test(self):
-        # Little helper to do the setup for the following mutliple triggers + multiple actions tests
+    def setup_for_distinct_actions_test(self):
+        """Helper function to do the setup for the following multiple trigger + distinct action tests"""
         rule = self.rule
         rule.update(resolve_threshold=None)
         critical_trigger = self.trigger
@@ -1048,14 +1048,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             warning_action,
         )
 
-    def test_multiple_triggers_multiple_actions_warning_to_resolved(self):
+    def test_distinct_actions_warning_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Warning -> Resolved"""
         rule = self.rule
         (
             critical_trigger,
             warning_trigger,
             critical_action,
             warning_action,
-        ) = self.setup_for_multiple_triggers_multiple_actions_test()
+        ) = self.setup_for_distinct_actions_test()
         self.send_update(
             rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
         )
@@ -1084,14 +1085,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_multiple_triggers_multiple_actions_critical_to_resolved(self):
+    def test_distinct_actions_critical_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Critical -> Resolved"""
         rule = self.rule
         (
             critical_trigger,
             warning_trigger,
             critical_action,
             warning_action,
-        ) = self.setup_for_multiple_triggers_multiple_actions_test()
+        ) = self.setup_for_distinct_actions_test()
         self.send_update(
             rule,
             critical_trigger.alert_threshold + 1,
@@ -1125,14 +1127,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_multiple_triggers_multiple_actions_warning_to_critical_to_resolved(self):
+    def test_distinct_actions_warning_to_critical_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Warning -> Critical -> Resolved"""
         rule = self.rule
         (
             critical_trigger,
             warning_trigger,
             critical_action,
             warning_action,
-        ) = self.setup_for_multiple_triggers_multiple_actions_test()
+        ) = self.setup_for_distinct_actions_test()
         self.send_update(
             rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
         )
@@ -1180,14 +1183,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_multiple_triggers_multiple_actions_critical_to_warning_to_resolved(self):
+    def test_distinct_actions_critical_to_warning_to_resolved(self):
+        """Tests distinct action behavior when alert status goes from Critical -> Warning -> Resolved"""
         rule = self.rule
         (
             critical_trigger,
             warning_trigger,
             critical_action,
             warning_action,
-        ) = self.setup_for_multiple_triggers_multiple_actions_test()
+        ) = self.setup_for_distinct_actions_test()
         self.send_update(
             rule,
             critical_trigger.alert_threshold + 1,
