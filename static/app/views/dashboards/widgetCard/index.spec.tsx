@@ -37,6 +37,7 @@ describe('Dashboards > WidgetCard', function () {
 
   const multipleQueryWidget: Widget = {
     title: 'Errors',
+    description: 'Valid widget description',
     interval: '5m',
     displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
@@ -146,6 +147,26 @@ describe('Dashboards > WidgetCard', function () {
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
+  });
+
+  it('renders widget description in dashboard', async function () {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={multipleQueryWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    expect(await screen.findByText('Valid widget description123')).toBeInTheDocument();
   });
 
   it('Opens in Discover with World Map', async function () {
