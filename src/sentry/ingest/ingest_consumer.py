@@ -123,7 +123,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
             # attachment_chunk messages need to be processed before attachment/event messages.
             with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
                 for attachment_chunk in attachment_chunks:
-                    process_attachment_chunk(attachment_chunk, projects=projects)
+                    process_attachment_chunk(attachment_chunk)
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
@@ -135,7 +135,14 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
                 # Execute synchronous tasks and dispatch asynchronous tasks.
                 for processing_func, message in other_messages:
-                    result = processing_func(message, projects)
+                    project_id = int(message["project_id"])
+                    try:
+                        project = projects[project_id]
+                    except KeyError:
+                        logger.error("Project for ingested event does not exist: %s", project_id)
+                        continue
+
+                    result = processing_func(message, project)
                     if isinstance(result, AsyncResult):
                         results[result.future] = result
 
@@ -169,9 +176,14 @@ def trace_func(**span_kwargs):
     return wrapper
 
 
+@trace_func(name="ingest_consumer.process_event")
+def process_event(message: Message, project: Project) -> None:
+    return _do_process_event(message, project)
+
+
 @metrics.wraps("ingest_consumer.process_event")
-def _do_process_event(message: Message, projects: Mapping[int, Project]) -> None:
-    result = _load_event(message, projects)
+def _do_process_event(message: Message, project: Project) -> None:
+    result = _load_event(message, project)
     if result is None:
         return
 
@@ -179,9 +191,21 @@ def _do_process_event(message: Message, projects: Mapping[int, Project]) -> None
     callback(_store_event(data))
 
 
-def _load_event(
-    message: Message, projects: Mapping[int, Project]
-) -> Optional[Tuple[Any, Callable[[str], None]]]:
+def process_event_async(
+    executor: ThreadPoolExecutor, message: Message, project: Project
+) -> Optional["AsyncResult[str]"]:
+    result = _load_event(message, project)
+    if result is None:
+        return None
+
+    data, callback = result
+    return AsyncResult(
+        executor.submit(_store_event, data),
+        lambda future: callback(future.result()),
+    )
+
+
+def _load_event(message: Message, project: Project) -> Optional[Tuple[Any, Callable[[str], None]]]:
     """
     Perform some initial filtering and deserialize the message payload. If the
     event should be stored, the deserialized payload is returned along with a
@@ -235,12 +259,6 @@ def _load_event(
     ):
         # This killswitch is for the worst of scenarios and should probably not
         # cause additional load on our logging infrastructure
-        return
-
-    try:
-        project = projects[project_id]
-    except KeyError:
-        logger.error("Project for ingested event does not exist: %s", project_id)
         return
 
     # Parse the JSON payload. This is required to compute the cache key and
@@ -313,33 +331,14 @@ def _load_event(
     return data, dispatch_task
 
 
-def _store_event(data) -> str:
+def _store_event(data: Any) -> str:
     with metrics.timer("ingest_consumer._store_event"):
         return event_processing_store.store(data)
 
 
-@trace_func(name="ingest_consumer.process_event")
-def process_event(message: Message, projects: Mapping[int, Project]) -> None:
-    return _do_process_event(message, projects)
-
-
-def process_event_async(
-    executor: ThreadPoolExecutor, message: Message, projects: Mapping[int, Project]
-) -> Optional["AsyncResult[str]"]:
-    result = _load_event(message, projects)
-    if result is None:
-        return None
-
-    data, callback = result
-    return AsyncResult(
-        executor.submit(_store_event, data),
-        lambda future: callback(future.result()),
-    )
-
-
 @trace_func(name="ingest_consumer.process_attachment_chunk")
 @metrics.wraps("ingest_consumer.process_attachment_chunk")
-def process_attachment_chunk(message, projects):
+def process_attachment_chunk(message: Message) -> None:
     payload = message["payload"]
     event_id = message["event_id"]
     project_id = message["project_id"]
@@ -353,19 +352,12 @@ def process_attachment_chunk(message, projects):
 
 @trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
-def process_individual_attachment(message, projects) -> None:
+def process_individual_attachment(message: Message, project: Project) -> None:
     event_id = message["event_id"]
-    project_id = int(message["project_id"])
-    cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
-
-    try:
-        project = projects[project_id]
-    except KeyError:
-        logger.error("Project for ingested event does not exist: %s", project_id)
-        return
+    cache_key = cache_key_for_event({"event_id": event_id, "project": project.id})
 
     if not features.has("organizations:event-attachments", project.organization, actor=None):
-        logger.info("Organization has no event attachments: %s", project_id)
+        logger.info("Organization has no event attachments: %s", project.id)
         return
 
     try:
@@ -412,16 +404,9 @@ def process_individual_attachment(message, projects) -> None:
 
 @trace_func(name="ingest_consumer.process_userreport")
 @metrics.wraps("ingest_consumer.process_userreport")
-def process_userreport(message, projects) -> None:
-    project_id = int(message["project_id"])
+def process_userreport(message: Message, project: Project) -> None:
     start_time = to_datetime(message["start_time"])
     feedback = json.loads(message["payload"])
-
-    try:
-        project = projects[project_id]
-    except KeyError:
-        logger.error("Project for ingested event does not exist: %s", project_id)
-        return False
 
     try:
         save_userreport(project, feedback, start_time=start_time)
