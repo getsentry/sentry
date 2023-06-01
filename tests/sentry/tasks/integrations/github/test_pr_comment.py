@@ -1,5 +1,3 @@
-import re
-
 from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
 from sentry.tasks.integrations.github import pr_comment
 from sentry.testutils import TestCase
@@ -117,4 +115,4 @@ class TestPrToIssueQuery(TestCase):
 
         formatted_comment = pr_comment.format_comment(issues)
         assert "sentry.tasks.derive_code_mappings.derive_code_m..." in formatted_comment
-        assert re.findall("[View Issue]", formatted_comment) == 2
+        assert "query_subscription_consumer_process_message" in formatted_comment
