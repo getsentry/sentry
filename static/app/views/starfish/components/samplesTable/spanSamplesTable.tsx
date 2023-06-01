@@ -5,8 +5,10 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
-import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/views/spanSummary';
+import {
+  OverflowEllipsisTextContainer,
+  TextAlignRight,
+} from 'sentry/views/starfish/components/textAlign';
 
 type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p50_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
@@ -16,11 +18,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     key: 'transaction_id',
     name: 'Event ID',
     width: 200,
-  },
-  {
-    key: 'timestamp',
-    name: 'Timestamp',
-    width: 300,
   },
   {
     key: 'duration',

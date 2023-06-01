@@ -978,12 +978,13 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=42),
         "options": {"expires": 3600},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
-        "options": {"expires": 3600},
-    },
+    # TODO(HC) Remove or re-enable this once a decision is made on org mapping creation
+    # "hybrid-cloud-repair-mappings": {
+    #     "task": "sentry.tasks.organization_mapping.repair_mappings",
+    #     # Run every hour
+    #     "schedule": crontab(minute=0, hour="*/1"),
+    #     "options": {"expires": 3600},
+    # },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
@@ -1359,6 +1360,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items and performance spans
     "organizations:sql-format": False,
+    # Enable prefetching of issues from the issue list when hovered
+    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Enable better priority sort algorithm.
@@ -1427,6 +1430,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enable session replay click search banner rollout for eligible SDKs
+    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program
@@ -1475,6 +1480,12 @@ SENTRY_FEATURES = {
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
+    # Enable the sliding window per project
+    "organizations:ds-sliding-window": False,
+    # Enable the sliding window per org
+    "organizations:ds-sliding-window-org": False,
+    # Enable new project/org boost
+    "organizations:ds-boost-new-projects": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
@@ -1520,10 +1531,10 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # Enable sliding window for dynamic sampling
-    "organizations:ds-sliding-window": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
+    # If true, allow to create/use org access tokens
+    "organizations:org-access-tokens": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

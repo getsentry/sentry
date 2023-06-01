@@ -164,7 +164,7 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     create Outbox objects in the same transaction that matches what you delete.
     """
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.models import OrganizationMember
+    from sentry.models import OrganizationMember, OrganizationMemberMapping
     from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
 
     try:
@@ -197,6 +197,10 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
+
+    restrict_role(
+        role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
+    )
 
     with get_connection().cursor() as conn:
         conn.execute("SET ROLE 'postgres_unprivileged'")

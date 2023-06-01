@@ -356,13 +356,13 @@ def test_span_descs_clusterer_generates_rules(default_project):
             # TTL is 90d, so three months to expire
             {
                 "pattern": "/rule/*/0/**",
-                "expiry": "1970-04-01T00:00:00+00:00",
+                "expiry": "1970-04-01T00:00:00Z",
                 "scope": {"op": "http"},
                 "redaction": {"method": "replace", "substitution": "*"},
             },
             {
                 "pattern": "/rule/*/1/**",
-                "expiry": "1970-04-01T00:00:01+00:00",
+                "expiry": "1970-04-01T00:00:01Z",
                 "scope": {"op": "http"},
                 "redaction": {"method": "replace", "substitution": "*"},
             },

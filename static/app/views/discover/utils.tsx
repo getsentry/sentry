@@ -154,7 +154,7 @@ export function generateTitle({
 
   titles.reverse();
 
-  return titles.join(' - ');
+  return titles.join(' — ');
 }
 
 export function getPrebuiltQueries(organization: Organization) {
