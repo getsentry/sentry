@@ -19,6 +19,56 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 
 
+class Version0TestCaseMixin:
+    def nonchunked_messages(
+        self,
+        message: bytes = b'[{"hello":"world"}]',
+        segment_id: int = 0,
+        compressed: bool = False,
+    ) -> List[ReplayRecording]:
+        message = zlib.compress(message) if compressed else message
+        return [
+            {
+                "type": "replay_recording_not_chunked",
+                "replay_id": self.replay_id,
+                "org_id": self.organization.id,
+                "key_id": 123,
+                "project_id": self.project.id,
+                "received": int(time.time()),
+                "retention_days": 30,
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
+            }
+        ]
+
+
+class Version1TestCaseMixin:
+    def nonchunked_messages(
+        self,
+        message: bytes = b'[{"hello":"world"}]',
+        segment_id: int = 0,
+        compressed: bool = False,
+    ) -> List[ReplayRecording]:
+        payload = {
+            "replay_event": {},
+            "replay_recording_headers": {"segment_id": segment_id},
+            "replay_recording": zlib.compress(message) if compressed else message,
+        }
+
+        return [
+            {
+                "type": "replay_recording_not_chunked",
+                "replay_id": self.replay_id,
+                "org_id": self.organization.id,
+                "key_id": 123,
+                "project_id": self.project.id,
+                "received": int(time.time()),
+                "retention_days": 30,
+                "payload": msgpack.packb(payload),
+                "version": 1,
+            }
+        ]
+
+
 class RecordingTestCaseMixin:
     @staticmethod
     def processing_factory():
@@ -47,26 +97,6 @@ class RecordingTestCaseMixin:
         strategy.poll()
         strategy.join(1)
         strategy.terminate()
-
-    def nonchunked_messages(
-        self,
-        message: bytes = b'[{"hello":"world"}]',
-        segment_id: int = 0,
-        compressed: bool = False,
-    ) -> List[ReplayRecording]:
-        message = zlib.compress(message) if compressed else message
-        return [
-            {
-                "type": "replay_recording_not_chunked",
-                "replay_id": self.replay_id,
-                "org_id": self.organization.id,
-                "key_id": 123,
-                "project_id": self.project.id,
-                "received": int(time.time()),
-                "retention_days": 30,
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
-            }
-        ]
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
@@ -125,10 +155,11 @@ class RecordingTestCaseMixin:
 # configuration values.
 
 
-class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
+class FilestoreTestCaseMixin:
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        options.set("replay.storage.direct-storage-sample-rate", 0)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
         # Assert a recording segment model was created for filestore driver types.
@@ -163,7 +194,7 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
         return FilestoreBlob().get(recording_segment)
 
 
-class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
+class StorageTestCaseMixin:
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
@@ -191,3 +222,45 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
             retention_days=30,
         )
         return StorageBlob().get(recording_segment)
+
+
+# Tests pass for version 0 and version 1 filestore drivers.
+
+
+class Version0FilestoreRecordingTestCase(
+    FilestoreTestCaseMixin,
+    Version0TestCaseMixin,
+    RecordingTestCaseMixin,
+    TransactionTestCase,
+):
+    pass
+
+
+class Version1FilestoreRecordingTestCase(
+    FilestoreTestCaseMixin,
+    Version1TestCaseMixin,
+    RecordingTestCaseMixin,
+    TransactionTestCase,
+):
+    pass
+
+
+# Tests pass for version 0 and version 1 direct GCS drivers.
+
+
+class Version0StorageRecordingTestCase(
+    StorageTestCaseMixin,
+    Version0TestCaseMixin,
+    RecordingTestCaseMixin,
+    TransactionTestCase,
+):
+    pass
+
+
+class Version1StorageRecordingTestCase(
+    StorageTestCaseMixin,
+    Version1TestCaseMixin,
+    RecordingTestCaseMixin,
+    TransactionTestCase,
+):
+    pass
