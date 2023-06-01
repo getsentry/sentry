@@ -194,6 +194,7 @@ def replay_click_post_processor(
             description="parse_and_emit_replay_actions",
         ):
             parse_and_emit_replay_actions(
+                org_id=message.org_id,
                 retention_days=message.retention_days,
                 project_id=message.project_id,
                 replay_id=message.replay_id,
