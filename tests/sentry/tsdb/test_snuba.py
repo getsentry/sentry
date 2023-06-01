@@ -460,7 +460,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 self.now,
                 granularity,
                 None,
-                tenant_ids={"referrer": "tests", "organization_id": 1},
+                tenant_ids={"referrer": "tests", "organization_id": 123},
             )
 
             # Assert that the response has values set for the times we expect, and nothing more
