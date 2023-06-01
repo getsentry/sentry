@@ -11,6 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.snuba.referrer import Referrer
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -18,6 +19,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
+        self.total_transaction_duration: Optional[float] = None
 
     @property
     def search_filter_converter(
@@ -654,6 +656,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                fields.MetricsFunction(
+                    "total_time_percentage",
+                    snql_distribution=self._resolve_total_time_percentage,
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -1044,6 +1051,57 @@ class MetricsDatasetConfig(DatasetConfig):
                         Function("equals", [Column("metric_id"), metric_id]),
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_total_transaction_duration(self, alias: str) -> SelectType:
+        """This calculates the app's total time, so other filters that are
+        a part of the original query will not be applies. Only filter conditions
+        that will be applied are snuba params.
+        This must be cached since it runs another query."""
+        self.builder.requires_other_aggregates = True
+        if self.total_transaction_duration is not None:
+            return Function("toFloat64", [self.total_transaction_duration], alias)
+
+        total_query = builder.MetricsQueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["sum(transaction.duration)"],
+        )
+
+        total_query.columns += self.builder.resolve_groupby()
+        total_results = total_query.run_query(
+            Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
+        )
+        results = total_query.process_results(total_results)
+
+        if len(results["data"]) != 1:
+            self.total_transaction_duration = 0
+            return Function("toFloat64", [0], alias)
+        self.total_transaction_duration = results["data"][0]["sum_transaction_duration"]
+        return Function("toFloat64", [self.total_transaction_duration], alias)
+
+    def _resolve_total_time_percentage(
+        self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
+    ) -> SelectType:
+        total_time = self._resolve_total_transaction_duration(
+            constants.TOTAL_TRANSACTION_DURATION_ALIAS
+        )
+        metric_id = self.resolve_metric("transaction.duration")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
+                total_time,
             ],
             alias,
         )
