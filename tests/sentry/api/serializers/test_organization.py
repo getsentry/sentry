@@ -53,6 +53,7 @@ class OrganizationSerializerTest(TestCase):
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
+            "crons-issue-platform",
             "custom-symbol-sources",
             "data-forwarding",
             "dashboards-basic",
