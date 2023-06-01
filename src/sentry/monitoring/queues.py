@@ -108,6 +108,14 @@ def get_queue_by_name(name):
             return queue
 
 
+backends = {"redis": RedisBackend, "amqp": AmqpBackend}
+
+try:
+    backend = get_backend_for_broker(settings.BROKER_URL)
+except KeyError:
+    backend = None
+
+
 queue_monitoring_cluster = redis.redis_clusters.get(CLUSTER_NAME)
 
 
@@ -139,10 +147,6 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
     # bonus point if we manage to use asyncio and launch all tasks at once
     # in case we have many queues to check
     cluster = redis.redis_clusters.get(redis_cluster)
-    from sentry.monitoring.queues import backend
-
-    if backend is None:
-        raise Exception("unknown broker type")
 
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
@@ -161,13 +165,9 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
 
 
 def monitor_queues():
-    queue_stats_updater_process = Thread(target=_run_queue_stats_updater, args=(CLUSTER_NAME,))
-    queue_stats_updater_process.start()
-
-
-backends = {"redis": RedisBackend, "amqp": AmqpBackend}
-
-try:
-    backend = get_backend_for_broker(settings.BROKER_URL)
-except KeyError:
-    backend = None
+    if backend is None:
+        # TODO: log a warning here?
+        pass
+    else:
+        queue_stats_updater_process = Thread(target=_run_queue_stats_updater, args=(CLUSTER_NAME,))
+        queue_stats_updater_process.start()
