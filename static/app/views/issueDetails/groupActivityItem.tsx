@@ -268,6 +268,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         });
       }
       case GroupActivityType.SET_UNRESOLVED: {
+        // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
         if (data.forecast) {
           return tct(
@@ -391,6 +392,17 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               author,
             });
       }
+      case GroupActivityType.SET_ESCALATING: {
+        return tct(
+          '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+          {
+            author,
+            forecast: activity.data.forecast,
+            event: activity.data.forecast === 1 ? 'event' : 'events',
+          }
+        );
+      }
+
       default:
         return ''; // should never hit (?)
     }
