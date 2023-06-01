@@ -224,6 +224,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        replace_better_priority_aggregation: Optional[bool] = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -234,6 +235,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
+            # TODO: remove this hack once we can properly support better_priority sort on issue platform dataset
+            if replace_better_priority_aggregation and alias == "better_priority":
+                aggregation = self.aggregation_defs["force_last"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -285,7 +289,18 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        aggregations = self._prepare_aggregations(sort_field, start, end, having, aggregate_kwargs)
+        if (
+            sort_field == "better_priority"
+            and group_category is not GroupCategory.ERROR.value
+            and features.has("organizations:issue-list-better-priority-sort", organization)
+        ):
+            aggregations = self._prepare_aggregations(
+                sort_field, start, end, having, aggregate_kwargs, True
+            )
+        else:
+            aggregations = self._prepare_aggregations(
+                sort_field, start, end, having, aggregate_kwargs
+            )
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -624,6 +639,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "better_priority": better_priority_aggregation,
+        "force_last": [
+            "least(min(organization_id), 0)",
+            "",
+        ],  # hack aggregation to force issue-platform sort scores to be zero
     }
 
     @property
