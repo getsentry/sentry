@@ -365,6 +365,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             weights: PrioritySortWeights = {
                 "log_level": 5,
                 "has_stacktrace": 5,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2067,7 +2068,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert len(results) == 0
 
 
-class EventsBetterPriorityTest(SharedSnubaTest):
+class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -2107,6 +2108,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             weights: PrioritySortWeights = {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2156,6 +2158,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             weights: PrioritySortWeights = {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": True,
@@ -2204,6 +2207,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             "better_priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2252,6 +2256,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             "better_priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2360,6 +2365,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             "better_priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2398,6 +2404,73 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         group1_score_after = results[0][1]
         group2_score_after = results[1][1]
         assert group1_score_after < group2_score_after
+
+    def test_better_priority_mixed_group_types(self):
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "a" * 32,
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+                "message": "foo",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+                "environment": "staging",
+                "level": "fatal",
+            },
+            project_id=self.project.id,
+        )
+        error_group = error_event.group
+
+        profile_event_id = uuid.uuid4().hex
+        _, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(event_id=profile_event_id),
+            {
+                "event_id": profile_event_id,
+                "project_id": self.project.id,
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        profile_group_1 = group_info.group
+
+        agg_kwargs = {
+            "better_priority": {
+                "log_level": 0,
+                "has_stacktrace": 0,
+                "relative_volume": 1,
+                "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
+            }
+        }
+        query_executor = self.backend._get_query_executor()
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                ProfileFileIOGroupType.build_visible_feature_name(),
+                "organizations:issue-list-better-priority-sort",
+            ]
+        ):
+            results = query_executor.snuba_search(
+                start=None,
+                end=None,
+                project_ids=[self.project.id],
+                environment_ids=[],
+                sort_field="better_priority",
+                organization=self.organization,
+                group_ids=[profile_group_1.id, error_group.id],
+                limit=150,
+                aggregate_kwargs=agg_kwargs,
+            )[0]
+        error_group_score = results[0][1]
+        profile_group_score = results[1][1]
+        assert error_group_score > 0
+        assert profile_group_score == 0
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
