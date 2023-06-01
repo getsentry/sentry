@@ -569,6 +569,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     member = member_query.first()
                     if member.token_expired:
                         member.regenerate_token()
+                        member.save()
                 else:
                     member = OrganizationMember(
                         organization=organization,
