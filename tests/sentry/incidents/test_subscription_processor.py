@@ -1242,6 +1242,217 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
+    def setup_for_duplicate_actions_test(self):
+        """Helper function to do the setup for the following multiple trigger + duplicate action tests"""
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        critical_trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, critical_trigger.alert_threshold - 20
+        )
+        critical_action = self.action
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            # same as critical action, so the critical should get deduplicated
+            str(self.user.id),
+        )
+        return (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        )
+
+    def test_duplicate_actions_warning_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Warning -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_does_not_exist(critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+            ],
+        )
+
+    def test_duplicate_actions_critical_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Critical -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+            ],
+        )
+
+    def test_duplicate_actions_warning_to_critical_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Warning -> Critical -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-15), subscription=self.sub
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_does_not_exist_for_incident(incident, critical_trigger)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
+            ],
+        )
+
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+            ],
+        )
+
+    def test_duplicate_actions_critical_to_warning_to_resolved(self):
+        """Tests duplicate action behavior when alert status goes from Critical -> Warning -> Resolved"""
+        rule = self.rule
+        (
+            critical_trigger,
+            warning_trigger,
+            critical_action,
+            warning_action,
+        ) = self.setup_for_duplicate_actions_test()
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold + 1,
+            timedelta(minutes=-15),
+            subscription=self.sub,
+        )
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+            ],
+        )
+
+        self.send_update(
+            rule,
+            critical_trigger.alert_threshold - 1,
+            timedelta(minutes=-10),
+            subscription=self.sub,
+        )
+        self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
+            ],
+        )
+
+        self.send_update(
+            rule, warning_trigger.alert_threshold - 1, timedelta(minutes=-5), subscription=self.sub
+        )
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, critical_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [warning_action],
+            [
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+            ],
+        )
+
     def test_slack_multiple_triggers_critical_before_warning(self):
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
