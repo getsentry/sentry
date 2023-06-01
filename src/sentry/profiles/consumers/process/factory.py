@@ -22,6 +22,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self) -> None:
+        super().__init__()
         monitor_queues()
 
     def create_with_partitions(
