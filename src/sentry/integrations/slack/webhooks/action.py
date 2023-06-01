@@ -242,7 +242,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             "integrations.slack.status",
             status=status["status"],
             resolve_type=resolve_type,
-            actor_id=user.id,
+            user_id=user.id,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:

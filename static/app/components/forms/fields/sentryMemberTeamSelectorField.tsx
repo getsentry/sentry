@@ -9,11 +9,10 @@ import {useTeams} from 'sentry/utils/useTeams';
 import FormContext from '../formContext';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
-import SelectField from './selectField';
+import SelectField, {SelectFieldProps} from './selectField';
 
 // projects can be passed as a direct prop as well
-export interface RenderFieldProps extends InputFieldProps {
+export interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
   projects?: Project[];
   /**
@@ -29,7 +28,7 @@ function SentryMemberTeamSelectorField({
   ...props
 }: RenderFieldProps) {
   const {form} = useContext(FormContext);
-  const currentItems = form?.getValue(props.name) as string[] | null;
+  const currentItems = form?.getValue<string[]>(props.name, []);
 
   // Ensure the current value of the fields members is loaded
   const ensureUserIds = useMemo(

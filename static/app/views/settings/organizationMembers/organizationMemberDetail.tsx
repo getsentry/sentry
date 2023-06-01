@@ -53,7 +53,7 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  groupOrgRoles: Member['orgRolesFromTeams']; // Form state
+  groupOrgRoles: Member['groupOrgRoles']; // Form state
   member: Member | null;
   orgRole: Member['orgRole']; // Form state
   teamRoles: Member['teamRoles']; // Form state
@@ -89,11 +89,11 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   onRequestSuccess({data, stateKey}: {data: Member; stateKey: string}) {
     if (stateKey === 'member') {
-      const {orgRole, teamRoles, orgRolesFromTeams} = data;
+      const {orgRole, teamRoles, groupOrgRoles} = data;
       this.setState({
         orgRole,
         teamRoles,
-        groupOrgRoles: orgRolesFromTeams,
+        groupOrgRoles,
       });
     }
   }
