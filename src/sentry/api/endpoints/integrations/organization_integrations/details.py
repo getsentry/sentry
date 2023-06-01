@@ -38,8 +38,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         )
 
-    @set_referrer_policy("strict-origin-when-cross-origin")
     @requires_feature("organizations:integrations-custom-scm")
+    @set_referrer_policy("strict-origin-when-cross-origin")
     @never_cache
     def put(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization.id, integration_id)
