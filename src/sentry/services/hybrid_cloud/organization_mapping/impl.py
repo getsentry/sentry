@@ -56,6 +56,15 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 .update(**update)
             )
 
+    def upsert(
+        self, organization_id: int, update: RpcOrganizationMappingUpdate
+    ) -> OrganizationMapping:
+        org_mapping, _created = OrganizationMapping.objects.update_or_create(
+            organization_id=organization_id, defaults=update
+        )
+
+        return org_mapping
+
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         try:
             mapping = OrganizationMapping.objects.get(organization_id=organization_id, slug=slug)

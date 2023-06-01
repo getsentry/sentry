@@ -39,10 +39,6 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.organization_mapping import (
-    RpcOrganizationMappingUpdate,
-    organization_mapping_service,
-)
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -519,11 +515,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 with transaction.atomic():
                     organization, changed_data = serializer.save()
 
-                    if "name" in changed_data:
-                        organization_mapping_service.update(
-                            organization_id=organization.id,
-                            update=RpcOrganizationMappingUpdate(name=organization.name),
-                        )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.
             except IntegrityError:

@@ -267,13 +267,13 @@ class Factories:
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
-        create_mapping = not kwargs.pop("no_mapping", False)
         org = Organization.objects.create(name=name, **kwargs)
-        if create_mapping:
-            Factories.create_org_mapping(org)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
+
+        region_outbox = Organization.outbox_for_update(org_id=org.id)
+        region_outbox.drain_shard()
         return org
 
     @staticmethod
