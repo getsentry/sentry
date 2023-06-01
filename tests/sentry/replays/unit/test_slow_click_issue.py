@@ -20,7 +20,7 @@ def test_report_slow_click_issue_a_tag():
         }
     }
 
-    reported = report_slow_click_issue(project_id=1, event=event)
+    reported = report_slow_click_issue(project_id=1, replay_id="", event=event)
     assert reported is True
 
 
@@ -38,7 +38,7 @@ def test_report_slow_click_issue_other_tag():
         }
     }
 
-    reported = report_slow_click_issue(project_id=1, event=event)
+    reported = report_slow_click_issue(project_id=1, replay_id="", event=event)
     assert reported is False
 
 
@@ -56,7 +56,7 @@ def test_report_slow_click_issue_mutation_reason():
         }
     }
 
-    reported = report_slow_click_issue(project_id=1, event=event)
+    reported = report_slow_click_issue(project_id=1, replay_id="", event=event)
     assert reported is False
 
 
@@ -74,5 +74,5 @@ def test_report_slow_click_issue_disabled_option():
         }
     }
 
-    reported = report_slow_click_issue(project_id=1, event=event)
+    reported = report_slow_click_issue(project_id=1, replay_id="", event=event)
     assert reported is False
