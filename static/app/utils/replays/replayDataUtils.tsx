@@ -179,10 +179,13 @@ export function breadcrumbFactory(
     })
     .map(crumb => {
       if (crumb.category === 'replay.mutations') {
+        const crumbData = crumb.data as Record<string, unknown>;
         return {
           ...crumb,
-          type: BreadcrumbType.WARNING,
-          level: BreadcrumbLevelType.WARNING,
+          type: crumbData.limit ? BreadcrumbType.ERROR : BreadcrumbType.WARNING,
+          level: crumbData.limit
+            ? BreadcrumbLevelType.FATAL
+            : BreadcrumbLevelType.WARNING,
           timestamp: new Date(crumb.timestamp * 1000).toISOString(),
         };
       }

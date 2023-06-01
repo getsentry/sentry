@@ -4,7 +4,16 @@ import {t} from 'sentry/locale';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 // Replay SDK can send `data` that does not conform to our issue/event breadcrumbs
-type MaybeCrumbData = null | Record<string, unknown>;
+type MaybeCrumbData = null | Record<string, any>;
+
+function stringifyNodeAttributes(tagName: string, attributes: Record<string, string>) {
+  const attributesEntries = Object.entries(attributes);
+  return `${tagName}${
+    attributesEntries.length
+      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`)
+      : ''
+  }`;
+}
 
 /**
  * Generate breadcrumb descriptions based on type
@@ -38,9 +47,25 @@ export function getDescription(crumb: Crumb) {
     }
   }
 
-  if (crumb.category === 'replay.mutations') {
+  if (crumb.category === 'ui.slowClickDetected') {
+    const node = crumbData!.node as {attributes: Record<string, string>; tagName: string};
+    return t(
+      'A click on %s took %s ms to respond to',
+      stringifyNodeAttributes(node.tagName, node.attributes)
+    );
+  }
+
+  if (crumb.category === 'replay.mutations' && !crumbData?.limit) {
     return t(
       'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
+      crumbData?.count
+    );
+  }
+
+  // Reached the mutation limit where we stop replays
+  if (crumb.category === 'replay.mutations' && crumbData?.limit) {
+    return t(
+      'A large number of mutations was detected (%s). Replay is now stopped to prevent poor performance for your customer.',
       crumbData?.count
     );
   }
@@ -73,6 +98,14 @@ export function getTitle(crumb: Crumb) {
     return crumb.message ?? crumb.description;
   }
   const [type, action] = crumb.category.split('.') || [];
+
+  if (action === 'slowClickDetected') {
+    if ((crumb.data as Record<string, unknown> | undefined)?.endReason === 'timeout') {
+      return 'Dead Click';
+    }
+    return 'Slow Click';
+  }
+
   if (type === 'ui') {
     return `User ${action || ''}`;
   }
