@@ -8,7 +8,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {P50_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -75,23 +75,6 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     );
   });
 
-  const p50Series = Object.keys(dataByGroup).map(groupName => {
-    const groupData = dataByGroup[groupName];
-
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'p50()',
-        data: groupData.map(datum => ({
-          value: datum['p50(span.duration)'],
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
-  });
-
   const p95Series = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
@@ -141,11 +124,11 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <ChartPanel title={DataTitles.p50p95}>
+        <ChartPanel title={DataTitles.p95}>
           <Chart
             statsPeriod="24h"
             height={100}
-            data={[...p50Series, ...p95Series]}
+            data={[...p95Series]}
             start=""
             end=""
             loading={isLoading}
@@ -159,7 +142,7 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={[P50_COLOR, P95_COLOR]}
+            chartColors={[P95_COLOR]}
           />
         </ChartPanel>
       </ChartsContainerItem>

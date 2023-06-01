@@ -11,7 +11,7 @@ import {
 
 type SampleListDatRow = {
   exclusive_time: number;
-  p50Comparison: number;
+  p95Comparison: number;
   'project.name': string;
   spanDuration: number;
   spanOp: string;
@@ -78,7 +78,7 @@ export const useQueryGetSpanTransactionSamples = ({
       spanDuration: datum.exclusive_time,
       transactionDuration: transaction?.['transaction.duration'],
       exclusive_time: datum.exclusive_time,
-      p50Comparison: datum.p50_comparison,
+      p95Comparison: datum.p95_comparison,
       user: datum.user,
     };
   });

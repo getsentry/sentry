@@ -10,10 +10,10 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Series} from 'sentry/types/echarts';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
 import Sparkline, {
   generateHorizontalLine,
@@ -25,7 +25,10 @@ import {
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {TimeSpentCell} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+import {
+  DurationTrendCell,
+  TimeSpentCell,
+} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Props = {
   isLoading: boolean;
@@ -60,11 +63,12 @@ export type SpanTrendDataRow = {
 export type Keys =
   | 'description'
   | 'p50_trend'
+  | 'p95_trend'
   | 'throughput_trend'
   | 'span_operation'
   | 'domain'
   | 'epm()'
-  | 'p50(span.self_time)'
+  | 'p95(span.self_time)'
   | 'timeSpent'
   | 'total_exclusive_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
@@ -201,18 +205,12 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'p50_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${getDuration(row.p50 / 1000, 2, true)}`,
-      row.p50,
-      theme
-    );
+  if (column.key === 'p95_trend' && row[column.key]) {
     return (
-      <Sparkline
-        color={P50_COLOR}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
+      <DurationTrendCell
+        color={P95_COLOR}
+        duration={row.p95}
+        durationSeries={row[column.key]}
       />
     );
   }
@@ -322,8 +320,8 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
       width: 175,
     },
     {
-      key: 'p50_trend',
-      name: DataTitles.p50,
+      key: 'p95_trend',
+      name: DataTitles.p95,
       width: 175,
     },
     {
