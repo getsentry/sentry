@@ -21,7 +21,7 @@ class RpcOrganizationMapping(RpcModel):
     region_name: str = ""
     date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
-    customer_id: str = None
+    customer_id: Optional[str] = None
     status: Optional[OrganizationStatus] = None
 
 
