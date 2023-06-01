@@ -2469,7 +2469,6 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             )[0]
         error_group_score = results[0][1]
         profile_group_score = results[1][1]
-        # initially group 2's score is higher since it has a more recent event
         assert error_group_score > 0
         assert profile_group_score == 0
 
