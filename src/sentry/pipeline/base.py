@@ -14,7 +14,7 @@ from sentry.db.models import Model
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
-from ..services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
