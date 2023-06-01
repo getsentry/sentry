@@ -1214,7 +1214,7 @@ SENTRY_FEATURES = {
     # is not enabled).
     "organizations:create": True,
     # Use issue platform for crons issues
-    "organizations:crons-issue-platform": True,
+    "organizations:crons-issue-platform": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
