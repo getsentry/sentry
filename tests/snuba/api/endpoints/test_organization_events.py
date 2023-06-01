@@ -6006,6 +6006,25 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
         assert set(fields) == data_keys
         assert set(fields) == field_keys
         assert set(fields) == unit_keys
+        assert response.data["meta"]["units"] == {
+            "transaction": None,
+            "project": None,
+            "function": None,
+            "package": None,
+            "is_application": None,
+            "platform.name": None,
+            "environment": None,
+            "release": None,
+            "retention_days": None,
+            "count()": None,
+            "examples()": None,
+            "p50()": "nanosecond",
+            "p75()": "nanosecond",
+            "p95()": "nanosecond",
+            "p99()": "nanosecond",
+            "avg()": "nanosecond",
+            "sum()": "nanosecond",
+        }
 
 
 @region_silo_test
