@@ -55,6 +55,7 @@ from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_
 class PrioritySortWeights(TypedDict):
     log_level: int
     has_stacktrace: int
+    relative_volume: int
     event_halflife_hours: int
     issue_halflife_hours: int
     v2: bool
@@ -64,6 +65,7 @@ class PrioritySortWeights(TypedDict):
 DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
+    "relative_volume": 0,
     "event_halflife_hours": 4,
     "issue_halflife_hours": 24 * 7,
     "v2": False,
@@ -73,6 +75,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
 V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
+    "relative_volume": 1,
     "event_halflife_hours": 12,
     "issue_halflife_hours": 4,
     "v2": False,
@@ -522,7 +525,8 @@ def better_priority_aggregation(
         #  * add an extra 'relative volume score' (# of events in past 60 mins / # of events in the past 7 days)
         #    to factor in the volume of events that recently were fired versus the past. This will up-rank issues
         #    that are more recently active as a function of the overall amount of events grouped to that issue
-        #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0 -
+        #  * add a configurable weight to 'relative volume score'
+        #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0
 
         # aggregate_event_score:
         #
@@ -548,16 +552,21 @@ def better_priority_aggregation(
         avg_hourly_event_count_last_7_days = (
             "countIf(lessOrEquals(minus(now(), timestamp), 604800))"  # 604800 = 3600 * 24 * 7
         )
+        relative_volume_weight = aggregate_kwargs["relative_volume"]  # [0, 10]
+        max_relative_volume_weight = 10
+        if relative_volume_weight > max_relative_volume_weight:
+            relative_volume_weight = max_relative_volume_weight
         relative_volume_score = (
-            f"divide(plus({event_count_60_mins}, 1), plus({avg_hourly_event_count_last_7_days}, 1))"
+            f"divide({event_count_60_mins}, plus({avg_hourly_event_count_last_7_days}, 1))"
         )
+        scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
         aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
         normalize = aggregate_kwargs["norm"]
 
         if not normalize:
             return [
-                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), {relative_volume_score})",
+                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), greatest({min_score}, {scaled_relative_volume_score}))",
                 "",
             ]
         else:
@@ -570,7 +579,7 @@ def better_priority_aggregation(
             #            2^(x/k)
             normalized_aggregate_issue_score = aggregate_issue_score  # already ranges from 1 to 0
             normalized_relative_volume_score = (
-                relative_volume_score  # already normalized since it's a percentage
+                scaled_relative_volume_score  # already normalized since it's a percentage
             )
 
             # aggregate_event_score ranges from [0, +inf], as the amount of events grouped to this issue

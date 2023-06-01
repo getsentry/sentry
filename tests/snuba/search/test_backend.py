@@ -365,6 +365,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             weights: PrioritySortWeights = {
                 "log_level": 5,
                 "has_stacktrace": 5,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2107,6 +2108,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             weights: PrioritySortWeights = {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2156,6 +2158,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             weights: PrioritySortWeights = {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": True,
@@ -2204,6 +2207,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             "better_priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2252,6 +2256,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             "better_priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,
@@ -2360,6 +2365,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             "better_priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
                 "issue_halflife_hours": 24 * 7,
                 "v2": False,

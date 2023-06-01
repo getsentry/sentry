@@ -196,6 +196,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                         int,
                         V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
                     ),
+                    "relative_volume": _coerce(
+                        request.GET.get("relativeVolume"),
+                        int,
+                        V2_DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
+                    ),
                     "event_halflife_hours": _coerce(
                         request.GET.get("eventHalflifeHours"),
                         int,
@@ -223,6 +228,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                         int,
                         DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
                     ),
+                    "relative_volume": DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
                     "event_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
                     "issue_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
                     "v2": False,
