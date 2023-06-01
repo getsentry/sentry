@@ -21,7 +21,8 @@ class JiraClient(ApiClient):
     """
 
     PROJECT_URL = "/rest/api/2/project"
-    META_URL = "/rest/api/2/issue/createmeta"
+    ISSUE_FIELDS_URL = "/rest/api/2/issue/createmeta/%s/issuetypes/%s"
+    ISSUE_TYPES_URL = "/rest/api/2/issue/createmeta/%s/issuetypes"
     CREATE_URL = "/rest/api/2/issue"
     PRIORITIES_URL = "/rest/api/2/priority"
     VERSIONS_URL = "/rest/api/2/project/{}/versions"
@@ -48,25 +49,13 @@ class JiraClient(ApiClient):
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
 
-    def get_create_meta(self, project):
-        return self.get(
-            self.META_URL, params={"projectKeys": project, "expand": "projects.issuetypes.fields"}
-        )
+    def get_issue_types(self, project_id):
+        # Get a list of issue types for the given project
+        return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
 
-    def get_create_meta_for_project(self, project):
-        metas = self.get_create_meta(project)
-        # We saw an empty JSON response come back from the API :(
-        if not metas:
-            return None
-
-        # XXX(dcramer): document how this is possible, if it even is
-        if len(metas["projects"]) > 1:
-            raise ApiError("More than one project found.")
-
-        try:
-            return metas["projects"][0]
-        except IndexError:
-            return None
+    def get_issue_fields(self, project_id, issue_type_id):
+        # Get a list of fields for the issue type and project
+        return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
     def get_versions(self, project):
         return self.get_cached(self.VERSIONS_URL.format(project))

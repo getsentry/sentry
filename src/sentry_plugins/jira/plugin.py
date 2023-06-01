@@ -109,7 +109,6 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                     "default": [],
                 }
             )
-
         # break this out, since multiple field types could additionally
         # be configured to use a custom property instead of a default.
         if schema.get("custom"):
@@ -119,27 +118,16 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_issue_type_meta(self, issue_type, meta):
-        issue_types = meta["issuetypes"]
-        issue_type_meta = None
-        if issue_type:
-            matching_type = [t for t in issue_types if t["id"] == issue_type]
-            issue_type_meta = matching_type[0] if len(matching_type) > 0 else None
-
-        # still no issue type? just use the first one.
-        if not issue_type_meta:
-            issue_type_meta = issue_types[0]
-
-        return issue_type_meta
-
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
 
         jira_project_key = self.get_option("default_project", group.project)
-
         client = self.get_jira_client(group.project)
         try:
-            meta = client.get_create_meta_for_project(jira_project_key)
+            meta = client.get_issue_types(jira_project_key)
+            meta_formatted = [
+                (choice["id"], choice["name"]) for choice in meta["values"]
+            ]
         except ApiUnauthorized:
             raise PluginError(
                 "JIRA returned: Unauthorized. "
@@ -155,7 +143,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             raise PluginError(
                 "Error in JIRA configuration, no projects " "found for user %s." % client.username
             )
-
+        jira_projects = client.get_projects_list()
         # check if the issuetype was passed as a GET parameter
         issue_type = None
         if request is not None:
@@ -163,36 +151,31 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 issue_type = request.data.get("issuetype")
             else:
                 issue_type = request.GET.get("issuetype")
+        # make sure default issue type is actually one that is allowed for project
+        valid_issue_type = any(
+            choice for choice in meta["values"] if choice["id"] == issue_type
+        )
 
-        if issue_type is None:
+        if not issue_type or not valid_issue_type:
             issue_type = self.get_option("default_issue_type", group.project)
 
-        issue_type_meta = self.get_issue_type_meta(issue_type, meta)
-
-        issue_type_choices = self.make_choices(meta["issuetypes"])
-
-        # make sure default issue type is actually
-        # one that is allowed for project
-        if issue_type:
-            if not any(c for c in issue_type_choices if c[0] == issue_type):
-                issue_type = issue_type_meta["id"]
+        issue_fields_meta = client.get_issue_fields(jira_project_key, issue_type)
 
         fields = [
             {
                 "name": "project",
                 "label": "Jira Project",
-                "choices": ((meta["id"], jira_project_key),),
-                "default": meta["id"],
+                "default": [p["id"] for p in jira_projects if p["key"] == jira_project_key][0],
+                "choices": [(p["id"], p["key"]) for p in jira_projects],
                 "type": "select",
-                "readonly": True,
             },
             *fields,
             {
                 "name": "issuetype",
                 "label": "Issue Type",
-                "default": issue_type or issue_type_meta["id"],
+                "default": issue_type or issue_fields_meta["id"],
                 "type": "select",
-                "choices": issue_type_choices,
+                "choices": meta_formatted,
             },
         ]
 
@@ -202,19 +185,26 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         # apply ordering to fields based on some known built-in JIRA fields.
         # otherwise weird ordering occurs.
-        anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
-
-        dynamic_fields = list(issue_type_meta.get("fields").keys())
-        dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
+        anti_gravity = {
+            "priority": (-150, ""),
+            "fixVersions": (-125, ""),
+            "components": (-100, ""),
+            "security": (-50, ""),
+        }
+        dynamic_fields = [val["fieldId"] for val in issue_fields_meta["values"]]
+        # Sort based on priority, then field name
+        dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
         # Build up some dynamic fields based on what is required.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
                 continue
-            mb_field = self.build_dynamic_field(group, issue_type_meta["fields"][field])
-            if mb_field:
-                mb_field["name"] = field
-                fields.append(mb_field)
+            field_meta = [value for value in issue_fields_meta["values"] if value["fieldId"] == field]
+            if len(field_meta) > 0:
+                mb_field = self.build_dynamic_field(group, field_meta[0])
+                if mb_field:
+                    mb_field["name"] = field
+                    fields.append(mb_field)
 
         for field in fields:
             if field["name"] == "priority":
@@ -403,68 +393,76 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if not form_data.get("issuetype"):
             raise PluginError("Issue Type is required.")
 
+        issue_type = form_data.get("issuetype")
         jira_project_key = self.get_option("default_project", group.project)
         client = self.get_jira_client(group.project)
-        meta = client.get_create_meta_for_project(jira_project_key)
-
-        if not meta:
+        issue_fields_meta = client.get_issue_fields(jira_project_key, form_data["issuetype"])
+        if not issue_fields_meta:
             raise PluginError("Something went wrong. Check your plugin configuration.")
 
-        issue_type_meta = self.get_issue_type_meta(form_data["issuetype"], meta)
+        issue_type_fields = issue_fields_meta["values"]
 
-        fs = issue_type_meta["fields"]
-        for field in fs.keys():
-            f = fs[field]
-            if field == "description":
-                cleaned_data[field] = form_data[field]
+        for field in issue_type_fields:
+            field_name = field["fieldId"]
+            if field_name == "description":
+                cleaned_data[field_name] = form_data[field_name]
                 continue
-            elif field == "summary":
+            elif field_name == "summary":
                 cleaned_data["summary"] = form_data["title"]
                 continue
-            if field in form_data.keys():
-                v = form_data.get(field)
+            elif field_name == "labels" and "labels" in form_data:
+                labels = [label.strip() for label in form_data["labels"].split(",") if label.strip()]
+                cleaned_data["labels"] = labels
+                continue
+            if field_name in form_data.keys():
+                v = form_data.get(field_name)
                 if v:
-                    schema = f["schema"]
-                    if schema.get("type") == "string" and not schema.get("custom"):
-                        cleaned_data[field] = v
-                        continue
-                    if schema["type"] == "user" or schema.get("items") == "user":
-                        v = {"name": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                        # custom multi-picker
-                        v = [{"name": v}]
-                    elif schema["type"] == "array" and schema.get("items") != "string":
-                        v = [{"id": vx} for vx in v]
-                    elif schema["type"] == "array" and schema.get("items") == "string":
-                        v = [v]
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("textarea"):
-                        v = v
-                    elif (
-                        schema["type"] == "number"
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["tempo_account"]
-                    ):
-                        try:
-                            if "." in v:
-                                v = float(v)
+                    schema = field.get("schema")
+                    if schema:
+                        if schema.get("type") == "string" and not schema.get("custom"):
+                            cleaned_data[field_name] = v
+                            continue
+                        if schema["type"] == "user" or schema.get("items") == "user":
+                            if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
+                                v = [{"name": v}]
                             else:
-                                v = int(v)
-                        except ValueError:
-                            pass
-                    elif (
-                        schema.get("type") != "string"
-                        or (schema.get("items") and schema.get("items") != "string")
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
-                    ):
-                        v = {"id": v}
-                    cleaned_data[field] = v
+                                v = {"name": v}
+                        elif schema["type"] == "array" and schema.get("items") == "option":
+                            v = [{"value": vx} for vx in v]
+                        elif schema["type"] == "array" and schema.get("items") != "string":
+                            v = [{"id": vx} for vx in v]
+                        elif schema["type"] == "array" and schema.get("items") == "string":
+                            v = [v]
+                        elif schema["type"] == "option":
+                            v = {"value": v}
+                        elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("textarea"):
+                            v = v
+                        elif (
+                            schema["type"] == "number"
+                            or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["tempo_account"]
+                        ):
+                            try:
+                                if "." in v:
+                                    v = float(v)
+                                else:
+                                    v = int(v)
+                            except ValueError:
+                                pass
+                        elif (
+                            schema.get("type") != "string"
+                            or (schema.get("items") and schema.get("items") != "string")
+                            or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
+                        ):
+                            v = {"id": v}
+                    cleaned_data[field_name] = v
 
-        if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
+        if not (isinstance(cleaned_data.get("issuetype"), dict) and "id" in cleaned_data.get("issuetype", {})):
             # something fishy is going on with this field, working on some JIRA
             # instances, and some not.
             # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
-            cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
+            cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
             response = client.create_issue(cleaned_data)
@@ -479,8 +477,26 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         pw = self.get_option("password", project)
         return JiraClient(instance, username, pw)
 
-    def make_choices(self, x):
-        return [(y["id"], y["name"] if "name" in y else y["value"]) for y in x] if x else []
+    def make_choices(self, values):
+        if not values:
+            return []
+        results = []
+        for item in values:
+            key = item.get("id", None)
+            if "name" in item:
+                value = item["name"]
+            elif "value" in item and not item["disabled"]:
+                # Value based options prefer the value on submit.
+                key = item["value"]
+                value = item["value"]
+            elif "label" in item:
+                # Label based options prefer the value on submit.
+                key = item["label"]
+                value = item["label"]
+            else:
+                continue
+            results.append((key, value))
+        return results
 
     def validate_config_field(self, project, name, value, actor=None):
         value = super().validate_config_field(project, name, value, actor)
@@ -546,12 +562,12 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                         default_priority = default_priority or priorities[0]["id"]
 
                 try:
-                    meta = client.get_create_meta_for_project(jira_project)
+                    meta = client.get_issue_types(jira_project)
                 except ApiError:
                     meta = None
                 else:
                     if meta:
-                        issue_type_choices = self.make_choices(meta["issuetypes"])
+                        issue_type_choices = self.make_choices(meta["values"])
                         if issue_type_choices:
                             default_issue_type = default_issue_type or issue_type_choices[0][0]
 
