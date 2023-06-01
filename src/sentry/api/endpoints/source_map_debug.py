@@ -197,12 +197,14 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
     def _find_partial_matches(self, unified_path, artifacts):
         filename = unified_path.split("/")[-1]
-        filename_matches = [artifact for artifact in artifacts if artifact.name.endswith(filename)]
+        filename_matches = [
+            artifact for artifact in artifacts if artifact.name.split("/")[-1] == filename
+        ]
         artifact_names = [artifact.name.split("/") for artifact in filename_matches]
         while any(artifact_names):
             for i in range(len(artifact_names)):
                 if unified_path.endswith("/".join(artifact_names[i])):
-                    return [artifacts[i]]
+                    return [filename_matches[i]]
                 artifact_names[i] = artifact_names[i][1:]
         return []
 
