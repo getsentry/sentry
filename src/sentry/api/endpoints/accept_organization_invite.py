@@ -1,4 +1,6 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Mapping, Optional
 
 from django.urls import reverse
 from rest_framework import status
@@ -11,12 +13,13 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.models import AuthProvider, OrganizationMemberMapping
+from sentry.models import AuthProvider, OrganizationMapping, OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
 
 
@@ -41,9 +44,25 @@ class AcceptOrganizationInvite(Endpoint):
         user_id: int,
     ) -> Optional[RpcUserInviteContext]:
         if organization_slug is None:
-            member_mapping = OrganizationMemberMapping.objects.filter(
-                organizationmember_id=member_id
-            ).first()
+            # Lookup by the organization member id, but only for historical monolith regions.
+            member_mapping: OrganizationMemberMapping | None = None
+            member_mappings: Mapping[int, OrganizationMemberMapping] = {
+                omm.organization_id: omm
+                for omm in OrganizationMemberMapping.objects.filter(
+                    organizationmember_id=member_id
+                ).all()
+            }
+            org_mappings = OrganizationMapping.objects.filter(
+                organization_id__in=list(member_mappings.keys())
+            )
+            for mapping in org_mappings:
+                try:
+                    if get_region_by_name(mapping.region_name).was_monolith:
+                        member_mapping = member_mappings.get(mapping.organization_id)
+                        break
+                except RegionResolutionError:
+                    pass
+
             if member_mapping is None:
                 return None
             invite_context = organization_service.get_invite_by_id(

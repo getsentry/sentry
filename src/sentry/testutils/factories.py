@@ -278,12 +278,13 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_org_mapping(org, **kwds):
-        kwds.setdefault("organization_id", org.id)
-        kwds.setdefault("slug", org.slug)
-        kwds.setdefault("name", org.name)
-        kwds.setdefault("idempotency_key", uuid4().hex)
-        kwds.setdefault("region_name", "test-region")
+    def create_org_mapping(org=None, **kwds):
+        if org:
+            kwds.setdefault("organization_id", org.id)
+            kwds.setdefault("slug", org.slug)
+            kwds.setdefault("name", org.name)
+            kwds.setdefault("idempotency_key", uuid4().hex)
+            kwds.setdefault("region_name", "test-region")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
@@ -308,8 +309,8 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        om.outbox_for_create().drain_shard(max_updates_to_drain=10)
-        organizationmember_mapping_service.create_with_organization_member(org_member=om)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+        organizationmember_mapping_service.upsert_with_organization_member(org_member=om)
 
         if team_roles:
             for team, role in team_roles:

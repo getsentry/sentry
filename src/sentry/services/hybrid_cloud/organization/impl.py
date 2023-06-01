@@ -303,7 +303,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         ), "Must set either user_id or email"
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
-        region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization_id,
@@ -314,9 +313,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 inviter_id=inviter_id,
                 invite_status=invite_status,
             )
-            region_outbox = org_member.save_outbox_for_create()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:

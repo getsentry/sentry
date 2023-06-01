@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.dispatch import receiver
 
 from sentry import roles
@@ -33,6 +34,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
 )
 from sentry.signals import member_joined
+from sentry.types.region import get_local_region
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -58,15 +60,12 @@ def maybe_handle_joined_user(org_member: OrganizationMember) -> None:
         )
 
 
+# No longer used.
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_CREATE)
 def process_organization_member_create(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
-        return
-
-    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
-    maybe_handle_joined_user(org_member)
+    pass
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
@@ -79,22 +78,18 @@ def process_organization_member_updates(
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
             )
-        organizationmember_mapping_service.delete_with_organization_member(
+        organizationmember_mapping_service.delete(
             organizationmember_id=object_identifier,
             organization_id=shard_identifier,
-            user_id=payload.get("user_id"),
-            email=payload.get("email"),
         )
         return
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    organizationmember_mapping_service.update_with_organization_member(
+    organizationmember_mapping_service.upsert_mapping(
         organizationmember_id=org_member.id,
         organization_id=shard_identifier,
-        user_id=payload.get("user_id"),
-        email=payload.get("email"),
-        rpc_update_org_member=rpc_org_member_update,
+        mapping=rpc_org_member_update,
     )
 
     maybe_handle_joined_user(org_member)
@@ -122,3 +117,9 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     proj
+
+
+def _was_monolith() -> bool:
+    if not settings.SENTRY_REGION:
+        return True
+    return get_local_region().was_monolith

@@ -11,13 +11,17 @@ from sentry.models import (
     AuthProvider,
     InviteStatus,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
+    OrganizationMemberMapping,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.types.region import Region, RegionCategory
 
 
 @control_silo_test(stable=True)
@@ -134,6 +138,81 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert resp.data["needs2fa"]
 
             self._assert_pending_invite_details_in_session(om)
+
+    def test_multi_region_organizationmember_id(self):
+        with override_regions(
+            [
+                Region("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
+                Region(
+                    OrganizationMapping.objects.get(
+                        organization_id=self.organization.id
+                    ).region_name,
+                    2,
+                    "http://moo",
+                    RegionCategory.MULTI_TENANT,
+                    was_monolith=True,
+                ),
+            ]
+        ):
+            self.create_organization_mapping(
+                organization_id=101010,
+                slug="abcslug",
+                name="The Thing",
+                idempotency_key="",
+                region_name="some-region",
+            )
+            self._require_2fa_for_organization()
+            assert not self.user.has_2fa()
+
+            self.login_as(self.user)
+
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com", token="abc", organization_id=self.organization.id
+            )
+            OrganizationMemberMapping.objects.create(
+                organization_id=101010, organizationmember_id=om.id
+            )
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id, organizationmember_id=om.id
+            )
+
+            for path in self._get_paths([om.id, om.token]):
+                resp = self.client.get(path)
+                assert resp.status_code == 200
+                assert resp.data["needs2fa"]
+
+                self._assert_pending_invite_details_in_session(om)
+                assert self.client.session["invite_organization_id"] == self.organization.id
+
+    def test_multi_region_organizationmember_id__non_monolith(self):
+        with override_regions(
+            [
+                Region("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
+            ]
+        ):
+            self.create_organization_mapping(
+                organization_id=self.organization.id,
+                slug="abcslug",
+                name="The Thing",
+                idempotency_key="",
+                region_name="some-region",
+            )
+            self._require_2fa_for_organization()
+            assert not self.user.has_2fa()
+
+            self.login_as(self.user)
+
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com", token="abc", organization_id=self.organization.id
+            )
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id, organizationmember_id=om.id
+            )
+
+            resp = self.client.get(
+                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            )
+            assert resp.status_code == 400
 
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()

@@ -251,15 +251,9 @@ class OrganizationMember(Model):
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
-            is_new = not bool(self.id)
             super().save(*args, **kwargs)
-            region_outbox = None
-            if is_new:
-                region_outbox = self.save_outbox_for_create()
-            else:
-                region_outbox = self.save_outbox_for_update()
+            self.save_outbox_for_update()
             self.__org_roles_from_teams = None
-            return region_outbox
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
@@ -280,27 +274,13 @@ class OrganizationMember(Model):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def outbox_for_create(self) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=self.organization_id,
-            category=OutboxCategory.ORGANIZATION_MEMBER_CREATE,
-            object_identifier=self.id,
-            payload=dict(user_id=self.user_id),
-        )
-
-    def save_outbox_for_create(self) -> RegionOutbox:
-        outbox = self.outbox_for_create()
-        outbox.save()
-        return outbox
-
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=self.organization_id,
             category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
             object_identifier=self.id,
-            payload=dict(user_id=self.user_id, email=self.email),
+            payload=dict(user_id=self.user_id),
         )
 
     def save_outbox_for_update(self) -> RegionOutbox:
