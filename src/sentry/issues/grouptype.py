@@ -313,6 +313,30 @@ class ProfileJSONDecodeType(GroupType):
     category = GroupCategory.PROFILE.value
 
 
+@dataclass(frozen=True)
+class ProfileCoreDataType(GroupType):
+    type_id = 2004
+    slug = "profile_core_data_main_thread"
+    description = "Core Data on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class ProfileRegexType(GroupType):
+    type_id = 2005
+    slug = "profile_regex_main_thread"
+    description = "Regex on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class ProfileViewIsSlowType(GroupType):
+    type_id = 2006
+    slug = "profile_view_is_slow"
+    description = "View Render/Layout/Update is slow"
+    category = GroupCategory.PERFORMANCE.value
+
+
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: Type[GroupType],
