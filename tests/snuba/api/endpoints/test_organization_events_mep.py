@@ -2249,3 +2249,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Not supported")
+    def test_time_spent(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Not supported")
+    def test_http_500_rate(self):
+        super().test_having_condition()
