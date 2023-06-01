@@ -24,10 +24,13 @@ class ControlFileBlob(AbstractFileBlob):
         config = None
         try:
             # If these options exist, use them. Otherwise fallback to default behavior
-            config = {
-                "backend": options_store.get("filestore.control.backend"),
-                "options": options_store.get("filestore.control.options"),
-            }
+            backend = options_store.get("filestore.control.backend")
+            options = options_store.get("filestore.control.options")
+            if backend and options:
+                config = {
+                    "backend": backend,
+                    "options": options,
+                }
         except UnknownOption:
             pass
         return config

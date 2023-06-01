@@ -100,7 +100,11 @@ def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
     acks_late=True,
 )
 def copy_file_to_control_and_update_model(
-    app_name: str, model_name: str, model_id: int, file_id: int
+    app_name: str,
+    model_name: str,
+    model_id: int,
+    file_id: int,
+    **kwargs,
 ):
     from sentry.models.files import ControlFile, ControlFileBlob, File
 
