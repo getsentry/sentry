@@ -566,7 +566,7 @@ def better_priority_aggregation(
 
         if not normalize:
             return [
-                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), {scaled_relative_volume_score})",
+                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), greatest({min_score}, {scaled_relative_volume_score}))",
                 "",
             ]
         else:
