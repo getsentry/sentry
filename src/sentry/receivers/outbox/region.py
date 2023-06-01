@@ -109,7 +109,7 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         return
 
     update = update_organization_mapping_from_instance(org)
-    organization_mapping_service.update(organization_id=org.id, update=update)
+    organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)

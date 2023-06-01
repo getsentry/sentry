@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import ContextManager
 from unittest.mock import call, patch
 
+import pytest
 import responses
 from django.test import RequestFactory, override_settings
 from freezegun import freeze_time
@@ -12,6 +13,7 @@ from rest_framework import status
 from sentry.models import (
     ControlOutbox,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
     OutboxCategory,
     OutboxScope,
@@ -30,6 +32,13 @@ from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, re
 from sentry.types.region import MONOLITH_REGION_NAME, Region, RegionCategory
 
 
+@pytest.fixture(autouse=True, scope="function")
+@pytest.mark.django_db(transaction=True)
+def setup_clear_fixture_outbox_messages():
+    with outbox_runner():
+        pass
+
+
 @control_silo_test(stable=True)
 class ControlOutboxTest(TestCase):
     webhook_request = RequestFactory().post(
@@ -43,8 +52,18 @@ class ControlOutboxTest(TestCase):
 
     def test_creating_user_outboxes(self):
         with exempt_from_silo_limits():
-            org = Factories.create_organization(no_mapping=True)
-            Factories.create_org_mapping(org, region_name="a")
+            org = Factories.create_organization()
+
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+            org_mapping.region_name = "a"
+            org_mapping.save()
+
+            org2 = Factories.create_organization()
+
+            org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
+            org_mapping2.region_name = "b"
+            org_mapping2.save()
+
             user1 = Factories.create_user()
             organization_service.add_organization_member(
                 organization_id=org.id,
@@ -52,8 +71,6 @@ class ControlOutboxTest(TestCase):
                 user_id=user1.id,
             )
 
-            org2 = Factories.create_organization(no_mapping=True)
-            Factories.create_org_mapping(org2, region_name="b")
             organization_service.add_organization_member(
                 organization_id=org2.id,
                 default_org_role=org2.default_role,
@@ -68,8 +85,12 @@ class ControlOutboxTest(TestCase):
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
         with exempt_from_silo_limits():
-            org = Factories.create_organization(no_mapping=True)
-            Factories.create_org_mapping(org, region_name=MONOLITH_REGION_NAME)
+            org = Factories.create_organization()
+
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+            org_mapping.region_name = MONOLITH_REGION_NAME
+            org_mapping.save()
+
             user1 = Factories.create_user()
             user2 = Factories.create_user()
             organization_service.add_organization_member(
@@ -342,8 +363,8 @@ class RegionOutboxTest(TestCase):
             assert last_call_count == 2
 
     def test_region_sharding_keys(self):
-        org1 = Factories.create_organization(no_mapping=True)
-        org2 = Factories.create_organization(no_mapping=True)
+        org1 = Factories.create_organization()
+        org2 = Factories.create_organization()
 
         Organization.outbox_for_update(org1.id).save()
         Organization.outbox_for_update(org2.id).save()
