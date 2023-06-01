@@ -200,15 +200,14 @@ function renderBodyCell(
   }
 
   if (column.key === 'description') {
+    const description = row.description;
     return (
       <OverflowEllipsisTextContainer>
         <Link to={`/starfish/span/${row.group_id}`}>
           {row.span_operation === 'db' ? (
-            <StyledFormattedCode>
-              {(row as unknown as SpanDataRow).formatted_desc}
-            </StyledFormattedCode>
+            <StyledFormattedCode>{description}</StyledFormattedCode>
           ) : (
-            row.description || '<null>'
+            description || '<null>'
           )}
         </Link>
       </OverflowEllipsisTextContainer>
