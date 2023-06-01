@@ -166,7 +166,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    expect(await screen.findByText('Valid widget description123')).toBeInTheDocument();
+    expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
   it('Opens in Discover with World Map', async function () {
