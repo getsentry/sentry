@@ -157,7 +157,7 @@ function CreateProject() {
           );
         } else {
           addSuccessMessage(
-            tct('Created project [project] and added it to new team [team]', {
+            tct('Created [project] under new team [team]', {
               project: `${projectData.slug}`,
               team: `#${projectData.team_slug}`,
             })
