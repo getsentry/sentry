@@ -8,6 +8,7 @@ import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {EntryException, EntryType, Event, Frame, Thread} from 'sentry/types';
+import { defined } from 'sentry/utils';
 
 type SuspectFrame = {
   module: string | RegExp;
@@ -218,7 +219,7 @@ export function analyzeFramesForRootCause(event: Event): {
   for (let index = exceptionFrames.length - 1; index > 0; index--) {
     const frame = exceptionFrames[index];
     const rootCause = analyzeFrameForRootCause(frame, currentThread);
-    if (!isNil(rootCause)) {
+    if (defined(rootCause)) {
       return rootCause;
     }
   }
@@ -233,8 +234,7 @@ export function analyzeFrameForRootCause(
   culprit: string;
   resources: React.ReactNode;
 } | null {
-  for (let culpritIndex = 0; culpritIndex < CULPRIT_FRAMES.length; culpritIndex++) {
-    const possibleCulprit = CULPRIT_FRAMES[culpritIndex];
+  for (const possibleCulprit of CULPRIT_FRAMES) {
     if (
       satisfiesModuleCondition(frame, possibleCulprit) &&
       satisfiesFunctionCondition(frame, possibleCulprit) &&
