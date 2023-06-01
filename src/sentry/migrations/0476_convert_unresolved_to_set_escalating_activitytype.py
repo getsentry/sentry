@@ -11,7 +11,7 @@ def convert_to_set_escalating(apps, schema_editor):
     Activity = apps.get_model("sentry", "Activity")
 
     for activity in RangeQuerySetWrapperWithProgressBar(
-        Activity.objects.filter(type=ActivityType.SET_UNRESOLVED)
+        Activity.objects.filter(type=ActivityType.SET_UNRESOLVED.value)
     ):
 
         if not activity.data.get("forecast"):
