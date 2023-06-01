@@ -231,7 +231,7 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
 
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
     return TransactionNameRule(
         pattern=pattern,
         expiry=expiry_at,
@@ -273,7 +273,7 @@ def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDesc
 
 def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
     return SpanDescriptionRule(
         pattern=pattern,
         expiry=expiry_at,
