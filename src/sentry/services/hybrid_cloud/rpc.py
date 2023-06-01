@@ -428,16 +428,10 @@ def dispatch_to_local_service(
             return value.dict()
 
         if isinstance(value, dict):
-            output = {}
-            for key, val in value.items():
-                output[key] = result_to_dict(val)
-            return output
+            return {key: result_to_dict(val) for key, val in value.items()}
 
         if isinstance(value, Iterable) and not isinstance(value, str):
-            output = []
-            for item in value:
-                output.append(result_to_dict(item))
-            return output
+            return [result_to_dict(item) for item in value]
 
         return value
 
