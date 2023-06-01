@@ -8,7 +8,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P50_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -91,6 +92,23 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     );
   });
 
+  const p95Series = Object.keys(dataByGroup).map(groupName => {
+    const groupData = dataByGroup[groupName];
+
+    return zeroFillSeries(
+      {
+        seriesName: label ?? 'p95()',
+        data: groupData.map(datum => ({
+          value: datum['p95(span.duration)'],
+          name: datum.interval,
+        })),
+      },
+      moment.duration(1, 'day'),
+      startTime,
+      endTime
+    );
+  });
+
   useSynchronizeCharts([!isLoading]);
 
   return (
@@ -115,7 +133,6 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
             stacked
             isLineChart
             chartColors={[THROUGHPUT_COLOR]}
-            disableXAxis
             tooltipFormatterOptions={{
               valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
             }}
@@ -124,11 +141,11 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <ChartPanel title={t('Duration (P50)')}>
+        <ChartPanel title={DataTitles.p50p95}>
           <Chart
             statsPeriod="24h"
             height={100}
-            data={p50Series}
+            data={[...p50Series, ...p95Series]}
             start=""
             end=""
             loading={isLoading}
@@ -142,8 +159,7 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
             definedAxisTicks={4}
             stacked
             isLineChart
-            chartColors={[DURATION_COLOR]}
-            disableXAxis
+            chartColors={[P50_COLOR, P95_COLOR]}
           />
         </ChartPanel>
       </ChartsContainerItem>
@@ -165,6 +181,7 @@ const getQuery = (
   return `SELECT
     divide(count(), multiply(12, 60)) as "spm()",
     quantile(0.50)(exclusive_time) AS "p50(span.duration)",
+    quantile(0.95)(exclusive_time) AS "p95(span.duration)",
     toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
     FROM spans_experimental_starfish
     WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
@@ -205,7 +222,7 @@ const getEventView = (
   return EventView.fromSavedQuery({
     name: '',
     fields: [''],
-    yAxis: ['spm()', 'p50(span.duration)'],
+    yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,

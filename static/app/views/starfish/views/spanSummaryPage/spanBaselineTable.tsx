@@ -3,36 +3,39 @@ import {useTheme} from '@emotion/react';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
-  GridColumnHeader as Column,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
 import type {Span} from 'sentry/views/starfish/queries/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {
+  ApplicationMetrics,
+  useApplicationMetrics,
+} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
+import {DataTitles, getTooltip} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   span: Span;
 };
 
-type Metric = {
-  p50: number;
-  spm: number;
-};
-
 type Row = {
-  app_impact: string;
   description: string;
   metricSeries: Record<string, Series>;
-  metrics: Metric;
+  metrics: SpanMetrics;
+  timeSpent: string;
 };
+
+export type Keys = 'description' | 'epm()' | 'p50(span.self_time)' | 'timeSpent';
+export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanBaselineTable({span}: Props) {
   const location = useLocation();
@@ -45,8 +48,15 @@ export function SpanBaselineTable({span}: Props) {
     return <span>{column.name}</span>;
   };
 
-  const renderBodyCell = (column, row: Row) => {
-    return <BodyCell span={span} column={column} row={row} />;
+  const renderBodyCell = (column: TableColumnHeader, row: Row) => {
+    return (
+      <BodyCell
+        span={span}
+        column={column}
+        row={row}
+        applicationMetrics={applicationMetrics}
+      />
+    );
   };
 
   return (
@@ -57,7 +67,7 @@ export function SpanBaselineTable({span}: Props) {
           description: span.description ?? '',
           metrics: spanMetrics,
           metricSeries: spanMetricSeries,
-          app_impact: formatPercentage(
+          timeSpent: formatPercentage(
             spanMetrics.total_time / applicationMetrics['sum(span.duration)']
           ),
         },
@@ -73,9 +83,18 @@ export function SpanBaselineTable({span}: Props) {
   );
 }
 
-type CellProps = {column: Column; row: Row; span: Span};
+type CellProps = {
+  column: TableColumnHeader;
+  row: Row;
+  span: Span;
+};
 
-function BodyCell({span, column, row}: CellProps) {
+function BodyCell({
+  span,
+  column,
+  row,
+  applicationMetrics,
+}: CellProps & {applicationMetrics: ApplicationMetrics}) {
   if (column.key === 'description') {
     return <DescriptionCell span={span} row={row} column={column} />;
   }
@@ -86,6 +105,16 @@ function BodyCell({span, column, row}: CellProps) {
 
   if (column.key === 'epm()') {
     return <EPMCell span={span} row={row} column={column} />;
+  }
+
+  if (column.key === 'timeSpent') {
+    return (
+      <TimeSpentCell
+        formattedTimeSpent={row[column.key]}
+        totalSpanTime={row.metrics.total_time}
+        totalAppTime={applicationMetrics['sum(span.duration)']}
+      />
+    );
   }
 
   return <span>{row[column.key]}</span>;
@@ -104,7 +133,7 @@ function P50Cell({row}: CellProps) {
     <Fragment>
       {p50Series ? (
         <Sparkline
-          color={DURATION_COLOR}
+          color={P50_COLOR}
           series={p50Series}
           markLine={
             p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
@@ -135,7 +164,24 @@ function EPMCell({row}: CellProps) {
   );
 }
 
-const COLUMN_ORDER = [
+export function TimeSpentCell({
+  formattedTimeSpent,
+  totalSpanTime,
+  totalAppTime,
+}: {
+  formattedTimeSpent: string;
+  totalAppTime: number;
+  totalSpanTime: number;
+}) {
+  const toolTip = getTooltip('timeSpent', totalSpanTime, totalAppTime);
+  return (
+    <span>
+      <Tooltip title={toolTip}>{formattedTimeSpent}</Tooltip>
+    </span>
+  );
+}
+
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'description',
     name: 'Description',
@@ -148,12 +194,12 @@ const COLUMN_ORDER = [
   },
   {
     key: 'p50(span.self_time)',
-    name: 'Duration (P50)',
+    name: DataTitles.p50,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'app_impact',
-    name: 'App Impact',
+    key: 'timeSpent',
+    name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];

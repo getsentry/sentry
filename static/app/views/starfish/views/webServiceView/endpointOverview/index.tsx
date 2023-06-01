@@ -36,6 +36,7 @@ import SpansTable, {
   SpanTrendDataRow,
 } from 'sentry/views/starfish/views/spans/spansTable';
 import {buildQueryConditions} from 'sentry/views/starfish/views/spans/spansView';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
@@ -194,7 +195,7 @@ export default function EndpointOverview() {
                     {({results, loading}) => {
                       return (
                         <Fragment>
-                          <MiniChartPanel title={t('Duration')}>
+                          <MiniChartPanel title={DataTitles.p50p95}>
                             <Chart
                               statsPeriod={(statsPeriod as string) ?? '24h'}
                               height={110}
@@ -316,9 +317,7 @@ function SpanMetricsTable({
 
   return (
     <SpansTable
-      location={location}
       moduleName={ModuleName.ALL}
-      queryConditions={queryConditions}
       isLoading={areSpansLoading || areSpansTrendsLoading}
       spansData={spansData}
       orderBy="count"

@@ -16,7 +16,6 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {getSegmentLabelForTable} from 'sentry/views/starfish/components/breakdownBar';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -55,7 +54,7 @@ export function SpanGroupBreakdown({
     <Fragment>
       <ChartPadding>
         <Header>
-          <ChartLabel>{'p50 of Span Groups With Highest Cumulative Times'}</ChartLabel>
+          <ChartLabel>{'App Time Breakdown'}</ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
@@ -85,20 +84,18 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          ['span_operation', 'action', 'domain'].forEach(key => {
+          ['span.module'].forEach(key => {
             if (group[key] !== undefined && group[key] !== null) {
               spansLinkQueryParams[key] = group[key];
             }
           });
 
           const spansLink =
-            group.module === 'other'
+            group['span.module'] === 'other'
               ? `/starfish/spans/`
               : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
-            <StyledLineItem
-              key={`${group.span_operation}-${group.action}-${group.domain}`}
-            >
+            <StyledLineItem key={`${group['span.module']}`}>
               <ListItemContainer>
                 <StyledTopResultsIndicator
                   count={Math.max(transformedData.length - 1, 1)}
@@ -115,13 +112,7 @@ export function SpanGroupBreakdown({
                 />
                 <TextAlignLeft>
                   <Link to={spansLink}>
-                    <TextOverflow>
-                      {getSegmentLabelForTable(
-                        group.span_operation,
-                        group.action,
-                        group.domain
-                      )}
-                    </TextOverflow>
+                    <TextOverflow>{group['span.module']}</TextOverflow>
                   </Link>
                 </TextAlignLeft>
                 <RightAlignedCell>
