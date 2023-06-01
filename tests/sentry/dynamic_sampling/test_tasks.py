@@ -19,6 +19,7 @@ from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
     generate_sliding_window_cache_key,
+    mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks import (
@@ -392,6 +393,10 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
         return idx + counts[name]
 
     @staticmethod
+    def flush_redis():
+        get_redis_client_for_ds().flushdb()
+
+    @staticmethod
     def set_sliding_window_cache_entry(org_id: int, project_id: int, value: str):
         redis = get_redis_client_for_ds()
         cache_key = generate_sliding_window_cache_key(org_id=org_id)
@@ -525,10 +530,18 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
 
-        for (sliding_window_org_invalid, used_sample_rate) in ((True, BLENDED_RATE), (False, 0.5)):
-            if sliding_window_org_invalid:
+        for (sliding_window_step, used_sample_rate) in ((1, 1.0), (2, BLENDED_RATE), (3, 0.5)):
+            # We flush redis after each run, to make sure no data persists.
+            self.flush_redis()
+
+            # No value in cache and sliding window org executed.
+            if sliding_window_step == 1:
+                mark_sliding_window_org_executed()
+            # Invalid value in cache.
+            elif sliding_window_step == 2:
                 self.set_prioritise_by_project_invalid_for_all()
-            else:
+            # Value in cache.
+            elif sliding_window_step == 3:
                 self.set_prioritise_by_project_sample_rate_for_all(used_sample_rate)
 
             with self.options(
@@ -547,11 +560,20 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                     tran_rate, global_rate = get_transactions_resampling_rates(
                         org_id=org_id, proj_id=proj_id, default_rate=0.1
                     )
-                    for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
-                        assert (
-                            transaction_name in tran_rate
-                        )  # check we have some rate calculated for each transaction
-                    assert global_rate == used_sample_rate
+
+                    if sliding_window_step == 1:
+                        # If the sample rate is 100%, we will not find anything in cache, since we don't
+                        # need to run and store the rebalancing.
+                        assert tran_rate == {}
+                    else:
+                        # If the sample rate is < 100%, we want to check that in cache we have a value with
+                        # the correct global rate.
+                        for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
+                            assert (
+                                transaction_name in tran_rate
+                            )  # check we have some rate calculated for each transaction
+
+                        assert global_rate == used_sample_rate
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_prioritise_transactions_partial(self, get_blended_sample_rate):
