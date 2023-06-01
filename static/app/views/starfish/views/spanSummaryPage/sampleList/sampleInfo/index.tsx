@@ -28,7 +28,7 @@ function SampleInfo(props: Props) {
   return (
     <BlockContainer>
       <Block title={t('Throughput')}>{spm?.toFixed(2)} / min</Block>
-      <Block title={t('Duration (P50)')}>{p50?.toFixed(2)} ms</Block>
+      <Block title={DataTitles.p50}>{p50?.toFixed(2)} ms</Block>
       <Block title={DataTitles.timeSpent}>
         <Tooltip title={tooltip}>
           {formatPercentage(span_total_time / application_total_time)}
