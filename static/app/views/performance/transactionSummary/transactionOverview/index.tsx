@@ -10,6 +10,7 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
   useMEPDataContext,
@@ -97,8 +98,13 @@ function OverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
   const mepContext = useMEPDataContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   const queryData = useDiscoverQuery({
     eventView: getTotalsEventView(organization, eventView),
