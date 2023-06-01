@@ -7,7 +7,7 @@ import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter
 
 const INTERVAL = 12;
 
-type Metrics = {
+export type SpanMetrics = {
   count: number;
   first_seen: string;
   last_seen: string;
@@ -44,7 +44,7 @@ export const useSpanMetrics = (
   ${filters.join(' AND ')}`
     : '';
 
-  const {isLoading, error, data} = useQuery<Metrics[]>({
+  const {isLoading, error, data} = useQuery<SpanMetrics[]>({
     queryKey: ['span-metrics', span?.group_id, dateFilters],
     queryFn: () =>
       fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
