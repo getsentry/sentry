@@ -237,7 +237,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             aggregation = self.aggregation_defs[alias]
             # TODO: remove this hack once we can properly support better_priority sort on issue platform dataset
             if replace_better_priority_aggregation and alias == "better_priority":
-                aggregation = self.aggregation_defs["force_last"]
+                aggregation = self.aggregation_defs["force_last"]  # type:ignore[call-overload]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
