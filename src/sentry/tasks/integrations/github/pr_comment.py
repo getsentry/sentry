@@ -13,7 +13,7 @@ def format_comment(issues: List[Tuple[str]]):
         subtitle = issue[1]
         formatted_subtitle = subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
         url = issue[2]
-        body += f"- !! **{title}** `{formatted_subtitle}` [View Issue]({url})\n"
+        body += f"- ‼️ **{title}** `{formatted_subtitle}` [View Issue]({url})\n"
 
     body += "\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
 
