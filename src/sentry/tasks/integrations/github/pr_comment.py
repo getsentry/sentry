@@ -18,7 +18,7 @@ This pull request has been deployed and Sentry has observed the following issues
 
 {issue_list}
 
-<sub>Did you find this useful? React with a \U0001F44D or \U0001F44E</sub>"""
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
 single_issue_template = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 

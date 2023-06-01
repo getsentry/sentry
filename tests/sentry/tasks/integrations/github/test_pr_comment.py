@@ -195,5 +195,5 @@ class TestPrToIssueQuery(TestCase):
         ]
 
         formatted_comment = pr_comment.format_comment(issues)
-        assert "sentry.tasks.derive_code_mappings.derive_code_m..." in formatted_comment
-        assert "query_subscription_consumer_process_message" in formatted_comment
+        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+        assert formatted_comment == expected_comment
