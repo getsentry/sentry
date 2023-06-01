@@ -253,10 +253,7 @@ export function eventIsSymbolicated(event: Event) {
 export function eventHasSourceContext(event: Event) {
   const frames = getFrames(event, false);
 
-  return frames.some(
-    frame =>
-      frame.context !== undefined && frame.context !== null && !!frame.context.length
-  );
+  return frames.some(frame => defined(frame.context) && !!frame.context.length);
 }
 
 /**
