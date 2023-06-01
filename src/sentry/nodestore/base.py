@@ -185,7 +185,7 @@ class NodeStorage(local, Service):
             }
             if subkey is None:
                 self._set_cache_items(items)
-                items.update(cache_items)
+                items.update(cache_items)  # pyright: ignore
 
             span.set_tag("result", "from_service")
             span.set_tag("found", len(items))
