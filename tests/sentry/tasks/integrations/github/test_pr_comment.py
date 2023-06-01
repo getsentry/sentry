@@ -79,6 +79,10 @@ class TestPrToIssueQuery(TestCase):
             merge_commit_sha=commit.key,
             date_added=date_added,
         )
+        return pr
+
+    def add_groupowner_to_commit(self, commit: Commit, project, user):
+        event = self.store_event(data={}, project_id=project.id)
         self.pr_key += 1
         groupowner = GroupOwner.objects.create(
             group=event.group,
