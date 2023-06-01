@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import hmac
 from hashlib import sha256
-from typing import List, Mapping
+from typing import Mapping, Set
+from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
 
@@ -10,11 +11,8 @@ PROXY_BASE_PATH = "/api/0/internal/integration-proxy"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 
-INVALID_PROXY_HEADERS = ["Host", "Content-Length"]
-INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS + [
-    PROXY_OI_HEADER,
-    PROXY_SIGNATURE_HEADER,
-]
+INVALID_PROXY_HEADERS = {"host", "content-length", "content-encoding"}
+INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER}
 
 DEFAULT_REQUEST_BODY = b""
 
@@ -26,13 +24,15 @@ def trim_leading_slashes(path: str) -> str:
 
 
 def clean_headers(
-    headers: Mapping[str, str] | None, invalid_headers: List[str]
+    headers: Mapping[str, str] | None, invalid_headers: Set[str]
 ) -> Mapping[str, str]:
     if not headers:
         headers = {}
-    modified_headers = {**headers}
-    for invalid_header in invalid_headers:
-        modified_headers.pop(invalid_header, None)
+    modified_headers = {
+        h: v
+        for h, v in headers.items()
+        if h.lower() not in invalid_headers and not is_hop_by_hop(h)
+    }
     return modified_headers
 
 
