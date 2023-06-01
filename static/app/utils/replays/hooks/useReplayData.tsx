@@ -37,16 +37,16 @@ type Options = {
   replaySlug: string;
 
   /**
+   * Default: 100
+   * You can override this for testing
+   */
+  attachmentsPerPage?: number;
+
+  /**
    * Default: 50
    * You can override this for testing
    */
   errorsPerPage?: number;
-
-  /**
-   * Default: 100
-   * You can override this for testing
-   */
-  segmentsPerPage?: number;
 };
 
 interface Result {
@@ -74,12 +74,12 @@ const INITIAL_STATE: State = Object.freeze({
  * 1. The root replay EventTransaction object
  *    - This includes `startTimestamp`, and `tags`
  * 2. RRWeb, Breadcrumb, and Span attachment data
- *    - We make an API call to get a list of segments, each segment contains a
+ *    - We make an API call to get a list of attachments, each attachment contains a
  *      list of attachments
- *    - There may be a few large segments, or many small segments. It depends!
- *      ie: If the replay has many events/errors then there will be many small segments,
+ *    - There may be a few large attachments, or many small attachments. It depends!
+ *      ie: If the replay has many events/errors then there will be many small attachments,
  *      or if the page changes rapidly across each pageload, then there will be
- *      larger segments, but potentially fewer of them.
+ *      larger attachments, but potentially fewer of them.
  * 3. Related Event data
  *    - Event details are not part of the attachments payload, so we have to
  *      request them separately
@@ -95,7 +95,7 @@ function useReplayData({
   replaySlug,
   orgSlug,
   errorsPerPage = 50,
-  segmentsPerPage = 100,
+  attachmentsPerPage = 100,
 }: Options): Result {
   const replayId = parseReplayId(replaySlug);
   const projects = useProjects();
@@ -132,8 +132,10 @@ function useReplayData({
       return;
     }
 
-    const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
-    const cursors = new Array(pages).fill(0).map((_, i) => `0:${segmentsPerPage * i}:0`);
+    const pages = Math.ceil(replayRecord.count_segments / attachmentsPerPage);
+    const cursors = new Array(pages)
+      .fill(0)
+      .map((_, i) => `0:${attachmentsPerPage * i}:0`);
 
     await Promise.allSettled(
       cursors.map(cursor => {
@@ -142,7 +144,7 @@ function useReplayData({
           {
             query: {
               download: true,
-              per_page: segmentsPerPage,
+              per_page: attachmentsPerPage,
               cursor,
             },
           }
@@ -154,7 +156,7 @@ function useReplayData({
       })
     );
     setState(prev => ({...prev, fetchingAttachments: false}));
-  }, [segmentsPerPage, api, orgSlug, replayRecord, projectSlug]);
+  }, [attachmentsPerPage, api, orgSlug, replayRecord, projectSlug]);
 
   const fetchErrors = useCallback(async () => {
     if (!replayRecord) {

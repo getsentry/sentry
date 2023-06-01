@@ -149,7 +149,7 @@ describe('useReplayData', () => {
       initialProps: {
         replaySlug: `${project.slug}:${mockReplayResponse.id}`,
         orgSlug: organization.slug,
-        segmentsPerPage: 1,
+        attachmentsPerPage: 1,
       },
     });
 
