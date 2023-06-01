@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import random
-from datetime import timedelta
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -16,7 +15,6 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     get_notification_attachment_body,
-    get_span_duration,
     get_span_evidence_value,
     total_span_time,
 )
@@ -130,9 +128,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.source_span = span
 
     def _continues_n_plus_1(self, span: Span):
-        if self._overlaps_last_span(span):
-            return False
-
         expected_parent_id = self.source_span.get("parent_span_id", None)
         parent_id = span.get("parent_span_id", None)
         if not parent_id or parent_id != expected_parent_id:
@@ -151,15 +146,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return True
 
         return span_hash == self.n_hash
-
-    def _overlaps_last_span(self, span: Span) -> bool:
-        last_span = self.source_span
-        if self.n_spans:
-            last_span = self.n_spans[-1]
-
-        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
-        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
-        return last_span_ends > current_span_begins
 
     def _maybe_store_problem(self):
         if not self.source_span or not self.n_spans:
@@ -240,11 +226,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             )
 
     def _is_slower_than_threshold(self) -> bool:
-        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
-        total_duration = timedelta()
-        for span in self.n_spans:
-            total_duration += get_span_duration(span)
-        return total_duration >= duration_threshold
+        duration_threshold = self.settings.get("duration_threshold")
+        return total_span_time(self.n_spans) >= duration_threshold
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
         query = span.get("description", None)
@@ -300,14 +283,6 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
         # Only collecting metrics.
         return False
-
-    def _overlaps_last_span(self, span: Span) -> bool:
-        # Ignore overlapping spans for determining if an N+1 happened.
-        return False
-
-    def _is_slower_than_threshold(self) -> bool:
-        duration_threshold = self.settings.get("duration_threshold")
-        return total_span_time(self.n_spans) >= duration_threshold
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
