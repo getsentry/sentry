@@ -13,7 +13,7 @@ class ApiScopes(Sequence):
 
     event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (("org:read"), ("org:write"), ("org:admin"))
+    org = (("org:read"), ("org:write"), ("org:admin"), ("org:ci"))
 
     member = (("member:read"), ("member:write"), ("member:admin"))
 

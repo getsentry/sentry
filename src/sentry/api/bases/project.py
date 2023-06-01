@@ -51,8 +51,8 @@ class StrictProjectPermission(ProjectPermission):
 
 class ProjectReleasePermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
-        "POST": ["project:write", "project:admin", "project:releases"],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
+        "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
         "PUT": ["project:write", "project:admin", "project:releases"],
         "DELETE": ["project:admin", "project:releases"],
     }

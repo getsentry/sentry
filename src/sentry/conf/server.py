@@ -1983,6 +1983,7 @@ SENTRY_SCOPES = {
     "org:read",
     "org:write",
     "org:admin",
+    "org:ci",
     "org:integrations",
     "member:read",
     "member:write",
@@ -2024,6 +2025,7 @@ SENTRY_SCOPE_SETS = (
         ("project:read", "Read access to projects."),
     ),
     (("project:releases", "Read, write, and admin access to project releases."),),
+    (("org:ci", "Upload source maps, create project releases and other CI related tasks."),),
     (
         ("event:admin", "Read, write, and admin access to events."),
         ("event:write", "Read and write access to events."),

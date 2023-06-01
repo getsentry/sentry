@@ -44,6 +44,7 @@ class ApiKey(Model):
             ("org:read", "org:read"),
             ("org:write", "org:write"),
             ("org:admin", "org:admin"),
+            ("org:ci", "org:ci"),
             ("member:read", "member:read"),
             ("member:write", "member:write"),
             ("member:admin", "member:admin"),

@@ -94,8 +94,8 @@ class OrganizationEventPermission(OrganizationPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
-        "POST": ["project:write", "project:admin", "project:releases"],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
+        "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
         "PUT": ["project:write", "project:admin", "project:releases"],
         "DELETE": ["project:admin", "project:releases"],
     }
@@ -428,9 +428,11 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope(
-                "project:releases"
-            ) or request.auth.has_scope("project:write")
+            has_valid_api_key = (
+                request.auth.has_scope("project:releases")
+                or request.auth.has_scope("project:write")
+                or request.auth.has_scope("org:ci")
+            )
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
