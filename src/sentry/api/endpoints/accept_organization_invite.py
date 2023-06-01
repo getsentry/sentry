@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo import SiloMode
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
 
@@ -56,8 +57,12 @@ class AcceptOrganizationInvite(Endpoint):
                 organization_id__in=list(member_mappings.keys())
             )
             for mapping in org_mappings:
+                member_mapping = member_mappings.get(mapping.organization_id)
                 try:
-                    if get_region_by_name(mapping.region_name).was_monolith:
+                    if (
+                        SiloMode.get_current_mode() == SiloMode.MONOLITH
+                        or get_region_by_name(mapping.region_name).was_monolith
+                    ):
                         member_mapping = member_mappings.get(mapping.organization_id)
                         break
                 except RegionResolutionError:

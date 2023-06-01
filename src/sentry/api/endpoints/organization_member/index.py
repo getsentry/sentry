@@ -285,7 +285,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
-            om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

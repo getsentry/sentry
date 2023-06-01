@@ -105,9 +105,6 @@ from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallati
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    organizationmember_mapping_service,
-)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -310,7 +307,6 @@ class Factories:
 
         om = OrganizationMember.objects.create(**kwargs)
         om.outbox_for_update().drain_shard(max_updates_to_drain=10)
-        organizationmember_mapping_service.upsert_with_organization_member(org_member=om)
 
         if team_roles:
             for team, role in team_roles:

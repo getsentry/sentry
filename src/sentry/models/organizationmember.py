@@ -576,7 +576,6 @@ class OrganizationMember(Model):
         with transaction.atomic():
             self.approve_invite()
             self.save()
-        self.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if settings.SENTRY_ENABLE_INVITES:
             self.send_invite_email()
@@ -586,6 +585,8 @@ class OrganizationMember(Model):
                 sender=self.approve_member_invitation,
                 referrer=referrer,
             )
+
+        self.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         create_audit_entry_from_user(
             user_to_approve,
