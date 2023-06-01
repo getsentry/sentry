@@ -27,7 +27,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.email_username = fetch_email_username(self.user.email)
-        self.t1 = f"{self.email_username}-team"
+        self.t1 = f"team-{self.email_username}"
         self.mock_experiment_get = patch("sentry.experiments.manager.get", return_value=1).start()
 
     @cached_property

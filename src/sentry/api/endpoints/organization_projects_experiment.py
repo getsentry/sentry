@@ -95,7 +95,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         parsed_email = fetch_email_username(request.user.email)
 
         project_name = result["name"]
-        default_team_slug = f"{parsed_email}-team"
+        default_team_slug = f"team-{parsed_email}"
         suffixed_team_slug = default_team_slug
 
         # attempt to a maximum of 5 times to add a suffix to team slug until it is unique
