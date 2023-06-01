@@ -7,6 +7,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization} from 'sentry/types';
@@ -265,6 +266,47 @@ describe('CreateProject', function () {
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
 
     expect(container).toSnapshot();
+  });
+
+  it('test that wont work :(', async function () {
+    jest.spyOn(indicators, 'addSuccessMessage');
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-project-creation-all'],
+      },
+    });
+
+    jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
+      experimentAssignment: 1,
+      logExperiment: jest.fn(),
+    });
+    renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
+    TeamStore.loadUserTeams([TestStubs.Team({id: 2, slug: 'team-two', access: []})]);
+
+    render(<CreateProject />, {
+      context: TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            access: ['project:read'],
+          },
+        },
+      ]),
+      organization,
+    });
+
+    renderGlobalModal();
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    const createTeamButton = screen.queryByRole('button', {name: 'Create a team'});
+    expect(createTeamButton).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      'Created project [project]'
+    );
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
