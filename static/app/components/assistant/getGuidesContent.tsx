@@ -263,10 +263,10 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       requiredTargets: ['issue_details_archive_button'],
       steps: [
         {
-          title: t('Introducing Archive'),
+          title: t('Ignore is Now Archive'),
           target: 'issue_details_archive_button',
           description: t(
-            "Archive your issues. We'll bring them back up if they escalate."
+            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
           ),
           dismissText: t('Go Away'),
         },
