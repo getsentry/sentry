@@ -38,6 +38,7 @@ from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -156,7 +157,7 @@ class OrganizationManager(BaseManager):
 
 
 @region_silo_only_model
-class Organization(Model, SnowflakeIdMixin):
+class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -627,37 +628,6 @@ class Organization(Model, SnowflakeIdMixin):
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
-    __has_customer_domain: Optional[bool] = None
-
-    def _has_customer_domain(self) -> bool:
-        """
-        Check if the current organization is using or has access to customer domains.
-        """
-        if self.__has_customer_domain is not None:
-            return self.__has_customer_domain
-
-        request = env.request
-        if request and is_using_customer_domain(request):
-            self.__has_customer_domain = True
-            return True
-
-        self.__has_customer_domain = features.has("organizations:customer-domains", self)
-
-        return self.__has_customer_domain
-
-    def absolute_url(
-        self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
-    ) -> str:
-        """
-        Get an absolute URL to `path` for this organization.
-
-        This method takes customer-domains into account and will update the path when
-        customer-domains are active.
-        """
-        return organization_absolute_url(
-            self._has_customer_domain(), self.slug, path=path, query=query, fragment=fragment
-        )
-
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.id != "member":
             return role.scopes
@@ -676,37 +646,3 @@ class Organization(Model, SnowflakeIdMixin):
             return Team.objects.filter(org_role__in=roles, organization=self)
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
-
-
-def organization_absolute_url(
-    has_customer_domain: bool,
-    slug: str,
-    path: str,
-    query: Optional[str] = None,
-    fragment: Optional[str] = None,
-) -> str:
-    """
-    Get an absolute URL to `path` for this organization.
-
-    This method takes customer-domains into account and will update the path when
-    customer-domains are active.
-    """
-    # Avoid cycles.
-    from sentry.api.utils import customer_domain_path, generate_organization_url
-    from sentry.utils.http import absolute_uri
-
-    url_base = None
-    if has_customer_domain:
-        path = customer_domain_path(path)
-        url_base = generate_organization_url(slug)
-    uri = absolute_uri(path, url_prefix=url_base)
-    parts = [uri]
-    if query and not query.startswith("?"):
-        query = f"?{query}"
-    if query:
-        parts.append(query)
-    if fragment and not fragment.startswith("#"):
-        fragment = f"#{fragment}"
-    if fragment:
-        parts.append(fragment)
-    return "".join(parts)
