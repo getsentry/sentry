@@ -75,7 +75,12 @@ COLUMNS = [
     Column(alias="environment", column="environment", kind=Kind.STRING),
     Column(alias="release", column="release", kind=Kind.STRING),
     Column(alias="retention_days", column="retention_days", kind=Kind.INTEGER),
-    Column(alias="function.duration", column="percentiles", kind=Kind.DURATION),
+    Column(
+        alias="function.duration",
+        column="percentiles",
+        kind=Kind.DURATION,
+        unit=Duration.NANOSECOND,
+    ),
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
