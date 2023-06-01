@@ -15,7 +15,7 @@ import {
   IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
@@ -228,10 +228,35 @@ function hasTrace(event: Event) {
  * by ensuring that every inApp frame has a valid sourcemap
  */
 export function eventHasSourceMaps(event: Event) {
-  const inAppFrames = getInAppFrames(event);
+  const inAppFrames = getFrames(event, true);
 
   // the map field tells us if it's sourcemapped
   return inAppFrames.every(frame => !!frame.map);
+}
+
+/**
+ * Function to determine if an event has been symbolicated
+ * (rawStacktrace is backfilled by stacktrace processors after processing)
+ */
+export function eventIsSymbolicated(event: Event) {
+  return event.entries?.some(entry => {
+    return (
+      entry.type === EntryType.EXCEPTION &&
+      entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
+    );
+  });
+}
+
+/**
+ * Function to determine if an event has source context
+ */
+export function eventHasSourceContext(event: Event) {
+  const frames = getFrames(event, false);
+
+  return frames.some(
+    frame =>
+      frame.context !== undefined && frame.context !== null && !!frame.context.length
+  );
 }
 
 /**
@@ -242,7 +267,7 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
     // return undefined if there is no event
     return {};
   }
-  const inAppFrames = getInAppFrames(event);
+  const inAppFrames = getFrames(event, true);
   if (!inAppFrames.length) {
     return {};
   }
@@ -255,14 +280,14 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
   };
 }
 
-function getInAppFrames(event: Event) {
+function getFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
-  return exceptions
+  const frames = exceptions
     .map(exception => exception.data.values || [])
     .flat()
     .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
-    .flat()
-    .filter(frame => frame.inApp);
+    .flat();
+  return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
 function getExceptionEntries(event: Event) {
@@ -343,9 +368,11 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_platform: event?.platform,
     event_type: event?.type,
     has_release: !!event?.release,
+    has_source_context: event ? eventHasSourceContext(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
+    is_symbolicated: event ? eventIsSymbolicated(event) : false,
     event_errors: event ? getEventErrorString(event) : '',
     frames_with_sourcemaps_percent: framesWithSourcemapsPercent,
     frames_without_source_maps_percent: framesWithoutSourceMapsPercent,
