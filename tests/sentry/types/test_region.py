@@ -1,6 +1,7 @@
 import pytest
 from django.test import override_settings
 
+from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
@@ -78,15 +79,12 @@ class RegionMappingTest(TestCase):
         from sentry.types.region import find_regions_for_user
 
         organization = self.create_organization(name="test name")
-        self.create_organization_mapping(
-            organization,
-            **{
-                "slug": organization.slug,
-                "name": "test name",
-                "region_name": "na",
-                "idempotency_key": "test",
-            },
-        )
+        organization_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+        organization_mapping.name = "test name"
+        organization_mapping.region_name = "na"
+        organization_mapping.idempotency_key = "test"
+        organization_mapping.save()
+
         region_config = [
             {
                 "name": "na",

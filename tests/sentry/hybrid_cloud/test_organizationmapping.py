@@ -33,7 +33,7 @@ class OrganizationMappingTest(TransactionTestCase):
 
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.idempotency_key == ""
-        assert self.organization.id == self.organization.id
+        assert self.organization.id == org_mapping.organization_id
         assert org_mapping.verified is False
         assert self.organization.slug == org_mapping.slug
         assert self.organization.name == org_mapping.name
@@ -76,7 +76,7 @@ class OrganizationMappingTest(TransactionTestCase):
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         fixture_org_mapping.delete()
 
-        assert len(OrganizationMapping.objects.filter(organization_id=self.organization.id)) == 0
+        assert not OrganizationMapping.objects.filter(organization_id=self.organization.id).exists()
 
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
