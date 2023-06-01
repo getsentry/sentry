@@ -161,6 +161,17 @@ class OAuth2Provider(Provider):
                     },
                 )
                 raise IdentityNotValid(formatted_error)
+            elif "Client secret is expired" in error_description:
+                self.logger.info(
+                    "identity.oauth.refresh.secret-expired-error",
+                    extra={
+                        "error_name": error_name,
+                        "error_status_code": req.status_code,
+                        "error_description": error_description,
+                        "provider_key": self.key,
+                    },
+                )
+                raise IdentityNotValid(formatted_error)
 
         if req.status_code != 200:
             self.logger.info(
