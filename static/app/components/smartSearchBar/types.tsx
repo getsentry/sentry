@@ -10,7 +10,8 @@ export enum ItemType {
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
-  INVALID_FREE_TEXT_WITH_WILDCARD = 'invalid-free-text-with-wildcard',
+  INVALID_TAG_VALUE = 'invalid-tag-value',
+  INVALID_FREE_TEXT = 'invalid-free-text',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
   LINK = 'link',
@@ -37,6 +38,7 @@ export type SearchItem = {
   children?: SearchItem[];
   deprecated?: boolean;
   desc?: string;
+  docLinkDescription?: string;
   documentation?: React.ReactNode;
   /**
    * The feature flag gating the search item

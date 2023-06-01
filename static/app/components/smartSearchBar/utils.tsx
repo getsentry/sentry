@@ -183,7 +183,9 @@ export function createSearchGroups(
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
     type:
-      type === ItemType.INVALID_TAG || type === ItemType.INVALID_FREE_TEXT_WITH_WILDCARD
+      type === ItemType.INVALID_TAG ||
+      type === ItemType.INVALID_TAG_VALUE ||
+      type === ItemType.INVALID_FREE_TEXT
         ? type
         : 'header',
     icon: getIconForTypeAndTag(type, tagName),
@@ -607,7 +609,7 @@ export function getGroupWithInvalidWildcard(desc: string) {
     {
       searchItems: [
         {
-          type: ItemType.INVALID_FREE_TEXT_WITH_WILDCARD,
+          type: ItemType.INVALID_FREE_TEXT,
           desc,
           callback: () =>
             window.open(
@@ -617,7 +619,7 @@ export function getGroupWithInvalidWildcard(desc: string) {
       ],
       recentSearchItems: [],
       tagName: desc,
-      type: ItemType.INVALID_FREE_TEXT_WITH_WILDCARD,
+      type: ItemType.INVALID_FREE_TEXT,
     },
   ];
 }
