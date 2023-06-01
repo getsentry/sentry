@@ -70,7 +70,8 @@ type Options = {
    */
   emails?: string[];
   /**
-   * When provided fetches specified members by id.
+   * When provided, fetches specified members by id if necessary and only
+   * provides those members.
    */
   ids?: string[];
   /**
@@ -372,8 +373,11 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   }, [shouldLoadByQuery, loadMembersByQuery]);
 
   const filteredMembers = useMemo(
-    () => (emails ? store.members.filter(m => emails.includes(m.email)) : store.members),
-    [store.members, emails]
+    () =>
+      emails || ids
+        ? store.members.filter(m => emails?.includes(m.email) || ids?.includes(m.id))
+        : store.members,
+    [emails, store.members, ids]
   );
 
   const result: Result = {

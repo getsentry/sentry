@@ -51,7 +51,7 @@ const FilterContainer = styled('div')`
   width: 100%;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
