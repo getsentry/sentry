@@ -10,7 +10,6 @@ import {
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import isEmpty from 'lodash/isEmpty';
 import * as qs from 'query-string';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -22,7 +21,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, GroupRelease, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,6 +55,8 @@ import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
 import {Tab, TabPaths} from './types';
 import {
+  getGroupDetailsQueryData,
+  getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
@@ -89,22 +90,6 @@ type FetchGroupDetailsState = {
 interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsState {
   group: Group;
   project: Project;
-}
-
-function getGroupQuery({environments}: {environments: string[]}) {
-  const query: Record<string, string | string[]> = {
-    ...(!isEmpty(environments) ? {environment: environments} : {}),
-    expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
-  };
-
-  return query;
-}
-
-function getEventQuery({environments}: {environments: string[]}) {
-  const query = !isEmpty(environments) ? {environment: environments} : {};
-
-  return query;
 }
 
 function getFetchDataRequestErrorType(status?: number | null): Error {
@@ -274,7 +259,7 @@ function makeFetchGroupQueryKey({
   groupId,
   environments,
 }: FetchGroupQueryParameters): ApiQueryKey {
-  return [`/issues/${groupId}/`, {query: getGroupQuery({environments})}];
+  return [`/issues/${groupId}/`, {query: getGroupDetailsQueryData({environments})}];
 }
 
 /**
@@ -327,17 +312,15 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const eventUrl = `/issues/${groupId}/events/${eventId}/`;
 
-  const eventQuery: Record<string, string | string[]> = {collapse: ['fullRelease']};
-  if (environments.length !== 0) {
-    eventQuery.environment = environments;
-  }
-
   const {
     data: eventData,
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery(eventId, [eventUrl, {query: getEventQuery({environments})}]);
+  } = useEventApiQuery(eventId, [
+    eventUrl,
+    {query: getGroupEventDetailsQueryData({environments})},
+  ]);
 
   const {
     data: groupData,
@@ -350,25 +333,13 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     cacheTime: 30000,
   });
 
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/issues/${groupId}/first-last-release/`],
-    {
-      staleTime: 30000,
-      cacheTime: 30000,
-      enabled: defined(groupData),
-    }
-  );
-
   const group = groupData ?? null;
 
   useEffect(() => {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
-      if (defined(groupReleaseData)) {
-        GroupStore.onPopulateReleases(groupId, groupReleaseData);
-      }
     }
-  }, [groupReleaseData, groupId, group]);
+  }, [groupId, group]);
 
   useSyncGroupStore(environments);
 
@@ -521,9 +492,11 @@ function useTrackView({
   group,
   event,
   project,
+  tab,
 }: {
   event: Event | null;
   group: Group | null;
+  tab: Tab;
   project?: Project;
 }) {
   const location = useLocation();
@@ -535,6 +508,7 @@ function useTrackView({
     ...getAnalyticsDataForGroup(group),
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
+    tab,
     stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
     query: typeof query === 'string' ? query : undefined,
     // Alert properties track if the user came from email/slack alerts
@@ -643,7 +617,7 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
-  useTrackView({group, event, project});
+  useTrackView({group, event, project, tab: currentTab});
 
   useEffect(() => {
     if (
@@ -728,6 +702,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     return <StyledLoadingError message={t('Error loading the specified project')} />;
   }
 
+  if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
+    return (
+      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+    );
+  }
+
   if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
@@ -765,13 +745,13 @@ function GroupDetails(props: GroupDetailsProps) {
     const {title} = getTitle(group, organization?.features);
     const message = getMessage(group);
 
-    const eventDetails = `${organization.slug} - ${group.project.slug}`;
+    const eventDetails = `${organization.slug} — ${group.project.slug}`;
 
     if (title && message) {
-      return `${title}: ${message} - ${eventDetails}`;
+      return `${title}: ${message} — ${eventDetails}`;
     }
 
-    return `${title || message || defaultTitle} - ${eventDetails}`;
+    return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
   return (

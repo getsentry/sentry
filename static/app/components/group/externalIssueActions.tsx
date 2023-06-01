@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +15,7 @@ import IntegrationItem from 'sentry/views/settings/organizationIntegrations/inte
 
 import ExternalIssueForm from './externalIssueForm';
 
-type Props = AsyncComponent['props'] & {
+type Props = {
   configurations: GroupIntegration[];
   group: Group;
   onChange: (onSuccess?: () => void, onError?: () => void) => void;

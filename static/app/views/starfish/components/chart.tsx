@@ -5,10 +5,12 @@ import * as echarts from 'echarts/core';
 import {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
+  XAXisOption,
   YAXisOption,
 } from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
+import moment from 'moment';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -29,7 +31,10 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DAY, HOUR} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -130,6 +135,8 @@ function Chart({
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -283,19 +290,35 @@ function Chart({
     }
     return <AreaChart height={height} series={[]} {...areaChartProps} />;
   }
-  const series = data.map((values, _) => ({
+  const series: Series[] = data.map((values, _) => ({
     ...values,
     yAxisIndex: 0,
     xAxisIndex: 0,
   }));
 
-  const xAxis = disableXAxis
+  const xAxisInterval = getXAxisInterval(startTime, endTime);
+
+  const xAxis: XAXisOption = disableXAxis
     ? {
         show: false,
         axisLabel: {show: true, margin: 0},
         axisLine: {show: false},
       }
-    : undefined;
+    : {
+        type: 'time',
+        maxInterval: xAxisInterval,
+        axisLabel: {
+          formatter: function (value: number) {
+            if (endTime.diff(startTime, 'days') > 30) {
+              return moment(value).format('MMMM DD');
+            }
+            if (startTime.isSame(endTime, 'day')) {
+              return moment(value).format('HH:mm');
+            }
+            return moment(value).format('MMMM DD HH:mm');
+          },
+        },
+      };
 
   return (
     <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
@@ -384,3 +407,17 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
     }
   }, [deps, synchronized]);
 }
+
+const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
+  const dateRange = endTime.diff(startTime);
+  if (dateRange >= 30 * DAY) {
+    return 7 * DAY;
+  }
+  if (dateRange >= 3 * DAY) {
+    return DAY;
+  }
+  if (dateRange >= 1 * DAY) {
+    return 12 * HOUR;
+  }
+  return HOUR;
+};

@@ -413,6 +413,9 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
+            record_span_descriptions as record_span_descriptions_for_clustering,
+        )
+        from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
         from sentry.models import Organization, Project
@@ -490,6 +493,7 @@ def post_process_group(
         # will not go through any post processing.
         if is_transaction_event:
             record_transaction_name_for_clustering(event.project, event.data)
+            record_span_descriptions_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
                     sender=post_process_group,
@@ -736,10 +740,6 @@ def process_snoozes(job: PostProcessJob) -> None:
 
             if features.has("organizations:escalating-issues", group.organization):
                 manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
-
-            elif features.has("organizations:issue-states", group.organization):
-                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
-
             else:
                 manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 

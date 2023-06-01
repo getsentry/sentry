@@ -220,7 +220,7 @@ class ConvertStatusValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-@apply_feature_flag_on_cls("organizations:issue-states")
+@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ConvertSubStatusValueTest(TestCase):
     def test_valid(self):
         for substatus_string, substatus_val in SUBSTATUS_UPDATE_CHOICES.items():
