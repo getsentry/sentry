@@ -149,7 +149,7 @@ describe('useReplayData', () => {
       initialProps: {
         replaySlug: `${project.slug}:${mockReplayResponse.id}`,
         orgSlug: organization.slug,
-        attachmentsPerPage: 1,
+        framesPerPage: 1,
       },
     });
 
@@ -160,7 +160,7 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
+      frames: [...mockSegmentResponse1, ...mockSegmentResponse2],
       replayRecord: expectedReplay,
       errors: [],
     });
@@ -246,13 +246,13 @@ describe('useReplayData', () => {
     expect(mockedErrorsCall2).toHaveBeenCalledTimes(1);
 
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [],
+      frames: [],
       replayRecord: expectedReplay,
       errors: [...mockErrorResponse1, ...mockErrorResponse2],
     });
   });
 
-  it('should incrementally load attachments and errors', async () => {
+  it('should incrementally load frames and errors', async () => {
     const ERROR_ID = '5c83aaccfffb4a708ae893bad9be3a1c';
     const startedAt = new Date('12:00:00 01-01-2023');
     const finishedAt = new Date('12:00:10 01-01-2023');
@@ -315,7 +315,7 @@ describe('useReplayData', () => {
     expect(mockedEventsMetaCall).not.toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall).not.toHaveBeenCalledTimes(1);
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [],
+      frames: [],
       replayRecord: undefined,
       errors: [],
     });
@@ -324,12 +324,12 @@ describe('useReplayData', () => {
     jest.advanceTimersByTime(10);
     await waitForNextUpdate();
 
-    // Afterwards we see the attachments & errors requests are made
+    // Afterwards we see the frames & errors requests are made
     expect(mockedReplayCall).toHaveBeenCalledTimes(1);
     expect(mockedEventsMetaCall).toHaveBeenCalledTimes(1);
     expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: [],
+      frames: [],
       replayRecord: expectedReplay,
       errors: [],
     });
@@ -343,7 +343,7 @@ describe('useReplayData', () => {
 
     // Next we see that some rrweb data has arrived
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: mockSegmentResponse,
+      frames: mockSegmentResponse,
       replayRecord: expectedReplay,
       errors: [],
     });
@@ -353,7 +353,7 @@ describe('useReplayData', () => {
 
     // Finally we see fetching is complete, errors are here too
     expect(MockedReplayReaderFactory).toHaveBeenLastCalledWith({
-      attachments: mockSegmentResponse,
+      frames: mockSegmentResponse,
       replayRecord: expectedReplay,
       errors: mockErrorResponse,
     });

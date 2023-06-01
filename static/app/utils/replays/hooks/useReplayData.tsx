@@ -16,12 +16,12 @@ type State = {
    */
   fetchError: undefined | RequestError;
 
+  fetchingErrors: boolean;
   /**
    * If a fetch is underway for the requested root reply.
-   * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
+   * This includes fetched all the sub-resources like frames and `sentry-replay-event`
    */
-  fetchingAttachments: boolean;
-  fetchingErrors: boolean;
+  fetchingFrames: boolean;
   fetchingReplay: boolean;
 };
 
@@ -37,16 +37,16 @@ type Options = {
   replaySlug: string;
 
   /**
-   * Default: 100
-   * You can override this for testing
-   */
-  attachmentsPerPage?: number;
-
-  /**
    * Default: 50
    * You can override this for testing
    */
   errorsPerPage?: number;
+
+  /**
+   * Default: 100
+   * You can override this for testing
+   */
+  framesPerPage?: number;
 };
 
 interface Result {
@@ -62,7 +62,7 @@ interface Result {
 
 const INITIAL_STATE: State = Object.freeze({
   fetchError: undefined,
-  fetchingAttachments: true,
+  fetchingFrames: true,
   fetchingErrors: true,
   fetchingReplay: true,
 });
@@ -73,15 +73,13 @@ const INITIAL_STATE: State = Object.freeze({
  * Core replay data includes:
  * 1. The root replay EventTransaction object
  *    - This includes `startTimestamp`, and `tags`
- * 2. RRWeb, Breadcrumb, and Span attachment data
- *    - We make an API call to get a list of attachments, each attachment contains a
- *      list of attachments
- *    - There may be a few large attachments, or many small attachments. It depends!
- *      ie: If the replay has many events/errors then there will be many small attachments,
+ * 2. RRWeb, Breadcrumb, and Span attachment/segment/frame data
+ *    - There may be a few large frames, or many small frames. It depends!
+ *      ie: If the replay has many events/errors then there will be many small frames,
  *      or if the page changes rapidly across each pageload, then there will be
- *      larger attachments, but potentially fewer of them.
+ *      larger frames, but potentially fewer of them.
  * 3. Related Event data
- *    - Event details are not part of the attachments payload, so we have to
+ *    - Event details are not part of the frames payload, so we have to
  *      request them separately
  *
  * This function should stay focused on loading data over the network.
@@ -95,7 +93,7 @@ function useReplayData({
   replaySlug,
   orgSlug,
   errorsPerPage = 50,
-  attachmentsPerPage = 100,
+  framesPerPage = 100,
 }: Options): Result {
   const replayId = parseReplayId(replaySlug);
   const projects = useProjects();
@@ -103,7 +101,7 @@ function useReplayData({
   const api = useApi();
 
   const [state, setState] = useState<State>(INITIAL_STATE);
-  const [attachments, setAttachments] = useState<unknown[]>([]);
+  const [frames, setFrames] = useState<unknown[]>([]);
   const [errors, setErrors] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
@@ -122,20 +120,18 @@ function useReplayData({
     setState(prev => ({...prev, fetchingReplay: false}));
   }, [api, orgSlug, replayId]);
 
-  const fetchAttachments = useCallback(async () => {
+  const fetchFrames = useCallback(async () => {
     if (!replayRecord || !projectSlug) {
       return;
     }
 
     if (!replayRecord.count_segments) {
-      setState(prev => ({...prev, fetchingAttachments: false}));
+      setState(prev => ({...prev, fetchingFrames: false}));
       return;
     }
 
-    const pages = Math.ceil(replayRecord.count_segments / attachmentsPerPage);
-    const cursors = new Array(pages)
-      .fill(0)
-      .map((_, i) => `0:${attachmentsPerPage * i}:0`);
+    const pages = Math.ceil(replayRecord.count_segments / framesPerPage);
+    const cursors = new Array(pages).fill(0).map((_, i) => `0:${framesPerPage * i}:0`);
 
     await Promise.allSettled(
       cursors.map(cursor => {
@@ -144,19 +140,19 @@ function useReplayData({
           {
             query: {
               download: true,
-              per_page: attachmentsPerPage,
+              per_page: framesPerPage,
               cursor,
             },
           }
         );
         promise.then(response => {
-          setAttachments(prev => (prev ?? []).concat(...response));
+          setFrames(prev => (prev ?? []).concat(...response));
         });
         return promise;
       })
     );
-    setState(prev => ({...prev, fetchingAttachments: false}));
-  }, [attachmentsPerPage, api, orgSlug, replayRecord, projectSlug]);
+    setState(prev => ({...prev, fetchingFrames: false}));
+  }, [framesPerPage, api, orgSlug, replayRecord, projectSlug]);
 
   const fetchErrors = useCallback(async () => {
     if (!replayRecord) {
@@ -210,21 +206,21 @@ function useReplayData({
     if (state.fetchError) {
       return;
     }
-    fetchAttachments().catch(onError);
-  }, [state.fetchError, fetchAttachments, onError]);
+    fetchFrames().catch(onError);
+  }, [state.fetchError, fetchFrames, onError]);
 
   const replay = useMemo(() => {
     return ReplayReader.factory({
-      attachments,
+      frames,
       errors,
       replayRecord,
     });
-  }, [attachments, errors, replayRecord]);
+  }, [frames, errors, replayRecord]);
 
   return {
     replayErrors: errors,
     fetchError: state.fetchError,
-    fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
+    fetching: state.fetchingFrames || state.fetchingErrors || state.fetchingReplay,
     onRetry: loadData,
     replay,
     replayRecord,

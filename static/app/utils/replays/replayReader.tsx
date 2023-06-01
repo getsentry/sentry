@@ -23,14 +23,14 @@ import type {
 } from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
+  errors: ReplayError[] | undefined;
   /**
-   * Loaded segment data
+   * Loaded attachment/segment/frame data
    *
    * This is a mix of rrweb data, breadcrumbs and spans/transactions sorted by time
    * All three types are mixed together.
    */
-  attachments: unknown[] | undefined;
-  errors: ReplayError[] | undefined;
+  frames: unknown[] | undefined;
 
   /**
    * The root Replay event, created at the start of the browser session.
@@ -43,22 +43,22 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({attachments, replayRecord, errors}: ReplayReaderParams) {
-    if (!attachments || !replayRecord || !errors) {
+  static factory({frames, replayRecord, errors}: ReplayReaderParams) {
+    if (!frames || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, replayRecord, errors});
+      return new ReplayReader({frames, replayRecord, errors});
     } catch (err) {
       Sentry.captureException(err);
 
-      // If something happens then we don't really know if it's the attachments
+      // If something happens then we don't really know if it's the frames
       // array or errors array to blame (it's probably attachments though).
       // Either way we can use the replayRecord to show some metadata, and then
       // put an error message below it.
       return new ReplayReader({
-        attachments: [],
+        frames: [],
         errors: [],
         replayRecord,
       });
@@ -66,12 +66,12 @@ export default class ReplayReader {
   }
 
   private constructor({
-    attachments,
+    frames,
     replayRecord,
     errors,
   }: RequiredNotNull<ReplayReaderParams>) {
     const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
-      splitAttachmentsByType(attachments);
+      splitAttachmentsByType(frames);
 
     const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
 
