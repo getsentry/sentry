@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Collection, Iterable, Set
@@ -121,17 +120,27 @@ def _parse_config(region_config: str) -> Iterable[Region]:
         yield Region(**config_value)
 
 
-@functools.lru_cache(maxsize=1)
-def _load_global_regions() -> _RegionMapping:
-    from django.conf import settings
+_global_regions: _RegionMapping | None = None
 
-    # For now, assume that all region configs can be taken in through Django
-    # settings. We may investigate other ways of delivering those configs in
-    # production.
-    config = settings.SENTRY_REGION_CONFIG
-    if isinstance(config, str):
-        config = _parse_config(config)
-    return _RegionMapping(config)
+
+def _load_global_regions() -> _RegionMapping:
+    global _global_regions
+    if _global_regions is None:
+        from django.conf import settings
+
+        # For now, assume that all region configs can be taken in through Django
+        # settings. We may investigate other ways of delivering those configs in
+        # production.
+        config = settings.SENTRY_REGION_CONFIG
+        if isinstance(config, str):
+            config = list(_parse_config(config))
+        _global_regions = _RegionMapping(config)
+    return _global_regions
+
+
+def _clear_global_regions() -> None:
+    global _global_regions
+    _global_regions = None
 
 
 def get_region_by_name(name: str) -> Region:
