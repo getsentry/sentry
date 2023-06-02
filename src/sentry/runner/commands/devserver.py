@@ -201,6 +201,8 @@ and run `sentry devservices up kafka zookeeper`.
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
     has_https = shutil.which("https") is not None
 
+    control_silo_port = port + 10
+
     if needs_https and not has_https:
         from sentry.runner.initializer import show_big_error
 
@@ -249,6 +251,7 @@ and run `sentry devservices up kafka zookeeper`.
 
         proxy_port = port
         port = port + 1
+        control_silo_port = control_silo_port + 1
 
         uwsgi_overrides["protocol"] = "http"
 
@@ -256,6 +259,8 @@ and run `sentry devservices up kafka zookeeper`.
         os.environ["SENTRY_WEBPACK_PROXY_HOST"] = "%s" % host
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
+        if settings.USE_SILOS:
+            os.environ["SENTRY_CONTROL_SILO_PORT"] = str(control_silo_port)
 
         # webpack and/or typescript is causing memory issues
         os.environ["NODE_OPTIONS"] = (
@@ -276,6 +281,10 @@ and run `sentry devservices up kafka zookeeper`.
         )
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
+
+    if settings.USE_SILOS:
+        os.environ["SENTRY_SILO_MODE"] = "REGION"
+        os.environ["SENTRY_REGION"] = "us"
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
@@ -372,7 +381,7 @@ and run `sentry devservices up kafka zookeeper`.
 
     # If we don't need any other daemons, just launch a normal uwsgi webserver
     # and avoid dealing with subprocesses
-    if not daemons:
+    if not daemons and not settings.USE_SILOS:
         server.run()
 
     import sys
@@ -408,6 +417,33 @@ and run `sentry devservices up kafka zookeeper`.
             else False
         )
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
+
+    if settings.USE_SILOS:
+        control_environ = {
+            "SENTRY_SILO_MODE": "CONTROL",
+            "SENTRY_REGION": "",
+            "SENTRY_DEVSERVER_BIND": f"localhost:{control_silo_port}",
+            # Override variable set by SentryHTTPServer.prepare_environment()
+            "UWSGI_HTTP_SOCKET": f"127.0.0.1:{control_silo_port}",
+        }
+        merged_env = os.environ.copy()
+        merged_env.update(control_environ)
+        control_services = ["server"]
+        if workers:
+            # TODO(hybridcloud) The cron processes don't work in siloed mode yet.
+            # Both silos will spawn crons for the other silo. We need to filter
+            # the cron job list during application configuration
+            control_services.extend(["cron", "worker"])
+
+        for service in control_services:
+            name, cmd = _get_daemon(service)
+            name = f"control.{name}"
+            quiet = (
+                name not in settings.DEVSERVER_LOGS_ALLOWLIST
+                if settings.DEVSERVER_LOGS_ALLOWLIST is not None
+                else False
+            )
+            manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
 
     manager.loop()
     sys.exit(manager.returncode)
