@@ -16,6 +16,8 @@ export enum ItemType {
   LINK = 'link',
 }
 
+export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
+
 export type SearchGroup = {
   children: SearchItem[];
   icon: React.ReactNode;

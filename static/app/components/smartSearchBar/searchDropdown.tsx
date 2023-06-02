@@ -310,10 +310,7 @@ function DropdownItem({
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
     children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
-  } else if (
-    item.type === ItemType.INVALID_TAG ||
-    item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
-  ) {
+  } else if (item.type && invalidTypes.includes(item.type)) {
     const customInvalidMessage = customInvalidTagMessage?.(item);
     children = customInvalidMessage ?? (
       <SearchInvalidTag

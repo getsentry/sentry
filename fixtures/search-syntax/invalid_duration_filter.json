@@ -8,7 +8,7 @@
         "negated": false,
         "operator": "",
         "invalid": {
-          "type": "invalid-number",
+          "type": "invalid-duration",
           "reason": "Invalid duration. Expected number followed by duration unit suffix",
           "expectedType": ["duration"]
         },
