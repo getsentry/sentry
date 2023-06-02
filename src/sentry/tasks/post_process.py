@@ -262,9 +262,22 @@ def handle_owner_assignment(job):
                                 handle_group_owners(project, group, issue_owners)
                             except Exception:
                                 logger.exception("Failed to store group owners")
+                        else:
+                            handle_invalid_group_owners(group)
 
         except Exception:
             logger.exception("Failed to handle owner assignments")
+
+
+def handle_invalid_group_owners(group):
+    from sentry.models.groupowner import GroupOwner, GroupOwnerType
+
+    invalid_group_owners = GroupOwner.objects.filter(
+        group=group,
+        type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
+    )
+    for owner in invalid_group_owners:
+        owner.delete()
 
 
 def handle_group_owners(project, group, issue_owners):

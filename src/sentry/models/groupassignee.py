@@ -104,6 +104,7 @@ class GroupAssigneeManager(BaseManager):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity
+        from sentry.models.projectownership import ProjectOwnership
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
@@ -112,7 +113,14 @@ class GroupAssigneeManager(BaseManager):
             Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
-            GroupOwner.invalidate_assignee_exists_cache(group.project.id)
+            # Clear ownership cache for the deassigned group
+            ownership = ProjectOwnership.get_ownership_cached(group.project.id)
+            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
+            GroupOwner.invalidate_autoassigned_owner_cache(
+                group.project.id, autoassignment_types, group.id
+            )
+            GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
+            GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues
