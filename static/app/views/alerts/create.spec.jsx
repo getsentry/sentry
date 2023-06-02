@@ -61,6 +61,11 @@ describe('ProjectAlertsCreate', function () {
         autoAssignment: false,
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/preview/',
+      method: 'POST',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -451,10 +456,6 @@ describe('ProjectAlertsCreate', function () {
   });
 
   describe('test preview chart', () => {
-    const organization = TestStubs.Organization({features: ['issue-alert-preview']});
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
     it('valid preview table', async () => {
       const groups = TestStubs.Groups();
       const date = new Date();
@@ -470,7 +471,7 @@ describe('ProjectAlertsCreate', function () {
           Endpoint: 'endpoint',
         },
       });
-      createWrapper({organization});
+      createWrapper();
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
@@ -517,7 +518,7 @@ describe('ProjectAlertsCreate', function () {
         method: 'POST',
         statusCode: 400,
       });
-      createWrapper({organization});
+      createWrapper();
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
       });
@@ -543,7 +544,7 @@ describe('ProjectAlertsCreate', function () {
           Endpoint: 'endpoint',
         },
       });
-      createWrapper({organization});
+      createWrapper();
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
       });
