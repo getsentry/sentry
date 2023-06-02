@@ -165,11 +165,17 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
             sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
             continue
 
-        new_sizes = backend.bulk_get_sizes(QUEUES)
-        for (queue, size) in new_sizes:
-            if _is_healthy(size):
-                queue_history[queue] = 0
-            else:
+        try:
+            new_sizes = backend.bulk_get_sizes(QUEUES)
+            for (queue, size) in new_sizes:
+                if _is_healthy(size):
+                    queue_history[queue] = 0
+                else:
+                    queue_history[queue] += 1
+        except Exception:
+            # If there was an error getting queue sizes from RabbitMQ, assume
+            # all queues are unhealthy
+            for queue in QUEUES:
                 queue_history[queue] += 1
 
         queue_health = [
