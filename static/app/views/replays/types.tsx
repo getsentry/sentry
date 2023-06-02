@@ -167,32 +167,6 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'user',
 ];
 
-// OptionFrameEvent,
-
-// ReplayFrame, // -> One of SpanFrame | BreadcrumbFrame
-// ReplayFrameEvent,
-
-// SpanFrame,
-// SpanFrameEvent,
-
-// BreadcrumbFrame,
-// BreadcrumbFrameEvent,
-
-// AllEntryData,
-// AllPerformanceEntry,
-// AllPerformanceEntryData,
-// ExperimentalPerformanceResourceTiming,
-// HistoryData,
-// LargestContentfulPaintData,
-// MemoryData,
-// NavigationData,
-// NetworkRequestData,
-// PaintData,
-// PerformanceNavigationTiming,
-// PerformancePaintTiming,
-// ReplayPerformanceEntry,
-// ResourceData,
-
 export type ReplaySegment = {
   dateAdded: string;
   projectId: string;

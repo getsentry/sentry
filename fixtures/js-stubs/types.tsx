@@ -186,6 +186,7 @@ type TestStubFixtures = {
   VercelProvider: SimpleStub;
   VstsCreate: SimpleStub;
   VstsIntegrationProvider: OverridableStub;
+
   VstsPlugin: SimpleStub;
 
   // TODO: These need propertly typed still
