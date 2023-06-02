@@ -127,10 +127,20 @@ def _unhealthy_queue_key(queue_name: str) -> str:
 
 
 def is_queue_healthy(queue_name: str) -> bool:
+    """Checks whether the given queue is healthy by looking it up in Redis.
+
+    NB: If the queue is not found in Redis, it is assumed to be healthy.
+    This behavior might change in the future.
+    """
+
     if not options.get("backpressure.enable_monitor_queues"):
         return True
     # check if queue is healthy by pinging Redis
-    return not queue_monitoring_cluster.exists(_unhealthy_queue_key(queue_name))
+    try:
+        healthy = queue_monitoring_cluster.exists(_unhealthy_queue_key(queue_name))
+    except Exception:
+        healthy = False
+    return healthy
 
 
 def _is_healthy(queue_size) -> bool:
