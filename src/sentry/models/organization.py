@@ -629,7 +629,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             return reverse(Organization.get_url_viewname())
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.id != "member":
+        if "org:write" in role.scopes:
             return role.scopes
 
         scopes = set(role.scopes)
