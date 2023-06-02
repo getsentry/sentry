@@ -82,7 +82,7 @@ export const useErrorRateQuery = (queryString: string) => {
   const interval = 12;
   const query: NewQuery = {
     id: undefined,
-    name: 'Db module - epm/p75 for top transactions',
+    name: 'Db module - http error rate',
     projects: [1],
     fields: ['http_error_rate()'],
     query: queryString,
@@ -97,7 +97,7 @@ export const useErrorRateQuery = (queryString: string) => {
 
   const result = useDiscoverEventsStatsQuery<{data: [number, [{count: number}]]}>({
     eventView,
-    referrer: 'api.starfish.database.charts',
+    referrer: 'api.starfish.api-module.http-error-rate',
     location,
     orgSlug: 'sentry',
     queryExtras: {
