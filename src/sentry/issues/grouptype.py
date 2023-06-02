@@ -323,6 +323,7 @@ class ReplaySlowClickType(GroupType):
     category = GroupCategory.REPLAY.value
 
 
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
