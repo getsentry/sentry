@@ -714,3 +714,4 @@ register("txnames.bump-lifetime-sample-rate", default=0.1)
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0)
 # Enables queue monitoring for backpressure management.
 register("backpressure.enable_monitor_queues", default=False)
+register("backpressure.monitor_queues.max_size", default=1000)

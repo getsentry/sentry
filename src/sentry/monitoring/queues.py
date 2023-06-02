@@ -16,9 +16,6 @@ KEY_NAME = "unhealthy-queues"
 
 CLUSTER_NAME = "default"
 
-# A queue is unhealthy if it has more than this number of messages.
-UNHEALTHY_QUEUE_SIZE_THRESHOLD = 1000
-
 # How many times in a row a queue must be unhealthy before it is
 # recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
 UNHEALTHY_QUEUE_STRIKE_THRESHOLD = 12
@@ -144,7 +141,7 @@ def is_queue_healthy(queue_name: str) -> bool:
 
 
 def _is_healthy(queue_size) -> bool:
-    return queue_size < UNHEALTHY_QUEUE_SIZE_THRESHOLD
+    return queue_size < options.get("backpressure.monitor_queues.unhealthy_threshold")
 
 
 def _update_queue_stats(redis_cluster, queue_health: List[Tuple[str, bool]]) -> None:
