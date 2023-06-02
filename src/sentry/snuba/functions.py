@@ -67,7 +67,7 @@ def timeseries_query(
     use_metrics_layer: bool = False,
 ) -> Any:
     builder = ProfileFunctionsTimeseriesQueryBuilder(
-        dataset=Dataset.Profiles,
+        dataset=Dataset.Functions,
         params=params,
         query=query,
         interval=rollup,
