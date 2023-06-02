@@ -462,7 +462,7 @@ describe('ProjectAlertsCreate', function () {
         groups[i].lastTriggered = date;
       }
       const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/preview',
+        url: '/projects/org-slug/project-slug/rules/preview/',
         method: 'POST',
         body: groups,
         headers: {
@@ -513,7 +513,7 @@ describe('ProjectAlertsCreate', function () {
 
     it('invalid preview alert', async () => {
       const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/preview',
+        url: '/projects/org-slug/project-slug/rules/preview/',
         method: 'POST',
         statusCode: 400,
       });
@@ -535,7 +535,7 @@ describe('ProjectAlertsCreate', function () {
 
     it('empty preview table', async () => {
       const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/preview',
+        url: '/projects/org-slug/project-slug/rules/preview/',
         method: 'POST',
         body: [],
         headers: {

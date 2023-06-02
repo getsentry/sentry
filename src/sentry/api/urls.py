@@ -2089,7 +2089,7 @@ PROJECT_URLS = [
         name="sentry-api-0-project-rules-configuration",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
         ProjectRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-details",
     ),
@@ -2104,7 +2104,7 @@ PROJECT_URLS = [
         name="sentry-api-0-metric-rule-snooze",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview/$",
         ProjectRulePreviewEndpoint.as_view(),
         name="sentry-api-0-project-rule-preview",
     ),
