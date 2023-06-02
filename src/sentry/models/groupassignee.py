@@ -115,6 +115,8 @@ class GroupAssigneeManager(BaseManager):
 
             # Clear ownership cache for the deassigned group
             ownership = ProjectOwnership.get_ownership_cached(group.project.id)
+            if not ownership:
+                ownership = ProjectOwnership(project_id=group.project.id)
             autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
             GroupOwner.invalidate_autoassigned_owner_cache(
                 group.project.id, autoassignment_types, group.id
