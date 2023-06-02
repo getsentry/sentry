@@ -139,6 +139,7 @@ class GroupOwner(Model):
                 group_id, project_id, autoassignment_types
             )
             cache.delete(cache_key)
+            return
 
         # Get all the groups for a project that had an event within the READ_CACHE_DURATION window.
         # Any groups without events in that window would have expired their TTL in the cache.
