@@ -439,10 +439,10 @@ export class Client {
     });
 
     // Do not set the X-CSRFToken header when making a request outside of the
-    // current domain
+    // current domain. Because we use subdomains we loosely compare origins
     const absoluteUrl = new URL(fullUrl, window.location.origin);
-    const isSameOrigin = window.location.origin === absoluteUrl.origin;
-
+    const originUrl = new URL(window.location.origin);
+    const isSameOrigin = originUrl.hostname.endsWith(absoluteUrl.hostname);
     if (!csrfSafeMethod(method) && isSameOrigin) {
       headers.set('X-CSRFToken', getCsrfToken());
     }

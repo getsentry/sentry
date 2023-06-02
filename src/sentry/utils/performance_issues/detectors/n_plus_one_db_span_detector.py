@@ -284,6 +284,12 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         # Only collecting metrics.
         return False
 
+    def _contains_valid_repeating_query(self, span: Span) -> bool:
+        # Remove the regular expression check for parameterization, relying on
+        # the parameterization in span hashing to handle it.
+        query = span.get("description", None)
+        return bool(query)
+
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
