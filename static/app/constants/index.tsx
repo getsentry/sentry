@@ -46,6 +46,7 @@ export const API_ACCESS_SCOPES = [
   'org:read',
   'org:write',
   'org:admin',
+  'org:ci',
   'org:integrations',
   'member:read',
   'member:write',

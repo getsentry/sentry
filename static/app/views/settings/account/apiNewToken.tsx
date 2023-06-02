@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
 import ApiForm from 'sentry/components/forms/apiForm';
@@ -9,14 +8,23 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const SORTED_DEFAULT_API_ACCESS_SCOPES = DEFAULT_API_ACCESS_SCOPES.sort();
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-export default class ApiNewToken extends Component {
+type Props = {
+  organization: Organization;
+} & AsyncView['props'];
+
+type State = AsyncView['state'];
+
+export class ApiNewToken extends AsyncView<Props, State> {
   onCancel = () => {
     browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
@@ -25,7 +33,13 @@ export default class ApiNewToken extends Component {
     browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
-  render() {
+  renderBody() {
+    const {organization} = this.props;
+
+    const apiAccessScopes = organization.features.includes('org-auth-tokens')
+      ? API_ACCESS_SCOPES
+      : API_ACCESS_SCOPES.filter(scope => scope !== 'org:ci');
+
     return (
       <SentryDocumentTitle title={t('Create API Token')}>
         <div>
@@ -61,7 +75,7 @@ export default class ApiNewToken extends Component {
                 <FormField name="scopes" label={t('Scopes')} inline={false} required>
                   {({name, value, onChange}) => (
                     <MultipleCheckbox onChange={onChange} value={value} name={name}>
-                      {API_ACCESS_SCOPES.map(scope => (
+                      {apiAccessScopes.map(scope => (
                         <MultipleCheckbox.Item value={scope} key={scope}>
                           {scope}
                         </MultipleCheckbox.Item>
@@ -77,3 +91,5 @@ export default class ApiNewToken extends Component {
     );
   }
 }
+
+export default withOrganization(ApiNewToken);

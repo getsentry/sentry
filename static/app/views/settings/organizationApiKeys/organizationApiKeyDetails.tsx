@@ -64,6 +64,11 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
+
+    const apiAccessScopes = organization.features.includes('org-auth-tokens')
+      ? API_ACCESS_SCOPES
+      : API_ACCESS_SCOPES.filter(scope => scope !== 'org:ci');
+
     return (
       <div>
         <SettingsPageHeader title={t('Edit API Key')} />
@@ -93,7 +98,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
               <FormField name="scope_list" label={t('Scopes')} inline={false} required>
                 {({name, value, onChange}) => (
                   <MultipleCheckbox value={value} onChange={onChange} name={name}>
-                    {API_ACCESS_SCOPES.map(scope => (
+                    {apiAccessScopes.map(scope => (
                       <MultipleCheckbox.Item value={scope} key={scope}>
                         {scope}
                       </MultipleCheckbox.Item>
