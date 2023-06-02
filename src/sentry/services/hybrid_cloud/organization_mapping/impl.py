@@ -7,6 +7,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.types.region import get_local_region
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
@@ -49,6 +50,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         # TODO: REMOVE FROM GETSENTRY!
+        if "region_name" not in update:
+            update["region_name"] = get_local_region().name
         self.upsert(organization_id=organization_id, update=update)
 
     def upsert(
