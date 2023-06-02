@@ -375,8 +375,6 @@ describe('CreateProject', function () {
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
-
-    // jest.spyOn(indicators, 'addSuccessMessage');
     await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
 
     expect(
