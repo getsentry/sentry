@@ -62,7 +62,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0476_convert_unresolved_to_set_escalating_activitytype"),
+        ("sentry", "0477_control_avatars"),
     ]
 
     operations = [

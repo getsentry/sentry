@@ -4,8 +4,8 @@ from sentry.testutils.outbox import outbox_runner
 
 
 class BackfillOrganizationMappingsViaOutboxTest(TestMigrations):
-    migrate_from = "0476_convert_unresolved_to_set_escalating_activitytype"
-    migrate_to = "0477_backfill_organization_mappings_via_outbox"
+    migrate_from = "0477_control_avatars"
+    migrate_to = "0478_backfill_organization_mappings_via_outbox"
 
     def setup_initial_state(self):
         self.org_without_mapping = self.create_organization(name="foo", slug="foo-slug")
