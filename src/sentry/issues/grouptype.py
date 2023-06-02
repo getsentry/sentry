@@ -316,14 +316,6 @@ class ProfileJSONDecodeType(GroupType):
 
 
 @dataclass(frozen=True)
-class ReplaySlowClickType(GroupType):
-    type_id = 3001
-    slug = "replay_slock_click_type"
-    description = "Slow response after click"
-    category = GroupCategory.REPLAY.value
-
-
-@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
@@ -348,6 +340,14 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.MONITOR.value
     released = True
+
+
+@dataclass(frozen=True)
+class ReplayDeadClickType(GroupType):
+    type_id = 5001
+    slug = "replay_click_dead"
+    description = "No response after click"
+    category = GroupCategory.REPLAY.value
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
