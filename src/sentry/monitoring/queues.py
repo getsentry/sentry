@@ -1,5 +1,6 @@
 from threading import Thread
 from time import sleep
+from typing import List, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -136,18 +137,20 @@ def _is_healthy(queue_size) -> bool:
     return queue_size < UNHEALTHY_QUEUE_SIZE_THRESHOLD
 
 
-def _update_queue_stats(redis_cluster, unhealthy) -> None:
-    if not unhealthy:
-        return
-
-    with sentry_sdk.push_scope() as scope:
-        scope.set_extra("unhealthy_queues", unhealthy)
-        sentry_sdk.capture_message("Queues are unhealthy")
+def _update_queue_stats(redis_cluster, queue_health: List[Tuple[str, bool]]) -> None:
+    unhealthy = [queue for (queue, unhealthy) in queue_health if unhealthy]
+    if unhealthy:
+        # Report list of unhealthy queues to sentry
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("unhealthy_queues", unhealthy)
+            sentry_sdk.capture_message("RabbitMQ queues are exceeding size threshold")
 
     with redis_cluster.pipeline(transaction=True) as pipeline:
-        # can't use mset because it doesn't support expiry
-        for queue in unhealthy:
-            pipeline.set(_unhealthy_queue_key(queue), "1", ex=UNHEALTHY_QUEUE_CHECK_INTERVAL)
+        for (queue, unhealthy) in queue_health:
+            if unhealthy:
+                pipeline.set(_unhealthy_queue_key(queue), "1", ex=60)
+            else:
+                pipeline.delete(_unhealthy_queue_key(queue))
         pipeline.execute()
 
 
@@ -169,10 +172,10 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
             else:
                 queue_history[queue] += 1
 
-        unhealthy = [
-            queue for (queue, count) in queue_history if count >= UNHEALTHY_QUEUE_STRIKE_THRESHOLD
+        queue_health = [
+            (queue, count >= UNHEALTHY_QUEUE_STRIKE_THRESHOLD) for (queue, count) in queue_history
         ]
-        _update_queue_stats(cluster, unhealthy)
+        _update_queue_stats(cluster, queue_health)
         sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
 
 
