@@ -173,7 +173,7 @@ export function DocWithProductSelection({
           platform={currentPlatformKey}
         />
       )}
-      {currentPlatform && currentPlatformKey === 'javascript-react' ? (
+      {currentPlatform && currentPlatformKey === 'javascript-react' && newOrg ? (
         <LoadGettingStartedDoc
           platform={currentPlatform}
           orgSlug={organization.slug}
