@@ -24,6 +24,11 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("control", "sentry", User)
         assert not router.allow_migrate("region", "sentry", User)
 
+        # Ensure tables that no longer exist don't fail
+        assert router.allow_migrate(
+            "default", "sentry", model=None, hints={"tables": ["jira_ac_tenant"]}
+        )
+
     @override_settings(SILO_MODE="REGION")
     def test_for_region(self):
         router = SiloRouter()
