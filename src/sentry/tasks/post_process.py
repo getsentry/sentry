@@ -13,7 +13,6 @@ from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
@@ -395,6 +394,8 @@ MAX_FETCH_ATTEMPTS = 3
 
 
 def should_retry_fetch(attempt: int, e: Exception) -> bool:
+    from sentry.issues.occurrence_consumer import EventLookupError
+
     return not attempt > MAX_FETCH_ATTEMPTS and (
         isinstance(e, ServiceUnavailable) or isinstance(e, EventLookupError)
     )
@@ -433,6 +434,7 @@ def post_process_group(
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
+        from sentry.issues.occurrence_consumer import EventLookupError
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
