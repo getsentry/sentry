@@ -27,7 +27,6 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -862,7 +861,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const hasAlertWrite = hasEveryAccess(['alerts:write'], {organization, project});
-    const formDisabled = loading || !(isActiveSuperuser() || hasAlertWrite);
+    const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     return (

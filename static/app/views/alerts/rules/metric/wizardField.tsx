@@ -152,6 +152,7 @@ export default function WizardField({
             <SelectControl
               value={selectedTemplate}
               options={menuOptions}
+              disabled={disabled}
               onChange={(option: MenuOption) => {
                 const template = AlertWizardRuleTemplates[option.value];
 

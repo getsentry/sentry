@@ -1017,10 +1017,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   renderProjectSelect(disabled: boolean) {
     const {project: _selectedProject, projects, organization} = this.props;
     const {rule} = this.state;
+
+    const hasOrgWrite = organization.access.includes('org:write');
     const hasOpenMembership = organization.features.includes('open-membership');
-    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
+
+    const myProjects = projects.filter(
+      project => project.isMember && project.access.includes('alerts:write')
+    );
     const allProjects = projects.filter(
-      project => project.hasAccess && !project.isMember
+      project => !project.isMember && project.access.includes('alerts:write')
     );
 
     const myProjectOptions = myProjects.map(myProject => ({
@@ -1045,7 +1050,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     ];
 
     const projectOptions =
-      hasOpenMembership || isActiveSuperuser()
+      hasOpenMembership || hasOrgWrite || isActiveSuperuser()
         ? openMembershipProjects
         : myProjectOptions;
 

@@ -7,6 +7,7 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -255,10 +256,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization,
       disableProjectSelector,
     } = this.props;
+    const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
     const hasOpenMembership = organization.features.includes('open-membership');
-    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
+
+    const myProjects = projects.filter(
+      project => project.isMember && project.access.includes('alerts:write')
+    );
     const allProjects = projects.filter(
-      project => project.hasAccess && !project.isMember
+      project => !project.isMember && project.access.includes('alerts:write')
     );
 
     const myProjectOptions = myProjects.map(myProject => ({
@@ -283,7 +288,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     ];
 
     const projectOptions =
-      hasOpenMembership || isActiveSuperuser()
+      hasOpenMembership || hasOrgWrite || isActiveSuperuser()
         ? openMembershipProjects
         : myProjectOptions;
 
@@ -554,6 +559,14 @@ const SearchContainer = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+
+  ${p =>
+    p.disabled &&
+    `
+    background: ${p.theme.backgroundSecondary};
+    color: ${p.theme.disabled};
+    cursor: not-allowed;
+  `}
 `;
 
 const StyledListItem = styled(ListItem)`
