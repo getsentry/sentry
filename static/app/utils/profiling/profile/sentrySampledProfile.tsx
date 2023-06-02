@@ -1,4 +1,4 @@
-import {lastOfArray} from 'sentry/utils';
+import {defined, lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
@@ -9,9 +9,65 @@ type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & 
   weight: number;
 };
 
-function sortSentrySampledProfileSamples(samples: Readonly<WeightedSample[]>) {
+function sortSentrySampledProfileSamples(
+  samples: Readonly<WeightedSample[]>,
+  stacks: Profiling.SentrySampledProfile['profile']['stacks'],
+  frames: Profiling.SentrySampledProfile['profile']['frames']
+) {
   return [...samples].sort((a, b) => {
-    return a.stack_id - b.stack_id;
+    // same stack id, these are the same
+    if (a.stack_id === b.stack_id) {
+      return 0;
+    }
+
+    const stackA = stacks[a.stack_id];
+    const stackB = stacks[b.stack_id];
+    const minDepth = Math.min(stackA.length, stackB.length);
+
+    for (let i = 0; i < minDepth; i++) {
+      // we iterate from the end of each stack because that's where the main function is
+      const frameIdA = stackA[stackA.length - i - 1];
+      const frameIdB = stackB[stackB.length - i - 1];
+
+      // same frame id, so check the next frame in the stack
+      if (frameIdA === frameIdB) {
+        continue;
+      }
+
+      const frameA = frames[frameIdA];
+      const frameB = frames[frameIdB];
+
+      if (defined(frameA.function) && defined(frameB.function)) {
+        // sort alphabetically first
+        const ret = frameA.function.localeCompare(frameB.function);
+        if (ret !== 0) {
+          return ret;
+        }
+
+        // break ties using the line number
+        if (defined(frameA.lineno) && defined(frameB.lineno)) {
+          return frameA.lineno - frameB.lineno;
+        }
+
+        if (defined(frameA.lineno)) {
+          return -1;
+        }
+
+        if (defined(frameB.lineno)) {
+          return 1;
+        }
+      } else if (defined(frameA.function)) {
+        // if only one has the function name defined, the defined one goes first
+        return -1;
+      } else if (defined(frameB.function)) {
+        // if only one has the function name defined, the defined one goes first
+        return 1;
+      }
+    }
+
+    // if all frames up to the depth of the shorter stack matches,
+    // then the deeper stack goes first
+    return stackB.length - stackA.length;
   });
 }
 
@@ -33,10 +89,10 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
-    const {stacks} = sampledProfile.profile;
+    const {frames, stacks} = sampledProfile.profile;
     const samples =
       options.type === 'flamegraph'
-        ? sortSentrySampledProfileSamples(weightedSamples)
+        ? sortSentrySampledProfileSamples(weightedSamples, stacks, frames)
         : weightedSamples;
 
     const startedAt = samples[0].elapsed_since_start_ns;
