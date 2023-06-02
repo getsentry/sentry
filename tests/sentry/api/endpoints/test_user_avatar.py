@@ -52,7 +52,7 @@ class UserAvatarTest(APITestCase):
         avatar = UserAvatar.objects.get(user=user)
         assert response.status_code == 200, response.content
         assert avatar.get_avatar_type_display() == "upload"
-        assert avatar.file_id
+        assert avatar.control_file_id
 
     def test_put_bad(self):
         user = self.create_user(email="a@example.com")

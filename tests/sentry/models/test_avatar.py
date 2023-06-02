@@ -1,3 +1,4 @@
+from sentry import options as options_store
 from sentry.models import File, UserAvatar
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.files.control_file import ControlFile
@@ -28,11 +29,17 @@ class AvatarMigrationTestCase(TestCase):
         avatar = UserAvatar.objects.create(user=user, file_id=afile.id)
 
         assert avatar.control_file_id is None
-        with self.tasks():
-            assert isinstance(avatar.get_file(), File)
-            avatar = UserAvatar.objects.get(id=avatar.id)
-            assert avatar.control_file_id is not None
-            assert isinstance(avatar.get_file(), ControlFile)
+        with self.options(
+            {
+                "filestore.control.backend": options_store.get("filestore.backend"),
+                "filestore.control.options": options_store.get("filestore.options"),
+            }
+        ):
+            with self.tasks():
+                assert isinstance(avatar.get_file(), File)
+                avatar = UserAvatar.objects.get(id=avatar.id)
+                assert avatar.control_file_id is not None
+                assert isinstance(avatar.get_file(), ControlFile)
 
 
 @region_silo_test(stable=True)

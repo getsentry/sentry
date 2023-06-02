@@ -80,7 +80,7 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
             assert serialize(doc) == response.data
             assert serialize(doc.avatar.get()) == response.data["avatar"]
             assert serialize(prev_avatar) != response.data["avatar"]
-            assert prev_avatar.file_id != doc.avatar.get().file_id
+            assert prev_avatar.control_file_id != doc.avatar.get().control_file_id
 
     def test_upload_avatar_payload_structure(self):
         """

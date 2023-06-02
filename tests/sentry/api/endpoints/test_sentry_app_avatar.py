@@ -3,7 +3,6 @@ from base64 import b64encode
 from sentry import options as options_store
 from sentry.models import SentryAppAvatar
 from sentry.testutils import APITestCase
-from sentry.utils.snuba import options_override
 
 
 class SentryAppAvatarTestBase(APITestCase):
@@ -68,7 +67,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["color"] is True
 
     def test_upload_control(self):
-        with options_override(
+        with self.options(
             {
                 "filestore.control.backend": options_store.get("filestore.backend"),
                 "filestore.control.options": options_store.get("filestore.options"),
