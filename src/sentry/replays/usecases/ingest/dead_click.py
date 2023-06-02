@@ -23,7 +23,6 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         environment="prod",
         fingerprint=payload["message"],
         project_id=project_id,
-        release="",
         subtitle=payload["message"],
         timestamp=timestamp,
         extra_event_data={
@@ -45,7 +44,6 @@ def _report_dead_click_issue(
     environment: str,
     fingerprint: str,
     project_id: int,
-    release: str,
     subtitle: str,
     timestamp: datetime.datetime,
     extra_event_data: Dict[str, Any],
@@ -57,7 +55,6 @@ def _report_dead_click_issue(
         issue_type=ReplayDeadClickType,
         platform="javascript",
         project_id=project_id,
-        release=release,
         subtitle=subtitle,
         timestamp=timestamp,
         title="[TEST] Dead Click Detected",

@@ -13,7 +13,6 @@ def new_issue_occurrence(
     issue_type: Type[GroupType],
     platform: str,
     project_id: int,
-    release: str,
     subtitle: str,
     timestamp: datetime.datetime,
     title: str,
@@ -45,7 +44,7 @@ def new_issue_occurrence(
         "platform": platform,
         "project_id": project_id,
         "received": timestamp.isoformat(),
-        "release": release,
+        "tags": {},
         "timestamp": timestamp.isoformat(),
     }
     event_data.update(extra_event_data)
