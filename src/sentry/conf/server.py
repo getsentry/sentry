@@ -1044,7 +1044,6 @@ PROCESSING_QUEUES = [
     "post_process_issue_platform",
     "post_process_transactions",
     "profiles.process",
-    "replays.ingest_replay",
 ]
 
 
