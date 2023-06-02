@@ -361,6 +361,13 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
+export function eventHasExceptionGroup(event: Event) {
+  const exceptionEntries = getExceptionEntries(event);
+  return exceptionEntries.some(entry =>
+    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  );
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -389,6 +396,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_platform: event?.platform,
     event_type: event?.type,
     has_release: !!event?.release,
+    has_exception_group: event ? eventHasExceptionGroup(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
