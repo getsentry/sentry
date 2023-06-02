@@ -12,7 +12,7 @@ from sentry.types.region import (
     RegionCategory,
     RegionConfigurationError,
     RegionResolutionError,
-    _clear_global_regions,
+    clear_global_regions,
     get_local_region,
     get_region_by_name,
 )
@@ -57,7 +57,7 @@ class RegionMappingTest(TestCase):
             valid_region.validate()
 
     def test_json_config_injection(self):
-        _clear_global_regions()
+        clear_global_regions()
         region_config = {
             "name": "na",
             "snowflake_id": 1,

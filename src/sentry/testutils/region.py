@@ -14,15 +14,15 @@ def override_regions(regions: Iterable[region.Region]):
     because the region mapping may already be cached.
     """
 
-    mapping = region._RegionMapping(regions)
+    mapping = region.GlobalRegionDirectory(regions)
 
-    def override() -> region._RegionMapping:
+    def override() -> region.GlobalRegionDirectory:
         return mapping
 
-    existing = region._load_global_regions
-    region._load_global_regions = override
+    existing = region.load_global_regions
+    region.load_global_regions = override
 
     try:
         yield
     finally:
-        region._load_global_regions = existing
+        region.load_global_regions = existing

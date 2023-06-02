@@ -96,7 +96,7 @@ class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
 
-class _RegionMapping:
+class GlobalRegionDirectory:
     """The set of all regions in this Sentry platform instance."""
 
     def __init__(self, regions: Collection[Region]) -> None:
@@ -120,25 +120,27 @@ def _parse_config(region_config: str) -> Iterable[Region]:
         yield Region(**config_value)
 
 
-_global_regions: _RegionMapping | None = None
+_global_regions: GlobalRegionDirectory | None = None
 
 
-def _load_global_regions() -> _RegionMapping:
+def load_global_regions() -> GlobalRegionDirectory:
     global _global_regions
-    if _global_regions is None:
-        from django.conf import settings
+    if _global_regions is not None:
+        return _global_regions
 
-        # For now, assume that all region configs can be taken in through Django
-        # settings. We may investigate other ways of delivering those configs in
-        # production.
-        config = settings.SENTRY_REGION_CONFIG
-        if isinstance(config, str):
-            config = list(_parse_config(config))
-        _global_regions = _RegionMapping(config)
+    from django.conf import settings
+
+    # For now, assume that all region configs can be taken in through Django
+    # settings. We may investigate other ways of delivering those configs in
+    # production.
+    config = settings.SENTRY_REGION_CONFIG
+    if isinstance(config, str):
+        config = list(_parse_config(config))
+    _global_regions = GlobalRegionDirectory(config)
     return _global_regions
 
 
-def _clear_global_regions() -> None:
+def clear_global_regions() -> None:
     global _global_regions
     _global_regions = None
 
@@ -146,7 +148,7 @@ def _clear_global_regions() -> None:
 def get_region_by_name(name: str) -> Region:
     """Look up a region by name."""
     try:
-        return _load_global_regions().by_name[name]
+        return load_global_regions().by_name[name]
     except KeyError:
         raise RegionResolutionError(f"No region with name: {name!r}")
 
@@ -157,7 +159,7 @@ def get_region_for_organization(organization: Organization) -> Region:
     Raises RegionContextError if this Sentry platform instance is configured to
     run only in monolith mode.
     """
-    mapping = _load_global_regions()
+    mapping = load_global_regions()
 
     if not mapping.regions:
         raise RegionContextError("No regions are configured")
@@ -219,4 +221,4 @@ def find_regions_for_user(user_id: int) -> Set[str]:
 
 
 def find_all_region_names() -> Iterable[str]:
-    return _load_global_regions().by_name.keys()
+    return load_global_regions().by_name.keys()
