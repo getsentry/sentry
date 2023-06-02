@@ -48,7 +48,7 @@ def report_dead_click_issue(
         timestamp=timestamp,
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
-            "level": "info",
+            "level": "warning",
             "tags": {"replayId": replay_id},
             "user": {
                 "id": "1",
