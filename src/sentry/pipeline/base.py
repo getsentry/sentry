@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from types import LambdaType
-from typing import Any, Mapping, Sequence, Type
+from typing import TYPE_CHECKING, Any, Mapping, Sequence, Type
 
 from django.http.response import HttpResponseBase
 from django.views import View
@@ -11,7 +11,6 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.integrations.base import IntegrationProvider
 from sentry.models import Organization
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
@@ -21,6 +20,9 @@ from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 from .views.nested import NestedPipelineView
+
+if TYPE_CHECKING:
+    from sentry.integrations.base import IntegrationProvider
 
 
 class Pipeline(abc.ABC):

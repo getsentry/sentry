@@ -56,9 +56,13 @@ class JiraRequestParser(BaseRequestParser):
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        if view_class in self.immediate_response_region_classes:
+        if len(regions) > 1:
             # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
             # first region to forward along to.
+            logger.error("too_many_regions", extra={"path": self.request.path, "regions": regions})
+            return self.get_response_from_control_silo()
+
+        if view_class in self.immediate_response_region_classes:
             return self.get_response_from_region_silo(region=regions[0])
 
         if view_class in self.outbox_response_region_classes:
