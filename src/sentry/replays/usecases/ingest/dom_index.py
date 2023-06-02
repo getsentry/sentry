@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 from django.conf import settings
 
+from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
 from sentry.replays.usecases.ingest.events import SentryEvent
-from sentry.replays.usecases.ingest.slow_click import report_slow_click_issue
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -143,7 +143,7 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
-                report_slow_click_issue(org_id, project_id, replay_id, cast(SentryEvent, event))
+                report_dead_click_issue(org_id, project_id, replay_id, cast(SentryEvent, event))
                 continue
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
