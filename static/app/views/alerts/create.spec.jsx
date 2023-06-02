@@ -554,14 +554,11 @@ describe('ProjectAlertsCreate', function () {
   });
 
   describe('test incompatible conditions', () => {
-    const organization = TestStubs.Organization({
-      features: ['issue-alert-incompatible-rules'],
-    });
     const errorText =
       'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.';
 
     it('shows error for incompatible conditions', async () => {
-      createWrapper({organization});
+      createWrapper();
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
       ]);
@@ -580,7 +577,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     it('test any filterMatch', async () => {
-      createWrapper({organization});
+      createWrapper();
       const allDropdowns = screen.getAllByText('all');
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
