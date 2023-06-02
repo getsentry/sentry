@@ -1,6 +1,11 @@
-import moment from 'moment';
+import moment, {unix} from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import {NewQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useDiscoverEventsStatsQuery} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
 
 export const getTimeSpentQuery = (
@@ -69,4 +74,44 @@ export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]
     GROUP BY group_id, span_operation, interval
     ORDER BY interval asc
   `;
+};
+
+export const useErrorRateQuery = (queryString: string) => {
+  const location = useLocation();
+
+  const interval = 12;
+  const query: NewQuery = {
+    id: undefined,
+    name: 'Db module - epm/p75 for top transactions',
+    projects: [1],
+    fields: ['http_error_rate()'],
+    query: queryString,
+    version: 1,
+    topEvents: '5',
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    interval: `${interval}h`,
+    yAxis: ['http_error_rate()'],
+  };
+
+  const eventView = EventView.fromNewQueryWithLocation(query, location);
+
+  const result = useDiscoverEventsStatsQuery<{data: [number, [{count: number}]]}>({
+    eventView,
+    referrer: 'api.starfish.database.charts',
+    location,
+    orgSlug: 'sentry',
+    queryExtras: {
+      interval: `${interval}h`,
+      yAxis: ['http_error_rate()'],
+    },
+  });
+
+  const formattedData = result.data?.data?.map(entry => {
+    return {
+      interval: unix(entry[0]).format('YYYY-MM-DDTHH:mm:ss'),
+      rate: entry[1][0].count,
+    };
+  });
+
+  return {...result, data: formattedData};
 };
