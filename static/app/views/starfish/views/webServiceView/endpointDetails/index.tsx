@@ -23,6 +23,7 @@ const EventsRequest = withApi(_EventsRequest);
 type EndpointAggregateDetails = {
   failureCount: number;
   p50: number;
+  p95: number;
   tpm: number;
 };
 

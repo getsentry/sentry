@@ -261,6 +261,7 @@ export enum GroupActivityType {
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
+  SET_ESCALATING = 'set_escalating',
 }
 
 interface GroupActivityBase {
@@ -407,6 +408,13 @@ interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
+interface GroupActivitySetEscalating extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_ESCALATING;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -453,7 +461,8 @@ export type GroupActivity =
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
   | GroupActivityCreateIssue
-  | GroupActivityAutoSetOngoing;
+  | GroupActivityAutoSetOngoing
+  | GroupActivitySetEscalating;
 
 export type Activity = GroupActivity;
 
