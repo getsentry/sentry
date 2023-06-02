@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
 
 from sentry.integrations.base import (
     IntegrationFeatures,
@@ -71,7 +71,7 @@ class IntegrationService(RpcService):
     def get_integrations(
         self,
         *,
-        integration_ids: Optional[Iterable[int]] = None,
+        integration_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,

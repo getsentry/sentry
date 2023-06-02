@@ -31,10 +31,14 @@ from sentry.utils import json
 
 class MonitorConsumerTest(TestCase):
     def get_message(
-        self, monitor_slug: str, guid: Optional[str] = None, **overrides: Any
+        self,
+        monitor_slug: str,
+        guid: Optional[str] = None,
+        **overrides: Any,
     ) -> Dict[str, Any]:
         now = datetime.now()
         self.guid = uuid.uuid4().hex if not guid else guid
+
         payload = {
             "monitor_slug": monitor_slug,
             "status": "ok",
@@ -272,6 +276,44 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin
             == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
         )
+
+    @pytest.mark.django_db
+    def test_check_in_empty_id(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        message = self.get_message(
+            "my-monitor",
+            guid=str(uuid.UUID(int=0)),
+        )
+        _process_message(message)
+
+        checkin = MonitorCheckIn.objects.get(monitor=monitor)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.guid.int != 0
+
+    @pytest.mark.django_db
+    def test_check_in_empty_id_update(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        message_open = self.get_message(
+            "my-monitor",
+            status="in_progress",
+            guid=str(uuid.UUID(int=0)),
+        )
+        _process_message(message_open)
+
+        open_checkin = MonitorCheckIn.objects.get(monitor=monitor)
+        assert open_checkin.status == CheckInStatus.IN_PROGRESS
+        assert open_checkin.guid != uuid.UUID(int=0)
+
+        message_close = self.get_message(
+            "my-monitor",
+            status="ok",
+            guid=str(uuid.UUID(int=0)),
+        )
+        _process_message(message_close)
+
+        close_checkin = MonitorCheckIn.objects.get(guid=open_checkin.guid)
+        assert close_checkin.status == CheckInStatus.OK
+        assert close_checkin.guid != uuid.UUID(int=0)
 
     def test_rate_limit(self):
         monitor = self._create_monitor(slug="my-monitor")

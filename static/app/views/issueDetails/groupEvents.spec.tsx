@@ -122,8 +122,8 @@ describe('groupEvents', () => {
     jest.clearAllMocks();
   });
 
-  it('renders', () => {
-    const wrapper = render(
+  it('fetches and renders a table of events', async () => {
+    render(
       <GroupEvents
         {...baseProps}
         organization={organization}
@@ -132,7 +132,16 @@ describe('groupEvents', () => {
       {context: routerContext, organization}
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(await screen.findByText('id123')).toBeInTheDocument();
+
+    // Transaction
+    expect(screen.getByText('/api')).toBeInTheDocument();
+    // Environment
+    expect(screen.getByText('prod')).toBeInTheDocument();
+    // Release
+    expect(screen.getByText('1.2.3')).toBeInTheDocument();
+    // User email
+    expect(screen.getByText('sentry@sentry.sentry')).toBeInTheDocument();
   });
 
   it('handles search', async () => {
