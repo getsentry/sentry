@@ -143,7 +143,7 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
-                report_slow_click_issue(project_id, replay_id, cast(SentryEvent, event))
+                report_slow_click_issue(org_id, project_id, replay_id, cast(SentryEvent, event))
                 continue
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
