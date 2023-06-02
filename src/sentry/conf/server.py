@@ -1043,6 +1043,31 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+
+# Queues that belong to the processing pipeline and need to be monitored
+# for backpressure management
+PROCESSING_QUEUES = [
+    "events.preprocess_event",
+    "events.process_event",
+    "events.reprocess_events",
+    "events.reprocessing.preprocess_event",
+    "events.reprocessing.process_event",
+    "events.reprocessing.symbolicate_event",
+    "events.reprocessing.symbolicate_event_low_priority",
+    "events.save_event",
+    "events.save_event_attachments",
+    "events.save_event_transaction",
+    "events.symbolicate_event",
+    "events.symbolicate_event_low_priority",
+    "events.symbolicate_js_event",
+    "events.symbolicate_js_event_low_priority",
+    "post_process_errors",
+    "post_process_issue_platform",
+    "post_process_transactions",
+    "profiles.process",
+]
+
+
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
     "flush-buffers",
@@ -1535,8 +1560,8 @@ SENTRY_FEATURES = {
     "organizations:js-sdk-dynamic-loader": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
-    # If true, allow to create/use org access tokens
-    "organizations:org-access-tokens": False,
+    # If true, allow to create/use org auth tokens
+    "organizations:org-auth-tokens": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
