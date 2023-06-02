@@ -7,8 +7,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from rest_framework.exceptions import NotFound
 
-from sentry.api_gateway.proxy import HEADER_STRIKE_LIST, proxy_request
-from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER
+from sentry.api_gateway.proxy import proxy_request
+from sentry.silo.util import INVALID_OUTBOUND_HEADERS, PROXY_DIRECT_LOCATION_HEADER
 from sentry.testutils.helpers.api_gateway import (
     SENTRY_REGION_CONFIG,
     ApiGatewayTestCase,
@@ -223,8 +223,8 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/post",
             data=request_body,
             content_type="application/json",
-            headers={header: "1" for header in HEADER_STRIKE_LIST},
+            headers={header: "1" for header in INVALID_OUTBOUND_HEADERS},
         )
 
         resp = proxy_request(request, self.organization.slug)
-        assert not any([header in resp for header in HEADER_STRIKE_LIST])
+        assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])

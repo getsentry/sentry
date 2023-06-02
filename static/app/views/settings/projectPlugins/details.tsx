@@ -48,6 +48,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     }
   }
   componentDidMount() {
+    super.componentDidMount();
     this.recordDetailsViewed();
   }
 

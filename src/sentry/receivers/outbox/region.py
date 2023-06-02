@@ -35,14 +35,6 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.signals import member_joined
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
-def process_organization_mapping_verifications(object_identifier: int, **kwds: Any):
-    if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
-        return
-
-    organization_mapping_service.verify_mappings(organization_id=org.id, slug=org.slug)
-
-
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
 def process_audit_log_event(payload: Any, **kwds: Any):
     # TODO: This will become explicit rpc
@@ -117,7 +109,7 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         return
 
     update = update_organization_mapping_from_instance(org)
-    organization_mapping_service.update(organization_id=org.id, update=update)
+    organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)

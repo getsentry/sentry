@@ -68,7 +68,12 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts query={props.query} hideCount compact />
+        <ProfileCharts
+          referrer="api.profiling.profile-summary-chart"
+          query={props.query}
+          hideCount
+          compact
+        />
         <AggregateFlamegraphPanel transaction={props.transaction} />
         <SuspectFunctionsTable
           project={props.project}
