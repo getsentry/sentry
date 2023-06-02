@@ -280,7 +280,7 @@ def _process_message(wrapper: Dict) -> None:
                                 "date_added": date_added,
                                 "date_updated": start_time,
                                 "expected_time": expected_time,
-                                "monitor_config": monitor.get_validated_confg(),
+                                "monitor_config": monitor.get_validated_config(),
                             },
                             project_id=project_id,
                             monitor=monitor,
