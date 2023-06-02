@@ -11,9 +11,10 @@ import {Panel} from 'sentry/components/panels';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
@@ -146,7 +147,16 @@ function SlowestFunctionEntry({
       <AccordionItem>
         {project && <IdBadge project={project} avatarSize={16} hideName />}
         <FunctionName>{func.function}</FunctionName>
-        <ScoreBar score={score} palette={palette} size={20} radius={0} />
+        <Tooltip
+          title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
+            count: <Count value={func['count()'] as number} />,
+            totalSelfTime: (
+              <PerformanceDuration nanoseconds={func['sum()'] as number} abbreviation />
+            ),
+          })}
+        >
+          <ScoreBar score={score} palette={palette} size={20} radius={0} />
+        </Tooltip>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
@@ -221,7 +231,13 @@ function SlowestFunctionEntry({
   );
 }
 
-const functionsFields = ['project.id', 'package', 'function', 'sum()'] as const;
+const functionsFields = [
+  'project.id',
+  'package',
+  'function',
+  'count()',
+  'sum()',
+] as const;
 
 type FunctionsField = (typeof functionsFields)[number];
 
