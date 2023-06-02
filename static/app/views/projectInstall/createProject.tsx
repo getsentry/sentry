@@ -105,19 +105,20 @@ function CreateProject() {
       setInFlight(true);
 
       try {
-        const projectData = await api.requestPromise(
-          team
-            ? `/teams/${slug}/${team}/projects/`
-            : `/organizations/${slug}/experimental/projects/`,
-          {
-            method: 'POST',
-            data: {
-              name: projectName,
-              platform: selectedPlatform.key,
-              default_rules: defaultRules ?? true,
-            },
-          }
-        );
+        console.log({team});
+        const url = team
+          ? `/teams/${slug}/${team}/projects/`
+          : `/organizations/${slug}/experimental/projects/`;
+        console.log('after url');
+        console.log(url);
+        const projectData = await api.requestPromise(url, {
+          method: 'POST',
+          data: {
+            name: projectName,
+            platform: selectedPlatform.key,
+            default_rules: defaultRules ?? true,
+          },
+        });
 
         let ruleId: string | undefined;
         if (shouldCreateCustomRule) {
@@ -150,6 +151,8 @@ function CreateProject() {
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
+          console.log('hittt!');
+          console.log(`Created project ${projectData.slug}`);
           addSuccessMessage(
             tct('Created project [project]', {
               project: `${projectData.slug}`,
@@ -163,6 +166,7 @@ function CreateProject() {
             })
           );
         }
+        console.log('hit');
 
         browserHistory.push(
           normalizeUrl(
