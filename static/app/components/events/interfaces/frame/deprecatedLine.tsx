@@ -4,11 +4,13 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
+import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {
   StacktraceFilenameQuery,
   useSourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -51,6 +53,7 @@ type Props = {
   frameMeta?: Record<any, any>;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
+  isANR?: boolean;
   isExpanded?: boolean;
   isFrameAfterLastNonApp?: boolean;
   /**
@@ -197,6 +200,11 @@ export class DeprecatedLine extends Component<Props, State> {
     scrollToElement('#images-loaded');
   };
 
+  scrollToSuspectRootCause = event => {
+    event.stopPropagation(); // to prevent collapsing if collapsible
+    scrollToElement('#suspect-root-cause');
+  };
+
   preventCollapse = evt => {
     evt.stopPropagation();
   };
@@ -261,7 +269,10 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 
   renderDefaultLine() {
-    const {isHoverPreviewed, debugFrames, data} = this.props;
+    const {isHoverPreviewed, debugFrames, data, isANR} = this.props;
+    const organization = this.props.organization;
+    const anrCulprit =
+      isANR && analyzeFrameForRootCause(data, getCurrentThread(this.props.event));
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
@@ -281,6 +292,11 @@ export class DeprecatedLine extends Component<Props, State> {
             </LeftLineTitle>
             {this.renderRepeats()}
           </DefaultLineTitleWrapper>
+          {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+            <SuspectFrameTag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+              {t('Suspect Frame')}
+            </SuspectFrameTag>
+          ) : null}
           {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
           {this.renderExpander()}
         </DefaultLine>
@@ -498,5 +514,9 @@ const StyledLi = styled('li')`
 const IconWrapper = styled('div')`
   display: flex;
   align-items: center;
+  margin-right: ${space(1)};
+`;
+
+const SuspectFrameTag = styled(Tag)`
   margin-right: ${space(1)};
 `;
