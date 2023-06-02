@@ -725,5 +725,15 @@ class Columns(Enum):
         event_name=None,
         transaction_name="profile_id",
         discover_name="profile_id",
+        issue_platform_name="profile_id",
         alias="profile.id",
+    )
+
+    REPLAY_ID = Column(
+        group_name=None,
+        event_name="replay_id",
+        transaction_name="replay_id",
+        discover_name="replay_id",
+        issue_platform_name="replay_id",
+        alias="replayId",
     )
