@@ -662,11 +662,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
-                    "http_500_rate",
+                    "http_error_rate",
                     snql_distribution=lambda args, alias: Function(
                         "divide",
                         [
-                            self._resolve_http_500_count(args),
+                            self._resolve_http_error_count(args),
                             Function(
                                 "countIf",
                                 [
@@ -684,6 +684,11 @@ class MetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count",
+                    snql_distribution=lambda args, alias: self._resolve_http_error_count,
+                    default_result_type="integer",
                 ),
             ]
         }
@@ -1008,7 +1013,7 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_http_500_count(
+    def _resolve_http_error_count(
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,

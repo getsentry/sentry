@@ -2163,7 +2163,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
 
-    def test_http_500_rate(self):
+    def test_http_error_rate(self):
         self.store_transaction_metric(
             1,
             tags={
@@ -2183,7 +2183,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(
             {
                 "field": [
-                    "http_500_rate()",
+                    "http_error_rate()",
                 ],
                 "dataset": "metrics",
             }
@@ -2192,7 +2192,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["http_500_rate()"] == 0.5
+        assert data[0]["http_error_rate()"] == 0.5
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 
@@ -2255,5 +2255,5 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
         super().test_custom_measurement_size_filtering()
 
     @pytest.mark.xfail(reason="Not supported")
-    def test_http_500_rate(self):
+    def test_http_error_rate(self):
         super().test_having_condition()

@@ -220,6 +220,35 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "http_error_rate",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            self._resolve_http_error_count(args),
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("span.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count",
+                    snql_distribution=self._resolve_http_error_count,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -275,6 +304,32 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 total_time,
             ],
+            alias,
+        )
+
+    def _resolve_http_error_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.HTTP_SERVER_ERROR_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.duration"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("span.status_code"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
             alias,
         )
 
