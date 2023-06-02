@@ -12,7 +12,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 
-type Keys = 'id' | 'profile_id' | 'timestamp' | 'transaction.duration' | 'p50_comparison';
+type Keys = 'id' | 'profile_id' | 'timestamp' | 'transaction.duration' | 'p95_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
@@ -37,8 +37,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'p50_comparison',
-    name: 'Compared to P50',
+    key: 'p95_comparison',
+    name: 'Compared to P95',
     width: 200,
   },
 ];
@@ -59,7 +59,7 @@ export function TransactionSamplesTable({eventView}: Props) {
   const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p50_comparison') {
+    if (column.key === 'p95_comparison') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -105,11 +105,11 @@ export function TransactionSamplesTable({eventView}: Props) {
       return <DateTime date={row[column.key]} year timeZone seconds />;
     }
 
-    if (column.key === 'p50_comparison') {
+    if (column.key === 'p95_comparison') {
       return (
         <DurationComparisonCell
           duration={row['transaction.duration']}
-          p50={(aggregatesData?.['p50(transaction.duration)'] as number) ?? 0}
+          p95={(aggregatesData?.['p95(transaction.duration)'] as number) ?? 0}
         />
       );
     }

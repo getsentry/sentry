@@ -415,8 +415,8 @@ class S3Boto3Storage(Storage):
                     # For simplicity, we enforce in S3Boto3Storage that any auto-created
                     # bucket must match the region that the connection is for.
                     #
-                    # Also note that Amazon specifically disallows "us-east-1" when passing bucket
-                    # region names; LocationConstraint *must* be blank to create in US Standard.
+                    # Also note that Amazon specifically disallows "us-east-1" when passing bucket region
+                    # names; LocationConstraint *must* be blank to create in US Standard.
                     bucket_params = {"ACL": self.bucket_acl}
                     region_name = self.connection.meta.client.meta.region_name
                     if region_name != "us-east-1":
