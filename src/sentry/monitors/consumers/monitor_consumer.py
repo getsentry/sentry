@@ -130,7 +130,7 @@ def _process_message(wrapper: Dict) -> None:
                 if not monitor:
                     metrics.incr(
                         "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "failed_validation"},
+                        tags={**metric_kwargs, "status": "failed_validation"},
                     )
                     logger.info("monitor.validation.failed", extra={**params})
                     return
@@ -149,7 +149,7 @@ def _process_message(wrapper: Dict) -> None:
             except MonitorEnvironmentLimitsExceeded:
                 metrics.incr(
                     "monitors.checkin.result",
-                    tags={"source": "consumer", "status": "failed_monitor_environment_limits"},
+                    tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
                 logger.debug(
                     "monitor environment exceeds limits for monitor: %s", params["monitor_slug"]
@@ -177,7 +177,7 @@ def _process_message(wrapper: Dict) -> None:
                 ):
                     metrics.incr(
                         "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "guid_mismatch"},
+                        tags={**metric_kwargs, "status": "guid_mismatch"},
                     )
                     logger.debug(
                         "check-in guid %s already associated with %s not payload %s",
@@ -190,7 +190,7 @@ def _process_message(wrapper: Dict) -> None:
                 if check_in.status in CheckInStatus.FINISHED_VALUES:
                     metrics.incr(
                         "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "checkin_finished"},
+                        tags={**metric_kwargs, "status": "checkin_finished"},
                     )
                     logger.debug(
                         "check-in was finished: attempted update from %s to %s",
