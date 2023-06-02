@@ -1337,7 +1337,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
   });
 
-  it('alerts the user if there are unsaved changes', async function () {
+  it('alerts the user if there are unsaved title changes', async function () {
     const {router} = renderTestComponent();
 
     const alertMock = jest.fn();
@@ -1351,9 +1351,40 @@ describe('WidgetBuilder', function () {
     expect(customWidgetLabels).toBeInTheDocument();
 
     // Change title text
-    await await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
     await userEvent.paste('Unique Users');
+    await userEvent.keyboard('{Enter}');
+
+    // Click Cancel
+    await userEvent.click(screen.getByText('Cancel'));
+
+    // Assert an alert was triggered
+    expect(alertMock).toHaveBeenCalled();
+  });
+
+  it('alerts the user if there are unsaved description changes', async function () {
+    const {router} = renderTestComponent();
+
+    const alertMock = jest.fn();
+    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+      alertMock();
+    });
+
+    const descriptionTextArea = await screen.findByRole('textbox', {
+      name: 'Widget Description',
+    });
+    expect(descriptionTextArea).toBeInTheDocument();
+    expect(descriptionTextArea).toHaveAttribute(
+      'placeholder',
+      'Enter description (Optional)'
+    );
+
+    // Change description text
+    await userEvent.clear(descriptionTextArea);
+    await userEvent.click(descriptionTextArea);
+    await userEvent.paste('This is a description');
     await userEvent.keyboard('{Enter}');
 
     // Click Cancel

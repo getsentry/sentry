@@ -264,7 +264,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             ],
         )
         request = Request(
-            dataset=Dataset.IssuePlatform.value, app_id="test_eventstream", query=query
+            dataset=Dataset.IssuePlatform.value,
+            app_id="test_eventstream",
+            query=query,
+            tenant_ids={"referrer": "test_eventstream", "organization_id": 1},
         )
         result = snuba.raw_snql_query(
             request,
