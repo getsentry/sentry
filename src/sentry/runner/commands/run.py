@@ -465,7 +465,7 @@ def post_process_forwarder(**options):
     "query-subscription-consumer",
     include_batching_options=True,
     allow_force_cluster=False,
-    default_max_batch_size=1000,
+    default_max_batch_size=100,
 )
 @click.option(
     "--processes",
@@ -491,6 +491,7 @@ def query_subscription_consumer(**options):
         processes=options["processes"],
         input_block_size=options["input_block_size"],
         output_block_size=options["output_block_size"],
+        multi_proc=True,
     )
     run_processor_with_signals(subscriber)
 
