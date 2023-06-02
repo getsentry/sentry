@@ -1,20 +1,8 @@
 from __future__ import annotations
 
 import logging
-import time
 from datetime import datetime, timedelta
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypedDict,
-    Union,
-)
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -25,6 +13,7 @@ from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
@@ -33,6 +22,7 @@ from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
@@ -401,6 +391,18 @@ def fetch_buffered_group_stats(group):
     group.times_seen_pending = result["times_seen"]
 
 
+MAX_FETCH_ATTEMPTS = 3
+
+
+def should_retry_fetch(attempt: int, e: Exception) -> bool:
+    return not attempt > MAX_FETCH_ATTEMPTS and (
+        isinstance(e, ServiceUnavailable) or isinstance(e, EventLookupError)
+    )
+
+
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.00))
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -482,36 +484,20 @@ def post_process_group(
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
 
-            def get_event_with_retry(
-                getter_func: Callable[[], Optional[Event]],
-                retry_exceptions: Sequence[Type[Exception]] = (),
-                attempts=3,
-            ) -> Optional[Event]:
-                attempt = 1
-                delay_exponent = 0
-                event_or_none = None
-                while event_or_none is None or attempt <= attempts:
-                    time.sleep(pow(2, delay_exponent))
-                    try:
-                        event_or_none = getter_func()
-                    except retry_exceptions:
-                        pass
-                    delay_exponent += 1
-                    attempt += 1
-                return event_or_none
-
-            event = get_event_with_retry(
-                lambda: eventstore.get_event_by_id(
+            def get_event_raise_exception() -> Event:
+                retrieved = eventstore.get_event_by_id(
                     project_id,
                     occurrence.event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
-                ),
-                [ServiceUnavailable],
-            )
+                )
+                if retrieved is None:
+                    raise EventLookupError(
+                        f"failed to retrieve event(project_id={project_id}, event_id={occurrence.event_id}, group_id={group_id}) from eventstore"
+                    )
+                return retrieved
 
-        if event is None:
-            return
+            event = fetch_retry_policy(get_event_raise_exception)
 
         set_current_event_project(event.project_id)
 
