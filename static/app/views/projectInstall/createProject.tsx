@@ -105,12 +105,9 @@ function CreateProject() {
       setInFlight(true);
 
       try {
-        console.log({team});
         const url = team
           ? `/teams/${slug}/${team}/projects/`
           : `/organizations/${slug}/experimental/projects/`;
-        console.log('after url');
-        console.log(url);
         const projectData = await api.requestPromise(url, {
           method: 'POST',
           data: {
@@ -151,8 +148,6 @@ function CreateProject() {
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
-          console.log('hittt!');
-          console.log(`Created project ${projectData.slug}`);
           addSuccessMessage(
             tct('Created project [project]', {
               project: `${projectData.slug}`,
@@ -166,7 +161,6 @@ function CreateProject() {
             })
           );
         }
-        console.log('hit');
 
         browserHistory.push(
           normalizeUrl(
@@ -328,6 +322,7 @@ function CreateProject() {
               autoComplete="off"
               value={projectName}
               onChange={e => setProjectName(slugify(e.target.value))}
+              data-test-id="input-project-name"
             />
           </ProjectNameInputWrap>
         </div>
