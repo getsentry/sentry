@@ -3356,7 +3356,6 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 # driver.
 SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
 SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST = []
-SENTRY_REPLAYS_DEAD_CLICK_ISSUE_ALLOWLIST = []
 
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
