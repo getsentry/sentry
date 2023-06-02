@@ -687,7 +687,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "http_error_count",
-                    snql_distribution=lambda args, alias: self._resolve_http_error_count,
+                    snql_distribution=self._resolve_http_error_count,
                     default_result_type="integer",
                 ),
             ]
