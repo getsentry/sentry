@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -17,7 +17,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PlatformIntegration, Project} from 'sentry/types';
+import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -68,25 +68,57 @@ function MissingExampleWarning({
   );
 }
 
-function LoadGettingStartedDoc({platform}: {platform: PlatformIntegration | null}) {
-  const [gettingStartedDoc, setGettingStartedDoc] = useState<React.ReactNode>(null);
+function LoadGettingStartedDoc({
+  platform,
+  orgSlug,
+  projectSlug,
+  activeProductSelection,
+}: {
+  activeProductSelection: PRODUCT[];
+  orgSlug: Organization['slug'];
+  platform: PlatformIntegration | null;
+  projectSlug: Project['slug'];
+}) {
+  const [module, setModule] = useState<null | {
+    default: React.ComponentType<{activeProductSelection: PRODUCT[]; dsn: string}>;
+  }>(null);
 
   const platformPath =
     platform?.type === 'framework'
       ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : platform?.id;
 
+  const {
+    data: projectKeys = [],
+    isError: projectKeysIsError,
+    isLoading: projectKeysIsLoading,
+  } = useApiQuery<ProjectKey[]>([`/projects/${orgSlug}/${projectSlug}/keys/`], {
+    staleTime: Infinity,
+  });
+
   useEffect(() => {
+    if (projectKeysIsError || projectKeysIsLoading) {
+      return;
+    }
+
     async function getGettingStartedDoc() {
-      const module = await import(
-        /* webpackChunkName: "GettingStartedDocs" */ `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setGettingStartedDoc(module.default);
+      const mod = await import(`sentry/gettingStartedDocs/${platformPath}`);
+      setModule(mod);
     }
     getGettingStartedDoc();
-  }, [platformPath]);
+  }, [platformPath, projectKeysIsError, projectKeysIsLoading, projectKeys]);
 
-  return <Fragment>{gettingStartedDoc}</Fragment>;
+  if (!module) {
+    return null;
+  }
+
+  const {default: GettingStartedDoc} = module;
+  return (
+    <GettingStartedDoc
+      dsn={projectKeys[0].dsn.public}
+      activeProductSelection={activeProductSelection}
+    />
+  );
 }
 
 export function DocWithProductSelection({
@@ -102,8 +134,12 @@ export function DocWithProductSelection({
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
+  const products = useMemo(
+    () => (location.query.product ?? []) as PRODUCT[],
+    [location.query.product]
+  );
+
   const loadPlatform = useMemo(() => {
-    const products = location.query.product ?? [];
     return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
       products.includes(PRODUCT.SESSION_REPLAY)
       ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
@@ -112,7 +148,7 @@ export function DocWithProductSelection({
       : products.includes(PRODUCT.SESSION_REPLAY)
       ? `${currentPlatformKey}-with-error-monitoring-and-replay`
       : `${currentPlatformKey}-with-error-monitoring`;
-  }, [location.query.product, currentPlatformKey]);
+  }, [products, currentPlatformKey]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
@@ -138,7 +174,12 @@ export function DocWithProductSelection({
         />
       )}
       {currentPlatform && currentPlatformKey === 'javascript-react' ? (
-        <LoadGettingStartedDoc platform={currentPlatform} />
+        <LoadGettingStartedDoc
+          platform={currentPlatform}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          activeProductSelection={products}
+        />
       ) : (
         <Fragment>
           <ProductSelection
