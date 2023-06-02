@@ -5,7 +5,7 @@ from unittest.mock import call, patch
 
 import pytest
 import responses
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from freezegun import freeze_time
 from pytest import raises
 from rest_framework import status
@@ -28,8 +28,9 @@ from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
-from sentry.types.region import MONOLITH_REGION_NAME, Region, RegionCategory
+from sentry.types.region import Region, RegionCategory, get_monolith_region
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -88,21 +89,21 @@ class ControlOutboxTest(TestCase):
             org = Factories.create_organization()
 
             org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            org_mapping.region_name = MONOLITH_REGION_NAME
+            org_mapping.region_name = "zooo"
             org_mapping.save()
 
-            user1 = Factories.create_user()
-            user2 = Factories.create_user()
-            organization_service.add_organization_member(
-                organization_id=org.id,
-                default_org_role=org.default_role,
-                user_id=user1.id,
-            )
-            organization_service.add_organization_member(
-                organization_id=org.id,
-                default_org_role=org.default_role,
-                user_id=user2.id,
-            )
+        user1 = Factories.create_user()
+        user2 = Factories.create_user()
+        organization_service.add_organization_member(
+            organization_id=org.id,
+            default_org_role=org.default_role,
+            user_id=user1.id,
+        )
+        organization_service.add_organization_member(
+            organization_id=org.id,
+            default_org_role=org.default_role,
+            user_id=user2.id,
+        )
 
         for inst in User.outboxes_for_user_update(user1.id):
             inst.save()
@@ -111,14 +112,14 @@ class ControlOutboxTest(TestCase):
 
         for inst in ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.SLACK,
-            region_names=[MONOLITH_REGION_NAME, "special-slack-region"],
+            region_names=["--monolith--", "special-slack-region"],
             request=request,
         ):
             inst.save()
 
         for inst in ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[MONOLITH_REGION_NAME, "special-github-region"],
+            region_names=["--monolith--", "special-github-region"],
             request=request,
         ):
             inst.save()
@@ -127,18 +128,29 @@ class ControlOutboxTest(TestCase):
             (row["shard_scope"], row["shard_identifier"], row["region_name"])
             for row in ControlOutbox.find_scheduled_shards()
         }
+
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            user_regions = {
+                (OutboxScope.USER_SCOPE.value, user1.id, "zooo"),
+                (OutboxScope.USER_SCOPE.value, user2.id, "zooo"),
+            }
+        else:
+            user_regions = {
+                (OutboxScope.USER_SCOPE.value, user1.id, get_monolith_region().name),
+                (OutboxScope.USER_SCOPE.value, user2.id, get_monolith_region().name),
+            }
+
         assert shards == {
-            (OutboxScope.USER_SCOPE.value, user1.id, MONOLITH_REGION_NAME),
-            (OutboxScope.USER_SCOPE.value, user2.id, MONOLITH_REGION_NAME),
+            *user_regions,
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.SLACK,
-                MONOLITH_REGION_NAME,
+                "--monolith--",
             ),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.GITHUB,
-                MONOLITH_REGION_NAME,
+                "--monolith--",
             ),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
@@ -186,51 +198,51 @@ class ControlOutboxTest(TestCase):
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
 
     @responses.activate
-    @override_settings(SENTRY_REGION_CONFIG=region_config)
     def test_drains_successful_success(self):
-        mock_response = responses.add(
-            self.webhook_request.method,
-            f"{self.region.address}{self.webhook_request.path}",
-            status=status.HTTP_200_OK,
-        )
-        expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
-        [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[self.region.name],
-            request=self.webhook_request,
-        )
-        outbox.save()
+        with override_regions(self.region_config):
+            mock_response = responses.add(
+                self.webhook_request.method,
+                f"{self.region.address}{self.webhook_request.path}",
+                status=status.HTTP_200_OK,
+            )
+            expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
+            [outbox] = ControlOutbox.for_webhook_update(
+                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                region_names=[self.region.name],
+                request=self.webhook_request,
+            )
+            outbox.save()
 
-        assert ControlOutbox.objects.filter(id=outbox.id).exists()
-        outbox.drain_shard()
-        assert mock_response.call_count == expected_request_count
-        assert not ControlOutbox.objects.filter(id=outbox.id).exists()
+            assert ControlOutbox.objects.filter(id=outbox.id).exists()
+            outbox.drain_shard()
+            assert mock_response.call_count == expected_request_count
+            assert not ControlOutbox.objects.filter(id=outbox.id).exists()
 
     @responses.activate
-    @override_settings(SENTRY_REGION_CONFIG=region_config)
     def test_drains_webhook_failure(self):
-        mock_response = responses.add(
-            self.webhook_request.method,
-            f"{self.region.address}{self.webhook_request.path}",
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
-        [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[self.region.name],
-            request=self.webhook_request,
-        )
-        outbox.save()
+        with override_regions(self.region_config):
+            mock_response = responses.add(
+                self.webhook_request.method,
+                f"{self.region.address}{self.webhook_request.path}",
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+            [outbox] = ControlOutbox.for_webhook_update(
+                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                region_names=[self.region.name],
+                request=self.webhook_request,
+            )
+            outbox.save()
 
-        assert ControlOutbox.objects.filter(id=outbox.id).exists()
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            with raises(ApiError):
-                outbox.drain_shard()
-            assert mock_response.call_count == 1
             assert ControlOutbox.objects.filter(id=outbox.id).exists()
-        else:
-            outbox.drain_shard()
-            assert mock_response.call_count == 0
-            assert not ControlOutbox.objects.filter(id=outbox.id).exists()
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                with raises(ApiError):
+                    outbox.drain_shard()
+                assert mock_response.call_count == 1
+                assert ControlOutbox.objects.filter(id=outbox.id).exists()
+            else:
+                outbox.drain_shard()
+                assert mock_response.call_count == 0
+                assert not ControlOutbox.objects.filter(id=outbox.id).exists()
 
 
 @region_silo_test(stable=True)

@@ -190,16 +190,16 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def test_multi_region_organizationmember_id__non_monolith(self):
         with override_regions(
             [
-                Region("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
+                Region(
+                    OrganizationMapping.objects.get(
+                        organization_id=self.organization.id
+                    ).region_name,
+                    10,
+                    "http://blah",
+                    RegionCategory.MULTI_TENANT,
+                ),
             ]
         ):
-            self.create_organization_mapping(
-                organization_id=self.organization.id,
-                slug="abcslug",
-                name="The Thing",
-                idempotency_key="",
-                region_name="some-region",
-            )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()
 

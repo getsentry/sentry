@@ -8,6 +8,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
@@ -58,12 +59,12 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate
-    ) -> OrganizationMapping:
+    ) -> RpcOrganizationMapping:
         org_mapping, _created = OrganizationMapping.objects.update_or_create(
             organization_id=organization_id, defaults=update
         )
 
-        return org_mapping
+        return serialize_organization_mapping(org_mapping)
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         try:
