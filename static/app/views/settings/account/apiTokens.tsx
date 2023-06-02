@@ -26,7 +26,7 @@ type State = {
 
 export class ApiTokens extends AsyncView<Props, State> {
   getTitle() {
-    return t('Auth Tokens');
+    return t('User Auth Tokens');
   }
 
   getDefaultState() {

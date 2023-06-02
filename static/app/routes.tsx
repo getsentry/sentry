@@ -370,7 +370,7 @@ function buildRoutes() {
       />
       <Route path="api/" name={t('API')}>
         <IndexRedirect to="auth-tokens/" />
-        <Route path="auth-tokens/" name={t('Auth Tokens')}>
+        <Route path="auth-tokens/" name={t('User Auth Tokens')}>
           <IndexRoute
             component={make(() => import('sentry/views/settings/account/apiTokens'))}
           />
