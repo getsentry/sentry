@@ -346,7 +346,7 @@ class MonitorCheckInMissed(GroupType):
 class ReplayDeadClickType(GroupType):
     type_id = 5001
     slug = "replay_click_dead"
-    description = "No response after click"
+    description = "Dead Click Detected"
     category = GroupCategory.REPLAY.value
 
 
