@@ -86,9 +86,6 @@ class Region:
 
         (This method is a placeholder. See the `address` attribute.)
         """
-        # This needs to exist for user avatar logic :////
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return urljoin("/", path)
         return urljoin(self.address, path)
 
 
