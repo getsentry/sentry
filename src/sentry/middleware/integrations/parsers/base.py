@@ -70,7 +70,7 @@ class BaseRequestParser(abc.ABC):
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponse:
         region_client = RegionSiloClient(region)
-        return region_client.proxy_request(self.request).to_http_response()
+        return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
