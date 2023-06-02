@@ -3,35 +3,6 @@ import type {Duration} from 'moment';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
-export {EventType} from '@sentry-internal/rrweb';
-
-export type {
-  AllEntryData,
-  AllPerformanceEntry,
-  AllPerformanceEntryData,
-  ExperimentalPerformanceResourceTiming,
-  HistoryData,
-  LargestContentfulPaintData,
-  MemoryData,
-  NavigationData,
-  NetworkRequestData,
-  PaintData,
-  PerformanceNavigationTiming,
-  PerformancePaintTiming,
-  ReplayPerformanceEntry,
-  ResourceData,
-} from './performance';
-
-export type {
-  BreadcrumbFrame,
-  BreadcrumbFrameEvent,
-  OptionFrameEvent,
-  ReplayFrame,
-  ReplayFrameEvent,
-  SpanFrame,
-  SpanFrameEvent,
-} from './replayFrame';
-
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {

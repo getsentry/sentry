@@ -6,7 +6,7 @@ import type {
   NetworkRequestData as TNetworkRequestData,
   PaintData as TPaintData,
   ResourceData as TResourceData,
-} from 'sentry/views/replays/types';
+} from 'sentry/utils/replays/types';
 
 export function PaintData(): TPaintData {
   return undefined;
