@@ -2,6 +2,7 @@ from threading import Thread
 from time import sleep
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.conf import settings
 from django.utils.functional import cached_property
 
@@ -138,6 +139,10 @@ def _is_healthy(queue_size) -> bool:
 def _update_queue_stats(redis_cluster, unhealthy) -> None:
     if not unhealthy:
         return
+
+    with sentry_sdk.push_scope() as scope:
+        scope.set_extra("unhealthy_queues", unhealthy)
+        sentry_sdk.capture_message("Queues are unhealthy")
 
     with redis_cluster.pipeline(transaction=True) as pipeline:
         # can't use mset because it doesn't support expiry
