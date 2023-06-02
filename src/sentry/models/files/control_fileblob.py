@@ -26,7 +26,7 @@ class ControlFileBlob(AbstractFileBlob):
             # If these options exist, use them. Otherwise fallback to default behavior
             backend = options_store.get("filestore.control.backend")
             options = options_store.get("filestore.control.options")
-            if backend and options:
+            if backend:
                 config = {
                     "backend": backend,
                     "options": options,

@@ -1,5 +1,6 @@
 from sentry.db.models import BoundedBigIntegerField
 from sentry.models.avatars.base import AvatarBase
+from sentry.models.files import ControlFileBlob, File
 
 
 class ControlAvatarBase(AvatarBase):
@@ -12,8 +13,12 @@ class ControlAvatarBase(AvatarBase):
     def file_class(cls):
         from sentry.models import ControlFile
 
-        return ControlFile
+        if ControlFileBlob._storage_config():
+            return ControlFile
+        return File
 
     @classmethod
     def file_fk(cls) -> str:
-        return "control_file_id"
+        if ControlFileBlob._storage_config():
+            return "control_file_id"
+        return "file_id"
