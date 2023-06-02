@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.testutils.outbox import outbox_runner
 
 
-class BackfillNotificationSettingTest(TestMigrations):
+class BackfillOrganizationMappingsViaOutboxTest(TestMigrations):
     migrate_from = "0476_convert_unresolved_to_set_escalating_activitytype"
     migrate_to = "0477_backfill_organization_mappings_via_outbox"
 
