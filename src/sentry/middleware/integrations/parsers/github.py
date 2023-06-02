@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from django.http import HttpResponse
+
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -28,6 +30,8 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
+        if self.request.method != "POST":
+            return HttpResponse(status=405, reason="HTTP method not supported.")
         # All github webhooks will be sent to region silos
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:

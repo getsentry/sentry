@@ -59,3 +59,11 @@ class GithubRequestParserTest(TestCase):
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()
         assert integration == self.integration
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_get(self):
+        request = self.factory.get(self.path)
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+        assert response.status_code == 405
+        assert response.reason_phrase == "HTTP method not supported."
