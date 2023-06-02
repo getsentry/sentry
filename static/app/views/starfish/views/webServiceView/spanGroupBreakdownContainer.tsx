@@ -33,7 +33,7 @@ type Group = {
 };
 
 export type Segment = Group & {
-  'p50(span.duration)': number;
+  'p95(span.duration)': number;
   'sum(span.duration)': number;
 };
 
@@ -175,7 +175,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
 
     topData.forEach(value => {
       seriesByDomain[value['span.module'] ?? value.group].data.push({
-        value: value['p50(span.duration)'],
+        value: value['p95(span.duration)'],
         name: value.interval,
       });
     });
@@ -188,7 +188,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
 
     otherData.forEach(value => {
       seriesByDomain.Other.data.push({
-        value: value['p50(span.duration)'],
+        value: value['p95(span.duration)'],
         name: value.interval,
       });
     });
@@ -229,8 +229,8 @@ const getEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['sum(span.duration)', 'p50(span.duration)', ...groups],
-    yAxis: getTimeseries ? ['sum(span.duration)', 'p50(span.duration)'] : [],
+    fields: ['sum(span.duration)', 'p95(span.duration)', ...groups],
+    yAxis: getTimeseries ? ['sum(span.duration)', 'p95(span.duration)'] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
