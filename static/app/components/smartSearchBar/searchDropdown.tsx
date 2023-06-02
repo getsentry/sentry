@@ -369,9 +369,7 @@ function DropdownItem({
         data-test-id="search-autocomplete-item"
         onClick={
           !isDisabled
-            ? (item.type === ItemType.INVALID_QUERY_WITH_WILDCARD ||
-                item.type === ItemType.INVALID_TAG) &&
-              !!customInvalidTagMessage
+            ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
               ? undefined
               : item.callback ?? onClick.bind(null, item.value, item)
             : undefined
