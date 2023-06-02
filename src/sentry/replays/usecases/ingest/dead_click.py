@@ -17,7 +17,7 @@ def report_dead_click_issue(
 ) -> bool:
     # TODO: Remove after GA.
     #
-    # Only report slow clicks if the option is enabled.
+    # Only report dead clicks if the option is enabled.
     if not options.get("replay.issues.dead_click"):
         return False
 
@@ -70,7 +70,7 @@ def _report_dead_click_issue(
     timestamp: datetime.datetime,
     extra_event_data: Dict[str, Any],
 ) -> None:
-    """Produce a new slow click issue occurence to Kafka."""
+    """Produce a new dead click issue occurence to Kafka."""
     new_issue_occurrence(
         environment=environment,
         fingerprint=fingerprint,
@@ -80,6 +80,6 @@ def _report_dead_click_issue(
         release=release,
         subtitle=subtitle,
         timestamp=timestamp,
-        title="[TEST] Slow Click Detected",
+        title="[TEST] Dead Click Detected",
         extra_event_data=extra_event_data,
     )

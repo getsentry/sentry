@@ -237,7 +237,7 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
-# Whether to allow slow click issue ingest or not.
+# Whether to allow dead click issue ingest or not.
 register(
     "replay.issues.dead_click",
     type=Bool,
