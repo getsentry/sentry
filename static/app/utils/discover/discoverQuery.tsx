@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
