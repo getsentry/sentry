@@ -53,7 +53,11 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       transaction,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, 'span.module:[db,http]', ['span.module']),
+    eventView: getEventView(
+      selection,
+      `span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
+      ['span.module']
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -63,7 +67,11 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       transaction,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, '', []),
+    eventView: getEventView(
+      selection,
+      `${transaction ? `transaction:${transaction}` : ''}`,
+      []
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -114,7 +122,12 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       topConditions,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, 'span.module:[db,http]', ['span.module'], true),
+    eventView: getEventView(
+      selection,
+      `span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
+      ['span.module'],
+      true
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -125,7 +138,12 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       topConditions,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, '!span.module:[db,http]', [], true),
+    eventView: getEventView(
+      selection,
+      `!span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
+      [],
+      true
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });

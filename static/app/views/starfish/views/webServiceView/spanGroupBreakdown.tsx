@@ -118,8 +118,9 @@ export function SpanGroupBreakdown({
                 <RightAlignedCell>
                   <Tooltip
                     title={t(
-                      'This group of spans account for %s of the cumulative time on your web service',
-                      formatPercentage(row.cumulativeTime / totalValues, 1)
+                      '%s time spent on %s',
+                      formatPercentage(row.cumulativeTime / totalValues, 1),
+                      group['span.module']
                     )}
                     containerDisplayMode="block"
                     position="top"
