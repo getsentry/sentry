@@ -11,7 +11,7 @@ import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
@@ -27,7 +27,10 @@ import {
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {TimeSpentCell} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+import {
+  DurationTrendCell,
+  TimeSpentCell,
+} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Row = {
   count: number;
@@ -42,7 +45,7 @@ type Props = {
   openSidebar?: boolean;
 };
 
-export type Keys = 'transaction' | 'epm()' | 'p50(transaction.duration)' | 'timeSpent';
+export type Keys = 'transaction' | 'epm()' | 'p95(transaction.duration)' | 'timeSpent';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
@@ -131,8 +134,14 @@ function BodyCell({
     );
   }
 
-  if (column.key === 'p50(transaction.duration)') {
-    return <P50Cell span={span} row={row} column={column} />;
+  if (column.key === 'p95(transaction.duration)') {
+    return (
+      <DurationTrendCell
+        duration={row.metrics?.p50}
+        color={P95_COLOR}
+        durationSeries={row.metricSeries?.p50}
+      />
+    );
   }
 
   if (column.key === 'epm()') {
@@ -162,26 +171,6 @@ function TransactionCell({span, column, row}: CellProps) {
       >
         <Truncate value={row[column.key]} maxLength={75} />
       </Link>
-    </Fragment>
-  );
-}
-
-function P50Cell({row}: CellProps) {
-  const theme = useTheme();
-  const p50 = row.metrics?.p50;
-  const p50Series = row.metricSeries?.p50;
-
-  return (
-    <Fragment>
-      {p50Series ? (
-        <Sparkline
-          color={P50_COLOR}
-          series={p50Series}
-          markLine={
-            p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
-          }
-        />
-      ) : null}
     </Fragment>
   );
 }
@@ -218,8 +207,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(transaction.duration)',
-    name: DataTitles.p50,
+    key: 'p95(transaction.duration)',
+    name: DataTitles.p95,
     width: COL_WIDTH_UNDEFINED,
   },
   {

@@ -19,7 +19,7 @@ function SampleInfo(props: Props) {
   ]);
   const {data: applicationMetrics} = useApplicationMetrics();
   const spm = spanMetrics[transactionName]?.spm;
-  const p50 = spanMetrics[transactionName]?.p50;
+  const p95 = spanMetrics[transactionName]?.p95;
   const span_total_time = spanMetrics[transactionName]?.total_time;
   const application_total_time = applicationMetrics['sum(span.duration)'];
 
@@ -28,7 +28,7 @@ function SampleInfo(props: Props) {
   return (
     <BlockContainer>
       <Block title={t('Throughput')}>{spm?.toFixed(2)} / min</Block>
-      <Block title={DataTitles.p50}>{p50?.toFixed(2)} ms</Block>
+      <Block title={DataTitles.p95}>{p95?.toFixed(2)} ms</Block>
       <Block title={DataTitles.timeSpent}>
         <Tooltip title={tooltip}>
           {formatPercentage(span_total_time / application_total_time)}
