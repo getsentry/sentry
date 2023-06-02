@@ -918,7 +918,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 >
                   <List symbol="colored-numeric">
                     <RuleConditionsForm
-                      api={this.api}
                       project={project}
                       organization={organization}
                       router={router}
