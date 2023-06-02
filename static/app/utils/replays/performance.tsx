@@ -134,6 +134,7 @@ export interface NetworkRequestData {
   requestBodySize?: number;
   responseBodySize?: number;
   statusCode?: number;
+  // TODO: should also have {request|response: {_meta, body, headers, size}
 }
 
 export interface HistoryData {
