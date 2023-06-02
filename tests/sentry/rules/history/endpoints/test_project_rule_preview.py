@@ -25,18 +25,15 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             first_seen=timezone.now() - timedelta(hours=1),
             data={"metadata": {"title": "title"}},
         )
-        with self.feature(self.features):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=10,
-            )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=10,
+        )
         assert len(resp.data) == 1
         assert resp.data[0]["id"] == str(group.id)
 
@@ -45,33 +42,31 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             [],
             [{"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}],
         ]
-        with self.feature(self.features):
-            for invalid_condition in conditions:
-                resp = self.get_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    conditions=invalid_condition,
-                    filters=[],
-                    actionMatch="any",
-                    filterMatch="all",
-                    frequency=10,
-                )
-                assert resp.status_code == 400
+        for invalid_condition in conditions:
+            resp = self.get_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=invalid_condition,
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+            )
+            assert resp.status_code == 400
 
     def test_invalid_filters(self):
         invalid_filter = [{"id": "sentry.rules.filters.latest_release.LatestReleaseFilter"}]
         condition = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
-        with self.feature(self.features):
-            resp = self.get_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=condition,
-                filters=invalid_filter,
-                actionMatch="any",
-                filterMatch="all",
-                frequency=10,
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=condition,
+            filters=invalid_filter,
+            actionMatch="any",
+            filterMatch="all",
+            frequency=10,
+        )
         assert resp.status_code == 400
 
     def test_endpoint(self):
@@ -95,19 +90,18 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             assert result == endpoint
             frozen_time.tick(1)
 
-            with self.feature(self.features):
-                resp = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    conditions=[
-                        {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                    ],
-                    filters=[],
-                    actionMatch="any",
-                    filterMatch="all",
-                    frequency=10,
-                    endpoint=endpoint,
-                )
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+                endpoint=endpoint,
+            )
 
             assert parse_datetime(resp["endpoint"]) == endpoint
 
@@ -121,26 +115,23 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             GroupInbox.objects.create(group=group, project=self.project, reason=reason.value)
             group_reason.append((group, reason))
 
-        with self.feature(self.features):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=10,
-            )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=10,
+        )
 
-            for (group, reason) in group_reason:
-                assert any([int(g["id"]) == group.id for g in resp.data])
+        for (group, reason) in group_reason:
+            assert any([int(g["id"]) == group.id for g in resp.data])
 
-                for preview_group in resp.data:
-                    if int(preview_group["id"]) == group.id:
-                        assert preview_group["inbox"]["reason"] == reason.value
-                        break
+            for preview_group in resp.data:
+                if int(preview_group["id"]) == group.id:
+                    assert preview_group["inbox"]["reason"] == reason.value
+                    break
 
     def test_last_triggered(self):
         prev_hour = timezone.now() - timedelta(hours=1)
@@ -153,29 +144,28 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 datetime=time,
             )
 
-        with self.feature(self.features):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=60,
-            )
-            assert resp.data[0]["lastTriggered"] == prev_hour
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=60,
+        )
+        assert resp.data[0]["lastTriggered"] == prev_hour
 
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=180,
-            )
-            assert resp.data[0]["lastTriggered"] == prev_two_hour
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=180,
+        )
+        assert resp.data[0]["lastTriggered"] == prev_two_hour
