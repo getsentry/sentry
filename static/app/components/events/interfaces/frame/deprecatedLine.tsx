@@ -53,6 +53,7 @@ type Props = {
   frameMeta?: Record<any, any>;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
+  isANR?: boolean;
   isExpanded?: boolean;
   isFrameAfterLastNonApp?: boolean;
   /**
@@ -268,9 +269,10 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 
   renderDefaultLine() {
-    const {isHoverPreviewed, debugFrames, data} = this.props;
+    const {isHoverPreviewed, debugFrames, data, isANR} = this.props;
     const organization = this.props.organization;
-    const anrCulprit = analyzeFrameForRootCause(data, getCurrentThread(this.props.event));
+    const anrCulprit =
+      isANR && analyzeFrameForRootCause(data, getCurrentThread(this.props.event));
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
