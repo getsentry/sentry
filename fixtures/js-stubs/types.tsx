@@ -1,13 +1,42 @@
 import {EntryException} from 'sentry/types';
+
+import type * as BreadcrumbFrameData from './replayBreadcrumbFrameData';
+import type {ReplayError} from './replayError';
 import type {
-  ReplayListRecord,
-  ReplayRecord,
-  ReplaySpan,
-} from 'sentry/views/replays/types';
+  BreadcrumbFrame,
+  BreadcrumbFrameEvent,
+  OptionFrame,
+  OptionFrameEvent,
+  SpanFrame,
+  SpanFrameEvent,
+} from './replayFrameEvents';
+import type {ReplayListItem} from './replayListItem';
+import type {ReplayRecord} from './replayRecord';
+import type {
+  ReplayRRWebDivHelloWorld,
+  ReplayRRWebNode,
+  ReplaySegmentBreadcrumb,
+  ReplaySegmentConsole,
+  ReplaySegmentFullsnapshot,
+  ReplaySegmentInit,
+  ReplaySegmentNavigation,
+  ReplaySegmentSpan,
+  ReplaySpanPayload,
+  ReplaySpanPayloadNavigate,
+} from './replaySegments';
+import type {
+  HistoryData,
+  LargestContentfulPaintData,
+  MemoryData,
+  NavigationData,
+  NetworkRequestData,
+  PaintData,
+  ResourceData,
+} from './replaySpanFrameData';
 
 type SimpleStub<T = any> = () => T;
 
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+// type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
@@ -36,12 +65,15 @@ type TestStubFixtures = {
   AvailableNotificationActions: OverridableStub;
   BitbucketIntegrationConfig: SimpleStub;
   Breadcrumb: OverridableStub;
+  BreadcrumbFrame: typeof BreadcrumbFrame;
+  BreadcrumbFrameEvent: typeof BreadcrumbFrameEvent;
   Broadcast: OverridableStub;
   BuiltInSymbolSources: OverridableStubList;
   CodeOwner: OverridableStub;
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
+  ConsoleFrame: typeof BreadcrumbFrameData.ConsoleFrame;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
@@ -73,6 +105,7 @@ type TestStubFixtures = {
   GroupingConfigs: SimpleStub;
   GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
+  HistoryData: typeof HistoryData;
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
   IncidentStats: OverridableStub;
@@ -80,13 +113,19 @@ type TestStubFixtures = {
   InstallWizard: OverridableStub;
   JiraIntegration: OverridableStub;
   JiraIntegrationProvider: OverridableStub;
+  LargestContentfulPaintData: typeof LargestContentfulPaintData;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MemoryData: typeof MemoryData;
   MetricRule: OverridableStub;
   MetricsField: OverridableStub;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
+  NavigationData: typeof NavigationData;
+  NetworkRequestData: typeof NetworkRequestData;
+  OptionFrame: typeof OptionFrame;
+  OptionFrameEvent: typeof OptionFrameEvent;
   OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;
@@ -97,6 +136,7 @@ type TestStubFixtures = {
   OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
   OutcomesWithoutClientDiscarded: SimpleStub;
+  PaintData: typeof PaintData;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -113,27 +153,22 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReplayError: OverridableStub;
-  ReplayList: OverridableStubList<ReplayListRecord>;
-  ReplayRRWebDivHelloWorld: OverridableStub;
-  ReplayRRWebNode: OverridableStub;
-  ReplayRecord: OverridableStub<ReplayRecord>;
-  ReplaySegmentBreadcrumb: OverridableStub;
-  ReplaySegmentConsole: OverridableStub;
-  ReplaySegmentFullsnapshot: OverridableStub;
-  ReplaySegmentInit: OverridableStub;
-  ReplaySegmentNavigation: OverridableStub;
-  ReplaySegmentSpan: OverridableStub;
-  ReplaySpanPayload: OverridableStub<
-    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
-    ReplaySpan
-  >;
-  ReplaySpanPayloadNavigate: OverridableStub<
-    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
-    ReplaySpan
-  >;
+  ReplayError: typeof ReplayError;
+  ReplayListItem: typeof ReplayListItem;
+  ReplayRRWebDivHelloWorld: typeof ReplayRRWebDivHelloWorld;
+  ReplayRRWebNode: typeof ReplayRRWebNode;
+  ReplayRecord: typeof ReplayRecord;
+  ReplaySegmentBreadcrumb: typeof ReplaySegmentBreadcrumb;
+  ReplaySegmentConsole: typeof ReplaySegmentConsole;
+  ReplaySegmentFullsnapshot: typeof ReplaySegmentFullsnapshot;
+  ReplaySegmentInit: typeof ReplaySegmentInit;
+  ReplaySegmentNavigation: typeof ReplaySegmentNavigation;
+  ReplaySegmentSpan: typeof ReplaySegmentSpan;
+  ReplaySpanPayload: typeof ReplaySpanPayload;
+  ReplaySpanPayloadNavigate: typeof ReplaySpanPayloadNavigate;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
+  ResourceData: typeof ResourceData;
   Search: OverridableStub;
   Searches: OverridableStubList;
   SentryApp: OverridableStub;
@@ -162,6 +197,8 @@ type TestStubFixtures = {
   SourceMapsDebugIDBundles: OverridableStub;
   SourceMapsDebugIDBundlesArtifacts: OverridableStub;
   Span: OverridableStub;
+  SpanFrame: typeof SpanFrame;
+  SpanFrameEvent: typeof SpanFrameEvent;
   Subscriptions: OverridableStubList;
   TagValues: OverridableStubList;
   Tags: OverridableStubList;
@@ -183,7 +220,6 @@ type TestStubFixtures = {
   VercelProvider: SimpleStub;
   VstsCreate: SimpleStub;
   VstsIntegrationProvider: OverridableStub;
-
   VstsPlugin: SimpleStub;
 
   // TODO: These need propertly typed still

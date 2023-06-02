@@ -10,7 +10,7 @@ export function ReplayError(
     issue: error.issue,
     'issue.id': 3740335939,
     'project.name': 'javascript',
-    timestamp: error.id,
+    timestamp: error.timestamp,
     title: 'A Redirect with :orgId param on customer domain',
   };
 }

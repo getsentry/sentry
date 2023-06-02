@@ -3,6 +3,35 @@ import type {Duration} from 'moment';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
+export {EventType} from '@sentry-internal/rrweb';
+
+export type {
+  AllEntryData,
+  AllPerformanceEntry,
+  AllPerformanceEntryData,
+  ExperimentalPerformanceResourceTiming,
+  HistoryData,
+  LargestContentfulPaintData,
+  MemoryData,
+  NavigationData,
+  NetworkRequestData,
+  PaintData,
+  PerformanceNavigationTiming,
+  PerformancePaintTiming,
+  ReplayPerformanceEntry,
+  ResourceData,
+} from './performance';
+
+export type {
+  BreadcrumbFrame,
+  BreadcrumbFrameEvent,
+  OptionFrameEvent,
+  ReplayFrame,
+  ReplayFrameEvent,
+  SpanFrame,
+  SpanFrameEvent,
+} from './replayFrame';
+
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
@@ -137,6 +166,32 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'urls',
   'user',
 ];
+
+// OptionFrameEvent,
+
+// ReplayFrame, // -> One of SpanFrame | BreadcrumbFrame
+// ReplayFrameEvent,
+
+// SpanFrame,
+// SpanFrameEvent,
+
+// BreadcrumbFrame,
+// BreadcrumbFrameEvent,
+
+// AllEntryData,
+// AllPerformanceEntry,
+// AllPerformanceEntryData,
+// ExperimentalPerformanceResourceTiming,
+// HistoryData,
+// LargestContentfulPaintData,
+// MemoryData,
+// NavigationData,
+// NetworkRequestData,
+// PaintData,
+// PerformanceNavigationTiming,
+// PerformancePaintTiming,
+// ReplayPerformanceEntry,
+// ResourceData,
 
 export type ReplaySegment = {
   dateAdded: string;

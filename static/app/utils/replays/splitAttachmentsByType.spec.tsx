@@ -13,7 +13,7 @@ describe('splitAttachmentsByType', () => {
         data: {nodeId: 44},
       },
     }),
-    ...TestStubs.ReplaySegmentSpan({
+    TestStubs.ReplaySegmentSpan({
       timestamp: new Date(1654290034262),
       payload: TestStubs.ReplaySpanPayload({
         op: 'navigation.navigate',
@@ -23,7 +23,7 @@ describe('splitAttachmentsByType', () => {
         data: {size: 1150},
       }),
     }),
-    ...TestStubs.ReplaySegmentSpan({
+    TestStubs.ReplaySegmentSpan({
       timestamp: new Date(1654290034262.3),
       payload: TestStubs.ReplaySpanPayload({
         op: 'navigation.navigate',
@@ -33,7 +33,7 @@ describe('splitAttachmentsByType', () => {
         data: {size: 1150},
       }),
     }),
-    ...TestStubs.ReplaySegmentSpan({
+    TestStubs.ReplaySegmentSpan({
       timestamp: new Date(1654290034263),
       payload: TestStubs.ReplaySpanPayload({
         op: 'memory',

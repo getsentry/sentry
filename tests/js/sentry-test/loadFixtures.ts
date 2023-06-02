@@ -116,6 +116,23 @@ const SPECIAL_MAPPING = {
   ReplaySegmentSpan: 'replaySegments.ts',
   ReplaySpanPayload: 'replaySegments.ts',
   ReplaySpanPayloadNavigate: 'replaySegments.ts',
+
+  BreadcrumbFrameEvent: 'replayFrameEvents.ts',
+  BreadcrumbFrame: 'replayFrameEvents.ts',
+  SpanFrameEvent: 'replayFrameEvents.ts',
+  SpanFrame: 'replayFrameEvents.ts',
+  OptionFrameEvent: 'replayFrameEvents.ts',
+  OptionFrame: 'replayFrameEvents.ts',
+
+  ConsoleFrame: 'replayBreadcrumbFrameData.ts',
+
+  HistoryData: 'replayBreadcrumbFrameData.ts',
+  LargestContentfulPaintData: 'replayBreadcrumbFrameData.ts',
+  MemoryData: 'replayBreadcrumbFrameData.ts',
+  NavigationData: 'replayBreadcrumbFrameData.ts',
+  NetworkRequestData: 'replayBreadcrumbFrameData.ts',
+  PaintData: 'replayBreadcrumbFrameData.ts',
+  ResourceData: 'replayBreadcrumbFrameData.ts',
 };
 
 function tryRequire(dir: string, name: string): any {

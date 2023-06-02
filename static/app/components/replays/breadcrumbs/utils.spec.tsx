@@ -31,8 +31,8 @@ const crumbs = {
     description: 'Error',
   },
 
-  navigation: TestStubs.ReplaySegmentNavigation({})[0].data.payload,
-  console: TestStubs.ReplaySegmentConsole({})[0].data.payload,
+  navigation: TestStubs.ReplaySegmentNavigation({timestamp: new Date()})[0].data.payload,
+  console: TestStubs.ReplaySegmentConsole({timestamp: new Date()})[0].data.payload,
 
   customCrumb: {
     timestamp: '2023-05-03T14:17:08.642Z',

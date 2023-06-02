@@ -187,14 +187,14 @@ describe('useReplayData', () => {
       TestStubs.ReplayError({
         id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt,
+        timestamp: startedAt.toJSON(),
       }),
     ];
     const mockErrorResponse2 = [
       TestStubs.ReplayError({
         id: ERROR_IDS[1],
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt,
+        timestamp: startedAt.toJSON(),
       }),
     ];
 
@@ -270,7 +270,7 @@ describe('useReplayData', () => {
       TestStubs.ReplayError({
         id: ERROR_ID,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt,
+        timestamp: startedAt.toJSON(),
       }),
     ];
 

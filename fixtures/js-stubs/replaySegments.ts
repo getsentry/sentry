@@ -22,12 +22,12 @@ type BaseReplayProps = {
 export function ReplaySegmentInit({
   height = 600,
   href = 'http://localhost/',
-  timestamp = new Date(),
+  timestamp,
   width = 800,
 }: BaseReplayProps & {
-  height: number;
-  href: string;
-  width: number;
+  height?: number;
+  href?: string;
+  width?: number;
 }) {
   return [
     {
@@ -78,7 +78,7 @@ export function ReplaySegmentFullsnapshot({
   ];
 }
 
-export function ReplaySegmentConsole({timestamp = new Date()}: BaseReplayProps) {
+export function ReplaySegmentConsole({timestamp}: BaseReplayProps) {
   return ReplaySegmentBreadcrumb({
     timestamp,
     payload: {
@@ -99,10 +99,10 @@ export function ReplaySegmentConsole({timestamp = new Date()}: BaseReplayProps) 
 }
 
 export function ReplaySegmentNavigation({
-  timestamp = new Date(),
+  timestamp,
   hrefFrom = '/',
   hrefTo = '/profile/',
-}: BaseReplayProps & {hrefFrom: string; hrefTo: string}) {
+}: BaseReplayProps & {hrefFrom?: string; hrefTo?: string}) {
   return ReplaySegmentBreadcrumb({
     timestamp,
     payload: {
@@ -118,7 +118,7 @@ export function ReplaySegmentNavigation({
 }
 
 export function ReplaySegmentBreadcrumb({
-  timestamp = new Date(),
+  timestamp,
   payload,
 }: BaseReplayProps & {payload: any}) {
   return [
@@ -134,7 +134,7 @@ export function ReplaySegmentBreadcrumb({
 }
 
 export function ReplaySegmentSpan({
-  timestamp = new Date(),
+  timestamp,
   payload,
 }: BaseReplayProps & {payload: any}) {
   return [
