@@ -315,25 +315,25 @@ class ProfileJSONDecodeType(GroupType):
 
 
 @dataclass(frozen=True)
-class ProfileCoreDataType(GroupType):
+class ProfileCoreDataExperimentalType(GroupType):
     type_id = 2004
-    slug = "profile_core_data_main_thread"
+    slug = "profile_core_data_main_thread_experimental"
     description = "Core Data on Main Thread"
     category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
-class ProfileRegexType(GroupType):
+class ProfileRegexExperimentalType(GroupType):
     type_id = 2005
-    slug = "profile_regex_main_thread"
+    slug = "profile_regex_main_thread_experimental"
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
-class ProfileViewIsSlowType(GroupType):
+class ProfileViewIsSlowExperimentalType(GroupType):
     type_id = 2006
-    slug = "profile_view_is_slow"
+    slug = "profile_view_is_slow_experimental"
     description = "View Render/Layout/Update is slow"
     category = GroupCategory.PERFORMANCE.value
 
