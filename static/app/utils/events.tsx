@@ -1,5 +1,6 @@
 import uniq from 'lodash/uniq';
 
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import {
   BaseGroup,
@@ -15,7 +16,7 @@ import {
   IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event, HasStacktrace} from 'sentry/types/event';
+import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
@@ -235,18 +236,31 @@ export function eventHasSourceMaps(event: Event) {
 }
 
 /**
- * Function to determine if an event has been symbolicated
- * (rawStacktrace is backfilled by stacktrace processors after processing)
+ * Function to determine if an event has been symbolicated. If the event
+ * goes through symbolicator, it looks for at least one in-app frame to be successfully
+ * symbolicated. Otherwise falls back to checking for `rawStacktrace` field presence.
  */
 export function eventIsSymbolicated(event: Event) {
-  function isSymbolicated(withStacktrace: HasStacktrace) {
-    return !!withStacktrace.rawStacktrace && !!withStacktrace.stacktrace;
+  const frames = getFrames(event, false);
+  const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
+
+  if (fromSymbolicator) {
+    // if the event goes through symbolicator, we say it's symbolicated if at least one in-app
+    // frame is successfully symbolicated
+    return frames.some(
+      frame => frame.inApp && frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
+    );
   }
 
+  // if none of the frames have symbolicatorStatus defined, most likely the event does not
+  // go through symbolicator and it's Java/Android/Javascript or something alike, so we fallback
+  // to the rawStacktrace presence
   return event.entries?.some(entry => {
     return (
       (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
-      entry.data.values?.some((value: HasStacktrace) => isSymbolicated(value))
+      entry.data.values?.some(
+        (value: Thread | ExceptionValue) => !!value.rawStacktrace && !!value.stacktrace
+      )
     );
   });
 }
@@ -284,16 +298,22 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
 function getFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
   const frames = exceptions
-    .map(exception => exception.data.values || [])
+    .map(
+      (withStacktrace: EntryException | EntryThreads) => withStacktrace.data.values || []
+    )
     .flat()
-    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
+    .map(
+      (withStacktrace: ExceptionValue | Thread) =>
+        withStacktrace?.stacktrace?.frames || []
+    )
     .flat();
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
 function getExceptionEntries(event: Event) {
-  return (event.entries?.filter(entry => entry.type === 'exception') ||
-    []) as EntryException[];
+  return (event.entries?.filter(
+    entry => entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS
+  ) || []) as EntryException[] | EntryThreads[];
 }
 
 function getNumberOfStackFrames(event: Event) {
