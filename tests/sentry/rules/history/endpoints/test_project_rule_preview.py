@@ -71,19 +71,18 @@ class ProjectRulePreviewEndpointTest(APITestCase):
 
     def test_endpoint(self):
         with freeze_time(timezone.now()) as frozen_time:
-            with self.feature(self.features):
-                resp = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    conditions=[
-                        {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                    ],
-                    filters=[],
-                    actionMatch="any",
-                    filterMatch="all",
-                    frequency=10,
-                    endpoint=None,
-                )
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+                endpoint=None,
+            )
 
             result = parse_datetime(resp["endpoint"])
             endpoint = frozen_time.time_to_freeze.replace(tzinfo=result.tzinfo)
