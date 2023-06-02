@@ -64,6 +64,7 @@ function SidebarDropdown({
   const hasMemberRead = org?.access?.includes('member:read');
   const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
+  const hasOrgAuthTokens = org?.features.includes('org-auth-tokens');
 
   // Avatar to use: Organization --> user --> Sentry
   const avatar =
@@ -112,9 +113,16 @@ function SidebarDropdown({
                   {!hideOrgLinks && (
                     <Fragment>
                       {hasOrgRead && (
-                        <SidebarMenuItem to={`/settings/${org.slug}/`}>
-                          {t('Organization settings')}
-                        </SidebarMenuItem>
+                        <Fragment>
+                          <SidebarMenuItem to={`/settings/${org.slug}/`}>
+                            {t('Organization settings')}
+                          </SidebarMenuItem>
+                          {hasOrgAuthTokens && (
+                            <SidebarMenuItem to={`/settings/${org.slug}/auth-tokens/`}>
+                              {t('Auth tokens')}
+                            </SidebarMenuItem>
+                          )}
+                        </Fragment>
                       )}
                       {hasMemberRead && (
                         <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
