@@ -1535,8 +1535,8 @@ SENTRY_FEATURES = {
     "organizations:js-sdk-dynamic-loader": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
-    # If true, allow to create/use org access tokens
-    "organizations:org-access-tokens": False,
+    # If true, allow to create/use org auth tokens
+    "organizations:org-auth-tokens": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
