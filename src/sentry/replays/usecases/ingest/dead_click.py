@@ -4,7 +4,7 @@ from typing import Any, Dict
 from django.conf import settings
 
 from sentry import options
-from sentry.issues.grouptype import ReplaySlowClickType
+from sentry.issues.grouptype import ReplayDeadClickType
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
 
@@ -74,7 +74,7 @@ def _report_dead_click_issue(
     new_issue_occurrence(
         environment=environment,
         fingerprint=fingerprint,
-        issue_type=ReplaySlowClickType,
+        issue_type=ReplayDeadClickType,
         platform="javascript",
         project_id=project_id,
         release=release,
