@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -54,7 +55,7 @@ export function SpanGroupBreakdown({
     <Fragment>
       <ChartPadding>
         <Header>
-          <ChartLabel>{'App Time Breakdown'}</ChartLabel>
+          <ChartLabel>{t('App Time Breakdown (p95)')}</ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
@@ -73,6 +74,10 @@ export function SpanGroupBreakdown({
           definedAxisTicks={6}
           stacked
           aggregateOutputFormat="duration"
+          tooltipFormatterOptions={{
+            valueFormatter: value =>
+              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+          }}
         />
       </ChartPadding>
       <ListContainer>
@@ -118,8 +123,9 @@ export function SpanGroupBreakdown({
                 <RightAlignedCell>
                   <Tooltip
                     title={t(
-                      'This group of spans account for %s of the cumulative time on your web service',
-                      formatPercentage(row.cumulativeTime / totalValues, 1)
+                      '%s time spent on %s',
+                      formatPercentage(row.cumulativeTime / totalValues, 1),
+                      group['span.module']
                     )}
                     containerDisplayMode="block"
                     position="top"
