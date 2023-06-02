@@ -258,6 +258,28 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
         return function_converter
 
+    # Query Functions
+    def _resolve_count_if(
+        self,
+        metric_condition: Function,
+        condition: Function,
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        metric_condition,
+                        condition,
+                    ],
+                ),
+            ],
+            alias,
+        )
+
     def _resolve_total_span_duration(self, alias: str) -> SelectType:
         """This calculates the app's total time, so other filters that are
         a part of the original query will not be applies. Only filter conditions
