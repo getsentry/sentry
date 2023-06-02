@@ -1,0 +1,15 @@
+{
+  "include": [
+    "src"
+  ],
+  "extraPaths": ["src"],
+  "exclude": [
+    ".volta/**"
+  ],
+
+  "stubPath": "fixtures/stubs-for-mypy",
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportUndefinedVariable": "none",
+  "reportUnboundVariable": "error"
+}

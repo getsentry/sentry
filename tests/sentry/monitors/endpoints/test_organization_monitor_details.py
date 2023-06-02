@@ -50,12 +50,12 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
     def test_expand_alert_rule(self):
         monitor = self._create_monitor()
 
-        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["rule"])
-        assert resp.data["rule"] is None
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert resp.data["alertRule"] is None
 
         self._create_alert_rule(monitor)
-        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["rule"])
-        assert resp.data["rule"] is not None
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert resp.data["alertRule"] is not None
 
 
 @region_silo_test(stable=True)
@@ -415,6 +415,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_simple(self):
         monitor = self._create_monitor()
+        old_slug = monitor.slug
 
         self.get_success_response(
             self.organization.slug, monitor.slug, method="DELETE", status_code=202
@@ -422,6 +423,8 @@ class DeleteMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == ObjectStatus.PENDING_DELETION
+        # Slug should update on deletion
+        assert monitor.slug != old_slug
         # ScheduledDeletion only available in control silo
         assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
 

@@ -4,6 +4,7 @@ import memoize from 'lodash/memoize';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -92,8 +93,14 @@ export function ReleaseSearchBar({
           searchSource="widget_builder"
           query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}
+          invalidMessages={{
+            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+              "Release queries don't support wildcards."
+            ),
+          }}
           hasRecentSearches
           highlightUnsupportedTags
+          disallowWildcard
         />
       )}
     </ClassNames>

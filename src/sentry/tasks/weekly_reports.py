@@ -34,7 +34,7 @@ from sentry.models import (
     User,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -79,8 +79,8 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-
-    # For organizations:issue-states
+    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
+    # organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -135,6 +135,7 @@ def check_if_ctx_is_empty(ctx):
     max_retries=5,
     acks_late=True,
 )
+@retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     if timestamp is None:
         # The time that the report was generated
@@ -159,6 +160,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     max_retries=5,
     acks_late=True,
 )
+@retry
 def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
@@ -166,7 +168,7 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
-    has_issue_states = features.has("organizations:issue-states", organization)
+    has_issue_states = features.has("organizations:escalating-issues", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -411,7 +413,7 @@ def fetch_key_error_groups(ctx):
         group_id_to_group[group.id] = group
 
     group_id_to_group_history = {}
-    if not features.has("organizations:issue-states", ctx.organization):
+    if not features.has("organizations:escalating-issues", ctx.organization):
         group_history = (
             GroupHistory.objects.filter(
                 group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
@@ -661,6 +663,9 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
 }
 
 
@@ -696,7 +701,7 @@ def render_template_context(ctx, user):
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
 
-    has_issue_states = features.has("organizations:issue-states", ctx.organization)
+    has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.

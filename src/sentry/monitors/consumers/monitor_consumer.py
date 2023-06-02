@@ -1,5 +1,6 @@
 import datetime
 import logging
+import uuid
 from typing import Dict, Mapping, Optional
 
 import msgpack
@@ -171,10 +172,25 @@ def _process_message(wrapper: Dict) -> None:
                 else None
             )
 
+            # Invalid UUIDs will raise ValueError
+            check_in_id = uuid.UUID(params["check_in_id"])
+
+            # When the UUID is empty we will default to looking for the most
+            # recent check-in which is not in a terminal state.
+            use_latest_checkin = check_in_id.int == 0
+
             try:
-                check_in = MonitorCheckIn.objects.select_for_update().get(
-                    guid=params["check_in_id"],
-                )
+                if use_latest_checkin:
+                    check_in = (
+                        MonitorCheckIn.objects.select_for_update()
+                        .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                        .order_by("-date_added")[:1]
+                        .get()
+                    )
+                else:
+                    check_in = MonitorCheckIn.objects.select_for_update().get(
+                        guid=check_in_id,
+                    )
 
                 if (
                     check_in.project_id != project_id
@@ -187,7 +203,7 @@ def _process_message(wrapper: Dict) -> None:
                     )
                     logger.debug(
                         "check-in guid %s already associated with %s not payload %s",
-                        params["check_in_id"],
+                        check_in_id,
                         check_in.monitor_id,
                         monitor.id,
                     )
@@ -239,17 +255,20 @@ def _process_message(wrapper: Dict) -> None:
                         monitor_environment.last_checkin
                     )
 
-                check_in_guid = params["check_in_id"]
-                lock = locks.get(
-                    f"checkin-creation:{check_in_guid}", duration=2, name="checkin_creation"
-                )
+                # If the UUID is unset (zero value) generate a new UUID
+                if check_in_id.int == 0:
+                    guid = uuid.uuid4()
+                else:
+                    guid = check_in_id
+
+                lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
                 try:
                     with lock.acquire():
                         check_in = MonitorCheckIn.objects.create(
                             project_id=project_id,
                             monitor=monitor,
                             monitor_environment=monitor_environment,
-                            guid=check_in_guid,
+                            guid=guid,
                             duration=duration,
                             status=status,
                             date_added=date_added,
@@ -262,7 +281,7 @@ def _process_message(wrapper: Dict) -> None:
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
                     )
-                    logger.debug("failed to acquire lock to create check-in: %s", check_in_guid)
+                    logger.debug("failed to acquire lock to create check-in: %s", guid)
                     return
 
                 signal_first_checkin(project, monitor)

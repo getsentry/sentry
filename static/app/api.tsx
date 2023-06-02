@@ -439,10 +439,10 @@ export class Client {
     });
 
     // Do not set the X-CSRFToken header when making a request outside of the
-    // current domain
+    // current domain. Because we use subdomains we loosely compare origins
     const absoluteUrl = new URL(fullUrl, window.location.origin);
-    const isSameOrigin = window.location.origin === absoluteUrl.origin;
-
+    const originUrl = new URL(window.location.origin);
+    const isSameOrigin = originUrl.hostname.endsWith(absoluteUrl.hostname);
     if (!csrfSafeMethod(method) && isSameOrigin) {
       headers.set('X-CSRFToken', getCsrfToken());
     }
@@ -521,35 +521,19 @@ export class Client {
           // There's no reason we should be here with a 200 response, but we get
           // tons of events from this codepath with a 200 status nonetheless.
           // Until we know why, let's do what is essentially some very fancy print debugging.
-          if (status === 200) {
-            const responseTextUndefined = responseText === undefined;
-            const responseTextEmpty = responseText === '';
+          if (status === 200 && responseText) {
             const parameterizedPath = sanitizePath(path);
+            const message = '200 treated as error';
 
-            // Pass a scope object rather than using `withScope` to avoid even
-            // the possibility of scope bleed.
             const scope = new Sentry.Scope();
-            scope.setTags({endpoint: `${method} ${parameterizedPath}`});
-
-            if (!responseTextUndefined && !responseTextEmpty) {
-              // Grab everything that could conceivably be helpful to know
-              scope.setTags({errorReason});
-              scope.setExtras({
-                twoHundredErrorReason,
-                responseJSON,
-                // Force `undefined` and the empty string to print so they're differentiable in the UI
-                responseText: String(responseText) || '[empty string]',
-                responseContentType,
-                errorReason,
-              });
-            }
-
-            const message = responseTextUndefined
-              ? '200 API response with undefined responseText'
-              : responseTextEmpty
-              ? '200 API response with empty responseText'
-              : '200 treated as error';
-
+            scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+            scope.setExtras({
+              twoHundredErrorReason,
+              responseJSON,
+              responseText,
+              responseContentType,
+              errorReason,
+            });
             // Make sure all of these errors group, so we don't produce a bunch of noise
             scope.setFingerprint([message]);
 

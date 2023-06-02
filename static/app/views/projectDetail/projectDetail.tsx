@@ -63,6 +63,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.syncProjectWithSlug();
   }
 

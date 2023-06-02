@@ -26,7 +26,7 @@ type State = {
 
 export class ApiTokens extends AsyncView<Props, State> {
   getTitle() {
-    return t('API Tokens');
+    return t('User Auth Tokens');
   }
 
   getDefaultState() {
@@ -85,7 +85,7 @@ export class ApiTokens extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title="Auth Tokens" action={action} />
+        <SettingsPageHeader title={this.getTitle()} action={action} />
         <AlertLink
           to={`/settings/${organization?.slug ?? ''}/developer-settings/new-internal`}
         >

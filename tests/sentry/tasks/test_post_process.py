@@ -1380,6 +1380,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group=group,
             event=EventMatcher(event),
             sender=manage_issue_states,
+            was_until_escalating=False,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -1390,7 +1391,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group=group, reason=GroupInboxReason.ESCALATING.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
+            group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
         ).exists()
         assert mock_send_unignored_robust.called
 
@@ -1476,7 +1477,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert Activity.objects.filter(
             group=group,
             project=group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_ESCALATING.value,
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
