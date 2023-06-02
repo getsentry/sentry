@@ -302,7 +302,7 @@ const AccordionItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const FunctionName = styled('div')`
+const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
 
