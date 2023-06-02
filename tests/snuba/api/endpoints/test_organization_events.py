@@ -6172,12 +6172,14 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert result == {user_data["email"]}
 
     def test_all_events_fields(self):
-        # user_data = {
-        #     "id": self.user.id,
-        #     "username": "user",
-        #     "email": "hellboy@bar.com",
-        #     "ip_address": "127.0.0.1",
-        # }
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        profile_id = str(uuid.uuid4())
         event = self.create_performance_issue(
             # tags={},
             contexts={
@@ -6185,8 +6187,11 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
                     "trace_id": str(uuid.uuid4().hex),
                     "span_id": "933e5c9a8e464da9",
                     "type": "trace",
-                }
+                },
+                "replay": {"replay_id": replay_id},
+                "profile": {"profile_id": profile_id},
             },
+            user_data=user_data,
         )
 
         query = {
@@ -6201,35 +6206,35 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
                 "os",
                 "url",
                 "runtime",
-                # "replayId",
-                # "profile.id",
+                "replayId",
+                "profile.id",
                 "transaction.duration",
                 "timestamp",
             ],
-            # "field": ["count()"],
             "statsPeriod": "1h",
             "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
-            # "query": f"issue:{event.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
 
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
 
-        assert response.data["data"][0] == {
+        data = response.data["data"][0]
+
+        assert data == {
             "id": event.event_id,
             "transaction": event.transaction,
+            "project.name": event.project.name.lower(),
             "title": event.group.title,
             "release": event.release,
             "environment": event.get_environment().name,
-            "user.display": "",
+            "user.display": user_data["email"],
             "device": "Mac",
             "os": "",
-            "url": "",
-            "runtime": event.get_raw_data()[0]["tags"]["runtime"],
-            "replayId": "",
-            "profile.id": "",
+            "url": event.interfaces.data["request"].full_url,
+            "runtime": dict(event.get_raw_data()["tags"])["runtime"],
+            "replayId": replay_id.replace("-", ""),
+            "profile.id": profile_id.replace("-", ""),
             "transaction.duration": 3000,
             "timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }

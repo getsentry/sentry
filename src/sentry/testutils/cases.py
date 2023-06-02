@@ -484,7 +484,7 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class PerformanceIssueTestCase(BaseTestCase):
     def create_performance_issue(
-        self, tags=None, contexts=None, fingerprint="group1", transaction=None
+        self, tags=None, contexts=None, fingerprint="group1", transaction=None, user_data=None
     ):
         event_data = load_data(
             "transaction-n-plus-one",
@@ -497,6 +497,8 @@ class PerformanceIssueTestCase(BaseTestCase):
             event_data["contexts"] = contexts
         if transaction:
             event_data["transaction"] = transaction
+        if user_data:
+            event_data["user"] = user_data
 
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
