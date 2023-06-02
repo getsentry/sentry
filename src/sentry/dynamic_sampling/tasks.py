@@ -6,9 +6,10 @@ from typing import Dict, Optional, Sequence, Tuple
 import sentry_sdk
 
 from sentry import options, quotas
-from sentry.dynamic_sampling.models import utils
-from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.utils import DSElement
+from sentry.db.models.base import ModelClass
+from sentry.dynamic_sampling.models.factory import ModelType, model_factory
+from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
@@ -207,7 +208,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
     transactions = [
-        DSElement(id=id, count=count) for id, count in project_transactions["transaction_counts"]
+        ModelClass(id=id, count=count) for id, count in project_transactions["transaction_counts"]
     ]
 
     try:
@@ -244,12 +245,16 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         return
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
-    named_rates, implicit_rate = utils.adjust_sample_rates(
-        classes=transactions,
-        rate=sample_rate,
-        total_num_classes=total_num_classes,
-        total=total_num_transactions,
-        intensity=intensity,
+
+    model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    named_rates, implicit_rate = model.run(
+        TransactionsRebalancingInput(
+            classes=transactions,
+            sample_rate=sample_rate,
+            total_num_classes=total_num_classes,
+            total=total_num_transactions,
+            intensity=intensity,
+        )
     )
 
     set_transactions_resampling_rates(
@@ -360,35 +365,40 @@ def adjust_sample_rates(
     projects = []
     for project_id, count_per_root in projects_with_counts.items():
         projects.append(
-            DSElement(
+            ModelClass(
                 id=project_id,
                 count=count_per_root,
             )
         )
 
-    model = AdjustedModel(projects=projects)
-    ds_projects = model.adjust_sample_rates(sample_rate=sample_rate)
+    model = model_factory(ModelType.PROJECTS_REBALANCING)
+    rebalanced_projects = model.run(
+        ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
+    )
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        for ds_project in ds_projects:
+        for rebalanced_project in rebalanced_projects:
             cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
-            old_sample_rate = sample_rate_to_float(redis_client.hget(cache_key, ds_project.id))
+            old_sample_rate = sample_rate_to_float(
+                redis_client.hget(cache_key, rebalanced_project.id)
+            )
 
             # We want to store the new sample rate as a string.
             pipeline.hset(
                 cache_key,
-                ds_project.id,
-                ds_project.new_sample_rate,  # redis stores is as string
+                rebalanced_project.id,
+                rebalanced_project.new_sample_rate,  # redis stores is as string
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
             # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
             # system with project config invalidations, especially for projects with no volume.
-            if not are_equal_with_epsilon(old_sample_rate, ds_project.new_sample_rate):
+            if not are_equal_with_epsilon(old_sample_rate, rebalanced_project.new_sample_rate):
                 schedule_invalidate_project_config(
-                    project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
+                    project_id=rebalanced_project.id,
+                    trigger="dynamic_sampling_prioritise_project_bias",
                 )
 
         pipeline.execute()

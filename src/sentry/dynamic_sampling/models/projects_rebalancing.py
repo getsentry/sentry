@@ -1,0 +1,43 @@
+from dataclasses import dataclass
+from typing import List, Sequence
+
+from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
+from sentry.dynamic_sampling.models.common import ModelClass
+from sentry.dynamic_sampling.models.full_rebalancing import FullRebalancingInput
+
+
+@dataclass
+class ProjectsRebalancingInput(ModelInput):
+    classes: List[ModelClass]
+    sample_rate: float
+
+    def validate(self) -> bool:
+        return 0.0 <= self.sample_rate <= 1.0
+
+
+class ProjectsRebalancingModel(Model):
+    def _run(self, model_input: ProjectsRebalancingInput) -> List[ModelClass]:
+        classes = model_input.classes
+        sample_rate = model_input.sample_rate
+
+        if len(classes) < 2:
+            if len(classes) == 1:
+                classes[0].new_sample_rate = sample_rate
+
+            return classes
+
+        sorted_classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
+
+        full_rebalancing = self.get_dependency(ModelType.FULL_REBALANCING)
+        result, _ = full_rebalancing.run(
+            FullRebalancingInput(
+                classes=sorted_classes,
+                sample_rate=sample_rate,
+                intensity=1,
+            )
+        )
+
+        return result
+
+    def _dependencies(self) -> Sequence[ModelType]:
+        return [ModelType.FULL_REBALANCING]
