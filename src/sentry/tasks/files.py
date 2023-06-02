@@ -1,6 +1,10 @@
+import random
+
 from django.apps import apps
+from django.conf import settings
 from django.db import DatabaseError, IntegrityError, router
 
+from sentry.locks import locks
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion.scheduled import MAX_RETRIES
 from sentry.utils.db import atomic_transaction
@@ -111,19 +115,29 @@ def copy_file_to_control_and_update_model(
     if ControlFileBlob._storage_config() is None:
         return
 
-    file_model = File.objects.get(id=file_id)
-    file_handle = file_model.getfile()
+    if random.uniform(0, 1) > settings.SENTRY_FILE_COPY_ROLLOUT_RATE:
+        return
 
-    control_file = ControlFile.objects.create(
-        name=file_model.name,
-        type=file_model.type,
-        headers=file_model.headers,
-        timestamp=file_model.timestamp,
-        size=file_model.size,
-        checksum=file_model.checksum,
-    )
-    control_file.putfile(file_handle)
+    lock = f"copy-file-lock-{model_name}:{model_id}"
 
-    model = apps.get_app_config(app_name).get_model(model_name).objects.get(id=model_id)
-    model.control_file_id = control_file.id
-    model.save()
+    with locks.get(lock, duration=60, name="copy-file-lock").acquire():
+        # Short circuit duplicate copy calls
+        model = apps.get_app_config(app_name).get_model(model_name).objects.get(id=model_id)
+        if model.control_file_id:
+            return
+
+        file_model = File.objects.get(id=file_id)
+        file_handle = file_model.getfile()
+
+        control_file = ControlFile.objects.create(
+            name=file_model.name,
+            type=file_model.type,
+            headers=file_model.headers,
+            timestamp=file_model.timestamp,
+            size=file_model.size,
+            checksum=file_model.checksum,
+        )
+        control_file.putfile(file_handle)
+
+        model.control_file_id = control_file.id
+        model.save()

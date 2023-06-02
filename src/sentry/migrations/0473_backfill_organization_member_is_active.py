@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0473_backfill_organization_member_is_active"),
+        ("sentry", "0472_delete_past_organization_mappings"),
     ]
 
     operations = [
