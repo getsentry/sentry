@@ -1,5 +1,6 @@
 from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
 from sentry.tasks.integrations.github import pr_comment
+from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -178,3 +179,21 @@ class TestPrToIssueQuery(TestCase):
             self.another_organization.id,
             [groupowner_2.id],
         )
+
+    def test_format_comment(self):
+        issues = [
+            PullRequestIssue(
+                title="TypeError",
+                subtitle="sentry.tasks.derive_code_mappings.derive_code_mappings",
+                url="https://sentry.sentry.io/issues/",
+            ),
+            PullRequestIssue(
+                title="KafkaException",
+                subtitle="query_subscription_consumer_process_message",
+                url="https://sentry.sentry.io/stats/",
+            ),
+        ]
+
+        formatted_comment = pr_comment.format_comment(issues)
+        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+        assert formatted_comment == expected_comment
