@@ -477,7 +477,11 @@ def post_process_group(
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
-            event.project = Project.objects.get_from_cache(id=event.project_id)
+            try:
+                event.project = Project.objects.get_from_cache(id=event.project_id)
+            except Project.DoesNotExist:
+                # project probably got deleted while this task was sitting in the queue
+                return
             event.project.set_cached_field_value(
                 "organization",
                 Organization.objects.get_from_cache(id=event.project.organization_id),
