@@ -38,12 +38,14 @@ class RpcServiceTest(TestCase):
         target_region = _REGIONS[0]
 
         user = self.create_user()
-        organization = self.create_organization(no_mapping=True)
-        OrganizationMapping.objects.create(
+        organization = self.create_organization()
+        OrganizationMapping.objects.update_or_create(
             organization_id=organization.id,
-            slug=organization.slug,
-            name=organization.name,
-            region_name=target_region.name,
+            defaults={
+                "slug": organization.slug,
+                "name": organization.name,
+                "region_name": target_region.name,
+            },
         )
 
         serial_user = RpcUser(id=user.id)

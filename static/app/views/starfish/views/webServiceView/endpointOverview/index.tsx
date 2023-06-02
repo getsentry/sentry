@@ -21,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -195,11 +196,11 @@ export default function EndpointOverview() {
                     {({results, loading}) => {
                       return (
                         <Fragment>
-                          <MiniChartPanel title={DataTitles.p50p95}>
+                          <MiniChartPanel title={DataTitles.p95}>
                             <Chart
                               statsPeriod={(statsPeriod as string) ?? '24h'}
                               height={110}
-                              data={results?.[1] ? [results?.[1], results?.[2]] : []}
+                              data={results?.[2] ? [results?.[2]] : []}
                               start=""
                               end=""
                               loading={loading}
@@ -207,7 +208,7 @@ export default function EndpointOverview() {
                               isLineChart
                               disableXAxis
                               definedAxisTicks={2}
-                              chartColors={theme.charts.getColorPalette(2)}
+                              chartColors={[P95_COLOR]}
                               grid={{
                                 left: '0',
                                 right: '0',
