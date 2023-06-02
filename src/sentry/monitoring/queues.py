@@ -159,7 +159,9 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
         if not options.get("backpressure.enable_monitor_queues"):
+            sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
             continue
+
         new_sizes = backend.bulk_get_sizes(QUEUES)
         for (queue, size) in new_sizes:
             if _is_healthy(size):
