@@ -39,6 +39,7 @@ class SiloRouter:
     """Whether or not we're operating in a simulated silo environment"""
 
     def __init__(self):
+        self.__table_to_silo = {}
         try:
             # By accessing the connections Django will raise
             # Use `assert` to appease linters
@@ -89,7 +90,9 @@ class SiloRouter:
                 # have to scan through models more than once.
                 self.__table_to_silo[table] = self._db_for_model(model)
 
-        return self.__table_to_silo[table]
+        # All actively used tables should be in this map, but we also
+        # need to handle tables in migrations that no longer exist.
+        return self.__table_to_silo.get(table, "default")
 
     def db_for_read(self, model, **hints):
         return self._db_for_model(model)
