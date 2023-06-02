@@ -400,7 +400,7 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
     )
 
 
-fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.00))
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
 @instrumented_task(
