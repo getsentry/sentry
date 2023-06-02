@@ -391,7 +391,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
     // we currently don't have a way to parse objects from query params, so this method is POST for now
     this.api
-      .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview`, {
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview/`, {
         method: 'POST',
         includeAllArgs: true,
         query: {
