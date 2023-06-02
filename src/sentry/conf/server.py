@@ -1428,8 +1428,6 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enable consecutive db performance issue type
-    "organizations:session-replay-dead-click-issue": False,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
