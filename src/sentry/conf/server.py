@@ -1393,8 +1393,6 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
-    # Enable removing issue from issue list if action taken.
-    "organizations:issue-list-removal-action": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
