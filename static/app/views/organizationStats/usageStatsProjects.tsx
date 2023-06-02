@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
@@ -19,6 +20,8 @@ import withProjects from 'sentry/utils/withProjects';
 import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
+type Router = InjectedRouter | null | undefined;
+
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
@@ -37,6 +40,7 @@ type Props = {
   organization: Organization;
   projectIds: number[];
   projects: Project[];
+  router: Router;
   tableCursor?: string;
   tableQuery?: string;
   tableSort?: string;
@@ -450,6 +454,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             headers={headers}
             dataCategory={dataCategory}
             usageStats={tableStats}
+            router={this.props.router}
           />
           <Pagination pageLinks={this.pageLink} />
         </Container>

@@ -396,6 +396,7 @@ export class OrganizationStats extends Component<Props> {
               </div>
               <ErrorBoundary mini>
                 <UsageStatsProjects
+                  router={this.props.router}
                   organization={organization}
                   dataCategory={this.dataCategory}
                   dataCategoryName={this.dataCategoryName}

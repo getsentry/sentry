@@ -1,6 +1,8 @@
 import {Component} from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
@@ -8,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconSettings, IconWarning} from 'sentry/icons';
+import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Project} from 'sentry/types';
@@ -17,14 +19,15 @@ import {formatUsageWithUnits, getFormatUsageOptions} from '../utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
+type Router = InjectedRouter | null | undefined;
+
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
   headers: React.ReactNode[];
+  router: Router;
   usageStats: TableStat[];
   errors?: Record<string, Error>;
-
   isEmpty?: boolean;
-
   isError?: boolean;
   isLoading?: boolean;
 };
@@ -57,6 +60,14 @@ class UsageTable extends Component<Props> {
     return <IconWarning color="gray300" legacySize="48px" />;
   };
 
+  loadProject(projectId: number) {
+    updateProjects([projectId], this.props.router, {
+      save: true,
+      environments: [], // Clear environments when switching projects
+    });
+    window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
+  }
+
   renderTableRow(stat: TableStat & {project: Project}) {
     const {dataCategory} = this.props;
     const {project, total, accepted, filtered, dropped} = stat;
@@ -75,6 +86,13 @@ class UsageTable extends Component<Props> {
         <SettingsIconLink to={stat.projectSettingsLink}>
           <IconSettings size="sm" />
         </SettingsIconLink>
+        <StyledIconGraph
+          data-test-id={project.slug}
+          size="sm"
+          onClick={() => {
+            this.loadProject(parseInt(stat.project.id, 10));
+          }}
+        />
       </CellProject>,
       <CellStat key={1}>
         {formatUsageWithUnits(total, dataCategory, getFormatUsageOptions(dataCategory))}
@@ -157,5 +175,13 @@ const SettingsIconLink = styled(Link)`
 
   &:hover {
     color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconGraph = styled(IconGraph)`
+  color: ${p => p.theme.gray300};
+  &:hover {
+    color: ${p => p.theme.textColor};
+    cursor: pointer;
   }
 `;

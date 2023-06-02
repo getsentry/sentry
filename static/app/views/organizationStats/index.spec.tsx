@@ -353,6 +353,23 @@ describe('OrganizationStats', function () {
     );
   });
 
+  it('renders a project when its graph icon is clicked (starting from global-views)', async () => {
+    // First initialize a default view w/no projects selected.
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+    });
+    await userEvent.click(screen.getByTestId('proj-1'));
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(screen.getAllByText('proj-1').length).toBe(2);
+  });
+
   /**
    * Feature Flagging
    */
