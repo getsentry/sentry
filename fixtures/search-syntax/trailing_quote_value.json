@@ -8,6 +8,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "must-be-quoted",
           "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
@@ -26,6 +27,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "must-be-quoted",
           "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
@@ -44,6 +46,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "must-be-quoted",
           "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
@@ -71,6 +74,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "must-be-quoted",
           "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},

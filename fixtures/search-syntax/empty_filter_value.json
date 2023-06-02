@@ -22,7 +22,10 @@
         "type": "filter",
         "filter": "text",
         "negated": false,
-        "invalid": {"reason": "Filter must have a value"},
+        "invalid": {
+          "type": "filter-must-have-value",
+          "reason": "Filter must have a value"
+        },
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
         "value": {"type": "valueText", "value": "", "quoted": false}

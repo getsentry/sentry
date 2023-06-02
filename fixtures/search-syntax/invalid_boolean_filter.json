@@ -8,6 +8,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
           "expectedType": ["boolean"]
         },
@@ -27,6 +28,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
           "expectedType": ["boolean"]
         },
@@ -46,6 +48,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-boolean",
           "reason": "Invalid boolean. Expected true, 1, false, or 0.",
           "expectedType": ["boolean"]
         },
