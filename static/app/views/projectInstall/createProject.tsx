@@ -322,7 +322,6 @@ function CreateProject() {
               autoComplete="off"
               value={projectName}
               onChange={e => setProjectName(slugify(e.target.value))}
-              data-test-id="input-project-name"
             />
           </ProjectNameInputWrap>
         </div>
