@@ -446,22 +446,20 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
   checkIncompatibleRuleDebounced = debounce(() => {
-    if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
-      const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
-      if (
-        !this.trackIncompatibleAnalytics &&
-        (conditionIndices !== null || filterIndices !== null)
-      ) {
-        this.trackIncompatibleAnalytics = true;
-        trackAnalytics('edit_alert_rule.incompatible_rule', {
-          organization: this.props.organization,
-        });
-      }
-      this.setState({
-        incompatibleConditions: conditionIndices,
-        incompatibleFilters: filterIndices,
+    const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
+    if (
+      !this.trackIncompatibleAnalytics &&
+      (conditionIndices !== null || filterIndices !== null)
+    ) {
+      this.trackIncompatibleAnalytics = true;
+      trackAnalytics('edit_alert_rule.incompatible_rule', {
+        organization: this.props.organization,
       });
     }
+    this.setState({
+      incompatibleConditions: conditionIndices,
+      incompatibleFilters: filterIndices,
+    });
   }, 500);
 
   onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
