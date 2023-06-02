@@ -1,8 +1,8 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 import sentry_sdk
-from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -198,10 +198,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
             trends_request["trendFunction"] = trend_function
 
-            #list of requests to send to microservice async
+            # list of requests to send to microservice async
             trends_requests = []
 
-            #split the txns data into multiple dictionaries
+            # split the txns data into multiple dictionaries
             split_transactions_data = [
                 dict(list(stats_data.items())[i: i + events_per_query]) for i in range(0, len(stats_data), events_per_query)
             ]
@@ -210,22 +210,22 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trends_request["data"] = split_transactions_data[i]
                 trends_requests.append(trends_request)
 
-
-            #send the data to microservice
+            # send the data to microservice
             results = list(_query_thread_pool.map(get_trends, trends_requests))
             trend_results = []
 
-            #append all the results
+            # append all the results
             for result in results:
                 output_dicts = result["data"]
                 trend_results += output_dicts
 
-            #sort the results into trending events list
-            if trends_request['sort'] == 'trend_percentage()':
-                trending_events = sorted(trend_results, key=lambda d: d['trend_percentage'])
+            # sort the results into trending events list
+            if trends_request["sort"] == "trend_percentage()":
+                trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
             else:
-                trending_events = (sorted(trend_results, key=lambda d: d['trend_percentage'], reverse=True))
-
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["trend_percentage"], reverse=True
+                )
 
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trending_events) > 0)
 
