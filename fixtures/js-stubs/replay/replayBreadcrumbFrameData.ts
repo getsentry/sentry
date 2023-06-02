@@ -1,4 +1,4 @@
-import {BreadcrumbFrame as TBreadcrumbFrame} from 'sentry/views/replays/types';
+import {BreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

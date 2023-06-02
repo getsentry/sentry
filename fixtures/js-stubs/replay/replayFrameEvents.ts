@@ -4,8 +4,8 @@ import type {
   OptionFrameEvent as TOptionFrameEvent,
   SpanFrame as TSpanFrame,
   SpanFrameEvent as TSpanFrameEvent,
-} from 'sentry/views/replays/types';
-import {EventType} from 'sentry/views/replays/types';
+} from 'sentry/utils/replays/types';
+import {EventType} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
