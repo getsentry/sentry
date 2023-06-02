@@ -203,7 +203,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             #split the txns data into multiple dictionaries
             split_transactions_data = [
-                list(stats_data.items())[i: i + events_per_query] for i in range(0, len(stats_data), events_per_query)
+                dict(list(stats_data.items())[i: i + events_per_query]) for i in range(0, len(stats_data), events_per_query)
             ]
 
             for i in range(len(split_transactions_data)):
