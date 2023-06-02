@@ -662,7 +662,7 @@ class SubscriptionProcessor:
         if method == "resolve":
             if incident.status != IncidentStatus.CLOSED.value:
                 # Critical -> warning
-                actions_to_fire = warning_actions
+                actions_to_fire = actions
                 new_status = IncidentStatus.WARNING.value
             elif IncidentStatus.CRITICAL.value in past_statuses:
                 # Critical -> resolved or warning -> resolved, but was critical previously

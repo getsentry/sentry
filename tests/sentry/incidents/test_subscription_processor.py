@@ -930,7 +930,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
-        self.assert_action_handler_called_with_actions(None, [])
+        self.assert_actions_resolved_for_incident(
+            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.WARNING)]
+        )
 
         processor = self.send_update(
             rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
@@ -1221,8 +1223,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_resolved_for_incident(
             incident,
-            [warning_action],
+            [warning_action, critical_action],
             [
+                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
                 (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
             ],
         )
@@ -1818,7 +1821,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [other_action], [(trigger.alert_threshold - 1, IncidentStatus.WARNING)]
+            incident,
+            [other_action, self.action],
+            [
+                (trigger.alert_threshold - 1, IncidentStatus.WARNING),
+                (trigger.alert_threshold - 1, IncidentStatus.WARNING),
+            ],
         )
 
         processor = self.send_update(
