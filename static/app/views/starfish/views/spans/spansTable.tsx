@@ -17,10 +17,7 @@ import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline, {
   generateHorizontalLine,
 } from 'sentry/views/starfish/components/sparkline';
-import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -151,8 +148,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, theme, applicationMetrics),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, theme),
       }}
       location={location}
     />
@@ -185,8 +181,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: TableColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
-  applicationMetrics: ApplicationMetrics
+  theme: Theme
 ): React.ReactNode {
   if (column.key === 'throughput_trend' && row[column.key]) {
     const horizontalLine = generateHorizontalLine(
@@ -231,7 +226,6 @@ function renderBodyCell(
     return (
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
         totalSpanTime={row.total_exclusive_time}
       />
     );

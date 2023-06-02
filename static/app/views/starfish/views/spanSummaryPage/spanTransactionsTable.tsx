@@ -137,9 +137,9 @@ function BodyCell({
   if (column.key === 'p95(transaction.duration)') {
     return (
       <DurationTrendCell
-        duration={row.metrics?.p50}
+        duration={row.metrics?.p95}
         color={P95_COLOR}
-        durationSeries={row.metricSeries?.p50}
+        durationSeries={row.metricSeries?.p95}
       />
     );
   }
@@ -153,7 +153,6 @@ function BodyCell({
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
         totalAppTime={applicationMetrics['sum(span.duration)']}
-        totalSpanTime={row.metrics?.total_time}
       />
     );
   }

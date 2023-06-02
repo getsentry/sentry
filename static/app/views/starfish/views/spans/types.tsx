@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 
 export type DataKey = 'timeSpent' | 'p50p95' | 'p50' | 'p95';
@@ -9,14 +12,17 @@ export const DataTitles: Record<DataKey, string> = {
   p95: t('Duration (P95)'),
 };
 
-export const getTooltip = (key: DataKey, ...options: (string | number)[]): string => {
+export const getTooltip = (
+  key: DataKey,
+  ...options: (string | number)[]
+): React.ReactNode => {
   if (key === 'timeSpent') {
     const spanTime = `${(Number(options[0]) / 1000).toFixed(2)}s`;
-    const endTime = `${(Number(options[1]) / 1000).toFixed(2)}s`;
-    return t(
-      `The total span time (%s) out of the total app time (%s)`,
-      spanTime,
-      endTime
+    return (
+      <Fragment>
+        <div>{spanTime}</div>
+        <Link to="/starfish/definitions">How was this calculated?</Link>
+      </Fragment>
     );
   }
   return '';

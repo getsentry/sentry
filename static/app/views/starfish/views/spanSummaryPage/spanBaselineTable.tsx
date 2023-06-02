@@ -185,16 +185,16 @@ function EPMCell({row}: CellProps) {
 export function TimeSpentCell({
   formattedTimeSpent,
   totalSpanTime,
-  totalAppTime,
 }: {
   formattedTimeSpent: string;
-  totalAppTime: number;
   totalSpanTime: number;
 }) {
-  const toolTip = getTooltip('timeSpent', totalSpanTime, totalAppTime);
+  const toolTip = getTooltip('timeSpent', totalSpanTime);
   return (
     <span>
-      <Tooltip title={toolTip}>{formattedTimeSpent}</Tooltip>
+      <Tooltip isHoverable title={toolTip}>
+        {formattedTimeSpent}
+      </Tooltip>
     </span>
   );
 }
