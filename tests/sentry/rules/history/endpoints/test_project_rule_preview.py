@@ -18,7 +18,6 @@ class ProjectRulePreviewEndpointTest(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.features = ["organizations:issue-alert-preview"]
 
     def test(self):
         group = Group.objects.create(
