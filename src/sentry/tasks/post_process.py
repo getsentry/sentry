@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     TypedDict,
     Union,
 )
@@ -18,6 +19,7 @@ from typing import (
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
+from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features
 from sentry.exceptions import PluginError
@@ -481,14 +483,19 @@ def post_process_group(
             # instead.
 
             def get_event_with_retry(
-                getter_func: Callable[[], Optional[Event]], attempts=3
+                getter_func: Callable[[], Optional[Event]],
+                retry_exceptions: Sequence[Type[Exception]] = (),
+                attempts=3,
             ) -> Optional[Event]:
                 attempt = 1
                 delay_exponent = 0
                 event_or_none = None
                 while event_or_none is None or attempt <= attempts:
                     time.sleep(pow(2, delay_exponent))
-                    event_or_none = getter_func()
+                    try:
+                        event_or_none = getter_func()
+                    except retry_exceptions:
+                        pass
                     delay_exponent += 1
                     attempt += 1
                 return event_or_none
@@ -499,7 +506,8 @@ def post_process_group(
                     occurrence.event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
-                )
+                ),
+                [ServiceUnavailable],
             )
 
         if event is None:
