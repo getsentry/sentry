@@ -194,13 +194,16 @@ class PushEventWebhook(Webhook):
                 pass
 
 
+handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
+
+
 @region_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     provider = "gitlab"
 
-    _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
+    _handlers = handlers
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
