@@ -238,6 +238,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Replay Issues.
+register("replay.issues.dead_click.problem-creation", default=0.0)
+register("replay.issues.dead_click.la-rollout", default=0.0)
+register("replay.issues.dead_click.ea-rollout", default=0.0)
+register("replay.issues.dead_click.ga-rollout", default=0.0)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)

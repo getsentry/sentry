@@ -176,6 +176,7 @@ default_manager.add("organizations:session-replay-sdk", OrganizationFeature, Fea
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-index-subquery", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:session-replay-dead-click-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-escape-messages", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
