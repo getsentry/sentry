@@ -4,8 +4,10 @@ from pytest import raises
 
 from sentry.silo import SiloMode
 from sentry.silo.client import ControlSiloClient, RegionSiloClient, SiloClientError
+from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import TestCase
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
+from sentry.utils import json
 
 
 class SiloClientTest(TestCase):
@@ -71,15 +73,20 @@ class SiloClientTest(TestCase):
     @override_settings(SENTRY_REGION_CONFIG=region_config)
     def test_client_proxy_request(self):
         client = RegionSiloClient(self.region)
-        path = "/api/0/imaginary-public-endpoint/"
+        path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
         responses.add(
             responses.GET,
-            f"{self.dummy_address}{path}",
+            path,
             json={"ok": True},
+            headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
         )
 
         request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
         response = client.proxy_request(request)
 
         assert response.status_code == 200
-        assert response.body.get("ok")
+        assert json.loads(response.content).get("ok")
+
+        assert response["X-Some-Header"] == "Some-Value"
+        assert response.get(PROXY_SIGNATURE_HEADER) is None
+        assert response[PROXY_DIRECT_LOCATION_HEADER] == path
