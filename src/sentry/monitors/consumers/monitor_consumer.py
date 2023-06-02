@@ -126,6 +126,55 @@ def _process_message(wrapper: Dict) -> None:
         logger.debug("monitor check in rate limited: %s", params["monitor_slug"])
         return
 
+    def update_existing_check_in(
+        existing_check_in: MonitorCheckIn, updated_status: CheckInStatus, updated_duration: float
+    ):
+        if (
+            existing_check_in.project_id != project_id
+            or existing_check_in.monitor_id != monitor.id
+            or existing_check_in.monitor_environment_id != monitor_environment.id
+        ):
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={"source": "consumer", "status": "guid_mismatch"},
+            )
+            logger.debug(
+                "check-in guid %s already associated with %s not payload %s",
+                existing_check_in,
+                existing_check_in.monitor_id,
+                monitor.id,
+            )
+            return
+
+        if existing_check_in.status in CheckInStatus.FINISHED_VALUES:
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={**metric_kwargs, "status": "checkin_finished"},
+            )
+            logger.debug(
+                "check-in was finished: attempted update from %s to %s",
+                existing_check_in.status,
+                updated_status,
+            )
+            return
+
+        if updated_duration is None:
+            updated_duration = int(
+                (start_time - existing_check_in.date_added).total_seconds() * 1000
+            )
+
+        if not valid_duration(updated_duration):
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={**metric_kwargs, "status": "failed_duration_check"},
+            )
+            logger.debug("check-in duration is invalid: %s", project.organization_id)
+            return
+
+        existing_check_in.update(status=updated_status, duration=updated_duration)
+
+        return
+
     try:
         with transaction.atomic():
             monitor_config = params.get("monitor_config")
@@ -192,47 +241,7 @@ def _process_message(wrapper: Dict) -> None:
                         guid=check_in_id,
                     )
 
-                if (
-                    check_in.project_id != project_id
-                    or check_in.monitor_id != monitor.id
-                    or check_in.monitor_environment_id != monitor_environment.id
-                ):
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "guid_mismatch"},
-                    )
-                    logger.debug(
-                        "check-in guid %s already associated with %s not payload %s",
-                        check_in_id,
-                        check_in.monitor_id,
-                        monitor.id,
-                    )
-                    return
-
-                if check_in.status in CheckInStatus.FINISHED_VALUES:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "checkin_finished"},
-                    )
-                    logger.debug(
-                        "check-in was finished: attempted update from %s to %s",
-                        check_in.status,
-                        status,
-                    )
-                    return
-
-                if duration is None:
-                    duration = int((start_time - check_in.date_added).total_seconds() * 1000)
-
-                if not valid_duration(duration):
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_duration_check"},
-                    )
-                    logger.debug("check-in duration is invalid: %s", project.organization_id)
-                    return
-
-                check_in.update(status=status, duration=duration)
+                update_existing_check_in(check_in, status, duration)
 
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
@@ -264,18 +273,25 @@ def _process_message(wrapper: Dict) -> None:
                 lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
                 try:
                     with lock.acquire():
-                        check_in = MonitorCheckIn.objects.create(
+                        check_in, created = MonitorCheckIn.objects.get_or_create(
+                            defaults={
+                                "duration": duration,
+                                "status": status,
+                                "date_added": date_added,
+                                "date_updated": start_time,
+                                "expected_time": expected_time,
+                                "monitor_config": monitor.get_validated_confg(),
+                            },
                             project_id=project_id,
                             monitor=monitor,
                             monitor_environment=monitor_environment,
                             guid=guid,
-                            duration=duration,
-                            status=status,
-                            date_added=date_added,
-                            date_updated=start_time,
-                            expected_time=expected_time,
-                            monitor_config=monitor.get_validated_config(),
                         )
+                        if not created:
+                            update_existing_check_in(check_in, status, duration)
+                        else:
+                            signal_first_checkin(project, monitor)
+
                 except UnableToAcquireLock:
                     metrics.incr(
                         "monitors.checkin.result",
@@ -283,8 +299,6 @@ def _process_message(wrapper: Dict) -> None:
                     )
                     logger.debug("failed to acquire lock to create check-in: %s", guid)
                     return
-
-                signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
                 monitor_environment.mark_failed(start_time)
