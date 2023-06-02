@@ -16,12 +16,15 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+
+const MAX_FUNCTIONS = 3;
 
 export function SlowestFunctionsWidget() {
   const [expandedIndex, setExpandedIndex] = useState(0);
@@ -40,7 +43,7 @@ export function SlowestFunctionsWidget() {
       order: 'desc',
     },
     query,
-    limit: 3,
+    limit: MAX_FUNCTIONS,
   });
 
   const totalsQuery = useProfileFunctions<TotalsField>({
@@ -51,7 +54,16 @@ export function SlowestFunctionsWidget() {
       order: 'desc',
     },
     query,
-    limit: 1,
+    limit: MAX_FUNCTIONS,
+    // make sure to query for the projects from the top functions
+    projects: functionsQuery.isFetched
+      ? [
+          ...new Set(
+            (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
+          ),
+        ]
+      : [],
+    enabled: functionsQuery.isFetched && defined(functionsQuery.data?.data),
   });
 
   return (
