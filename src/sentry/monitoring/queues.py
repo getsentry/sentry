@@ -16,13 +16,6 @@ KEY_NAME = "unhealthy-queues"
 
 CLUSTER_NAME = "default"
 
-# How many times in a row a queue must be unhealthy before it is
-# recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
-UNHEALTHY_QUEUE_STRIKE_THRESHOLD = 12
-
-# How often we check queue health.
-UNHEALTHY_QUEUE_CHECK_INTERVAL = 5
-
 
 class RedisBackend:
     def __init__(self, broker_url):
@@ -130,7 +123,7 @@ def is_queue_healthy(queue_name: str) -> bool:
     This behavior might change in the future.
     """
 
-    if not options.get("backpressure.enable_monitor_queues"):
+    if not options.get("backpressure.monitor_queues.enable"):
         return True
     # check if queue is healthy by pinging Redis
     try:
@@ -168,8 +161,8 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
 
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
-        if not options.get("backpressure.enable_monitor_queues"):
-            sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
+        if not options.get("backpressure.monitor_queues.enable"):
+            sleep(10)
             continue
 
         try:
@@ -185,11 +178,10 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
             for queue in QUEUES:
                 queue_history[queue] += 1
 
-        queue_health = [
-            (queue, count >= UNHEALTHY_QUEUE_STRIKE_THRESHOLD) for (queue, count) in queue_history
-        ]
+        strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
+        queue_health = [(queue, count >= strike_threshold) for (queue, count) in queue_history]
         _update_queue_stats(cluster, queue_health)
-        sleep(UNHEALTHY_QUEUE_CHECK_INTERVAL)
+        sleep(options.get("backpressure.monitor_queues.check_interval"))
 
 
 def monitor_queues():
