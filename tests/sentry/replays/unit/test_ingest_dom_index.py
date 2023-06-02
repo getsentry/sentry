@@ -45,7 +45,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(1, 1, uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -79,7 +79,7 @@ def test_get_user_actions_missing_node():
         }
     ]
 
-    user_actions = get_user_actions(1, 1, uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
     assert len(user_actions) == 0
 
 
@@ -116,7 +116,7 @@ def test_parse_replay_actions():
             },
         }
     ]
-    replay_actions = parse_replay_actions(1, 1, "1", 30, events)
+    replay_actions = parse_replay_actions(1, "1", 30, events)
 
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
@@ -190,7 +190,7 @@ def test_parse_request_response_latest():
         }
     ]
     with mock.patch("sentry.utils.metrics.timing") as timing:
-        parse_replay_actions(1, 1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 2949),
             mock.call("replays.usecases.ingest.response_body_size", 94),
@@ -217,7 +217,7 @@ def test_parse_request_response_no_info():
             },
         },
     ]
-    parse_replay_actions(1, 1, "1", 30, events)
+    parse_replay_actions(1, "1", 30, events)
     # just make sure we don't raise
 
 
@@ -243,7 +243,7 @@ def test_parse_request_response_old_format_request_only():
         },
     ]
     with mock.patch("sentry.utils.metrics.timing") as timing:
-        parse_replay_actions(1, 1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 1002),
         ]
@@ -271,7 +271,7 @@ def test_parse_request_response_old_format_response_only():
         },
     ]
     with mock.patch("sentry.utils.metrics.timing") as timing:
-        parse_replay_actions(1, 1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.response_body_size", 1002),
         ]
@@ -300,7 +300,7 @@ def test_parse_request_response_old_format_request_and_response():
         },
     ]
     with mock.patch("sentry.utils.metrics.timing") as timing:
-        parse_replay_actions(1, 1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 1002),
             mock.call("replays.usecases.ingest.response_body_size", 8001),
@@ -338,7 +338,7 @@ def test_log_sdk_options():
         "random.randint"
     ) as randint:
         randint.return_value = 0
-        parse_replay_actions(1, 1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events)
         assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
 
 
@@ -367,7 +367,7 @@ def test_log_large_dom_mutations():
         "random.randint"
     ) as randint:
         randint.return_value = 0
-        parse_replay_actions(1, 1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events)
         assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]
 
 
