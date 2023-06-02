@@ -5,8 +5,13 @@ import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useDiscoverEventsStatsQuery} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  datetimeToClickhouseFilterTimestamps,
+  getDateFilters,
+} from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const getTimeSpentQuery = (
   descriptionFilter: string | undefined,
@@ -78,9 +83,12 @@ export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]
 
 export const useErrorRateQuery = (queryString: string) => {
   const location = useLocation();
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const dateFilters = getDateQueryFilter(startTime, endTime);
 
   const interval = 12;
-  const query: NewQuery = {
+  const discoverQuery: NewQuery = {
     id: undefined,
     name: 'Db module - http error rate',
     projects: [1],
@@ -93,25 +101,31 @@ export const useErrorRateQuery = (queryString: string) => {
     yAxis: ['http_error_rate()'],
   };
 
-  const eventView = EventView.fromNewQueryWithLocation(query, location);
+  const FAILURE_RATE_QUERY = `SELECT
+    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+    countIf(greaterOrEquals(status, 500)) as failureCount,
+    divide(failureCount, count()) as "http_error_rate()"
+    FROM spans_experimental_starfish
+    WHERE module = 'http'
+    ${dateFilters}
+    GROUP BY interval
+    ORDER BY interval asc
+  `;
 
-  const result = useDiscoverEventsStatsQuery<{data: [number, [{count: number}]]}>({
+  const eventView = EventView.fromNewQueryWithLocation(discoverQuery, location);
+
+  const result = useSpansQuery<{'http_error_rate()': number; interval: number}[]>({
     eventView,
-    referrer: 'api.starfish.api-module.http-error-rate',
-    location,
-    orgSlug: 'sentry',
-    queryExtras: {
-      interval: `${interval}h`,
-      yAxis: ['http_error_rate()'],
-    },
+    queryString: FAILURE_RATE_QUERY,
+    initialData: [],
   });
 
-  const formattedData = result.data?.data?.map(entry => {
+  const formattedData = result?.data?.map(entry => {
     return {
-      interval: unix(entry[0]).format('YYYY-MM-DDTHH:mm:ss'),
-      rate: entry[1][0].count,
+      interval: unix(entry.interval).format('YYYY-MM-DDTHH:mm:ss'),
+      'http_error_rate()': entry['http_error_rate()'],
     };
   });
 
-  return {...result, data: formattedData};
+  return {...result, formattedData};
 };

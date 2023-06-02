@@ -208,9 +208,9 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
   const errorRateSeries: Series = {
     seriesName: 'Error Rate',
     data: data?.length
-      ? data?.map(({interval, rate}) => ({
-          name: interval,
-          value: rate,
+      ? data?.map(entry => ({
+          name: entry.interval,
+          value: entry['http_error_rate()'],
         }))
       : [],
   };
