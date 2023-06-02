@@ -2,6 +2,7 @@ from base64 import b64encode
 
 from rest_framework import status
 
+from sentry import options as options_store
 from sentry.api.serializers.base import serialize
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -71,16 +72,22 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         """
         Tests that superusers can upload avatars
         """
-        self.login_as(user=self.superuser, superuser=True)
-        for doc in [self.published_doc, self.draft_doc]:
-            prev_avatar = doc.avatar.get()
-            response = self.get_success_response(
-                doc.slug, status_code=status.HTTP_200_OK, **self.avatar_payload
-            )
-            assert serialize(doc) == response.data
-            assert serialize(doc.avatar.get()) == response.data["avatar"]
-            assert serialize(prev_avatar) != response.data["avatar"]
-            assert prev_avatar.file_id != doc.avatar.get().file_id
+        with self.options(
+            {
+                "filestore.control.backend": options_store.get("filestore.backend"),
+                "filestore.control.options": options_store.get("filestore.options"),
+            }
+        ):
+            self.login_as(user=self.superuser, superuser=True)
+            for doc in [self.published_doc, self.draft_doc]:
+                prev_avatar = doc.avatar.get()
+                response = self.get_success_response(
+                    doc.slug, status_code=status.HTTP_200_OK, **self.avatar_payload
+                )
+                assert serialize(doc) == response.data
+                assert serialize(doc.avatar.get()) == response.data["avatar"]
+                assert serialize(prev_avatar) != response.data["avatar"]
+                assert prev_avatar.control_file_id != doc.avatar.get().control_file_id
 
     def test_upload_avatar_payload_structure(self):
         """

@@ -1,5 +1,6 @@
 from base64 import b64encode
 
+from sentry import options as options_store
 from sentry.models import SentryAppAvatar
 from sentry.testutils import APITestCase
 
@@ -64,6 +65,23 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
+
+    def test_upload_control(self):
+        with self.options(
+            {
+                "filestore.control.backend": options_store.get("filestore.backend"),
+                "filestore.control.options": options_store.get("filestore.options"),
+            }
+        ):
+            resp = self.create_avatar(is_color=True)
+
+            avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
+            assert avatar.control_file_id
+            assert avatar.get_avatar_type_display() == "upload"
+            color_avatar = self.get_avatar(resp)
+            assert color_avatar["avatarType"] == "upload"
+            assert color_avatar["avatarUuid"] is not None
+            assert color_avatar["color"] is True
 
     def test_upload_both(self):
         self.create_avatar(is_color=True)
