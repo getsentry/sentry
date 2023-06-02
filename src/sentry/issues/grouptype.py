@@ -19,6 +19,7 @@ class GroupCategory(Enum):
     PERFORMANCE = 2
     PROFILE = 3
     MONITOR = 4
+    REPLAY = 5
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -362,6 +363,14 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.MONITOR.value
     released = True
+
+
+@dataclass(frozen=True)
+class ReplayDeadClickType(GroupType):
+    type_id = 5001
+    slug = "replay_click_dead"
+    description = "Dead Click Detected"
+    category = GroupCategory.REPLAY.value
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
