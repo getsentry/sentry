@@ -5,7 +5,7 @@ import type {
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
-import type Replay from './replay';
+import type {Replay} from './replay';
 
 type SimpleStub<T = any> = () => T;
 
