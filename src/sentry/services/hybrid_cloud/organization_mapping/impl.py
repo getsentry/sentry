@@ -49,7 +49,10 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         # TODO: REMOVE FROM GETSENTRY!
-        OrganizationMapping.objects.get(organization_id=organization_id).update(update)
+        try:
+            OrganizationMapping.objects.get(organization_id=organization_id).update(update)
+        except OrganizationMapping.DoesNotExist:
+            pass
 
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate
