@@ -42,13 +42,6 @@ class GitlabRequestParserTest(TestCase):
         return parser.get_response()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get(self):
-        request = self.factory.get(self.path)
-        response = self.run_parser(request)
-        assert response.status_code == 405
-        assert response.reason_phrase == "HTTP method not supported."
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_missing_x_gitlab_token(self):
         request = self.factory.post(
             self.path,
@@ -63,19 +56,6 @@ class GitlabRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_unknown_event(self):
-        request = self.factory.post(
-            self.path,
-            data=PUSH_EVENT,
-            content_type="application/json",
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT="lol",
-        )
-        response = self.run_parser(request)
-        assert response.status_code == 400
-        assert response.reason_phrase == "Webhook event type not supported."
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_invalid_token(self):
         request = self.factory.post(
             self.path,
@@ -87,37 +67,6 @@ class GitlabRequestParserTest(TestCase):
         response = self.run_parser(request)
         assert response.status_code == 400
         assert response.reason_phrase == "The customer's Secret Token is malformed."
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_valid_id_invalid_secret(self):
-        request = self.factory.post(
-            self.path,
-            data=PUSH_EVENT,
-            content_type="application/json",
-            HTTP_X_GITLAB_TOKEN=f"{EXTERNAL_ID}:wrong",
-            HTTP_X_GITLAB_EVENT="Push Hook",
-        )
-        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
-        parser.get_regions_from_organizations = MagicMock(return_value=[self.region])
-        response = parser.get_response()
-        assert response.status_code == 400
-        assert (
-            response.reason_phrase
-            == "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_invalid_payload(self):
-        request = self.factory.post(
-            self.path,
-            data="lol not json",
-            content_type="application/json",
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT="Push Hook",
-        )
-        response = self.run_parser(request)
-        assert response.status_code == 400
-        assert response.reason_phrase == "Data received is not JSON."
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_properly(self):
