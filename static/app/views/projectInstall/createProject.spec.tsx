@@ -479,7 +479,7 @@ describe('CreateProject', function () {
 
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
-        // @ts-ignore TODO: fix this type
+        // @ts-expect-error TODO: fix this type
         body: TestStubs.MOCK_RESP_VERBOSE,
       });
     });

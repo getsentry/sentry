@@ -47,7 +47,7 @@ describe('TransactionProfileIdProvider', () => {
 
   it('does not query the events endpoint when transactionId is undefined', () => {
     const requestPromiseMock = jest.fn();
-    // @ts-ignore
+    // @ts-expect-error
     useApiSpy.mockReturnValueOnce({
       requestPromise: requestPromiseMock,
     });

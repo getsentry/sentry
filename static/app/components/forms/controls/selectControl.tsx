@@ -190,8 +190,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        // @ts-ignore Ignore merge errors as only defining the property once
-        // makes code harder to understand.
         ...{
           color: theme.formText,
           background: theme.background,
@@ -398,9 +396,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (isGroupedOptions<OptionType>(choicesOrOptions)) {
       flatOptions = choicesOrOptions.flatMap(option => option.options);
     } else {
-      // @ts-ignore The types used in react-select generics (OptionType) don't
-      // line up well with our option type (SelectValue). We need to do more work
-      // to get these types to align.
       flatOptions = choicesOrOptions.flatMap(option => option);
     }
     mappedValue =

@@ -56,7 +56,7 @@ type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 type StyledLinkProps = LinkProps & {align: Alignments};
 
 const StyledLink = styled((props: StyledLinkProps) => {
-  // @ts-ignore It doesn't look like the `css` property is a part of the props,
+  // @ts-expect-error It doesn't look like the `css` property is a part of the props,
   // but prior to this style of destructure-omitting it, it was being omitted
   // with lodash.omit. I mean keeping it omitted here just in case.
   const {align: _align, css: _css, ...forwardProps} = props;

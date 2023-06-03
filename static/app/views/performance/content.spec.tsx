@@ -284,7 +284,7 @@ describe('Performance > Content', function () {
     act(() => ProjectsStore.reset());
 
     // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
-    // @ts-ignore
+    // @ts-expect-error
     pageFilters.updateDateTime.mockRestore();
   });
 

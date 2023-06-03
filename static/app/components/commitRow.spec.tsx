@@ -69,7 +69,7 @@ describe('commitRow', () => {
 
     await userEvent.click(screen.getByText(/Invite/));
 
-    // @ts-ignore we are mocking this import
+    // @ts-expect-error we are mocking this import
     expect(openInviteMembersModal.mock.calls[0][0].initialData[0].emails).toEqual(
       new Set(['author@commit.com'])
     );

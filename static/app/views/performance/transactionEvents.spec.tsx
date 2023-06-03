@@ -38,7 +38,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 describe('Performance > TransactionSummary', function () {
   beforeAll(function () {
-    // @ts-ignore no-console
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
