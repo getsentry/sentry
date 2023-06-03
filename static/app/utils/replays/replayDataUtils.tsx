@@ -194,6 +194,8 @@ export function breadcrumbFactory(
       };
     });
 
+  // TODO(replay): The important parts of transformCrumbs should be brought into
+  // here, we're hydrating our data and should have more control over the process.
   const result = transformCrumbs([
     ...(spans.length && !hasPageLoad ? [initBreadcrumb] : []),
     ...rawCrumbsWithTimestamp,
