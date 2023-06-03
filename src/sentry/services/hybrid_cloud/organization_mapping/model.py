@@ -37,3 +37,4 @@ class RpcOrganizationMappingUpdate(TypedDict):
     customer_id: Optional[str]
     status: OrganizationStatus
     slug: str
+    region_name: str

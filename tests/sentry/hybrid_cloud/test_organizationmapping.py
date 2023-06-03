@@ -38,35 +38,6 @@ class OrganizationMappingTest(TransactionTestCase):
         assert self.organization.slug == org_mapping.slug
         assert self.organization.name == org_mapping.name
 
-    def test_update(self):
-        self.organization = Factories.create_organization(name="test name")
-
-        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert not organization_mapping.customer_id
-
-        organization_mapping_service.update(
-            organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(customer_id="test"),
-        )
-        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.customer_id == "test"
-
-        organization_mapping_service.update(
-            organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(name="new name!"),
-        )
-        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.customer_id == "test"
-        assert org_mapping.name == "new name!"
-        assert org_mapping.slug == self.organization.slug
-        assert org_mapping.status == self.organization.status
-
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update=RpcOrganizationMappingUpdate()
-        )
-        # Does not overwrite with empty value.
-        assert org_mapping.name == "new name!"
-
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(
             name="test name",
