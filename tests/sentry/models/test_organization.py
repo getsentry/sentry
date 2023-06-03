@@ -346,7 +346,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=compliant_member)
         self.assert_org_member_mapping(org_member=non_compliant_member)
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             self.org.handle_2fa_required(self.request)
 
         self.is_organization_member(compliant_user.id, compliant_member.id)
@@ -393,7 +395,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=member)
             non_compliant.append((user, member))
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             self.org.handle_2fa_required(self.request)
 
         for user, member in non_compliant:
@@ -444,7 +448,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
         self.assert_org_member_mapping(org_member=member)
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             api_key = ApiKey.objects.create(
                 organization_id=self.org.id,
                 scope_list=["org:read", "org:write", "member:read", "member:write"],
@@ -472,7 +478,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         user, member = self._create_user_and_member()
         self.assert_org_member_mapping(org_member=member)
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             request = copy.deepcopy(self.request)
             request.META["REMOTE_ADDR"] = None
             self.org.handle_2fa_required(request)

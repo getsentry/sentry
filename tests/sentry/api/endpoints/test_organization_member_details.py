@@ -18,6 +18,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
 
@@ -271,7 +272,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="manager")
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="manager")
         member_om = OrganizationMember.objects.get(id=member_om.id)
         assert member_om.role == "manager"
         self.assert_org_member_mapping(org_member=member_om)
@@ -362,7 +364,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="manager")
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="manager")
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "manager"
@@ -445,7 +448,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization, user=member, role="admin", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="member")
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="member")
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
@@ -458,7 +462,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization, user=member, role="admin", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="member")
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="member")
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
@@ -471,7 +476,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="admin")
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "admin"

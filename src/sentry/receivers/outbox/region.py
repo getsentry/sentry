@@ -59,15 +59,12 @@ def maybe_handle_joined_user(org_member: OrganizationMember) -> None:
         )
 
 
+# No longer used.
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_CREATE)
 def process_organization_member_create(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
-        return
-
-    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
-    maybe_handle_joined_user(org_member)
+    pass
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
@@ -76,21 +73,22 @@ def process_organization_member_updates(
 ):
     if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         # Delete all identities that may have been associated.  This is an implicit cascade.
-        if payload and "user_id" in payload:
+        if payload and payload.get("user_id") is not None:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
             )
-        organizationmember_mapping_service.delete_with_organization_member(
-            organizationmember_id=object_identifier, organization_id=shard_identifier
+        organizationmember_mapping_service.delete(
+            organizationmember_id=object_identifier,
+            organization_id=shard_identifier,
         )
         return
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    organizationmember_mapping_service.update_with_organization_member(
+    organizationmember_mapping_service.upsert_mapping(
         organizationmember_id=org_member.id,
         organization_id=shard_identifier,
-        rpc_update_org_member=rpc_org_member_update,
+        mapping=rpc_org_member_update,
     )
 
     maybe_handle_joined_user(org_member)
