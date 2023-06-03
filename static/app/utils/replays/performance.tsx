@@ -131,7 +131,19 @@ export interface MemoryData {
 
 export interface NetworkRequestData {
   method?: string;
+  request?: {
+    _meta?: string[];
+    body?: unknown;
+    headers?: Record<string, string>;
+    size?: number;
+  };
   requestBodySize?: number;
+  response?: {
+    _meta?: string[];
+    body?: unknown;
+    headers?: Record<string, string>;
+    size?: number;
+  };
   responseBodySize?: number;
   statusCode?: number;
 }
