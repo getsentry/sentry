@@ -4,7 +4,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
@@ -15,6 +15,7 @@ import type {Organization, Project} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
+import withProjects from 'sentry/utils/withProjects';
 import {
   AlertType,
   AlertWizardAlertNames,
@@ -91,6 +92,7 @@ function CreateAlertFromViewButton({
   return (
     <CreateAlertButton
       organization={organization}
+      projects={projects}
       onClick={handleClick}
       to={to}
       aria-label={t('Create Alert')}
@@ -101,6 +103,7 @@ function CreateAlertFromViewButton({
 
 type CreateAlertButtonProps = {
   organization: Organization;
+  projects: Project[];
   alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
@@ -117,6 +120,7 @@ type CreateAlertButtonProps = {
 
 function CreateAlertButton({
   organization,
+  projects,
   projectSlug,
   iconProps,
   referrer,
@@ -191,28 +195,22 @@ function CreateAlertButton({
   );
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
+  const canCreateAlert =
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+  const isOrgAdmin = hasEveryAccess(['org:admin'], {organization});
 
-  return (
-    <Access access={['alerts:write']}>
-      {({hasAccess}) =>
-        showGuide ? (
-          <Access access={['org:write']}>
-            {({hasAccess: isOrgAdmin}) => (
-              <GuideAnchor
-                target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
-                onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
-              >
-                {renderButton(hasAccess)}
-              </GuideAnchor>
-            )}
-          </Access>
-        ) : (
-          renderButton(hasAccess)
-        )
-      }
-    </Access>
+  return showGuide ? (
+    <GuideAnchor
+      target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
+      onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
+    >
+      {renderButton(canCreateAlert)}
+    </GuideAnchor>
+  ) : (
+    renderButton(canCreateAlert)
   );
 }
 
 export {CreateAlertFromViewButton};
-export default CreateAlertButton;
+export default withProjects(CreateAlertButton);
