@@ -7,6 +7,7 @@ urlpatterns = [
     url(
         r"^webhook/$",
         GitHubIntegrationsWebhookEndpoint.as_view(),
+        name="sentry-extensions-github-webhook",
     ),
     url(
         r"^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>\d+)/$",
