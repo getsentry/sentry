@@ -1,5 +1,4 @@
 import type {
-  BreadcrumbFrame as TBreadcrumbFrame,
   BreadcrumbFrameEvent as TBreadcrumbFrameEvent,
   HistoryData as THistoryData,
   LargestContentfulPaintData as TLargestContentfulPaintData,
@@ -26,6 +25,18 @@ type TestableFrameEvent<
   }
 >;
 
+/**
+ * `BreadcrumbFrameData` has factories to help construct the correct payloads.
+ *
+ * ```
+ * BreadcrumbFrameEvent({
+ *   timestamp,
+ *   data: {
+ *      payload: TestStubs.BreadcrumbFrameData.FOO({}),
+ *   },
+ * });
+ * ```
+ */
 export function BreadcrumbFrameEvent(
   fields: TestableFrameEvent<TBreadcrumbFrameEvent>
 ): TBreadcrumbFrameEvent {
@@ -40,16 +51,21 @@ export function BreadcrumbFrameEvent(
   };
 }
 
-export function BreadcrumbFrame(
-  fields: Omit<TBreadcrumbFrame, 'timestamp' | 'type'> & {timestamp: Date}
-): TBreadcrumbFrame {
-  return {
-    type: fields.category,
-    ...fields,
-    timestamp: fields.timestamp.getTime() / 1000, // data inside events are in seconds
-  };
-}
-
+/**
+ * `SpanFrame()` is a factories to help consturt valid payloads given an operation name.
+ * `ReplaySpanFrameData.*` contains more factories to build the required inner dataset.
+ *
+ * ```
+ * SpanFrameEvent({
+ *   timestamp,
+ *   data: {
+ *     payload: TestStubs.Replay.SpanFrame({
+ *      data: TestStubs.ReplaySpanFrameData.FOO({...})
+ *     }),
+ *   },
+ * });
+ * ```
+ */
 export function SpanFrameEvent(
   fields: TestableFrameEvent<TSpanFrameEvent>
 ): TSpanFrameEvent {
@@ -93,12 +109,6 @@ export function SpanFrame(
     },
     SpanPayloadPerOp
   >
-): TSpanFrame;
-export function SpanFrame(
-  fields: Omit<TSpanFrame, 'startTimestamp' | 'endTimestamp'> & {
-    endTimestamp: Date;
-    startTimestamp: Date;
-  }
 ): TSpanFrame {
   return {
     ...fields,

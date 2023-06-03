@@ -1,3 +1,4 @@
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {BreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -20,8 +21,8 @@ export function ConsoleFrame(fields: TestableFrame<'console'>): MockFrame<'conso
     },
     level: fields.level ?? 'fatal',
     message: fields.message ?? '',
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEBUG,
   };
 }
 
@@ -30,8 +31,8 @@ export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.cli
     category: 'ui.click',
     data: fields.data ?? {},
     message: fields.message ?? '',
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -43,7 +44,7 @@ export function FetchFrame(fields: TestableFrame<'fetch'>): MockFrame<'fetch'> {
       url: '/',
     },
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
+    timestamp: fields.timestamp.getTime() / 1000,
     type: 'http',
   };
 }
@@ -52,8 +53,8 @@ export function InputFrame(fields: TestableFrame<'ui.input'>): MockFrame<'ui.inp
   return {
     category: 'ui.input',
     message: fields.message ?? '',
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -62,7 +63,7 @@ export function XhrFrame(fields: TestableFrame<'xhr'>): MockFrame<'xhr'> {
     category: 'xhr',
     data: fields.data ?? {},
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
+    timestamp: fields.timestamp.getTime() / 1000,
     type: 'http',
   };
 }
@@ -80,8 +81,8 @@ export function KeyboardEventFrame(
       shiftKey: false,
     },
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -89,8 +90,8 @@ export function BlurFrame(fields: TestableFrame<'ui.blur'>): MockFrame<'ui.blur'
   return {
     category: 'ui.blur',
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -98,8 +99,8 @@ export function FocusFrame(fields: TestableFrame<'ui.focus'>): MockFrame<'ui.foc
   return {
     category: 'ui.focus',
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -114,8 +115,8 @@ export function SlowClickFrame(
       url: '/',
     },
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
-    type: '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -129,7 +130,7 @@ export function MutationFrame(
       limit: true,
     },
     message: fields.message,
-    timestamp: fields.timestamp.getTime(),
+    timestamp: fields.timestamp.getTime() / 1000,
     type: '',
   };
 }

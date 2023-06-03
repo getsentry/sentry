@@ -65,6 +65,8 @@ export function NetworkRequestData(
     requestBodySize: fields.requestBodySize,
     responseBodySize: fields.responseBodySize,
     statusCode: fields.statusCode,
+    request: fields.request,
+    response: fields.response,
   };
 }
 
