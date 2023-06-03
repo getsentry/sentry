@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Collection, Iterable, Set
+from typing import TYPE_CHECKING, Collection, Container, Iterable, Set
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -57,8 +57,8 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
+    # TODO: Possibly change auth schema in final implementation.
     api_token: str | None = None
-    """An API token to authorize RPCs from here to the region's silo."""
 
     def validate(self) -> None:
         from sentry import options
@@ -198,7 +198,7 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     }
 
 
-def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
+def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
     from sentry.models import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
