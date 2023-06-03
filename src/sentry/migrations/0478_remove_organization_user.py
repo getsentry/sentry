@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0470_denormalize_user_is_active"),
+        ("sentry", "0477_control_avatars"),
     ]
 
     database_operations = [

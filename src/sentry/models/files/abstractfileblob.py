@@ -66,7 +66,7 @@ class AbstractFileBlob(Model):
             )
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path()
-            storage = get_storage()
+            storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
             metrics.timing("filestore.blob-size", size, tags={"function": "from_files"})
@@ -174,7 +174,7 @@ class AbstractFileBlob(Model):
 
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path()
-            storage = get_storage()
+            storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
             blob.save()
 
@@ -229,5 +229,5 @@ class AbstractFileBlob(Model):
         """
         assert self.path
 
-        storage = get_storage()
+        storage = get_storage(self._storage_config())
         return storage.open(self.path)

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import functools
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable, Set
+from typing import TYPE_CHECKING, Collection, Container, Iterable, Set
 from urllib.parse import urljoin
+
+from django.conf import settings
 
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode
@@ -12,8 +13,6 @@ from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.models import Organization
-
-MONOLITH_REGION_NAME = "--monolith--"
 
 
 class RegionCategory(Enum):
@@ -58,8 +57,8 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
+    # TODO: Possibly change auth schema in final implementation.
     api_token: str | None = None
-    """An API token to authorize RPCs from here to the region's silo."""
 
     def validate(self) -> None:
         from sentry import options
@@ -97,10 +96,19 @@ class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
 
-class _RegionMapping:
+class GlobalRegionDirectory:
     """The set of all regions in this Sentry platform instance."""
 
-    def __init__(self, regions: Iterable[Region]) -> None:
+    def __init__(self, regions: Collection[Region]) -> None:
+        if not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
+            default_monolith_region = Region(
+                name=settings.SENTRY_MONOLITH_REGION,
+                snowflake_id=0,
+                address="/",
+                category=RegionCategory.MULTI_TENANT,
+            )
+            regions = [default_monolith_region, *regions]
+
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
 
@@ -112,8 +120,14 @@ def _parse_config(region_config: str) -> Iterable[Region]:
         yield Region(**config_value)
 
 
-@functools.lru_cache(maxsize=1)
-def _load_global_regions() -> _RegionMapping:
+_global_regions: GlobalRegionDirectory | None = None
+
+
+def load_global_regions() -> GlobalRegionDirectory:
+    global _global_regions
+    if _global_regions is not None:
+        return _global_regions
+
     from django.conf import settings
 
     # For now, assume that all region configs can be taken in through Django
@@ -121,14 +135,20 @@ def _load_global_regions() -> _RegionMapping:
     # production.
     config = settings.SENTRY_REGION_CONFIG
     if isinstance(config, str):
-        config = _parse_config(config)
-    return _RegionMapping(config)
+        config = list(_parse_config(config))
+    _global_regions = GlobalRegionDirectory(config)
+    return _global_regions
+
+
+def clear_global_regions() -> None:
+    global _global_regions
+    _global_regions = None
 
 
 def get_region_by_name(name: str) -> Region:
     """Look up a region by name."""
     try:
-        return _load_global_regions().by_name[name]
+        return load_global_regions().by_name[name]
     except KeyError:
         raise RegionResolutionError(f"No region with name: {name!r}")
 
@@ -139,7 +159,7 @@ def get_region_for_organization(organization: Organization) -> Region:
     Raises RegionContextError if this Sentry platform instance is configured to
     run only in monolith mode.
     """
-    mapping = _load_global_regions()
+    mapping = load_global_regions()
 
     if not mapping.regions:
         raise RegionContextError("No regions are configured")
@@ -158,13 +178,7 @@ def get_local_region() -> Region:
     from django.conf import settings
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        # This is a dummy value used to make region.to_url work
-        return Region(
-            name=MONOLITH_REGION_NAME,
-            snowflake_id=0,
-            address="/",
-            category=RegionCategory.MULTI_TENANT,
-        )
+        return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
 
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")
@@ -184,29 +198,27 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     }
 
 
-def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
+def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
     from sentry.models import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {
-            MONOLITH_REGION_NAME,
-        }
+        return {settings.SENTRY_MONOLITH_REGION}
     else:
-        return {
-            t["region_name"]
-            for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
-                "region_name"
+        return set(
+            OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
+                "region_name", flat=True
             )
-        }
+        )
 
 
 @control_silo_function
 def find_regions_for_user(user_id: int) -> Set[str]:
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {settings.SENTRY_MONOLITH_REGION}
+
     org_ids = _find_orgs_for_user(user_id)
     return find_regions_for_orgs(org_ids)
 
 
 def find_all_region_names() -> Iterable[str]:
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {MONOLITH_REGION_NAME}
-    return _load_global_regions().by_name.keys()
+    return load_global_regions().by_name.keys()

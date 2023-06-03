@@ -1,18 +1,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 
 describe('AsyncComponent', function () {
   class TestAsyncComponent extends AsyncComponent {
     shouldRenderBadRequests = true;
 
-    constructor(props) {
-      super(props);
-      this.state = {};
-    }
-
-    getEndpoints() {
+    getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
       return [['data', '/some/path/to/something/']];
     }
 
@@ -22,8 +16,8 @@ describe('AsyncComponent', function () {
   }
 
   it('renders on successful request', function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/some/path/to/something/',
       method: 'GET',
       body: {
@@ -35,8 +29,8 @@ describe('AsyncComponent', function () {
   });
 
   it('renders error message', function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/some/path/to/something/',
       method: 'GET',
       body: {
@@ -49,8 +43,8 @@ describe('AsyncComponent', function () {
   });
 
   it('renders only unique error message', function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/first/path/',
       method: 'GET',
       body: {
@@ -58,7 +52,7 @@ describe('AsyncComponent', function () {
       },
       statusCode: 400,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/second/path/',
       method: 'GET',
       body: {
@@ -66,7 +60,7 @@ describe('AsyncComponent', function () {
       },
       statusCode: 400,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/third/path/',
       method: 'GET',
       body: {
@@ -78,7 +72,7 @@ describe('AsyncComponent', function () {
     class UniqueErrorsAsyncComponent extends AsyncComponent {
       shouldRenderBadRequests = true;
 
-      getEndpoints() {
+      getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
         return [
           ['first', '/first/path/'],
           ['second', '/second/path/'],
@@ -100,7 +94,7 @@ describe('AsyncComponent', function () {
 
   describe('multi-route component', () => {
     class MultiRouteComponent extends TestAsyncComponent {
-      getEndpoints() {
+      getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
         return [
           ['data', '/some/path/to/something/'],
           ['project', '/another/path/here'],
@@ -116,16 +110,12 @@ describe('AsyncComponent', function () {
 
     it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', () => {
       jest.useFakeTimers();
-      jest.spyOn(Client.prototype, 'request').mockImplementation((url, options) => {
-        const timeout = url.includes('something') ? 100 : 50;
-        setTimeout(
-          () =>
-            options.success({
-              message: 'good',
-            }),
-          timeout
-        );
-      });
+      jest
+        .spyOn(MockApiClient.prototype, 'request')
+        .mockImplementation((url, options) => {
+          const timeout = url.includes('something') ? 100 : 50;
+          setTimeout(() => options?.success?.({message: 'good'}), timeout);
+        });
       const mockOnAllEndpointsSuccess = jest.spyOn(
         MultiRouteComponent.prototype,
         'onLoadAllEndpointsSuccess'

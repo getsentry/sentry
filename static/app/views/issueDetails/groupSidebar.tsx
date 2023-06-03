@@ -31,6 +31,7 @@ import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -42,15 +43,7 @@ type Props = {
 
 function useFetchAllEnvsGroupData(group: Group) {
   return useApiQuery<Group>(
-    [
-      `/issues/${group.id}/`,
-      {
-        query: {
-          expand: ['inbox', 'owners'],
-          collapse: ['release', 'tags'],
-        },
-      },
-    ],
+    [`/issues/${group.id}/`, {query: getGroupDetailsQueryData()}],
     {
       staleTime: 30000,
       cacheTime: 30000,

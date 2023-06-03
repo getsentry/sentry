@@ -19,6 +19,7 @@ from sentry.models import (
     Identity,
     InviteStatus,
     OrganizationMember,
+    Release,
 )
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -344,6 +345,64 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert update_data["text"].endswith(expect_status)
 
+    @responses.activate
+    def test_resolve_issue_in_next_release(self):
+        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
+
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/dialog.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        resp = self.post_webhook(action_data=[status_action])
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["trigger_id"][0] == self.trigger_id
+        assert "dialog" in data
+
+        dialog = json.loads(data["dialog"][0])
+        callback_data = json.loads(dialog["callback_id"])
+        assert int(callback_data["issue"]) == self.group.id
+        assert callback_data["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        resp = self.post_webhook(
+            type="dialog_submission",
+            callback_id=dialog["callback_id"],
+            data={"submission": {"resolve_type": "resolved:inNextRelease"}},
+        )
+        self.group = Group.objects.get(id=self.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.RESOLVED
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert update_data["text"].endswith(expect_status)
+
     def test_permission_denied(self):
         user2 = self.create_user(is_superuser=False)
 
@@ -486,7 +545,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
         assert resp.status_code == 200, resp.content
 
-        member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 
