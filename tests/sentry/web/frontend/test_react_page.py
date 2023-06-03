@@ -3,8 +3,9 @@ from fnmatch import fnmatch
 from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models import OrganizationStatus
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 
@@ -17,7 +18,8 @@ class ReactPageViewTest(TestCase):
         path = reverse("sentry-organization-home", args=[org.slug])
         resp = self.client.get(path)
 
-        self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
         assert resp["X-Robots-Tag"] == "noindex, nofollow"
 
     def test_superuser_can_load(self):
@@ -43,7 +45,8 @@ class ReactPageViewTest(TestCase):
 
         resp = self.client.get(path)
 
-        self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
 
         # ensure we don't redirect to auth if its not a valid org
         path = reverse("sentry-organization-home", args=["foobar"])
@@ -110,7 +113,6 @@ class ReactPageViewTest(TestCase):
             assert self.client.session["activeorg"]
 
         with self.feature({"organizations:customer-domains": True}):
-
             # Redirect to customer domain
             response = self.client.get(
                 reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
@@ -160,7 +162,6 @@ class ReactPageViewTest(TestCase):
         self.login_as(user)
 
         with self.feature({"organizations:customer-domains": True}):
-
             url_name = "sentry-organization-create"
             url_name_is_non_customer_domain = any(
                 fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
@@ -309,11 +310,12 @@ class ReactPageViewTest(TestCase):
         self.login_as(self.user)
 
         with self.feature({"organizations:customer-domains": [org.slug]}):
-            response = self.client.get(
-                "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
-                follow=True,
-            )
+            with assume_test_silo_mode(SiloMode.REGION):
+                response = self.client.get(
+                    "/issues/",
+                    SERVER_NAME=f"{org.slug}.testserver",
+                    follow=True,
+                )
             assert response.status_code == 200
             assert response.redirect_chain == [
                 (f"http://{org.slug}.testserver/restore/", 302),
