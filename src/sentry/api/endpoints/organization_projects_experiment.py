@@ -188,5 +188,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
+        serialized_response = serialize(project, request.user)
+        serialized_response["team_slug"] = team.slug
 
-        return Response(serialize(project, request.user), status=201)
+        return Response(serialized_response, status=201)

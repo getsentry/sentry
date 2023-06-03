@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Mapping, Optional
 
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -60,7 +61,8 @@ class AcceptOrganizationInvite(Endpoint):
                 try:
                     if (
                         SiloMode.get_current_mode() == SiloMode.MONOLITH
-                        or get_region_by_name(mapping.region_name).was_monolith
+                        or get_region_by_name(mapping.region_name).name
+                        == settings.SENTRY_MONOLITH_REGION
                     ):
                         member_mapping = member_mappings.get(mapping.organization_id)
                         break

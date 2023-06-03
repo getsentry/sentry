@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.conf import settings
 from django.dispatch import receiver
 
 from sentry import roles
@@ -108,7 +107,7 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         organization_mapping_service.delete(organization_id=object_identifier)
         return
 
-    update = update_organization_mapping_from_instance(org)
+    update = update_organization_mapping_from_instance(org, get_local_region())
     organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
@@ -117,9 +116,3 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     proj
-
-
-def _was_monolith() -> bool:
-    if not settings.SENTRY_REGION:
-        return True
-    return get_local_region().was_monolith

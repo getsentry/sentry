@@ -67,9 +67,7 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_id(self):
         regions = [
-            Region(
-                "test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT, was_monolith=True
-            ),
+            Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
             Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
         with override_regions(regions):

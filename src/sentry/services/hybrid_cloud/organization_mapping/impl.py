@@ -1,7 +1,5 @@
 from typing import Optional
 
-from django.db import transaction
-
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
@@ -50,12 +48,11 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         pass
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
-        with transaction.atomic():
-            (
-                OrganizationMapping.objects.filter(organization_id=organization_id)
-                .select_for_update()
-                .update(**update)
-            )
+        # TODO: REMOVE FROM GETSENTRY!
+        try:
+            OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
+        except OrganizationMapping.DoesNotExist:
+            pass
 
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate

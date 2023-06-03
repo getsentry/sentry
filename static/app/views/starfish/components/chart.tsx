@@ -73,10 +73,10 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[]) {
+function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
-  if (data.length > 2) {
+  if (data.length > 1 && stacked) {
     for (let i = 0; i < data.length; i++) {
       maxValue += max(data[i].data.map(point => point.value)) as number;
     }
@@ -160,7 +160,10 @@ function Chart({
     data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
   let dataMax = durationOnly
-    ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+    ? computeAxisMax(
+        [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
+        stacked
+      )
     : percentOnly
     ? computeMax(data)
     : undefined;

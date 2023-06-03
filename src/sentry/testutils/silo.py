@@ -22,7 +22,7 @@ from sentry.types.region import Region, RegionCategory
 TestMethod = Callable[..., None]
 
 region_map = [
-    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT, was_monolith=True),
+    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
     Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
     Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
 ]

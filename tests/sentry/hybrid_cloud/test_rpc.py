@@ -33,7 +33,6 @@ _REGIONS = [
         "http://na.sentry.io",
         RegionCategory.MULTI_TENANT,
         "swordfish",
-        was_monolith=True,
     ),
     Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT, "courage"),
 ]

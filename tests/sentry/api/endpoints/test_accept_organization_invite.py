@@ -152,7 +152,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                     2,
                     "http://moo",
                     RegionCategory.MULTI_TENANT,
-                    was_monolith=True,
                 ),
             ]
         ):
@@ -188,36 +187,24 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 assert self.client.session["invite_organization_id"] == self.organization.id
 
     def test_multi_region_organizationmember_id__non_monolith(self):
-        with override_regions(
-            [
-                Region(
-                    OrganizationMapping.objects.get(
-                        organization_id=self.organization.id
-                    ).region_name,
-                    10,
-                    "http://blah",
-                    RegionCategory.MULTI_TENANT,
-                ),
-            ]
-        ):
-            self._require_2fa_for_organization()
-            assert not self.user.has_2fa()
+        self._require_2fa_for_organization()
+        assert not self.user.has_2fa()
 
-            self.login_as(self.user)
+        self.login_as(self.user)
 
-            with exempt_from_silo_limits():
-                om = OrganizationMember.objects.create(
-                    email="newuser@example.com", token="abc", organization_id=self.organization.id
-                )
-            OrganizationMemberMapping.objects.create(
-                organization_id=self.organization.id, organizationmember_id=om.id
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
+        OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id, organizationmember_id=om.id
+        )
 
-            with override_settings(SILO_MODE=SiloMode.CONTROL):
-                resp = self.client.get(
-                    reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-                )
-            assert resp.status_code == 400
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
+            resp = self.client.get(
+                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            )
+        assert resp.status_code == 400
 
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()

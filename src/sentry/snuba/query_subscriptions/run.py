@@ -127,7 +127,7 @@ def get_query_subscription_consumer(
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
 
-    initialize_metrics()
+    initialize_metrics(group_id=group_id)
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
@@ -153,9 +153,11 @@ def get_query_subscription_consumer(
     )
 
 
-def initialize_metrics() -> None:
+def initialize_metrics(group_id: str) -> None:
     from sentry.utils import metrics
     from sentry.utils.arroyo import MetricsWrapper
 
-    metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
+    metrics_wrapper = MetricsWrapper(
+        metrics.backend, name="query_subscription_consumer", tags={"consumer_group": group_id}
+    )
     configure_metrics(metrics_wrapper)

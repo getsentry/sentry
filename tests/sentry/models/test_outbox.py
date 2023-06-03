@@ -5,6 +5,7 @@ from unittest.mock import call, patch
 
 import pytest
 import responses
+from django.conf import settings
 from django.test import RequestFactory
 from freezegun import freeze_time
 from pytest import raises
@@ -30,7 +31,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
-from sentry.types.region import Region, RegionCategory, get_monolith_region
+from sentry.types.region import Region, RegionCategory
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -88,10 +89,6 @@ class ControlOutboxTest(TestCase):
         with exempt_from_silo_limits():
             org = Factories.create_organization()
 
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            org_mapping.region_name = "zooo"
-            org_mapping.save()
-
         user1 = Factories.create_user()
         user2 = Factories.create_user()
         organization_service.add_organization_member(
@@ -112,14 +109,14 @@ class ControlOutboxTest(TestCase):
 
         for inst in ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.SLACK,
-            region_names=["--monolith--", "special-slack-region"],
+            region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
             request=request,
         ):
             inst.save()
 
         for inst in ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=["--monolith--", "special-github-region"],
+            region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
             request=request,
         ):
             inst.save()
@@ -129,19 +126,9 @@ class ControlOutboxTest(TestCase):
             for row in ControlOutbox.find_scheduled_shards()
         }
 
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            user_regions = {
-                (OutboxScope.USER_SCOPE.value, user1.id, "zooo"),
-                (OutboxScope.USER_SCOPE.value, user2.id, "zooo"),
-            }
-        else:
-            user_regions = {
-                (OutboxScope.USER_SCOPE.value, user1.id, get_monolith_region().name),
-                (OutboxScope.USER_SCOPE.value, user2.id, get_monolith_region().name),
-            }
-
         assert shards == {
-            *user_regions,
+            (OutboxScope.USER_SCOPE.value, user1.id, settings.SENTRY_MONOLITH_REGION),
+            (OutboxScope.USER_SCOPE.value, user2.id, settings.SENTRY_MONOLITH_REGION),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.SLACK,
@@ -150,7 +137,7 @@ class ControlOutboxTest(TestCase):
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.GITHUB,
-                "--monolith--",
+                settings.SENTRY_MONOLITH_REGION,
             ),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,

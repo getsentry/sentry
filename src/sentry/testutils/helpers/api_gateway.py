@@ -19,7 +19,6 @@ SENTRY_REGION_CONFIG = [
         snowflake_id=1,
         address="http://region1.testserver",
         category=RegionCategory.MULTI_TENANT,
-        was_monolith=True,
     ),
 ]
 
