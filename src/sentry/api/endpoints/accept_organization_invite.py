@@ -14,7 +14,12 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationMemberMapping
+from sentry.models import (
+    AuthProvider,
+    OrganizationMapping,
+    OrganizationMember,
+    OrganizationMemberMapping,
+)
 from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -46,36 +51,45 @@ class AcceptOrganizationInvite(Endpoint):
         user_id: int,
     ) -> Optional[RpcUserInviteContext]:
         if organization_slug is None:
-            # Lookup by the organization member id, but only for historical monolith regions.
-            member_mapping: OrganizationMemberMapping | None = None
-            member_mappings: Mapping[int, OrganizationMemberMapping] = {
-                omm.organization_id: omm
-                for omm in OrganizationMemberMapping.objects.filter(
-                    organizationmember_id=member_id
-                ).all()
-            }
-            org_mappings = OrganizationMapping.objects.filter(
-                organization_id__in=list(member_mappings.keys())
-            )
-            for mapping in org_mappings:
-                try:
-                    if (
-                        SiloMode.get_current_mode() == SiloMode.MONOLITH
-                        or get_region_by_name(mapping.region_name).name
-                        == settings.SENTRY_MONOLITH_REGION
-                    ):
-                        member_mapping = member_mappings.get(mapping.organization_id)
-                        break
-                except RegionResolutionError:
-                    pass
+            # TODO: Remove once the organization mapping migration is complete
+            if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                om = OrganizationMember.objects.filter(id=member_id).first()
+                if om is None:
+                    return None
+                invite_context = organization_service.get_invite_by_id(
+                    organization_id=om.organization_id,
+                    organization_member_id=member_id,
+                    user_id=user_id,
+                )
+            else:
+                member_mapping: OrganizationMemberMapping | None = None
+                member_mappings: Mapping[int, OrganizationMemberMapping] = {
+                    omm.organization_id: omm
+                    for omm in OrganizationMemberMapping.objects.filter(
+                        organizationmember_id=member_id
+                    ).all()
+                }
+                org_mappings = OrganizationMapping.objects.filter(
+                    organization_id__in=list(member_mappings.keys())
+                )
+                for mapping in org_mappings:
+                    try:
+                        if (
+                            get_region_by_name(mapping.region_name).name
+                            == settings.SENTRY_MONOLITH_REGION
+                        ):
+                            member_mapping = member_mappings.get(mapping.organization_id)
+                            break
+                    except RegionResolutionError:
+                        pass
 
-            if member_mapping is None:
-                return None
-            invite_context = organization_service.get_invite_by_id(
-                organization_id=member_mapping.organization_id,
-                organization_member_id=member_id,
-                user_id=user_id,
-            )
+                if member_mapping is None:
+                    return None
+                invite_context = organization_service.get_invite_by_id(
+                    organization_id=member_mapping.organization_id,
+                    organization_member_id=member_id,
+                    user_id=user_id,
+                )
         else:
             invite_context = organization_service.get_invite_by_slug(
                 organization_member_id=member_id,

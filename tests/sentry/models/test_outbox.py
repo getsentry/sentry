@@ -132,7 +132,7 @@ class ControlOutboxTest(TestCase):
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.SLACK,
-                "--monolith--",
+                settings.SENTRY_MONOLITH_REGION,
             ),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
