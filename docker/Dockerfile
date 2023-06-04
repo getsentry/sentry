@@ -16,10 +16,10 @@ ENV GOSU_VERSION=1.12 \
   TINI_VERSION=0.19.0 \
   TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
 
-
 RUN set -x \
   && buildDeps=" \
   wget \
+  git \
   " \
   && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
@@ -32,6 +32,13 @@ RUN set -x \
   && echo "$TINI_SHA256 /usr/local/bin/tini" | sha256sum --check --status \
   && chmod +x /usr/local/bin/tini \
   && apt-get purge -y --auto-remove $buildDeps
+
+RUN set -x \
+  && git clone https://github.com/colesbury/nogil-3.12
+  && cd nogil-3.12
+  && ./configure
+  && make
+  && make install
 
 # Sane defaults for pip
 ENV \

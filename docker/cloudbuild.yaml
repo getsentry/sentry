@@ -31,7 +31,7 @@ steps:
         '-f',
         './docker/Dockerfile',
       ]
-    timeout: 300s
+    timeout: 3000s
 timeout: 2640s
 artifacts:
   objects:
