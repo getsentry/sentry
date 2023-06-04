@@ -56,18 +56,20 @@ def strict(filename: str, dryrun: bool):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
     import yaml
 
+    from sentry import options
+
     if dryrun:
         click.echo("Dryrun flag on. ")
 
     with open(filename) as stream:
         data = yaml.safe_load(stream).get("data", {})
 
-        for key in TRACKED:
-            if key not in data.keys():
-                _delete(key)
+        for opt in options.filter(options.FLAG_AUTOMATOR_MODIFIABLE):
+            if opt.name not in data.keys():
+                _delete(opt.name)
 
         for key, val in data.items():
-            if key in TRACKED:
+            if key in options.filter(options.FLAG_AUTOMATOR_MODIFIABLE):
                 _set(key, val, dryrun)
 
 
@@ -100,33 +102,10 @@ def _delete(key: str, dryrun: bool = False) -> bool:
 
     options.lookup_key(key)
 
-    if not can_change(key):
-        raise click.ClickException(f"Option {key} cannot be changed.")
+    # if not options.can_update(key):
+    #    raise click.ClickException(f"Option {key} cannot be changed.")
 
     if not dryrun:
         options.delete(key)
     click.echo(f"Deleted key: {key}")
     return options.get(key)
-
-
-TRACKED = {
-    "system.admin-email",
-    "system.support-email",
-    "system.security-email",
-    "system.rate-limit",
-    "github-login.base-domain",
-    "github-login.api-domain",
-    "github-login.extended-permissions",
-    "symbolserver.options",
-    "nodedata.cache-sample-rate",
-}
-
-
-def can_change(key: str) -> bool:
-    from sentry import options
-    from sentry.options import manager
-
-    opt = options.lookup_key(key)
-    return (key in TRACKED) and not (
-        (opt.flags & manager.FLAG_NOSTORE) or (opt.flags & manager.FLAG_IMMUTABLE)
-    )

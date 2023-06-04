@@ -23,6 +23,7 @@ from .manager import (  # NOQA
 from .store import OptionsStore
 
 __all__ = (
+    "can_update",
     "get",
     "set",
     "delete",

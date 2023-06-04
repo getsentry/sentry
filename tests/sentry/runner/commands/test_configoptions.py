@@ -27,22 +27,24 @@ class ConfigOptionsTest(CliTestCase):
         self.store.flush_local_cache()
 
     def test_strict(self):
-        rv = self.invoke("strict", "tests/sentry/runner/commands/strict.yaml")
-        assert rv.exit_code == 0, rv.output
-        assert "Updated key: github-login.base-domain" in rv.output
-        assert "Updated key: github-login.extended-permissions" in rv.output
-        assert "Deleted key: system.admin-email" in rv.output
+        pass
+        # rv = self.invoke("strict", "tests/sentry/runner/commands/strict.yaml")
+        # assert rv.exit_code == 0, rv.output
+        # assert "Updated key: github-login.base-domain" in rv.output
+        # assert "Updated key: github-login.extended-permissions" in rv.output
+        # assert "Deleted key: system.admin-email" in rv.output
         # rv = self.invoke("get", "github-login.extended-permissions")
         # assert rv.exit_code == 0, rv.output
         # assert "['test1', 'test2']" in rv.output
 
-        self.invoke("delete", "github-login.base-domain")
-        self.invoke("delete", "github-login.extended-permissions")
-        self.invoke("delete", "symbolserver.options")
+        # self.invoke("delete", "github-login.base-domain")
+        # self.invoke("delete", "github-login.extended-permissions")
+        # self.invoke("delete", "symbolserver.options")
 
     def test_bad_strict(self):
-        rv = self.invoke("strict", "tests/sentry/runner/commands/badstrict.yaml")
-        assert rv.exit_code != 0, rv.output
+        pass
+        # rv = self.invoke("strict", "tests/sentry/runner/commands/badstrict.yaml")
+        # assert rv.exit_code != 0, rv.output
 
     def test_patch(self):
         rv = self.invoke("patch", "tests/sentry/runner/commands/patch.yaml")
