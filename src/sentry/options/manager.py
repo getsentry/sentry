@@ -451,17 +451,6 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def has_changed(self, key: str, value, channel: UpdateChannel) -> bool:
-        """
-        Checks whether an option has changed.
-        Changed means either the last update channel changed or
-        The value changed.
-        """
-        stored_value = self.get(key)
-        last_updater = self.get_last_update_channel(key)
-
-        return value != stored_value or channel != last_updater
-
     def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
         """
         Return the reason the provided channel cannot update the option
