@@ -10,17 +10,6 @@ def configoptions():
 
 
 @configoptions.command()
-@configuration
-def list():
-    "Fetches all options."
-    from sentry import options
-
-    for opt in options.all():
-        if can_change(opt.name):
-            click.echo(f"{opt.name}: {options.get(opt.name)}")
-
-
-@configoptions.command()
 @click.argument("filename", required=True)
 @click.option(
     "--dryrun",
@@ -82,21 +71,6 @@ def strict(filename: str, dryrun: bool):
                 _set(key, val, dryrun)
 
 
-@configoptions.command()
-@click.argument("key", required=True)
-@click.option(
-    "--dryrun",
-    is_flag=True,
-    default=False,
-    required=False,
-    help="Output exactly what changes would be made and in which order.",
-)
-@configuration
-def get(key: str, dryrun: bool = False) -> str:
-    "Get a configuration option."
-    return _get(key, dryrun)
-
-
 def _get(
     key: str,
     dryrun: bool = False,
@@ -106,22 +80,6 @@ def _get(
     opt = options.lookup_key(key)
     click.echo(f"Fetched Key: {opt.name} ({opt.type}) = {options.get(opt.name)}")
     return opt
-
-
-@configoptions.command()
-@click.argument("key", required=True)
-@click.argument("val", required=True)
-@click.option(
-    "--dryrun",
-    is_flag=True,
-    default=False,
-    required=False,
-    help="Output exactly what changes would be made and in which order.",
-)
-@configuration
-def set(key: str, val: object, dryrun: bool = False) -> bool:
-    "Sets a configuration option to a new value."
-    return _set(key, val, dryrun)
 
 
 def _set(key: str, val: object, dryrun: bool = False) -> bool:
@@ -135,21 +93,6 @@ def _set(key: str, val: object, dryrun: bool = False) -> bool:
     else:
         click.echo(f"Updated key: {opt.name} ({opt.type}) = {val}")
         return opt
-
-
-@configoptions.command()
-@click.argument("key", required=True)
-@click.option(
-    "--dryrun",
-    is_flag=True,
-    default=False,
-    required=False,
-    help="Output exactly what changes would be made and in which order.",
-)
-@configuration
-def delete(key: str, dryrun: bool = False) -> bool:
-    "Deletes the given key. This resets the keys value to the default."
-    return _delete(key, dryrun)
 
 
 def _delete(key: str, dryrun: bool = False) -> bool:

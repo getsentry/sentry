@@ -26,52 +26,15 @@ class ConfigOptionsTest(CliTestCase):
     def register(self):
         self.store.flush_local_cache()
 
-    def test_get(self):
-        #  github-login.require-verified-email: False
-        rv = self.invoke("get", "github-login.require-verified-email")
-        assert rv.exit_code == 0, rv.output
-        assert "False" in rv.output
-
-    def test_bad_get(self):
-        rv = self.invoke("get", "testkey3")
-        assert rv.exit_code != 0, rv.output
-
-    def test_list(self):
-        rv = self.invoke("list")
-        assert rv.exit_code == 0, rv.output
-
-    def test_set(self):
-        rv = self.invoke("set", "github-login.base-domain", "testVal")
-        assert rv.exit_code == 0, rv.output
-        assert "Updated key" in rv.output
-        rv = self.invoke("get", "github-login.base-domain")
-        assert rv.exit_code == 0, rv.output
-        assert "testVal" in rv.output
-        self.invoke("delete", "github-login.base-domain")
-
-    def test_bad_set(self):
-        rv = self.invoke("set", "badKey", "val")
-        assert rv.exit_code != 0, rv.output
-
-    def test_delete(self):
-        rv = self.invoke("delete", "github-login.api-domain")
-        assert rv.exit_code == 0, rv.output
-        assert "Deleted key" in rv.output
-        rv = self.invoke("get", "github-login.api-domain")
-
-    def test_bad_delete(self):
-        rv = self.invoke("delete", "badKey")
-        assert rv.exit_code != 0, rv.output
-
     def test_strict(self):
         rv = self.invoke("strict", "tests/sentry/runner/commands/strict.yaml")
         assert rv.exit_code == 0, rv.output
         assert "Updated key: github-login.base-domain" in rv.output
         assert "Updated key: github-login.extended-permissions" in rv.output
         assert "Deleted key: system.admin-email" in rv.output
-        rv = self.invoke("get", "github-login.extended-permissions")
-        assert rv.exit_code == 0, rv.output
-        assert "['test1', 'test2']" in rv.output
+        # rv = self.invoke("get", "github-login.extended-permissions")
+        # assert rv.exit_code == 0, rv.output
+        # assert "['test1', 'test2']" in rv.output
 
         self.invoke("delete", "github-login.base-domain")
         self.invoke("delete", "github-login.extended-permissions")
@@ -88,10 +51,10 @@ class ConfigOptionsTest(CliTestCase):
         assert "Updated key: github-login.api-domain" in rv.output
         assert "Deleted key: symbolserver.options" in rv.output
 
-        rv = self.invoke("get", "github-login.api-domain")
-        assert rv.exit_code == 0, rv.output
-        assert "testing" in rv.output
-        self.invoke("delete", "github-login.api-domain")
+        # rv = self.invoke("get", "github-login.api-domain")
+        # assert rv.exit_code == 0, rv.output
+        # assert "testing" in rv.output
+        # self.invoke("delete", "github-login.api-domain")
         self.invoke("nodedata.cache-sample-rate")
 
     def test_bad_patch(self):
