@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0472_delete_past_organization_mappings"),
+        ("sentry", "0470_denormalize_user_is_active"),
     ]
 
     operations = [
