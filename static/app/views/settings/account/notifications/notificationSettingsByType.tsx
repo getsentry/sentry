@@ -22,7 +22,7 @@ import {
   QUOTA_FIELDS,
 } from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
-import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
+import NotificationSettingsByOrganizationByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByOrganizationByProjects';
 import {Identity} from 'sentry/views/settings/account/notifications/types';
 import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
 import {
@@ -352,7 +352,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         </Form>
         {!isEverythingDisabled(notificationType, notificationSettings) &&
           (isGroupedByProject(notificationType) ? (
-            <NotificationSettingsByProjects
+            <NotificationSettingsByOrganizationByProjects
               notificationType={notificationType}
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}

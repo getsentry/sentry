@@ -16,7 +16,7 @@ class UserNotificationSettingsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
     def test_simple(self):
         NotificationSetting.objects.update_settings(
@@ -111,7 +111,7 @@ class UserNotificationSettingsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
     def get_v2_response(self, qs_params=None, **kwargs):
         qs_params = qs_params or {}
@@ -214,7 +214,7 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
         assert other_project.id not in response.data["preferences"]["workflow"]["project"]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
     method = "put"
 

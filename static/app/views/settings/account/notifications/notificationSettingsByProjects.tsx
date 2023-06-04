@@ -25,7 +25,7 @@ import {
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
 
-type Props = {
+export type Props = {
   notificationSettings: NotificationSettingsObject;
   notificationType: string;
   onChange: (
@@ -33,6 +33,7 @@ type Props = {
     parentId: string
   ) => NotificationSettingsObject;
   onSubmitSuccess: () => void;
+  organizationId: string;
 } & AsyncComponent['props'];
 
 type State = {
@@ -48,7 +49,17 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    return [['projects', '/projects/']];
+    const {organizationId} = this.props;
+    return [
+      // TODO(hybrid-cloud): figure out how to inject the org's region api URL in this context
+      [
+        'projects',
+        `/projects/`,
+        {
+          query: {organization_id: organizationId},
+        },
+      ],
+    ];
   }
 
   /**
@@ -91,7 +102,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
         {canSearch &&
           this.renderSearchInput({
             stateKey: 'projects',
-            url: '/projects/',
+            url: `/projects/?organization_id=${this.props.organizationId}`,
             placeholder: t('Search Projects'),
             children: renderSearch,
           })}
@@ -109,7 +120,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
               <JsonForm
                 collapsible
                 key={groupTitle}
-                title={groupTitle}
+                // title={groupTitle}
                 fields={parents.map(parent =>
                   getParentField(notificationType, notificationSettings, parent, onChange)
                 )}

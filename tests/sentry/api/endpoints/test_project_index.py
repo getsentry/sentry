@@ -60,6 +60,23 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response()
         assert len(response.data) == 0
 
+    def test_filter_by_org_id(self):
+        user = self.create_user(is_superuser=True)
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(teams=[team])
+        org2 = self.create_organization()
+        team2 = self.create_team(organization=org2, members=[user])
+        self.create_project(teams=[team2])
+
+        self.login_as(user=user, superuser=False)
+
+        response = self.get_success_response(qs_params={"organization_id": str(org.id)})
+        assert len(response.data) == 1
+
+        assert response.data[0]["id"] == str(project.id)
+        assert response.data[0]["organization"]["id"] == str(org.id)
+
     def test_status_filter(self):
         with in_test_psql_role_override("postgres"):
             Project.objects.all().delete()
