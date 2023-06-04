@@ -83,6 +83,7 @@ export default function EditMonitor() {
                   label: (
                     <MonitorBreadcrumb>
                       <IdBadge
+                        disableLink
                         project={monitor.project}
                         avatarSize={16}
                         hideName

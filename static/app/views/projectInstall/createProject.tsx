@@ -1,11 +1,12 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
+import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
@@ -26,10 +27,15 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
+import IssueAlertOptions, {
+  MetricValues,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
+import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
@@ -38,7 +44,13 @@ type IssueAlertFragment = Parameters<
 function CreateProject() {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
+  const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
   const {teams} = useTeams();
+
+  const autoFill =
+    location.query.referrer === 'getting-started' &&
+    location.query.project === gettingStartedWithProjectContext.project?.id;
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
 
@@ -47,11 +59,19 @@ function CreateProject() {
     'Project Create: Creation page viewed'
   );
 
-  const [projectName, setProjectName] = useState('');
-  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
-  const [team, setTeam] = useState(accessTeams?.[0]?.slug);
+  const [projectName, setProjectName] = useState(
+    autoFill ? gettingStartedWithProjectContext.project?.name : ''
+  );
+  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(
+    autoFill ? gettingStartedWithProjectContext.project?.platform : undefined
+  );
+  const [team, setTeam] = useState(
+    autoFill
+      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      : accessTeams?.[0]?.slug
+  );
 
-  const [error, setError] = useState(false);
+  const [errors, setErrors] = useState(false);
   const [inFlight, setInFlight] = useState(false);
 
   const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
@@ -75,7 +95,7 @@ function CreateProject() {
         defaultRules,
       } = alertRuleConfig || {};
 
-      const selectedPlatform = selectedFramework?.key ?? platform?.key;
+      const selectedPlatform = selectedFramework ?? platform;
 
       if (!selectedPlatform) {
         addErrorMessage(t('Please select a platform in Step 1'));
@@ -85,19 +105,17 @@ function CreateProject() {
       setInFlight(true);
 
       try {
-        const projectData = await api.requestPromise(
-          team === null
-            ? `/organizations/${slug}/experimental/projects/`
-            : `/teams/${slug}/${team}/projects/`,
-          {
-            method: 'POST',
-            data: {
-              name: projectName,
-              platform: selectedPlatform,
-              default_rules: defaultRules ?? true,
-            },
-          }
-        );
+        const url = team
+          ? `/teams/${slug}/${team}/projects/`
+          : `/organizations/${slug}/experimental/projects/`;
+        const projectData = await api.requestPromise(url, {
+          method: 'POST',
+          data: {
+            name: projectName,
+            platform: selectedPlatform.key,
+            default_rules: defaultRules ?? true,
+          },
+        });
 
         let ruleId: string | undefined;
         if (shouldCreateCustomRule) {
@@ -129,14 +147,34 @@ function CreateProject() {
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
+        if (team) {
+          addSuccessMessage(
+            tct('Created project [project]', {
+              project: `${projectData.slug}`,
+            })
+          );
+        } else {
+          addSuccessMessage(
+            tct('Created [project] under new team [team]', {
+              project: `${projectData.slug}`,
+              team: `#${projectData.team_slug}`,
+            })
+          );
+        }
+
         browserHistory.push(
           normalizeUrl(
-            `/${organization.slug}/${projectData.slug}/getting-started/${selectedPlatform}/`
+            `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
           )
         );
       } catch (err) {
         setInFlight(false);
-        setError(err.responseJSON.detail);
+        setErrors(err.responseJSON);
+        addErrorMessage(
+          tct('Failed to create project [project]', {
+            project: `${projectName}`,
+          })
+        );
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -219,8 +257,8 @@ function CreateProject() {
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
 
-  const isOrgMemberWithNoAccess =
-    accessTeams.length === 0 && !organization.access.includes('project:admin');
+  const canCreateTeam = organization.access.includes('project:admin');
+  const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
   const canSubmitForm =
     !inFlight &&
@@ -228,6 +266,38 @@ function CreateProject() {
     canCreateProject &&
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
+
+  const alertFrequencyDefaultValues = useMemo(() => {
+    if (!autoFill) {
+      return {};
+    }
+
+    const alertRules = gettingStartedWithProjectContext.project?.alertRules;
+
+    if (alertRules?.length === 0) {
+      return {
+        alertSetting: String(RuleAction.CREATE_ALERT_LATER),
+      };
+    }
+
+    if (
+      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+    ) {
+      return {
+        alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
+        interval: String(alertRules?.[0].conditions?.[0].interval),
+        threshold: String(alertRules?.[0].conditions?.[0].value),
+        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+          ? MetricValues.ERRORS
+          : MetricValues.USERS,
+      };
+    }
+
+    return {
+      alertSetting: String(RuleAction.ALERT_ON_EVERY_ISSUE),
+    };
+  }, [gettingStartedWithProjectContext, autoFill]);
 
   const createProjectForm = (
     <Fragment>
@@ -269,19 +339,21 @@ function CreateProject() {
                 onChange={choice => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
-              <Button
-                borderless
-                data-test-id="create-team"
-                icon={<IconAdd isCircled />}
-                onClick={() =>
-                  openCreateTeamModal({
-                    organization,
-                    onClose: ({slug}) => setTeam(slug),
-                  })
-                }
-                title={t('Create a team')}
-                aria-label={t('Create a team')}
-              />
+              {canCreateTeam && (
+                <Button
+                  borderless
+                  data-test-id="create-team"
+                  icon={<IconAdd isCircled />}
+                  onClick={() =>
+                    openCreateTeamModal({
+                      organization,
+                      onClose: ({slug}) => setTeam(slug),
+                    })
+                  }
+                  title={t('Create a team')}
+                  aria-label={t('Create a team')}
+                />
+              )}
             </TeamSelectInput>
           </div>
         )}
@@ -301,7 +373,6 @@ function CreateProject() {
 
   return (
     <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
-      {error && <Alert type="error">{error}</Alert>}
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
         <HelpText>
@@ -321,9 +392,23 @@ function CreateProject() {
           setPlatform={handlePlatformChange}
           organization={organization}
           showOther
+          noAutoFilter
         />
-        <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
+        <IssueAlertOptions
+          {...alertFrequencyDefaultValues}
+          onChange={updatedData => setAlertRuleConfig(updatedData)}
+        />
         {createProjectForm}
+
+        {errors && (
+          <Alert type="error">
+            {Object.keys(errors).map(key => (
+              <div key={key}>
+                <strong>{startCase(key)}</strong>: {errors[key]}
+              </div>
+            ))}
+          </Alert>
+        )}
       </div>
     </Access>
   );

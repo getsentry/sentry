@@ -272,9 +272,13 @@ register(
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
-# Filestore
+# Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+
+# Filestore for control silo
+register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
+register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Symbol server
 register(
@@ -1231,5 +1235,7 @@ register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABL
 register("sourcemaps.enable-artifact-bundles", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Decides whether an incoming span triggers an update of the clustering rule applied to it.
+register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
