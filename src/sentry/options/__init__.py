@@ -16,6 +16,7 @@ from .manager import (  # NOQA
     FLAG_RATE,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
+    NotWritableReason,
     OptionsManager,
     UnknownOption,
     UpdateChannel,
