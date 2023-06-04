@@ -22,18 +22,19 @@ from sentry.models import (
     process_control_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.silo.base import SiloMode
-
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
-def process_user_updates(object_identifier: int, **kwds: Any):
+def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (user := maybe_process_tombstone(User, object_identifier)) is None:
         return
-    user  # Currently we do not sync any other user changes, but if we did, you can use this variable.
+    organization_service.update_region_user(
+        user=RpcRegionUser(id=user.id, is_active=user.is_active), region_name=region_name
+    )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.INTEGRATION_UPDATE)

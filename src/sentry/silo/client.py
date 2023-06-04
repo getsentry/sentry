@@ -3,15 +3,18 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 from django.conf import settings
+from django.http import HttpResponse
 from django.http.request import HttpRequest
-from requests import Request
+from requests import Request, Response
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
-from sentry.silo.util import clean_proxy_headers
+from sentry.silo.util import (
+    PROXY_DIRECT_LOCATION_HEADER,
+    clean_outbound_headers,
+    clean_proxy_headers,
+)
 from sentry.types.region import Region, get_region_by_name
-
-INVALID_PROXY_HEADERS = ["Host"]
 
 
 class SiloClientError(Exception):
@@ -37,19 +40,21 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-    def proxy_request(self, incoming_request: HttpRequest) -> BaseApiResponseX:
+    def proxy_request(self, incoming_request: HttpRequest) -> HttpResponse:
         """
-        Directly proxy the provided request to the appropriate silo with minimal header changes
+        Directly proxy the provided request to the appropriate silo with minimal header changes.
         """
+        full_url = self.build_url(incoming_request.path)
         prepared_request = Request(
             method=incoming_request.method,
-            url=self.build_url(incoming_request.path),
+            url=full_url,
             headers=clean_proxy_headers(incoming_request.headers),
             data=incoming_request.body,
         ).prepare()
-        client_response: BaseApiResponseX = super()._request(
+        raw_response: Response = super()._request(  # type: ignore
             incoming_request.method,
             incoming_request.path,
+            raw_response=True,
             allow_text=True,
             prepared_request=prepared_request,
         )
@@ -57,7 +62,19 @@ class BaseSiloClient(BaseApiClient):
             "proxy_request",
             extra={"method": incoming_request.method, "path": incoming_request.path},
         )
-        return client_response
+        http_response = HttpResponse(
+            content=raw_response.content,
+            status=raw_response.status_code,
+            reason=raw_response.reason,
+            content_type=raw_response.headers.get("Content-Type"),
+            # XXX: Can be added in Django 3.2
+            # headers=raw_response.headers
+        )
+        valid_headers = clean_outbound_headers(raw_response.headers)
+        for header, value in valid_headers.items():
+            http_response[header] = value
+        http_response[PROXY_DIRECT_LOCATION_HEADER] = full_url
+        return http_response
 
     def request(
         self,

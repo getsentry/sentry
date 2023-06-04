@@ -3,13 +3,13 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 
 def _backfill(apps, schema_editor):
     cls = apps.get_model("sentry", "RawEvent")
 
-    for obj in RangeQuerySetWrapperWithProgressBar(cls.objects.all()):
+    for obj in RangeQuerySetWrapperWithProgressBarApprox(cls.objects.all()):
         # load pickle, save json
         obj.save(update_fields=["data"])
 
