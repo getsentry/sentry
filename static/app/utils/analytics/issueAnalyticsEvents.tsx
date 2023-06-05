@@ -45,7 +45,10 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
-  'issue_details.escalating_feedback_received': {isHighPriority: boolean};
+  'issue_details.escalating_feedback_received': {
+    group_id: string;
+    is_high_priority: boolean;
+  };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};

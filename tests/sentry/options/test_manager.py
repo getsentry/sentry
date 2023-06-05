@@ -371,3 +371,11 @@ class OptionsManagerTest(TestCase):
 
         with self.settings(SENTRY_OPTIONS={"nostore": "awesome"}):
             assert self.manager.isset("nostore") is True
+
+    def test_flag_checking(self):
+        self.manager.register("option", flags=FLAG_NOSTORE)
+
+        opt = self.manager.lookup_key("option")
+        assert opt.has_any_flag({FLAG_NOSTORE})
+        assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
+        assert not opt.has_any_flag({FLAG_REQUIRED})

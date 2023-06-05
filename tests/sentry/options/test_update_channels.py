@@ -1,11 +1,11 @@
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.options.manager import (
-    DEFAULT_FLAGS,
+    FLAG_ADMIN_MODIFIABLE,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
@@ -16,82 +16,6 @@ from sentry.options.manager import (
     UpdateChannel,
 )
 from sentry.options.store import OptionsStore
-
-# Test cases for test_can_update
-TEST_CASES = [
-    pytest.param(
-        "manager",
-        DEFAULT_FLAGS,
-        None,
-        UpdateChannel.UNKNOWN,
-        None,
-        None,
-        id="Legacy set of default option",
-    ),
-    pytest.param(
-        "manager",
-        DEFAULT_FLAGS,
-        None,
-        UpdateChannel.ADMIN,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        id="Default option cannot be updated by admin",
-    ),
-    pytest.param(
-        "manager",
-        FLAG_CREDENTIAL,
-        None,
-        UpdateChannel.ADMIN,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        id="Credentials cannot be updated by admin",
-    ),
-    pytest.param(
-        "manager",
-        DEFAULT_FLAGS,
-        None,
-        UpdateChannel.AUTOMATOR,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        id="Default option cannot be updated by automator",
-    ),
-    pytest.param(
-        "manager",
-        FLAG_CREDENTIAL,
-        None,
-        UpdateChannel.AUTOMATOR,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        NotWritableReason.CHANNEL_NOT_ALLOWED,
-        id="Credentials cannot be updated by automator",
-    ),
-    pytest.param(
-        "manager",
-        FLAG_AUTOMATOR_MODIFIABLE,
-        UpdateChannel.AUTOMATOR,
-        UpdateChannel.AUTOMATOR,
-        None,
-        None,
-        id="Basic options fully owned by automator. Can update",
-    ),
-    pytest.param(
-        "manager",
-        FLAG_AUTOMATOR_MODIFIABLE,
-        UpdateChannel.CLI,
-        UpdateChannel.AUTOMATOR,
-        None,
-        NotWritableReason.DRIFTED,
-        id="Basic options fully owned by automator. Can update",
-    ),
-    pytest.param(
-        "manager",
-        FLAG_AUTOMATOR_MODIFIABLE,
-        UpdateChannel.AUTOMATOR,
-        UpdateChannel.CLI,
-        None,
-        None,
-        id="Basic options set by automator and reset by CLI",
-    ),
-]
 
 
 @pytest.fixture()
@@ -115,62 +39,44 @@ def manager():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "manager_fixture, options_flags, set_channel, check_channel, set_to_same_value_reason, reset_reason",
-    TEST_CASES,
-)
-def test_can_update(
-    manager_fixture,
-    options_flags: int,
-    set_channel: Optional[UpdateChannel],
-    check_channel: UpdateChannel,
-    set_to_same_value_reason: Optional[NotWritableReason],
-    reset_reason: Optional[NotWritableReason],
-    request: Any,
-) -> None:
+def test_drift_conditions(manager) -> None:
     """
-    Tests a multi-step update workflow for two options:
-    1) check that the provided channel can update the option after registration
-    2) updates the option with another channel
-    3) check whether the original channel can update it to the same value
-    4) check whether the original channel can update it to a different value
-
-    @param set_channel: the channel that sets the option first
-    @param check_channel: the channel we call can_update with
-    @param set_to_same_value_reason: The NotWritableReason we expect at point 3
-    above.
-    @param reset_reason: The NotWritableReason we expect at point 4 above.
+    Test multiple drift conditions, specifically, validates we can
+    always update an option that is not set, we can reset an option
+    to the same value, and, if we try to change the value of an option,
+    the forbidden transitions are taken into account.
     """
-    manager = request.getfixturevalue(manager_fixture)
-    manager.register("option", flags=options_flags)
-    manager.register("another_option", flags=DEFAULT_FLAGS)
 
-    reason = manager.can_update("option", "testval", check_channel)
-    assert reason == set_to_same_value_reason
+    manager.register("option", flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_ADMIN_MODIFIABLE)
 
-    if set_channel:
-        manager.set("option", "testval", channel=set_channel)
-    else:
-        manager.set("option", "testval")
+    # Can update an option that has no value set
+    assert manager.can_update("option", "val", UpdateChannel.AUTOMATOR) is None
+    assert manager.can_update("option", "val", UpdateChannel.ADMIN) is None
+    assert manager.can_update("option", "val", UpdateChannel.CLI) is None
+    # And validates the update happens
+    manager.set("option", "val", channel=UpdateChannel.AUTOMATOR)
 
-    reason = manager.can_update("option", "testval", check_channel)
-    assert reason == set_to_same_value_reason
+    # CLI can always update no matter on drift.
+    assert manager.can_update("option", "val2", UpdateChannel.CLI) is None
+    manager.set("option", "val2", channel=UpdateChannel.CLI)
 
-    reason = manager.can_update("option", "testval2", check_channel)
-    assert reason == reset_reason
+    # Now the option has drifted. Automator cannot update anymore
+    assert manager.can_update("option", "val", UpdateChannel.AUTOMATOR) == NotWritableReason.DRIFTED
+    # And the set method agrees.
+    with pytest.raises(AssertionError):
+        manager.set("option", "val", channel=UpdateChannel.AUTOMATOR)
 
-    manager.unregister("another_option")
+    # And the admin can update ignoring the drift.
+    assert manager.can_update("option", "val", UpdateChannel.ADMIN) is None
+
+    # But the automator can reset the option to the same value to take control of it.
+    assert manager.can_update("option", "val2", UpdateChannel.AUTOMATOR) is None
+    manager.set("option", "val2", channel=UpdateChannel.AUTOMATOR)
+
     manager.unregister("option")
 
 
 TEST_CASES_READONLY = [
-    pytest.param(
-        "manager",
-        FLAG_AUTOMATOR_MODIFIABLE,
-        False,
-        None,
-        id="Default option. Not readonly",
-    ),
     pytest.param(
         "manager",
         FLAG_IMMUTABLE,
@@ -187,17 +93,24 @@ TEST_CASES_READONLY = [
     ),
     pytest.param(
         "manager",
-        FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-        False,
-        None,
-        id="Disk prioritized. Non set",
-    ),
-    pytest.param(
-        "manager",
         FLAG_PRIORITIZE_DISK,
         True,
         NotWritableReason.OPTION_ON_DISK,
-        id="Disk prioritized. Set. Non writable",
+        id="Disk prioritized. Non writable",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_ADMIN_MODIFIABLE,
+        False,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
+        id="The automator cannot update ADMIN only managed options",
+    ),
+    pytest.param(
+        "manager",
+        FLAG_CREDENTIAL,
+        False,
+        NotWritableReason.CHANNEL_NOT_ALLOWED,
+        id="The automator cannot update credentials",
     ),
 ]
 
@@ -211,7 +124,7 @@ def test_non_writable_options(
     manager_fixture,
     flags: int,
     set_settings_val: bool,
-    outcome: Optional[NotWritableReason],
+    outcome: NotWritableReason,
     request: Any,
 ) -> None:
     """
@@ -222,9 +135,6 @@ def test_non_writable_options(
     manager.register("option", flags=flags)
     if set_settings_val:
         settings.SENTRY_OPTIONS["option"] = "a_value"
-
-    reason_legacy = manager.can_update("option", "val", UpdateChannel.CLI)
-    assert reason_legacy == outcome
 
     reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
     assert reason_automator == outcome
