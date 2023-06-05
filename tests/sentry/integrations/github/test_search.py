@@ -194,7 +194,7 @@ class GithubSearchTest(APITestCase):
     # Missing Resources
     def test_missing_integration(self):
         url = reverse(
-            "sentry-extensions-gitlab-search",
+            "sentry-extensions-github-search",
             kwargs={"organization_slug": self.organization.slug, "integration_id": "1234567890"},
         )
         resp = self.client.get(
