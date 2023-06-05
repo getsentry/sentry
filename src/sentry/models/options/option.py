@@ -65,7 +65,10 @@ class ControlOption(BaseOption):
     __repr__ = sane_repr("key", "value")
 
 
-class HasOption(abc.ABC):
+class HasOption:
+    # Logically this is an abstract interface. Leaving off abc.ABC because it clashes
+    # with the Model metaclass.
+
     @abc.abstractmethod
     def get_option(
         self,
