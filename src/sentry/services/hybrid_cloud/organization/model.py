@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
@@ -64,14 +65,6 @@ class RpcTeamMember(RpcModel):
 
 def project_status_visible() -> int:
     return int(ObjectStatus.ACTIVE)
-
-
-class RpcProject(RpcModel):
-    id: int = -1
-    slug: str = ""
-    name: str = ""
-    organization_id: int = -1
-    status: int = Field(default_factory=project_status_visible)
 
 
 class RpcOrganizationMemberFlags(RpcModel):
