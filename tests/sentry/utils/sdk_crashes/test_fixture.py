@@ -25,7 +25,7 @@ def get_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
 
 
 def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Mapping[str, Any]]:
-    return [
+    frames = [
         get_sentry_frame(function, sentry_frame_in_app),
         {
             "function": "LoginViewController.viewDidAppear",
@@ -72,6 +72,11 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
             "image_addr": "0x1a4e8f000",
         },
     ]
+
+    # The frames have to be ordered from caller to callee, or oldest to youngest.
+    # The last frame is the one creating the exception.
+    # As we usually look at stacktraces from youngest to oldest, we reverse the order.
+    return frames[::-1]
 
 
 def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> Sequence[Mapping[str, Any]]:
