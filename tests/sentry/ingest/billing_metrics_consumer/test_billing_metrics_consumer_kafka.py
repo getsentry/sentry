@@ -17,7 +17,7 @@ from sentry.utils.outcomes import Outcome
 
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
 @freeze_time("1985-10-26 21:00:00")
-def run_test_outcomes_consumed(track_outcome):
+def test_outcomes_consumed(track_outcome):
     # Based on test_ingest_consumer_kafka.py
 
     topic = Topic("snuba-generic-metrics")
