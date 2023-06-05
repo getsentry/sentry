@@ -158,6 +158,7 @@ const ListItemContainer = styled('div')`
 const ListContainer = styled('ul')`
   padding: ${space(1)} 0 0 0;
   margin: 0;
+  border-left: 1px solid ${p => p.theme.border};
   list-style-type: none;
 `;
 
