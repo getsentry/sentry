@@ -7,6 +7,7 @@ from typing import Any, Dict, Mapping, MutableMapping, Sequence
 import rest_framework
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.signals import post_save
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -495,6 +496,13 @@ def update_groups(
                 group.status = GroupStatus.RESOLVED
                 group.substatus = None
                 group.resolved_at = now
+                if affected:
+                    post_save.send(
+                        sender=Group,
+                        instance=group,
+                        created=False,
+                        update_fields=["resolved_at", "status", "substatus"],
+                    )
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
                 )
