@@ -213,10 +213,12 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       tabs.push(['sentryfx', t('Sentry Function')]);
     }
 
+    const hasAuthTokens = organization.features.includes('org-auth-tokens');
+
     return (
       <div>
         <SettingsPageHeader
-          title={t('Developer Settings')}
+          title={hasAuthTokens ? t('Custom Integrations') : t('Developer Settings')}
           body={
             <Fragment>
               {t(
