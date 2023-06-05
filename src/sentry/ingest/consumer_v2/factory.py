@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional
 
-from arroyo import Topic
+from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -18,8 +18,10 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
+from sentry.ingest.types import ConsumerType
 from sentry.snuba.utils import initialize_consumer_state
-from sentry.utils import kafka_config
+from sentry.utils import kafka_config, metrics
+from sentry.utils.arroyo import MetricsWrapper
 
 
 class MultiProcessConfig(NamedTuple):
@@ -63,7 +65,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def get_ingest_consumer(
-    topic: str,
+    type_: str,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
@@ -76,7 +78,10 @@ def get_ingest_consumer(
     force_cluster: str | None,
     **options: Any,
 ) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or topic
+    topic = force_topic or ConsumerType.get_topic_name(type_)
+
+    metrics_name = f"ingest_{type_}"
+    configure_metrics(MetricsWrapper(metrics.backend, name=metrics_name))
 
     consumer_config = get_config(
         topic,

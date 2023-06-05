@@ -116,7 +116,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
             DEFAULT_BLOCK_SIZE = int(32 * 1e6)  # whatever this even means
 
             consumer = factory.get_ingest_consumer(
-                topic=ConsumerType.get_topic_name(ConsumerType.Events),
+                type_=ConsumerType.Events,
                 group_id=random_group_id,
                 auto_offset_reset="earliest",
                 strict_offset_reset=None,

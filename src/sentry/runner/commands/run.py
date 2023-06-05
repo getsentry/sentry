@@ -565,8 +565,7 @@ def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
         if (mbt := options["max_batch_time"]) > 10:
             options["max_batch_time"] = mbt / 1000
 
-        topic = ConsumerType.get_topic_name(next(iter(consumer_types)))
-        consumer = get_ingest_consumer(topic=topic, **options)
+        consumer = get_ingest_consumer(type_=consumer_types[0], **options)
         run_processor_with_signals(consumer)
 
         return
