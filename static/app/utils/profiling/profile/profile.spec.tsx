@@ -37,7 +37,6 @@ export const makeTestingBoilerplate = () => {
 
 // Since it's easy to make mistakes or accidentally assign parents to the wrong nodes, this utility fn
 // will format the stack samples as a tree string so it's more human friendly.
-// @ts-ignore this is a helper fn
 export const _logExpectedStack = (samples: Profile['samples']): string => {
   const head = `
 Samples follow a top-down chronological order\n\n`;

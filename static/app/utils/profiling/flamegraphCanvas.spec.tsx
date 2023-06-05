@@ -39,7 +39,7 @@ describe('flamegraphCanvas', () => {
 
   it('initializes logicalToPhysicalSpace', () => {
     window.devicePixelRatio = 2;
-    // @ts-ignore partial mock
+    // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
     const canvas = makeCanvasMock({
       getContext: jest.fn().mockReturnValue(context),
@@ -54,7 +54,7 @@ describe('flamegraphCanvas', () => {
 
   it('initializes physicalToLogicalSpace', () => {
     window.devicePixelRatio = 2;
-    // @ts-ignore partial mock
+    // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
     const canvas = makeCanvasMock({
       getContext: jest.fn().mockReturnValue(context),
@@ -68,7 +68,6 @@ describe('flamegraphCanvas', () => {
   });
 
   it('handles resize events by updating space', () => {
-    // @ts-ignore partial canvas mock
     const canvas = makeCanvasMock({
       width: 100,
       height: 100,

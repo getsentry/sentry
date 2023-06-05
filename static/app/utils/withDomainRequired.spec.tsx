@@ -171,7 +171,6 @@ describe('normalizeUrl', function () {
       return {pathname: '/settings/'};
     }
     result = normalizeUrl(objectCallback, location);
-    // @ts-ignore
     expect(result.pathname).toEqual('/settings/');
 
     function stringCallback(_loc: Location): LocationDescriptor {
@@ -187,7 +186,6 @@ describe('normalizeUrl', function () {
       return {pathname: '/settings/'};
     }
     result = normalizeUrl(objectCallback2, location, {forceCustomerDomain: true});
-    // @ts-ignore
     expect(result.pathname).toEqual('/settings/');
 
     function stringCallback2(_loc: Location): LocationDescriptor {

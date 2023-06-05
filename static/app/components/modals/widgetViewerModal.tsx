@@ -679,7 +679,7 @@ function WidgetViewerModal(props: Props) {
   };
 
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
-    // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+    // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
     const {seriesStart, seriesEnd} = evt;
     let startValue, endValue;
