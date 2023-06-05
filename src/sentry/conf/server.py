@@ -812,10 +812,6 @@ CELERY_QUEUES = [
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
-    Queue(
-        "dynamicsampling",
-        routing_key="dynamicsampling",
-    ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
@@ -3331,6 +3327,7 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+SENTRY_MONOLITH_REGION: str = "--monolith--"
 
 # Enable siloed development environment.
 USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
@@ -3432,3 +3429,7 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
 SENTRY_FILE_COPY_ROLLOUT_RATE = 0.01
+
+# The Redis cluster to use for monitoring the health of
+# Celery queues.
+SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
