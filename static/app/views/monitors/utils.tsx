@@ -11,7 +11,7 @@ export function crontabAsText(crontabInput: string | null): string | null {
   let parsedSchedule: string;
   try {
     parsedSchedule = cronstrue.toString(crontabInput, {
-      verbose: true,
+      verbose: false,
       use24HourTimeFormat: shouldUse24Hours(),
     });
   } catch (_e) {
