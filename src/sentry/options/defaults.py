@@ -168,9 +168,13 @@ register("api.rate-limit.org-create", default=5, flags=FLAG_ALLOW_EMPTY | FLAG_P
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
-# Filestore
+# Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+
+# Filestore for control silo
+register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
+register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Symbol server
 register("symbolserver.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)

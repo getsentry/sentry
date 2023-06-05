@@ -265,6 +265,9 @@ export enum InvalidReason {
   INVALID_FILE_SIZE = 'invalid-file-size',
   INVALID_NUMBER = 'invalid-number',
   EMPTY_VALUE_IN_LIST_NOT_ALLOWED = 'empty-value-in-list-not-allowed',
+  INVALID_KEY = 'invalid-key',
+  INVALID_DURATION = 'invalid-duration',
+  INVALID_DATE_FORMAT = 'invalid-date-format',
 }
 
 /**
@@ -275,6 +278,10 @@ type InvalidFilter = {
    * The message indicating why the filter is invalid
    */
   reason: string;
+  /**
+   * The invalid reason type
+   */
+  type: InvalidReason;
   /**
    * In the case where a filter is invalid, we may be expecting a different
    * type for this filter based on the key. This can be useful to hint to the
@@ -651,6 +658,7 @@ export class TokenConverter {
   checkInvalidFreeText = (value: string) => {
     if (this.config.disallowWildcard && value.includes('*')) {
       return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
     }
@@ -673,7 +681,10 @@ export class TokenConverter {
       this.config.supportedTags &&
       !this.config.supportedTags[key.text]
     ) {
-      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
+      return {
+        type: InvalidReason.INVALID_KEY,
+        reason: t('Invalid key. "%s" is not a supported search key.', key.text),
+      };
     }
 
     if (filter === FilterType.Text) {
@@ -707,6 +718,7 @@ export class TokenConverter {
 
     if (this.keyValidation.isDuration(keyName)) {
       return {
+        type: InvalidReason.INVALID_DURATION,
         reason: t('Invalid duration. Expected number followed by duration unit suffix'),
         expectedType: [FilterType.Duration],
       };
@@ -719,6 +731,7 @@ export class TokenConverter {
       const example = date.toISOString();
 
       return {
+        type: InvalidReason.INVALID_DATE_FORMAT,
         reason: t(
           'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
           example.slice(0, 10),
@@ -730,6 +743,7 @@ export class TokenConverter {
 
     if (this.keyValidation.isBoolean(keyName)) {
       return {
+        type: InvalidReason.INVALID_BOOLEAN,
         reason: this.config.invalidMessages[InvalidReason.INVALID_BOOLEAN],
         expectedType: [FilterType.Boolean],
       };
@@ -737,6 +751,7 @@ export class TokenConverter {
 
     if (this.keyValidation.isSize(keyName)) {
       return {
+        type: InvalidReason.INVALID_FILE_SIZE,
         reason: this.config.invalidMessages[InvalidReason.INVALID_FILE_SIZE],
         expectedType: [FilterType.Size],
       };
@@ -744,6 +759,7 @@ export class TokenConverter {
 
     if (this.keyValidation.isNumeric(keyName)) {
       return {
+        type: InvalidReason.INVALID_NUMBER,
         reason: this.config.invalidMessages[InvalidReason.INVALID_NUMBER],
         expectedType: [FilterType.Numeric, FilterType.NumericIn],
       };
@@ -758,16 +774,23 @@ export class TokenConverter {
   checkInvalidTextValue = (value: TextFilter['value']) => {
     if (this.config.disallowWildcard && value.value.includes('*')) {
       return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
     }
 
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
-      return {reason: this.config.invalidMessages[InvalidReason.MUST_BE_QUOTED]};
+      return {
+        type: InvalidReason.MUST_BE_QUOTED,
+        reason: this.config.invalidMessages[InvalidReason.MUST_BE_QUOTED],
+      };
     }
 
     if (!value.quoted && value.value === '') {
-      return {reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE]};
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
     }
 
     return null;
@@ -781,6 +804,7 @@ export class TokenConverter {
 
     if (hasEmptyValue) {
       return {
+        type: InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED,
         reason:
           this.config.invalidMessages[InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED],
       };
@@ -790,7 +814,10 @@ export class TokenConverter {
       this.config.disallowWildcard &&
       items.some(item => item.value.value.includes('*'))
     ) {
-      return {reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED]};
+      return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
     }
 
     return null;

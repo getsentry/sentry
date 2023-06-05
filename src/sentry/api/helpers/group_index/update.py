@@ -548,7 +548,7 @@ def update_groups(
                 )
                 new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
 
-        has_escalating_issues = features.has(
+        has_escalating_issues = len(group_list) > 0 and features.has(
             "organizations:escalating-issues", group_list[0].organization
         )
 
