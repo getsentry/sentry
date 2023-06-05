@@ -236,12 +236,16 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
+
     if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, aggregateOutputType(seriesName));
+        },
         ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }
