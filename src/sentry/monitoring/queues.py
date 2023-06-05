@@ -14,8 +14,6 @@ QUEUES = ["profiles.process"]
 
 KEY_NAME = "unhealthy-queues"
 
-CLUSTER_NAME = "default"
-
 
 class RedisBackend:
     def __init__(self, broker_url):
@@ -109,7 +107,9 @@ except KeyError:
     backend = None
 
 
-queue_monitoring_cluster = redis.redis_clusters.get(CLUSTER_NAME)
+queue_monitoring_cluster = redis.redis_clusters.get(
+    options.get("backpressure.monitor_queues.redis_cluster")
+)
 
 
 def _unhealthy_queue_key(queue_name: str) -> str:
@@ -187,5 +187,8 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
 def monitor_queues():
     if backend is None:
         return
-    queue_stats_updater_process = Thread(target=_run_queue_stats_updater, args=(CLUSTER_NAME,))
+    queue_stats_updater_process = Thread(
+        target=_run_queue_stats_updater,
+        args=(options.get("backpressure.monitor_queues.redis_cluster"),),
+    )
     queue_stats_updater_process.start()
