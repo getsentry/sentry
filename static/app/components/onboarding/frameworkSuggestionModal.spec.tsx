@@ -9,7 +9,11 @@ import {
 } from 'sentry/components/globalModal/components';
 import platforms from 'sentry/data/platforms';
 
-import {FrameworkSuggestionModal, languageDetails} from './frameworkSuggestionModal';
+import {
+  FrameworkSuggestionModal,
+  languageDetails,
+  topJavascriptFrameworks,
+} from './frameworkSuggestionModal';
 
 describe('Framework suggestion modal', function () {
   it('render default components', async function () {
@@ -48,6 +52,14 @@ describe('Framework suggestion modal', function () {
     for (const framework of frameworks) {
       expect(screen.getByRole('radio', {name: framework.name})).toBeInTheDocument();
     }
+
+    // check that the top frameworks are in the correct order
+    topJavascriptFrameworks.forEach((framework, index) => {
+      const name = frameworks.find(f => f.id === framework)?.name;
+      if (name) {
+        expect(screen.getAllByRole('listitem')[index]).toHaveTextContent(name);
+      }
+    });
 
     expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeDisabled();
 

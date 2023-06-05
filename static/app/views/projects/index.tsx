@@ -4,7 +4,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export function Projects({children}: Props) {
+export default function Projects({children}: Props) {
   return (
     <GettingStartedWithProjectContextProvider>
       {children}

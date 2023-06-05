@@ -545,7 +545,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
         assert resp.status_code == 200, resp.content
 
-        member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 

@@ -297,8 +297,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
         columnTitles={[
           'endpoint',
           'tpm',
-          'p50(duration)',
-          'p50 change',
+          DataTitles.p95,
+          'p95 change',
           'failure count',
           'cumulative time',
         ]}
