@@ -190,7 +190,11 @@ def build_metric_alert_chart(
 
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
     # If we allow alerts to be across multiple orgs this will break
-    project_id = snuba_query.subscriptions.first().project_id
+    first_subscription_or_none = snuba_query.subscriptions.first()
+    if first_subscription_or_none is None:
+        return None
+
+    project_id = first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
     query = (

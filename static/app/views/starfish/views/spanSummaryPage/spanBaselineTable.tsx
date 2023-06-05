@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import Sparkline, {
   generateHorizontalLine,
@@ -34,7 +34,7 @@ type Row = {
   timeSpent: string;
 };
 
-export type Keys = 'description' | 'epm()' | 'p50(span.self_time)' | 'timeSpent';
+export type Keys = 'description' | 'epm()' | 'p95(span.self_time)' | 'timeSpent';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanBaselineTable({span}: Props) {
@@ -99,8 +99,14 @@ function BodyCell({
     return <DescriptionCell span={span} row={row} column={column} />;
   }
 
-  if (column.key === 'p50(span.self_time)') {
-    return <P50Cell span={span} row={row} column={column} />;
+  if (column.key === 'p95(span.self_time)') {
+    return (
+      <DurationTrendCell
+        duration={row.metrics?.p95}
+        durationSeries={row.metricSeries?.p95}
+        color={P95_COLOR}
+      />
+    );
   }
 
   if (column.key === 'epm()') {
@@ -124,19 +130,31 @@ function DescriptionCell({span}: CellProps) {
   return <SpanDescription span={span} />;
 }
 
-function P50Cell({row}: CellProps) {
+export function DurationTrendCell({
+  duration,
+  durationSeries,
+  color,
+}: {
+  color: string;
+  duration: number;
+  durationSeries?: Series;
+}) {
   const theme = useTheme();
-  const p50 = row.metrics?.p50;
-  const p50Series = row.metricSeries?.p50;
 
   return (
     <Fragment>
-      {p50Series ? (
+      {durationSeries ? (
         <Sparkline
-          color={P50_COLOR}
-          series={p50Series}
+          color={color}
+          series={durationSeries}
           markLine={
-            p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
+            duration
+              ? generateHorizontalLine(
+                  `${(duration / 1000).toFixed(2)} s`,
+                  duration,
+                  theme
+                )
+              : undefined
           }
         />
       ) : null}
@@ -193,8 +211,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(span.self_time)',
-    name: DataTitles.p50,
+    key: 'p95(span.self_time)',
+    name: DataTitles.p95,
     width: COL_WIDTH_UNDEFINED,
   },
   {
