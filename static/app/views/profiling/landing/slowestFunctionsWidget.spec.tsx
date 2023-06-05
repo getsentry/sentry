@@ -57,7 +57,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'is_application:1',
-          field: ['project.id', 'package', 'function', 'sum()'],
+          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
         }),
       ],
     });
@@ -71,6 +71,7 @@ describe('SlowestFunctionsWidget', function () {
           dataset: 'profileFunctions',
           query: 'is_application:1',
           field: ['project.id', 'sum()'],
+          project: [1],
         }),
       ],
     });

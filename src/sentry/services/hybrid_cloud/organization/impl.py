@@ -201,7 +201,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
-        region_outbox = None
         with transaction.atomic():
             try:
                 org_member = OrganizationMember.objects.get(
@@ -215,12 +214,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     )
                     org_member.set_user(user_id)
                     org_member.save()
-                    region_outbox = org_member.outbox_for_update()
-                    region_outbox.save()
+                    org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                 except OrganizationMember.DoesNotExist:
                     return None
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
@@ -303,7 +299,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         ), "Must set either user_id or email"
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
-        region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: OrganizationMember = OrganizationMember.objects.create(
                 organization_id=organization_id,
@@ -314,9 +309,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 inviter_id=inviter_id,
                 invite_status=invite_status,
             )
-            region_outbox = org_member.save_outbox_for_create()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
@@ -374,15 +367,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
-        region_outbox = None
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
             )
             org_member.remove_user()
-            region_outbox = org_member.save()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            org_member.save()
         return serialize_member(org_member)
 
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:

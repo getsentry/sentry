@@ -3,6 +3,7 @@ import {Location} from 'history';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationKeyWithAlias, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   canUseMetricsData,
@@ -30,14 +31,19 @@ export function canUseTransactionMetricsData(
 }
 
 export function getTransactionMEPParamsIfApplicable(
-  mepContext: MetricsEnhancedSettingContext,
+  mepSetting: MetricsEnhancedSettingContext,
+  mepCardinality: MetricsCardinalityContext,
   organization: Organization
 ) {
   if (!canUseMetricsData(organization)) {
     return undefined;
   }
 
-  return getMEPQueryParams(mepContext, true);
+  if (mepCardinality.outcome?.forceTransactionsOnly) {
+    return undefined;
+  }
+
+  return getMEPQueryParams(mepSetting, true);
 }
 
 export function getUnfilteredTotalsEventView(

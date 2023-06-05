@@ -186,7 +186,7 @@ def _process_message(wrapper: Dict) -> None:
                 if not monitor:
                     metrics.incr(
                         "monitors.checkin.result",
-                        tags={"source": "consumer", "status": "failed_validation"},
+                        tags={**metric_kwargs, "status": "failed_validation"},
                     )
                     logger.info("monitor.validation.failed", extra={**params})
                     return
@@ -205,7 +205,7 @@ def _process_message(wrapper: Dict) -> None:
             except MonitorEnvironmentLimitsExceeded:
                 metrics.incr(
                     "monitors.checkin.result",
-                    tags={"source": "consumer", "status": "failed_monitor_environment_limits"},
+                    tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
                 logger.debug(
                     "monitor environment exceeds limits for monitor: %s", params["monitor_slug"]

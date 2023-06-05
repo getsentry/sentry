@@ -5,7 +5,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import GroupSerializer, serialize
@@ -37,10 +36,6 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             }}
 
         """
-        if not features.has(
-            "organizations:issue-alert-preview", project.organization, actor=request.user
-        ):
-            return Response(status=404)
         serializer = RulePreviewSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )
