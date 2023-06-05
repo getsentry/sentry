@@ -6,7 +6,7 @@ from typing import Dict, Optional, Sequence, Tuple
 import sentry_sdk
 
 from sentry import options, quotas
-from sentry.db.models.base import ModelClass
+from sentry.dynamic_sampling.models.common import ModelClass
 from sentry.dynamic_sampling.models.factory import ModelType, model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
