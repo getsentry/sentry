@@ -100,7 +100,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             "name": user.email,
         },
         "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "environment": None,
+        "environment": alert_rule.get("environment", None),
         "filterMatch": "all",
         "filters": [
             {
