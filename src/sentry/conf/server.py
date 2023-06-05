@@ -812,10 +812,6 @@ CELERY_QUEUES = [
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
-    Queue(
-        "dynamicsampling",
-        routing_key="dynamicsampling",
-    ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
