@@ -587,7 +587,7 @@ const DATE_SUGGESTED_VALUES = [
     desc: '=YYYY-MM-DDThh:mm:ss',
     type: ItemType.TAG_VALUE_ISO_DATE,
   },
-];
+] satisfies SearchItem[];
 
 export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup[] => {
   return [
