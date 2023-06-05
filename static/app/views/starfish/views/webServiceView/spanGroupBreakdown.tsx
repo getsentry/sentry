@@ -1,13 +1,12 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Checkbox from 'sentry/components/checkbox';
-import Duration from 'sentry/components/duration';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -15,9 +14,10 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {MODULE_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
@@ -52,7 +52,7 @@ export function SpanGroupBreakdown({
   }
 
   return (
-    <Fragment>
+    <FlexRowContainer>
       <ChartPadding>
         <Header>
           <ChartLabel>{t('App Time Breakdown (p95)')}</ChartLabel>
@@ -99,15 +99,14 @@ export function SpanGroupBreakdown({
             group['span.module'] === 'other'
               ? `/starfish/spans/`
               : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          const module = group['span.module'] as ModuleName;
           return (
             <StyledLineItem key={`${group['span.module']}`}>
               <ListItemContainer>
-                <StyledTopResultsIndicator
-                  count={Math.max(transformedData.length - 1, 1)}
-                  index={index}
-                />
                 <Checkbox
                   size="sm"
+                  checkboxColor={MODULE_COLOR[module]}
+                  inputCss={{backgroundColor: 'red'}}
                   checked={checkedValue}
                   onChange={() => {
                     const updatedSeries = [...showSeriesArray];
@@ -130,20 +129,10 @@ export function SpanGroupBreakdown({
                     containerDisplayMode="block"
                     position="top"
                   >
-                    <NumberContainer>
-                      {tct('[cumulativeTime] ([cumulativeTimePercentage])', {
-                        cumulativeTime: (
-                          <Duration
-                            seconds={row.cumulativeTime / 1000}
-                            fixedDigits={1}
-                            abbreviation
-                          />
-                        ),
-                        cumulativeTimePercentage: formatPercentage(
-                          row.cumulativeTime / totalValues,
-                          1
-                        ),
-                      })}
+                    <NumberContainer
+                      style={{textDecoration: 'underline', textDecorationStyle: 'dotted'}}
+                    >
+                      {formatPercentage(row.cumulativeTime / totalValues, 1)}
                     </NumberContainer>
                   </Tooltip>
                 </RightAlignedCell>
@@ -152,7 +141,7 @@ export function SpanGroupBreakdown({
           );
         })}
       </ListContainer>
-    </Fragment>
+    </FlexRowContainer>
   );
 }
 
@@ -181,6 +170,7 @@ const TextAlignLeft = styled('span')`
 
 const ChartPadding = styled('div')`
   padding: 0 ${space(2)};
+  flex: 2;
 `;
 
 const ChartLabel = styled('p')`
@@ -196,6 +186,8 @@ const Header = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledTopResultsIndicator = styled(TopResultsIndicator)`
-  margin-top: 0px;
+const FlexRowContainer = styled('div')`
+  display: flex;
+  min-height: 200px;
+  padding-bottom: ${space(2)};
 `;
