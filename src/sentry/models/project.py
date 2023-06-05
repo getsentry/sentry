@@ -33,6 +33,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -44,7 +45,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import OptionMixin, User
+    from sentry.models import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
