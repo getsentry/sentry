@@ -139,6 +139,8 @@ SHARED_TAG_STRINGS = {
     "span.description": PREFIX + 249,
     "http.status_code": PREFIX + 250,
     "geo.country_code": PREFIX + 251,
+    "span.group": PREFIX + 252,
+    "transaction.method": PREFIX + 253,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
