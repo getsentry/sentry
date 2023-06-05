@@ -1565,7 +1565,7 @@ SENTRY_FEATURES = {
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
-    "organizations:sdk-crash-reporting": False,
+    "organizations:sdk-crash-detection": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
