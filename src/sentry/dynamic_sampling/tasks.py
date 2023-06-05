@@ -7,7 +7,7 @@ import sentry_sdk
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.base import ModelType
-from sentry.dynamic_sampling.models.common import ModelClass
+from sentry.dynamic_sampling.models.common import ModelClass, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
@@ -248,14 +248,15 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
 
     model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
-    rebalanced_transactions = model.guarded_run(
+    rebalanced_transactions = guarded_run(
+        model,
         TransactionsRebalancingInput(
             classes=transactions,
             sample_rate=sample_rate,
             total_num_classes=total_num_classes,
             total=total_num_transactions,
             intensity=intensity,
-        )
+        ),
     )
     # In case the result of the model is None, it means that an error occurred, thus we want to early return.
     if rebalanced_transactions is None:
@@ -378,8 +379,8 @@ def adjust_sample_rates(
         )
 
     model = model_factory(ModelType.PROJECTS_REBALANCING)
-    rebalanced_projects = model.guarded_run(
-        ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
+    rebalanced_projects = guarded_run(
+        model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
     # In case the result of the model is None, it means that an error occurred, thus we want to early return.
     if rebalanced_projects is None:

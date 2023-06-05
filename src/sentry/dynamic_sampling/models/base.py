@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, Optional, TypeVar
-
-import sentry_sdk
+from typing import Generic, TypeVar
 
 
 class ModelType(Enum):
@@ -38,11 +36,3 @@ class Model(ABC, Generic[Input, Output]):
             raise InvalidModelInputError()
 
         return self._run(model_input)
-
-    def guarded_run(self, model_input: Input) -> Optional[Output]:
-        try:
-            return self.run(model_input)
-        except Exception as e:
-            # We want to track the error when running the model.
-            sentry_sdk.capture_exception(e)
-            return None
