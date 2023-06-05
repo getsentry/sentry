@@ -427,11 +427,11 @@ def dispatch_to_local_service(
         if isinstance(value, RpcModel):
             return value.dict()
 
+        if isinstance(value, dict):
+            return {key: result_to_dict(val) for key, val in value.items()}
+
         if isinstance(value, Iterable) and not isinstance(value, str):
-            output = []
-            for item in value:
-                output.append(result_to_dict(item))
-            return output
+            return [result_to_dict(item) for item in value]
 
         return value
 
@@ -486,7 +486,8 @@ def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinf
     request = Request(url)
     request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
     request.add_header("Content-Length", str(len(data)))
-    request.add_header("Authorization", f"Bearer {api_token}")
+    # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
+    # request.add_header("Authorization", f"Bearer {api_token}")
     return urlopen(request, data)  # type: ignore
 
 

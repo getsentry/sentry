@@ -27,9 +27,9 @@ export default class ApiNewToken extends Component {
 
   render() {
     return (
-      <SentryDocumentTitle title={t('Create API Token')}>
+      <SentryDocumentTitle title={t('Create User Auth Token')}>
         <div>
-          <SettingsPageHeader title={t('Create New Token')} />
+          <SettingsPageHeader title={t('Create New User Auth Token')} />
           <TextBlock>
             {t(
               "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
@@ -44,7 +44,7 @@ export default class ApiNewToken extends Component {
             )}
           </TextBlock>
           <Panel>
-            <PanelHeader>{t('Create New Token')}</PanelHeader>
+            <PanelHeader>{t('Create New User Auth Token')}</PanelHeader>
             <ApiForm
               apiMethod="POST"
               apiEndpoint="/api-tokens/"

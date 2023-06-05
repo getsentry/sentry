@@ -1,6 +1,42 @@
+from dataclasses import dataclass
+from typing import List
+
 from django.db import connection
 
 from sentry.models import GroupOwnerType
+
+
+@dataclass
+class PullRequestIssue:
+    title: str
+    subtitle: str
+    url: str
+
+
+body = """## Suspect Issues
+This pull request has been deployed and Sentry has observed the following issues:
+
+{issue_list}
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+single_issue_template = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+
+
+def format_comment(issues: List[PullRequestIssue]):
+    def format_subtitle(subtitle):
+        return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+    issue_list = "\n".join(
+        [
+            single_issue_template.format(
+                title=issue.title, subtitle=format_subtitle(issue.subtitle), url=issue.url
+            )
+            for issue in issues
+        ]
+    )
+
+    return body.format(issue_list=issue_list)
 
 
 def pr_to_issue_query():
