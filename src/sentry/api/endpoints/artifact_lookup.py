@@ -241,7 +241,6 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the
         # database.
         if date_added <= threshold_date:
-            metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
             with atomic_transaction(
                 using=(
@@ -267,6 +266,10 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
                     DebugIdArtifactBundle.objects.filter(
                         artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
                     ).update(date_added=now)
+
+            # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+            if updated_rows_count > 0:
+                metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
 
 
 def get_artifact_bundles_containing_debug_id(
