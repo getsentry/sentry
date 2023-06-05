@@ -1,24 +1,27 @@
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional
 
 import click
 import yaml
 
 from sentry.runner.decorators import configuration
 
+if TYPE_CHECKING:
+    from sentry.options import NotWritableReason
+
 
 class InvalidConfigFile(Exception):
-    def __init__(self, message: str, reason) -> None:
-        super.__init__(message)
+    def __init__(self, message: str, reason: "NotWritableReason") -> None:
+        super().__init__(message)
         self.reason = reason
 
 
-def _validate_options(content: Mapping[str, Any]) -> Mapping[str, Any]:
+def _validate_options(content: Mapping[str, Any]) -> Mapping[str, "NotWritableReason"]:
 
     from sentry import options
 
     not_writable_reasons: MutableMapping[str, Optional[options.NotWritableReason]] = {}
 
-    for key, value in content:
+    for key, value in content.items():
         not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
@@ -33,14 +36,11 @@ def _perform_update(key: str, value: Any, dry_run: bool) -> str:
     from sentry import options
 
     if options.get(key) == value:
-        if options.isset(key):
-            last_update_channel = options.get_last_update_channel(key)
-            if last_update_channel != options.UpdateChannel.AUTOMATOR:
-                if not dry_run:
-                    options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            return f"Option: {key} value unchanged. Last update channel updated."
-        else:
-            return f"Option: {key} ignored. Not set on DB and provided values equals default value."
+        last_update_channel = options.get_last_update_channel(key)
+        if last_update_channel != options.UpdateChannel.AUTOMATOR:
+            if not dry_run:
+                options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
+        return f"Option: {key} value unchanged. Last update channel updated."
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
@@ -48,7 +48,7 @@ def _perform_update(key: str, value: Any, dry_run: bool) -> str:
 
 
 @click.group()
-def configoptions():
+def configoptions() -> None:
     "Manages Sentry options."
 
 
@@ -61,7 +61,7 @@ def configoptions():
     help="Output exactly what changes would be made and in which order.",
 )
 @configuration
-def patch(filename: str, dryrun: bool):
+def patch(filename: str, dryrun: bool) -> None:
     "Updates, gets, and deletes options that are each subsectioned in the given file."
 
     if dryrun:
@@ -98,36 +98,39 @@ def patch(filename: str, dryrun: bool):
     help="Output exactly what changes would be made and in which order.",
 )
 @configuration
-def strict(filename: str, dryrun: bool):
+def sync(filename: str, dryrun: bool):
     "Deletes everything not in the uploaded file, and applies all of the changes in the file."
     import yaml
 
     from sentry import options
 
     if dryrun:
-        click.echo("Dryrun flag on. ")
-
+        click.echo("Dryrun flag on.")
     with open(filename) as stream:
-        data = yaml.safe_load(stream).get("data", {})
+        data = yaml.safe_load(stream)
 
-        for opt in options.filter(options.FLAG_AUTOMATOR_MODIFIABLE):
-            if opt.name not in data.keys():
-                _delete(opt.name)
+    # This is to support the legacy structure of the options file that
+    # contained multiple sections.
+    # Those sections are not needed anymore as the list of options that
+    # must be provided by the file are all the options flagged as
+    # FLAG_AUTOMATOR_MODIFIABLE.
+    options_to_update: Mapping[str, Any] = data.get("update", {})
+    if not options_to_update:
+        options_to_update = data
 
-        for key, val in data.items():
-            if key in options.filter(options.FLAG_AUTOMATOR_MODIFIABLE):
-                _set(key, val, dryrun)
+    not_writable_reasons = _validate_options(options_to_update)
+    all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
-
-def _delete(key: str, dryrun: bool = False) -> bool:
-    from sentry import options
-
-    options.lookup_key(key)
-
-    # if not options.can_update(key):
-    #    raise click.ClickException(f"Option {key} cannot be changed.")
-
-    if not dryrun:
-        options.delete(key)
-    click.echo(f"Deleted key: {key}")
-    return options.get(key)
+    for opt in all_options:
+        if opt.name in options_to_update:
+            if not_writable_reasons[opt.name] is not None:
+                click.echo(
+                    f"Option {opt.name} cannot be updated. Reason: {not_writable_reasons[opt.name].value}"
+                )
+            else:
+                output = _perform_update(opt.name, options_to_update[opt.name], dryrun)
+                click.echo(output)
+        else:
+            if not dryrun:
+                options.delete(opt.name)
+            click.echo(f"Option {opt.name} unset.")
