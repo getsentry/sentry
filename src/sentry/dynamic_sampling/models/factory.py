@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.full_rebalancing import FullRebalancingModel
@@ -13,7 +13,7 @@ class ModelNotFoundError(Exception):
     pass
 
 
-def model_factory(model_type: ModelType) -> "Model":
+def model_factory(model_type: ModelType) -> "Model[Any, Any]":
     if model_type == ModelType.TRANSACTIONS_REBALANCING:
         return TransactionsRebalancingModel()
     elif model_type == ModelType.PROJECTS_REBALANCING:

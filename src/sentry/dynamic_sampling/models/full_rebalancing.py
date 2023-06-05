@@ -20,7 +20,7 @@ class FullRebalancingInput(ModelInput):
         )
 
 
-class FullRebalancingModel(Model):
+class FullRebalancingModel(Model[FullRebalancingInput, Tuple[List[ModelClass], float]]):
     def _run(self, model_input: FullRebalancingInput) -> Tuple[List[ModelClass], float]:
         """
         Tries to calculate rates that brings all counts close to the ideal count.

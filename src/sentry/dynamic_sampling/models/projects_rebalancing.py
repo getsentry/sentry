@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Sequence
+from typing import List
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
 from sentry.dynamic_sampling.models.common import ModelClass
@@ -15,7 +15,7 @@ class ProjectsRebalancingInput(ModelInput):
         return 0.0 <= self.sample_rate <= 1.0 and len(self.classes) > 0
 
 
-class ProjectsRebalancingModel(Model):
+class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[ModelClass]]):
     def _run(self, model_input: ProjectsRebalancingInput) -> List[ModelClass]:
         classes = model_input.classes
         sample_rate = model_input.sample_rate
@@ -37,7 +37,7 @@ class ProjectsRebalancingModel(Model):
             )
         )
 
-        return result
+        return result  # type:ignore
 
-    def _dependencies(self) -> Sequence[ModelType]:
+    def _dependencies(self) -> List[ModelType]:
         return [ModelType.FULL_REBALANCING]

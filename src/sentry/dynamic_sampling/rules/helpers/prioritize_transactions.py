@@ -2,7 +2,7 @@ from typing import List, Mapping, Tuple, cast
 
 import sentry_sdk
 
-from sentry.db.models.base import ModelClass
+from sentry.dynamic_sampling.models.common import ModelClass
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.utils import json
 

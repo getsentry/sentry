@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 import sentry_sdk
 
@@ -24,13 +24,17 @@ class InvalidModelInputError(Exception):
     pass
 
 
+class MissingDependencyError(Exception):
+    pass
+
+
 Input = TypeVar("Input", bound=ModelInput)
 Output = TypeVar("Output")
 
 
-class Model(ABC):
-    def __init__(self):
-        self.dependencies = {}
+class Model(ABC, Generic[Input, Output]):
+    def __init__(self) -> None:
+        self.dependencies: Dict[ModelType, "Model[Any, Any]"] = {}
 
     @abstractmethod
     def _run(self, model_input: Input) -> Output:
@@ -43,7 +47,7 @@ class Model(ABC):
         self._build_dependencies()
         return self._run(model_input)
 
-    def guarded_run(self, model_input: Input) -> Output:
+    def guarded_run(self, model_input: Input) -> Optional[Output]:
         try:
             return self.run(model_input)
         except Exception as e:
@@ -65,5 +69,9 @@ class Model(ABC):
         for dependency in self._dependencies():
             self.dependencies[dependency] = model_factory(dependency)
 
-    def get_dependency(self, model_type: ModelType) -> Optional["Model"]:
-        return self.dependencies.get(model_type, None)
+    def get_dependency(self, model_type: ModelType) -> "Model[Any, Any]":
+        dependency = self.dependencies.get(model_type)
+        if dependency is None:
+            raise MissingDependencyError()
+
+        return dependency

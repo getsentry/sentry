@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
 from sentry.dynamic_sampling.models.common import ModelClass, sum_classes_counts
@@ -22,7 +22,9 @@ class TransactionsRebalancingInput(ModelInput):
         )
 
 
-class TransactionsRebalancingModel(Model):
+class TransactionsRebalancingModel(
+    Model[TransactionsRebalancingInput, Tuple[List[ModelClass], float]]
+):
     def _run(self, model_input: TransactionsRebalancingInput) -> Tuple[List[ModelClass], float]:
         """
         Adjusts sampling rates to bring the number of samples kept in each class as close to
@@ -131,5 +133,5 @@ class TransactionsRebalancingModel(Model):
 
         return explicit_rates, implicit_rate
 
-    def _dependencies(self) -> Sequence[ModelType]:
+    def _dependencies(self) -> List[ModelType]:
         return [ModelType.FULL_REBALANCING]
