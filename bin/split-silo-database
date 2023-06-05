@@ -63,20 +63,20 @@ def main(database: str, reset: bool, verbose: bool):
 
     This operation will not modify the original source database.
     """
-    region_models = []
-    control_models = []
+    region_tables = ["django_migrations"]
+    control_tables = ["django_migrations"]
     for model in apps.get_models():
         silo_limit = getattr(model._meta, "silo_limit", None)
         if not silo_limit:
             click.echo(f"> Could not find silo assignment for {model._meta.db_table}")
             continue
         if SiloMode.CONTROL in silo_limit.modes:
-            control_models.append(model._meta.db_table)
+            control_tables.append(model._meta.db_table)
         if SiloMode.REGION in silo_limit.modes:
-            region_models.append(model._meta.db_table)
+            region_tables.append(model._meta.db_table)
 
-    split_database(control_models, database, "control", reset=reset, verbose=verbose)
-    split_database(region_models, database, "region", reset=reset, verbose=verbose)
+    split_database(control_tables, database, "control", reset=reset, verbose=verbose)
+    split_database(region_tables, database, "region", reset=reset, verbose=verbose)
 
 
 if __name__ == "__main__":

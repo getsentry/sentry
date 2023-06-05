@@ -133,6 +133,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     const {organization} = this.props;
     const {project} = this.state;
     // SearchBar gets its tags from Reflux.
@@ -917,7 +918,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 >
                   <List symbol="colored-numeric">
                     <RuleConditionsForm
-                      api={this.api}
                       project={project}
                       organization={organization}
                       router={router}

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, Type
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
+from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features
 from sentry.exceptions import PluginError
@@ -20,6 +21,7 @@ from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
@@ -388,6 +390,20 @@ def fetch_buffered_group_stats(group):
     group.times_seen_pending = result["times_seen"]
 
 
+MAX_FETCH_ATTEMPTS = 3
+
+
+def should_retry_fetch(attempt: int, e: Exception) -> bool:
+    from sentry.issues.occurrence_consumer import EventLookupError
+
+    return not attempt > MAX_FETCH_ATTEMPTS and (
+        isinstance(e, ServiceUnavailable) or isinstance(e, EventLookupError)
+    )
+
+
+fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -413,8 +429,12 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
+            record_span_descriptions as record_span_descriptions_for_clustering,
+        )
+        from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
+        from sentry.issues.occurrence_consumer import EventLookupError
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
@@ -465,16 +485,32 @@ def post_process_group(
                 return
             # Issue platform events don't use `event_processing_store`. Fetch from eventstore
             # instead.
-            event = eventstore.get_event_by_id(
-                project_id, occurrence.event_id, group_id=group_id, skip_transaction_groupevent=True
-            )
+
+            def get_event_raise_exception() -> Event:
+                retrieved = eventstore.get_event_by_id(
+                    project_id,
+                    occurrence.event_id,
+                    group_id=group_id,
+                    skip_transaction_groupevent=True,
+                )
+                if retrieved is None:
+                    raise EventLookupError(
+                        f"failed to retrieve event(project_id={project_id}, event_id={occurrence.event_id}, group_id={group_id}) from eventstore"
+                    )
+                return retrieved
+
+            event = fetch_retry_policy(get_event_raise_exception)
 
         set_current_event_project(event.project_id)
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
-            event.project = Project.objects.get_from_cache(id=event.project_id)
+            try:
+                event.project = Project.objects.get_from_cache(id=event.project_id)
+            except Project.DoesNotExist:
+                # project probably got deleted while this task was sitting in the queue
+                return
             event.project.set_cached_field_value(
                 "organization",
                 Organization.objects.get_from_cache(id=event.project.organization_id),
@@ -490,6 +526,7 @@ def post_process_group(
         # will not go through any post processing.
         if is_transaction_event:
             record_transaction_name_for_clustering(event.project, event.data)
+            record_span_descriptions_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
                     sender=post_process_group,
@@ -736,10 +773,6 @@ def process_snoozes(job: PostProcessJob) -> None:
 
             if features.has("organizations:escalating-issues", group.organization):
                 manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
-
-            elif features.has("organizations:issue-states", group.organization):
-                manage_issue_states(group, GroupInboxReason.ONGOING, event, snooze_details)
-
             else:
                 manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
 

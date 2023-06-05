@@ -47,7 +47,6 @@ function PerformanceIssueAlert({
 }: {
   allInQuerySelected: boolean;
   children: string;
-  organization: Organization;
 }) {
   if (!allInQuerySelected) {
     return null;
@@ -78,19 +77,24 @@ export function getConfirm({
     canBeUndone,
     append = '',
   }: {
-    action: ConfirmAction | string;
+    action: ConfirmAction;
     canBeUndone: boolean;
     append?: string;
   }) {
+    const actionText =
+      action === ConfirmAction.IGNORE &&
+      organization.features.includes('escalating-issues-ui')
+        ? t('archive')
+        : action;
     const question = allInQuerySelected
-      ? getBulkConfirmMessage(`${action}${append}`, queryCount)
+      ? getBulkConfirmMessage(`${actionText}${append}`, queryCount)
       : tn(
           // Use sprintf argument swapping since the number value must come
           // first. See https://github.com/alexei/sprintf.js#argument-swapping
           `Are you sure you want to %2$s this %s issue%3$s?`,
           `Are you sure you want to %2$s these %s issues%3$s?`,
           numIssues,
-          action,
+          actionText,
           append
         );
 
@@ -109,7 +113,7 @@ export function getConfirm({
                 }
               )}
             </p>
-            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+            <PerformanceIssueAlert allInQuerySelected={allInQuerySelected}>
               {t('Deleting performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
           </Fragment>
@@ -119,7 +123,7 @@ export function getConfirm({
         message = (
           <Fragment>
             <p>{t('Note that unmerging is currently an experimental feature.')}</p>
-            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+            <PerformanceIssueAlert allInQuerySelected={allInQuerySelected}>
               {t('Merging performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
           </Fragment>
