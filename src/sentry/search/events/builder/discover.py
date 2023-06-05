@@ -1566,8 +1566,6 @@ class UnresolvedQuery(QueryBuilder):
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
-    time_column = Column("time")
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1600,6 +1598,10 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    @property
+    def time_column(self):
+        return Column("time")
 
     def resolve_query(
         self,

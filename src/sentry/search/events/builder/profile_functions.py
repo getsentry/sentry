@@ -1,6 +1,7 @@
 from typing import Optional, Protocol
 
 from snuba_sdk import Column
+from snuba_sdk.function import Function
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
@@ -39,4 +40,24 @@ class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuild
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
-    pass
+    @property
+    def time_column(self):
+        return Function(
+            "toDateTime",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "intDiv",
+                            [
+                                Function("toUInt32", [Column("timestamp")]),
+                                self.granularity.granularity,
+                            ],
+                        ),
+                        self.granularity.granularity,
+                    ],
+                ),
+            ],
+            "time",
+        )
