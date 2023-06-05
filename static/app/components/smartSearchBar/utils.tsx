@@ -248,43 +248,43 @@ export function createSearchGroups(
 
 export function generateOperatorEntryMap(tag: string) {
   return {
-    [TermOperator.Default]: {
+    [TermOperator.DEFAULT]: {
       type: ItemType.TAG_OPERATOR,
       value: ':',
       desc: `${tag}:${t('[value]')}`,
       documentation: 'is equal to',
     },
-    [TermOperator.GreaterThanEqual]: {
+    [TermOperator.GREATER_THAN_EQUAL]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>=',
       desc: `${tag}:${t('>=[value]')}`,
       documentation: 'is greater than or equal to',
     },
-    [TermOperator.LessThanEqual]: {
+    [TermOperator.LESS_THAN_EQUAL]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<=',
       desc: `${tag}:${t('<=[value]')}`,
       documentation: 'is less than or equal to',
     },
-    [TermOperator.GreaterThan]: {
+    [TermOperator.GREATER_THAN]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>',
       desc: `${tag}:${t('>[value]')}`,
       documentation: 'is greater than',
     },
-    [TermOperator.LessThan]: {
+    [TermOperator.LESS_THAN]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<',
       desc: `${tag}:${t('<[value]')}`,
       documentation: 'is less than',
     },
-    [TermOperator.Equal]: {
+    [TermOperator.EQUAL]: {
       type: ItemType.TAG_OPERATOR,
       value: ':=',
       desc: `${tag}:${t('=[value]')}`,
       documentation: 'is equal to',
     },
-    [TermOperator.NotEqual]: {
+    [TermOperator.NOT_EQUAL]: {
       type: ItemType.TAG_OPERATOR,
       value: '!:',
       desc: `!${tag}:${t('[value]')}`,
@@ -294,7 +294,7 @@ export function generateOperatorEntryMap(tag: string) {
 }
 
 export function getValidOps(
-  filterToken: TokenResult<Token.Filter>
+  filterToken: TokenResult<Token.FILTER>
 ): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
@@ -324,7 +324,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconDelete size="xs" color="gray300" />,
     canRunShortcut: token => {
-      return token?.type === Token.Filter;
+      return token?.type === Token.FILTER;
     },
   },
   {
@@ -335,7 +335,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
-      return token?.type === Token.Filter && !token.negated;
+      return token?.type === Token.FILTER && !token.negated;
     },
   },
   {
@@ -346,7 +346,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
-      return token?.type === Token.Filter && token.negated;
+      return token?.type === Token.FILTER && token.negated;
     },
   },
 
@@ -358,7 +358,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
-      return count > 1 || (count > 0 && token?.type !== Token.Filter);
+      return count > 1 || (count > 0 && token?.type !== Token.FILTER);
     },
   },
   {
@@ -369,7 +369,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
-      return count > 1 || (count > 0 && token?.type !== Token.Filter);
+      return count > 1 || (count > 0 && token?.type !== Token.FILTER);
     },
   },
 ];
