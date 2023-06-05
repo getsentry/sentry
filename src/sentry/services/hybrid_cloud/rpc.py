@@ -4,6 +4,7 @@ import inspect
 import logging
 import urllib.response
 from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 from urllib.request import Request, urlopen
@@ -421,7 +422,20 @@ def dispatch_to_local_service(
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
-    return result.dict() if isinstance(result, RpcModel) else result
+
+    def result_to_dict(value: Any) -> Any:
+        if isinstance(value, RpcModel):
+            return value.dict()
+
+        if isinstance(value, dict):
+            return {key: result_to_dict(val) for key, val in value.items()}
+
+        if isinstance(value, Iterable) and not isinstance(value, str):
+            return [result_to_dict(item) for item in value]
+
+        return value
+
+    return result_to_dict(result)
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -467,13 +481,13 @@ def dispatch_remote_call(
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
-
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
     request = Request(url)
     request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
     request.add_header("Content-Length", str(len(data)))
-    request.add_header("Authorization", f"Bearer {api_token}")
+    # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
+    # request.add_header("Authorization", f"Bearer {api_token}")
     return urlopen(request, data)  # type: ignore
 
 

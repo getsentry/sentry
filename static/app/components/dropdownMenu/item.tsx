@@ -105,7 +105,8 @@ function BaseDropdownMenuItem(
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, ...itemProps} = node.value;
+  const {key, onAction, to, label, isSubmenu, trailingItems, ...itemProps} =
+    node.value ?? {};
   const {size} = node.props;
 
   const actionHandler = () => {
@@ -116,7 +117,7 @@ function BaseDropdownMenuItem(
       state.selectionManager.toggleSelection(node.key);
       return;
     }
-    onAction?.(key);
+    key && onAction?.(key);
   };
 
   // Open submenu on hover
@@ -211,17 +212,19 @@ function BaseDropdownMenuItem(
       innerWrapProps={innerWrapProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      trailingItems={
+        isSubmenu ? (
+          <Fragment>
+            {trailingItems}
+            <IconChevron size="xs" direction="right" aria-hidden="true" />
+          </Fragment>
+        ) : (
+          trailingItems
+        )
+      }
       size={size}
       {...mergedProps}
       {...itemProps}
-      {...(isSubmenu && {
-        trailingItems: (
-          <Fragment>
-            {itemProps.trailingItems}
-            <IconChevron size="xs" direction="right" aria-hidden="true" />
-          </Fragment>
-        ),
-      })}
     />
   );
 }

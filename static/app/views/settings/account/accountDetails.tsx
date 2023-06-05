@@ -3,6 +3,7 @@ import {APIRequestMethod} from 'sentry/api';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
@@ -42,6 +43,7 @@ class AccountDetails extends AsyncView {
 
     return (
       <div>
+        <SentryDocumentTitle title={t('Account Details')} />
         <SettingsPageHeader title={t('Account Details')} />
         <Form initialData={user} {...formCommonProps}>
           <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />

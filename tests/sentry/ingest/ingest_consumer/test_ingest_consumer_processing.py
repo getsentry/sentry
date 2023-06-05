@@ -67,7 +67,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
                 "project_id": project_id,
                 "remote_addr": "127.0.0.1",
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     (kwargs,) = preprocess_event
@@ -117,7 +117,7 @@ def test_transactions_spawn_save_event_transaction(
             "project_id": project_id,
             "remote_addr": "127.0.0.1",
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
     assert not len(preprocess_event)
     assert save_event_transaction.delay.call_args[0] == ()
@@ -149,8 +149,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": 0,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
         process_attachment_chunk(
@@ -160,8 +159,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": 1,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
     with task_runner():
@@ -182,7 +180,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                     }
                 ],
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     persisted_attachments = list(
@@ -244,8 +242,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
             "project_id": project_id,
             "id": attachment_id,
             "chunk_index": 0,
-        },
-        projects={default_project.id: default_project},
+        }
     )
 
     with task_runner():
@@ -266,7 +263,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
                     }
                 ],
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     persisted_attachments = list(
@@ -326,8 +323,7 @@ def test_individual_attachments(
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": i,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
     process_individual_attachment(
@@ -343,7 +339,7 @@ def test_individual_attachments(
             "event_id": event_id,
             "project_id": project_id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
@@ -395,7 +391,7 @@ def test_userreport(django_cache, default_project, monkeypatch):
             ),
             "project_id": default_project.id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     (report,) = UserReport.objects.all()
@@ -429,7 +425,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
             ),
             "project_id": default_project.id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     mgr = EventManager(data={"event_id": event_id, "user": {"email": "markus+dontatme@sentry.io"}})
@@ -467,7 +463,7 @@ def test_individual_attachments_missing_chunks(default_project, factories, monke
             "event_id": event_id,
             "project_id": project_id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))

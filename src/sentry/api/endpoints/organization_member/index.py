@@ -141,6 +141,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         | Q(user__emails__email__in=value)
                     )
 
+                elif key == "id":
+                    queryset = queryset.filter(id__in=value)
+
+                elif key == "user.id":
+                    queryset = queryset.filter(user__id__in=value)
+
                 elif key == "scope":
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
 
@@ -258,7 +264,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        region_outbox = None
         with transaction.atomic():
             # remove any invitation requests for this email before inviting
             existing_invite = OrganizationMember.objects.filter(
@@ -280,9 +285,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
-            region_outbox = om.save_outbox_for_create()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

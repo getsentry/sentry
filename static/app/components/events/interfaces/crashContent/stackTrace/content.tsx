@@ -198,6 +198,9 @@ class Content extends Component<Props, State> {
     );
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
+    const mechanism =
+      platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
+    const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
@@ -242,6 +245,7 @@ class Content extends Component<Props, State> {
             frameMeta={meta?.frames?.[frameIdx]}
             registersMeta={meta?.registers}
             debugFrames={debugFrames}
+            isANR={isANR}
           />
         );
       }

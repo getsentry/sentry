@@ -107,6 +107,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
         return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:

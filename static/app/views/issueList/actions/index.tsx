@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
-import {t, tct, tn} from 'sentry/locale';
+import {tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -133,10 +132,6 @@ function IssueListActions({
   }
 
   function handleUpdate(data?: any) {
-    const hasIssueListRemovalAction = organization.features.includes(
-      'issue-list-removal-action'
-    );
-
     if (data.status === 'ignored') {
       trackAnalytics('issues_stream.archived', {
         status_details: data.statusDetails,
@@ -146,11 +141,6 @@ function IssueListActions({
     }
 
     actionSelectedGroups(itemIds => {
-      // TODO(Kelly): remove once issue-list-removal-action feature is stable
-      if (!hasIssueListRemovalAction) {
-        addLoadingMessage(t('Saving changes\u2026'));
-      }
-
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
@@ -176,13 +166,7 @@ function IssueListActions({
           ...projectConstraints,
           ...selection.datetime,
         },
-        {
-          complete: () => {
-            if (!hasIssueListRemovalAction) {
-              clearIndicators();
-            }
-          },
-        }
+        {}
       );
     });
   }
