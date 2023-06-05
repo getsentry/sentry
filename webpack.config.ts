@@ -293,6 +293,16 @@ const appConfig: Configuration = {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         type: 'asset',
       },
+      {
+        test: /\.mdx?$/,
+        use: [
+          {
+            loader: '@mdx-js/loader',
+            /** @type {import('@mdx-js/loader').Options} */
+            options: {},
+          },
+        ],
+      },
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
@@ -443,7 +453,7 @@ const appConfig: Configuration = {
     },
 
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less', '.mdx'],
   },
   output: {
     clean: true, // Clean the output directory before emit.

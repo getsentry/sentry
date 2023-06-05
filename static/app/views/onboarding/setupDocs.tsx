@@ -1,11 +1,14 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {MDXProvider} from '@mdx-js/react';
 import {motion} from 'framer-motion';
 import {Location} from 'history';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert} from 'sentry/components/alert';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,7 +20,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -68,12 +71,94 @@ function MissingExampleWarning({
   );
 }
 
+function MDXCodeSyntaxHighlight({
+  className,
+  ...props
+}: {
+  children: string;
+  className: string;
+}) {
+  const match = /language-(\w+)/.exec(className || '');
+  return match ? (
+    <SyntaxHighlight dark language={match[1]} {...props} />
+  ) : (
+    <pre className={className} {...props} />
+  );
+}
+
+function MDXPre({children}: {children: React.ReactNode}) {
+  return children;
+}
+
+function LoadGettingStartedDoc({
+  platform,
+  orgSlug,
+  projectSlug,
+  activeProductSelection,
+}: {
+  activeProductSelection: PRODUCT[];
+  orgSlug: Organization['slug'];
+  platform: PlatformIntegration | null;
+  projectSlug: Project['slug'];
+}) {
+  const [module, setModule] = useState<null | {
+    default: React.ComponentType<{
+      components: any;
+      dsn: string;
+    }>;
+  }>(null);
+
+  const platformPath =
+    platform?.type === 'framework'
+      ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      : platform?.id;
+
+  const {
+    data: projectKeys = [],
+    isError: projectKeysIsError,
+    isLoading: projectKeysIsLoading,
+  } = useApiQuery<ProjectKey[]>([`/projects/${orgSlug}/${projectSlug}/keys/`], {
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (projectKeysIsError || projectKeysIsLoading) {
+      return;
+    }
+
+    async function getGettingStartedDoc() {
+      const mod = await import(`sentry/gettingStartedDocs/${platformPath}`);
+      setModule(mod);
+    }
+    getGettingStartedDoc();
+  }, [platformPath, projectKeysIsError, projectKeysIsLoading, projectKeys]);
+
+  if (!module) {
+    return null;
+  }
+
+  const {default: GettingStartedDoc} = module;
+  return (
+    <MDXProvider>
+      <GettingStartedDocWrapper activeProductSelection={activeProductSelection}>
+        <GettingStartedDoc
+          dsn={projectKeys[0].dsn.public}
+          components={{
+            code: MDXCodeSyntaxHighlight,
+            pre: MDXPre,
+          }}
+        />
+      </GettingStartedDocWrapper>
+    </MDXProvider>
+  );
+}
+
 export function DocWithProductSelection({
   organization,
   location,
   projectSlug,
   newOrg,
-  currentPlatform,
+  currentPlatform: currentPlatformKey,
 }: {
   currentPlatform: PlatformKey;
   location: Location;
@@ -81,68 +166,94 @@ export function DocWithProductSelection({
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
+  const products = useMemo(
+    () => (location.query.product ?? []) as PRODUCT[],
+    [location.query.product]
+  );
+
   const loadPlatform = useMemo(() => {
-    const products = location.query.product ?? [];
     return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
       products.includes(PRODUCT.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
+      ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
       : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? `${currentPlatform}-with-error-monitoring-and-performance`
+      ? `${currentPlatformKey}-with-error-monitoring-and-performance`
       : products.includes(PRODUCT.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-and-replay`
-      : `${currentPlatform}-with-error-monitoring`;
-  }, [location.query.product, currentPlatform]);
+      ? `${currentPlatformKey}-with-error-monitoring-and-replay`
+      : `${currentPlatformKey}-with-error-monitoring`;
+  }, [products, currentPlatformKey]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
-      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
+      enabled:
+        !!projectSlug &&
+        !!organization.slug &&
+        !!loadPlatform &&
+        currentPlatformKey !== 'javascript-react',
     }
   );
 
-  const platformName = platforms.find(p => p.id === currentPlatform)?.name ?? '';
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const platformName = currentPlatform?.name ?? '';
 
   return (
     <Fragment>
       {newOrg && (
         <SetupIntroduction
           stepHeaderText={t('Configure %s SDK', platformName)}
-          platform={currentPlatform}
+          platform={currentPlatformKey}
         />
       )}
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-      />
-      {isLoading ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError
-          message={t('Failed to load documentation for the %s platform.', platformName)}
-          onRetry={refetch}
+      {currentPlatform && currentPlatformKey === 'javascript-react' && newOrg ? (
+        <LoadGettingStartedDoc
+          platform={currentPlatform}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          activeProductSelection={products}
         />
       ) : (
-        getDynamicText({
-          value: (
-            <DocsWrapper>
-              <DocumentationWrapper
-                dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
-              />
-              <MissingExampleWarning
-                platform={currentPlatform}
-                platformDocs={{
-                  html: data?.html ?? '',
-                  link: data?.link ?? '',
-                }}
-              />
-            </DocsWrapper>
-          ),
-          fixed: (
-            <Alert type="warning">
-              Platform documentation is not rendered in for tests in CI
-            </Alert>
-          ),
-        })
+        <Fragment>
+          <ProductSelection
+            defaultSelectedProducts={[
+              PRODUCT.PERFORMANCE_MONITORING,
+              PRODUCT.SESSION_REPLAY,
+            ]}
+          />
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : isError ? (
+            <LoadingError
+              message={t(
+                'Failed to load documentation for the %s platform.',
+                platformName
+              )}
+              onRetry={refetch}
+            />
+          ) : (
+            getDynamicText({
+              value: (
+                <DocsWrapper>
+                  <DocumentationWrapper
+                    dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
+                  />
+                  <MissingExampleWarning
+                    platform={currentPlatformKey}
+                    platformDocs={{
+                      html: data?.html ?? '',
+                      link: data?.link ?? '',
+                    }}
+                  />
+                </DocsWrapper>
+              ),
+              fixed: (
+                <Alert type="warning">
+                  Platform documentation is not rendered in for tests in CI
+                </Alert>
+              ),
+            })
+          )}
+        </Fragment>
       )}
     </Fragment>
   );
@@ -450,4 +561,44 @@ const MainContent = styled('div')`
   max-width: 850px;
   min-width: 0;
   flex-grow: 1;
+`;
+
+const SyntaxHighlight = styled(CodeSnippet)`
+  margin-top: 1em;
+  margin-bottom: 1em;
+`;
+
+const GettingStartedDocWrapper = styled('div')<{activeProductSelection: PRODUCT[]}>`
+  .replay,
+  .performance,
+  .replay-and-performance,
+  .error-monitoring {
+    display: none;
+  }
+
+  ${p =>
+    p.activeProductSelection.includes(PRODUCT.SESSION_REPLAY) &&
+    p.activeProductSelection.includes(PRODUCT.PERFORMANCE_MONITORING)
+      ? css`
+          .replay-and-performance {
+            display: block;
+          }
+        `
+      : p.activeProductSelection.includes(PRODUCT.SESSION_REPLAY)
+      ? css`
+          .replay {
+            display: block;
+          }
+        `
+      : p.activeProductSelection.includes(PRODUCT.PERFORMANCE_MONITORING)
+      ? css`
+          .performance {
+            display: block;
+          }
+        `
+      : css`
+          .error-monitoring {
+            display: block;
+          }
+        `}
 `;
