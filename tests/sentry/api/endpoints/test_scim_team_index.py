@@ -228,7 +228,3 @@ class SCIMGroupIndexTests(SCIMTestCase):
         )
         response = self.client.post(url, CREATE_TEAM_POST_DATA)
         assert response.status_code == 409, response.content
-        assert response.status_code == 409, response.content
-        assert response.status_code == 409, response.content
-        assert response.status_code == 409, response.content
-        assert response.status_code == 409, response.content
