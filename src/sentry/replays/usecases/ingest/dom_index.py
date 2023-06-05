@@ -57,9 +57,12 @@ def parse_and_emit_replay_actions(
     replay_id: str,
     retention_days: int,
     segment_data: List[Dict[str, Any]],
+    replay_event: Dict[str, Any],
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
-        message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
+        message = parse_replay_actions(
+            project_id, replay_id, retention_days, segment_data, replay_event
+        )
         if message is not None:
             publisher = _initialize_publisher()
             publisher.publish("ingest-replay-events", json.dumps(message))
@@ -70,9 +73,10 @@ def parse_replay_actions(
     replay_id: str,
     retention_days: int,
     segment_data: List[Dict[str, Any]],
+    replay_event: Dict[str, Any],
 ) -> Optional[ReplayActionsEvent]:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(project_id, replay_id, segment_data)
+    actions = get_user_actions(project_id, replay_id, segment_data, replay_event)
     if len(actions) == 0:
         return None
 
@@ -111,6 +115,7 @@ def get_user_actions(
     project_id: int,
     replay_id: str,
     events: List[Dict[str, Any]],
+    replay_event: Dict[str, Any],
 ) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types.
 
@@ -140,7 +145,9 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
-                report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
+                report_dead_click_issue(
+                    project_id, replay_id, cast(SentryEvent, event), replay_event
+                )
                 continue
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")

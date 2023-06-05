@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import Optional, TypedDict, cast
+from typing import Any, Dict, Optional, TypedDict, cast
 
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
@@ -102,7 +102,8 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    replay_click_post_processor(message, headers, recording_segment, transaction)
+    # TODO: Use replay_event from merged payload.
+    replay_click_post_processor(message, headers, recording_segment, transaction, replay_event={})
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -173,6 +174,7 @@ def replay_click_post_processor(
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
     transaction: Span,
+    replay_event: Dict[str, Any],
 ) -> None:
     if not has_feature_access(
         message.org_id,
@@ -198,6 +200,7 @@ def replay_click_post_processor(
                 project_id=message.project_id,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
+                replay_event=replay_event,
             )
     except Exception:
         logging.exception(
