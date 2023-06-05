@@ -244,7 +244,10 @@ function Chart({
         showTimeInTooltip: true,
         utc,
         valueFormatter: (value, seriesName) => {
-          return tooltipFormatter(value, aggregateOutputType(seriesName));
+          return tooltipFormatter(
+            value,
+            aggregateOutputFormat ?? aggregateOutputType(seriesName)
+          );
         },
         ...tooltipFormatterOptions,
       })(params, asyncTicket);
