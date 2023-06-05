@@ -726,4 +726,3 @@ register("backpressure.monitor_queues.check_interval", default=5)
 # How many times in a row a queue must be unhealthy before it is
 # recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
 register("backpressure.monitor_queues.strike_threshold", default=12)
-register("backpressure.monitor_queues.redis_cluster", default="default")

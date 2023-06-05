@@ -107,9 +107,7 @@ except KeyError:
     backend = None
 
 
-queue_monitoring_cluster = redis.redis_clusters.get(
-    options.get("backpressure.monitor_queues.redis_cluster")
-)
+queue_monitoring_cluster = redis.redis_clusters.get(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER)
 
 
 def _unhealthy_queue_key(queue_name: str) -> str:
@@ -189,6 +187,6 @@ def monitor_queues():
         return
     queue_stats_updater_process = Thread(
         target=_run_queue_stats_updater,
-        args=(options.get("backpressure.monitor_queues.redis_cluster"),),
+        args=(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER),
     )
     queue_stats_updater_process.start()
