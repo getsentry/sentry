@@ -101,10 +101,11 @@ function LoadGettingStartedDoc({
       return;
     }
 
-    const docPath = `sentry/gettingStartedDocs/${platformPath}`;
-
     async function getGettingStartedDoc() {
-      const mod = await import(docPath);
+      const mod = await import(
+        /* webpackExclude: /.spec/ */
+        `sentry/gettingStartedDocs/${platformPath}`
+      );
       setModule(mod);
     }
     getGettingStartedDoc();
