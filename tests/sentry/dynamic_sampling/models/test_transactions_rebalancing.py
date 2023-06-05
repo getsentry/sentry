@@ -2,13 +2,21 @@ from typing import List, Mapping
 
 import pytest
 
-from sentry.dynamic_sampling.models.utils import DSElement, adjust_sample_rates, sum_counts
+from sentry.dynamic_sampling.models.base import ModelType
+from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
+from sentry.dynamic_sampling.models.factory import model_factory
+from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
+
+
+@pytest.fixture
+def transactions_rebalancing_model():
+    return model_factory(ModelType.TRANSACTIONS_REBALANCING)
 
 
 def create_transaction_counts(big: int, med: int, small: int):
-    big_t = [DSElement(id=f"tb{i}", count=1000 + i) for i in range(big)]
-    med_t = [DSElement(id=f"tm{i}", count=100 + i) for i in range(med)]
-    small_t = [DSElement(id=f"ts{i}", count=1 + i) for i in range(small)]
+    big_t = [RebalancedItem(id=f"tb{i}", count=1000 + i) for i in range(big)]
+    med_t = [RebalancedItem(id=f"tm{i}", count=100 + i) for i in range(med)]
+    small_t = [RebalancedItem(id=f"ts{i}", count=1 + i) for i in range(small)]
     return [*big_t, *med_t, *small_t]
 
 
@@ -32,7 +40,7 @@ intensity = [0.0, 0.5, 1.0]
 
 
 def get_num_sampled_elements(
-    transactions: List[DSElement], trans_dict: Mapping[str, float], global_rate: float
+    transactions: List[RebalancedItem], trans_dict: Mapping[str, float], global_rate: float
 ) -> float:
     num_transactions = 0.0
     for transaction in transactions:
@@ -48,20 +56,24 @@ def get_num_sampled_elements(
 @pytest.mark.parametrize("sample_rate", sample_rates)
 @pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
-def test_maintains_overall_sample_rate(intensity, sample_rate, transactions, idx_low, idx_high):
+def test_maintains_overall_sample_rate(
+    transactions_rebalancing_model, intensity, sample_rate, transactions, idx_low, idx_high
+):
     """
     Tests that the overall sampling rate is maintained after applying new rates
     """
     explict_transactions = transactions[idx_low:idx_high]
-    total = sum_counts(transactions)
+    total = sum_classes_counts(transactions)
     total_classes = len(transactions)
 
-    trans, global_rate = adjust_sample_rates(
-        explict_transactions,
-        sample_rate,
-        total_num_classes=total_classes,
-        total=total,
-        intensity=1,
+    trans, global_rate = transactions_rebalancing_model.run(
+        TransactionsRebalancingInput(
+            classes=explict_transactions,
+            sample_rate=sample_rate,
+            total_num_classes=total_classes,
+            total=total,
+            intensity=1,
+        ),
     )
 
     trans_dict = {t.id: t.new_sample_rate for t in trans}
@@ -76,7 +88,9 @@ def test_maintains_overall_sample_rate(intensity, sample_rate, transactions, idx
 @pytest.mark.parametrize("sample_rate", sample_rates)
 @pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
-def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_high):
+def test_explicit_elements_ideal_rate(
+    transactions_rebalancing_model, sample_rate, transactions, idx_low, idx_high
+):
     """
     Tests that the explicitly specified elements are sampled at their ideal rate.
 
@@ -86,15 +100,17 @@ def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_hi
     * the budget per transaction
     """
     explict_transactions = transactions[idx_low:idx_high]
-    total = sum_counts(transactions)
+    total = sum_classes_counts(transactions)
     total_classes = len(transactions)
 
-    trans, global_rate = adjust_sample_rates(
-        explict_transactions,
-        sample_rate,
-        total_num_classes=total_classes,
-        total=total,
-        intensity=1.0,
+    trans, global_rate = transactions_rebalancing_model.run(
+        TransactionsRebalancingInput(
+            classes=explict_transactions,
+            sample_rate=sample_rate,
+            total_num_classes=total_classes,
+            total=total,
+            intensity=1,
+        ),
     )
 
     ideal_number_of_elements_per_class = total * sample_rate / total_classes
