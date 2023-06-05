@@ -57,6 +57,6 @@ def _report_dead_click_issue(
         project_id=project_id,
         subtitle=subtitle,
         timestamp=timestamp,
-        title="[TEST] Dead Click Detected",
+        title="Possible Dead Click Detected",
         extra_event_data=extra_event_data,
     )
