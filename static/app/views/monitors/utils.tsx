@@ -1,8 +1,17 @@
 import cronstrue from 'cronstrue';
+import {Location} from 'history';
 
 import {t, tn} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
+
+export function makeMonitorListQueryKey(organization: Organization, location: Location) {
+  return [
+    `/organizations/${organization.slug}/monitors/`,
+    {query: {...location.query, includeNew: true}},
+  ] as const;
+}
 
 export function crontabAsText(crontabInput: string | null): string | null {
   if (!crontabInput) {
