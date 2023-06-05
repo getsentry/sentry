@@ -731,9 +731,9 @@ class Columns(Enum):
 
     REPLAY_ID = Column(
         group_name=None,
-        event_name="replay_id",
-        transaction_name="replay_id",
-        discover_name="replay_id",
+        event_name=None,
+        transaction_name=None,
+        discover_name=None,
         issue_platform_name="replay_id",
         alias="replayId",
     )
