@@ -91,10 +91,15 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
+        """
+        We ignore the timeout provided by the caller because we want to allow the producer to
+        have at least 5 seconds to flush all messages.
+        Since strategies are chained together, there is a high chance that the preceding strategy
+        provides lesser timeout to this strategy. But in order to avoid producing duplicate
+        messages downstream, we provide a fixed timeout of 5 seconds to the producer.
+        """
         with metrics.timer("simple_produce_step.join_duration"):
-            if not timeout:
-                timeout = 5.0
-            self.__producer.flush(timeout)
+            self.__producer.flush(timeout=5.0)
 
         self.__commit_function(self.__produced_message_offsets, force=True)
         self.__produced_message_offsets = {}

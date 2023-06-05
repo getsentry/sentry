@@ -182,6 +182,7 @@ def get_parallel_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
+    join_timeout: int,
     indexer_profile: MetricsIngestConfiguration,
     slicing_router: Optional[SlicingRouter],
 ) -> StreamProcessor[KafkaPayload]:
@@ -209,4 +210,5 @@ def get_parallel_metrics_consumer(
         Topic(indexer_profile.input_topic),
         processing_factory,
         ONCE_PER_SECOND,
+        join_timeout=join_timeout,
     )
