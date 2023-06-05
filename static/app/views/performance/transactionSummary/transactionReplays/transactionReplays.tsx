@@ -43,7 +43,7 @@ function TransactionReplays() {
       }}
       organization={organization}
       projects={projects}
-      tab={Tab.Replays}
+      tab={Tab.REPLAYS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={ReplaysContentWrapper}
