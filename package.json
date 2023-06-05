@@ -27,7 +27,7 @@
     "@react-aria/focus": "^3.5.0",
     "@react-aria/gridlist": "^3.4.0",
     "@react-aria/interactions": "^3.7.0",
-    "@react-aria/listbox": "^3.5.1",
+    "@react-aria/listbox": "^3.9.1",
     "@react-aria/menu": "^3.3.0",
     "@react-aria/numberfield": "3.1.0",
     "@react-aria/overlays": "^3.7.3",
