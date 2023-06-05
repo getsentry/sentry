@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from django.conf import settings
@@ -124,7 +124,7 @@ def test_non_writable_options(
     manager_fixture,
     flags: int,
     set_settings_val: bool,
-    outcome: Optional[NotWritableReason],
+    outcome: NotWritableReason,
     request: Any,
 ) -> None:
     """
