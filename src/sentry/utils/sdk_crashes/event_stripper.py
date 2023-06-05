@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Tuple
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
@@ -22,7 +22,7 @@ def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Even
     new_event_data = {key: value for key, value in event.data.items() if key in ALLOWED_EVENT_KEYS}
     new_event_data["contexts"] = dict(filter(_filter_contexts, new_event_data["contexts"].items()))
 
-    stripped_frames = []
+    stripped_frames: Sequence[Mapping[str, Any]] = []
     frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
 
     if frames is not None:
@@ -37,7 +37,7 @@ def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Even
     return new_event_data
 
 
-def _filter_contexts(pair):
+def _filter_contexts(pair: Tuple[str, Any]) -> bool:
     key, _ = pair
     if key in {"os", "device"}:
         return True
