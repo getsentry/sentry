@@ -49,7 +49,6 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.snuba.executors import PrioritySortWeights
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -154,11 +153,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs: PrioritySortWeights = {
-            "log_level": 3,
-            "frequency": 5,
-            "has_stacktrace": 5,
-            "eventHalflifeHours": 4,
+        aggregate_kwargs: dict = {
+            "log_level": "3",
+            "has_stacktrace": "5",
+            "relative_volume": "1",
+            "event_halflife_hours": "4",
+            "issue_halflife_hours": "4",
+            "v2": "true",
+            "norm": "False",
         }
 
         response = self.get_success_response(
@@ -167,7 +169,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             limit=25,
             start=iso_format(before_now(days=1)),
             end=iso_format(before_now(seconds=1)),
-            aggregate_kwargs={"better_priority": aggregate_kwargs},
+            **aggregate_kwargs,
         )
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
@@ -1667,7 +1669,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_inbox_fields_issue_states(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1936,7 +1938,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query="is:unresolved",
         )
 
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             response1 = get_query_response(
                 query="is:ongoing"
             )  # (status=unresolved, substatus=(ongoing))
@@ -1989,7 +1991,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
         )
 
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             response1 = get_query_response(query="is:escalating")
             response2 = get_query_response(query="is:new")
             response3 = get_query_response(query="is:regressed")

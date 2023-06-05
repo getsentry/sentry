@@ -10,7 +10,7 @@ import AlertRuleDetails from './ruleDetails';
 
 describe('AlertRuleDetails', () => {
   const context = initializeOrg({
-    organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
+    organization: {features: ['mute-alerts']},
   });
   const organization = context.organization;
   const project = TestStubs.Project();
@@ -198,12 +198,12 @@ describe('AlertRuleDetails', () => {
       method: 'DELETE',
     });
     createWrapper();
-    expect(await screen.findByText('Mute')).toBeInTheDocument();
+    expect(await screen.findByText('Mute for everyone')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Mute for everyone'}));
     expect(postRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({data: {target: 'me'}})
+      expect.objectContaining({data: {target: 'everyone'}})
     );
 
     expect(await screen.findByText('Unmute')).toBeInTheDocument();
@@ -218,7 +218,7 @@ describe('AlertRuleDetails', () => {
       method: 'POST',
     });
     const contextWithQueryParam = initializeOrg({
-      organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
+      organization: {features: ['mute-alerts']},
       router: {
         location: {query: {mute: '1'}},
       },
@@ -230,14 +230,14 @@ describe('AlertRuleDetails', () => {
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: {target: 'me'},
+        data: {target: 'everyone'},
       })
     );
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
     const orgWithoutAccess = {
-      features: ['issue-alert-incompatible-rules', 'mute-alerts'],
+      features: ['mute-alerts'],
       access: [],
     };
 
@@ -247,7 +247,7 @@ describe('AlertRuleDetails', () => {
 
     createWrapper({}, contextWithoutAccess, orgWithoutAccess);
 
-    expect(await screen.findByRole('button', {name: 'Mute'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Mute for everyone'})).toBeDisabled();
   });
 
   it('inserts user email into rule notify action', async () => {

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence, Set, Tuple
 
 import pytz
-from django.db import transaction
+from django.db import router
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,6 +27,7 @@ from sentry.models import (
     ReleaseFile,
 )
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
 
@@ -45,7 +46,10 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def download_file(self, download_id, project: Project):
-        ty, ty_id = download_id.split("/")
+        split = download_id.split("/")
+        if len(split) < 2:
+            raise Http404
+        ty, ty_id = split
 
         rate_limited = ratelimits.is_limited(
             project=project,
@@ -130,14 +134,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         used_artifact_bundles = dict()
         bundle_file_ids = set()
 
-        def update_bundles(inner_bundles: Set[Tuple[int, datetime, int]]):
+        def update_bundles(inner_bundles: Set[Tuple[int, datetime]], resolved: str):
             for (bundle_id, date_added, file_id) in inner_bundles:
                 used_artifact_bundles[bundle_id] = date_added
-                bundle_file_ids.add(("artifact_bundle", bundle_id, file_id))
+                bundle_file_ids.add((f"artifact_bundle/{bundle_id}", file_id, resolved))
 
         if debug_id:
             bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
-            update_bundles(bundles)
+            update_bundles(bundles, "debug-id")
 
         individual_files = set()
         if url and release_name and not bundle_file_ids:
@@ -147,12 +151,12 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             # do *not* contain the file, rather than opening up each bundle. We want to
             # avoid opening up bundles at all cost.
             bundles = get_release_artifacts(project, release_name, dist_name)
-            update_bundles(bundles)
+            update_bundles(bundles, "release")
 
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
                 for (releasefile_id, file_id) in get_legacy_release_bundles(release, dist):
-                    bundle_file_ids.add(("release_file", releasefile_id, file_id))
+                    bundle_file_ids.add((f"release_file/{releasefile_id}", file_id, "release-old"))
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
         if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
@@ -163,36 +167,64 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
+        # NOTE: the reason we still use the `file_id` as the `id` we return is
+        # because downstream symbolicator relies on that for its internal caching.
+        # We do not want to hard-refresh those caches, so we will rather do a
+        # gradual update here.
+        # The problem with using the `file_id` is that it could potentially
+        # conflict with the `ProjectDebugFile` id that is returned by the
+        # `debug_files` end point and powers native symbolication.
+        # A native debug file (ProjectDebugFile.id) could in theory conflict
+        # with a JS bundle (File.id). Moving over to `download_id` removes that
+        # conflict, as the `download_id` is prefixed with the entity.
+        def pick_id_to_return(download_id: str, file_id: int) -> str:
+            # the sampling here happens based on the `project_id`, to have
+            # stable cutover based on project, and we don’t balloon the cache
+            # size by randomly using either this or the other id for the same
+            # events.
+            should_use_new_id = (
+                project.id % 1000 < options.get("symbolicator.sourcemap-lookup-id-rate") * 1000
+            )
+            return download_id if should_use_new_id else str(file_id)
+
         found_artifacts = []
-        # NOTE: the reason we use the `file_id` as the `id` we return is because
-        # downstream symbolicator relies on that for its internal caching.
-        # We do not want to hard-refresh those caches quite yet, and the `id`
-        # should also be as unique as possible, which the `file_id` is.
-        for (ty, ty_id, file_id) in bundle_file_ids:
+        for (download_id, file_id, resolved_with) in bundle_file_ids:
             found_artifacts.append(
                 {
-                    "id": str(file_id),
+                    "id": pick_id_to_return(download_id, file_id),
                     "type": "bundle",
-                    "url": url_constructor.url_for_file_id(ty, ty_id),
+                    "url": url_constructor.url_for_file_id(download_id),
+                    "resolved_with": resolved_with,
                 }
             )
 
         for release_file in individual_files:
+            file_id = release_file.file.id
+            download_id = f"release_file/{release_file.id}"
             found_artifacts.append(
                 {
-                    "id": str(release_file.file.id),
+                    "id": pick_id_to_return(download_id, file_id),
                     "type": "file",
-                    "url": url_constructor.url_for_file_id("release_file", release_file.id),
+                    "url": url_constructor.url_for_file_id(download_id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
                     "abs_path": release_file.name,
                     # These headers should ideally include the `Sourcemap` reference
                     "headers": release_file.file.headers,
+                    "resolved_with": "release-old",
                 }
             )
 
         # make sure we have a stable sort order for tests
-        found_artifacts.sort(key=lambda x: int(x["id"]))
+        def natural_sort(key: str) -> Tuple[str, int]:
+            split = key.split("/")
+            if len(split) > 1:
+                ty, ty_id = split
+                return (ty, int(ty_id))
+            else:
+                return int(split[0])
+
+        found_artifacts.sort(key=lambda x: natural_sort(x["id"]))
 
         # NOTE: We do not paginate this response, as we have very tight limits on all the individual queries.
         return Response(serialize(found_artifacts, request.user))
@@ -211,7 +243,14 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
         if date_added <= threshold_date:
             metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-            with transaction.atomic():
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(ArtifactBundle),
+                    router.db_for_write(ProjectArtifactBundle),
+                    router.db_for_write(ReleaseArtifactBundle),
+                    router.db_for_write(DebugIdArtifactBundle),
+                )
+            ):
                 # We check again for the date_added condition in order to achieve consistency, this is done because
                 # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
                 updated_rows_count = ArtifactBundle.objects.filter(
@@ -237,6 +276,7 @@ def get_artifact_bundles_containing_debug_id(
     return set(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
+            projectartifactbundle__project_id=project.id,
             debugidartifactbundle__debug_id=debug_id,
         )
         .values_list("id", "date_added", "file_id")
@@ -298,9 +338,7 @@ def get_legacy_release_bundles(
             artifact_count=0,
             # similarly the special `type` is also used for release archives.
             file__type=RELEASE_BUNDLE_TYPE,
-        )
-        .select_related("file")
-        .values_list("id", "file_id")
+        ).values_list("id", "file_id")
         # TODO: this `order_by` might be incredibly slow
         # we want to have a hard limit on the returned bundles here. and we would
         # want to pick the most recently uploaded ones. that should mostly be
@@ -333,11 +371,11 @@ class UrlConstructor:
         else:
             self.base_url = request.build_absolute_uri(request.path)
 
-    def url_for_file_id(self, ty: str, file_id: int) -> str:
+    def url_for_file_id(self, download_id: str) -> str:
         # NOTE: Returning a self-route that requires authentication (via Bearer token)
         # is not really forward compatible with a pre-signed URL that does not
         # require any authentication or headers whatsoever.
         # This also requires a workaround in Symbolicator, as its generic http
         # downloader blocks "internal" IPs, whereas the internal Sentry downloader
         # is explicitly exempt.
-        return f"{self.base_url}?download={ty}/{file_id}"
+        return f"{self.base_url}?download={download_id}"

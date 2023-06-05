@@ -6,6 +6,7 @@ from django.test import override_settings
 
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,
@@ -26,7 +27,13 @@ from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 _REGIONS = [
-    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT, "swordfish"),
+    Region(
+        "north_america",
+        1,
+        "http://na.sentry.io",
+        RegionCategory.MULTI_TENANT,
+        "swordfish",
+    ),
     Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT, "courage"),
 ]
 
@@ -37,12 +44,14 @@ class RpcServiceTest(TestCase):
         target_region = _REGIONS[0]
 
         user = self.create_user()
-        organization = self.create_organization(no_mapping=True)
-        OrganizationMapping.objects.create(
+        organization = self.create_organization()
+        OrganizationMapping.objects.update_or_create(
             organization_id=organization.id,
-            slug=organization.slug,
-            name=organization.name,
-            region_name=target_region.name,
+            defaults={
+                "slug": organization.slug,
+                "name": organization.name,
+                "region_name": target_region.name,
+            },
         )
 
         serial_user = RpcUser(id=user.id)
@@ -112,6 +121,16 @@ class RpcServiceTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
+
+    def test_dispatch_to_local_service_list_result(self):
+        organization = self.create_organization()
+
+        args = {"organization_ids": [organization.id]}
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            service = AuthService.create_delegation()
+            result = dispatch_to_local_service(service.key, "get_org_auth_config", args)
+            assert len(result) == 1
+            assert result[0]["organization_id"] == organization.id
 
 
 class DispatchRemoteCallTest(TestCase):

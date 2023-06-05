@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
 
+import jsonschema
 from django.db.models.signals import post_save
 from snuba_sdk import (
     Column,
@@ -26,6 +27,7 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
+    INBOX_REASON_DETAILS,
     Activity,
     ActivityType,
     Group,
@@ -311,6 +313,8 @@ def manage_issue_states(
 ) -> None:
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
+
+    `activity_data`: Additional activity data, such as escalating forecast
     """
     data = {"event_id": event.event_id} if event else None
     if group_inbox_reason == GroupInboxReason.ESCALATING:
@@ -328,11 +332,35 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
-            issue_escalating.send_robust(
-                project=group.project, group=group, event=event, sender=manage_issue_states
+
+            has_forecast = (
+                True if data and activity_data and "forecast" in activity_data.keys() else False
             )
-            if data and activity_data:
+            issue_escalating.send_robust(
+                project=group.project,
+                group=group,
+                event=event,
+                sender=manage_issue_states,
+                was_until_escalating=True if has_forecast else False,
+            )
+            if data and activity_data and has_forecast:  # Redundant checks needed for typing
                 data.update(activity_data)
+            if data and snooze_details:
+                try:
+                    jsonschema.validate(snooze_details, INBOX_REASON_DETAILS)
+
+                except jsonschema.ValidationError:
+                    logging.error("Expired snooze_details invalid jsonschema", extra=snooze_details)
+
+                data.update({"expired_snooze": snooze_details})
+
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=ActivityType.SET_ESCALATING.value,
+                user_id=None,
+                data=data,
+            )
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
@@ -348,6 +376,13 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ONGOING)
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=ActivityType.SET_UNRESOLVED.value,
+                user_id=None,
+                data=data,
+            )
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
@@ -363,18 +398,14 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
-
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=ActivityType.SET_UNRESOLVED.value,
+                user_id=None,
+                data=data,
+            )
     else:
         raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"
-        )
-
-    if updated:
-        group.save(update_fields=["status", "substatus"])
-        Activity.objects.create(
-            project=group.project,
-            group=group,
-            type=ActivityType.SET_UNRESOLVED.value,
-            user_id=None,
-            data=data,
         )

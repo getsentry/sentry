@@ -189,6 +189,49 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
             ),
         ]
 
+    def test_detects_overlapping_n_plus_one(self):
+        event = get_event("parallel-n-plus-one-in-django-index-view")
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                op="db",
+                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                type=PerformanceNPlusOneGroupType,
+                parent_span_ids=["8dd7a5869a4f4583"],
+                cause_span_ids=["9179e43ae844b174"],
+                offender_span_ids=[
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": ["8dd7a5869a4f4583"],
+                    "cause_span_ids": ["9179e43ae844b174"],
+                    "offender_span_ids": [
+                        "b8be6138369491dd",
+                        "b2d4826e7b618f1b",
+                        "b3fdeea42536dbf1",
+                        "b409e78a092e642f",
+                        "86d2ede57bbf48d4",
+                        "8e554c84cdc9731e",
+                        "94d6230f3f910e12",
+                        "a210b87a2191ceb6",
+                        "88a5ccaf25b9bd8f",
+                        "bb32cf50fc56b296",
+                    ],
+                },
+                evidence_display=[],
+            )
+        ]
+
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):

@@ -5,7 +5,7 @@ from typing import Any, Iterable
 from sentry import features
 from sentry.models import Integration, Organization, Project
 from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.tasks.base import instrumented_task, load_model_from_db
+from sentry.tasks.base import instrumented_task, load_model_from_db, retry
 
 
 @instrumented_task(
@@ -14,6 +14,7 @@ from sentry.tasks.base import instrumented_task, load_model_from_db
     default_retry_delay=5,
     max_retries=5,
 )
+@retry
 def update_code_owners_schema(
     organization: Organization | int,
     integration: Integration | RpcIntegration | int | None = None,

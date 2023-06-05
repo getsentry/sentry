@@ -31,18 +31,18 @@ export function useProfilingTransactionQuickSummary(
     skipSlowestProfile = false,
   } = options;
 
-  const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort'> = {
+  const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort' | 'referrer'> = {
     query: `transaction:"${transaction}"`,
     fields: getProfilesTableFields(project.platform),
     enabled: Boolean(transaction),
     limit: 1,
-    referrer,
     refetchOnMount: false,
     projects: [project.id],
   };
 
   const slowestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
+    referrer: `${referrer}.slowest`,
     sort: {
       key: 'transaction.duration',
       order: 'desc',
@@ -52,6 +52,7 @@ export function useProfilingTransactionQuickSummary(
 
   const latestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
+    referrer: `${referrer}.latest`,
     sort: {
       key: 'timestamp',
       order: 'desc',
@@ -68,7 +69,7 @@ export function useProfilingTransactionQuickSummary(
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
-    referrer: 'api.profiling.landing-functions-card',
+    referrer: `${referrer}.functions`,
     sort: {
       key: 'sum()',
       order: 'desc',

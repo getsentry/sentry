@@ -240,6 +240,10 @@ class Organization(Model, SnowflakeIdMixin):
 
     snowflake_redis_key = "organization_snowflake_key"
 
+    def save_with_update_outbox(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Organization.outbox_for_update(self.id).save()
+
     def save(self, *args, **kwargs):
         slugify_target = None
         if not self.slug:
@@ -252,12 +256,16 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
+        # Run the save + outbox queueing in a transaction to ensure the control-silo is notified
+        # when a change is made to the organization model.
         if SENTRY_USE_SNOWFLAKE:
             self.save_with_snowflake_id(
-                self.snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+                self.snowflake_redis_key,
+                lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            super().save(*args, **kwargs)
+            with transaction.atomic():
+                self.save_with_update_outbox(*args, **kwargs)
 
     @classmethod
     def reserve_snowflake_id(cls):
@@ -282,15 +290,6 @@ class Organization(Model, SnowflakeIdMixin):
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=org_id,
             category=OutboxCategory.ORGANIZATION_UPDATE,
-            object_identifier=org_id,
-        )
-
-    @staticmethod
-    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
-            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
             object_identifier=org_id,
         )
 
@@ -406,7 +405,9 @@ class Organization(Model, SnowflakeIdMixin):
                     organization=to_org, user_id=from_member.user.id
                 )
             except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
+                with transaction.atomic():
+                    from_member.organization = to_org
+                    from_member.save()
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(

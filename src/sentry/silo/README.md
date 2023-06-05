@@ -93,8 +93,4 @@ To directly **proxy a request synchronously** you can provide the request as fol
 
 ```python
 response = client.proxy_request(self.request)
-print(response.json) # {'some': 'response'}
-
-# If you need to return the response, it must be converted to a HttpResponse to avoid Django errors
-return response.to_http_response()
 ```
