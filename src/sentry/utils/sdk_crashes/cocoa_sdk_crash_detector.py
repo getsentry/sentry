@@ -5,7 +5,7 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class CocoaSDKCrashDetector(SDKCrashDetector):
-    def __init__(self):
+    def __init__(self) -> None:
         self
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:

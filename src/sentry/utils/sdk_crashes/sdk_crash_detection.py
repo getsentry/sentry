@@ -13,7 +13,7 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class SDKCrashReporter:
-    def __init__(self):
+    def __init__(self) -> None:
         self
 
     def report(self, event_data: Dict[str, Any], event_project_id: int) -> Event:
@@ -41,7 +41,7 @@ class SDKCrashDetection:
             and event.group.platform == "cocoa"
         )
         if not should_detect_sdk_crash:
-            return
+            return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
         if context is not None and context.get("detected", False):
@@ -67,6 +67,8 @@ class SDKCrashDetection:
             return self.sdk_crash_reporter.report(
                 sdk_crash_event_data, settings.SDK_CRASH_DETECTION_PROJECT_ID
             )
+
+        return None
 
 
 _crash_reporter = SDKCrashReporter()
