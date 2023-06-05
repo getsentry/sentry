@@ -1,4 +1,6 @@
-from sentry.models import OrganizationMapping
+import pytest
+
+from sentry.models import OrganizationMapping, OrganizationStatus
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.outbox import outbox_runner
 
@@ -16,6 +18,12 @@ class BackfillOrganizationMappingsViaOutboxTest(TestMigrations):
 
         # Delete the org mapping for one of the organizations
         OrganizationMapping.objects.get(organization_id=self.org_without_mapping.id).delete()
+
+        self.org_deletion_in_progress = self.create_organization(
+            name="deleteme", slug="noimportante", status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+        # Clear the org mapping for the org pending deletion
+        OrganizationMapping.objects.get(organization_id=self.org_deletion_in_progress.id).delete()
 
         mismatch_mapping = OrganizationMapping.objects.get(
             organization_id=self.org_with_mismatching_mapping.id
@@ -51,3 +59,6 @@ class BackfillOrganizationMappingsViaOutboxTest(TestMigrations):
         assert untouched_org_mapping.name == self.org_with_existing_mapping.name
         assert untouched_org_mapping.customer_id == self.org_with_existing_mapping.customer_id
         assert untouched_org_mapping.status == self.org_with_existing_mapping.status
+
+        with pytest.raises(OrganizationMapping.DoesNotExist):
+            OrganizationMapping.objects.get(organization_id=self.org_deletion_in_progress.id)

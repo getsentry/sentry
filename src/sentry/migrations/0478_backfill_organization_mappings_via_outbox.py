@@ -35,17 +35,24 @@ class OutboxScope(IntEnum):
     TEAM_SCOPE = 7
 
 
+class OrganizationStatus(IntEnum):
+    ACTIVE = 0
+    PENDING_DELETION = 1
+    DELETION_IN_PROGRESS = 2
+
+
 def backfill_org_mapping_via_outbox(apps, schema_editor):
     Organization = apps.get_model("sentry", "Organization")
     RegionOutbox = apps.get_model("sentry", "RegionOutbox")
 
     for org in RangeQuerySetWrapperWithProgressBar(Organization.objects.all()):
-        RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org.id,
-            category=OutboxCategory.ORGANIZATION_UPDATE,
-            object_identifier=org.id,
-        ).save()
+        if org.status != OrganizationStatus.DELETION_IN_PROGRESS:
+            RegionOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=org.id,
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+                object_identifier=org.id,
+            ).save()
 
 
 class Migration(CheckedMigration):
