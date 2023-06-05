@@ -78,7 +78,7 @@ class ProjectSettingPermission(ProjectPermission):
 
 class ProjectAlertRulePermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "alerts:read"],
+        "GET": ["project:read", "project:write", "project:admin", "alerts:read", "alerts:write"],
         "POST": ["project:write", "project:admin", "alerts:write"],
         "PUT": ["project:write", "project:admin", "alerts:write"],
         "DELETE": ["project:write", "project:admin", "alerts:write"],

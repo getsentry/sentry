@@ -1891,7 +1891,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         </InputWrapper>
 
         <ActionsBar gap={0.5}>
-          {query !== '' && (
+          {query !== '' && !disabled && (
             <ActionButton
               onClick={this.clearSearch}
               icon={<IconClose size="xs" />}
