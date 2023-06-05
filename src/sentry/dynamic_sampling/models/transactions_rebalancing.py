@@ -15,7 +15,11 @@ class TransactionsRebalancingInput(ModelInput):
     intensity: float
 
     def validate(self) -> bool:
-        return 0.0 <= self.sample_rate <= 1.0 and 0.0 <= self.intensity <= 1.0
+        return (
+            0.0 <= self.sample_rate <= 1.0
+            and 0.0 <= self.intensity <= 1.0
+            and len(self.classes) > 0
+        )
 
 
 class TransactionsRebalancingModel(Model):
