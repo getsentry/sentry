@@ -100,6 +100,9 @@ _irrelevant_re = re.compile(
 
 
 def trim_message_for_grouping(string: str) -> str:
+    if string.startswith("Error datetime"):
+        print(string)
+        breakpoint()
     s = "\n".join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
     if s != string:
         s += "..."

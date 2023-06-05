@@ -1,0 +1,20 @@
+{
+    "event_id": "bf6bf505206a4556979e6fc93f84f720",
+    "message": "Error datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc)",
+    "datetime": "2023-05-02T23:59:46+00:00",
+    "culprit": "",
+    "fingerprint": [
+        "{{ default }}"
+    ],
+    "grouping_config": {
+        "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+        "id": "newstyle:2019-10-29"
+    },
+    "hashes": [
+        "c288244b9e9870a1155cfb8380c4278d"
+    ],
+    "metadata": {
+        "title": "Error datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc)"
+    },
+    "title": "Error datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc)"
+}
