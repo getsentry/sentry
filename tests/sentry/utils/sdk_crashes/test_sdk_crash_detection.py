@@ -22,6 +22,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
     def execute_test(self, event_data, should_be_reported, mock_sdk_crash_reporter):
+
         event = self.create_event(
             data=event_data,
             project_id=self.project.id,
@@ -38,10 +39,9 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             mock_sdk_crash_reporter.report.assert_not_called()
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMixin):
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
     def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
-
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         event = self.store_transaction(

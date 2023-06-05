@@ -19,7 +19,7 @@ ALLOWED_EVENT_KEYS = {
 
 
 def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Event:
-    new_event_data = dict(filter(_filter_event, event.data.items()))
+    new_event_data = {key: value for key, value in event.data.items() if key in ALLOWED_EVENT_KEYS}
     new_event_data["contexts"] = dict(filter(_filter_contexts, new_event_data["contexts"].items()))
 
     stripped_frames = []
@@ -36,14 +36,6 @@ def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Even
 
     event.data = new_event_data
     return event
-
-
-def _filter_event(pair):
-    key, _ = pair
-    if key in ALLOWED_EVENT_KEYS:
-        return True
-
-    return False
 
 
 def _filter_contexts(pair):
