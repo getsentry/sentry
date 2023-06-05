@@ -1,13 +1,12 @@
 from typing import Optional
 
-from django.db import transaction
-
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
@@ -49,21 +48,20 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         pass
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
-        with transaction.atomic():
-            (
-                OrganizationMapping.objects.filter(organization_id=organization_id)
-                .select_for_update()
-                .update(**update)
-            )
+        # TODO: REMOVE FROM GETSENTRY!
+        try:
+            OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
+        except OrganizationMapping.DoesNotExist:
+            pass
 
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate
-    ) -> OrganizationMapping:
+    ) -> RpcOrganizationMapping:
         org_mapping, _created = OrganizationMapping.objects.update_or_create(
             organization_id=organization_id, defaults=update
         )
 
-        return org_mapping
+        return serialize_organization_mapping(org_mapping)
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         try:
