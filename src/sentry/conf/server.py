@@ -1385,6 +1385,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items and performance spans
     "organizations:sql-format": False,
+    # Enable experimental replay-issue rendering on Issue Details page
+    "organizations:issue-details-replay-event": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
