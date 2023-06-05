@@ -34,8 +34,7 @@ def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Even
         stripped_debug_meta_images = _strip_debug_meta(debug_meta_images, stripped_frames)
         new_event_data["debug_meta"]["images"] = stripped_debug_meta_images
 
-    event.data = new_event_data
-    return event
+    return new_event_data
 
 
 def _filter_contexts(pair):
