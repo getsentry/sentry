@@ -12,7 +12,9 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -76,6 +78,7 @@ class MetricsBucket(TypedDict):
     metric_id: int
     timestamp: int
     value: Any
+    tags: Union[Mapping[str, str], Mapping[str, int]]
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -87,6 +90,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     #: The ID of the metric used to count transactions
     metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+    profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
 
     def __init__(
         self,
@@ -115,18 +119,45 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
         return cast(MetricsBucket, payload)
 
-    def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
+    def _count_processed_items(self, bucket_payload: MetricsBucket) -> Mapping[DataCategory, int]:
         if bucket_payload["metric_id"] != self.metric_id:
-            return 0
+            return {}
         value = bucket_payload["value"]
         try:
-            return len(value)
+            quantity = len(value)
         except TypeError:
             # Unexpected value type for this metric ID, skip.
-            return 0
+            return {}
+
+        items = {DataCategory.TRANSACTION: quantity}
+
+        if self._has_profile(bucket_payload):
+            # The bucket is tagged with the "has_profile" tag,
+            # so we also count the quantity of this bucket towards profiles.
+            # This assumes a "1 to 0..1" relationship between transactions and profiles.
+            items[DataCategory.PROFILE] = quantity
+
+        return items
+
+    def _has_profile(self, bucket: MetricsBucket) -> bool:
+        return bool(
+            (tag_value := bucket["tags"].get(self.profile_tag_key))
+            and "true"
+            == reverse_resolve_tag_value(UseCaseKey.PERFORMANCE, bucket["org_id"], tag_value)
+        )
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
-        quantity = self._count_processed_transactions(payload)
+        for category, quantity in self._count_processed_items(payload).items():
+            self._produce_billing_outcome(
+                org_id=payload["org_id"],
+                project_id=payload["project_id"],
+                category=category,
+                quantity=quantity,
+            )
+
+    def _produce_billing_outcome(
+        self, *, org_id: int, project_id: int, category: DataCategory, quantity: int
+    ) -> None:
         if quantity < 1:
             return
 
@@ -137,14 +168,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # we may have to revisit this part to achieve a
         # better approximation of exactly-once delivery.
         track_outcome(
-            org_id=payload["org_id"],
-            project_id=payload["project_id"],
+            org_id=org_id,
+            project_id=project_id,
             key_id=None,
             outcome=Outcome.ACCEPTED,
             reason=None,
             timestamp=datetime.now(timezone.utc),
             event_id=None,
-            category=DataCategory.TRANSACTION,
+            category=category,
             quantity=quantity,
         )
 
