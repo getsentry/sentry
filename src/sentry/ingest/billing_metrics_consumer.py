@@ -140,10 +140,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return items
 
     def _has_profile(self, bucket: MetricsBucket) -> bool:
-        return (
-            tag_value := bucket["tags"].get(self.profile_tag_key)
-        ) and "true" == reverse_resolve_tag_value(
-            UseCaseKey.PERFORMANCE, bucket["org_id"], tag_value
+        return bool(
+            (tag_value := bucket["tags"].get(self.profile_tag_key))
+            and "true"
+            == reverse_resolve_tag_value(UseCaseKey.PERFORMANCE, bucket["org_id"], tag_value)
         )
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
