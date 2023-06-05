@@ -151,7 +151,6 @@ const StyledLineItem = styled('li')`
 
 const ListItemContainer = styled('div')`
   display: flex;
-  border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
