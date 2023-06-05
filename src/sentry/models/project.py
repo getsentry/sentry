@@ -25,6 +25,8 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    OptionManager,
+    Value,
     region_silo_only_model,
     sane_repr,
 )
@@ -42,7 +44,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models import OptionMixin, User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -103,7 +105,7 @@ class ProjectManager(BaseManager):
 
 
 @region_silo_only_model
-class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
+class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -222,15 +224,19 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 return True
         return False
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
-        return projectoptions.set(self, *args, **kwargs)
+    @property
+    def option_manager(self) -> OptionManager:
+        from sentry.models import ProjectOption
 
-    def get_option(self, *args, **kwargs):
-        return projectoptions.get(self, *args, **kwargs)
+        return ProjectOption.objects
 
-    def delete_option(self, *args, **kwargs):
-        return projectoptions.delete(self, *args, **kwargs)
+    def update_option(self, key: str, value: Value) -> None:
+        projectoptions.update_rev_for_option(self)
+        super().update_option(key, value)
+
+    def delete_option(self, key: str) -> None:
+        projectoptions.update_rev_for_option(self)
+        super().delete_option(key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)

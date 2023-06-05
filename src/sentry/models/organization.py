@@ -25,12 +25,14 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     Model,
+    OptionManager,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
@@ -157,7 +159,7 @@ class OrganizationManager(BaseManager):
 
 
 @region_silo_only_model
-class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
+class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -544,21 +546,11 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             queryset = model.objects.filter(organization_id=from_org.id)
             do_update(queryset, {"organization_id": to_org.id})
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
+    @property
+    def option_manager(self) -> OptionManager:
         from sentry.models import OrganizationOption
 
-        return OrganizationOption.objects.set_value(self, *args, **kwargs)
-
-    def get_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.get_value(self, *args, **kwargs)
-
-    def delete_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.unset_value(self, *args, **kwargs)
+        return OrganizationOption.objects
 
     def send_delete_confirmation(self, audit_log_entry, countdown):
         from sentry import options
