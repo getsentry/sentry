@@ -12,6 +12,7 @@ from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -189,6 +190,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_sensitiveFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
     def validate_safeFields(self, value):
