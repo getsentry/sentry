@@ -1241,7 +1241,7 @@ SENTRY_FEATURES = {
     # Use issue platform for crons issues
     "organizations:crons-issue-platform": False,
     # Use new listing page for crons
-    "organizations:crons-timeline-listing-page": True,
+    "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
