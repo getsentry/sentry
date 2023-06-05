@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import dataclasses
 import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
@@ -82,6 +81,28 @@ V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "v2": False,
     "norm": False,
 }
+
+
+@dataclass
+class BetterPriorityParams:
+    # (event or issue age_hours) / (event or issue halflife hours)
+    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
+    max_pow: int
+    min_score: float  # apply a min on the individual scores to avoid multiplying by zeroes
+
+    # event-aggregate scoring
+    event_age_weight: int  # [1, 5]
+    log_level_weight: int  # [0, 10]
+    stacktrace_weight: int  # [0, 3]
+    event_halflife_hours: int  # halves score every x hours
+
+    # issue-aggregate scoring
+    issue_age_weight: int  # [1, 5]
+    issue_halflife_hours: int  # halves score every x hours
+    relative_volume_weight: int  # [0, 10]
+
+    v2: bool
+    normalize: bool
 
 
 def get_search_filter(
@@ -236,10 +257,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            # TODO: remove this hack once we can properly support better_priority sort on issue platform dataset
             if replace_better_priority_aggregation and alias == "better_priority":
                 aggregation = self.aggregation_defs[
-                    "better_priority_platform"  # type:ignore[call-overload]
+                    "better_priority_issue_platform"  # type:ignore[call-overload]
                 ]
             if callable(aggregation):
                 if aggregate_kwargs:
@@ -494,29 +514,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-@dataclasses.dataclass
-class BetterPriorityParams:
-    # (event or issue age_hours) / (event or issue halflife hours)
-    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
-    max_pow: int
-    min_score: float  # apply a min on the individual scores to avoid multiplying by zeroes
-
-    # event-aggregate scoring
-    event_age_weight: int  # [1, 5]
-    log_level_weight: int  # [0, 10]
-    stacktrace_weight: int  # [0, 3]
-    event_halflife_hours: int  # halves score every x hours
-
-    # issue-aggregate scoring
-    issue_age_weight: int  # [1, 5]
-    issue_halflife_hours: int  # halves score every x hours
-    relative_volume_weight: int  # [0, 10]
-
-    #
-    v2: bool
-    normalize: bool
-
-
 def better_priority_aggregation(
     start: datetime,
     end: datetime,
@@ -541,7 +538,7 @@ def better_priority_aggregation(
     )
 
 
-def better_priority_platform_aggregation(
+def better_priority_issue_platform_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
@@ -710,7 +707,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "better_priority": better_priority_aggregation,
-        "better_priority_platform": better_priority_platform_aggregation,
+        "better_priority_issue_platform": better_priority_issue_platform_aggregation,
     }
 
     @property
