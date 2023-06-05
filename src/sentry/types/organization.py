@@ -12,7 +12,7 @@ class OrganizationAbsoluteUrlMixin:
     slug: str
 
     @cached_property
-    def _has_customer_domain(self) -> bool:
+    def __has_customer_domain(self) -> bool:
         """
         Check if the current organization is using or has access to customer domains.
         """
@@ -22,6 +22,10 @@ class OrganizationAbsoluteUrlMixin:
             return True
 
         return features.has("organizations:customer-domains", self)
+
+    def _has_customer_domain(self) -> bool:
+        # For getsentry compatibility
+        return self.__has_customer_domain
 
     def absolute_url(
         self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
@@ -33,7 +37,7 @@ class OrganizationAbsoluteUrlMixin:
         customer-domains are active.
         """
         return self.organization_absolute_url(
-            self._has_customer_domain, self.slug, path=path, query=query, fragment=fragment
+            self.__has_customer_domain, self.slug, path=path, query=query, fragment=fragment
         )
 
     @staticmethod
