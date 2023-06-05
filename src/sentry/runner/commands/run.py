@@ -599,6 +599,7 @@ def occurrences_ingest_consumer(**options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
+@click.option("--join-timeout", type=int, help="Join timeout in seconds.", default=5)
 @click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
 @click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
