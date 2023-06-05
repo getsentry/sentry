@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -30,9 +30,17 @@ type Props = {
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
   visibleColumns: Array<keyof typeof ReplayColumns>;
+  emptyMessage?: ReactNode;
 };
 
-function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Props) {
+function ReplayTable({
+  fetchError,
+  isFetching,
+  replays,
+  sort,
+  visibleColumns,
+  emptyMessage,
+}: Props) {
   const routes = useRoutes();
   const location = useLocation();
   const organization = useOrganization();
@@ -71,6 +79,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       visibleColumns={visibleColumns}
       disablePadding
       data-test-id="replay-table"
+      emptyMessage={emptyMessage}
     >
       {replays?.map(replay => {
         return (

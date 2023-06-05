@@ -364,8 +364,22 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
             release_id=release.id,
+            file=File.objects.create(name="incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/incorrect_application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="~/dist/static/js/application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="also_incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/also_incorrect_application.js",
         )
 
         resp = self.get_success_response(
@@ -385,7 +399,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/static/js/application.js",
             "unifiedPath": "~/static/js/application.js",
             "urlPrefix": "~/dist",
-            "artifactNames": ["~/dist/static/js/application.js"],
+            "artifactNames": [
+                "~/dist/static/js/also_incorrect_application.js",
+                "~/dist/static/js/application.js",
+                "~/dist/static/js/incorrect_application.js",
+            ],
         }
 
     def test_no_url_match(self):
@@ -693,3 +711,85 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         assert resp.data["errors"] == []
+
+    def test_js_out_of_date(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.8.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_user_agent_on_release"
+        assert error["message"] == "The release is missing a user agent"
+
+    def test_remix_up_to_date(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.remix",
+                    "version": "7.46.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_user_agent_on_release"
+        assert error["message"] == "The release is missing a user agent"

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
@@ -18,8 +18,8 @@ ALLOWED_EVENT_KEYS = {
 }
 
 
-def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Dict[str, Any]:
-    new_event_data = dict(filter(_filter_event, event.data.items()))
+def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Event:
+    new_event_data = {key: value for key, value in event.data.items() if key in ALLOWED_EVENT_KEYS}
     new_event_data["contexts"] = dict(filter(_filter_contexts, new_event_data["contexts"].items()))
 
     stripped_frames = []
@@ -35,14 +35,6 @@ def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Dict
         new_event_data["debug_meta"]["images"] = stripped_debug_meta_images
 
     return new_event_data
-
-
-def _filter_event(pair):
-    key, _ = pair
-    if key in ALLOWED_EVENT_KEYS:
-        return True
-
-    return False
 
 
 def _filter_contexts(pair):

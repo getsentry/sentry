@@ -60,7 +60,9 @@ class StreamGroupSerializerTestCase(
     def test_perf_issue(self):
         event = self.create_performance_issue()
         group = event.group
-        serialized = serialize(group, serializer=StreamGroupSerializerSnuba(stats_period="24h"))
+        serialized = serialize(
+            group, serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1)
+        )
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
@@ -76,7 +78,8 @@ class StreamGroupSerializerTestCase(
         )
         assert group_info
         serialized = serialize(
-            group_info.group, serializer=StreamGroupSerializerSnuba(stats_period="24h")
+            group_info.group,
+            serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1),
         )
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == str(GroupCategory.PROFILE.name).lower()

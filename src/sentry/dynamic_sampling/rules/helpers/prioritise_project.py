@@ -1,25 +1,36 @@
-from typing import TYPE_CHECKING
+import sentry_sdk
 
+from sentry.dynamic_sampling.rules.helpers.sliding_window import was_sliding_window_org_executed
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
-if TYPE_CHECKING:
-    from sentry.models import Project
 
-
-def _generate_cache_key(org_id: int) -> str:
+def generate_prioritise_by_project_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:prioritise_projects"
 
 
-def get_prioritise_by_project_sample_rate(project: "Project", default_sample_rate: float) -> float:
-    """
-    This function returns cached sample rate from prioritise by project
-    celery task or fallback to None
-    """
+def get_prioritise_by_project_sample_rate(
+    org_id: int, project_id: int, error_sample_rate_fallback: float
+) -> float:
     redis_client = get_redis_client_for_ds()
-    cache_key = _generate_cache_key(project.organization.id)
-    try:
-        cached_sample_rate = float(redis_client.hget(cache_key, project.id))
-    except (TypeError, ValueError):
-        cached_sample_rate = None
+    cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
 
-    return cached_sample_rate if cached_sample_rate else default_sample_rate
+    try:
+        return float(redis_client.hget(cache_key, project_id))
+    # Thrown if the input is not a string or a float (e.g., None).
+    except TypeError:
+        # In case there is no value in cache, we want to check if the sliding window org was executed. If it was
+        # executed, but we didn't have this project boosted, it means that the entire org didn't have traffic in the
+        # last hour which resulted in the system not considering it at all.
+        if was_sliding_window_org_executed():
+            return 1.0
+
+        # In the other case were the sliding window was not run, maybe because of an issue, we will just fall back to
+        # blended sample rate, to avoid oversampling.
+        sentry_sdk.capture_message(
+            "Sliding window org value not stored in cache and sliding window org not executed"
+        )
+        return error_sample_rate_fallback
+    # Thrown if the input is not a valid float.
+    except ValueError:
+        sentry_sdk.capture_message("Invalid sliding window org value stored in cache")
+        return error_sample_rate_fallback

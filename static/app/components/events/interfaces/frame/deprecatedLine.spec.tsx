@@ -1,7 +1,7 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
-import {Frame} from 'sentry/types';
+import {EntryType, Frame} from 'sentry/types';
 
 describe('Frame - Line', function () {
   const event = TestStubs.Event();
@@ -189,6 +189,65 @@ describe('Frame - Line', function () {
       );
       expect(await screen.findByLabelText('Missing source map')).toBeInTheDocument();
       expect(container).toSnapshot();
+    });
+  });
+
+  describe('ANR suspect frame', () => {
+    it('should render suspect frame', () => {
+      const org = {...TestStubs.Organization(), features: ['anr-analyze-frames']};
+      const eventWithThreads = {
+        ...event,
+        entries: [
+          {
+            data: {
+              values: [
+                {
+                  id: 13920,
+                  current: true,
+                  crashed: true,
+                  name: 'puma 002',
+                  stacktrace: null,
+                  rawStacktrace: null,
+                  state: 'WAITING',
+                },
+              ],
+            },
+            type: EntryType.THREADS,
+          },
+        ],
+      };
+      const suspectFrame: Frame = {
+        filename: 'Instrumentation.java',
+        absPath: 'Instrumentation.java',
+        module: 'android.app.Instrumentation',
+        package: null,
+        platform: null,
+        instructionAddr: null,
+        symbolAddr: null,
+        function: 'callApplicationOnCreate',
+        rawFunction: null,
+        symbol: null,
+        context: [],
+        lineNo: 1176,
+        colNo: null,
+        inApp: false,
+        trust: null,
+        errors: null,
+        vars: null,
+      };
+
+      render(
+        <DeprecatedLine
+          data={suspectFrame}
+          registers={{}}
+          components={[]}
+          event={eventWithThreads}
+          isANR
+          isExpanded
+        />,
+        {organization: org}
+      );
+      expect(screen.getByText('Suspect Frame')).toBeInTheDocument();
     });
   });
 });

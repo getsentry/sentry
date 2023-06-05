@@ -253,6 +253,24 @@ export const filterTypeConfig = {
 type FilterTypeConfig = typeof filterTypeConfig;
 
 /**
+ * The invalid reason is used to mark fields invalid fields and can be
+ * used to determine why the field was invalid. This is primarily use for the
+ * invalidMessages option
+ */
+export enum InvalidReason {
+  WILDCARD_NOT_ALLOWED = 'wildcard-not-allowed',
+  MUST_BE_QUOTED = 'must-be-quoted',
+  FILTER_MUST_HAVE_VALUE = 'filter-must-have-value',
+  INVALID_BOOLEAN = 'invalid-boolean',
+  INVALID_FILE_SIZE = 'invalid-file-size',
+  INVALID_NUMBER = 'invalid-number',
+  EMPTY_VALUE_IN_LIST_NOT_ALLOWED = 'empty-value-in-list-not-allowed',
+  INVALID_KEY = 'invalid-key',
+  INVALID_DURATION = 'invalid-duration',
+  INVALID_DATE_FORMAT = 'invalid-date-format',
+}
+
+/**
  * Object representing an invalid filter state
  */
 type InvalidFilter = {
@@ -260,6 +278,10 @@ type InvalidFilter = {
    * The message indicating why the filter is invalid
    */
   reason: string;
+  /**
+   * The invalid reason type
+   */
+  type: InvalidReason;
   /**
    * In the case where a filter is invalid, we may be expecting a different
    * type for this filter based on the key. This can be useful to hint to the
@@ -560,12 +582,14 @@ export class TokenConverter {
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
-  tokenValueText = (value: string, quoted: boolean) => ({
-    ...this.defaultTokenFields,
-    type: Token.ValueText as const,
-    value,
-    quoted,
-  });
+  tokenValueText = (value: string, quoted: boolean) => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.ValueText as const,
+      value,
+      quoted,
+    };
+  };
 
   /**
    * This method is used while tokenizing to predicate whether a filter should
@@ -633,7 +657,10 @@ export class TokenConverter {
    */
   checkInvalidFreeText = (value: string) => {
     if (this.config.disallowWildcard && value.includes('*')) {
-      return {reason: t('Invalid query. Wildcards are not supported.')};
+      return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
     }
 
     return null;
@@ -654,7 +681,10 @@ export class TokenConverter {
       this.config.supportedTags &&
       !this.config.supportedTags[key.text]
     ) {
-      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
+      return {
+        type: InvalidReason.INVALID_KEY,
+        reason: t('Invalid key. "%s" is not a supported search key.', key.text),
+      };
     }
 
     if (filter === FilterType.Text) {
@@ -688,6 +718,7 @@ export class TokenConverter {
 
     if (this.keyValidation.isDuration(keyName)) {
       return {
+        type: InvalidReason.INVALID_DURATION,
         reason: t('Invalid duration. Expected number followed by duration unit suffix'),
         expectedType: [FilterType.Duration],
       };
@@ -700,6 +731,7 @@ export class TokenConverter {
       const example = date.toISOString();
 
       return {
+        type: InvalidReason.INVALID_DATE_FORMAT,
         reason: t(
           'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
           example.slice(0, 10),
@@ -711,23 +743,24 @@ export class TokenConverter {
 
     if (this.keyValidation.isBoolean(keyName)) {
       return {
-        reason: t('Invalid boolean. Expected true, 1, false, or 0.'),
+        type: InvalidReason.INVALID_BOOLEAN,
+        reason: this.config.invalidMessages[InvalidReason.INVALID_BOOLEAN],
         expectedType: [FilterType.Boolean],
       };
     }
 
     if (this.keyValidation.isSize(keyName)) {
       return {
-        reason: t('Invalid file size. Expected number followed by file size unit suffix'),
+        type: InvalidReason.INVALID_FILE_SIZE,
+        reason: this.config.invalidMessages[InvalidReason.INVALID_FILE_SIZE],
         expectedType: [FilterType.Size],
       };
     }
 
     if (this.keyValidation.isNumeric(keyName)) {
       return {
-        reason: t(
-          'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
-        ),
+        type: InvalidReason.INVALID_NUMBER,
+        reason: this.config.invalidMessages[InvalidReason.INVALID_NUMBER],
         expectedType: [FilterType.Numeric, FilterType.NumericIn],
       };
     }
@@ -740,15 +773,24 @@ export class TokenConverter {
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
     if (this.config.disallowWildcard && value.value.includes('*')) {
-      return {reason: t('Wildcards not supported in search')};
+      return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
     }
 
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
-      return {reason: t('Quotes must enclose text or be escaped')};
+      return {
+        type: InvalidReason.MUST_BE_QUOTED,
+        reason: this.config.invalidMessages[InvalidReason.MUST_BE_QUOTED],
+      };
     }
 
     if (!value.quoted && value.value === '') {
-      return {reason: t('Filter must have a value')};
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
     }
 
     return null;
@@ -761,14 +803,21 @@ export class TokenConverter {
     const hasEmptyValue = items.some(item => item.value === null);
 
     if (hasEmptyValue) {
-      return {reason: t('Lists should not have empty values')};
+      return {
+        type: InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED,
+        reason:
+          this.config.invalidMessages[InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED],
+      };
     }
 
     if (
       this.config.disallowWildcard &&
       items.some(item => item.value.value.includes('*'))
     ) {
-      return {reason: t('Lists should not have wildcard values')};
+      return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
     }
 
     return null;
@@ -837,6 +886,10 @@ export type SearchConfig = {
    */
   durationKeys: Set<string>;
   /**
+   * Configures the associated messages for invalid reasons
+   */
+  invalidMessages: Partial<Record<InvalidReason, string>>;
+  /**
    * Keys considered valid for numeric filter types
    */
   numericKeys: Set<string>;
@@ -903,6 +956,21 @@ const defaultConfig: SearchConfig = {
   sizeKeys: new Set([]),
   allowBoolean: true,
   disallowWildcard: false,
+  invalidMessages: {
+    [InvalidReason.WILDCARD_NOT_ALLOWED]: t('Wildcards not supported in search'),
+    [InvalidReason.MUST_BE_QUOTED]: t('Quotes must enclose text or be escaped'),
+    [InvalidReason.FILTER_MUST_HAVE_VALUE]: t('Filter must have a value'),
+    [InvalidReason.INVALID_BOOLEAN]: t('Invalid boolean. Expected true, 1, false, or 0.'),
+    [InvalidReason.INVALID_FILE_SIZE]: t(
+      'Invalid file size. Expected number followed by file size unit suffix'
+    ),
+    [InvalidReason.INVALID_NUMBER]: t(
+      'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
+    ),
+    [InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED]: t(
+      'Lists should not have empty values'
+    ),
+  },
 };
 
 const options = {

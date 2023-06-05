@@ -13,6 +13,11 @@ describe('SpanEvidencePreview', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.restoreAllMocks();
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/issues/group-id/',
+    });
   });
 
   it('does not fetch before hover', () => {

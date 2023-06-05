@@ -26,27 +26,22 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
     def create_event(self, data, project_id, assert_no_errors=True):
         pass
 
-    def execute_test(
-        self,
-        event_data,
-        should_be_reported,
-        mock_sdk_crash_reporter,
-    ):
-        with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234):
-            event = self.create_event(
-                data=event_data,
-                project_id=self.project.id,
-            )
+    def execute_test(self, event_data, should_be_reported, mock_sdk_crash_reporter):
 
-            sdk_crash_detection.detect_sdk_crash(event=event)
+        event = self.create_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
 
-            if should_be_reported:
-                mock_sdk_crash_reporter.report.assert_called_once()
+        sdk_crash_detection.detect_sdk_crash(event=event)
 
-                reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
-                assert reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
-            else:
-                mock_sdk_crash_reporter.report.assert_not_called()
+        if should_be_reported:
+            mock_sdk_crash_reporter.report.assert_called_once()
+
+            reported_event = mock_sdk_crash_reporter.report.call_args.args[0]
+            assert reported_event.data["contexts"]["sdk_crash_detection"]["detected"] is True
+        else:
+            mock_sdk_crash_reporter.report.assert_not_called()
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")

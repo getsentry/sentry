@@ -25,7 +25,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
 
-const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
+const COLUMN_TITLES = ['endpoint', 'tpm', 'p95(duration)'];
 
 import styled from '@emotion/styled';
 
@@ -144,7 +144,7 @@ function EndpointList({
 
     if (
       field.startsWith(
-        'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
+        'equation|(percentile_range(transaction.duration,0.95,lessOrEquals,'
       )
     ) {
       const deltaValue = dataRow[field] as number;
@@ -189,10 +189,10 @@ function EndpointList({
       Object.keys(tableData.data[0]).forEach(col => {
         if (
           col.startsWith(
-            'equation|(percentile_range(transaction.duration,0.50,lessOrEquals'
+            'equation|(percentile_range(transaction.duration,0.95,lessOrEquals'
           )
         ) {
-          deltaColumnMap['p50()'] = col;
+          deltaColumnMap['p95()'] = col;
         }
       });
     }

@@ -175,7 +175,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 request=request,
                 organization=organization,
                 target_object=member.id,
-                target_user=member.user,
+                target_user_id=member.user_id,
                 event=audit_log.get_event_id("MEMBER_REMOVE"),
                 data=audit_data,
             )
@@ -565,12 +565,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization, email=result["email"], role=result["role"]
                 )
 
-                region_outbox = None
                 if member_query.exists():
                     member = member_query.first()
                     if member.token_expired:
                         member.regenerate_token()
-                        region_outbox = member.save()
+                        member.save()
                 else:
                     member = OrganizationMember(
                         organization=organization,
@@ -584,9 +583,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     member.flags["idp:role-restricted"] = idp_role_restricted
                     if settings.SENTRY_ENABLE_INVITES:
                         member.token = member.generate_token()
-                    region_outbox = member.save()
-                if region_outbox:
-                    region_outbox.drain_shard(max_updates_to_drain=10)
+                    member.save()
 
             self.create_audit_entry(
                 request=request,
