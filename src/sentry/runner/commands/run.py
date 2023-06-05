@@ -560,10 +560,8 @@ def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
                 "Only a single `--consumer-type` allowed when using the `v2` ingest consumer"
             )
 
-        # FIXME: Judging by the default values, `max_batch_time` is in milliseconds,
-        # but arroyo expects that option to be in seconds, so fix that up here:
-        if (mbt := options["max_batch_time"]) > 10:
-            options["max_batch_time"] = mbt / 1000
+        # Our batcher expects the time in seconds
+        options["max_batch_time"] = int(options["max_batch_time"] / 1000)
 
         consumer = get_ingest_consumer(type_=consumer_types[0], **options)
         run_processor_with_signals(consumer)
