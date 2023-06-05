@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
+from sentry.dynamic_sampling.models.base import Model, ModelInput
 from sentry.dynamic_sampling.models.common import ModelClass, sum_classes_counts
 
 
@@ -81,6 +81,3 @@ class FullRebalancingModel(Model[FullRebalancingInput, Tuple[List[ModelClass], f
             num_classes -= 1
 
         return ret_val, used_budget
-
-    def _dependencies(self) -> List[ModelType]:
-        return []

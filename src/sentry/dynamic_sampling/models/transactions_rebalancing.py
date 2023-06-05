@@ -71,7 +71,9 @@ class TransactionsRebalancingModel(
         implicit_budget = budget_per_class * num_implicit_classes
         explicit_budget = budget_per_class * num_explicit_classes
 
-        full_rebalancing = self.get_dependency(ModelType.FULL_REBALANCING)
+        from sentry.dynamic_sampling.models.factory import model_factory
+
+        full_rebalancing = model_factory(ModelType.FULL_REBALANCING)
 
         if num_explicit_classes == total_num_classes:
             # we have specified all classes
@@ -132,6 +134,3 @@ class TransactionsRebalancingModel(
             implicit_rate = implicit_budget / total_implicit
 
         return explicit_rates, implicit_rate
-
-    def _dependencies(self) -> List[ModelType]:
-        return [ModelType.FULL_REBALANCING]

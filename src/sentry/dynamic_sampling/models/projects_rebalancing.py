@@ -12,7 +12,7 @@ class ProjectsRebalancingInput(ModelInput):
     sample_rate: float
 
     def validate(self) -> bool:
-        return 0.0 <= self.sample_rate <= 1.0 and len(self.classes) > 0
+        return 0.0 <= self.sample_rate <= 1.0
 
 
 class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[ModelClass]]):
@@ -28,7 +28,9 @@ class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[ModelClass]]
 
         sorted_classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
 
-        full_rebalancing = self.get_dependency(ModelType.FULL_REBALANCING)
+        from sentry.dynamic_sampling.models.factory import model_factory
+
+        full_rebalancing = model_factory(ModelType.FULL_REBALANCING)
         result, _ = full_rebalancing.run(
             FullRebalancingInput(
                 classes=sorted_classes,
@@ -38,6 +40,3 @@ class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[ModelClass]]
         )
 
         return result  # type:ignore
-
-    def _dependencies(self) -> List[ModelType]:
-        return [ModelType.FULL_REBALANCING]
