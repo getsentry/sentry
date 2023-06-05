@@ -13,9 +13,11 @@ class ApiScopes(Sequence):
 
     event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (("org:read"), ("org:write"), ("org:admin"), ("org:ci"))
+    org = (("org:read"), ("org:write"), ("org:admin"))
 
     member = (("member:read"), ("member:write"), ("member:admin"))
+
+    ci = (("org:ci"),)
 
     def __init__(self):
         self.scopes = (
@@ -24,6 +26,7 @@ class ApiScopes(Sequence):
             + self.__class__.event
             + self.__class__.org
             + self.__class__.member
+            + self.__class__.ci
         )
 
     def to_bitfield(self):

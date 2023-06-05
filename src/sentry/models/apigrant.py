@@ -51,6 +51,7 @@ class ApiGrant(Model):
             ("member:read", "member:read"),
             ("member:write", "member:write"),
             ("member:admin", "member:admin"),
+            ("org:ci", "org:ci"),
         )
     )
     scope_list = ArrayField(of=models.TextField)
