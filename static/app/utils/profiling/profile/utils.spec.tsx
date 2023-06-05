@@ -94,11 +94,10 @@ describe('memoizeVariadicByReference', () => {
     const spy = jest.fn().mockImplementation(() => 1);
     const fn = memoizeVariadicByReference(spy);
 
-    // @ts-expect-error this shouldnt happen, but just in case it somehow gets passed
+    // this shouldnt happen, but just in case it somehow gets passed
     // in during runtime, we want to eval the function every time. The reason
     // for doing so is that we dont know if it is pure or not.
     expect(() => fn()).not.toThrow();
-    // @ts-expect-error this shouldnt happen, but in case it does
     expect(fn()).toBe(1);
 
     expect(spy).toHaveBeenCalledTimes(2);
