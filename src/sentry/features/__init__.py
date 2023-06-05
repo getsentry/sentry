@@ -85,7 +85,6 @@ default_manager.add("organizations:invite-members", OrganizationFeature, Feature
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-incompatible-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:issue-alert-preview", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-test-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sql-format", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
