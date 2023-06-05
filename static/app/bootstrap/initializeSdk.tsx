@@ -100,7 +100,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
-    // @ts-ignore not part of browser SDK types yet
+    // @ts-expect-error not part of browser SDK types yet
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
