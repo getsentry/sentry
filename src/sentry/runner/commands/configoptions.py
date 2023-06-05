@@ -14,6 +14,9 @@ class InvalidConfigFile(Exception):
         super().__init__(message)
         self.reason = reason
 
+    def __str__(self):
+        return f"{str(super())}. Reason: {self.reason}"
+
 
 def _validate_options(content: Mapping[str, Any]) -> Mapping[str, "NotWritableReason"]:
 
@@ -44,7 +47,7 @@ def _perform_update(key: str, value: Any, dry_run: bool) -> str:
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-    return "Option: {key} updated."
+    return f"Option: {key} updated."
 
 
 @click.group()

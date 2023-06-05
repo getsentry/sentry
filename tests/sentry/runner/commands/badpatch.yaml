@@ -1,5 +1,2 @@
-fetch : ["github-login.api-domain"]
-update :
-  github-login.api-domain  : [333, 22, 1]
-  nodedata.cache-sample-rate : 4.0
-delete : ["relay.transaction-metrics-org-sample-rate"]
+slack.client-secret: asdasd
+sourcemaps.enable-artifact-bundles: 0.1

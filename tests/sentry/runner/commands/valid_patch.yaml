@@ -1,0 +1,6 @@
+hybrid_cloud.outbox_rate: 1.0
+sourcemaps.enable-artifact-bundles: 0.1
+dynamic-sampling:boost-latest-release: true
+sentry-metrics.cardinality-limiter.limits.releasehealth.per-org:
+- a
+- b
