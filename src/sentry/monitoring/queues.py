@@ -187,6 +187,6 @@ def monitor_queues():
         return
     queue_stats_updater_process = Thread(
         target=_run_queue_stats_updater,
-        args=(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER),
+        args=(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER,),
     )
     queue_stats_updater_process.start()
