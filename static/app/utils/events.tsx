@@ -237,18 +237,26 @@ export function eventHasSourceMaps(event: Event) {
 
 /**
  * Function to determine if an event has been symbolicated. If the event
- * goes through symbolicator, it looks for at least one in-app frame to be successfully
- * symbolicated. Otherwise falls back to checking for `rawStacktrace` field presence.
+ * goes through symbolicator and has in-app frames, it looks for at least one in-app frame
+ * to be successfully symbolicated. Otherwise falls back to checking for `rawStacktrace` field presence.
  */
 export function eventIsSymbolicated(event: Event) {
   const frames = getFrames(event, false);
   const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
 
   if (fromSymbolicator) {
-    // if the event goes through symbolicator, we say it's symbolicated if at least one in-app
-    // frame is successfully symbolicated
+    // if the event goes through symbolicator and have in-app frames, we say it's symbolicated if
+    // at least one in-app frame is successfully symbolicated
+    const inAppFrames = frames.filter(frame => frame.inApp);
+    if (inAppFrames.length > 0) {
+      return inAppFrames.some(
+        frame => frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
+      );
+    }
+    // if there's no in-app frames, we say it's symbolicated if at least
+    // one system frame is successfully symbolicated
     return frames.some(
-      frame => frame.inApp && frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
+      frame => frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
     );
   }
 
