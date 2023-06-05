@@ -54,13 +54,11 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.props.location.search !== nextProps.location.search) {
-      const queryParams = nextProps.location.query;
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.location.search !== prevProps.location.search) {
+      const queryParams = this.props.location.query;
 
-      this.setState({
-        query: queryParams.query,
-      });
+      this.setState({query: queryParams.query});
     }
   }
 
