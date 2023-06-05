@@ -81,7 +81,8 @@ _irrelevant_re = re.compile(
             (2[0-3]|[0-1][\d]):([0-5][\d])
             (?::(60|[0-5][\d]))?\s+
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
-        )
+        ) |
+        (datetime.datetime\(.*\))
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b
