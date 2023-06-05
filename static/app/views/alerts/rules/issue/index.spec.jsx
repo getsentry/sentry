@@ -137,6 +137,11 @@ describe('IssueRuleEditor', function () {
         autoAssignment: false,
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/preview/',
+      method: 'POST',
+      body: [],
+    });
     ProjectsStore.loadInitialData([TestStubs.Project()]);
   });
 
