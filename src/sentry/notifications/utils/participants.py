@@ -192,14 +192,13 @@ def get_participants_for_release(
         .values_list("user_id", flat=True)
     )
 
-    # filter those user ids
-    # user_ids = user_service.get_many_ids(
-    #     filter=dict(
-    #         user_ids=user_ids,
-    #         email_verified=True,
-    #         is_active=True,
-    #     )
-    # )
+    # filter those user ids by verified emails
+    user_ids = user_service.get_many_ids(
+        filter=dict(
+            user_ids=user_ids,
+            email_verified=True,
+        )
+    )
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
 

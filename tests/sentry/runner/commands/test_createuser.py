@@ -54,7 +54,7 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             assert OrganizationMember.objects.count() == 1
             member = OrganizationMember.objects.all()[0]
-            assert user_service.get_user(id=member.user_id).email == "you@somewhereawesome.com"
+            assert user_service.get_user(user_id=member.user_id).email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == member.organization.default_role
 
@@ -65,7 +65,7 @@ class CreateUserTest(CliTestCase):
             assert "you@somewhereawesome.com" in rv.output
             assert OrganizationMember.objects.count() == 1
             member = OrganizationMember.objects.all()[0]
-            assert user_service.get_user(id=member.user_id).email == "you@somewhereawesome.com"
+            assert user_service.get_user(user_id=member.user_id).email == "you@somewhereawesome.com"
             assert member.organization.slug in rv.output
             assert member.role == roles.get_top_dog().id
 
