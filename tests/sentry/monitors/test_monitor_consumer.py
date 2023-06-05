@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 from unittest import mock
 
 import msgpack
-import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
@@ -128,7 +127,6 @@ class MonitorConsumerTest(TestCase):
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
-    @pytest.mark.django_db
     def test_passing(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         message = self.get_message(monitor.slug)
@@ -153,7 +151,6 @@ class MonitorConsumerTest(TestCase):
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
-    @pytest.mark.django_db
     def test_failing(self):
         monitor = self._create_monitor(slug="my-monitor")
         message = self.get_message(monitor.slug, status="error")
@@ -169,7 +166,6 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    @pytest.mark.django_db
     def test_disabled(self):
         monitor = self._create_monitor(status=ObjectStatus.DISABLED)
         message = self.get_message(monitor.slug, status="error")
@@ -188,7 +184,6 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    @pytest.mark.django_db
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         _process_message(self.get_message(monitor.slug, status="in_progress"))
@@ -197,7 +192,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
 
-    @pytest.mark.django_db
     def test_check_in_update_terminal(self):
         monitor = self._create_monitor(slug="my-monitor")
         done_message = self.get_message(monitor.slug, duration=10.0)
@@ -214,7 +208,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(20.0 * 1000)
 
-    @pytest.mark.django_db
     def test_monitor_environment(self):
         monitor = self._create_monitor(slug="my-monitor")
         message = self.get_message(monitor.slug, environment="jungle")
@@ -231,7 +224,6 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    @pytest.mark.django_db
     def test_monitor_create(self):
         message = self.get_message(
             "my-new-monitor",
@@ -252,7 +244,6 @@ class MonitorConsumerTest(TestCase):
             == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
         )
 
-    @pytest.mark.django_db
     def test_monitor_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         message = self.get_message(
@@ -277,7 +268,6 @@ class MonitorConsumerTest(TestCase):
             == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
         )
 
-    @pytest.mark.django_db
     def test_check_in_empty_id(self):
         monitor = self._create_monitor(slug="my-monitor")
         message = self.get_message(
@@ -290,7 +280,6 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.guid.int != 0
 
-    @pytest.mark.django_db
     def test_check_in_empty_id_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         message_open = self.get_message(
@@ -365,7 +354,6 @@ class MonitorConsumerTest(TestCase):
         assert len(checkins) == 1
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
-    @pytest.mark.django_db
     def test_monitor_upsert(self):
         message = self.get_message(
             "my-monitor",
@@ -386,7 +374,6 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment is not None
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
-    @pytest.mark.django_db
     def test_monitor_limits(self):
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
             message = self.get_message(
@@ -399,7 +386,6 @@ class MonitorConsumerTest(TestCase):
         assert len(monitors) == settings.MAX_MONITORS_PER_ORG
 
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
-    @pytest.mark.django_db
     def test_monitor_environment_limits(self):
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):
             message = self.get_message(
