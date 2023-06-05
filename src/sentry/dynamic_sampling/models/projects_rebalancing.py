@@ -2,21 +2,21 @@ from dataclasses import dataclass
 from typing import List
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
-from sentry.dynamic_sampling.models.common import ModelClass
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.full_rebalancing import FullRebalancingInput
 
 
 @dataclass
 class ProjectsRebalancingInput(ModelInput):
-    classes: List[ModelClass]
+    classes: List[RebalancedItem]
     sample_rate: float
 
     def validate(self) -> bool:
         return 0.0 <= self.sample_rate <= 1.0
 
 
-class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[ModelClass]]):
-    def _run(self, model_input: ProjectsRebalancingInput) -> List[ModelClass]:
+class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[RebalancedItem]]):
+    def _run(self, model_input: ProjectsRebalancingInput) -> List[RebalancedItem]:
         classes = model_input.classes
         sample_rate = model_input.sample_rate
 

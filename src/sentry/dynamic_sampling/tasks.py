@@ -7,7 +7,7 @@ import sentry_sdk
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.base import ModelType
-from sentry.dynamic_sampling.models.common import ModelClass, guarded_run
+from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
@@ -209,7 +209,8 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
     transactions = [
-        ModelClass(id=id, count=count) for id, count in project_transactions["transaction_counts"]
+        RebalancedItem(id=id, count=count)
+        for id, count in project_transactions["transaction_counts"]
     ]
 
     try:
@@ -372,7 +373,7 @@ def adjust_sample_rates(
     projects = []
     for project_id, count_per_root in projects_with_counts.items():
         projects.append(
-            ModelClass(
+            RebalancedItem(
                 id=project_id,
                 count=count_per_root,
             )

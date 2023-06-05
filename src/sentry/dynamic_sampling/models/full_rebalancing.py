@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput
-from sentry.dynamic_sampling.models.common import ModelClass, sum_classes_counts
+from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
 
 
 @dataclass
 class FullRebalancingInput(ModelInput):
-    classes: List[ModelClass]
+    classes: List[RebalancedItem]
     sample_rate: float
     intensity: float
     min_budget: Optional[float] = None
@@ -20,21 +20,21 @@ class FullRebalancingInput(ModelInput):
         )
 
 
-class FullRebalancingModel(Model[FullRebalancingInput, Tuple[List[ModelClass], float]]):
-    def _run(self, model_input: FullRebalancingInput) -> Tuple[List[ModelClass], float]:
+class FullRebalancingModel(Model[FullRebalancingInput, Tuple[List[RebalancedItem], float]]):
+    def _run(self, model_input: FullRebalancingInput) -> Tuple[List[RebalancedItem], float]:
         """
         Tries to calculate rates that brings all counts close to the ideal count.
 
         The intensity controls how close, 0 intensity leaves the items unchanged, 1 brings the items to the
         ideal count ( or rate=1.0 if ideal count is too high).
 
-        :param model_input.classes: The items to be balanced
-        :param model_input.sample_rate: The overall rate necessary
-        :param model_input.intensity: How close to the ideal should we go from our current position (0=do not change, 1 go to ideal)
-        :param model_input.min_budget: Ensure that we use at least min_budget (in order to keep the overall rate)
+        :param model_input.classes: The items to be balanced :param model_input.sample_rate: The overall rate
+        necessary :param model_input.intensity: How close to the ideal should we go from our current position (0=do
+        not change, 1 go to ideal) :param model_input.min_budget: Ensure that we use at least min_budget (in order to
+        keep the overall rate)
 
-        :return: A mapping with the frequency for all items + the amount of items used ( it should allways be at least
-        minimum_consumption if passed)
+        :return: A mapping with the frequency for all items + the amount of items used (it should allways be at least
+        minimum_consumption if passed).
         """
         classes = model_input.classes
         sample_rate = model_input.sample_rate
@@ -75,7 +75,9 @@ class FullRebalancingModel(Model[FullRebalancingInput, Tuple[List[ModelClass], f
                 new_sample_rate = desired_count / count
                 used = desired_count
 
-            ret_val.append(ModelClass(id=element.id, count=count, new_sample_rate=new_sample_rate))
+            ret_val.append(
+                RebalancedItem(id=element.id, count=count, new_sample_rate=new_sample_rate)
+            )
             min_budget -= used
             used_budget += used
             num_classes -= 1

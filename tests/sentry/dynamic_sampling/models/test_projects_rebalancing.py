@@ -3,7 +3,7 @@ from operator import attrgetter
 import pytest
 
 from sentry.dynamic_sampling.models.base import ModelType
-from sentry.dynamic_sampling.models.common import ModelClass
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 
@@ -23,41 +23,41 @@ def test_adjust_sample_rates_org_with_single_project(projects_rebalancing_model)
     assert projects_rebalancing_model.run(
         ProjectsRebalancingInput(
             classes=[
-                ModelClass(
+                RebalancedItem(
                     id=1,
                     count=10,
                 )
             ],
             sample_rate=0.4,
         )
-    ) == [ModelClass(id=1, count=10, new_sample_rate=0.4)]
+    ) == [RebalancedItem(id=1, count=10, new_sample_rate=0.4)]
 
 
 def test_adjust_sample_rates_org_with_few_projects(projects_rebalancing_model):
     classes = [
-        ModelClass(id=1, count=9),
-        ModelClass(id=2, count=7),
-        ModelClass(id=3, count=3),
-        ModelClass(id=4, count=1),
+        RebalancedItem(id=1, count=9),
+        RebalancedItem(id=2, count=7),
+        RebalancedItem(id=3, count=3),
+        RebalancedItem(id=4, count=1),
     ]
 
     expected_classes = [
-        ModelClass(
+        RebalancedItem(
             id=1,
             count=9,
             new_sample_rate=pytest.approx(0.14814814814814817),
         ),
-        ModelClass(
+        RebalancedItem(
             id=2,
             count=7,
             new_sample_rate=pytest.approx(0.1904761904761905),
         ),
-        ModelClass(
+        RebalancedItem(
             id=3,
             count=3,
             new_sample_rate=pytest.approx(0.4444444444444444),
         ),
-        ModelClass(
+        RebalancedItem(
             id=4,
             count=1,
             new_sample_rate=1.0,
@@ -114,7 +114,7 @@ def test_adjust_sample_rates_org_with_many_projects(projects_rebalancing_model):
     ]
 
     classes = [
-        ModelClass(
+        RebalancedItem(
             id=p_id,
             count=count,
         )
@@ -134,23 +134,23 @@ def test_adjust_sample_rates_org_with_many_projects(projects_rebalancing_model):
 
 def test_adjust_sample_rates_org_with_even_num_projects(projects_rebalancing_model):
     classes = [
-        ModelClass(id=1, count=8.0),
-        ModelClass(id=2, count=7.0),
-        ModelClass(id=3, count=3.0),
+        RebalancedItem(id=1, count=8.0),
+        RebalancedItem(id=2, count=7.0),
+        RebalancedItem(id=3, count=3.0),
     ]
 
     expected_classes = [
-        ModelClass(
+        RebalancedItem(
             id=1,
             count=8.0,
             new_sample_rate=0.1875,
         ),
-        ModelClass(
+        RebalancedItem(
             id=2,
             count=7.0,
             new_sample_rate=pytest.approx(0.21428571428571427),
         ),
-        ModelClass(
+        RebalancedItem(
             id=3,
             count=3.0,
             new_sample_rate=0.5,
@@ -170,29 +170,29 @@ def test_adjust_sample_rates_org_with_even_num_projects(projects_rebalancing_mod
 
 def test_adjust_sample_rates_org_with_same_counts_projects(projects_rebalancing_model):
     classes = [
-        ModelClass(id=1, count=9.0),
-        ModelClass(id=2, count=6.0),
-        ModelClass(id=3, count=6.0),
-        ModelClass(id=4, count=1.0),
+        RebalancedItem(id=1, count=9.0),
+        RebalancedItem(id=2, count=6.0),
+        RebalancedItem(id=3, count=6.0),
+        RebalancedItem(id=4, count=1.0),
     ]
 
     expected_classes = [
-        ModelClass(
+        RebalancedItem(
             id=1,
             count=9.0,
             new_sample_rate=pytest.approx(0.16666666666666666),
         ),
-        ModelClass(
+        RebalancedItem(
             id=2,
             count=6.0,
             new_sample_rate=0.25,
         ),
-        ModelClass(
+        RebalancedItem(
             id=3,
             count=6.0,
             new_sample_rate=0.25,
         ),
-        ModelClass(
+        RebalancedItem(
             id=4,
             count=1.0,
             new_sample_rate=1.0,
@@ -212,29 +212,29 @@ def test_adjust_sample_rates_org_with_same_counts_projects(projects_rebalancing_
 
 def test_adjust_sample_rates_org_with_counts_projects(projects_rebalancing_model):
     classes = [
-        ModelClass(id=1, count=2.0),
-        ModelClass(id=2, count=10.0),
-        ModelClass(id=3, count=10.0),
-        ModelClass(id=4, count=10.0),
+        RebalancedItem(id=1, count=2.0),
+        RebalancedItem(id=2, count=10.0),
+        RebalancedItem(id=3, count=10.0),
+        RebalancedItem(id=4, count=10.0),
     ]
 
     expected_classes = [
-        ModelClass(
+        RebalancedItem(
             id=1,
             count=2.0,
             new_sample_rate=1.0,
         ),
-        ModelClass(
+        RebalancedItem(
             id=2,
             count=10.0,
             new_sample_rate=0.2,
         ),
-        ModelClass(
+        RebalancedItem(
             id=3,
             count=10.0,
             new_sample_rate=0.2,
         ),
-        ModelClass(
+        RebalancedItem(
             id=4,
             count=10.0,
             new_sample_rate=0.2,

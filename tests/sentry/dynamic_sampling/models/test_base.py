@@ -19,16 +19,3 @@ def test_run_with_exception(full_rebalancing_model):
                 intensity=1,
             )
         )
-
-
-def test_guarded_run_with_exception(full_rebalancing_model):
-    assert (
-        full_rebalancing_model.guarded_run(
-            FullRebalancingInput(
-                classes=[],
-                sample_rate=0.0,
-                intensity=1,
-            )
-        )
-        is None
-    )

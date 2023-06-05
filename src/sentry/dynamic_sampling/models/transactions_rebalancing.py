@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
-from sentry.dynamic_sampling.models.common import ModelClass, sum_classes_counts
+from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
 from sentry.dynamic_sampling.models.full_rebalancing import FullRebalancingInput
 
 
 @dataclass
 class TransactionsRebalancingInput(ModelInput):
-    classes: List[ModelClass]
+    classes: List[RebalancedItem]
     sample_rate: float
     total_num_classes: Optional[int]
     total: Optional[float]
@@ -23,9 +23,9 @@ class TransactionsRebalancingInput(ModelInput):
 
 
 class TransactionsRebalancingModel(
-    Model[TransactionsRebalancingInput, Tuple[List[ModelClass], float]]
+    Model[TransactionsRebalancingInput, Tuple[List[RebalancedItem], float]]
 ):
-    def _run(self, model_input: TransactionsRebalancingInput) -> Tuple[List[ModelClass], float]:
+    def _run(self, model_input: TransactionsRebalancingInput) -> Tuple[List[RebalancedItem], float]:
         """
         Adjusts sampling rates to bring the number of samples kept in each class as close to
         the same value as possible while maintaining the overall sampling rate.
@@ -39,7 +39,7 @@ class TransactionsRebalancingModel(
         :param model_input.intensity: the adjustment strength 0: no adjustment, 1: try to bring everything to mean
         :param model_input.total: total number of samples in all classes (including the explicitly specified classes)
 
-        :return: a list of DSElement with calculated sample_rates and  a rate for all other (unspecified) classes.
+        :return: a list of items with calculated sample_rates and a rate for all other (unspecified) classes.
         """
         classes = model_input.classes
         sample_rate = model_input.sample_rate
@@ -102,7 +102,7 @@ class TransactionsRebalancingModel(
             # send a maximum of total_explicit so set the explicit rate to 1 for
             # all explicit classes and reevaluate the available budget for the implicit classes
             explicit_rates = [
-                ModelClass(id=element.id, count=element.count, new_sample_rate=1.0)
+                RebalancedItem(id=element.id, count=element.count, new_sample_rate=1.0)
                 for element in classes
             ]
 

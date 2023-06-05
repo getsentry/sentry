@@ -3,7 +3,7 @@ from typing import List, Mapping
 import pytest
 
 from sentry.dynamic_sampling.models.base import ModelType
-from sentry.dynamic_sampling.models.common import ModelClass, sum_classes_counts
+from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 
@@ -14,9 +14,9 @@ def transactions_rebalancing_model():
 
 
 def create_transaction_counts(big: int, med: int, small: int):
-    big_t = [ModelClass(id=f"tb{i}", count=1000 + i) for i in range(big)]
-    med_t = [ModelClass(id=f"tm{i}", count=100 + i) for i in range(med)]
-    small_t = [ModelClass(id=f"ts{i}", count=1 + i) for i in range(small)]
+    big_t = [RebalancedItem(id=f"tb{i}", count=1000 + i) for i in range(big)]
+    med_t = [RebalancedItem(id=f"tm{i}", count=100 + i) for i in range(med)]
+    small_t = [RebalancedItem(id=f"ts{i}", count=1 + i) for i in range(small)]
     return [*big_t, *med_t, *small_t]
 
 
@@ -40,7 +40,7 @@ intensity = [0.0, 0.5, 1.0]
 
 
 def get_num_sampled_elements(
-    transactions: List[ModelClass], trans_dict: Mapping[str, float], global_rate: float
+    transactions: List[RebalancedItem], trans_dict: Mapping[str, float], global_rate: float
 ) -> float:
     num_transactions = 0.0
     for transaction in transactions:
