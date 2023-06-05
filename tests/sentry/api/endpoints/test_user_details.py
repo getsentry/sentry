@@ -22,7 +22,7 @@ class UserDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsGetTest(UserDetailsTest):
     # TODO(dcramer): theres currently no way to look up other users
     def test_look_up_other_user(self):
@@ -67,7 +67,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -147,7 +147,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.username == "new@example.com"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
