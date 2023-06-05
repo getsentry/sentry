@@ -3,11 +3,12 @@ import {DateRange, DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
 
 import CalendarStylesWrapper from './calendarStylesWrapper';
 
-export type DateRangePickerProps = Omit<DateRangeProps, 'ranges' | 'onChange'> & {
+export interface DateRangePickerProps
+  extends Omit<DateRangeProps, 'ranges' | 'onChange'> {
   onChange: (range: Range) => void;
   endDate?: Date;
   startDate?: Date;
-};
+}
 
 type RangeSelection = {primary: Range};
 

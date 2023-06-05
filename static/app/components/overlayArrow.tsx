@@ -5,13 +5,13 @@ import styled from '@emotion/styled';
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
+export interface Props extends React.HTMLAttributes<HTMLDivElement> {
   background?: ColorOrAlias;
   border?: ColorOrAlias;
   placement?: PopperProps<any>['placement'];
   size?: number;
   strokeWidth?: number;
-};
+}
 
 function BaseOverlayArrow(
   {

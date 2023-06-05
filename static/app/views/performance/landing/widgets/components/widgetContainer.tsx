@@ -38,7 +38,7 @@ import {VitalWidget} from '../widgets/vitalWidget';
 
 import {ChartRowProps} from './widgetChartRow';
 
-type Props = {
+interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   defaultChartSetting: PerformanceWidgetSetting;
@@ -50,7 +50,7 @@ type Props = {
   withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
-} & ChartRowProps;
+}
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
