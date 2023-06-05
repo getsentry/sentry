@@ -123,6 +123,7 @@ function ArchiveActions({
         {t('Archive')}
       </ArchiveButton>
       <DropdownMenu
+        minMenuWidth={270}
         size="sm"
         trigger={triggerProps => (
           <DropdownTrigger
