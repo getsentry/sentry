@@ -1302,10 +1302,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable issue alert incompatible rule check
-    "organizations:issue-alert-incompatible-rules": False,
-    # Enable issue alert test notifications
-    "organizations:issue-alert-test-notifications": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Whether to allow issue only search on the issue list
