@@ -1381,6 +1381,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group=group,
             event=EventMatcher(event),
             sender=manage_issue_states,
+            was_until_escalating=False,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 

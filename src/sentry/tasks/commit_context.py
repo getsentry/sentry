@@ -318,7 +318,7 @@ def process_commit_context(
         logger.info(
             "process_commit_context.max_retries_exceeded",
             extra={
-                **basic_logging_details,
+                **basic_logging_details,  # pyright: ignore
                 "reason": "max_retries_exceeded",
             },
         )

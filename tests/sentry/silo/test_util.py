@@ -1,4 +1,7 @@
+from wsgiref.util import is_hop_by_hop
+
 from django.test import override_settings
+from requests.structures import CaseInsensitiveDict
 
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
@@ -16,18 +19,20 @@ from sentry.testutils import TestCase
 
 
 class SiloUtilityTest(TestCase):
-    headers = {
-        "User-Agent": "Chrome",
-        "Keep-Alive": "timeout=5",
-        "Authorization": "Bearer tkn",
-        "Host": "sentry.io",
-        "Content-Length": "27",
-        PROXY_OI_HEADER: "12",
-        PROXY_SIGNATURE_HEADER: "-leander(but-in-cursive)",
-        "X-Test-Header-1": "One",
-        "X-Test-Header-2": "Two",
-        "X-Test-Header-3": "Three",
-    }
+    headers = CaseInsensitiveDict(
+        data={
+            "User-Agent": "Chrome",
+            "Authorization": "Bearer tkn",
+            "Host": "sentry.io",
+            "Content-Length": "27",
+            "Content-Encoding": "deflate, gzip",
+            PROXY_OI_HEADER: "12",
+            PROXY_SIGNATURE_HEADER: "-leander(but-in-cursive)",
+            "X-Test-Header-1": "One",
+            "X-Test-Header-2": "Two",
+            "X-Test-Header-3": "Three",
+        }
+    )
     secret = "hush-hush-im-invisible"
 
     def test_trim_leading_slashes(self):
@@ -68,6 +73,25 @@ class SiloUtilityTest(TestCase):
         retained_headers = filter(lambda k: k not in INVALID_OUTBOUND_HEADERS, self.headers.keys())
         for header in retained_headers:
             assert self.headers[header] == cleaned[header]
+
+    def test_clean_hop_by_hop_headers(self):
+        headers = {
+            **self.headers,
+            "Keep-Alive": "timeout=5",
+            "Transfer-Encoding": "chunked",
+            "Proxy-Authenticate": "Basic",
+        }
+        hop_by_hop_headers = ["Keep-Alive", "Transfer-Encoding", "Proxy-Authenticate"]
+
+        cleaned = clean_headers(headers, invalid_headers=[])
+
+        for header in hop_by_hop_headers:
+            assert header in headers
+            assert header not in cleaned
+
+        retained_headers = filter(lambda k: not is_hop_by_hop(k), headers.keys())
+        for header in retained_headers:
+            assert headers[header] == cleaned[header]
 
     @override_settings(SENTRY_SUBNET_SECRET=secret)
     def test_subnet_signature(self):

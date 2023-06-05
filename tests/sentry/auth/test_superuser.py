@@ -323,6 +323,37 @@ class SuperuserTestCase(TestCase):
             domain=COOKIE_DOMAIN,
         )
 
+    def test_middleware_as_superuser_without_session(self):
+        request = self.build_request(session_data=False)
+
+        delattr(request, "superuser")
+        delattr(request, "is_superuser")
+
+        middleware = SuperuserMiddleware()
+        middleware.process_request(request)
+        assert not request.superuser.is_active
+        assert not request.is_superuser()
+
+        response = Mock()
+        middleware.process_response(request, response)
+        response.delete_cookie.assert_called_once_with(COOKIE_NAME)
+
+    def test_middleware_as_non_superuser(self):
+        user = self.create_user("foo@example.com", is_superuser=False)
+        request = self.build_request(user=user)
+
+        delattr(request, "superuser")
+        delattr(request, "is_superuser")
+
+        middleware = SuperuserMiddleware()
+        middleware.process_request(request)
+        assert not request.superuser.is_active
+        assert not request.is_superuser()
+
+        response = Mock()
+        middleware.process_response(request, response)
+        assert not response.set_signed_cookie.called
+
     def test_changed_user(self):
         request = self.build_request()
         superuser = Superuser(request, allowed_ips=())

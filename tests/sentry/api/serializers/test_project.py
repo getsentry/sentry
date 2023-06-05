@@ -15,6 +15,7 @@ from sentry.api.serializers.models.project import (
     ProjectWithTeamSerializer,
     bulk_fetch_project_latest_releases,
 )
+from sentry.app import env
 from sentry.models import (
     Deploy,
     Environment,
@@ -164,6 +165,26 @@ class ProjectSerializerTest(TestCase):
         assert result["access"] == TEAM_ADMIN["scopes"]
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+
+    def test_superuser(self):
+        self.user = self.create_user(username="foo", is_superuser=True)
+        req = self.make_request()
+        req.user = self.user
+        req.superuser.set_logged_in(req.user)
+        env.request = req
+
+        result = serialize(self.project, self.user)
+        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
+        # after changing to allow_joinleave=False
+        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
 
     def test_member_on_owner_team(self):
         organization = self.create_organization()

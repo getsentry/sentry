@@ -79,7 +79,7 @@ function OrganizationApiKeysList({
 
       <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
         {tct(
-          'Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
+          'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
           {
             tokens: <u />,
           }
