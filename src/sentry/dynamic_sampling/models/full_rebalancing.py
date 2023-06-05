@@ -13,7 +13,7 @@ class FullRebalancingInput(ModelInput):
     min_budget: Optional[float] = None
 
     def validate(self) -> bool:
-        return 0.0 <= self.sample_rate <= 1.0
+        return 0.0 <= self.sample_rate <= 1.0 and 0.0 <= self.intensity <= 1.0
 
 
 class FullRebalancingModel(Model):
@@ -24,10 +24,10 @@ class FullRebalancingModel(Model):
         The intensity controls how close, 0 intensity leaves the items unchanged, 1 brings the items to the
         ideal count ( or rate=1.0 if ideal count is too high).
 
-        :param classes: The items to be balanced
-        :param rate: The overall rate necessary
-        :param intensity: How close to the ideal should we go from our current position (0=do not change, 1 go to ideal)
-        :param min_budget: Ensure that we use at least min_budget (in order to keep the overall rate)
+        :param model_input.classes: The items to be balanced
+        :param model_input.sample_rate: The overall rate necessary
+        :param model_input.intensity: How close to the ideal should we go from our current position (0=do not change, 1 go to ideal)
+        :param model_input.min_budget: Ensure that we use at least min_budget (in order to keep the overall rate)
 
         :return: A mapping with the frequency for all items + the amount of items used ( it should allways be at least
         minimum_consumption if passed)

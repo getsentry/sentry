@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, TypeVar
 
+import sentry_sdk
+
 
 class ModelType(Enum):
     TRANSACTIONS_REBALANCING = 1
@@ -41,6 +43,14 @@ class Model(ABC):
         self._build_dependencies()
         return self._run(model_input)
 
+    def guarded_run(self, model_input: Input) -> Output:
+        try:
+            return self.run(model_input)
+        except Exception as e:
+            # We want to track the error when running the model.
+            sentry_sdk.capture_exception(e)
+            return None
+
     @abstractmethod
     def _dependencies(self) -> List[ModelType]:
         return []
@@ -48,7 +58,7 @@ class Model(ABC):
     def _build_dependencies(self) -> None:
         from sentry.dynamic_sampling.models.factory import model_factory
 
-        # We don't want to compute dependencies again if we have already done it.
+        # We don't want to compute dependencies again if we have already done it or if the list is empty.
         if len(self._dependencies()) == 0 or len(self.dependencies) > 0:
             return
 

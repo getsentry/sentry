@@ -15,7 +15,7 @@ class TransactionsRebalancingInput(ModelInput):
     intensity: float
 
     def validate(self) -> bool:
-        return 0.0 <= self.sample_rate <= 1.0
+        return 0.0 <= self.sample_rate <= 1.0 and 0.0 <= self.intensity <= 1.0
 
 
 class TransactionsRebalancingModel(Model):
@@ -27,11 +27,11 @@ class TransactionsRebalancingModel(Model):
         The algorithm adjusts the explicitly given classes individually to bring them to
         the ideal sample rate and then adjusts the global sample rate for all the remaining classes.
 
-        :param classes: a list of class id, num_samples in class
-        :param rate: global rate of sampling desired
-        :param total_num_classes: total number of classes (including the explicitly specified in classes)
-        :param intensity: the adjustment strength 0: no adjustment, 1: try to bring everything to mean
-        :param total: total number of samples in all classes (including the explicitly specified classes)
+        :param model_input.classes: a list of class id, num_samples in class
+        :param model_input.sample_rate: global rate of sampling desired
+        :param model_input.total_num_classes: total number of classes (including the explicitly specified in classes)
+        :param model_input.intensity: the adjustment strength 0: no adjustment, 1: try to bring everything to mean
+        :param model_input.total: total number of samples in all classes (including the explicitly specified classes)
 
         :return: a list of DSElement with calculated sample_rates and  a rate for all other (unspecified) classes.
         """

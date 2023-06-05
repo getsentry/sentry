@@ -247,7 +247,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
 
     model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
-    named_rates, implicit_rate = model.run(
+    rebalanced_transactions = model.guarded_run(
         TransactionsRebalancingInput(
             classes=transactions,
             sample_rate=sample_rate,
@@ -256,7 +256,12 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
             intensity=intensity,
         )
     )
+    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
+    if rebalanced_transactions is None:
+        return
 
+    # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
+    named_rates, implicit_rate = rebalanced_transactions
     set_transactions_resampling_rates(
         org_id=org_id,
         proj_id=project_id,
@@ -372,9 +377,12 @@ def adjust_sample_rates(
         )
 
     model = model_factory(ModelType.PROJECTS_REBALANCING)
-    rebalanced_projects = model.run(
+    rebalanced_projects = model.guarded_run(
         ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
+    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
+    if rebalanced_projects is None:
+        return
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:

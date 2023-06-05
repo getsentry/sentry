@@ -20,11 +20,11 @@ class ProjectsRebalancingModel(Model):
         classes = model_input.classes
         sample_rate = model_input.sample_rate
 
-        if len(classes) < 2:
-            if len(classes) == 1:
-                classes[0].new_sample_rate = sample_rate
-
+        if len(classes) == 0:
             return classes
+
+        if len(classes) == 1:
+            classes[0].new_sample_rate = sample_rate
 
         sorted_classes = sorted(classes, key=lambda x: (x.count, x.id), reverse=True)
 
