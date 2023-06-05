@@ -14,7 +14,7 @@ from django.conf import settings
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
-from sentry.sentry_metrics.utils import resolve_tag_value
+from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -131,17 +131,20 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         items = {DataCategory.TRANSACTION: quantity}
 
-        profile_tag_value = resolve_tag_value(
-            UseCaseKey.PERFORMANCE, bucket_payload["org_id"], "true"
-        )
-        if bucket_payload["tags"].get(self.profile_tag_key) == profile_tag_value:
+        if self._has_profile(bucket_payload):
             # The bucket is tagged with the "has_profile" tag,
             # so we also count the quantity of this bucket towards profiles.
             # This assumes a "1 to 0..1" relationship between transactions and profiles.
-            # NOTE: This will only work when the indexer is configured to forward tag values as the original strings.
             items[DataCategory.PROFILE] = quantity
 
         return items
+
+    def _has_profile(self, bucket: MetricsBucket) -> bool:
+        return (
+            tag_value := bucket["tags"].get(self.profile_tag_key)
+        ) and "true" == reverse_resolve_tag_value(
+            UseCaseKey.PERFORMANCE, bucket["org_id"], tag_value
+        )
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
         for category, quantity in self._count_processed_items(payload).items():
