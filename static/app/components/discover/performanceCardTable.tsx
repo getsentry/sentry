@@ -451,10 +451,10 @@ function PerformanceCardTable({
 
   function renderMobilePerformance() {
     const mobileVitals = [
-      MobileVital.AppStartCold,
-      MobileVital.AppStartWarm,
-      MobileVital.FramesSlow,
-      MobileVital.FramesFrozen,
+      MobileVital.APP_START_COLD,
+      MobileVital.APP_START_WARM,
+      MobileVital.FRAMES_SLOW,
+      MobileVital.FRAMES_FROZEN,
     ];
     const mobileVitalTitles = mobileVitals.map(mobileVital => {
       return (

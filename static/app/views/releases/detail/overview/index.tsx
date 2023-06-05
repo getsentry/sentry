@@ -210,9 +210,9 @@ class ReleaseOverview extends AsyncView<Props> {
               `p75(${WebVital.FID})`,
               `p75(${WebVital.LCP})`,
               `p75(${WebVital.CLS})`,
-              `p75(${SpanOpBreakdown.SpansHttp})`,
-              `p75(${SpanOpBreakdown.SpansBrowser})`,
-              `p75(${SpanOpBreakdown.SpansResource})`,
+              `p75(${SpanOpBreakdown.SPANS_HTTP})`,
+              `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
+              `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
           }) as EventView)
         : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
@@ -225,10 +225,10 @@ class ReleaseOverview extends AsyncView<Props> {
             ...baseQuery,
             fields: [
               ...baseQuery.fields,
-              `p75(${MobileVital.AppStartCold})`,
-              `p75(${MobileVital.AppStartWarm})`,
-              `p75(${MobileVital.FramesSlow})`,
-              `p75(${MobileVital.FramesFrozen})`,
+              `p75(${MobileVital.APP_START_COLD})`,
+              `p75(${MobileVital.APP_START_WARM})`,
+              `p75(${MobileVital.FRAMES_SLOW})`,
+              `p75(${MobileVital.FRAMES_FROZEN})`,
             ],
           }) as EventView)
         : (EventView.fromSavedQuery({

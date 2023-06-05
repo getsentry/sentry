@@ -26,11 +26,11 @@ export enum SpanOperationBreakdownFilter {
 export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
   Record<SpanOperationBreakdownFilter, string>
 > = {
-  [SpanOperationBreakdownFilter.Http]: SpanOpBreakdown.SpansHttp,
-  [SpanOperationBreakdownFilter.Db]: SpanOpBreakdown.SpansDb,
-  [SpanOperationBreakdownFilter.Browser]: SpanOpBreakdown.SpansBrowser,
-  [SpanOperationBreakdownFilter.Resource]: SpanOpBreakdown.SpansResource,
-  [SpanOperationBreakdownFilter.Ui]: SpanOpBreakdown.SpansUi,
+  [SpanOperationBreakdownFilter.Http]: SpanOpBreakdown.SPANS_HTTP,
+  [SpanOperationBreakdownFilter.Db]: SpanOpBreakdown.SPANS_DB,
+  [SpanOperationBreakdownFilter.Browser]: SpanOpBreakdown.SPANS_BROWSER,
+  [SpanOperationBreakdownFilter.Resource]: SpanOpBreakdown.SPANS_RESOURCE,
+  [SpanOperationBreakdownFilter.Ui]: SpanOpBreakdown.SPANS_UI,
 };
 
 const OPTIONS: SpanOperationBreakdownFilter[] = [
