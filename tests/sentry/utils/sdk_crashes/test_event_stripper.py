@@ -42,8 +42,6 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             "timestamp",
             "platform",
             "sdk",
-            "level",
-            "logger",
             "exception",
             "debug_meta",
             "contexts",
@@ -75,10 +73,61 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
 
         contexts = stripped_event_data.get("contexts")
-        assert contexts is not None
-        assert contexts.get("app") is None
-        assert contexts.get("os") is not None
-        assert contexts.get("device") is not None
+        assert len(contexts) == 2
+
+        os_context = contexts.get("os")
+        assert len(os_context) == 3
+        assert os_context.get("name") == "iOS"
+        assert os_context.get("version") == "16.3"
+        assert os_context.get("build") == "20D47"
+
+        device_context = contexts.get("device")
+        assert len(device_context) == 3
+        assert device_context.get("family") == "iOS"
+        assert device_context.get("model") == "iPhone14,8"
+        assert device_context.get("arch") == "arm64e"
+
+    def test_strip_event_data_strips_sdk(self):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+
+        sdk = stripped_event_data.get("sdk")
+
+        assert len(sdk) == 2
+        assert sdk.get("name") == "sentry.cocoa"
+        assert sdk.get("version") == "8.1.0"
+
+    def test_strip_event_data_strips_value_if_not_simple_type(self):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+        event.data["type"] = {"foo": "bar"}
+
+        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+
+        assert stripped_event_data.get("type") is None
+
+    def test_strip_event_data_keeps_simple_types(self):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+        event.data["type"] = True
+        event.data["datetime"] = 0.1
+        event.data["timestamp"] = 1
+        event.data["platform"] = "cocoa"
+
+        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+
+        assert stripped_event_data.get("type") is True
+        assert stripped_event_data.get("datetime") == 0.1
+        assert stripped_event_data.get("timestamp") == 1
+        assert stripped_event_data.get("platform") == "cocoa"
 
     def test_strip_event_data_strips_non_referenced_dsyms(self):
         event = self.create_event(
