@@ -29,7 +29,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -207,7 +207,10 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
                 "slug": slugify(request.data["displayName"]),
                 "idp_provisioned": True,
             }
-        ),
+        )
+        metrics.incr(
+            "sentry.scim.team.provision", sample_rate=1.0, tags={"organization": organization}
+        )
         return super().post(request, organization)
 
 
@@ -447,6 +450,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
+        metrics.incr(
+            "sentry.scim.team.update", sample_rate=1.0, tags={"organization": organization}
+        )
         return self.respond(status=204)
 
     @extend_schema(
@@ -464,6 +470,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
+        metrics.incr(
+            "sentry.scim.team.delete", sample_rate=1.0, tags={"organization": organization}
+        )
         return super().delete(request, team)
 
     def put(self, request: Request, organization, team) -> Response:

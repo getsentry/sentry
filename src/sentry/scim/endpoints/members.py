@@ -39,7 +39,7 @@ from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -262,7 +262,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         The only supported attribute is `active`. After setting `active` to false
         Sentry will permanently delete the Organization Member.
         """
-
         serializer = SCIMPatchRequestSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -274,10 +273,18 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             # we only support setting active to False which deletes the orgmember
             if self._should_delete_member(operation):
                 self._delete_member(request, organization, member)
+                metrics.incr(
+                    "sentry.scim.member.update",
+                    sample_rate=1.0,
+                    tags={"organization": organization},
+                )
                 return Response(status=204)
             else:
                 raise SCIMApiError(detail=SCIM_400_INVALID_PATCH)
 
+        metrics.incr(
+            "sentry.scim.member.update", sample_rate=1.0, tags={"organization": organization}
+        )
         context = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
@@ -300,6 +307,9 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         Delete an organization member with a SCIM User DELETE Request.
         """
         self._delete_member(request, organization, member)
+        metrics.incr(
+            "sentry.scim.member.delete", sample_rate=1.0, tags={"organization": organization}
+        )
         return Response(status=204)
 
     @extend_schema(
@@ -375,6 +385,9 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         member.flags["idp:role-restricted"] = idp_role_restricted
         member.save()
 
+        metrics.incr(
+            "sentry.scim.member.update_role", sample_rate=1.0, tags={"organization": organization}
+        )
         context = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
@@ -604,6 +617,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     referrer=request.data.get("referrer"),
                 )
 
+            metrics.incr(
+                "sentry.scim.member.provision",
+                sample_rate=1.0,
+                tags={"organization": organization},
+            )
             context = serialize(
                 member,
                 serializer=_scim_member_serializer_with_expansion(organization),

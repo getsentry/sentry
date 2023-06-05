@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -41,7 +42,8 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_post_users_successful(self):
+    @patch("sentry.scim.endpoints.members.metrics")
+    def test_post_users_successful(self, mock_metrics):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
             response = self.client.post(url, CREATE_USER_POST_DATA)
@@ -69,6 +71,11 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert member.flags["idp:provisioned"]
         assert not member.flags["idp:role-restricted"]
         assert member.role == self.organization.default_role
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.member.provision",
+            sample_rate=1.0,
+            tags={"organization": self.organization},
+        )
 
     def test_post_users_successful_existing_invite(self):
         member = self.create_member(
