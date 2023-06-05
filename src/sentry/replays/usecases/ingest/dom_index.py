@@ -140,6 +140,13 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
+                # Log the event for tracking.
+                log = event["data"].get("payload", {}).copy()
+                log["project_id"] = project_id
+                log["replay_id"] = replay_id
+                log["dom_tree"] = log.pop("message")
+                logger.info("sentry.replays.slow_click", extra=log)
+
                 report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
                 continue
             elif category == "ui.click":

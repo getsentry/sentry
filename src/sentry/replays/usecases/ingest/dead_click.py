@@ -1,9 +1,12 @@
 import datetime
+import logging
 from typing import Any, Dict
 
 from sentry.issues.grouptype import ReplayDeadClickType
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
+
+logger = logging.getLogger()
 
 
 def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent) -> bool:
@@ -36,6 +39,13 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
             },
         },
     )
+
+    # Log dead click events.
+    log = event["data"].get("payload", {}).copy()
+    log["project_id"] = project_id
+    log["replay_id"] = replay_id
+    log["dom_tree"] = log.pop("message")
+    logger.info("sentry.replays.dead_click", extra=log)
 
     return True
 
