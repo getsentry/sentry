@@ -573,6 +573,7 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     trendView: eventView,
     transaction,
     projects,
+    location,
     currentTrendFunction,
     currentTrendColumn,
   } = props;
@@ -586,6 +587,9 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     display: DisplayModes.TREND,
     trendFunction: currentTrendFunction,
     trendColumn: currentTrendColumn,
+    additionalQuery: {
+      trendParameter: location.query.trendParameter?.toString(),
+    },
   });
 
   return (

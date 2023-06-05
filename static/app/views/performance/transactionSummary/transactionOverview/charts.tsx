@@ -109,9 +109,16 @@ function TransactionSummaryCharts({
   }
 
   function handleTrendColumnChange(value: string) {
+    const trendParameter = TRENDS_PARAMETERS.find(
+      parameter => parameter.column === value
+    );
     browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, trendColumn: value},
+      query: {
+        ...location.query,
+        trendColumn: value,
+        trendParameter: trendParameter?.label,
+      },
     });
   }
 
