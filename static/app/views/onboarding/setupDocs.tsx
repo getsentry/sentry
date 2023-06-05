@@ -102,7 +102,7 @@ function LoadGettingStartedDoc({
     }
 
     async function getGettingStartedDoc() {
-      const mod = await import(`sentry/gettingStartedDocs/${platformPath}`);
+      const mod = await import(`sentry/gettingStartedDocs/${platformPath}/`);
       setModule(mod);
     }
     getGettingStartedDoc();

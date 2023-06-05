@@ -5,8 +5,6 @@ import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 
 import GettingStartedWithReact from './react';
 
-// /projects/org-slug/javascript-react-slug/keys/
-
 describe('GettingStartedWithReact', function () {
   it('all products are selected', function () {
     render(
@@ -54,7 +52,7 @@ describe('GettingStartedWithReact', function () {
     ).toBeInTheDocument();
   });
 
-  it('session relay product is not selected', function () {
+  it('session replay product is not selected', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
