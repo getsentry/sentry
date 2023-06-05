@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0477_control_avatars"),
+        ("sentry", "0478_backfill_organization_mappings_via_outbox"),
     ]
 
     database_operations = [
