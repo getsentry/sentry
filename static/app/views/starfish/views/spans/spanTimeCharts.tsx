@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
@@ -42,8 +43,9 @@ type ChartProps = {
 
 export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
   const {selection} = usePageFilters();
+  const location = useLocation();
 
-  const eventView = getEventView(moduleName, selection, appliedFilters);
+  const eventView = getEventView(moduleName, location, appliedFilters);
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -89,7 +91,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const query = getQuery(moduleName, pageFilter.selection, filters);
-  const eventView = getEventView(moduleName, pageFilter.selection, filters);
+  const eventView = getEventView(moduleName, location, filters);
   const {startTime, endTime} = getDateFilters(pageFilter);
   const {span_operation, action, domain} = location.query;
 
@@ -148,7 +150,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const query = getQuery(moduleName, pageFilter.selection, filters);
-  const eventView = getEventView(moduleName, pageFilter.selection, filters);
+  const eventView = getEventView(moduleName, location, filters);
   const {startTime, endTime} = getDateFilters(pageFilter);
   const {span_operation, action, domain} = location.query;
 
@@ -285,23 +287,23 @@ const buildSQLQueryConditions = (
 
 const getEventView = (
   moduleName: ModuleName,
-  pageFilters: PageFilters,
+  location: Location,
   appliedFilters: AppliedFilters
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters);
 
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: [''],
-    yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
-    query,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    projects: [1],
-    version: 2,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [''],
+      yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      projects: [1],
+      version: 2,
+    },
+    location
+  );
 };
 
 const buildDiscoverQueryConditions = (
