@@ -505,7 +505,6 @@ class BetterPriorityParams:
     event_age_weight: int  # [1, 5]
     log_level_weight: int  # [0, 10]
     stacktrace_weight: int  # [0, 3]
-    use_stacktrace: bool  # issue-platform occurrences don't have stacktrace
     event_halflife_hours: int  # halves score every x hours
 
     # issue-aggregate scoring
@@ -530,7 +529,6 @@ def better_priority_aggregation(
             event_age_weight=1,
             log_level_weight=aggregate_kwargs["log_level"],
             stacktrace_weight=aggregate_kwargs["has_stacktrace"],
-            use_stacktrace=True,
             event_halflife_hours=aggregate_kwargs["event_halflife_hours"],
             issue_age_weight=1,
             issue_halflife_hours=aggregate_kwargs["issue_halflife_hours"],
@@ -539,6 +537,7 @@ def better_priority_aggregation(
             normalize=aggregate_kwargs["norm"],
         ),
         "timestamp",
+        True,
     )
 
 
@@ -554,7 +553,6 @@ def better_priority_platform_aggregation(
             event_age_weight=1,
             log_level_weight=aggregate_kwargs["log_level"],
             stacktrace_weight=0,  # issue-platform occurrences won't have stacktrace
-            use_stacktrace=False,
             event_halflife_hours=aggregate_kwargs["event_halflife_hours"],
             issue_age_weight=1,
             issue_halflife_hours=aggregate_kwargs["issue_halflife_hours"],
@@ -563,11 +561,12 @@ def better_priority_platform_aggregation(
             normalize=aggregate_kwargs["norm"],
         ),
         "client_timestamp",
+        False,
     )
 
 
 def better_priority_aggregation_impl(
-    params: BetterPriorityParams, timestamp_column: str
+    params: BetterPriorityParams, timestamp_column: str, use_stacktrace: bool
 ) -> Sequence[str]:
     min_score = params.min_score
     max_pow = params.max_pow
@@ -595,7 +594,7 @@ def better_priority_aggregation_impl(
     # f(x) = ---------------------------------  ,  max(f(x)) = 1, when individual scores are all 1
     #                  lw + sw + aw
     #
-    if params.use_stacktrace:
+    if use_stacktrace:
         event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
     else:
         event_agg_numerator = (
