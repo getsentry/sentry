@@ -15,6 +15,8 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, organizat
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
+from ..models import Organization
+from ..services.hybrid_cloud.organization.serial import serialize_organization
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
@@ -96,18 +98,16 @@ class Pipeline(abc.ABC):
         self,
         request: Request,
         provider_key: str,
-        organization: RpcOrganization | None = None,
+        organization: Organization | RpcOrganization | None = None,
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
-        if organization is not None and not isinstance(organization, RpcOrganization):
-            raise TypeError(
-                f"Pipeline can't be initialized with {type(organization)!r} "
-                "(RpcOrganization is required)"
-            )
-
         self.request = request
-        self.organization = organization
+        self.organization: RpcOrganization | None = (
+            serialize_organization(organization)
+            if isinstance(organization, Organization)
+            else organization
+        )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
         self.provider = self.get_provider(provider_key)
