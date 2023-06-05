@@ -343,10 +343,15 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
         project, event
     )
     user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
-    suspect_committers = user_service.get_many_by_email(
-        emails=user_emails, is_project_member=True, project_id=project.id
+    suspect_committers = user_service.get_many_by_email(emails=user_emails)
+    in_project_user_ids = set(
+        OrganizationMember.objects.filter(
+            teams__projectteam__project__in=[project],
+            user_id__in=[owner.id for owner in suspect_committers],
+        ).values_list("user_id", flat=True)
     )
-    return suspect_committers
+
+    return [committer for committer in suspect_committers if committer.id in in_project_user_ids]
 
 
 def dedupe_suggested_assignees(suggested_assignees: Iterable[RpcActor]) -> Iterable[RpcActor]:
