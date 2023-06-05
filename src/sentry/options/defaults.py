@@ -1239,3 +1239,15 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Enables queue monitoring for backpressure management.
+register("backpressure.monitor_queues.enable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "backpressure.monitor_queues.unhealthy_threshold", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+# How often we check queue health.
+register("backpressure.monitor_queues.check_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# How many times in a row a queue must be unhealthy before it is
+# recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
+register(
+    "backpressure.monitor_queues.strike_threshold", default=12, flags=FLAG_AUTOMATOR_MODIFIABLE
+)

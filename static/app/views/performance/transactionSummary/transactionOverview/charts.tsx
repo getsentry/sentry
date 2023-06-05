@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -153,7 +154,12 @@ function TransactionSummaryCharts({
   };
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
+  const mepCardinalityContext = useMetricsCardinalityContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   return (
     <Panel>

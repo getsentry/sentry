@@ -381,7 +381,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule, previewCursor, previewEndpoint} = this.state;
 
-    if (!rule || !organization.features.includes('issue-alert-preview')) {
+    if (!rule) {
       return;
     }
 
@@ -1446,17 +1446,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </StyledFieldHelp>
                   </StyledListItem>
                   <ContentIndent>{this.renderActionInterval(disabled)}</ContentIndent>
-                  <Feature organization={organization} features={['issue-alert-preview']}>
-                    <StyledListItem>
-                      <StyledListItemSpaced>
-                        <div>
-                          <StepHeader>{t('Preview')}</StepHeader>
-                          <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
-                        </div>
-                      </StyledListItemSpaced>
-                    </StyledListItem>
-                    <ContentIndent>{this.renderPreviewTable()}</ContentIndent>
-                  </Feature>
+                  <StyledListItem>
+                    <StyledListItemSpaced>
+                      <div>
+                        <StepHeader>{t('Preview')}</StepHeader>
+                        <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
+                      </div>
+                    </StyledListItemSpaced>
+                  </StyledListItem>
+                  <ContentIndent>{this.renderPreviewTable()}</ContentIndent>
                   <StyledListItem>
                     <StepHeader>{t('Add a name and owner')}</StepHeader>
                     <StyledFieldHelp>

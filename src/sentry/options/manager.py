@@ -193,9 +193,9 @@ class OptionsManager:
         )
         # Enforce that the option has not been changed by a different UpdateChannel
         # that we cannot overwrite.
-        assert not not_writable_reason == NotWritableReason.DRIFTED, (
-            "Option %r has drifted. Cannot overwrite" % key
-        )
+        assert (
+            not not_writable_reason == NotWritableReason.DRIFTED
+        ), f"Option {key} has drifted. Cannot overwrite"
 
         opt = self.lookup_key(key)
         if coerce:
@@ -249,7 +249,7 @@ class OptionsManager:
         """
         opt = self.lookup_key(key)
 
-        if not (opt.flags & FLAG_NOSTORE):
+        if not opt.has_any_flag({FLAG_NOSTORE}):
             result = self.store.get(opt, silent=True)
             if result is not None:
                 return True
@@ -272,7 +272,7 @@ class OptionsManager:
         # First check if the option should exist on disk, and if it actually
         # has a value set, let's use that one instead without even attempting
         # to fetch from network storage.
-        if opt.flags & FLAG_PRIORITIZE_DISK:
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
             try:
                 result = settings.SENTRY_OPTIONS[key]
             except KeyError:
@@ -293,7 +293,7 @@ class OptionsManager:
 
         # Some values we don't want to allow them to be configured through
         # config files and should only exist in the datastore
-        if opt.flags & FLAG_STOREONLY:
+        if opt.has_any_flag({FLAG_STOREONLY}):
             optval = opt.default()
         else:
             try:
@@ -460,12 +460,15 @@ class OptionsManager:
 
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
         opt = self.lookup_key(key)
-        if opt.flags & (FLAG_NOSTORE | FLAG_IMMUTABLE):
+        if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
             return NotWritableReason.READONLY
-        if opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key):
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and settings.SENTRY_OPTIONS.get(key):
+            # FLAG_PRIORITIZE_DISK does not prevent the option to be updated
+            # in any circumstance. If the option is not on disk (which
+            # means not in settings.SENTRY_OPTION), it can be updated.
             return NotWritableReason.OPTION_ON_DISK
 
-        if required_flag and not (opt.flags & required_flag):
+        if required_flag and not opt.has_any_flag({required_flag}):
             return NotWritableReason.CHANNEL_NOT_ALLOWED
 
         if not self.isset(key):
