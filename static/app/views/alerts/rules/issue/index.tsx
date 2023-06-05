@@ -16,7 +16,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -1416,23 +1415,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   )
                                 }
                               />
-                              <Feature
-                                organization={organization}
-                                features={['issue-alert-test-notifications']}
-                              >
-                                <TestButtonWrapper>
-                                  <Button
-                                    onClick={this.testNotifications}
-                                    disabled={
-                                      sendingNotification ||
-                                      rule?.actions === undefined ||
-                                      rule?.actions.length === 0
-                                    }
-                                  >
-                                    {t('Send Test Notification')}
-                                  </Button>
-                                </TestButtonWrapper>
-                              </Feature>
+                              <TestButtonWrapper>
+                                <Button
+                                  onClick={this.testNotifications}
+                                  disabled={
+                                    sendingNotification || rule?.actions?.length === 0
+                                  }
+                                >
+                                  {t('Send Test Notification')}
+                                </Button>
+                              </TestButtonWrapper>
                             </StepContent>
                           </StepContainer>
                         </Step>
