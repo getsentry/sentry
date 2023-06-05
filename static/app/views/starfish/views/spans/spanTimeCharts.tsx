@@ -126,7 +126,6 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
       <ChartsContainerItem>
         <ChartPanel title={DataTitles.p95}>
           <Chart
-            aggregateOutputFormat="duration"
             statsPeriod="24h"
             height={100}
             data={[...p95Series]}
