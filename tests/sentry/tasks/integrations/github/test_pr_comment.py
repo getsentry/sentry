@@ -1,12 +1,13 @@
 from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
 from sentry.tasks.integrations.github import pr_comment
-from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
+from sentry.tasks.integrations.github.pr_comment import PullRequestIssue, get_comment_contents
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestPrToIssueQuery(TestCase):
+class GithubCommentTestCase(TestCase):
     def setUp(self):
+        super().setUp()
         self.another_integration = self.create_integration(
             organization=self.organization, external_id="1", provider="gitlab"
         )
@@ -94,6 +95,8 @@ class TestPrToIssueQuery(TestCase):
         )
         return groupowner
 
+
+class TestPrToIssueQuery(GithubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -102,7 +105,7 @@ class TestPrToIssueQuery(TestCase):
 
         results = pr_comment.pr_to_issue_query()
 
-        assert results[0] == (self.gh_repo.id, pr.key, self.organization.id, [groupowner.id])
+        assert results[0] == (self.gh_repo.id, pr.key, self.organization.id, [groupowner.group_id])
 
     def test_multiple_issues(self):
         """one pr with multiple issues"""
@@ -132,8 +135,18 @@ class TestPrToIssueQuery(TestCase):
 
         results = pr_comment.pr_to_issue_query()
 
-        assert results[0] == (self.gh_repo.id, pr_1.key, self.organization.id, [groupowner_1.id])
-        assert results[1] == (self.gh_repo.id, pr_2.key, self.organization.id, [groupowner_2.id])
+        assert results[0] == (
+            self.gh_repo.id,
+            pr_1.key,
+            self.organization.id,
+            [groupowner_1.group_id],
+        )
+        assert results[1] == (
+            self.gh_repo.id,
+            pr_2.key,
+            self.organization.id,
+            [groupowner_2.group_id],
+        )
 
     def test_non_gh_repo(self):
         """Repos that aren't GH should be omitted"""
@@ -172,14 +185,50 @@ class TestPrToIssueQuery(TestCase):
 
         results = pr_comment.pr_to_issue_query()
 
-        assert results[0] == (self.gh_repo.id, pr_1.key, self.organization.id, [groupowner_1.id])
+        assert results[0] == (
+            self.gh_repo.id,
+            pr_1.key,
+            self.organization.id,
+            [groupowner_1.group_id],
+        )
         assert results[1] == (
             self.another_org_repo.id,
             pr_2.key,
             self.another_organization.id,
-            [groupowner_2.id],
+            [groupowner_2.group_id],
         )
 
+
+class TestCommentBuilderQueries(GithubCommentTestCase):
+    def test_simple(self):
+        ev1 = self.store_event(
+            data={"message": "issue1", "fingerprint": ["group-1"]}, project_id=self.project.id
+        )
+        ev2 = self.store_event(
+            data={"message": "issue2", "fingerprint": ["group-2"]}, project_id=self.project.id
+        )
+        ev3 = self.store_event(
+            data={"message": "issue3", "fingerprint": ["group-3"]}, project_id=self.project.id
+        )
+        comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
+        assert comment_contents[0] == PullRequestIssue(
+            title="issue1",
+            subtitle="issue1",
+            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/",
+        )
+        assert comment_contents[1] == PullRequestIssue(
+            title="issue2",
+            subtitle="issue2",
+            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/",
+        )
+        assert comment_contents[2] == PullRequestIssue(
+            title="issue3",
+            subtitle="issue3",
+            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/",
+        )
+
+
+class TestFormatComment(TestCase):
     def test_format_comment(self):
         issues = [
             PullRequestIssue(
