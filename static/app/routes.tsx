@@ -508,63 +508,28 @@ function buildRoutes() {
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
-          component={make(async () => {
-            const {ProjectSourceMapsContainer} = await import(
-              'sentry/views/settings/projectSourceMaps'
-            );
-            return {
-              default: ProjectSourceMapsContainer,
-            };
-          })}
+          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
         />
         <Route
           path="artifact-bundles/"
           name={t('Artifact Bundles')}
-          component={make(async () => {
-            const {ProjectSourceMapsContainer} = await import(
-              'sentry/views/settings/projectSourceMaps'
-            );
-            return {
-              default: ProjectSourceMapsContainer,
-            };
-          })}
+          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
         >
           <Route
             name={t('Artifact Bundle')}
             path=":bundleId/"
-            component={make(async () => {
-              const {ProjectSourceMapsContainer} = await import(
-                'sentry/views/settings/projectSourceMaps'
-              );
-              return {
-                default: ProjectSourceMapsContainer,
-              };
-            })}
+            component={make(() => import('sentry/views/settings/projectSourceMaps'))}
           />
         </Route>
         <Route
           path="release-bundles/"
           name={t('Release Bundles')}
-          component={make(async () => {
-            const {ProjectSourceMapsContainer} = await import(
-              'sentry/views/settings/projectSourceMaps'
-            );
-            return {
-              default: ProjectSourceMapsContainer,
-            };
-          })}
+          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
         >
           <Route
             name={t('Release Bundle')}
             path=":bundleId/"
-            component={make(async () => {
-              const {ProjectSourceMapsContainer} = await import(
-                'sentry/views/settings/projectSourceMaps'
-              );
-              return {
-                default: ProjectSourceMapsContainer,
-              };
-            })}
+            component={make(() => import('sentry/views/settings/projectSourceMaps'))}
           />
         </Route>
         <Route
@@ -969,6 +934,18 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="auth-tokens/" name={t('Auth Tokens')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/organizationAuthTokens'))}
+        />
+        <Route
+          path="new-token/"
+          name={t('Create New Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          )}
+        />
+      </Route>
     </Route>
   );
 
@@ -1041,12 +1018,7 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/projects/"
-          component={make(async () => {
-            const {Projects} = await import('sentry/views/projects/');
-            return {
-              default: Projects,
-            };
-          })}
+          component={make(() => import('sentry/views/projects/'))}
           key="orgless-projects-route"
         >
           {projectsChildRoutes}
@@ -1054,12 +1026,7 @@ function buildRoutes() {
       )}
       <Route
         path="/organizations/:orgId/projects/"
-        component={make(async () => {
-          const {Projects} = await import('sentry/views/projects/');
-          return {
-            default: Projects,
-          };
-        })}
+        component={make(() => import('sentry/views/projects/'))}
         key="org-projects"
       >
         {projectsChildRoutes}

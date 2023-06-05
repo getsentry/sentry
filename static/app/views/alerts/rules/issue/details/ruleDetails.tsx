@@ -246,10 +246,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   };
   function renderIncompatibleAlert() {
     const incompatibleRule = findIncompatibleRules(rule);
-    if (
-      (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) &&
-      organization.features.includes('issue-alert-incompatible-rules')
-    ) {
+    if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert type="error" showIcon>
           {tct(

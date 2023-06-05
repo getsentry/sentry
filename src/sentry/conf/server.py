@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.types.region import Region
+from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -201,6 +202,7 @@ if "DATABASE_URL" in os.environ:
     if url.scheme == "postgres":
         DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
 
+
 # This should always be UTC.
 TIME_ZONE = "UTC"
 
@@ -323,6 +325,7 @@ MIDDLEWARE = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
+    "sentry.middleware.api_gateway.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -760,6 +763,7 @@ CELERY_QUEUES = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
+    Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -808,10 +812,6 @@ CELERY_QUEUES = [
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
-    Queue(
-        "dynamicsampling",
-        routing_key="dynamicsampling",
-    ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
@@ -1389,8 +1389,6 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
-    # Enable removing issue from issue list if action taken.
-    "organizations:issue-list-removal-action": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -3329,6 +3327,41 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+SENTRY_MONOLITH_REGION: str = "--monolith--"
+
+# Enable siloed development environment.
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+
+if USE_SILOS:
+    # Add connections for the region & control silo databases.
+    DATABASES["control"] = DATABASES["default"].copy()
+    DATABASES["control"]["NAME"] = "control"
+
+    DATABASES["region"] = DATABASES["default"].copy()
+    DATABASES["region"]["NAME"] = "region"
+
+    # Addresses are hardcoded based on the defaults
+    # we use in commands/devserver.
+    SENTRY_REGION_CONFIG = json.dumps(
+        [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "category": "MULTI_TENANT",
+                "address": "http://localhost:8000",
+                "api_token": "dev-region-silo-token",
+            }
+        ]
+    )
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
+    DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
+        {
+            "is_allowed": True,
+            "control_silo_api_token": "dev-control-silo-token",
+            "control_silo_address": f"http://127.0.0.1:{control_port}",
+        }
+    )
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
@@ -3394,3 +3427,5 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
+
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.01
