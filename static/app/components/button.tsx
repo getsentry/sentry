@@ -84,10 +84,6 @@ interface BaseButtonProps
    */
   name?: string;
   /**
-   * Callback for when the button is clicked.
-   */
-  onClick?: (e: React.MouseEvent) => void;
-  /**
    * The semantic "priority" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
