@@ -58,6 +58,8 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             )
             apply_update(existing)
 
+        return serialize_org_member_mapping(existing)
+
     def _find_organization_member(
         self,
         organization_id: int,
