@@ -7,12 +7,12 @@ from sentry.sentry_metrics.configuration import (
     UseCaseKey,
 )
 from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
-from sentry.sentry_metrics.indexer.limiters.writes import WritesLimiter
+from sentry.sentry_metrics.indexer.limiters.writes import UcaWritesLimiter
 from sentry.testutils.helpers.options import override_options
 
 WRITES_LIMITERS = {
-    RELEASE_HEALTH_PG_NAMESPACE: WritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),
-    PERFORMANCE_PG_NAMESPACE: WritesLimiter(PERFORMANCE_PG_NAMESPACE, **{}),
+    RELEASE_HEALTH_PG_NAMESPACE: UcaWritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),
+    PERFORMANCE_PG_NAMESPACE: UcaWritesLimiter(PERFORMANCE_PG_NAMESPACE, **{}),
 }
 
 

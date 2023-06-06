@@ -28,24 +28,24 @@ OrgId = int
 
 
 @dataclasses.dataclass(frozen=True)
-class DroppedString:
+class UcaDroppedString:
     use_case_key_result: UseCaseKeyResult
     fetch_type: FetchType
     fetch_type_ext: FetchTypeExt
 
 
 @dataclasses.dataclass(frozen=True)
-class RateLimitState:
-    _writes_limiter: WritesLimiter
+class UcaRateLimitState:
+    _writes_limiter: UcaWritesLimiter
     _namespace: str
     _requests: Sequence[RequestedQuota]
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
 
     accepted_keys: UseCaseKeyCollection
-    dropped_strings: Sequence[DroppedString]
+    dropped_strings: Sequence[UcaDroppedString]
 
-    def __enter__(self) -> RateLimitState:
+    def __enter__(self) -> UcaRateLimitState:
         return self
 
     @metrics.wraps("sentry_metrics.indexer.writes_limiter.exit")
@@ -59,7 +59,7 @@ class RateLimitState:
         self._writes_limiter.rate_limiter.use_quotas(self._requests, self._grants, self._timestamp)
 
 
-class WritesLimiter:
+class UcaWritesLimiter:
     def __init__(self, namespace: str, **options: Mapping[str, str]) -> None:
         self.namespace = namespace
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
@@ -116,7 +116,7 @@ class WritesLimiter:
     def check_write_limits(
         self,
         use_case_keys: UseCaseKeyCollection,
-    ) -> RateLimitState:
+    ) -> UcaRateLimitState:
         """
         Takes a UseCaseKeyCollection and applies DB write limits as configured via sentry.options.
 
@@ -147,7 +147,7 @@ class WritesLimiter:
 
             while len(allowed_strings) > grant.granted:
                 dropped_strings.append(
-                    DroppedString(
+                    UcaDroppedString(
                         use_case_key_result=UseCaseKeyResult(
                             use_case_id=use_case_id,
                             org_id=org_id,
@@ -165,7 +165,7 @@ class WritesLimiter:
 
             accepted_keys[use_case_id][org_id] = allowed_strings
 
-        state = RateLimitState(
+        state = UcaRateLimitState(
             _writes_limiter=self,
             _namespace=self.namespace,
             _requests=requests,
@@ -187,12 +187,14 @@ class WritesLimiterFactory:
     """
 
     def __init__(self) -> None:
-        self.rate_limiters: MutableMapping[str, WritesLimiter] = {}
+        self.rate_limiters: MutableMapping[str, UcaWritesLimiter] = {}
 
-    def get_ratelimiter(self, config: MetricsIngestConfiguration) -> WritesLimiter:
+    def get_ratelimiter(self, config: MetricsIngestConfiguration) -> UcaWritesLimiter:
         namespace = config.writes_limiter_namespace
         if namespace not in self.rate_limiters:
-            writes_rate_limiter = WritesLimiter(namespace, **config.writes_limiter_cluster_options)
+            writes_rate_limiter = UcaWritesLimiter(
+                namespace, **config.writes_limiter_cluster_options
+            )
             self.rate_limiters[namespace] = writes_rate_limiter
 
         return self.rate_limiters[namespace]
