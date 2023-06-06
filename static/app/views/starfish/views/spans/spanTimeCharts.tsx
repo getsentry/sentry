@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -45,7 +46,7 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
 
-  const eventView = getEventView(moduleName, location, appliedFilters);
+  const eventView = getEventView(moduleName, location, selection, appliedFilters);
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -64,7 +65,7 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
     [ModuleName.ALL]: [
-      {title: t('Throughput'), Comp: ThroughputChart},
+      {title: DataTitles.throughput, Comp: ThroughputChart},
       {title: DataTitles.p95, Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
@@ -88,11 +89,11 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
 }
 
 function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
-  const pageFilter = usePageFilters();
+  const pageFilters = usePageFilters();
   const location = useLocation();
-  const query = getQuery(moduleName, pageFilter.selection, filters);
-  const eventView = getEventView(moduleName, location, filters);
-  const {startTime, endTime} = getDateFilters(pageFilter);
+  const query = getQuery(moduleName, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const {startTime, endTime} = getDateFilters(pageFilters);
   const {span_operation, action, domain} = location.query;
 
   const label = getSegmentLabel(span_operation, action, domain);
@@ -110,7 +111,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum['spm()'],
+          value: datum['spm()'] / 60,
           name: datum.interval,
         })),
       },
@@ -140,18 +141,18 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
+        valueFormatter: value => `${value.toFixed(3)} / ${t('sec')}`,
       }}
     />
   );
 }
 
 function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
-  const pageFilter = usePageFilters();
+  const pageFilters = usePageFilters();
   const location = useLocation();
-  const query = getQuery(moduleName, pageFilter.selection, filters);
-  const eventView = getEventView(moduleName, location, filters);
-  const {startTime, endTime} = getDateFilters(pageFilter);
+  const query = getQuery(moduleName, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const {startTime, endTime} = getDateFilters(pageFilters);
   const {span_operation, action, domain} = location.query;
 
   const label = getSegmentLabel(span_operation, action, domain);
@@ -288,6 +289,7 @@ const buildSQLQueryConditions = (
 const getEventView = (
   moduleName: ModuleName,
   location: Location,
+  pageFilters: PageFilters,
   appliedFilters: AppliedFilters
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters);
@@ -300,6 +302,7 @@ const getEventView = (
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
+      interval: getInterval(pageFilters.datetime, 'low'),
       version: 2,
     },
     location
@@ -318,7 +321,7 @@ const buildDiscoverQueryConditions = (
     });
 
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:'${moduleName}'`);
+    result.push(`span.module:${moduleName}`);
   }
 
   return result.join(' ');
