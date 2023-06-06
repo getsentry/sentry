@@ -1906,6 +1906,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
               trigger={props => (
                 <ActionButton
                   {...props}
+                  size="sm"
                   aria-label={t('Show more')}
                   icon={<VerticalEllipsisIcon size="xs" />}
                 />
