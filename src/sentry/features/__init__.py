@@ -252,6 +252,7 @@ default_manager.add("organizations:codecov-commit-sha-from-git-blame", Organizat
 default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-boost-new-projects", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
