@@ -41,7 +41,7 @@ function initialize(projects, query, additionalFeatures = []) {
 
   const api = new Client();
 
-  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.None;
+  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
 
   return {
@@ -218,7 +218,7 @@ describe('WrapperComponent', function () {
         eventView={eventView}
         projects={projects}
         transactionName={transactionName}
-        currentFilter={SpanOperationBreakdownFilter.Http}
+        currentFilter={SpanOperationBreakdownFilter.HTTP}
       />
     );
 

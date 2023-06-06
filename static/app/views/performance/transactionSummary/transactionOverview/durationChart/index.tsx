@@ -117,7 +117,7 @@ function DurationChart({
 
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
+      {currentFilter === SpanOperationBreakdownFilter.NONE
         ? t('Duration Breakdown')
         : tct('Span Operation Breakdown - [operationName]', {
             operationName: currentFilter,

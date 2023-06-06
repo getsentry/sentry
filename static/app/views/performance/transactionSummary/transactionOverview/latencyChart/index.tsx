@@ -22,7 +22,7 @@ type Props = ViewProps & {
 function LatencyChart({currentFilter, ...props}: Props) {
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
+      {currentFilter === SpanOperationBreakdownFilter.NONE
         ? t('Duration Distribution')
         : tct('Span Operation Distribution - [operationName]', {
             operationName: currentFilter,

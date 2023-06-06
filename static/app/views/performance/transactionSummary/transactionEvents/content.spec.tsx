@@ -181,7 +181,7 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
           eventsDisplayFilterName={EventsDisplayFilterName.p100}
           onChangeEventsDisplayFilter={() => {}}
@@ -221,7 +221,7 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
           eventsDisplayFilterName={EventsDisplayFilterName.p100}
           onChangeEventsDisplayFilter={() => {}}
@@ -267,7 +267,7 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
           eventsDisplayFilterName={EventsDisplayFilterName.p100}
           onChangeEventsDisplayFilter={() => {}}

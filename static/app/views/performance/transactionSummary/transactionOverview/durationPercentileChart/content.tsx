@@ -115,7 +115,7 @@ class Content extends AsyncComponent<Props, State> {
     }
 
     const colors = (theme: Theme) =>
-      currentFilter === SpanOperationBreakdownFilter.None
+      currentFilter === SpanOperationBreakdownFilter.NONE
         ? theme.charts.getColorPalette(1)
         : [filterToColor(currentFilter)];
 
