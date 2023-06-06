@@ -93,7 +93,6 @@ function BodyCell({
   span,
   column,
   row,
-  applicationMetrics,
 }: CellProps & {applicationMetrics: ApplicationMetrics}) {
   if (column.key === 'description') {
     return <DescriptionCell span={span} row={row} column={column} />;
@@ -118,7 +117,6 @@ function BodyCell({
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
         totalSpanTime={row.metrics.total_time}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
       />
     );
   }
