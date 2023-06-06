@@ -171,7 +171,7 @@ class ModalManager extends Component<Props, State> {
 
   convertRequestError(error: ReturnType<typeof handleError>) {
     switch (error.type) {
-      case ErrorType.InvalidSelector:
+      case ErrorType.INVALID_SELECTOR:
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,
@@ -179,7 +179,7 @@ class ModalManager extends Component<Props, State> {
           },
         }));
         break;
-      case ErrorType.RegexParse:
+      case ErrorType.REGEX_PARSE:
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,
