@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, List, Optional
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from sentry.api.serializers import (
     DetailedSelfUserSerializer,
@@ -138,6 +138,17 @@ class DatabaseBackedUserService(UserService):
                 query = query.filter(emails__is_verified=filters["email_verified"])
             if "emails" in filters:
                 query = query.filter(in_iexact("emails__email", filters["emails"]))
+            if "query" in filters:
+                query = query.filter(
+                    Q(emails__email__icontains=filters["query"])
+                    | Q(name__icontains=filters["query"])
+                )
+            if "authenticator_types" in filters:
+                at = filters["authenticator_types"]
+                if at is None:
+                    query = query.filter(authenticator__isnull=True)
+                else:
+                    query = query.filter(authenticator__isnull=False, authenticator__type__in=at)
 
             return list(query)
 
@@ -158,7 +169,9 @@ class DatabaseBackedUserService(UserService):
             )
 
         def filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
-            return self._filter_has_any_key_validator("user_ids", "organization_id", "emails")
+            return self._filter_has_any_key_validator(
+                "user_ids", "organization_id", "emails", "query", "authenticator_types"
+            )
 
         def serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
             serializer: Serializer = UserSerializer()

@@ -86,7 +86,7 @@ class OrganizationComplianceTask(abc.ABC):
         actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
 
         def remove_member(member):
-            user = user_service.get_user(id=member.user_id)
+            user = user_service.get_user(user_id=member.user_id)
             logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
             try:
@@ -113,7 +113,7 @@ class OrganizationComplianceTask(abc.ABC):
                 org = Organization.objects.get_from_cache(id=org_id)
                 self.call_to_action(org, user, member)
 
-        for member in OrganizationMember.objects.select_related("user").filter(
+        for member in OrganizationMember.objects.filter(
             organization_id=org_id, user_id__isnull=False
         ):
             if not self.is_compliant(member):
@@ -124,7 +124,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     log_label = "2FA"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
-        user = user_service.get_user(id=member.user_id)
+        user = user_service.get_user(user_id=member.user_id)
         if user:
             return user.has_2fa()
         return False

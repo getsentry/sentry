@@ -381,7 +381,7 @@ class User(BaseModel, AbstractBaseUser):
         return Organization.objects.filter(
             flags=models.F("flags").bitor(Organization.flags.require_2fa),
             status=OrganizationStatus.ACTIVE,
-            member_set__user=self,
+            member_set__user_id=self.id,
         )
 
     def clear_lost_passwords(self):

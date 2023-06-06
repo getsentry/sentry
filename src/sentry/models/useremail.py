@@ -25,8 +25,14 @@ if TYPE_CHECKING:
 
 class UserEmailManager(BaseManager):
     def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+
         emails_by_user = defaultdict(set)
-        user_emails = self.get_for_organization(organization).select_related("user")
+        user_emails = self.filter(
+            user_id__in=OrganizationMemberMapping.objects.filter(
+                organization_id=organization.id
+            ).values_list("user_id", flat=True)
+        ).select_related("user")
         for entry in user_emails:
             emails_by_user[entry.user].add(entry.email)
         return emails_by_user

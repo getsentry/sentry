@@ -75,7 +75,7 @@ class OrganizationAccessRequest(Model):
     def send_approved_email(self):
         from sentry.utils.email import MessageBuilder
 
-        user = user_service.get_user(id=self.member.user_id)
+        user = user_service.get_user(user_id=self.member.user_id)
         email = user.email
         organization = self.team.organization
 

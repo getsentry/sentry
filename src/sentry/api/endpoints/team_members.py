@@ -17,7 +17,6 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "organizationmember")
-        prefetch_related_objects(item_list, "organizationmember__user")
 
         org_member_set = serialize(
             {
@@ -58,8 +57,6 @@ class TeamMembersEndpoint(TeamEndpoint):
             request=request,
             queryset=queryset,
             order_by=(
-                "organizationmember__user__name",
-                "organizationmember__user__email",
                 "organizationmember__email",
                 "id",
             ),

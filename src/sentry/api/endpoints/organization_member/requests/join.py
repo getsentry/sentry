@@ -8,11 +8,12 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import InviteStatus, OrganizationMember, User
+from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -24,13 +25,14 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    if member := organization_service.check_membership_by_email(
-        organization_id=organization.id, email=email
+    if OrganizationMember.objects.filter(
+        organization_id=organization.id, email__iexact=email
+    ).exists():
+        return
+
+    if user_service.get_many_by_email(
+        emails=[email], organization_id=organization.id, is_active=True
     ):
-        if member.user_id and (user := User.objects.get(id=member.user_id)):
-            if not user.is_active:
-                return
-    if organization_service.get_invite_by_id(organization_id=organization.id, email=email):
         return
 
     rpc_org_member = organization_service.add_organization_member(

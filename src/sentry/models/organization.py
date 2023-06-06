@@ -402,7 +402,7 @@ class Organization(Model, SnowflakeIdMixin):
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user_id=from_member.user.id
+                    organization=to_org, user_id=from_member.user_id
                 )
             except OrganizationMember.DoesNotExist:
                 with transaction.atomic():

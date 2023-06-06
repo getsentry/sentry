@@ -97,7 +97,7 @@ class MailAdapter:
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        user_ids = project.member_set.values_list("user", flat=True)
+        user_ids = project.member_set.values_list("user_id", flat=True)
         users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
 
         accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(

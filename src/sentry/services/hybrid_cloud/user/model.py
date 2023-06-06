@@ -129,6 +129,8 @@ class UserFilterArgs(TypedDict, total=False):
     organization_id: int
     emails: List[str]
     email_verified: bool
+    query: str
+    authenticator_types: Optional[List[int]]
 
 
 class UserUpdateArgs(TypedDict, total=False):

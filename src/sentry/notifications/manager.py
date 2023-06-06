@@ -38,12 +38,12 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -403,7 +403,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         that should get a notification.
         """
 
-        user_ids = project.member_set.values_list("user", flat=True)
+        user_ids = project.member_set.values_list("user_id", flat=True)
         return self.filter_to_accepting_recipients(
             project, {RpcUser(id=user_id) for user_id in user_ids}
         )
@@ -505,7 +505,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     ) -> bool:
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
 
         key_field = None
         if isinstance(recipient, RpcActor):

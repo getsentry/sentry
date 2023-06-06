@@ -67,8 +67,8 @@ class MemberTeamForm(forms.Form):
             is_active_team_member = OrganizationMemberTeam.objects.filter(
                 is_active=True,
                 organizationmember__user_id=int(targetIdentifier),
-                organizationmember__team__projectteam__project_id=self.project.id,
-            ).exist()
+                organizationmember__teams__projectteam__project_id=self.project.id,
+            ).exists()
             if is_active_team_member:
                 is_active_team_member = bool(
                     user_service.get_many(

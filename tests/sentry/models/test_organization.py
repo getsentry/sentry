@@ -136,7 +136,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         team = Team.objects.get(id=from_team.id)
         assert team.organization == to_org
 
-        member = OrganizationMember.objects.get(user=other_user, organization=to_org)
+        member = OrganizationMember.objects.get(user_id=other_user.id, organization=to_org)
         self.assert_org_member_mapping(org_member=member)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=from_team

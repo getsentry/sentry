@@ -80,7 +80,7 @@ class OrganizationMemberManager(BaseManager):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
-        return self.select_related("user").filter(
+        return self.filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
             user_id__isnull=False,
@@ -148,20 +148,23 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
-        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
-            "id", flat=True
+        users_by_email = user_service.get_many(
+            filter=dict(
+                emails=[email],
+                is_active=True,
+            )
         )
 
         # may be empty
         team_members = set(
             OrganizationMemberTeam.objects.filter(
                 team_id__org_role=role,
-                organizationmember_id__in=org_members,
+                organizationmember__user_id__in=[u.id for u in users_by_email],
             ).values_list("organizationmember_id", flat=True)
         )
 
         org_members = set(
-            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
                 "id", flat=True
             )
         )

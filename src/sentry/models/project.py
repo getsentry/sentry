@@ -55,7 +55,9 @@ class ProjectManager(BaseManager):
             projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
                 lambda u: u.id, users
             ),
-        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
+        ).values_list(
+            "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
+        )
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
