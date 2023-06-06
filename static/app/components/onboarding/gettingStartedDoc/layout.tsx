@@ -33,13 +33,13 @@ type Steps = [
   }
 ];
 
-type Props = {
+export type LayoutProps = {
   language: string;
   steps: Steps;
   nextSteps?: NextStep[];
 };
 
-export function Layout({language, steps, nextSteps}: Props) {
+export function Layout({language, steps, nextSteps}: LayoutProps) {
   return (
     <Fragment>
       <ProductSelection

@@ -1,2 +1,2 @@
-export {Layout} from './layout';
+export {Layout, LayoutProps} from './layout';
 export {Step, StepType} from './step';
