@@ -70,7 +70,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
                     team__organization=organization, member__user_is_active=True
-                ).select_related("team", "member__user")
+                ).select_related("team")
             )
 
         elif request.access.has_scope("team:write") and request.access.team_ids_with_membership:
@@ -78,7 +78,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                 OrganizationAccessRequest.objects.filter(
                     member__user_is_active=True,
                     team__id__in=request.access.team_ids_with_membership,
-                ).select_related("team", "member__user")
+                ).select_related("team")
             )
         else:
             # Return empty response if user does not have access
