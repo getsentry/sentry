@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -211,6 +212,7 @@ const getEventView = (
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
+    interval: getInterval(pageFilters.datetime, 'low'),
     projects: [1],
     version: 2,
   });
