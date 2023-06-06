@@ -77,11 +77,6 @@ enum TimestampStatus {
   STABLE = 0,
   REVERSED = 1,
   EQUAL = 2,
-
-  // TODO(epurkhiser): Delete
-  Stable = 0,
-  Reversed = 1,
-  Equal = 2,
 }
 
 export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
