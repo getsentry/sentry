@@ -3,6 +3,7 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
@@ -83,16 +84,6 @@ class UsageTable extends Component<Props> {
             displayName={project.slug}
           />
         </Link>
-        <SettingsIconLink to={stat.projectSettingsLink}>
-          <IconSettings size="sm" />
-        </SettingsIconLink>
-        <StyledIconGraph
-          data-test-id={project.slug}
-          size="sm"
-          onClick={() => {
-            this.loadProject(parseInt(stat.project.id, 10));
-          }}
-        />
       </CellProject>,
       <CellStat key={1}>
         {formatUsageWithUnits(total, dataCategory, getFormatUsageOptions(dataCategory))}
@@ -113,6 +104,23 @@ class UsageTable extends Component<Props> {
       </CellStat>,
       <CellStat key={4}>
         {formatUsageWithUnits(dropped, dataCategory, getFormatUsageOptions(dataCategory))}
+      </CellStat>,
+      <CellStat key={5}>
+        <Button
+          data-test-id={project.slug}
+          size="sm"
+          onClick={() => {
+            this.loadProject(parseInt(stat.project.id, 10));
+          }}
+        >
+          <StyledIconGraph type="bar" size="sm" />
+          <span>View Stats</span>
+        </Button>
+        <Link to={stat.projectSettingsLink}>
+          <StyledSettingsButton size="sm">
+            <SettingsIcon size="sm" />
+          </StyledSettingsButton>
+        </Link>
       </CellStat>,
     ];
   }
@@ -139,23 +147,22 @@ class UsageTable extends Component<Props> {
 export default UsageTable;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: repeat(5, auto);
+  grid-template-columns: repeat(6, auto);
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr repeat(4, minmax(0, auto));
+    grid-template-columns: 1fr repeat(5, minmax(0, auto));
   }
 `;
 
 export const CellStat = styled('div')`
-  flex-shrink: 1;
-  text-align: right;
+  display: flex;
+  align-items: center;
   font-variant-numeric: tabular-nums;
+  justify-content: right;
 `;
 
 export const CellProject = styled(CellStat)`
-  display: flex;
-  align-items: center;
-  text-align: left;
+  justify-content: left;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -164,12 +171,12 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const SettingsIconLink = styled(Link)`
+const SettingsIcon = styled(IconSettings)`
   color: ${p => p.theme.gray300};
   align-items: center;
   display: inline-flex;
   justify-content: space-between;
-  margin-right: ${space(1.5)};
+  margin-right: ${space(1.0)};
   margin-left: ${space(1.0)};
   transition: 0.5s opacity ease-out;
 
@@ -180,8 +187,14 @@ const SettingsIconLink = styled(Link)`
 
 const StyledIconGraph = styled(IconGraph)`
   color: ${p => p.theme.gray300};
+  margin-right: 5px;
   &:hover {
     color: ${p => p.theme.textColor};
     cursor: pointer;
   }
+`;
+
+const StyledSettingsButton = styled(Button)`
+  padding: 0px;
+  margin-left: 7px;
 `;

@@ -353,8 +353,7 @@ describe('OrganizationStats', function () {
     );
   });
 
-  it('renders a project when its graph icon is clicked (starting from global-views)', async () => {
-    // First initialize a default view w/no projects selected.
+  it('renders a project when its graph icon is clicked', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',

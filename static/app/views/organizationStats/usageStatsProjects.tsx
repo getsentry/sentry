@@ -124,7 +124,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   get tableData() {
     const {projectStats} = this.state;
-
     return {
       headers: this.tableHeader,
       ...this.mapSeriesToTable(projectStats),
@@ -223,7 +222,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       return direction > 0 ? 'desc' : 'asc';
     };
 
-    return [
+    const columnHeaders = [
       {
         key: SortBy.PROJECT,
         title: t('Project'),
@@ -274,6 +273,9 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         </Cell>
       );
     });
+    const emptyColumn = <CellStat key="extra" />;
+    columnHeaders.push(emptyColumn);
+    return columnHeaders;
   }
 
   getProjectLink(project: Project) {
@@ -427,7 +429,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const {error, errors, loading} = this.state;
     const {dataCategory, loadingProjects, tableQuery, isSingleProject} = this.props;
     const {headers, tableStats} = this.tableData;
-
     return (
       <Fragment>
         {isSingleProject && (
