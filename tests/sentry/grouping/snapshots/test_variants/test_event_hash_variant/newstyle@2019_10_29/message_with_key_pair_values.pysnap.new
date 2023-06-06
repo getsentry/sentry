@@ -1,0 +1,11 @@
+---
+created: '2023-06-06T12:47:45.163818Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "2379b64e8fe011f9db71741cecd6fb96"
+  component:
+    default*
+      message* (stripped common values)
+        "Error key1='some_str' key2=<int> key3=False key4=<date>"
