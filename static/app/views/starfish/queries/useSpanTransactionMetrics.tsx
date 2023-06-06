@@ -12,7 +12,7 @@ const INTERVAL = 12;
 export type SpanTransactionMetrics = {
   p50: number;
   p95: number;
-  spm: number;
+  spans_per_second: number;
   'sum(span.self_time)': number;
   total_time: number;
   transaction: string;
@@ -36,7 +36,7 @@ export const useSpanTransactionMetrics = (
       quantile(0.5)(exclusive_time) as p95,
       sum(exclusive_time) as "sum(span.self_time)",
       sum(exclusive_time) as total_time,
-      divide(count(), multiply(${INTERVAL}, 60)) as spm
+      divide(count(), multiply(${INTERVAL}, 3600)) as spans_per_second
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group_id}'
     ${dateFilters}

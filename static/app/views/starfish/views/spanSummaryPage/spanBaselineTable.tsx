@@ -1,19 +1,14 @@
-import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
-
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import type {Span} from 'sentry/views/starfish/queries/types';
 import {
   ApplicationMetrics,
@@ -21,7 +16,7 @@ import {
 } from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
-import {DataTitles, getTooltip} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   span: Span;
@@ -34,7 +29,11 @@ type Row = {
   timeSpent: string;
 };
 
-export type Keys = 'description' | 'epm()' | 'p95(span.self_time)' | 'timeSpent';
+export type Keys =
+  | 'description'
+  | 'spans_per_second'
+  | 'p95(span.self_time)'
+  | 'timeSpent';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanBaselineTable({span}: Props) {
@@ -100,17 +99,11 @@ function BodyCell({
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return (
-      <DurationTrendCell
-        duration={row.metrics?.p95}
-        durationSeries={row.metricSeries?.p95}
-        color={P95_COLOR}
-      />
-    );
+    return <DurationCell seconds={row.metrics.p95} />;
   }
 
-  if (column.key === 'epm()') {
-    return <EPMCell span={span} row={row} column={column} />;
+  if (column.key === 'spans_per_second') {
+    return <ThroughputCell throughputPerSecond={row.metrics.spans_per_second} />;
   }
 
   if (column.key === 'timeSpent') {
@@ -130,75 +123,6 @@ function DescriptionCell({span}: CellProps) {
   return <SpanDescription span={span} />;
 }
 
-export function DurationTrendCell({
-  duration,
-  durationSeries,
-  color,
-}: {
-  color: string;
-  duration: number;
-  durationSeries?: Series;
-}) {
-  const theme = useTheme();
-
-  return (
-    <Fragment>
-      {durationSeries ? (
-        <Sparkline
-          color={color}
-          series={durationSeries}
-          markLine={
-            duration
-              ? generateHorizontalLine(
-                  `${(duration / 1000).toFixed(2)} s`,
-                  duration,
-                  theme
-                )
-              : undefined
-          }
-        />
-      ) : null}
-    </Fragment>
-  );
-}
-
-function EPMCell({row}: CellProps) {
-  const theme = useTheme();
-  const epm = row.metrics?.spm;
-  const epmSeries = row.metricSeries?.spm;
-
-  return (
-    <Fragment>
-      {epmSeries ? (
-        <Sparkline
-          color={THROUGHPUT_COLOR}
-          series={epmSeries}
-          markLine={
-            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
-          }
-        />
-      ) : null}
-    </Fragment>
-  );
-}
-
-export function TimeSpentCell({
-  formattedTimeSpent,
-  totalSpanTime,
-  totalAppTime,
-}: {
-  formattedTimeSpent: string;
-  totalAppTime: number;
-  totalSpanTime: number;
-}) {
-  const toolTip = getTooltip('timeSpent', totalSpanTime, totalAppTime);
-  return (
-    <span>
-      <Tooltip title={toolTip}>{formattedTimeSpent}</Tooltip>
-    </span>
-  );
-}
-
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'description',
@@ -206,8 +130,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'epm()',
-    name: 'Throughput (TPM)',
+    key: 'spans_per_second',
+    name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
   {
