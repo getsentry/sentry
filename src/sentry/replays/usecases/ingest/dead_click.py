@@ -23,6 +23,7 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
     timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
 
     _report_dead_click_issue(
+        culprit=payload["message"].split(" > ")[-1],
         environment="prod",
         fingerprint=payload["message"],
         project_id=project_id,
@@ -51,6 +52,7 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
 
 
 def _report_dead_click_issue(
+    culprit: str,
     environment: str,
     fingerprint: str,
     project_id: int,
@@ -69,5 +71,6 @@ def _report_dead_click_issue(
         subtitle=subtitle,
         timestamp=timestamp,
         title="Suspected Dead Click",
+        culprit=culprit,
         extra_event_data=extra_event_data,
     )
