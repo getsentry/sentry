@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from sentry.issues.grouptype import ReplayDeadClickType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
 
@@ -39,21 +40,9 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
             "selector": payload["message"],
         },
         evidence_display=[
-            {
-                "name": "Clicked Element",
-                "value": clicked_element,
-                "important": True,
-            },
-            {
-                "name": "Selector Path",
-                "value": payload["message"],
-                "important": True,
-            },
-            {
-                "name": "Page URL",
-                "value": payload["data"]["url"],
-                "important": True,
-            },
+            IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
+            IssueEvidence(name="Selector Path", value=payload["message"], important=True),
+            IssueEvidence(name="Page URL", value=payload["data"]["url"], important=True),
         ],
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
