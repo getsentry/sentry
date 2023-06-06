@@ -17,6 +17,7 @@ from sentry.models import ObjectStatus, OrganizationIntegration, ScheduledDeleti
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
+from sentry.web.decorators import set_referrer_policy
 
 
 class IntegrationSerializer(serializers.Serializer):
@@ -26,6 +27,7 @@ class IntegrationSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
+    @set_referrer_policy("strict-origin-when-cross-origin")
     @never_cache
     def get(self, request: Request, organization, integration_id) -> Response:
         org_integration = self.get_organization_integration(organization.id, integration_id)
@@ -37,6 +39,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
 
     @requires_feature("organizations:integrations-custom-scm")
+    @set_referrer_policy("strict-origin-when-cross-origin")
     @never_cache
     def put(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization.id, integration_id)
@@ -69,6 +72,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         return self.respond(serializer.errors, status=400)
 
+    @set_referrer_policy("strict-origin-when-cross-origin")
     @never_cache
     def delete(self, request: Request, organization, integration_id) -> Response:
         # Removing the integration removes the organization
@@ -103,6 +107,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         return self.respond(status=204)
 
+    @set_referrer_policy("strict-origin-when-cross-origin")
     @never_cache
     def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization.id, integration_id)

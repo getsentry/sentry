@@ -38,7 +38,7 @@ export const useQueryGetSpanSamples = (options: {
     enabled: Boolean(groupId && transactionName && p50),
   };
 
-  const commonSamplesQueryOptions = {
+  const commonSamplesQueryOptions: GetSamplesQueryOptions = {
     groupId,
     transactionName,
     user,
@@ -124,6 +124,7 @@ export const useQuerySpansInTransaction = (options: {
     formatted_desc: string;
     module: 'http' | 'db' | 'cache' | 'none';
     p50: number;
+    p95: number;
     span_operation: string;
   }[]
 > => {
@@ -136,6 +137,7 @@ export const useQuerySpansInTransaction = (options: {
       SELECT
       count() AS count,
       quantile(0.5)(exclusive_time) as p50,
+      quantile(0.5)(exclusive_time) as p95,
       span_operation,
       action,
       module,
@@ -248,6 +250,15 @@ export const useQueryGetSpanSeriesData = (options: {
   });
 };
 
+type GetSamplesQueryOptions = {
+  groupId: string;
+  transactionName: string;
+  datetime?: DateTimeObject;
+  p50?: number;
+  populationType?: SamplePopulationType;
+  user?: string;
+};
+
 const getSpanSamplesQuery = ({
   groupId,
   transactionName,
@@ -255,14 +266,7 @@ const getSpanSamplesQuery = ({
   populationType,
   datetime,
   p50,
-}: {
-  groupId;
-  transactionName;
-  user;
-  datetime?: DateTimeObject;
-  p50?: number;
-  populationType?: SamplePopulationType;
-}) => {
+}: GetSamplesQueryOptions) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
 
   return `

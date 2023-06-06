@@ -114,7 +114,7 @@ function SnoozeAlert({
   }
 
   const primaryMuteAction =
-    ruleActionCategory === RuleActionsCategories.AllDefault ? 'me' : 'everyone';
+    ruleActionCategory === RuleActionsCategories.ALL_DEFAULT ? 'me' : 'everyone';
 
   useEffect(() => {
     if (location.query.mute === '1' && !isSnoozed) {
@@ -128,14 +128,14 @@ function SnoozeAlert({
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
       // Hidden if all default actions because it will be the primary button and no default actions since it shouldn't be an option
-      hidden: ruleActionCategory !== RuleActionsCategories.SomeDefault,
+      hidden: ruleActionCategory !== RuleActionsCategories.SOME_DEFAULT,
     },
     {
       key: 'everyone',
       label: t('Mute for everyone'),
       onAction: () => handleMute('everyone'),
       // Hidden if some default or no default actions since it will be the primary button, not in dropdown
-      hidden: ruleActionCategory !== RuleActionsCategories.AllDefault,
+      hidden: ruleActionCategory !== RuleActionsCategories.ALL_DEFAULT,
     },
   ];
 
@@ -166,12 +166,13 @@ function SnoozeAlert({
       >
         {primaryMuteAction === 'me' ? t('Mute for me') : t('Mute for everyone')}
       </MuteButton>
-      {ruleActionCategory !== RuleActionsCategories.NoDefault && (
+      {ruleActionCategory !== RuleActionsCategories.NO_DEFAULT && (
         <DropdownMenu
           size="sm"
           trigger={triggerProps => (
             <DropdownTrigger
               {...triggerProps}
+              size="sm"
               aria-label={t('Mute alert options')}
               icon={<IconChevron direction="down" size="xs" />}
             />

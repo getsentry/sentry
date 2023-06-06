@@ -112,7 +112,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
-      excludeOther: 1,
+      excludeOther: 0,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,

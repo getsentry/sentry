@@ -27,8 +27,6 @@ from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 
 @receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
 def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):

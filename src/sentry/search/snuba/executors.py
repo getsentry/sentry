@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
@@ -55,6 +55,7 @@ from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_
 class PrioritySortWeights(TypedDict):
     log_level: int
     has_stacktrace: int
+    relative_volume: int
     event_halflife_hours: int
     issue_halflife_hours: int
     v2: bool
@@ -64,6 +65,7 @@ class PrioritySortWeights(TypedDict):
 DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
+    "relative_volume": 0,
     "event_halflife_hours": 4,
     "issue_halflife_hours": 24 * 7,
     "v2": False,
@@ -73,11 +75,34 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
 V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
+    "relative_volume": 1,
     "event_halflife_hours": 12,
     "issue_halflife_hours": 4,
     "v2": False,
     "norm": False,
 }
+
+
+@dataclass
+class BetterPriorityParams:
+    # (event or issue age_hours) / (event or issue halflife hours)
+    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
+    max_pow: int
+    min_score: float  # apply a min on the individual scores to avoid multiplying by zeroes
+
+    # event-aggregate scoring
+    event_age_weight: int  # [1, 5]
+    log_level_weight: int  # [0, 10]
+    stacktrace_weight: int  # [0, 3]
+    event_halflife_hours: int  # halves score every x hours
+
+    # issue-aggregate scoring
+    issue_age_weight: int  # [1, 5]
+    issue_halflife_hours: int  # halves score every x hours
+    relative_volume_weight: int  # [0, 10]
+
+    v2: bool
+    normalize: bool
 
 
 def get_search_filter(
@@ -221,6 +246,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        replace_better_priority_aggregation: Optional[bool] = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -231,6 +257,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
+            if replace_better_priority_aggregation and alias == "better_priority":
+                aggregation = self.aggregation_defs[
+                    "better_priority_issue_platform"  # type:ignore[call-overload]
+                ]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -282,7 +312,18 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        aggregations = self._prepare_aggregations(sort_field, start, end, having, aggregate_kwargs)
+        if (
+            sort_field == "better_priority"
+            and group_category is not GroupCategory.ERROR.value
+            and features.has("organizations:issue-list-better-priority-sort", organization)
+        ):
+            aggregations = self._prepare_aggregations(
+                sort_field, start, end, having, aggregate_kwargs, True
+            )
+        else:
+            aggregations = self._prepare_aggregations(
+                sort_field, start, end, having, aggregate_kwargs
+            )
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -478,19 +519,64 @@ def better_priority_aggregation(
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    issue_age_weight = 1  # [1, 5]
-    event_age_weight = 1  # [1, 5]
-    log_level_weight = aggregate_kwargs["log_level"]  # [0, 10]
-    stacktrace_weight = aggregate_kwargs["has_stacktrace"]  # [0, 3]
-    # (event or issue age_hours) / (event or issue halflife hours)
-    # any event or issue age that is greater than max_pow times the half-life hours will get clipped
-    max_pow = 16
-    min_score = 0.01
-    event_age_hours = "divide(now() - timestamp, 3600)"
-    event_halflife_hours = aggregate_kwargs["event_halflife_hours"]  # halves score every x hours
-    issue_halflife_hours = aggregate_kwargs["issue_halflife_hours"]  # halves score every x hours
-    issue_age_hours = "divide(now() - min(timestamp), 3600)"
+    return better_priority_aggregation_impl(
+        BetterPriorityParams(
+            max_pow=16,
+            min_score=0.01,
+            event_age_weight=1,
+            log_level_weight=aggregate_kwargs["log_level"],
+            stacktrace_weight=aggregate_kwargs["has_stacktrace"],
+            event_halflife_hours=aggregate_kwargs["event_halflife_hours"],
+            issue_age_weight=1,
+            issue_halflife_hours=aggregate_kwargs["issue_halflife_hours"],
+            relative_volume_weight=aggregate_kwargs["relative_volume"],
+            v2=aggregate_kwargs["v2"],
+            normalize=aggregate_kwargs["norm"],
+        ),
+        "timestamp",
+        True,
+    )
 
+
+def better_priority_issue_platform_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: PrioritySortWeights,
+) -> Sequence[str]:
+    return better_priority_aggregation_impl(
+        BetterPriorityParams(
+            max_pow=16,
+            min_score=0.01,
+            event_age_weight=1,
+            log_level_weight=aggregate_kwargs["log_level"],
+            stacktrace_weight=0,  # issue-platform occurrences won't have stacktrace
+            event_halflife_hours=aggregate_kwargs["event_halflife_hours"],
+            issue_age_weight=1,
+            issue_halflife_hours=aggregate_kwargs["issue_halflife_hours"],
+            relative_volume_weight=aggregate_kwargs["relative_volume"],
+            v2=aggregate_kwargs["v2"],
+            normalize=aggregate_kwargs["norm"],
+        ),
+        "client_timestamp",
+        False,
+    )
+
+
+def better_priority_aggregation_impl(
+    params: BetterPriorityParams, timestamp_column: str, use_stacktrace: bool
+) -> Sequence[str]:
+    min_score = params.min_score
+    max_pow = params.max_pow
+    event_age_weight = params.event_age_weight
+    event_halflife_hours = params.event_halflife_hours
+    log_level_weight = params.log_level_weight
+    stacktrace_weight = params.stacktrace_weight
+    relative_volume_weight = params.relative_volume_weight
+    issue_age_weight = params.issue_age_weight
+    issue_halflife_hours = params.issue_halflife_hours
+
+    event_age_hours = f"divide(now() - {timestamp_column}, 3600)"
+    issue_age_hours = f"divide(now() - min({timestamp_column}), 3600)"
     log_level_score = "multiIf(equals(level, 'fatal'), 1.0, equals(level, 'error'), 0.66, equals(level, 'warning'), 0.33, 0.0)"
     stacktrace_score = "if(notEmpty(exception_stacks.type), 1.0, 0.0)"
     # event_agg_rank:
@@ -505,24 +591,30 @@ def better_priority_aggregation(
     # f(x) = ---------------------------------  ,  max(f(x)) = 1, when individual scores are all 1
     #                  lw + sw + aw
     #
-    event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    if use_stacktrace:
+        event_agg_numerator = f"plus(plus(multiply({log_level_score}, {log_level_weight}), multiply({stacktrace_score}, {stacktrace_weight})), {event_age_weight})"
+    else:
+        event_agg_numerator = (
+            f"plus(multiply({log_level_score}, {log_level_weight}), {event_age_weight})"
+        )
+
     event_agg_denominator = (
         f"plus(plus({log_level_weight}, {stacktrace_weight}), {event_age_weight})"
     )
     event_agg_rank = f"divide({event_agg_numerator}, {event_agg_denominator})"  # values from [0, 1]
 
-    v2 = aggregate_kwargs["v2"]
+    aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
 
-    if not v2:
+    if not params.v2:
         aggregate_event_score = f"greatest({min_score}, sum(divide({event_agg_rank}, pow(2, least({max_pow}, divide({event_age_hours}, {event_halflife_hours}))))))"
-        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
         return [f"multiply({aggregate_event_score}, {aggregate_issue_score})", ""]
     else:
         #  * apply log to event score summation to clamp the contribution of event scores to a reasonable maximum
         #  * add an extra 'relative volume score' (# of events in past 60 mins / # of events in the past 7 days)
         #    to factor in the volume of events that recently were fired versus the past. This will up-rank issues
         #    that are more recently active as a function of the overall amount of events grouped to that issue
-        #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0 -
+        #  * add a configurable weight to 'relative volume score'
+        #  * conditionally normalize all the scores so the range of values sweeps from 0.0 to 1.0
 
         # aggregate_event_score:
         #
@@ -544,20 +636,20 @@ def better_priority_aggregation(
         # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72, +inf
         aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
 
-        event_count_60_mins = "countIf(lessOrEquals(minus(now(), timestamp), 3600))"
-        avg_hourly_event_count_last_7_days = (
-            "countIf(lessOrEquals(minus(now(), timestamp), 604800))"  # 604800 = 3600 * 24 * 7
-        )
+        event_count_60_mins = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), 3600))"
+        avg_hourly_event_count_last_7_days = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), 604800))"  # 604800 = 3600 * 24 * 7
+
+        max_relative_volume_weight = 10
+        if relative_volume_weight > max_relative_volume_weight:
+            relative_volume_weight = max_relative_volume_weight
         relative_volume_score = (
-            f"divide(plus({event_count_60_mins}, 1), plus({avg_hourly_event_count_last_7_days}, 1))"
+            f"divide({event_count_60_mins}, plus({avg_hourly_event_count_last_7_days}, 1))"
         )
-        aggregate_issue_score = f"greatest({min_score}, divide({issue_age_weight}, pow(2, least({max_pow}, divide({issue_age_hours}, {issue_halflife_hours})))))"
+        scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
 
-        normalize = aggregate_kwargs["norm"]
-
-        if not normalize:
+        if not params.normalize:
             return [
-                f"multiply(multiply({aggregate_issue_score}, {aggregate_event_score}), {relative_volume_score})",
+                f"multiply(multiply({aggregate_issue_score}, greatest({min_score}, {aggregate_event_score})), greatest({min_score}, {scaled_relative_volume_score}))",
                 "",
             ]
         else:
@@ -570,7 +662,7 @@ def better_priority_aggregation(
             #            2^(x/k)
             normalized_aggregate_issue_score = aggregate_issue_score  # already ranges from 1 to 0
             normalized_relative_volume_score = (
-                relative_volume_score  # already normalized since it's a percentage
+                scaled_relative_volume_score  # already normalized since it's a percentage
             )
 
             # aggregate_event_score ranges from [0, +inf], as the amount of events grouped to this issue
@@ -615,6 +707,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "better_priority": better_priority_aggregation,
+        "better_priority_issue_platform": better_priority_issue_platform_aggregation,
     }
 
     @property

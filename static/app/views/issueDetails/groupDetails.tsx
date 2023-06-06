@@ -492,9 +492,11 @@ function useTrackView({
   group,
   event,
   project,
+  tab,
 }: {
   event: Event | null;
   group: Group | null;
+  tab: Tab;
   project?: Project;
 }) {
   const location = useLocation();
@@ -506,6 +508,7 @@ function useTrackView({
     ...getAnalyticsDataForGroup(group),
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
+    tab,
     stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
     query: typeof query === 'string' ? query : undefined,
     // Alert properties track if the user came from email/slack alerts
@@ -614,7 +617,7 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
-  useTrackView({group, event, project});
+  useTrackView({group, event, project, tab: currentTab});
 
   useEffect(() => {
     if (

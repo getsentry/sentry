@@ -67,11 +67,11 @@ class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest)
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
 
-        assert len(result["orgRolesFromTeams"]) == 3
-        assert result["orgRolesFromTeams"][0]["role"]["id"] == "owner"
-        assert result["orgRolesFromTeams"][0]["teamSlug"] == owner_team.slug
-        assert result["orgRolesFromTeams"][1]["role"]["id"] == "manager"
-        assert result["orgRolesFromTeams"][2]["role"]["id"] == "manager"
+        assert len(result["groupOrgRoles"]) == 3
+        assert result["groupOrgRoles"][0]["role"]["id"] == "owner"
+        assert result["groupOrgRoles"][0]["teamSlug"] == owner_team.slug
+        assert result["groupOrgRoles"][1]["role"]["id"] == "manager"
+        assert result["groupOrgRoles"][2]["role"]["id"] == "manager"
 
 
 @region_silo_test(stable=True)

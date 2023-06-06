@@ -226,7 +226,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             "status": status_data[0],
         }
 
-        if len(status_data) > 1:
+        # sub-status only applies to ignored/archived issues
+        if len(status_data) > 1 and status_data[0] == "ignored":
             status["substatus"] = status_data[1]
 
         resolve_type = status_data[-1]
@@ -240,6 +241,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         analytics.record(
             "integrations.slack.status",
+            organization_id=group.project.organization.id,
             status=status["status"],
             resolve_type=resolve_type,
             user_id=user.id,

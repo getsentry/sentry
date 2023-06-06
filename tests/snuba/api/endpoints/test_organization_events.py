@@ -5878,7 +5878,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "project": "python",
                         "release": "backend@1",
                         "platform.name": "python",
-                        "retention_days": 90,
                         "package": "lib_foo",
                         "environment": "development",
                         "p50()": 34695708.0,
@@ -5922,10 +5921,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                     {
                         "name": "platform.name",
                         "type": "String",
-                    },
-                    {
-                        "name": "retention_days",
-                        "type": "UInt16",
                     },
                     {
                         "name": "package",
@@ -5980,7 +5975,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "platform.name",
             "environment",
             "release",
-            "retention_days",
             "count()",
             "examples()",
             "p50()",
@@ -6006,6 +6000,24 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
         assert set(fields) == data_keys
         assert set(fields) == field_keys
         assert set(fields) == unit_keys
+        assert response.data["meta"]["units"] == {
+            "transaction": None,
+            "project": None,
+            "function": None,
+            "package": None,
+            "is_application": None,
+            "platform.name": None,
+            "environment": None,
+            "release": None,
+            "count()": None,
+            "examples()": None,
+            "p50()": "nanosecond",
+            "p75()": "nanosecond",
+            "p95()": "nanosecond",
+            "p99()": "nanosecond",
+            "avg()": "nanosecond",
+            "sum()": "nanosecond",
+        }
 
 
 @region_silo_test

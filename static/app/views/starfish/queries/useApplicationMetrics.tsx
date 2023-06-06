@@ -5,7 +5,8 @@ import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-type Metrics = {
+export type ApplicationMetrics = {
+  count: number;
   'sum(span.duration)': number;
 };
 
@@ -18,7 +19,7 @@ export const useApplicationMetrics = (_referrer = 'application-metrics') => {
   const eventView = getEventView();
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<Metrics[]>({
+  const {isLoading, data} = useSpansQuery<ApplicationMetrics[]>({
     eventView,
     queryString: query,
     initialData: [],

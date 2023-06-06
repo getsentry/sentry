@@ -73,10 +73,10 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[]) {
+function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
-  if (data.length > 2) {
+  if (data.length > 1 && stacked) {
     for (let i = 0; i < data.length; i++) {
       maxValue += max(data[i].data.map(point => point.value)) as number;
     }
@@ -160,9 +160,12 @@ function Chart({
     data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
   let dataMax = durationOnly
-    ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+    ? computeAxisMax(
+        [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
+        stacked
+      )
     : percentOnly
-    ? computeMax(data)
+    ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
     : undefined;
   // Fix an issue where max == 1 for duration charts would look funky cause we round
   if (dataMax === 1 && durationOnly) {
@@ -233,12 +236,19 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
+
     if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(
+            value,
+            aggregateOutputFormat ?? aggregateOutputType(seriesName)
+          );
+        },
         ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }

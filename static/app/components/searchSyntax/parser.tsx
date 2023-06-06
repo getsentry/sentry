@@ -34,47 +34,47 @@ const listJoiner = <K,>([s1, comma, s2, _, value]: ListItem<K>) => ({
  * from the grammar and may not be named exactly the same.
  */
 export enum Token {
-  Spaces = 'spaces',
-  Filter = 'filter',
-  FreeText = 'freeText',
-  LogicGroup = 'logicGroup',
-  LogicBoolean = 'logicBoolean',
-  KeySimple = 'keySimple',
-  KeyExplicitTag = 'keyExplicitTag',
-  KeyAggregate = 'keyAggregate',
-  KeyAggregateArgs = 'keyAggregateArgs',
-  KeyAggregateParam = 'keyAggregateParam',
-  ValueIso8601Date = 'valueIso8601Date',
-  ValueRelativeDate = 'valueRelativeDate',
-  ValueDuration = 'valueDuration',
-  ValueSize = 'valueSize',
-  ValuePercentage = 'valuePercentage',
-  ValueBoolean = 'valueBoolean',
-  ValueNumber = 'valueNumber',
-  ValueText = 'valueText',
-  ValueNumberList = 'valueNumberList',
-  ValueTextList = 'valueTextList',
+  SPACES = 'spaces',
+  FILTER = 'filter',
+  FREE_TEXT = 'freeText',
+  LOGIC_GROUP = 'logicGroup',
+  LOGIC_BOOLEAN = 'logicBoolean',
+  KEY_SIMPLE = 'keySimple',
+  KEY_EXPLICIT_TAG = 'keyExplicitTag',
+  KEY_AGGREGATE = 'keyAggregate',
+  KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
+  KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
+  VALUE_ISO_8601_DATE = 'valueIso8601Date',
+  VALUE_RELATIVE_DATE = 'valueRelativeDate',
+  VALUE_DURATION = 'valueDuration',
+  VALUE_SIZE = 'valueSize',
+  VALUE_PERCENTAGE = 'valuePercentage',
+  VALUE_BOOLEAN = 'valueBoolean',
+  VALUE_NUMBER = 'valueNumber',
+  VALUE_TEXT = 'valueText',
+  VALUE_NUMBER_LIST = 'valueNumberList',
+  VALUE_TEXT_LIST = 'valueTextList',
 }
 
 /**
  * An operator in a key value term
  */
 export enum TermOperator {
-  Default = '',
-  GreaterThanEqual = '>=',
-  LessThanEqual = '<=',
-  GreaterThan = '>',
-  LessThan = '<',
-  Equal = '=',
-  NotEqual = '!=',
+  DEFAULT = '',
+  GREATER_THAN_EQUAL = '>=',
+  LESS_THAN_EQUAL = '<=',
+  GREATER_THAN = '>',
+  LESS_THAN = '<',
+  EQUAL = '=',
+  NOT_EQUAL = '!=',
 }
 
 /**
  * Logic operators
  */
 export enum BooleanOperator {
-  And = 'AND',
-  Or = 'OR',
+  AND = 'AND',
+  OR = 'OR',
 }
 
 /**
@@ -82,48 +82,48 @@ export enum BooleanOperator {
  * each variant filter type.
  */
 export enum FilterType {
-  Text = 'text',
-  TextIn = 'textIn',
-  Date = 'date',
-  SpecificDate = 'specificDate',
-  RelativeDate = 'relativeDate',
-  Duration = 'duration',
-  Size = 'size',
-  Numeric = 'numeric',
-  NumericIn = 'numericIn',
-  Boolean = 'boolean',
-  AggregateDuration = 'aggregateDuration',
-  AggregateSize = 'aggregateSize',
-  AggregatePercentage = 'aggregatePercentage',
-  AggregateNumeric = 'aggregateNumeric',
-  AggregateDate = 'aggregateDate',
-  AggregateRelativeDate = 'aggregateRelativeDate',
-  Has = 'has',
-  Is = 'is',
+  TEXT = 'text',
+  TEXT_IN = 'textIn',
+  DATE = 'date',
+  SPECIFIC_DATE = 'specificDate',
+  RELATIVE_DATE = 'relativeDate',
+  DURATION = 'duration',
+  SIZE = 'size',
+  NUMERIC = 'numeric',
+  NUMERIC_IN = 'numericIn',
+  BOOLEAN = 'boolean',
+  AGGREGATE_DURATION = 'aggregateDuration',
+  AGGREGATE_SIZE = 'aggregateSize',
+  AGGREGATE_PERCENTAGE = 'aggregatePercentage',
+  AGGREGATE_NUMERIC = 'aggregateNumeric',
+  AGGREGATE_DATE = 'aggregateDate',
+  AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
+  HAS = 'has',
+  IS = 'is',
 }
 
 export const allOperators = [
-  TermOperator.Default,
-  TermOperator.GreaterThanEqual,
-  TermOperator.LessThanEqual,
-  TermOperator.GreaterThan,
-  TermOperator.LessThan,
-  TermOperator.Equal,
-  TermOperator.NotEqual,
+  TermOperator.DEFAULT,
+  TermOperator.GREATER_THAN_EQUAL,
+  TermOperator.LESS_THAN_EQUAL,
+  TermOperator.GREATER_THAN,
+  TermOperator.LESS_THAN,
+  TermOperator.EQUAL,
+  TermOperator.NOT_EQUAL,
 ] as const;
 
-const basicOperators = [TermOperator.Default, TermOperator.NotEqual] as const;
+const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
 
 /**
  * Map of certain filter types to other filter types with applicable operators
  * e.g. SpecificDate can use the operators from Date to become a Date filter.
  */
 export const interchangeableFilterOperators = {
-  [FilterType.SpecificDate]: [FilterType.Date],
-  [FilterType.Date]: [FilterType.SpecificDate],
+  [FilterType.SPECIFIC_DATE]: [FilterType.DATE],
+  [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
 };
 
-const textKeys = [Token.KeySimple, Token.KeyExplicitTag] as const;
+const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
 
 const numberUnits = {
   b: 1_000_000_000,
@@ -140,112 +140,112 @@ const numberUnits = {
  * returned from the tokenFilter converter.
  */
 export const filterTypeConfig = {
-  [FilterType.Text]: {
+  [FilterType.TEXT]: {
     validKeys: textKeys,
     validOps: basicOperators,
-    validValues: [Token.ValueText],
+    validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
-  [FilterType.TextIn]: {
+  [FilterType.TEXT_IN]: {
     validKeys: textKeys,
     validOps: [],
-    validValues: [Token.ValueTextList],
+    validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
   },
-  [FilterType.Date]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.DATE]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
-    validValues: [Token.ValueIso8601Date],
+    validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
   },
-  [FilterType.SpecificDate]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.SPECIFIC_DATE]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: [],
-    validValues: [Token.ValueIso8601Date],
+    validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: false,
   },
-  [FilterType.RelativeDate]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.RELATIVE_DATE]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: [],
-    validValues: [Token.ValueRelativeDate],
+    validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: false,
   },
-  [FilterType.Duration]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.DURATION]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
-    validValues: [Token.ValueDuration],
+    validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
-  [FilterType.Size]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.SIZE]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
-    validValues: [Token.ValueSize],
+    validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
-  [FilterType.Numeric]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.NUMERIC]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: allOperators,
-    validValues: [Token.ValueNumber],
+    validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
-  [FilterType.NumericIn]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.NUMERIC_IN]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: [],
-    validValues: [Token.ValueNumberList],
+    validValues: [Token.VALUE_NUMBER_LIST],
     canNegate: true,
   },
-  [FilterType.Boolean]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.BOOLEAN]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
-    validValues: [Token.ValueBoolean],
+    validValues: [Token.VALUE_BOOLEAN],
     canNegate: true,
   },
-  [FilterType.AggregateDuration]: {
-    validKeys: [Token.KeyAggregate],
+  [FilterType.AGGREGATE_DURATION]: {
+    validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
-    validValues: [Token.ValueDuration],
+    validValues: [Token.VALUE_DURATION],
     canNegate: true,
   },
-  [FilterType.AggregateSize]: {
-    validKeys: [Token.KeyAggregate],
+  [FilterType.AGGREGATE_SIZE]: {
+    validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
-    validValues: [Token.ValueSize],
+    validValues: [Token.VALUE_SIZE],
     canNegate: true,
   },
-  [FilterType.AggregateNumeric]: {
-    validKeys: [Token.KeyAggregate],
+  [FilterType.AGGREGATE_NUMERIC]: {
+    validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
-    validValues: [Token.ValueNumber],
+    validValues: [Token.VALUE_NUMBER],
     canNegate: true,
   },
-  [FilterType.AggregatePercentage]: {
-    validKeys: [Token.KeyAggregate],
+  [FilterType.AGGREGATE_PERCENTAGE]: {
+    validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
-    validValues: [Token.ValuePercentage],
+    validValues: [Token.VALUE_PERCENTAGE],
     canNegate: true,
   },
-  [FilterType.AggregateDate]: {
-    validKeys: [Token.KeyAggregate],
+  [FilterType.AGGREGATE_DATE]: {
+    validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
-    validValues: [Token.ValueIso8601Date],
+    validValues: [Token.VALUE_ISO_8601_DATE],
     canNegate: true,
   },
-  [FilterType.AggregateRelativeDate]: {
-    validKeys: [Token.KeyAggregate],
+  [FilterType.AGGREGATE_RELATIVE_DATE]: {
+    validKeys: [Token.KEY_AGGREGATE],
     validOps: allOperators,
-    validValues: [Token.ValueRelativeDate],
+    validValues: [Token.VALUE_RELATIVE_DATE],
     canNegate: true,
   },
-  [FilterType.Has]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.HAS]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
     validValues: [],
     canNegate: true,
   },
-  [FilterType.Is]: {
-    validKeys: [Token.KeySimple],
+  [FilterType.IS]: {
+    validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
-    validValues: [Token.ValueText],
+    validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
 } as const;
@@ -265,6 +265,9 @@ export enum InvalidReason {
   INVALID_FILE_SIZE = 'invalid-file-size',
   INVALID_NUMBER = 'invalid-number',
   EMPTY_VALUE_IN_LIST_NOT_ALLOWED = 'empty-value-in-list-not-allowed',
+  INVALID_KEY = 'invalid-key',
+  INVALID_DURATION = 'invalid-duration',
+  INVALID_DATE_FORMAT = 'invalid-date-format',
 }
 
 /**
@@ -275,6 +278,10 @@ type InvalidFilter = {
    * The message indicating why the filter is invalid
    */
   reason: string;
+  /**
+   * The invalid reason type
+   */
+  type: InvalidReason;
   /**
    * In the case where a filter is invalid, we may be expecting a different
    * type for this filter based on the key. This can be useful to hint to the
@@ -308,7 +315,7 @@ type FilterMap = {
      * The operator applied to the filter
      */
     operator: FilterTypeConfig[F]['validOps'][number];
-    type: Token.Filter;
+    type: Token.FILTER;
     /**
      * The value of the filter
      */
@@ -316,8 +323,8 @@ type FilterMap = {
   };
 };
 
-type TextFilter = FilterMap[FilterType.Text];
-type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
+type TextFilter = FilterMap[FilterType.TEXT];
+type InFilter = FilterMap[FilterType.TEXT_IN] | FilterMap[FilterType.NUMERIC_IN];
 
 /**
  * The Filter type discriminates on the FilterType enum using the `filter` key.
@@ -378,7 +385,7 @@ export class TokenConverter {
 
   tokenSpaces = (value: string) => ({
     ...this.defaultTokenFields,
-    type: Token.Spaces as const,
+    type: Token.SPACES as const,
     value,
   });
 
@@ -390,12 +397,12 @@ export class TokenConverter {
     negated: FilterMap[T]['negated']
   ) => {
     const filterToken = {
-      type: Token.Filter as const,
+      type: Token.FILTER as const,
       filter,
       key,
       value,
       negated,
-      operator: operator ?? TermOperator.Default,
+      operator: operator ?? TermOperator.DEFAULT,
       invalid: this.checkInvalidFilter(filter, key, value),
     } as FilterResult;
 
@@ -407,7 +414,7 @@ export class TokenConverter {
 
   tokenFreeText = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
-    type: Token.FreeText as const,
+    type: Token.FREE_TEXT as const,
     value,
     quoted,
     invalid: this.checkInvalidFreeText(value),
@@ -421,19 +428,19 @@ export class TokenConverter {
     >
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.LogicGroup as const,
+    type: Token.LOGIC_GROUP as const,
     inner,
   });
 
   tokenLogicBoolean = (bool: BooleanOperator) => ({
     ...this.defaultTokenFields,
-    type: Token.LogicBoolean as const,
+    type: Token.LOGIC_BOOLEAN as const,
     value: bool,
   });
 
   tokenKeySimple = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
-    type: Token.KeySimple as const,
+    type: Token.KEY_SIMPLE as const,
     value,
     quoted,
   });
@@ -443,14 +450,14 @@ export class TokenConverter {
     key: ReturnType<TokenConverter['tokenKeySimple']>
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.KeyExplicitTag as const,
+    type: Token.KEY_EXPLICIT_TAG as const,
     prefix,
     key,
   });
 
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
-    type: Token.KeyAggregateParam as const,
+    type: Token.KEY_AGGREGATE_PARAMS as const,
     value,
     quoted,
   });
@@ -462,7 +469,7 @@ export class TokenConverter {
     argsSpaceAfter: ReturnType<TokenConverter['tokenSpaces']>
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.KeyAggregate as const,
+    type: Token.KEY_AGGREGATE as const,
     name,
     args,
     argsSpaceBefore,
@@ -474,13 +481,13 @@ export class TokenConverter {
     args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.KeyAggregateArgs as const,
+    type: Token.KEY_AGGREGATE_ARGS as const,
     args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
   });
 
   tokenValueIso8601Date = (value: string) => ({
     ...this.defaultTokenFields,
-    type: Token.ValueIso8601Date as const,
+    type: Token.VALUE_ISO_8601_DATE as const,
     value: moment(value),
   });
 
@@ -490,7 +497,7 @@ export class TokenConverter {
     unit: 'w' | 'd' | 'h' | 'm'
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.ValueRelativeDate as const,
+    type: Token.VALUE_RELATIVE_DATE as const,
     value: Number(value),
     sign,
     unit,
@@ -502,7 +509,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
 
-    type: Token.ValueDuration as const,
+    type: Token.VALUE_DURATION as const,
     value: Number(value),
     unit,
   });
@@ -532,26 +539,26 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
 
-    type: Token.ValueSize as const,
+    type: Token.VALUE_SIZE as const,
     value: Number(value),
     unit,
   });
 
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
-    type: Token.ValuePercentage as const,
+    type: Token.VALUE_PERCENTAGE as const,
     value: Number(value),
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
-    type: Token.ValueBoolean as const,
+    type: Token.VALUE_BOOLEAN as const,
     value: ['1', 'true'].includes(value.toLowerCase()),
   });
 
   tokenValueNumber = (value: string, unit: string) => ({
     ...this.defaultTokenFields,
-    type: Token.ValueNumber as const,
+    type: Token.VALUE_NUMBER as const,
     value,
     rawValue: Number(value) * (numberUnits[unit] ?? 1),
     unit,
@@ -562,7 +569,7 @@ export class TokenConverter {
     items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.ValueNumberList as const,
+    type: Token.VALUE_NUMBER_LIST as const,
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
@@ -571,14 +578,14 @@ export class TokenConverter {
     items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
   ) => ({
     ...this.defaultTokenFields,
-    type: Token.ValueTextList as const,
+    type: Token.VALUE_TEXT_LIST as const,
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
     return {
       ...this.defaultTokenFields,
-      type: Token.ValueText as const,
+      type: Token.VALUE_TEXT as const,
       value,
       quoted,
     };
@@ -607,31 +614,31 @@ export class TokenConverter {
       aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
 
     switch (type) {
-      case FilterType.Numeric:
-      case FilterType.NumericIn:
+      case FilterType.NUMERIC:
+      case FilterType.NUMERIC_IN:
         return isNumeric(keyName);
 
-      case FilterType.Duration:
+      case FilterType.DURATION:
         return isDuration(keyName);
 
-      case FilterType.Size:
+      case FilterType.SIZE:
         return isSize(keyName);
 
-      case FilterType.Boolean:
+      case FilterType.BOOLEAN:
         return isBoolean(keyName);
 
-      case FilterType.Date:
-      case FilterType.RelativeDate:
-      case FilterType.SpecificDate:
+      case FilterType.DATE:
+      case FilterType.RELATIVE_DATE:
+      case FilterType.SPECIFIC_DATE:
         return isDate(keyName);
 
-      case FilterType.AggregateDuration:
+      case FilterType.AGGREGATE_DURATION:
         return checkAggregate(isDuration);
 
-      case FilterType.AggregateDate:
+      case FilterType.AGGREGATE_DATE:
         return checkAggregate(isDate);
 
-      case FilterType.AggregatePercentage:
+      case FilterType.AGGREGATE_PERCENTAGE:
         return checkAggregate(isPercentage);
 
       default:
@@ -651,6 +658,7 @@ export class TokenConverter {
   checkInvalidFreeText = (value: string) => {
     if (this.config.disallowWildcard && value.includes('*')) {
       return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
     }
@@ -673,21 +681,24 @@ export class TokenConverter {
       this.config.supportedTags &&
       !this.config.supportedTags[key.text]
     ) {
-      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
+      return {
+        type: InvalidReason.INVALID_KEY,
+        reason: t('Invalid key. "%s" is not a supported search key.', key.text),
+      };
     }
 
-    if (filter === FilterType.Text) {
+    if (filter === FilterType.TEXT) {
       return this.checkInvalidTextFilter(
         key as TextFilter['key'],
         value as TextFilter['value']
       );
     }
 
-    if (filter === FilterType.Is || filter === FilterType.Has) {
+    if (filter === FilterType.IS || filter === FilterType.HAS) {
       return this.checkInvalidTextValue(value as TextFilter['value']);
     }
 
-    if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
+    if ([FilterType.TEXT_IN, FilterType.NUMERIC_IN].includes(filter)) {
       return this.checkInvalidInFilter(value as InFilter['value']);
     }
 
@@ -699,7 +710,7 @@ export class TokenConverter {
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
     // Explicit tag keys will always be treated as text filters
-    if (key.type === Token.KeyExplicitTag) {
+    if (key.type === Token.KEY_EXPLICIT_TAG) {
       return this.checkInvalidTextValue(value);
     }
 
@@ -707,8 +718,9 @@ export class TokenConverter {
 
     if (this.keyValidation.isDuration(keyName)) {
       return {
+        type: InvalidReason.INVALID_DURATION,
         reason: t('Invalid duration. Expected number followed by duration unit suffix'),
-        expectedType: [FilterType.Duration],
+        expectedType: [FilterType.DURATION],
       };
     }
 
@@ -719,33 +731,41 @@ export class TokenConverter {
       const example = date.toISOString();
 
       return {
+        type: InvalidReason.INVALID_DATE_FORMAT,
         reason: t(
           'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
           example.slice(0, 10),
           example
         ),
-        expectedType: [FilterType.Date, FilterType.SpecificDate, FilterType.RelativeDate],
+        expectedType: [
+          FilterType.DATE,
+          FilterType.SPECIFIC_DATE,
+          FilterType.RELATIVE_DATE,
+        ],
       };
     }
 
     if (this.keyValidation.isBoolean(keyName)) {
       return {
+        type: InvalidReason.INVALID_BOOLEAN,
         reason: this.config.invalidMessages[InvalidReason.INVALID_BOOLEAN],
-        expectedType: [FilterType.Boolean],
+        expectedType: [FilterType.BOOLEAN],
       };
     }
 
     if (this.keyValidation.isSize(keyName)) {
       return {
+        type: InvalidReason.INVALID_FILE_SIZE,
         reason: this.config.invalidMessages[InvalidReason.INVALID_FILE_SIZE],
-        expectedType: [FilterType.Size],
+        expectedType: [FilterType.SIZE],
       };
     }
 
     if (this.keyValidation.isNumeric(keyName)) {
       return {
+        type: InvalidReason.INVALID_NUMBER,
         reason: this.config.invalidMessages[InvalidReason.INVALID_NUMBER],
-        expectedType: [FilterType.Numeric, FilterType.NumericIn],
+        expectedType: [FilterType.NUMERIC, FilterType.NUMERIC_IN],
       };
     }
 
@@ -758,16 +778,23 @@ export class TokenConverter {
   checkInvalidTextValue = (value: TextFilter['value']) => {
     if (this.config.disallowWildcard && value.value.includes('*')) {
       return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
       };
     }
 
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
-      return {reason: this.config.invalidMessages[InvalidReason.MUST_BE_QUOTED]};
+      return {
+        type: InvalidReason.MUST_BE_QUOTED,
+        reason: this.config.invalidMessages[InvalidReason.MUST_BE_QUOTED],
+      };
     }
 
     if (!value.quoted && value.value === '') {
-      return {reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE]};
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
     }
 
     return null;
@@ -781,6 +808,7 @@ export class TokenConverter {
 
     if (hasEmptyValue) {
       return {
+        type: InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED,
         reason:
           this.config.invalidMessages[InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED],
       };
@@ -790,7 +818,10 @@ export class TokenConverter {
       this.config.disallowWildcard &&
       items.some(item => item.value.value.includes('*'))
     ) {
-      return {reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED]};
+      return {
+        type: InvalidReason.WILDCARD_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
     }
 
     return null;
@@ -827,11 +858,11 @@ export type TokenResult<T extends Token> = ConverterResultMap[Converter] & {type
  * Result from parsing a search query.
  */
 export type ParseResult = Array<
-  | TokenResult<Token.LogicBoolean>
-  | TokenResult<Token.LogicGroup>
-  | TokenResult<Token.Filter>
-  | TokenResult<Token.FreeText>
-  | TokenResult<Token.Spaces>
+  | TokenResult<Token.LOGIC_BOOLEAN>
+  | TokenResult<Token.LOGIC_GROUP>
+  | TokenResult<Token.FILTER>
+  | TokenResult<Token.FREE_TEXT>
+  | TokenResult<Token.SPACES>
 >;
 
 /**
