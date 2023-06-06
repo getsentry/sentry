@@ -487,7 +487,7 @@ function getEventsRequest(
     (organization.features.includes('dashboards-mep') ||
       organization.features.includes('mep-rollout-flag')) &&
     defined(mepSetting) &&
-    mepSetting !== MEPState.transactionsOnly;
+    mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -538,7 +538,7 @@ function getEventsSeriesRequest(
     (organization.features.includes('dashboards-mep') ||
       organization.features.includes('mep-rollout-flag')) &&
     defined(mepSetting) &&
-    mepSetting !== MEPState.transactionsOnly;
+    mepSetting !== MEPState.TRANSACTIONS_ONLY;
   let requestData;
   if (displayType === DisplayType.TOP_N) {
     requestData = {

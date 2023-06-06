@@ -457,7 +457,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.auto);
+    jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
   afterEach(function () {

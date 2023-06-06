@@ -33,18 +33,18 @@ export const MEPConsumer = _MEPSettingContext.Consumer;
  * "Unset" should be the initial state before any queries return for the first time.
  */
 export enum AutoSampleState {
-  unset = 'unset',
-  metrics = 'metrics',
-  transactions = 'transactions',
+  UNSET = 'unset',
+  METRICS = 'metrics',
+  TRANSACTIONS = 'transactions',
 }
 
 /**
  * Metrics/transactions will be called something else in the copy, but functionally the data is coming from metrics / transactions.
  */
 export enum MEPState {
-  auto = 'auto',
-  metricsOnly = 'metricsOnly',
-  transactionsOnly = 'transactionsOnly',
+  AUTO = 'auto',
+  METRICS_ONLY = 'metricsOnly',
+  TRANSACTIONS_ONLY = 'transactionsOnly',
 }
 
 export const METRIC_SETTING_PARAM = 'metricSetting';
@@ -100,14 +100,14 @@ export function MEPSettingProvider({
 
   const canUseMEP = canUseMetricsData(organization);
 
-  const allowedStates = [MEPState.metricsOnly, MEPState.transactionsOnly];
+  const allowedStates = [MEPState.METRICS_ONLY, MEPState.TRANSACTIONS_ONLY];
   const _metricSettingFromParam = location
     ? decodeScalar(location.query[METRIC_SETTING_PARAM])
-    : MEPState.metricsOnly;
-  let defaultMetricsState = MEPState.metricsOnly;
+    : MEPState.METRICS_ONLY;
+  let defaultMetricsState = MEPState.METRICS_ONLY;
 
   if (forceTransactions) {
-    defaultMetricsState = MEPState.transactionsOnly;
+    defaultMetricsState = MEPState.TRANSACTIONS_ONLY;
   }
 
   const metricSettingFromParam =
@@ -139,17 +139,17 @@ export function MEPSettingProvider({
 
   const [autoSampleState, setAutoSampleState] = useReducer(
     (_: AutoSampleState, next: AutoSampleState) => next,
-    AutoSampleState.unset
+    AutoSampleState.UNSET
   );
 
   const metricSettingState = isControlledMEP ? _hasMEPState : _metricSettingState;
 
   const shouldQueryProvideMEPAutoParams =
-    canUseMEP && metricSettingState === MEPState.auto;
+    canUseMEP && metricSettingState === MEPState.AUTO;
   const shouldQueryProvideMEPMetricParams =
-    canUseMEP && metricSettingState === MEPState.metricsOnly;
+    canUseMEP && metricSettingState === MEPState.METRICS_ONLY;
   const shouldQueryProvideMEPTransactionParams =
-    canUseMEP && metricSettingState === MEPState.transactionsOnly;
+    canUseMEP && metricSettingState === MEPState.TRANSACTIONS_ONLY;
 
   const memoizationKey = `${metricSettingState}`;
 
