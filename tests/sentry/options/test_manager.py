@@ -7,6 +7,9 @@ from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.options.manager import (
     DEFAULT_FLAGS,
+    FLAG_ADMIN_MODIFIABLE,
+    FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
@@ -95,6 +98,27 @@ class OptionsManagerTest(TestCase):
 
         with pytest.raises(TypeError):
             self.manager.register("none-type", default=None, type=type(None))
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_CREDENTIAL | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_CREDENTIAL | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_ADMIN_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_IMMUTABLE | FLAG_AUTOMATOR_MODIFIABLE)
+
+        with pytest.raises(ValueError):
+            self.manager.register("bad_flags", flags=FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE)
 
     def test_coerce(self):
         self.manager.register("some-int", type=Int)
@@ -195,6 +219,19 @@ class OptionsManagerTest(TestCase):
 
         with self.settings(SENTRY_OPTIONS={"storeonly": "something-else!"}):
             assert self.manager.get("storeonly") == ""
+
+    def test_drifted(self):
+        self.manager.register("option", flags=FLAG_AUTOMATOR_MODIFIABLE)
+        # CLI should be able to update anything
+        self.manager.set("option", "value", channel=UpdateChannel.CLI)
+        assert self.manager.get("option") == "value"
+
+        with pytest.raises(AssertionError):
+            self.manager.set("option", "value2", channel=UpdateChannel.AUTOMATOR)
+
+        # Automator should be able to reset the channel of an option
+        # By leaving the value as it is.
+        self.manager.set("option", "value", channel=UpdateChannel.AUTOMATOR)
 
     def test_flag_prioritize_disk(self):
         self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
@@ -334,3 +371,11 @@ class OptionsManagerTest(TestCase):
 
         with self.settings(SENTRY_OPTIONS={"nostore": "awesome"}):
             assert self.manager.isset("nostore") is True
+
+    def test_flag_checking(self):
+        self.manager.register("option", flags=FLAG_NOSTORE)
+
+        opt = self.manager.lookup_key("option")
+        assert opt.has_any_flag({FLAG_NOSTORE})
+        assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
+        assert not opt.has_any_flag({FLAG_REQUIRED})
