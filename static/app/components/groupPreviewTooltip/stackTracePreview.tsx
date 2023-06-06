@@ -119,16 +119,14 @@ interface StackTracePreviewBodyProps
 
 function StackTracePreviewBody({
   groupId,
-  eventId,
   groupingCurrentLevel,
-  projectSlug,
   onRequestBegin,
   onRequestEnd,
   onUnmount,
 }: StackTracePreviewBodyProps) {
   const organization = useOrganization();
 
-  const {data, isLoading, isError} = usePreviewEvent({groupId, eventId, projectSlug});
+  const {data, isLoading, isError} = usePreviewEvent({groupId});
 
   useEffect(() => {
     if (isLoading) {
