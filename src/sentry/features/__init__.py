@@ -71,6 +71,7 @@ default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, Fe
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:mute-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crons-issue-platform", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:crons-timeline-listing-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
