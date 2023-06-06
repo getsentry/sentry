@@ -209,7 +209,7 @@ function DropdownMenu({
 
   function renderTrigger() {
     if (trigger) {
-      return trigger({...mergeProps(overlayTriggerProps, buttonProps)}, isOpen);
+      return trigger({...overlayTriggerProps, ...buttonProps}, isOpen);
     }
     return (
       <DropdownButton
