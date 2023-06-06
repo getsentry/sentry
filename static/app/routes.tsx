@@ -1679,6 +1679,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/starfish/modules/DBModule'))}
       />
       <Route
+        path="definitions/"
+        component={make(() => import('sentry/views/starfish/views/definitionsView'))}
+      />
+      <Route
         path="api/"
         component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
       />

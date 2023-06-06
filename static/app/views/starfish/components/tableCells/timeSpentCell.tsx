@@ -4,13 +4,11 @@ import {getTooltip} from 'sentry/views/starfish/views/spans/types';
 export function TimeSpentCell({
   formattedTimeSpent,
   totalSpanTime,
-  totalAppTime,
 }: {
   formattedTimeSpent: string;
-  totalAppTime: number;
   totalSpanTime: number;
 }) {
-  const toolTip = getTooltip('timeSpent', totalSpanTime, totalAppTime);
+  const toolTip = getTooltip('timeSpent', totalSpanTime);
   return (
     <span>
       <Tooltip title={toolTip}>{formattedTimeSpent}</Tooltip>
