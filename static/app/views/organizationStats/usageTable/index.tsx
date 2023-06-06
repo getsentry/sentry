@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -15,23 +15,21 @@ import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Project} from 'sentry/types';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from '../utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
-type Router = InjectedRouter | null | undefined;
-
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
   headers: React.ReactNode[];
-  router: Router;
   usageStats: TableStat[];
   errors?: Record<string, Error>;
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
-};
+} & WithRouterProps<{}, {}>;
 
 export type TableStat = {
   accepted: number;
@@ -144,7 +142,7 @@ class UsageTable extends Component<Props> {
   }
 }
 
-export default UsageTable;
+export default withSentryRouter(UsageTable);
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(6, auto);
