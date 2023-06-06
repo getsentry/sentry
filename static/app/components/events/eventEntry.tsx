@@ -17,6 +17,7 @@ import {Exception} from './interfaces/exception';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
+import {Replay} from './interfaces/replay';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
@@ -101,6 +102,24 @@ function EventEntryContent({
           projectSlug={projectSlug}
         />
       );
+
+    case EntryType.REPLAY:
+      const showReplay = !isShare && organization.features?.includes('session-replay');
+      const showReplayContainer = organization.features?.includes(
+        'issue-details-replay-event'
+      );
+      if (showReplay && showReplayContainer) {
+        return (
+          <Replay
+            data={entry.data}
+            organization={organization as Organization}
+            event={event}
+            isShare={isShare}
+            projectSlug={projectSlug}
+          />
+        );
+      }
+      return null;
 
     case EntryType.THREADS:
       return (

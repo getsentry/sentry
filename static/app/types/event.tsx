@@ -270,6 +270,7 @@ export enum EntryType {
   THREAD_TAGS = 'thread-tags',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
+  REPLAY = 'replay',
   RESOURCES = 'resources',
 }
 
@@ -351,6 +352,14 @@ type EntryGeneric = {
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
 };
 
+// TODO(replay): Sync with @cmanallen for this shape
+type EntryReplay = {
+  data: {
+    replayId: string;
+  };
+  type: EntryType.REPLAY;
+};
+
 type EntryResources = {
   data: any; // Data is unused here
   type: EntryType.RESOURCES;
@@ -368,6 +377,7 @@ export type Entry =
   | EntryTemplate
   | EntryCsp
   | EntryGeneric
+  | EntryReplay
   | EntryResources;
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/

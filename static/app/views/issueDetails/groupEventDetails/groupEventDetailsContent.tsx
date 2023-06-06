@@ -45,6 +45,27 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
+  if (entryType === EntryType.REPLAY) {
+    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+    if (!replayId) {
+      return null;
+    }
+
+    return (
+      <EventEntry
+        projectSlug={project.slug}
+        group={group}
+        entry={{
+          data: {
+            replayId,
+          },
+          type: EntryType.REPLAY,
+        }}
+        {...{organization, event}}
+      />
+    );
+  }
+
   if (!matchingEntry) {
     return null;
   }
@@ -126,6 +147,7 @@ function GroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
+      <GroupEventEntry entryType={EntryType.REPLAY} {...eventEntryProps} />
       <ResourcesAndMaybeSolutions
         event={event}
         projectSlug={project.slug}
