@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import Any, Dict, Type
+from typing import Any, Dict, Sequence, Type
 
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -8,9 +8,11 @@ from sentry.issues.producer import produce_occurrence_to_kafka
 
 
 def new_issue_occurrence(
+    culprit: str,
     environment: str,
-    fingerprint: str,
+    fingerprint: Sequence[str],
     issue_type: Type[GroupType],
+    level: str,
     platform: str,
     project_id: int,
     subtitle: str,
@@ -34,8 +36,8 @@ def new_issue_occurrence(
         evidence_display=[],
         type=issue_type,
         detection_time=timestamp,
-        level="info",
-        culprit="user",
+        culprit=culprit,
+        level=level,
     )
 
     event_data = {

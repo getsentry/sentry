@@ -18,8 +18,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -211,9 +210,9 @@ class ReleaseOverview extends AsyncView<Props> {
               `p75(${WebVital.FID})`,
               `p75(${WebVital.LCP})`,
               `p75(${WebVital.CLS})`,
-              `p75(${SpanOpBreakdown.SpansHttp})`,
-              `p75(${SpanOpBreakdown.SpansBrowser})`,
-              `p75(${SpanOpBreakdown.SpansResource})`,
+              `p75(${SpanOpBreakdown.SPANS_HTTP})`,
+              `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
+              `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
           }) as EventView)
         : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
@@ -226,10 +225,10 @@ class ReleaseOverview extends AsyncView<Props> {
             ...baseQuery,
             fields: [
               ...baseQuery.fields,
-              `p75(${MobileVital.AppStartCold})`,
-              `p75(${MobileVital.AppStartWarm})`,
-              `p75(${MobileVital.FramesSlow})`,
-              `p75(${MobileVital.FramesFrozen})`,
+              `p75(${MobileVital.APP_START_COLD})`,
+              `p75(${MobileVital.APP_START_WARM})`,
+              `p75(${MobileVital.FRAMES_SLOW})`,
+              `p75(${MobileVital.FRAMES_FROZEN})`,
             ],
           }) as EventView)
         : (EventView.fromSavedQuery({
@@ -437,6 +436,13 @@ class ReleaseOverview extends AsyncView<Props> {
             shouldFilterSessionsInTimeWindow: true,
           };
 
+          const defaultDateTimeSelected = !period && !start && !end;
+
+          const releaseBoundsLabel =
+            releaseBounds.type === 'clamped'
+              ? t('Clamped Release Period')
+              : t('Entire Release Period');
+
           return (
             <SessionsRequest {...sessionsRequestProps}>
               {({
@@ -468,31 +474,38 @@ class ReleaseOverview extends AsyncView<Props> {
                           )}
                           <ReleaseDetailsPageFilters>
                             <EnvironmentPageFilter />
-                            <PageTimeRangeSelector
-                              organization={organization}
-                              relative={period ?? ''}
+                            <TimeRangeSelector
+                              relative={
+                                period ??
+                                (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)
+                              }
                               start={start ?? null}
                               end={end ?? null}
                               utc={utc ?? null}
-                              onUpdate={this.handleDateChange}
-                              relativeOptions={
+                              onChange={this.handleDateChange}
+                              menuTitle={t('Filter Time Range')}
+                              triggerLabel={
+                                defaultDateTimeSelected ? releaseBoundsLabel : null
+                              }
+                              relativeOptions={({defaultOptions, arbitraryOptions}) =>
                                 releaseBounds.type !== 'ancient'
                                   ? {
                                       [RELEASE_PERIOD_KEY]: (
                                         <Fragment>
-                                          {releaseBounds.type === 'clamped'
-                                            ? t('Clamped Release Period')
-                                            : t('Entire Release Period')}{' '}
-                                          (
-                                          <DateTime
-                                            date={releaseBounds.releaseStart}
-                                          /> -{' '}
-                                          <DateTime date={releaseBounds.releaseEnd} />)
+                                          {releaseBoundsLabel}
+                                          <br />
+                                          <ReleaseBoundsDescription
+                                            primary={defaultDateTimeSelected}
+                                          >
+                                            <DateTime date={releaseBounds.releaseStart} />
+                                            –<DateTime date={releaseBounds.releaseEnd} />
+                                          </ReleaseBoundsDescription>
                                         </Fragment>
                                       ),
-                                      ...DEFAULT_RELATIVE_PERIODS,
+                                      ...defaultOptions,
+                                      ...arbitraryOptions,
                                     }
-                                  : DEFAULT_RELATIVE_PERIODS
+                                  : {...defaultOptions, ...arbitraryOptions}
                               }
                               defaultPeriod={
                                 releaseBounds.type !== 'ancient'
@@ -730,6 +743,11 @@ const ReleaseDetailsPageFilters = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
   }
+`;
+
+const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 
 export default withApi(withPageFilters(withOrganization(ReleaseOverview)));

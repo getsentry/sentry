@@ -21,7 +21,7 @@ import {
   ReplayCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -29,7 +29,7 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
 };
 
@@ -86,22 +86,22 @@ function ReplayTable({
           <Fragment key={replay.id}>
             {visibleColumns.map(column => {
               switch (column) {
-                case ReplayColumns.activity:
+                case ReplayColumn.ACTIVITY:
                   return <ActivityCell key="activity" replay={replay} />;
 
-                case ReplayColumns.browser:
+                case ReplayColumn.BROWSER:
                   return <BrowserCell key="browser" replay={replay} />;
 
-                case ReplayColumns.countErrors:
+                case ReplayColumn.COUNT_ERRORS:
                   return <ErrorCountCell key="countErrors" replay={replay} />;
 
-                case ReplayColumns.duration:
+                case ReplayColumn.DURATION:
                   return <DurationCell key="duration" replay={replay} />;
 
-                case ReplayColumns.os:
+                case ReplayColumn.OS:
                   return <OSCell key="os" replay={replay} />;
 
-                case ReplayColumns.replay:
+                case ReplayColumn.REPLAY:
                   return (
                     <ReplayCell
                       key="session"
@@ -112,7 +112,7 @@ function ReplayTable({
                     />
                   );
 
-                case ReplayColumns.slowestTransaction:
+                case ReplayColumn.SLOWEST_TRANSACTION:
                   return (
                     <TransactionCell
                       key="slowestTransaction"
@@ -133,7 +133,7 @@ function ReplayTable({
 }
 
 const StyledPanelTable = styled(PanelTable)<{
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumn[];
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns

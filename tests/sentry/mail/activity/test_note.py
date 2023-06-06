@@ -55,3 +55,24 @@ class NoteTestCase(ActivityTestCase):
 
         participants = self.email.get_participants_with_group_subscription_reason()
         assert len(participants.get_participants_by_provider(ExternalProviders.EMAIL)) == 0
+
+    def test_note_with_braces(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        email = NoteActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user_id=self.user.id,
+                type=ActivityType.NOTE,
+                data={"text": "{abc.property}", "mentions": []},
+            )
+        )
+
+        context = email.get_context()
+        assert context["text_description"] == "{abc.property}"
