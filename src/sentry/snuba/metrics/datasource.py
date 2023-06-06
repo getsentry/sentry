@@ -137,23 +137,31 @@ def get_available_derived_metrics(
 
 def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequence[MetricMeta]:
 
-    ENTITY_SHORTHANDS = {
-        "c": "metrics_counters",
-        "s": "metrics_sets",
-        "d": "metrics_distributions",
-        "g": "metrics_gauges",
+    ENTITY_TO_DATASET = {
+        "sessions": {
+            "c": "metrics_counters",
+            "s": "metrics_sets",
+            "d": "metrics_distributions",
+            "g": "metrics_gauges",
+        },
+        "transactions": {
+            "c": "generic_metrics_counters",
+            "s": "generic_metrics_sets",
+            "d": "generic_metrics_distributions",
+            "g": "generic_metrics_gauges",
+        },
     }
 
     result = []
     for mri in get_all_mris():
         parsed = parse_mri(mri)
 
-        if parsed.entity not in ENTITY_SHORTHANDS:
+        if parsed.entity not in ENTITY_TO_DATASET["sessions"].keys():
             ops = []
         elif parsed.namespace == "sessions":
-            ops = AVAILABLE_OPERATIONS[ENTITY_SHORTHANDS[parsed.entity]]
+            ops = AVAILABLE_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
         else:
-            ops = AVAILABLE_GENERIC_OPERATIONS[f"generic_{ENTITY_SHORTHANDS[parsed.entity]}"]
+            ops = AVAILABLE_GENERIC_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
 
         result.append(
             MetricMeta(

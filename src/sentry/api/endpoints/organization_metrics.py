@@ -24,28 +24,16 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 def get_use_case_id(request: Request) -> UseCaseKey:
     """
-    Get use_case from query params and validate it against UseCaseKey enum type
-    If use_case parameter is not provided, check the queried field in order to
-    determine the use_case. Default to release-health if the field is not provided.
+    Get useCase from query params and validate it against UseCaseKey enum type
     Raise a ParseError if the use_case parameter is invalid.
     """
 
-    allowed_use_cases = ["releaseHealth", "performance"]
-
-    use_case_param = request.GET.get("useCase")
-
-    if use_case_param is not None and use_case_param not in allowed_use_cases:
+    try:
+        return UseCaseKey(request.GET.get("useCase"))
+    except ValueError:
         raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {allowed_use_cases}"
+            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseKey]}"
         )
-
-    elif use_case_param is None:
-        field_param = request.GET.get("field", "")
-        return (
-            UseCaseKey.PERFORMANCE if "transactions" in field_param else UseCaseKey.RELEASE_HEALTH
-        )
-
-    return UseCaseKey(use_case_param)
 
 
 @region_silo_endpoint
@@ -165,6 +153,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query = QueryDefinition(
                     projects,
                     request.GET,
+                    allow_mri=True,
                     paginator_kwargs={"limit": limit, "offset": offset},
                 )
                 data = get_series(

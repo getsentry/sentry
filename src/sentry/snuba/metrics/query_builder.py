@@ -9,7 +9,6 @@ __all__ = (
     "translate_meta_results",
 )
 
-import re
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -59,7 +58,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     parse_expression,
 )
 from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, MRI_SCHEMA_REGEX
-from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX, PUBLIC_NAME_REGEX
+from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
     MetricConditionField,
@@ -86,49 +85,37 @@ from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
 
 
-def parse_field(field: str) -> MetricField:
+def parse_field(field: str, allow_mri: bool = False) -> MetricField:
+    mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
 
-    public_matches = PUBLIC_EXPRESSION_REGEX.match(field)
-    mri_matches = MRI_EXPRESSION_REGEX.match(field)
-
-    if (public_matches is None) and (mri_matches is None):
-        return parse_derived_field(field)
-    elif public_matches is not None:
-        return parse_public_field(field, public_matches)
-    else:
+    if mri_matches:
         return parse_mri_field(field, mri_matches)
 
-
-def parse_derived_field(field: str) -> MetricField:
-    public_name_match = re.compile(rf"^{PUBLIC_NAME_REGEX}$").match(field)
-    mri_match = MRI_SCHEMA_REGEX.match(field)
-
-    if (public_name_match is None) and (mri_match is None):
-        raise TypeError
-    elif public_name_match is not None:
-        return MetricField(None, get_mri(public_name_match[0]))
-    else:
-        return MetricField(None, mri_match[0], alias=mri_match[0])
-
-
-def parse_public_field(field: str, matches: List[str]) -> MetricField:
-    try:
-        operation = matches[1]
-        metric_name = matches[2]
-    except (IndexError):
-        operation = None
-        metric_name = field
-    return MetricField(operation, get_mri(metric_name))
+    return parse_public_field(field)
 
 
 def parse_mri_field(field: str, matches: List[str]) -> MetricField:
+
     try:
         operation = matches[1]
         mri = matches[2]
-    except (IndexError):
+    except (IndexError, TypeError):
         operation = None
         mri = field
     return MetricField(operation, mri, alias=mri)
+
+
+def parse_public_field(field: str) -> MetricField:
+
+    matches = PUBLIC_EXPRESSION_REGEX.match(field)
+
+    try:
+        operation = matches[1]
+        metric_name = matches[2]
+    except (TypeError, IndexError):
+        operation = None
+        metric_name = field
+    return MetricField(operation, get_mri(metric_name))
 
 
 def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
@@ -429,6 +416,7 @@ class QueryDefinition:
         self,
         projects,
         query_params,
+        allow_mri: bool = False,
         paginator_kwargs: Optional[Dict] = None,
     ):
         self._projects = projects
@@ -439,8 +427,10 @@ class QueryDefinition:
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
-        self.fields = [parse_field(key) for key in query_params.getlist("field", [])]
-        self.orderby = self._parse_orderby(query_params)
+        self.fields = [
+            parse_field(key, allow_mri=allow_mri) for key in query_params.getlist("field", [])
+        ]
+        self.orderby = self._parse_orderby(query_params, allow_mri)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
@@ -471,7 +461,7 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params):
+    def _parse_orderby(query_params, allow_mri: bool = False):
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -483,7 +473,7 @@ class QueryDefinition:
                 orderby = orderby[1:]
                 direction = Direction.DESC
 
-            field = parse_field(orderby)
+            field = parse_field(orderby, allow_mri=allow_mri)
             orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list
