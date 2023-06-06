@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from math import ceil
+from math import floor
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
 
 import sentry_sdk
@@ -647,12 +647,12 @@ def better_priority_aggregation_impl(
 
         date_period = end - start
 
-        if date_period.days > 0:
-            overall_event_count_seconds = 3600 * 24 * date_period.days
-            recent_event_count_seconds = ceil(overall_event_count_seconds * 0.01)
-        else:
-            overall_event_count_seconds = int(date_period.total_seconds())
-            recent_event_count_seconds = max(ceil(overall_event_count_seconds * 0.01), 5)
+        overall_event_count_seconds = (
+            3600 * 24 * date_period.days
+            if date_period.days > 0
+            else int(date_period.total_seconds())
+        )
+        recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
 
         recent_event_count = (
             f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {recent_event_count_seconds}))"
