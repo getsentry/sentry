@@ -17,7 +17,7 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
-import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
+import {invalidTypes, ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
@@ -307,16 +307,25 @@ function DropdownItem({
   customInvalidTagMessage,
 }: DropdownItemProps) {
   const isDisabled = item.value === null;
-
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
     children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
-  } else if (item.type === ItemType.INVALID_TAG) {
-    children = customInvalidTagMessage?.(item) ?? (
+  } else if (item.type && invalidTypes.includes(item.type)) {
+    const customInvalidMessage = customInvalidTagMessage?.(item);
+    children = customInvalidMessage ?? (
       <SearchInvalidTag
-        message={tct("The field [field] isn't supported here.", {
-          field: <code>{item.desc}</code>,
-        })}
+        highlightMessage={
+          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
+            ? t('For more information, please see the documentation')
+            : undefined
+        }
+        message={
+          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
+            ? t("Wildcards aren't supported here.")
+            : tct("The field [field] isn't supported here.", {
+                field: <code>{item.desc}</code>,
+              })
+        }
       />
     );
   } else if (item.type === ItemType.LINK) {
@@ -360,7 +369,7 @@ function DropdownItem({
         data-test-id="search-autocomplete-item"
         onClick={
           !isDisabled
-            ? item.type === ItemType.INVALID_TAG && !!customInvalidTagMessage
+            ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
               ? undefined
               : item.callback ?? onClick.bind(null, item.value, item)
             : undefined

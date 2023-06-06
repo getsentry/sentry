@@ -287,7 +287,11 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
     def test_get_group_tag_keys_and_top_values_generic_issue(self):
         group, env = self.generic_group_and_env
-        result = list(self.ts.get_group_tag_keys_and_top_values(group, [env.id]))
+        result = list(
+            self.ts.get_group_tag_keys_and_top_values(
+                group, [env.id], tenant_ids={"referrer": "r", "organization_id": 1234}
+            )
+        )
         tags = [r.key for r in result]
         assert set(tags) == {"foo", "biz", "environment", "sentry:user", "level", "sentry:release"}
 
@@ -309,6 +313,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 group,
                 [env.id],
                 keys=["environment", "sentry:release"],
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         )
         tags = [r.key for r in result]
@@ -360,7 +365,9 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
     def test_get_top_group_tag_values_generic(self):
         group, env = self.generic_group_and_env
-        resp = self.ts.get_top_group_tag_values(group, env.id, "foo", 1)
+        resp = self.ts.get_top_group_tag_values(
+            group, env.id, "foo", 1, tenant_ids={"referrer": "r", "organization_id": 1234}
+        )
         assert len(resp) == 1
         assert resp[0].times_seen == 1
         assert resp[0].key == "foo"
@@ -555,7 +562,12 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             == "foo"
         )
 
-        keys = {k.key: k for k in self.ts.get_group_tag_keys(group, [env.id])}
+        keys = {
+            k.key: k
+            for k in self.ts.get_group_tag_keys(
+                group, [env.id], tenant_ids={"referrer": "r", "organization_id": 1234}
+            )
+        }
         assert set(keys) == {"biz", "environment", "foo", "sentry:user", "level", "sentry:release"}
 
     def test_get_group_tag_value(self):
@@ -1278,9 +1290,13 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             [self.project.id],
             group_ids=[first_group.id, second_group.id],
             environment_ids=[self.environment.id],
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {first_group.id: 2, second_group.id: 3}
         assert self.ts.get_generic_groups_user_counts(
-            [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
+            [self.project.id],
+            group_ids=[first_group.id, second_group.id],
+            environment_ids=None,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {first_group.id: 3, second_group.id: 4}
 
     def test_get_profiling_group_list_tag_value_by_environment(self):
@@ -1310,6 +1326,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             [self.environment.id],
             "environment",
             self.environment.name,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
         assert group_seen_stats == {

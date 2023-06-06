@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = {
@@ -19,12 +19,12 @@ type Props = {
 };
 
 const VISIBLE_COLUMNS = [
-  ReplayColumns.replay,
-  ReplayColumns.os,
-  ReplayColumns.browser,
-  ReplayColumns.duration,
-  ReplayColumns.countErrors,
-  ReplayColumns.activity,
+  ReplayColumn.REPLAY,
+  ReplayColumn.OS,
+  ReplayColumn.BROWSER,
+  ReplayColumn.DURATION,
+  ReplayColumn.COUNT_ERRORS,
+  ReplayColumn.ACTIVITY,
 ];
 
 function GroupReplays({group}: Props) {
@@ -78,7 +78,7 @@ function GroupReplaysTable({
   eventView: EventView;
   organization: Organization;
   pageLinks: string | null;
-  visibleColumns: ReplayColumns[];
+  visibleColumns: ReplayColumn[];
 }) {
   const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
 

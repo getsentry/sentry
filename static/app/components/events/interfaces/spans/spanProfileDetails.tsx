@@ -341,7 +341,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
 const SpanDetails = styled('div')`
   padding: ${space(2)};
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: ${space(1)};
 `;
 

@@ -8,7 +8,6 @@ from django.http import HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,24 +17,26 @@ from sentry.integrations.github.webhook import (
     PushEventWebhook,
 )
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Integration
 from sentry.utils import json
 from sentry.utils.sdk import configure_scope
 
 from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
+from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
 def get_installation_metadata(event, host):
     if not host:
         return
-    try:
-        integration = Integration.objects.get(
-            external_id="{}:{}".format(host, event["installation"]["id"]),
-            provider="github_enterprise",
-        )
-    except Integration.DoesNotExist:
+
+    integration = integration_service.get_integration(
+        external_id="{}:{}".format(host, event["installation"]["id"]),
+        provider="github_enterprise",
+    )
+    if integration is None:
         logger.exception("Integration does not exist.")
         return
     return integration.metadata["installation"]
@@ -55,7 +56,7 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
 
-    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
     def should_ignore_commit(self, commit):
@@ -72,11 +73,14 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
 
-    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
+    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
 
-class GitHubEnterpriseWebhookBase(View):
+class GitHubEnterpriseWebhookBase(Endpoint):
+    authentication_classes = ()
+    permission_classes = ()
+
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -168,6 +172,7 @@ class GitHubEnterpriseWebhookBase(View):
             return HttpResponse(status=204)
 
 
+@region_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     _handlers = {
         "push": GitHubEnterprisePushEventWebhook,

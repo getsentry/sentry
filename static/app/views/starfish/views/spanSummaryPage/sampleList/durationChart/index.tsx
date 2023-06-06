@@ -1,8 +1,8 @@
-import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {queryDataToChartData} from 'sentry/views/starfish/utils/queryDataToChartData';
@@ -19,7 +19,6 @@ type Props = {
 };
 
 function DurationChart({groupId, transactionName, spanDescription}: Props) {
-  const theme = useTheme();
   const pageFilter = usePageFilters();
   const {isLoading, data} = useQuerySpansInTransaction({groupId});
 
@@ -35,11 +34,7 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
     module,
   });
 
-  const {p50: p50Series, p95: p95Series} = queryDataToChartData(
-    seriesData,
-    startTime,
-    endTime
-  );
+  const {p95: p95Series} = queryDataToChartData(seriesData, startTime, endTime);
 
   const {data: sampleListData, isLoading: isSamplesLoading} =
     useQueryGetSpanTransactionSamples({
@@ -63,13 +58,13 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
     <Chart
       statsPeriod="24h"
       height={140}
-      data={p50Series && p95Series ? [p50Series, p95Series] : []}
+      data={p95Series ? [p95Series] : []}
       start=""
       end=""
       loading={isLoading || isLoadingSeriesData}
       scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
       utc={false}
-      chartColors={theme.charts.getColorPalette(4).slice(3, 6)}
+      chartColors={[P95_COLOR]}
       stacked
       isLineChart
       definedAxisTicks={4}

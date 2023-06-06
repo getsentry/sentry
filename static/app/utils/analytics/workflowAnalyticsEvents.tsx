@@ -20,6 +20,7 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
+  has_exception_group: boolean;
   has_release: boolean;
   has_source_maps: boolean;
   has_trace: boolean;

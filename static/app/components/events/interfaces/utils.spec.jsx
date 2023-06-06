@@ -1,11 +1,13 @@
 import {
   getCurlCommand,
+  getCurrentThread,
   objectToSortedTupleArray,
   removeFilterMaskedEntries,
   stringifyQueryList,
 } from 'sentry/components/events/interfaces/utils';
 import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
 import {FILTER_MASK} from 'sentry/constants';
+import {EntryType} from 'sentry/types/event';
 
 describe('components/interfaces/utils', function () {
   describe('getCurlCommand()', function () {
@@ -242,6 +244,33 @@ describe('components/interfaces/utils', function () {
       expect(query).toEqual(
         'field=ops.http&field=ops.db&field=total.time&numBuckets=100'
       );
+    });
+  });
+
+  describe('getCurrentThread()', function () {
+    const event = {
+      entries: [
+        {
+          data: {
+            values: [
+              {
+                id: 13920,
+                current: true,
+                crashed: true,
+                name: 'puma 002',
+                stacktrace: null,
+                rawStacktrace: null,
+                state: 'WAITING',
+              },
+            ],
+          },
+          type: EntryType.THREADS,
+        },
+      ],
+    };
+    it('should return current thread if available', function () {
+      const thread = getCurrentThread(event);
+      expect(thread.name).toEqual('puma 002');
     });
   });
 });
