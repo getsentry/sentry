@@ -1,12 +1,17 @@
 from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
 from sentry.tasks.integrations.github import pr_comment
-from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
-from sentry.testutils import TestCase
+from sentry.tasks.integrations.github.pr_comment import (
+    PullRequestIssue,
+    get_comment_contents,
+    get_top_5_issues_by_count,
+)
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestPrToIssueQuery(TestCase):
+class GithubCommentTestCase(TestCase):
     def setUp(self):
+        super().setUp()
         self.another_integration = self.create_integration(
             organization=self.organization, external_id="1", provider="gitlab"
         )
@@ -50,6 +55,7 @@ class TestPrToIssueQuery(TestCase):
         )
         self.pr_key = 1
         self.commit_sha = 1
+        self.fingerprint = 1
 
     def add_commit_to_repo(self, repo, user, project):
         if user not in self.user_to_commit_author_map:
@@ -83,7 +89,10 @@ class TestPrToIssueQuery(TestCase):
         return pr
 
     def add_groupowner_to_commit(self, commit: Commit, project, user):
-        event = self.store_event(data={}, project_id=project.id)
+        event = self.store_event(
+            data={"fingerprint": [f"issue{self.fingerprint}"]}, project_id=project.id
+        )
+        self.fingerprint += 1
         groupowner = GroupOwner.objects.create(
             group=event.group,
             user_id=user.id,
@@ -94,6 +103,8 @@ class TestPrToIssueQuery(TestCase):
         )
         return groupowner
 
+
+class TestPrToIssueQuery(GithubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -102,7 +113,7 @@ class TestPrToIssueQuery(TestCase):
 
         results = pr_comment.pr_to_issue_query()
 
-        assert results[0] == (self.gh_repo.id, pr.key, self.organization.id, [groupowner.id])
+        assert results[0] == (self.gh_repo.id, pr.key, self.organization.id, [groupowner.group_id])
 
     def test_multiple_issues(self):
         """one pr with multiple issues"""
@@ -116,9 +127,9 @@ class TestPrToIssueQuery(TestCase):
 
         assert results[0][0:3] == (self.gh_repo.id, pr.key, self.organization.id)
         assert (
-            groupowner_1.id in results[0][3]
-            and groupowner_2.id in results[0][3]
-            and groupowner_3.id in results[0][3]
+            groupowner_1.group_id in results[0][3]
+            and groupowner_2.group_id in results[0][3]
+            and groupowner_3.group_id in results[0][3]
         )
 
     def test_multiple_prs(self):
@@ -132,8 +143,18 @@ class TestPrToIssueQuery(TestCase):
 
         results = pr_comment.pr_to_issue_query()
 
-        assert results[0] == (self.gh_repo.id, pr_1.key, self.organization.id, [groupowner_1.id])
-        assert results[1] == (self.gh_repo.id, pr_2.key, self.organization.id, [groupowner_2.id])
+        assert results[0] == (
+            self.gh_repo.id,
+            pr_1.key,
+            self.organization.id,
+            [groupowner_1.group_id],
+        )
+        assert results[1] == (
+            self.gh_repo.id,
+            pr_2.key,
+            self.organization.id,
+            [groupowner_2.group_id],
+        )
 
     def test_non_gh_repo(self):
         """Repos that aren't GH should be omitted"""
@@ -172,14 +193,88 @@ class TestPrToIssueQuery(TestCase):
 
         results = pr_comment.pr_to_issue_query()
 
-        assert results[0] == (self.gh_repo.id, pr_1.key, self.organization.id, [groupowner_1.id])
+        assert results[0] == (
+            self.gh_repo.id,
+            pr_1.key,
+            self.organization.id,
+            [groupowner_1.group_id],
+        )
         assert results[1] == (
             self.another_org_repo.id,
             pr_2.key,
             self.another_organization.id,
-            [groupowner_2.id],
+            [groupowner_2.group_id],
         )
 
+
+class TestTop5IssuesByCount(TestCase, SnubaTestCase):
+    def test_simple(self):
+        group1 = [
+            self.store_event(
+                {"fingerprint": ["group-1"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {"fingerprint": ["group-3"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = get_top_5_issues_by_count([group1, group2, group3], self.project)
+        assert [issue["group_id"] for issue in res] == [group2, group3, group1]
+
+    def test_over_5_issues(self):
+        issue_ids = [
+            self.store_event(
+                {"fingerprint": [f"group-{idx}"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            ).group.id
+            for idx in range(6)
+        ]
+        res = get_top_5_issues_by_count(issue_ids, self.project)
+        assert len(res) == 5
+
+
+class TestCommentBuilderQueries(GithubCommentTestCase):
+    def test_simple(self):
+        ev1 = self.store_event(
+            data={"message": "issue1", "fingerprint": ["group-1"]}, project_id=self.project.id
+        )
+        ev2 = self.store_event(
+            data={"message": "issue2", "fingerprint": ["group-2"]}, project_id=self.project.id
+        )
+        ev3 = self.store_event(
+            data={"message": "issue3", "fingerprint": ["group-3"]}, project_id=self.project.id
+        )
+        comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
+        assert comment_contents[0] == PullRequestIssue(
+            title="issue1",
+            subtitle="issue1",
+            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/",
+        )
+        assert comment_contents[1] == PullRequestIssue(
+            title="issue2",
+            subtitle="issue2",
+            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/",
+        )
+        assert comment_contents[2] == PullRequestIssue(
+            title="issue3",
+            subtitle="issue3",
+            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/",
+        )
+
+
+class TestFormatComment(TestCase):
     def test_format_comment(self):
         issues = [
             PullRequestIssue(
