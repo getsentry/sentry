@@ -183,7 +183,7 @@ describe('Performance Transaction Events Content', function () {
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           setError={() => {}}
           projectId="123"
@@ -223,7 +223,7 @@ describe('Performance Transaction Events Content', function () {
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}
@@ -269,7 +269,7 @@ describe('Performance Transaction Events Content', function () {
           transactionName={transactionName}
           spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}
