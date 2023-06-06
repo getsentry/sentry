@@ -78,7 +78,7 @@ function TransactionOverview(props: Props) {
         location={location}
         organization={organization}
         projects={projects}
-        tab={Tab.TransactionSummary}
+        tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
         childComponent={CardinalityLoadingWrapper}
@@ -182,7 +182,7 @@ function OverviewContentWrapper(props: ChildProps) {
       ...filterToLocationQuery(newFilter),
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
 

@@ -188,13 +188,13 @@ class OptionsManager:
             "%r cannot be changed at runtime" % key
         )
         # Enforce immutability if value is already set on disk
-        assert not not_writable_reason == NotWritableReason.OPTION_ON_DISK, (
+        assert not_writable_reason != NotWritableReason.OPTION_ON_DISK, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
         # Enforce that the option has not been changed by a different UpdateChannel
         # that we cannot overwrite.
         assert (
-            not not_writable_reason == NotWritableReason.DRIFTED
+            not_writable_reason != NotWritableReason.DRIFTED
         ), f"Option {key} has drifted. Cannot overwrite"
 
         opt = self.lookup_key(key)
