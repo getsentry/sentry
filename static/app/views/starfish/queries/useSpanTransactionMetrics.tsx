@@ -1,4 +1,5 @@
 import keyBy from 'lodash/keyBy';
+import moment from 'moment';
 
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -6,8 +7,6 @@ import type {Span} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
-
-const INTERVAL = 12;
 
 export type SpanTransactionMetrics = {
   p50: number;
@@ -36,7 +35,9 @@ export const useSpanTransactionMetrics = (
       quantile(0.5)(exclusive_time) as p95,
       sum(exclusive_time) as "sum(span.self_time)",
       sum(exclusive_time) as total_time,
-      divide(count(), multiply(${INTERVAL}, 3600)) as spans_per_second
+      divide(count(), ${
+        moment(endTime ?? undefined).unix() - moment(startTime).unix()
+      }) as spans_per_second
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group_id}'
     ${dateFilters}
