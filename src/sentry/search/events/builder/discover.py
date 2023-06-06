@@ -1566,8 +1566,6 @@ class UnresolvedQuery(QueryBuilder):
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
-    time_column = Column("time")
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1594,12 +1592,17 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             skip_tag_resolution=skip_tag_resolution,
         )
 
+        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    @property
+    def time_column(self) -> SelectType:
+        return Column("time")
 
     def resolve_query(
         self,
