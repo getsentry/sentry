@@ -6,12 +6,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
-  CONSOLE = 'console',
-  DOM = 'dom',
-  NETWORK = 'network',
-  TRACE = 'trace',
-  ISSUES = 'issues',
-  MEMORY = 'memory',
+  console = 'console',
+  dom = 'dom',
+  network = 'network',
+  trace = 'trace',
+  issues = 'issues',
+  memory = 'memory',
 }
 
 function isReplayTab(tab: string): tab is TabKey {
@@ -29,10 +29,10 @@ function useDefaultTab() {
   }, [location.query.query]);
 
   if (hasClickSearch) {
-    return TabKey.DOM;
+    return TabKey.dom;
   }
 
-  return TabKey.CONSOLE;
+  return TabKey.console;
 }
 
 function useActiveReplayTab() {
