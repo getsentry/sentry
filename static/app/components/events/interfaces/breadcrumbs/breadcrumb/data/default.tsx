@@ -4,13 +4,14 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import withProjects from 'sentry/utils/withProjects';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useProjects from 'sentry/utils/useProjects';
 
 import Summary from './summary';
 
@@ -48,50 +49,80 @@ function isEventId(maybeEventId: string): boolean {
   return /^[a-fA-F0-9]{32}$/.test(maybeEventId);
 }
 
-const FormatMessage = withProjects(function FormatMessageInner({
+type DataItem = {
+  id: string;
+  'project.name': string;
+  title: string;
+};
+
+function FormatMessage({
   searchTerm,
   event,
   message,
   breadcrumb,
-  projects,
-  loadingProjects,
   orgSlug,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  loadingProjects: boolean;
   message: string;
   orgSlug: Organization['slug'];
-  projects: Project[];
   searchTerm: string;
   event?: Event;
 }) {
-  const content = <Highlight text={searchTerm}>{message}</Highlight>;
-  if (
-    !loadingProjects &&
-    breadcrumb.category === 'sentry.transaction' &&
-    isEventId(message)
-  ) {
-    const maybeProject = projects.find(project => {
-      return event && project.id === event.projectID;
-    });
+  const {projects, fetching: loadingProjects} = useProjects();
 
+  const content = <Highlight text={searchTerm}>{message}</Highlight>;
+
+  const isSentryTransaction =
+    breadcrumb.category === 'sentry.transaction' && isEventId(message);
+
+  const maybeProject = !loadingProjects
+    ? projects.find(project => {
+        return event && project.id === event.projectID;
+      })
+    : null;
+
+  const {data: queryData} = useApiQuery<{data: DataItem[]; meta: any}>(
+    [
+      `/organizations/${orgSlug}/events/`,
+      {
+        query: {
+          query: `id:${message}`,
+          field: ['title'],
+          project: [maybeProject?.id],
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: defined(maybeProject) && isSentryTransaction,
+    }
+  );
+
+  if (isSentryTransaction) {
     if (!maybeProject) {
       return content;
     }
-
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    return <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>{content}</Link>;
-  }
+    const newContent =
+      queryData && queryData.data.length > 0 ? (
+        <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>
+          <Highlight text={searchTerm}>{queryData.data[0].title}</Highlight>
+        </Link>
+      ) : (
+        content
+      );
 
+    return newContent;
+  }
   switch (breadcrumb.messageFormat) {
     case 'sql':
       return <FormattedCode>{content}</FormattedCode>;
     default:
       return content;
   }
-});
+}
 
 const FormattedCode = styled('div')`
   padding: ${space(1)};
