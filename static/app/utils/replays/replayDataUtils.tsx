@@ -174,7 +174,10 @@ export function breadcrumbFactory(
       return (
         !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '') &&
         // Explicitly include replay breadcrumbs to ensure we have valid UI for them
-        (!crumb.category?.startsWith('replay') || crumb.category === 'replay.mutations')
+        (!crumb.category?.startsWith('replay') ||
+          crumb.category === 'replay.mutations') &&
+        (crumb.category !== 'ui.slowClickDetected' ||
+          (crumb.data as Record<string, any>)?.timeAfterClickMs >= 3000)
       );
     })
     .map(crumb => {
