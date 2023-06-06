@@ -36,9 +36,9 @@ export type SavedSearch = {
 };
 
 export enum SavedSearchVisibility {
-  Organization = 'organization',
-  Owner = 'owner',
-  OwnerPinned = 'owner_pinned',
+  ORGANIZATION = 'organization',
+  OWNER = 'owner',
+  OWNER_PINNED = 'owner_pinned',
 }
 
 export enum SavedSearchType {

@@ -10,7 +10,7 @@ export function Search(params = {}) {
     name: 'Needs Triage',
     query: 'is:unresolved is:unassigned',
     id: '2',
-    visibility: SavedSearchVisibility.Organization,
+    visibility: SavedSearchVisibility.ORGANIZATION,
     ...params,
   };
 }

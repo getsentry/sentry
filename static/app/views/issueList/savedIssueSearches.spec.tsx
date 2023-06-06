@@ -23,7 +23,7 @@ describe('SavedIssueSearches', function () {
     isGlobal: true,
     name: 'Assigned to Me',
     query: 'is:unresolved assigned:me',
-    visibility: SavedSearchVisibility.Organization,
+    visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
   const userSearch = TestStubs.Search({
@@ -31,7 +31,7 @@ describe('SavedIssueSearches', function () {
     isGlobal: false,
     name: 'Just Firefox',
     query: 'browser:firefox',
-    visibility: SavedSearchVisibility.Owner,
+    visibility: SavedSearchVisibility.OWNER,
   });
 
   const orgSearch = TestStubs.Search({
@@ -39,7 +39,7 @@ describe('SavedIssueSearches', function () {
     isGlobal: false,
     name: 'Last 4 Hours',
     query: 'age:-4h',
-    visibility: SavedSearchVisibility.Organization,
+    visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
   const pinnedSearch = TestStubs.Search({
