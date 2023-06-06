@@ -96,16 +96,16 @@ export type ProjectAlertRuleStats = {
 };
 
 export enum MailActionTargetType {
-  IssueOwners = 'IssueOwners',
-  Team = 'Team',
-  Member = 'Member',
-  ReleaseMembers = 'ReleaseMembers',
+  ISSUE_OWNERS = 'IssueOwners',
+  TEAM = 'Team',
+  MEMBER = 'Member',
+  RELEASE_MEMBERS = 'ReleaseMembers',
 }
 
 export enum AssigneeTargetType {
-  Unassigned = 'Unassigned',
-  Team = 'Team',
-  Member = 'Member',
+  UNASSIGNED = 'Unassigned',
+  TEAM = 'Team',
+  MEMBER = 'Member',
 }
 
 export type NoteType = {
@@ -119,7 +119,7 @@ export type NoteType = {
  * the alert should have.
  */
 export enum RuleActionsCategories {
-  AllDefault = 'all_default',
-  SomeDefault = 'some_default',
-  NoDefault = 'no_default',
+  ALL_DEFAULT = 'all_default',
+  SOME_DEFAULT = 'some_default',
+  NO_DEFAULT = 'no_default',
 }
