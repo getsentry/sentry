@@ -20,7 +20,7 @@ export enum LayoutKey {
    *│           >        │
    *└───────────┴────────┘
    */
-  no_video = 'no_video',
+  NO_VIDEO = 'no_video',
   /**
    * ### Video Only
    *┌────────────────────┐
@@ -33,7 +33,7 @@ export enum LayoutKey {
    *│                    │
    *└────────────────────┘
    */
-  video_only = 'video_only',
+  VIDEO_ONLY = 'video_only',
   /**
    * ### Topbar
    *┌────────────────────┐
@@ -46,7 +46,7 @@ export enum LayoutKey {
    *│                    │
    *└────────────────────┘
    */
-  topbar = 'topbar',
+  TOPBAR = 'topbar',
   /**
    * ### Sidebar Left
    * ┌───────────────────┐
@@ -59,7 +59,7 @@ export enum LayoutKey {
    * │ Tabs   >          │
    * └────────┴──────────┘
    */
-  sidebar_left = 'sidebar_left',
+  SIDEBAR_LEFT = 'sidebar_left',
 }
 
 function isLayout(val: string): val is LayoutKey {
