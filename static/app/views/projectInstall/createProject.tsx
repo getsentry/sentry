@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
@@ -105,19 +105,17 @@ function CreateProject() {
       setInFlight(true);
 
       try {
-        const projectData = await api.requestPromise(
-          team
-            ? `/teams/${slug}/${team}/projects/`
-            : `/organizations/${slug}/experimental/projects/`,
-          {
-            method: 'POST',
-            data: {
-              name: projectName,
-              platform: selectedPlatform.key,
-              default_rules: defaultRules ?? true,
-            },
-          }
-        );
+        const url = team
+          ? `/teams/${slug}/${team}/projects/`
+          : `/organizations/${slug}/experimental/projects/`;
+        const projectData = await api.requestPromise(url, {
+          method: 'POST',
+          data: {
+            name: projectName,
+            platform: selectedPlatform.key,
+            default_rules: defaultRules ?? true,
+          },
+        });
 
         let ruleId: string | undefined;
         if (shouldCreateCustomRule) {
@@ -149,6 +147,21 @@ function CreateProject() {
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
+        if (team) {
+          addSuccessMessage(
+            tct('Created project [project]', {
+              project: `${projectData.slug}`,
+            })
+          );
+        } else {
+          addSuccessMessage(
+            tct('Created [project] under new team [team]', {
+              project: `${projectData.slug}`,
+              team: `#${projectData.team_slug}`,
+            })
+          );
+        }
+
         browserHistory.push(
           normalizeUrl(
             `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
@@ -157,6 +170,11 @@ function CreateProject() {
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
+        addErrorMessage(
+          tct('Failed to create project [project]', {
+            project: `${projectName}`,
+          })
+        );
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
