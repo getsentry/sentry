@@ -189,10 +189,7 @@ export function FlamegraphSpans({
 
     selectedSpansRef.current = [span];
     canvasPoolManager.dispatch('highlight span', [span ? [span] : null, 'selected']);
-    canvasPoolManager.dispatch('set config view', [
-      new Rect(span.start, span.depth, span.duration, 1),
-      spansView,
-    ]);
+    canvasPoolManager.dispatch('zoom at span', [span, 'exact']);
   }, [canvasPoolManager, spansView, spanChart]);
 
   const onMouseDrag = useCallback(

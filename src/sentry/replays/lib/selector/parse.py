@@ -83,6 +83,8 @@ def visit_attribute(query: QueryType, attribute: Attrib) -> None:
         query.role = attribute.value
     elif attrib == "data-testid":
         query.testid = attribute.value
+    elif attrib == "data-test-id":
+        query.testid = attribute.value
     elif attrib == "title":
         query.title = attribute.value
 

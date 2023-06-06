@@ -5,7 +5,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const ListWrap = styled('ul')`
   margin: 0;

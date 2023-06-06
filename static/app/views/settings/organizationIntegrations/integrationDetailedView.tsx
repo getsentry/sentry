@@ -11,7 +11,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
-import {getAlertText} from 'sentry/utils/integrationUtil';
+import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -107,13 +107,20 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get installationStatus() {
+    // TODO: add transations
     const {configurations} = this.state;
-    if (
-      configurations.filter(i => i.organizationIntegrationStatus === 'disabled').length
-    ) {
+    const statusList = configurations.map(getIntegrationStatus);
+    // if we have conflicting statuses, we have a priority order
+    if (statusList.includes('active')) {
+      return 'Installed';
+    }
+    if (statusList.includes('disabled')) {
       return 'Disabled';
     }
-    return configurations.length ? 'Installed' : 'Not Installed';
+    if (statusList.includes('pending_deletion')) {
+      return 'Pending Deletion';
+    }
+    return 'Not Installed';
   }
 
   get integrationName() {

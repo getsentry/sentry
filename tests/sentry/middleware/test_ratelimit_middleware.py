@@ -22,10 +22,12 @@ from sentry.middleware.ratelimit import (
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
+@control_silo_test(stable=True)
 class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
 

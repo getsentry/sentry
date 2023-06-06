@@ -26,6 +26,7 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -222,10 +223,11 @@ function SidebarChartsContainer({
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
     mepSetting,
-    organization,
-    location
+    mepCardinalityContext,
+    organization
   );
 
   const axisLineConfig = {

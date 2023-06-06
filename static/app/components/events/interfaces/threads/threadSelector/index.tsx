@@ -103,11 +103,13 @@ function ThreadSelector({
               {selectedItem ? (
                 <SelectedOption
                   id={selectedItem.thread.id}
+                  name={selectedItem.thread.name}
                   details={selectedItem.threadInfo}
                 />
               ) : (
                 <SelectedOption
                   id={activeThread.id}
+                  name={activeThread.name}
                   details={filterThreadInfo(event, activeThread, exception)}
                 />
               )}

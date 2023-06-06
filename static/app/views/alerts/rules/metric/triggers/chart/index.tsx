@@ -32,6 +32,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -207,8 +208,27 @@ class TriggersChart extends PureComponent<Props, State> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, environment, projects, query} = this.props;
+    const {
+      api,
+      organization,
+      location,
+      newAlertOrQuery,
+      environment,
+      projects,
+      query,
+      dataset,
+    } = this.props;
     const statsPeriod = this.getStatsPeriod();
+
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery,
+    });
+
+    const queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -216,6 +236,7 @@ class TriggersChart extends PureComponent<Props, State> {
         query,
         statsPeriod,
         environment: environment ? [environment] : [],
+        dataset: queryDataset,
       });
       this.setState({totalCount});
     } catch (e) {

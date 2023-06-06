@@ -38,7 +38,7 @@ class RoleSerializer(Serializer):
 
         return {
             "id": str(obj.id),
-            "name": obj.name if not is_retired_role else f"{obj.name} (Deprecated)",
+            "name": obj.name,
             "desc": obj.desc,
             "scopes": obj.scopes,
             "allowed": obj in allowed_roles,  # backward compatibility

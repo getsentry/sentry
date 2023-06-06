@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from sentry import features
+from sentry.api.utils import generate_organization_url
+
 __all__ = ["IntegrationPipeline"]
 
 from django.db import IntegrityError
@@ -20,7 +23,7 @@ def ensure_integration(key, data):
     defaults = {
         "metadata": data.get("metadata", {}),
         "name": data.get("name", data["external_id"]),
-        "status": ObjectStatus.VISIBLE,
+        "status": ObjectStatus.ACTIVE,
     }
     integration, created = Integration.objects.get_or_create(
         provider=key, external_id=data["external_id"], defaults=defaults
@@ -79,7 +82,7 @@ class IntegrationPipeline(Pipeline):
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, id=data["reinstall_id"]
             )
-            self.integration.update(external_id=data["external_id"], status=ObjectStatus.VISIBLE)
+            self.integration.update(external_id=data["external_id"], status=ObjectStatus.ACTIVE)
             self.integration.get_installation(self.organization.id).reinstall()
         elif "expect_exists" in data:
             self.integration = Integration.objects.get(
@@ -175,5 +178,19 @@ class IntegrationPipeline(Pipeline):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        context = {"payload": {"success": success, "data": data}}
+        document_origin = "document.origin"
+        if features.has("organizations:customer-domains", self.organization):
+            document_origin = f'"{generate_organization_url(self.organization.slug)}"'
+        context = {
+            "payload": {"success": success, "data": data},
+            "document_origin": document_origin,
+        }
+        self.get_logger().info(
+            "dialog_response",
+            extra={
+                "document_origin": document_origin,
+                "success": success,
+                "organization_id": self.organization.id,
+            },
+        )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)

@@ -22,6 +22,16 @@ from .sessions import (  # NOQA
     SessionsV2QueryBuilder,
     TimeseriesSessionsV2QueryBuilder,
 )
+from .spans_indexed import (  # NOQA
+    SpansIndexedQueryBuilder,
+    TimeseriesSpanIndexedQueryBuilder,
+    TopEventsSpanIndexedQueryBuilder,
+)
+from .spans_metrics import (  # NOQA
+    SpansMetricsQueryBuilder,
+    TimeseriesSpansMetricsQueryBuilder,
+    TopSpansMetricsQueryBuilder,
+)
 
 __all__ = [
     "HistogramQueryBuilder",
@@ -34,11 +44,17 @@ __all__ = [
     "HistogramMetricQueryBuilder",
     "MetricsQueryBuilder",
     "TimeseriesMetricQueryBuilder",
+    "SpansMetricsQueryBuilder",
     "ProfilesQueryBuilder",
     "ProfilesTimeseriesQueryBuilder",
     "ProfileFunctionsQueryBuilder",
     "ProfileFunctionsTimeseriesQueryBuilder",
     "SessionsQueryBuilder",
     "SessionsV2QueryBuilder",
+    "SpansIndexedQueryBuilder",
+    "TimeseriesSpanIndexedQueryBuilder",
+    "TopEventsSpanIndexedQueryBuilder",
     "TimeseriesSessionsV2QueryBuilder",
+    "TimeseriesSpansMetricsQueryBuilder",
+    "TopSpansMetricsQueryBuilder",
 ]

@@ -15,7 +15,7 @@ export interface initializeDataSettings {
   project?: any; // TODO(k-fish): Fix this project type.
   projects?: Project[];
   query?: {};
-  selectedProject?: number | string;
+  selectedProject?: any;
 }
 
 export function initializeData(settings?: initializeDataSettings) {

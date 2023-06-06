@@ -153,8 +153,8 @@ class FeatureManager(RegisteredFeatureManager):
         """
         Register a feature.
 
-        The passed class is a Feature container object, this object can be used
-        to encapsulate the context associated to a feature.
+        The passed class is a Feature container object, which can be used
+        to encapsulate the context associated with a feature.
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """

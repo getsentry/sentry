@@ -1,24 +1,33 @@
 from datetime import timedelta
 
 from django.db.models import F
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthProvider,
     InviteStatus,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
+    OrganizationMemberMapping,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.region import override_regions
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.types.region import Region, RegionCategory
 
 
-@region_silo_test
-class AcceptInviteTest(TestCase):
+@control_silo_test(stable=True)
+class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
@@ -132,6 +141,71 @@ class AcceptInviteTest(TestCase):
 
             self._assert_pending_invite_details_in_session(om)
 
+    def test_multi_region_organizationmember_id(self):
+        with override_regions(
+            [
+                Region("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
+                Region(
+                    OrganizationMapping.objects.get(
+                        organization_id=self.organization.id
+                    ).region_name,
+                    2,
+                    "http://moo",
+                    RegionCategory.MULTI_TENANT,
+                ),
+            ]
+        ):
+            self.create_organization_mapping(
+                organization_id=101010,
+                slug="abcslug",
+                name="The Thing",
+                idempotency_key="",
+                region_name="some-region",
+            )
+            self._require_2fa_for_organization()
+            assert not self.user.has_2fa()
+
+            self.login_as(self.user)
+
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.create(
+                    email="newuser@example.com", token="abc", organization_id=self.organization.id
+                )
+            OrganizationMemberMapping.objects.create(
+                organization_id=101010, organizationmember_id=om.id
+            )
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id, organizationmember_id=om.id
+            )
+
+            for path in self._get_paths([om.id, om.token]):
+                resp = self.client.get(path)
+                assert resp.status_code == 200
+                assert resp.data["needs2fa"]
+
+                self._assert_pending_invite_details_in_session(om)
+                assert self.client.session["invite_organization_id"] == self.organization.id
+
+    def test_multi_region_organizationmember_id__non_monolith(self):
+        self._require_2fa_for_organization()
+        assert not self.user.has_2fa()
+
+        self.login_as(self.user)
+
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com", token="abc", organization_id=self.organization.id
+            )
+        OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id, organizationmember_id=om.id
+        )
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
+            resp = self.client.get(
+                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            )
+        assert resp.status_code == 400
+
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()
         self._enroll_user_in_2fa(self.user)
@@ -179,7 +253,8 @@ class AcceptInviteTest(TestCase):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user == user
 
@@ -198,15 +273,17 @@ class AcceptInviteTest(TestCase):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        OrganizationMember.objects.filter(id=om.id).update(
-            token_expires_at=om.token_expires_at - timedelta(days=31)
-        )
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(id=om.id).update(
+                token_expires_at=om.token_expires_at - timedelta(days=31)
+            )
 
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.is_pending, "should not have been accepted"
             assert om.token, "should not have been accepted"
 
@@ -224,7 +301,8 @@ class AcceptInviteTest(TestCase):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(id=om.id)
         assert not om.invite_approved
         assert om.is_pending
         assert om.token
@@ -246,7 +324,8 @@ class AcceptInviteTest(TestCase):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user == user
 
@@ -256,10 +335,14 @@ class AcceptInviteTest(TestCase):
                 token="abcd",
                 organization=self.organization,
             )
-            path = self._get_path(url, [om2.id, om2.token])
-            resp = self.client.post(path)
-            assert resp.status_code == 400
-            assert not OrganizationMember.objects.filter(id=om2.id).exists()
+            self.assert_org_member_mapping(org_member=om2)
+            with outbox_runner():
+                path = self._get_path(url, [om2.id, om2.token])
+                resp = self.client.post(path)
+                assert resp.status_code == 400
+            with exempt_from_silo_limits():
+                assert not OrganizationMember.objects.filter(id=om2.id).exists()
+            self.assert_org_member_mapping_not_exists(org_member=om2)
 
     def test_can_accept_when_user_has_2fa(self):
         urls = self._get_urls()
@@ -284,7 +367,8 @@ class AcceptInviteTest(TestCase):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-            om = OrganizationMember.objects.get(id=om.id)
+            with exempt_from_silo_limits():
+                om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user == user
 

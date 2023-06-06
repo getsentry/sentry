@@ -2,10 +2,12 @@ from collections import deque
 
 from sentry.models import Authenticator
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class RpcModelTest(TestCase):
     def test_schema_generation(self):
         for api_type in self._get_rpc_model_subclasses():

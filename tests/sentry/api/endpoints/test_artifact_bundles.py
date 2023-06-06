@@ -110,6 +110,38 @@ class ArtifactBundlesEndpointTest(APITestCase):
             },
         ]
 
+        # We test the search with the upper case release.
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?query=V2.0")
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle_3.bundle_id),
+                "date": "2023-03-15T02:00:00Z",
+                "fileCount": 2,
+                "release": "v2.0",
+                "dist": None,
+            },
+        ]
+
+        # We test the search with the upper case dist.
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?query=android")
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle_2.bundle_id),
+                "date": "2023-03-15T01:00:00Z",
+                "fileCount": 2,
+                "release": "v1.0",
+                "dist": "android",
+            },
+        ]
+
     def test_get_artifact_bundles_with_no_bundles(self):
         project = self.create_project(name="foo")
 

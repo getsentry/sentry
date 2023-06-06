@@ -20,8 +20,11 @@ type Props = {
 export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group);
+  const displayAiSuggestedSolution =
+    organization.aiSuggestedSolution &&
+    organization.features.includes('open-ai-suggestion');
 
-  if (!config.resources && !organization.features.includes('open-ai-suggestion')) {
+  if (!config.resources && !displayAiSuggestedSolution) {
     return null;
   }
 
@@ -35,7 +38,9 @@ export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
         {config.resources && (
           <Resources eventPlatform={event.platform} configResources={config.resources} />
         )}
-        <AiSuggestedSolution event={event} projectSlug={projectSlug} />
+        {displayAiSuggestedSolution && (
+          <AiSuggestedSolution event={event} projectSlug={projectSlug} />
+        )}
       </Content>
     </Wrapper>
   );

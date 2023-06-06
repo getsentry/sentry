@@ -12,7 +12,7 @@ from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
 ERR_MESSAGES = {
-    OrganizationStatus.VISIBLE: _("Deletion already canceled."),
+    OrganizationStatus.ACTIVE: _("Deletion already canceled."),
     OrganizationStatus.DELETION_IN_PROGRESS: _("Deletion cannot be canceled, already in progress"),
 }
 
@@ -42,7 +42,7 @@ class RestoreOrganizationView(OrganizationView):
             self.active_organization = None
 
     def get(self, request: Request, organization) -> Response:
-        if organization.status == OrganizationStatus.VISIBLE:
+        if organization.status == OrganizationStatus.ACTIVE:
             return self.redirect(Organization.get_url(organization.slug))
 
         context = {
@@ -67,7 +67,7 @@ class RestoreOrganizationView(OrganizationView):
 
         updated = Organization.objects.filter(
             id=organization.id, status__in=deletion_statuses
-        ).update(status=OrganizationStatus.VISIBLE)
+        ).update(status=OrganizationStatus.ACTIVE)
         if updated:
             client.put(
                 f"/organizations/{organization.slug}/",

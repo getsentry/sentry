@@ -23,6 +23,7 @@ class GroupInboxTestCase(TestCase):
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
         assert not inbox_in.called
+
         add_group_to_inbox(self.group, GroupInboxReason.REGRESSION)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value

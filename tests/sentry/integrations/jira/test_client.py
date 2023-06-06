@@ -6,6 +6,7 @@ from responses.matchers import query_string_matcher
 from sentry.integrations.jira.client import JiraCloudClient
 from sentry.models import Integration
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -16,6 +17,7 @@ class StubJiraCloud(JiraCloudClient):
         return r
 
 
+@control_silo_test(stable=True)
 class JiraClientTest(TestCase):
     @mock.patch("sentry.integrations.jira.integration.JiraCloudClient", new=StubJiraCloud)
     def setUp(self):

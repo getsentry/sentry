@@ -8,15 +8,15 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
 
 enum AnrRootCauseAllowlist {
-  PerformanceFileIOMainThreadGroupType = 1008,
-  PerformanceDBMainThreadGroupType = 1013,
+  PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
+  PERFORMANCE_DB_MAIN_THREAD_GROUP_TYPE = 1013,
 }
 
 interface Props {

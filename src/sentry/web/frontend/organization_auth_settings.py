@@ -12,6 +12,7 @@ from rest_framework.request import Request
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider
@@ -85,11 +86,13 @@ class OrganizationAuthSettingsView(OrganizationView):
             data=auth_provider.get_audit_log_data(),
         )
 
-        OrganizationMember.objects.filter(organization=organization).update(
-            flags=F("flags")
-            .bitand(~OrganizationMember.flags["sso:linked"])
-            .bitand(~OrganizationMember.flags["sso:invalid"])
-        )
+        # This is safe -- we're not syncing flags to the org member mapping table.
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(organization=organization).update(
+                flags=F("flags")
+                .bitand(~OrganizationMember.flags["sso:linked"])
+                .bitand(~OrganizationMember.flags["sso:invalid"])
+            )
 
         user_ids = OrganizationMember.objects.filter(organization=organization).values("user")
         User.objects.filter(id__in=user_ids).update(is_managed=False)

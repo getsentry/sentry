@@ -21,6 +21,7 @@ from django.utils.encoding import force_text
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -102,6 +103,7 @@ from sentry.models.notificationaction import (
 from sentry.models.releasefile import update_artifact_index
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
@@ -263,27 +265,48 @@ class Factories:
             name = petname.Generate(2, " ", letters=10).title()
 
         org = Organization.objects.create(name=name, **kwargs)
+
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
+
+        region_outbox = Organization.outbox_for_update(org_id=org.id)
+        region_outbox.drain_shard()
         return org
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_org_mapping(org, **kwds):
-        kwds.setdefault("organization_id", org.id)
-        kwds.setdefault("slug", org.slug)
-        kwds.setdefault("name", org.name)
-        kwds.setdefault("idempotency_key", uuid4().hex)
-        kwds.setdefault("region_name", "test-region")
+    def create_org_mapping(org=None, **kwds):
+        if org:
+            kwds.setdefault("organization_id", org.id)
+            kwds.setdefault("slug", org.slug)
+            kwds.setdefault("name", org.name)
+            kwds.setdefault("idempotency_key", uuid4().hex)
+            kwds.setdefault("region_name", "na")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()
+    @in_test_psql_role_override("postgres")
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
 
+        # user_id will have precedence over user
+        user = kwargs.pop("user", None)
+        user_id = kwargs.pop("user_id", None)
+        if not user_id and user:
+            user_id = user.id
+        kwargs["user_id"] = user_id
+
+        # inviter_id will have precedence over inviter
+        inviter = kwargs.pop("inviter", None)
+        inviter_id = kwargs.pop("inviter_id", None)
+        if not inviter_id and inviter:
+            inviter_id = inviter.id
+        kwargs["inviter_id"] = inviter_id
+
         om = OrganizationMember.objects.create(**kwargs)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if team_roles:
             for team, role in team_roles:
@@ -297,8 +320,10 @@ class Factories:
     @exempt_from_silo_limits()
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
-            member, _ = OrganizationMember.objects.get_or_create(
-                user=user, organization=team.organization, defaults={"role": "member"}
+            member, created = OrganizationMember.objects.get_or_create(
+                user_id=user.id if user else None,
+                organization=team.organization,
+                defaults={"role": "member"},
             )
 
         return OrganizationMemberTeam.objects.create(
@@ -919,10 +944,11 @@ class Factories:
 
         install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
         install.save()
-
+        rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
         if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
+
             token_exchange.GrantExchanger.run(
-                install=install,
+                install=rpc_install,
                 code=install.api_grant.code,
                 client_id=install.sentry_app.application.client_id,
                 user=install.sentry_app.proxy_user,
@@ -1301,8 +1327,8 @@ class Factories:
             type,
             target_type,
             target_identifier,
-            integration,
-            sentry_app,
+            integration.id if integration else None,
+            sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
         )
 

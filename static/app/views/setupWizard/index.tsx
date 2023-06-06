@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -18,6 +18,8 @@ type Props = {
 const platformDocsMapping = {
   'javascript-nextjs':
     'https://docs.sentry.io/platforms/javascript/guides/nextjs/#verify',
+  'javascript-sveltekit':
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/#verify',
   'react-native': 'https://docs.sentry.io/platforms/react-native/#verify',
   cordova: 'https://docs.sentry.io/platforms/javascript/guides/cordova/#verify',
   'javascript-electron':

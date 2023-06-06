@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 # File filtering is taken care of in pre-commit.
-line-length=100
-target-version=['py38']
+line-length = 100
+target-version = ['py38']
 
 [tool.isort]
 profile = "black"

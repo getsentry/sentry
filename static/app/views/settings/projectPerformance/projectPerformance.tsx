@@ -249,6 +249,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
         step: 0.01,
         defaultValue: 0,
       },
+      {
+        name: 'consecutive_http_spans_detection_enabled',
+        type: 'boolean',
+        label: t('Consecutive HTTP Spans Detection Enabled'),
+        defaultValue: true,
+      },
     ];
   }
 
@@ -313,7 +319,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={requiredScopes} />
+        <PermissionAlert project={project} />
+
         <Form
           saveOnBlur
           allowUndo
@@ -332,7 +339,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             this.setState({threshold: resp});
           }}
         >
-          <Access access={requiredScopes}>
+          <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
                 title={t('General')}
@@ -373,7 +380,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             apiMethod="PUT"
             apiEndpoint={projectEndpoint}
           >
-            <Access access={requiredScopes}>
+            <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
                   title={t('Retention Priorities')}
@@ -410,7 +417,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - All')}
@@ -427,7 +434,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - Detector Settings')}

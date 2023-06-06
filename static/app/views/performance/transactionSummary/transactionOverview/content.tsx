@@ -31,6 +31,10 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {
+  MetricsEnhancedPerformanceDataContext,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -63,6 +67,7 @@ import {
 } from '../utils';
 
 import TransactionSummaryCharts from './charts';
+import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
@@ -100,6 +105,8 @@ function SummaryContent({
   unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
+  const mepDataContext = useMEPDataContext();
+
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -166,7 +173,7 @@ function SummaryContent({
     });
     const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
 
-    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
       const fields = [
         // Remove the extra field columns
         ...sortedEventView.fields.slice(0, transactionsListTitles.length),
@@ -180,9 +187,13 @@ function SummaryContent({
     return sortedEventView;
   }
 
-  function generateActionBarItems(_org: Organization, _location: Location) {
+  function generateActionBarItems(
+    _org: Organization,
+    _location: Location,
+    _mepDataContext: MetricsEnhancedPerformanceDataContext
+  ) {
     let items: ActionBarItem[] | undefined = undefined;
-    if (!canUseTransactionMetricsData(_org, _location)) {
+    if (!canUseTransactionMetricsData(_org, _mepDataContext)) {
       items = [
         {
           key: 'alert',
@@ -193,7 +204,11 @@ function SummaryContent({
                   'Based on your search criteria and sample rate, the events available may be limited.'
                 )}
               >
-                <StyledIconWarning size="sm" color="warningText" />
+                <StyledIconWarning
+                  data-test-id="search-metrics-fallback-warning"
+                  size="sm"
+                  color="warningText"
+                />
               </Tooltip>
             ),
             menuItem: {
@@ -279,7 +294,7 @@ function SummaryContent({
   // update header titles of transactions list
 
   const operationDurationTableTitle =
-    spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+    spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE
       ? t('operation duration')
       : `${spanOperationBreakdownFilter} duration`;
 
@@ -290,14 +305,14 @@ function SummaryContent({
   // field renderer to be used to generate the relative ops breakdown
   let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
 
-  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.NONE) {
     durationField = filterToField(spanOperationBreakdownFilter)!;
   }
 
   // add ops breakdown duration column as the 3rd column
   fields.splice(2, 0, {field: durationField});
 
-  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
     fields.push(
       ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
         return {field};
@@ -340,45 +355,53 @@ function SummaryContent({
             fields={eventView.fields}
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
-            actionBarItems={generateActionBarItems(organization, location)}
+            actionBarItems={generateActionBarItems(
+              organization,
+              location,
+              mepDataContext
+            )}
           />
         </FilterActions>
-        <TransactionSummaryCharts
-          organization={organization}
-          location={location}
-          eventView={eventView}
-          totalValue={totalCount}
-          currentFilter={spanOperationBreakdownFilter}
-          withoutZerofill={hasPerformanceChartInterpolation}
-        />
-        <TransactionsList
-          location={location}
-          organization={organization}
-          eventView={transactionsListEventView}
-          {...openAllEventsProps}
-          showTransactions={
-            decodeScalar(
-              location.query.showTransactions,
-              TransactionFilterOptions.SLOW
-            ) as TransactionFilterOptions
-          }
-          breakdown={decodeFilterFromLocation(location)}
-          titles={transactionsListTitles}
-          handleDropdownChange={handleTransactionsListSortChange}
-          generateLink={{
-            id: generateTransactionLink(transactionName),
-            trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-            replayId: generateReplayLink(routes),
-            'profile.id': generateProfileLink(),
-          }}
-          handleCellAction={handleCellAction}
-          {...getTransactionsListSort(location, {
-            p95: totalValues?.['p95()'] ?? 0,
-            spanOperationBreakdownFilter,
-          })}
-          forceLoading={isLoading}
-          referrer="performance.transactions_summary"
-        />
+        <PerformanceAtScaleContextProvider>
+          <TransactionSummaryCharts
+            organization={organization}
+            location={location}
+            eventView={eventView}
+            totalValue={totalCount}
+            currentFilter={spanOperationBreakdownFilter}
+            withoutZerofill={hasPerformanceChartInterpolation}
+            project={project}
+          />
+          <TransactionsList
+            location={location}
+            organization={organization}
+            eventView={transactionsListEventView}
+            {...openAllEventsProps}
+            showTransactions={
+              decodeScalar(
+                location.query.showTransactions,
+                TransactionFilterOptions.SLOW
+              ) as TransactionFilterOptions
+            }
+            breakdown={decodeFilterFromLocation(location)}
+            titles={transactionsListTitles}
+            handleDropdownChange={handleTransactionsListSortChange}
+            generateLink={{
+              id: generateTransactionLink(transactionName),
+              trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+              replayId: generateReplayLink(routes),
+              'profile.id': generateProfileLink(),
+            }}
+            handleCellAction={handleCellAction}
+            {...getTransactionsListSort(location, {
+              p95: totalValues?.['p95()'] ?? 0,
+              spanOperationBreakdownFilter,
+            })}
+            forceLoading={isLoading}
+            referrer="performance.transactions_summary"
+          />
+        </PerformanceAtScaleContextProvider>
+
         <SuspectSpans
           location={location}
           organization={organization}
@@ -467,7 +490,7 @@ function getFilterOptions({
   p95: number;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 }): DropdownOption[] {
-  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
     return [
       {
         sort: {kind: 'asc', field: 'transaction.duration'},

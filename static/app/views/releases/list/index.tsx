@@ -94,8 +94,8 @@ class ReleasesList extends AsyncView<Props, State> {
       adoptionStages: 1,
       status:
         activeStatus === ReleasesStatusOption.ARCHIVED
-          ? ReleaseStatus.Archived
-          : ReleaseStatus.Active,
+          ? ReleaseStatus.ARCHIVED
+          : ReleaseStatus.ACTIVE,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
@@ -599,7 +599,7 @@ class ReleasesList extends AsyncView<Props, State> {
                 !!releases?.length && <ReleaseArchivedNotice multi />}
 
               {error
-                ? super.renderError(new Error('Unable to load all required endpoints'))
+                ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
             </Layout.Main>
           </Layout.Body>

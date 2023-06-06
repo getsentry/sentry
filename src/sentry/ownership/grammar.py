@@ -23,7 +23,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -163,10 +163,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         if not isinstance(data, Mapping):
             return False
 
-        try:
-            url = data["request"]["url"]
-        except KeyError:
-            return False
+        url = get_path(data, "request", "url")
         return url and bool(glob_match(url, self.pattern, ignorecase=True))
 
     def test_frames(

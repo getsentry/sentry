@@ -5,9 +5,11 @@ from django.urls import reverse
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test
 class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 

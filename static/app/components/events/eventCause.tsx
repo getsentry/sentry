@@ -110,7 +110,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
   );
 }
 
-const StyledPanel = styled(Panel)`
+export const StyledPanel = styled(Panel)`
   margin: 0;
 `;
 

@@ -5,12 +5,14 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.models import SentryApp
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def get_sentry_app_avatars(sentry_app: SentryApp):
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
+@control_silo_test(stable=True)
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
@@ -47,6 +49,7 @@ class SentryAppComponentsTest(APITestCase):
         }
 
 
+@control_silo_test(stable=True)
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 
@@ -121,23 +124,6 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "avatars": get_sentry_app_avatars(self.sentry_app2),
             },
         }
-
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
-    def test_project_not_owned_by_org(self, run):
-        org = self.create_organization(owner=self.create_user())
-        project = self.create_project(organization=org)
-
-        response = self.get_response(self.org.slug, qs_params={"projectId": project.id})
-
-        assert response.status_code == 404
-        assert response.data == []
-
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
-    def test_project_missing(self, run):
-        response = self.get_response(self.org.slug)
-
-        assert response.status_code == 400
-        assert response.data[0] == "Required parameter 'projectId' is missing"
 
     @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
     def test_filter_by_type(self, run):

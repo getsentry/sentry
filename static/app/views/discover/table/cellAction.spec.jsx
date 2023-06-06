@@ -140,14 +140,6 @@ describe('Discover -> CellAction', function () {
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('go to summary button goes to transaction summary page', async function () {
-      renderComponent(view, handleCellAction);
-      await openMenu();
-      await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-      expect(handleCellAction).toHaveBeenCalledWith('transaction', 'best-transaction');
-    });
-
     it('go to release button goes to release health page', async function () {
       renderComponent(view, handleCellAction, 3);
       await openMenu();
@@ -464,7 +456,6 @@ describe('updateQuery()', function () {
 
   it('does not error for special actions', function () {
     const results = new MutableSearch([]);
-    updateQuery(results, Actions.TRANSACTION, columnA, '');
     updateQuery(results, Actions.RELEASE, columnA, '');
     updateQuery(results, Actions.DRILLDOWN, columnA, '');
   });

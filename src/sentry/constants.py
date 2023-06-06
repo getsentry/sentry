@@ -45,6 +45,7 @@ SORT_OPTIONS = {
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
+    "better_priority": _("Better Priority"),
 }
 
 SEARCH_SORT_OPTIONS = {
@@ -143,6 +144,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "legal",
         "login",
         "logout",
+        "lp",
         "mail",
         "manage",
         "my",
@@ -629,6 +631,7 @@ SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
+AI_SUGGESTED_SOLUTION = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

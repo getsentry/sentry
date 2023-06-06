@@ -175,7 +175,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 request=request,
                 organization=organization,
                 target_object=member.id,
-                target_user=member.user,
+                target_user_id=member.user_id,
                 event=audit_log.get_event_id("MEMBER_REMOVE"),
                 data=audit_data,
             )
@@ -569,13 +569,13 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     member = member_query.first()
                     if member.token_expired:
                         member.regenerate_token()
-
+                        member.save()
                 else:
                     member = OrganizationMember(
                         organization=organization,
                         email=result["email"],
                         role=result["role"],
-                        inviter=request.user,
+                        inviter_id=request.user.id,
                     )
 
                     # TODO: are invite tokens needed for SAML orgs?

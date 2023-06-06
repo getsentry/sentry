@@ -6,6 +6,7 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
+  PENDING_DELETION,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
@@ -289,7 +290,8 @@ export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
   | typeof PENDING
-  | typeof DISABLED_STATUS;
+  | typeof DISABLED_STATUS
+  | typeof PENDING_DELETION;
 
 type IntegrationDialog = {
   actionText: string;

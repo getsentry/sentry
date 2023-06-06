@@ -54,7 +54,7 @@ class ProjectPluginsContainer extends Component<Props> {
 
   render() {
     const {loading, error, plugins} = this.props.plugins || {};
-    const {organization} = this.props;
+    const {organization, project} = this.props;
 
     const title = t('Legacy Integrations');
 
@@ -62,7 +62,7 @@ class ProjectPluginsContainer extends Component<Props> {
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <ProjectPlugins
           {...this.props}

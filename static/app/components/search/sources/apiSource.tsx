@@ -316,7 +316,7 @@ class ApiSource extends Component<Props, State> {
     // Otherwise it'd be constant :spinning_loading_wheel:
     if (
       (nextProps.query.length <= 2 &&
-        nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)) ||
+        nextProps.query.substring(0, 2) !== this.props.query.substring(0, 2)) ||
       // Also trigger a search if next query value satisfies an eventid/shortid query
       shouldSearchShortIds(nextProps.query) ||
       shouldSearchEventIds(nextProps.query)

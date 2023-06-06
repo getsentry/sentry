@@ -86,7 +86,7 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
     ExternalActor.objects.create(
         actor_id=team.actor_id,
         organization=team.organization,
-        integration=integration,
+        integration_id=integration.id,
         provider=ExternalProviders.SLACK.value,
         external_name=channel_name,
         external_id=channel_id,

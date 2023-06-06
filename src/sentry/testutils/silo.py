@@ -66,7 +66,10 @@ class SiloModeTest:
         def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
             def replacement_test_method(*args: Any, **kwargs: Any) -> None:
                 with override_settings(
-                    SILO_MODE=mode, SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class)
+                    SILO_MODE=mode,
+                    SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class),
+                    SENTRY_SUBNET_SECRET="secret",
+                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
                 ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:
@@ -127,9 +130,7 @@ class SiloModeTest:
             new_test_method.__setattr__("__signature__", new_sig)
         return cast(
             TestMethod,
-            pytest.mark.parametrize("silo_mode", [mode for mode in self.silo_modes])(
-                new_test_method
-            ),
+            pytest.mark.parametrize("silo_mode", sorted(self.silo_modes, key=str))(new_test_method),
         )
 
     def _call(self, decorated_obj: Any, stable: bool) -> Any:

@@ -15,7 +15,10 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
-        if not features.has("organizations:incidents", project.organization, actor=request.user):
+        # Allow orgs that have downgraded plans to delete metric alerts
+        if request.method != "DELETE" and not features.has(
+            "organizations:incidents", project.organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         if not request.access.has_project_access(project):

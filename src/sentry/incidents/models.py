@@ -21,7 +21,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy

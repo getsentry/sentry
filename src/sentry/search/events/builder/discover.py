@@ -61,6 +61,8 @@ from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfi
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
+from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -92,6 +94,8 @@ class BaseQueryBuilder:
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
+
+    spans_metrics_builder = False
 
     def _dataclass_params(
         self, snuba_params: Optional[SnubaParams], params: ParamsType
@@ -338,7 +342,9 @@ class QueryBuilder(BaseQueryBuilder):
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.use_metrics_layer:
+            if self.spans_metrics_builder:
+                self.config = SpansMetricsDatasetConfig(self)
+            elif self.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)
@@ -346,6 +352,8 @@ class QueryBuilder(BaseQueryBuilder):
             self.config = ProfilesDatasetConfig(self)
         elif self.dataset == Dataset.Functions:
             self.config = ProfileFunctionsDatasetConfig(self)
+        elif self.dataset == Dataset.SpansIndexed:
+            self.config = SpansIndexedDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -1323,7 +1331,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_context:
+            if is_tag or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
@@ -1468,6 +1476,8 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if not referrer:
+            InvalidSearchQuery("Query missing referrer.")
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
     def process_results(self, results: Any) -> EventsResponse:
@@ -1556,8 +1566,6 @@ class UnresolvedQuery(QueryBuilder):
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
-    time_column = Column("time")
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1584,12 +1592,17 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             skip_tag_resolution=skip_tag_resolution,
         )
 
+        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    @property
+    def time_column(self) -> SelectType:
+        return Column("time")
 
     def resolve_query(
         self,

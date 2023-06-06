@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,6 +11,11 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {
+  getIsMetricsDataFromResults,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPSettingProvider,
   useMEPSettingContext,
@@ -72,13 +78,23 @@ function TransactionOverview(props: Props) {
         location={location}
         organization={organization}
         projects={projects}
-        tab={Tab.TransactionSummary}
+        tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={OverviewContentWrapper}
+        childComponent={CardinalityLoadingWrapper}
       />
     </MEPSettingProvider>
   );
+}
+
+function CardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OverviewContentWrapper {...props} />;
 }
 
 function OverviewContentWrapper(props: ChildProps) {
@@ -92,11 +108,13 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
 
+  const mepContext = useMEPDataContext();
   const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
     mepSetting,
-    organization,
-    location
+    mepCardinalityContext,
+    organization
   );
 
   const queryData = useDiscoverQuery({
@@ -107,6 +125,9 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
     queryExtras,
+    options: {
+      refetchOnWindowFocus: false,
+    },
   });
 
   // Count has to be total indexed events count because it's only used
@@ -130,6 +151,11 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
   });
+
+  useEffect(() => {
+    const isMetricsData = getIsMetricsDataFromResults(queryData.data);
+    mepContext.setIsMetricsData(isMetricsData);
+  }, [mepContext, queryData.data]);
 
   const {data: tableData, isLoading, error} = queryData;
   const {
@@ -156,7 +182,7 @@ function OverviewContentWrapper(props: ChildProps) {
       ...filterToLocationQuery(newFilter),
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
 

@@ -64,6 +64,7 @@ def submit_process(
     event_id: Optional[str],
     start_time: Optional[int],
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
     task = process_event_from_reprocessing if from_reprocessing else process_event
@@ -72,6 +73,7 @@ def submit_process(
         start_time=start_time,
         event_id=event_id,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
     )
 
@@ -110,7 +112,11 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
+    from sentry.tasks.symbolication import (
+        get_symbolication_function,
+        should_demote_symbolication,
+        submit_symbolicate,
+    )
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -137,19 +143,7 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    is_js = False
-    if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import (
-            get_js_symbolication_function as get_symbolication_function,
-        )
-
-        is_js = True
-    else:
-        from sentry.lang.native.processing import (
-            get_native_symbolication_function as get_symbolication_function,
-        )
-
-    symbolication_function = get_symbolication_function(data)
+    is_js, symbolication_function = get_symbolication_function(data)
     if symbolication_function:
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -162,7 +156,7 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+            reprocessing2.backup_unprocessed_event(data=original_data)
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
@@ -461,6 +455,8 @@ def process_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -479,6 +475,8 @@ def process_event(
         event_id=event_id,
         process_task=process_event,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
@@ -493,6 +491,8 @@ def process_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -501,6 +501,8 @@ def process_event_from_reprocessing(
         event_id=event_id,
         process_task=process_event_from_reprocessing,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 

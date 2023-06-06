@@ -16,6 +16,7 @@ class Dataset(Enum):
     Profiles = "profiles"
     IssuePlatform = "search_issues"
     Functions = "functions"
+    SpansIndexed = "spans"
 
 
 @unique

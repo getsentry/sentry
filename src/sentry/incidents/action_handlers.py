@@ -17,7 +17,6 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentStatus,
-    IncidentTrigger,
     TriggerStatus,
 )
 from sentry.models.notificationsetting import NotificationSetting
@@ -197,8 +196,6 @@ def generate_incident_trigger_email_context(
     user=None,
 ):
     trigger = alert_rule_trigger
-    incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
-
     alert_rule = trigger.alert_rule
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
@@ -266,7 +263,7 @@ def generate_incident_trigger_email_context(
         "incident_name": incident.title,
         "environment": environment_string,
         "time_window": format_duration(snuba_query.time_window / 60),
-        "triggered_at": incident_trigger.date_added,
+        "triggered_at": incident.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
         "threshold": threshold,

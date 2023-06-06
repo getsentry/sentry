@@ -5,7 +5,7 @@ import responses
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import ResolvedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 
@@ -42,8 +42,13 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
 
     @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_performance_issue(self, mock_func):
+    def test_resolved_performance_issue(self, mock_func, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved
         """

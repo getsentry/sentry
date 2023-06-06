@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 
 import sentry
+from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
@@ -13,6 +14,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -60,6 +62,7 @@ class GitHubPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
+@control_silo_test
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
@@ -280,21 +283,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ),
             urlencode({"installation_id": self.installation_id}),
         )
-        resp = self.client.get(self.init_path_2)
-        assert (
-            b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
-            in resp.content
-        )
-        assert (
-            b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
-            in resp.content
-        )
+        with self.feature({"organizations:customer-domains": [self.organization_2.slug]}):
+            resp = self.client.get(self.init_path_2)
+            self.assertTemplateUsed(
+                resp, "sentry/integrations/github-integration-exists-on-another-org.html"
+            )
+            assert (
+                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+                in resp.content
+            )
+            assert (
+                b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
+                in resp.content
+            )
+            assert b'window.opener.postMessage({"success":false' in resp.content
+            assert (
+                f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
+                in resp.content
+            )
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
-        OrganizationIntegration.objects.filter(
+        for oi in OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration=integration
-        ).delete()
+        ):
+            oi.delete()
         integration.delete()
 
         # Try again and should be successful
@@ -353,7 +366,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert auth_header == "Bearer jwt_token_1"
 
         integration = Integration.objects.get(provider=self.provider.key)
-        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.status == ObjectStatus.ACTIVE
         assert integration.external_id == self.installation_id
 
     @responses.activate
@@ -495,6 +508,36 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not result
 
     @responses.activate
+    def test_get_stacktrace_link_no_org_integration(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            config={"name": "Test-Organization/foo"},
+            integration_id=integration.id,
+        )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).delete()
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -562,12 +605,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        resp = self.client.get(
-            "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
-        )
+        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+            resp = self.client.get(
+                "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+            )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert f', "{generate_organization_url(self.organization.slug)}");'.encode() in resp.content
 
         # Assert payload returned to main window
         assert (

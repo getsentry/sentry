@@ -70,7 +70,7 @@
       "trace_id": "98be611cb95e24f72813487f12922a01",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
       "hash": "cbc1d1c7a6500a75"
     },
     {
@@ -84,7 +84,7 @@
       "trace_id": "98be611cb95e24f72813487f12922a01",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/api/0/internal/health/"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/internal/health/"},
       "hash": "61f17e17e6e505c4"
     },
     {
@@ -98,7 +98,7 @@
       "trace_id": "98be611cb95e24f72813487f12922a01",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/api/0/assistant/"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/assistant/"},
       "hash": "df65e7b0208b5678"
     },
     {
@@ -113,7 +113,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/client-state/"
       },
@@ -141,7 +141,7 @@
       "trace_id": "98be611cb95e24f72813487f12922a01",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
       "hash": "d09dea4693554039"
     },
     {
@@ -156,7 +156,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/broadcasts/"
       },
@@ -207,7 +207,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A1888481%20%21replayId%3A%22%22&statsPeriod=14d"
       },
@@ -225,7 +225,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/environments/"
       },
@@ -290,7 +290,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/issues/1888481/events/latest/"
       },
@@ -308,7 +308,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/issues/1888481/?collapse=release&expand=inbox&expand=owners"
       },
@@ -326,7 +326,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/issues/1888481/first-last-release/"
       },
@@ -344,7 +344,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "PUT",
+        "http.method": "PUT",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/issues/?id=1888481"
       },
@@ -399,7 +399,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/"
       },
@@ -504,7 +504,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/grouping-info/"
       },
@@ -522,7 +522,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/attachments/?query=rrweb"
       },
@@ -540,7 +540,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/owners/"
       },
@@ -558,7 +558,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/codeowners/"
       },
@@ -587,7 +587,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/groups/1888481/integrations/"
       },
@@ -605,7 +605,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/groups/1888481/external-issues/"
       },
@@ -634,7 +634,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/repos/"
       },
@@ -652,7 +652,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/releases/x/"
       },
@@ -670,7 +670,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/releases/[x]/deploys/"
       },
@@ -688,7 +688,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/prompts-activity/?feature=stacktrace_link&organization_id=97234&project_id=555"
       },
@@ -706,7 +706,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/issues/1888481/?collapse=release"
       },
@@ -724,7 +724,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/issues/1888481/current-release/"
       },
@@ -742,7 +742,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/issues/1888481/tags/?key=browser&key=browser.name&key=client_os&key=client_os.name&key=device&key=device.family&key=environment&key=level&key=python_version&key=release&key=request_id&key=server_name&key=site&key=transaction&key=url&key=user"
       },
@@ -760,7 +760,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/releases/completion/"
       },
@@ -778,7 +778,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/sentry-app-installations/"
       },
@@ -796,7 +796,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/sentry-app-components/?projectId=555"
       },
@@ -825,7 +825,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/"
       },
@@ -843,7 +843,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/committers/"
       },
@@ -861,7 +861,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/events/2df376c1caa4352bdf3426d05af90bb8/attachments/"
       },
@@ -879,7 +879,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/users/?project=555"
       },
@@ -1030,7 +1030,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/releases/x/"
       },
@@ -1048,7 +1048,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/api/0/organizations/sentry/releases/x/deploys/"
       },
@@ -1140,7 +1140,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "PUT",
+        "http.method": "PUT",
         "type": "fetch",
         "url": "/api/0/projects/sentry/javascript/issues/?id=1888481"
       },

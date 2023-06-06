@@ -48,6 +48,7 @@ const LOGO_MAPPING = {
   'android-tablet': logoAndroidTablet,
   'chrome-mobile': logoChrome,
   'chrome-mobile-ios': logoChrome,
+  'google-chrome': logoChrome,
   'internet-explorer': logoIe,
   'legacy-edge': logoEdgeOld,
   'mac-os-x': logoApple,

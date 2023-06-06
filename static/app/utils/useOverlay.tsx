@@ -1,16 +1,18 @@
 import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
 import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
-import {useButton} from '@react-aria/button';
+import {useButton as useButtonAria} from '@react-aria/button';
 import {
-  OverlayProps,
+  AriaOverlayProps,
   OverlayTriggerProps,
-  useOverlay as useAriaOverlay,
-  useOverlayTrigger,
+  useOverlay as useOverlayAria,
+  useOverlayTrigger as useOverlayTriggerAria,
 } from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
-import {useOverlayTriggerState} from '@react-stately/overlays';
-import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
+import {
+  OverlayTriggerProps as OverlayTriggerStateProps,
+  useOverlayTriggerState,
+} from '@react-stately/overlays';
 
 type PreventOverflowOptions = NonNullable<(typeof preventOverflow)['options']>;
 
@@ -36,19 +38,21 @@ const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
     const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
     const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    // If there is enough space on the other side, then allow the popper to flip
-    // without constraining its size
-    const maxHeight = Math.max(
-      height - overflow[heightSide] - y,
-      -overflow[flippedHeightSide]
-    );
+    const maxHeight = ['left', 'right'].includes(basePlacement)
+      ? // If the main axis is horizontal, then maxHeight = the boundary's height
+        height - overflow.top - overflow.bottom
+      : // Otherwise, set max height unless there is enough space on the other side to
+        // flip the popper to
+        Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
 
     // If there is enough space on the other side, then allow the popper to flip
     // without constraining its size
-    const maxWidth = Math.max(
-      width - overflow[widthSide] - x,
-      -overflow[flippedWidthSide]
-    );
+    const maxWidth = ['top', 'bottom'].includes(basePlacement)
+      ? // If the main axis is vertical, then maxWidth = the boundary's width
+        width - overflow.left - overflow.right
+      : // Otherwise, set max width unless there is enough space on the other side to
+        // flip the popper to
+        Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
     state.modifiersData[name] = {
       width: maxWidth,
@@ -70,9 +74,10 @@ const applyMaxSize: Modifier<'applyMaxSize', {}> = {
 };
 
 export interface UseOverlayProps
-  extends Partial<OverlayProps>,
+  extends Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
+  disableTrigger?: boolean;
   /**
    * Offset along the main axis.
    */
@@ -103,9 +108,10 @@ function useOverlay({
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  disableTrigger,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
-  const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
 
@@ -150,6 +156,13 @@ function useOverlay({
         },
       },
       {
+        name: 'flip',
+        options: {
+          // Only flip on main axis
+          flipVariations: false,
+        },
+      },
+      {
         name: 'offset',
         options: {
           offset: [0, offset],
@@ -185,16 +198,19 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const {buttonProps} = useButton({onPress: openState.toggle}, triggerRef);
-  const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
+  const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
     {type},
     openState,
+    triggerRef
+  );
+  const {buttonProps: triggerAriaProps} = useButtonAria(
+    {...triggerProps, isDisabled: disableTrigger},
     triggerRef
   );
 
   // Get props for overlay element
   const interactedOutside = useRef(false);
-  const {overlayProps} = useAriaOverlay(
+  const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
         onClose?.();
@@ -229,16 +245,17 @@ function useOverlay({
   return {
     isOpen: openState.isOpen,
     state: openState,
+    update: popperUpdate,
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
-      ...mergeProps(buttonProps, triggerProps),
+      ...triggerAriaProps,
     },
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,
       style: popperStyles.popper,
-      ...mergeProps(overlayTriggerProps, overlayProps),
+      ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {
       ref: setArrowElement,

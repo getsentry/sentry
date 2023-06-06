@@ -209,7 +209,14 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons', async () => {
-      mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
+      mount(
+        location,
+        organization,
+        router,
+        EventView.fromSavedQuery({...errorsQuery, yAxis}),
+        savedQuery,
+        yAxis
+      );
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
       expect(

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
+import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -15,12 +15,13 @@ import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
-import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownshipRulesTable';
+import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
@@ -120,8 +121,11 @@ tags.sku_class:enterprise #enterprise`;
     const {project, organization} = this.props;
     const {ownership, codeowners} = this.state;
 
-    const disabled = !organization.access.includes('project:write');
-    const editOwnershipeRulesDisabled = !organization.access.includes('project:read');
+    const disabled = !hasEveryAccess(['project:write'], {organization, project});
+    const editOwnershipRulesDisabled = !hasEveryAccess(['project:read'], {
+      organization,
+      project,
+    });
     const hasStreamlineTargetingContext = organization.features?.includes(
       'streamline-targeting-context'
     );
@@ -134,18 +138,17 @@ tags.sku_class:enterprise #enterprise`;
           action={
             <ButtonBar gap={1}>
               {hasCodeowners && (
-                <Access access={['org:integrations']}>
-                  {({hasAccess}) =>
-                    hasAccess ? (
-                      <Button
-                        onClick={this.handleAddCodeOwner}
-                        size="sm"
-                        data-test-id="add-codeowner-button"
-                      >
-                        {t('Import CODEOWNERS')}
-                      </Button>
-                    ) : null
-                  }
+                <Access access={['org:integrations']} project={project}>
+                  {({hasAccess}) => (
+                    <Button
+                      onClick={this.handleAddCodeOwner}
+                      size="sm"
+                      data-test-id="add-codeowner-button"
+                      disabled={!hasAccess}
+                    >
+                      {t('Import CODEOWNERS')}
+                    </Button>
+                  )}
                 </Access>
               )}
               {hasStreamlineTargetingContext && (
@@ -162,7 +165,7 @@ tags.sku_class:enterprise #enterprise`;
                       onSave: this.handleOwnershipSave,
                     })
                   }
-                  disabled={!!ownership && editOwnershipeRulesDisabled}
+                  disabled={!!ownership && editOwnershipRulesDisabled}
                 >
                   {t('Edit Rules')}
                 </Button>
@@ -170,8 +173,7 @@ tags.sku_class:enterprise #enterprise`;
             </ButtonBar>
           }
         />
-
-        <p>
+        <TextBlock>
           {tct(
             `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
             {
@@ -180,11 +182,13 @@ tags.sku_class:enterprise #enterprise`;
               ),
             }
           )}
-        </p>
+        </TextBlock>
 
         <PermissionAlert
-          access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
+          access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
+          project={project}
         />
+
         <CodeOwnerErrors
           orgSlug={organization.slug}
           projectSlug={project.slug}
@@ -217,14 +221,14 @@ tags.sku_class:enterprise #enterprise`;
                     onSave: this.handleOwnershipSave,
                   })
                 }
-                disabled={editOwnershipeRulesDisabled}
+                disabled={editOwnershipRulesDisabled}
               >
                 {t('Edit')}
               </Button>,
             ]}
           />
         )}
-        <PermissionAlert />
+        <PermissionAlert project={project} />
         {hasCodeowners &&
           (hasStreamlineTargetingContext ? (
             <CodeOwnerFileTable

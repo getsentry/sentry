@@ -2,6 +2,7 @@ import {ReactNode} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -37,7 +38,6 @@ type IssueListHeaderProps = {
 
 type IssueListHeaderTabProps = {
   name: string;
-  query: string;
   count?: number;
   hasMore?: boolean;
   tooltipHoverable?: boolean;
@@ -48,7 +48,6 @@ function IssueListHeaderTabContent({
   count = 0,
   hasMore = false,
   name,
-  query,
   tooltipHoverable,
   tooltipTitle,
 }: IssueListHeaderTabProps) {
@@ -61,7 +60,7 @@ function IssueListHeaderTabContent({
     >
       {name}{' '}
       {count > 0 && (
-        <Badge type={query === Query.FOR_REVIEW && count > 0 ? 'review' : 'default'}>
+        <Badge>
           <QueryCount hideParens count={count} max={hasMore ? TAB_MAX_COUNT : 1000} />
         </Badge>
       )}
@@ -142,14 +141,19 @@ function IssueListHeader({
 
                 return (
                   <TabList.Item key={tabQuery} to={to} textValue={queryName}>
-                    <IssueListHeaderTabContent
-                      tooltipTitle={tooltipTitle}
-                      tooltipHoverable={tooltipHoverable}
-                      name={queryName}
-                      count={queryCounts[tabQuery]?.count}
-                      hasMore={queryCounts[tabQuery]?.hasMore}
-                      query={tabQuery}
-                    />
+                    <GuideAnchor
+                      disabled={tabQuery !== Query.ARCHIVED}
+                      target="issue_stream_archive_tab"
+                      position="bottom"
+                    >
+                      <IssueListHeaderTabContent
+                        tooltipTitle={tooltipTitle}
+                        tooltipHoverable={tooltipHoverable}
+                        name={queryName}
+                        count={queryCounts[tabQuery]?.count}
+                        hasMore={queryCounts[tabQuery]?.hasMore}
+                      />
+                    </GuideAnchor>
                   </TabList.Item>
                 );
               }

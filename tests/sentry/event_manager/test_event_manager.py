@@ -46,6 +46,7 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import (
     Activity,
     Commit,
@@ -80,6 +81,7 @@ from sentry.testutils import (
     TransactionTestCase,
     assert_mock_called_once_with_partial,
 )
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -88,10 +90,6 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
-from sentry.utils.performance_issues.performance_detection import (
-    EventPerformanceProblem,
-    PerformanceProblem,
-)
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
 
@@ -116,7 +114,7 @@ class EventManagerTestMixin:
 
 
 @region_silo_test
-class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
+class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
@@ -1238,7 +1236,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         event = manager.save(project.id)
 
         def query(model, key, **kwargs):
-            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
+            return tsdb.get_sums(
+                model,
+                [key],
+                event.datetime,
+                event.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+                **kwargs,
+            )[key]
 
         assert query(tsdb.models.project, project.id) == 1
         assert query(tsdb.models.group, event.group.id) == 1
@@ -1274,7 +1279,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         ).id
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
+            tsdb.models.users_affected_by_group,
+            (event.group.id,),
+            event.datetime,
+            event.datetime,
+            tenant_ids={"referrer": "r", "organization_id": 123},
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1282,6 +1291,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             (event.project.id,),
             event.datetime,
             event.datetime,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1290,6 +1300,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event.datetime,
             event.datetime,
             environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
@@ -1298,6 +1309,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event.datetime,
             event.datetime,
             environment_id=environment_id,
+            tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
@@ -1410,7 +1422,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
-            group_states=[{"id": event.groups[0].id, **group_states1}],
+            group_states=[{"id": event.group.id, **group_states1}],
         )
 
         event = save_event()
@@ -1429,7 +1441,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
-            group_states=[{"id": event.groups[0].id, **group_states2}],
+            group_states=[{"id": event.group.id, **group_states2}],
         )
 
     def test_default_fingerprint(self):
@@ -2014,9 +2026,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         assert event.group is None
         assert (
-            tsdb.get_sums(tsdb.models.project, [self.project.id], event.datetime, event.datetime)[
-                self.project.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.project,
+                [self.project.id],
+                event.datetime,
+                event.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[self.project.id]
             == 0
         )
 
@@ -2050,16 +2066,24 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert event1.group is not None
         assert event2.group is None
         assert (
-            tsdb.get_sums(tsdb.models.project, [self.project.id], event1.datetime, event1.datetime)[
-                self.project.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.project,
+                [self.project.id],
+                event1.datetime,
+                event1.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[self.project.id]
             == 1
         )
 
         assert (
-            tsdb.get_sums(tsdb.models.group, [event1.group.id], event1.datetime, event1.datetime)[
-                event1.group.id
-            ]
+            tsdb.get_sums(
+                tsdb.models.group,
+                [event1.group.id],
+                event1.datetime,
+                event1.datetime,
+                tenant_ids={"organization_id": 123, "referrer": "r"},
+            )[event1.group.id]
             == 1
         )
 
@@ -2296,18 +2320,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
+            event = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+            )
             data = event.data
-            expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
             assert event.get_event_type() == "transaction"
             assert event.transaction == "/books/"
             assert data["span_grouping_config"]["id"] == "default:2022-10-27"
-            assert data["hashes"] == [expected_hash]
             span_hashes = [span["hash"] for span in data["spans"]]
             assert span_hashes == [
                 "0f43fb6f6e01ca52",
@@ -2334,10 +2354,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "d74ed7012596c3fb",
                 "d74ed7012596c3fb",
             ]
-            assert len(event.groups) == 1
-            group = event.groups[0]
+            assert event.group
+            group = event.group
             assert group.title == "N+1 Query"
-            assert group.message == "N+1 Query: /books/"
+            assert group.message == "/books/"
             assert group.culprit == "/books/"
             assert group.get_event_type() == "transaction"
             description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
@@ -2351,16 +2371,22 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
-            assert EventPerformanceProblem.fetch(
-                event, expected_hash
-            ).problem == PerformanceProblem(
-                expected_hash,
-                "db",
-                description,
-                PerformanceNPlusOneGroupType,
-                ["8dd7a5869a4f4583"],
-                ["9179e43ae844b174"],
-                [
+            assert event.occurrence
+            assert event.occurrence.evidence_display == [
+                IssueEvidence(
+                    name="Offending Spans",
+                    value="db - SELECT `books_author`.`id`, `books_author`.`name` "
+                    "FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                    important=True,
+                )
+            ]
+            assert event.occurrence.evidence_data == {
+                "transaction_name": "/books/",
+                "op": "db",
+                "parent_span_ids": ["8dd7a5869a4f4583"],
+                "parent_span": "django.view - index",
+                "cause_span_ids": ["9179e43ae844b174"],
+                "offender_span_ids": [
                     "b8be6138369491dd",
                     "b2d4826e7b618f1b",
                     "b3fdeea42536dbf1",
@@ -2372,20 +2398,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
-                {},
-                [],
-            )
+                "repeating_spans": "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "repeating_spans_compact": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "num_repeating_spans": "10",
+            }
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-            group = event.groups[0]
+            event = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+            )
+            group = event.group
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
             group.data["metadata"] = {
@@ -2398,10 +2424,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "hi"
             assert group.title == "lol"
 
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
             with self.tasks():
-                manager.save(self.project.id)
+                self.create_performance_issue(
+                    event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+                )
+
             # Make sure the original group is updated via buffers
             group.refresh_from_db()
             assert group.title == "N+1 Query"
@@ -2419,34 +2446,26 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-            assert len(event.groups) == 1
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            event = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+            )
+            assert event.group is not None
 
             # sneakily make the group type wrong
-            group = event.groups[0]
+            group = event.group
             group.type = ErrorGroupType.type_id
             group.save()
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
+            event = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
+            )
 
-            assert len(event.groups) == 0
+            assert event.group is None
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
@@ -2458,64 +2477,54 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert len(event.groups) == 1
 
             # sneakily make the group type wrong
-            group = event.groups[0]
+            group = event.group
             group.type = PerformanceNPlusOneGroupType.type_id
             group.save()
             manager = EventManager(make_event())
             manager.normalize()
             event = manager.save(self.project.id)
 
-            assert len(event.groups) == 0
+            assert not event.group
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
             }
         ):
-            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-            data = event.data
+            event = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
+                noise_limit=2,
+            )
             assert event.get_event_type() == "transaction"
-            assert data["hashes"] == []
+            assert event.group is None
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
             }
         ):
-            manager1 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager2 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager3 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
-            manager1.normalize()
-            manager2.normalize()
-            manager3.normalize()
-            event1 = manager1.save(self.project.id)
-            event2 = manager2.save(self.project.id)
-            event3 = manager3.save(self.project.id)
-            data1 = event1.data
-            data2 = event2.data
-            data3 = event3.data
-            expected_hash = "e714d718cb4e7d3ce1ad800f7f33d223"
-            assert event1.get_event_type() == "transaction"
-            assert event2.get_event_type() == "transaction"
-            assert event3.get_event_type() == "transaction"
+            event_1 = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+            )
+            event_2 = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+            )
+            event_3 = self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
+            )
+            assert event_1.get_event_type() == "transaction"
+            assert event_2.get_event_type() == "transaction"
+            assert event_3.get_event_type() == "transaction"
             # only the third occurrence of the hash should create the group
-            assert data1["hashes"] == []
-            assert data2["hashes"] == []
-            assert data3["hashes"] == [expected_hash]
+            assert event_1.group is None
+            assert event_2.group is None
+            assert event_3.group is not None
 
     @override_options(
         {
@@ -2524,28 +2533,27 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             "performance.issues.all.problem-detection": 1.0,
         }
     )
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_slow_db_issue_is_created(self):
         def attempt_to_generate_slow_db_issue() -> Event:
             last_event = None
 
             for _ in range(100):
-                manager = EventManager(make_event(**get_event("slow-db-spans")))
-                manager.normalize()
-                event = manager.save(self.project.id)
+                event = self.create_performance_issue(
+                    event_data=make_event(**get_event("slow-db-spans")),
+                    issue_type=PerformanceSlowDBQueryGroupType,
+                )
                 last_event = event
 
             return last_event
 
         # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()
-        assert len(last_event.groups) == 0
+        assert not last_event.group
 
         with self.feature({"organizations:performance-slow-db-issue": True}):
             last_event = attempt_to_generate_slow_db_issue()
-
-            assert len(last_event.groups) == 1
-            assert last_event.groups[0].type == PerformanceSlowDBQueryGroupType.type_id
+            assert last_event.group
+            assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

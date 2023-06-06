@@ -2,7 +2,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import IncidentActivity
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @register(IncidentActivity)

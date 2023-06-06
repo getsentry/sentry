@@ -24,7 +24,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.models.file import File, FileBlobIndex
+from sentry.models.files.file import File, FileBlobIndex
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils.snuba import raw_snql_query
@@ -198,6 +198,8 @@ def _fetch_segments_from_snuba(
     conditions = []
     if segment_id:
         conditions.append(Condition(Column("segment_id"), Op.EQ, segment_id))
+    else:
+        conditions.append(Condition(Column("segment_id"), Op.IS_NOT_NULL, None))
 
     snuba_request = Request(
         dataset="replays",

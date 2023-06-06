@@ -4,19 +4,17 @@ import {getIgnoreActions} from 'sentry/components/actions/ignore';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconArchive, IconChevron} from 'sentry/icons';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStatusResolution, ResolutionStatus} from 'sentry/types';
+import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
-  disableTooltip?: boolean;
   disabled?: boolean;
-  hideIcon?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
@@ -25,11 +23,12 @@ interface ArchiveActionProps {
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
-  substatus: 'until_escalating',
+  substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: ResolutionStatus.IGNORED,
   statusDetails: {},
+  substatus: GroupSubstatus.ARCHIVED_FOREVER,
 };
 
 export function getArchiveActions({
@@ -40,7 +39,10 @@ export function getArchiveActions({
 }: Pick<
   ArchiveActionProps,
   'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
->) {
+>): {
+  dropdownItems: MenuItemProps[];
+  onArchive: (resolution: GroupStatusResolution) => void;
+} {
   // TODO(workflow): Replace ignore actions with more archive actions
   const {dropdownItems} = getIgnoreActions({
     confirmLabel,
@@ -66,7 +68,8 @@ export function getArchiveActions({
     dropdownItems: [
       {
         key: 'untilEscalating',
-        label: t('Until it escalates'),
+        label: t('Until escalating'),
+        details: t('When events exceed their weekly forecast'),
         onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
       },
       {
@@ -82,9 +85,7 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
-  disableTooltip,
   className,
-  hideIcon,
   shouldConfirm,
   confirmLabel,
   isArchived,
@@ -99,7 +100,6 @@ function ArchiveActions({
         title={t('Change status to unresolved')}
         onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})}
         aria-label={t('Unarchive')}
-        icon={<IconArchive size="xs" />}
       />
     );
   }
@@ -115,17 +115,15 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
-        title={t(
-          'Silences alerts for this issue and removes it from the issue stream by default.'
-        )}
-        icon={hideIcon ? null : <IconArchive size={size} />}
+        tooltipProps={{delay: 1000, disabled}}
+        title={t('Archive issue until a high number of events are seen.')}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
         {t('Archive')}
       </ArchiveButton>
       <DropdownMenu
+        minMenuWidth={270}
         size="sm"
         trigger={triggerProps => (
           <DropdownTrigger

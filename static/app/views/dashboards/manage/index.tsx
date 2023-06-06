@@ -56,6 +56,7 @@ type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
+  starfishResult?: null;
 } & AsyncView['state'];
 
 class ManageDashboards extends AsyncView<Props, State> {
@@ -68,7 +69,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    return [
+    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
         'dashboards',
         `/organizations/${organization.slug}/dashboards/`,
@@ -81,6 +82,14 @@ class ManageDashboards extends AsyncView<Props, State> {
         },
       ],
     ];
+    if (organization.features.includes('starfish-test-endpoint')) {
+      endpoints.push([
+        'starfishResult',
+        `/organizations/${organization.slug}/events-starfish/`,
+        {query: {statsPeriod: '7d'}},
+      ]);
+    }
+    return endpoints;
   }
 
   getActiveSort() {
@@ -230,7 +239,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       was_previewed: false,
     });
 
-    await createDashboard(
+    const newDashboard = await createDashboard(
       api,
       organization.slug,
       {
@@ -239,8 +248,18 @@ class ManageDashboards extends AsyncView<Props, State> {
       },
       true
     );
-    this.onDashboardsChange();
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
+    this.loadDashboard(newDashboard.id);
+  }
+
+  loadDashboard(dashboardId: string) {
+    const {organization, location} = this.props;
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   onPreview(dashboardId: string) {

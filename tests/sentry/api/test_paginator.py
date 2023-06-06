@@ -19,9 +19,11 @@ from sentry.api.paginator import (
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, User
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursors import Cursor
 
 
+@control_silo_test(stable=True)
 class PaginatorTest(TestCase):
     cls = Paginator
 
@@ -80,6 +82,7 @@ class PaginatorTest(TestCase):
         assert len(result3) == 0, (result3, list(result3))
 
 
+@control_silo_test(stable=True)
 class OffsetPaginatorTest(TestCase):
     # offset paginator does not support dynamic limits on is_prev
     def test_simple(self):
@@ -176,6 +179,7 @@ class OffsetPaginatorTest(TestCase):
             paginator.get_result()
 
 
+@control_silo_test(stable=True)
 class DateTimePaginatorTest(TestCase):
     def test_ascending(self):
         joined = timezone.now()

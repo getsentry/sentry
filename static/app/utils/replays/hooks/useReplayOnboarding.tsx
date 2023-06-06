@@ -26,6 +26,12 @@ function getSelectedProjectList(
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
+export function useHasOrganizationSentAnyReplayEvents() {
+  const {projects, fetching} = useProjects();
+  const hasOrgSentReplays = useMemo(() => projects.some(p => p.hasReplays), [projects]);
+  return {hasOrgSentReplays, fetching};
+}
+
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
   const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();
@@ -48,7 +54,7 @@ export function useReplayOnboardingSidebarPanel() {
 
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
       trackAnalytics('replay.list-view-setup-sidebar', {
         organization,
       });
@@ -58,7 +64,7 @@ export function useReplayOnboardingSidebarPanel() {
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
     window.location.hash = 'replay-sidequest';
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
   }, []);
 
   return {activateSidebar};

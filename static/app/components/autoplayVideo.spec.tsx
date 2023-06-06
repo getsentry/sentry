@@ -36,7 +36,7 @@ describe('autoplayVideo', () => {
       play: jest.fn().mockReturnValue(Promise.resolve()),
     });
 
-    // @ts-ignore we are mocking useRef
+    // @ts-expect-error we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
     render(<AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />);
@@ -52,7 +52,7 @@ describe('autoplayVideo', () => {
       play: jest.fn().mockReturnValue(null),
     });
 
-    // @ts-ignore we are mocking useRef
+    // @ts-expect-error we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
     render(<AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />);

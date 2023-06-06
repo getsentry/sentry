@@ -6,19 +6,20 @@ from django.test import override_settings
 
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.services.hybrid_cloud.rpc import (
     RpcSendException,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
@@ -26,7 +27,13 @@ from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 _REGIONS = [
-    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT, "swordfish"),
+    Region(
+        "north_america",
+        1,
+        "http://na.sentry.io",
+        RegionCategory.MULTI_TENANT,
+        "swordfish",
+    ),
     Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT, "courage"),
 ]
 
@@ -38,15 +45,17 @@ class RpcServiceTest(TestCase):
 
         user = self.create_user()
         organization = self.create_organization()
-        OrganizationMapping.objects.create(
+        OrganizationMapping.objects.update_or_create(
             organization_id=organization.id,
-            slug=organization.slug,
-            name=organization.name,
-            region_name=target_region.name,
+            defaults={
+                "slug": organization.slug,
+                "name": organization.name,
+                "region_name": target_region.name,
+            },
         )
 
         serial_user = RpcUser(id=user.id)
-        serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
+        serial_org = serialize_organization(organization)
 
         service = OrganizationService.create_delegation()
         with override_regions(_REGIONS), override_settings(SILO_MODE=SiloMode.CONTROL):
@@ -100,7 +109,7 @@ class RpcServiceTest(TestCase):
         user = self.create_user()
         organization = self.create_organization()
 
-        serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
+        serial_org = serialize_organization(organization)
         serial_arguments = dict(
             organization_id=serial_org.id,
             default_org_role=serial_org.default_role,
@@ -112,6 +121,16 @@ class RpcServiceTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
+
+    def test_dispatch_to_local_service_list_result(self):
+        organization = self.create_organization()
+
+        args = {"organization_ids": [organization.id]}
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            service = AuthService.create_delegation()
+            result = dispatch_to_local_service(service.key, "get_org_auth_config", args)
+            assert len(result) == 1
+            assert result[0]["organization_id"] == organization.id
 
 
 class DispatchRemoteCallTest(TestCase):
@@ -139,9 +158,7 @@ class DispatchRemoteCallTest(TestCase):
     @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
     def test_region_to_control_happy_path(self, mock_urlopen):
         org = self.create_organization()
-        response_value = RpcUserOrganizationContext(
-            organization=DatabaseBackedOrganizationService.serialize_organization(org)
-        )
+        response_value = RpcUserOrganizationContext(organization=serialize_organization(org))
         self._set_up_mock_response(mock_urlopen, response_value.dict())
 
         result = dispatch_remote_call(

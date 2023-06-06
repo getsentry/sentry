@@ -12,9 +12,16 @@ from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
 )
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
-from ..base import DetectorType, PerformanceDetector, total_span_time
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    get_notification_attachment_body,
+    get_span_evidence_value,
+    total_span_time,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -183,8 +190,25 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 "parent_span_ids": [parent_span["span_id"]],
                 "cause_span_ids": [],
                 "offender_span_ids": [span["span_id"] for span in offender_spans],
+                "transaction_name": self.event.get("transaction", ""),
+                "parent_span": get_span_evidence_value(parent_span),
+                "repeating_spans": get_span_evidence_value(offender_spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(
+                    offender_spans[0], include_op=False
+                ),
+                "number_repeating_spans": str(len(offender_spans)),
             },
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        "db",
+                        db_span["description"],
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
         )
 
     def _first_db_span(self) -> Optional[Span]:

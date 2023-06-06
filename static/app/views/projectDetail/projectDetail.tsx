@@ -57,12 +57,13 @@ type State = AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
-    return routeTitleGen(t('Project %s', params.projectId), params.orgId, false);
+    return routeTitleGen(t('Project %s', params.projectId), organization.slug, false);
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.syncProjectWithSlug();
   }
 
@@ -198,7 +199,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
+      <PageFiltersContainer
+        disablePersistence
+        skipLoadLastUsed
+        showAbsolute={!hasOnlyBasicChart}
+      >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
             <Layout.Header>

@@ -1,8 +1,10 @@
 from sentry.integrations.example import ExampleIntegrationProvider, ExampleSetupView
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class ExampleIntegrationTest(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 

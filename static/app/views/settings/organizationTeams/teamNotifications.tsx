@@ -1,7 +1,9 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -17,6 +19,7 @@ import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
 import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {
   organization: Organization;
@@ -68,16 +71,21 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
   };
 
   renderBody() {
+    const {team} = this.props;
     return (
-      <Panel>
-        <PanelHeader>{t('Notifications')}</PanelHeader>
-        <PanelBody>{this.renderPanelBody()}</PanelBody>
-      </Panel>
+      <Fragment>
+        <PermissionAlert access={['team:write']} team={team} />
+
+        <Panel>
+          <PanelHeader>{t('Notifications')}</PanelHeader>
+          <PanelBody>{this.renderPanelBody()}</PanelBody>
+        </Panel>
+      </Fragment>
     );
   }
 
   renderPanelBody() {
-    const {organization} = this.props;
+    const {organization, team} = this.props;
     const {teamDetails, integrations} = this.state;
 
     const notificationIntegrations = integrations.filter(integration =>
@@ -113,7 +121,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       notificationIntegrations.map(integration => [integration.id, integration])
     );
 
-    const hasAccess = organization.access.includes('team:write');
+    const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
     return externalTeams.map(externalTeam => (
       <FormFieldWrapper key={externalTeam.id}>
@@ -137,15 +145,16 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
           name="externalName"
           value={externalTeam.externalName}
         />
+
         <DeleteButtonWrapper>
           <Tooltip
             title={t(
               'You must be an organization owner, manager or admin to remove a Slack team link'
             )}
-            disabled={hasAccess}
+            disabled={hasWriteAccess}
           >
             <Confirm
-              disabled={!hasAccess}
+              disabled={!hasWriteAccess}
               onConfirm={() => this.handleDelete(externalTeam)}
               message={t('Are you sure you want to remove this Slack team link?')}
             >
@@ -153,7 +162,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
                 size="sm"
                 icon={<IconDelete size="md" />}
                 aria-label={t('delete')}
-                disabled={!hasAccess}
+                disabled={!hasWriteAccess}
               />
             </Confirm>
           </Tooltip>

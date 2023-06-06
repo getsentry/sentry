@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
 class UserEmailManager(BaseManager):
     def get_for_organization(self, organization: Organization) -> QuerySet:
+        # TODO(hybridcloud) This join between user and member can't exist anymore.
+        # Ideally this would use the organizationmembermapping table but that table is incomplete.
         return self.filter(user__sentry_orgmember_set__organization=organization)
 
     def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:

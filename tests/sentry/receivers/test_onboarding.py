@@ -14,6 +14,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -246,7 +247,9 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_member_invited(self):
         user = self.create_user(email="test@example.org")
-        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
+        member = self.create_member(
+            organization=self.organization, teams=[self.team], email=user.email
+        )
         member_invited.send(member=member, user=user, sender=type(member))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -259,7 +262,11 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_member_joined(self):
         user = self.create_user(email="test@example.org")
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
-        member_joined.send(member=member, organization=self.organization, sender=type(member))
+        member_joined.send(
+            member=serialize_member(member),
+            organization_id=self.organization.id,
+            sender=type(member),
+        )
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -270,7 +277,11 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         user2 = self.create_user(email="test@example.com")
         member2 = self.create_member(organization=self.organization, teams=[self.team], user=user2)
-        member_joined.send(member=member2, organization=self.organization, sender=type(member2))
+        member_joined.send(
+            member=serialize_member(member2),
+            organization_id=self.organization.id,
+            sender=type(member2),
+        )
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -444,7 +455,11 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_event_received.send(
             project=second_project, event=second_event, sender=type(second_project)
         )
-        member_joined.send(member=member, organization=self.organization, sender=type(member))
+        member_joined.send(
+            member=serialize_member(member),
+            organization_id=self.organization.id,
+            sender=type(member),
+        )
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
             project=project,

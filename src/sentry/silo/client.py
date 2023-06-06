@@ -3,14 +3,18 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 from django.conf import settings
+from django.http import HttpResponse
 from django.http.request import HttpRequest
-from requests import Request
+from requests import Request, Response
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
-from sentry.types.region import Region, get_region_by_id
-
-INVALID_PROXY_HEADERS = ["Host"]
+from sentry.silo.util import (
+    PROXY_DIRECT_LOCATION_HEADER,
+    clean_outbound_headers,
+    clean_proxy_headers,
+)
+from sentry.types.region import Region, get_region_by_name
 
 
 class SiloClientError(Exception):
@@ -36,27 +40,21 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-    def clean_headers(self, headers: Mapping[str, Any] | None) -> Mapping[str, Any]:
-        if not headers:
-            headers = {}
-        modified_headers = {**headers}
-        for invalid_header in INVALID_PROXY_HEADERS:
-            modified_headers.pop(invalid_header, None)
-        return modified_headers
-
-    def proxy_request(self, incoming_request: HttpRequest) -> BaseApiResponseX:
+    def proxy_request(self, incoming_request: HttpRequest) -> HttpResponse:
         """
-        Directly proxy the provided request to the appropriate silo with minimal header changes
+        Directly proxy the provided request to the appropriate silo with minimal header changes.
         """
+        full_url = self.build_url(incoming_request.path)
         prepared_request = Request(
             method=incoming_request.method,
-            url=self.build_url(incoming_request.path),
-            headers=self.clean_headers(incoming_request.headers),
+            url=full_url,
+            headers=clean_proxy_headers(incoming_request.headers),
             data=incoming_request.body,
         ).prepare()
-        client_response = super()._request(
+        raw_response: Response = super()._request(  # type: ignore
             incoming_request.method,
             incoming_request.path,
+            raw_response=True,
             allow_text=True,
             prepared_request=prepared_request,
         )
@@ -64,15 +62,29 @@ class BaseSiloClient(BaseApiClient):
             "proxy_request",
             extra={"method": incoming_request.method, "path": incoming_request.path},
         )
-        return client_response
+        http_response = HttpResponse(
+            content=raw_response.content,
+            status=raw_response.status_code,
+            reason=raw_response.reason,
+            content_type=raw_response.headers.get("Content-Type"),
+            # XXX: Can be added in Django 3.2
+            # headers=raw_response.headers
+        )
+        valid_headers = clean_outbound_headers(raw_response.headers)
+        for header, value in valid_headers.items():
+            http_response[header] = value
+        http_response[PROXY_DIRECT_LOCATION_HEADER] = full_url
+        return http_response
 
     def request(
         self,
         method: str,
         path: str,
         headers: Mapping[str, Any] | None = None,
-        data: Mapping[str, Any] | None = None,
+        data: Any | None = None,
         params: Mapping[str, Any] | None = None,
+        json: bool = True,
+        raw_response: bool = False,
     ) -> BaseApiResponseX:
         """
         Use the BaseApiClient interface to send a cross-region request.
@@ -83,11 +95,12 @@ class BaseSiloClient(BaseApiClient):
         client_response = super()._request(
             method,
             path,
-            headers=self.clean_headers(headers),
+            headers=clean_proxy_headers(headers),
             data=data,
             params=params,
-            json=True,
+            json=json,
             allow_text=True,
+            raw_response=raw_response,
         )
         # TODO: Establish a scheme to check/log the Sentry Version of the requestor and server
         # optionally raising an error to alert developers of version drift
@@ -107,7 +120,7 @@ class RegionSiloClient(BaseSiloClient):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
 
         # Ensure the region is registered
-        self.region = get_region_by_id(region.id)
+        self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
 
 
@@ -120,4 +133,9 @@ class ControlSiloClient(BaseSiloClient):
 
     def __init__(self) -> None:
         super().__init__()
-        self.base_url = settings.SENTRY_CONTROL_ADDRESS
+
+        self.base_url = getattr(settings, "SENTRY_CONTROL_ADDRESS")
+        if not self.base_url:
+            raise AttributeError(
+                "Configure 'SENTRY_CONTROL_ADDRESS' in sentry configuration settings to use the ControlSiloClient"
+            )

@@ -9,10 +9,12 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
+    User,
     UserEmail,
     actor_type_to_string,
 )
 from sentry.ownership.grammar import parse_code_owners
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -26,8 +28,8 @@ def validate_association(
 ) -> Sequence[str]:
     raw_items_set = {str(item) for item in raw_items}
     if type == "emails":
-        # associations are UserEmail objects
-        sentry_items = {item.email for item in associations}
+        # associations email strings
+        sentry_items = associations
     else:
         # associations are ExternalActor objects
         sentry_items = {item.external_name for item in associations}
@@ -41,17 +43,16 @@ def validate_codeowners_associations(
     team_names, usernames, emails = parse_code_owners(codeowners)
 
     # Check if there exists Sentry users with the emails listed in CODEOWNERS
-    user_emails = UserEmail.objects.filter(
-        email__in=emails,
-        user__sentry_orgmember_set__organization=project.organization,
+    users = user_service.get_many(
+        filter=dict(emails=emails, organization_id=project.organization_id)
     )
 
     # Check if the usernames/teamnames have an association
     external_actors = ExternalActor.objects.filter(
         external_name__in=usernames + team_names,
-        organization=project.organization,
+        organization_id=project.organization_id,
         provider__in=[ExternalProviders.GITHUB.value, ExternalProviders.GITLAB.value],
-    )
+    ).select_related("actor")
 
     # Convert CODEOWNERS into IssueOwner syntax
     users_dict = {}
@@ -61,7 +62,10 @@ def validate_codeowners_associations(
     for external_actor in external_actors:
         type = actor_type_to_string(external_actor.actor.type)
         if type == "user":
-            user: RpcUser = external_actor.actor.resolve()
+            try:
+                user: RpcUser = external_actor.actor.resolve()
+            except User.DoesNotExist:
+                continue
             organization_members_ids = OrganizationMember.objects.filter(
                 user_id=user.id, organization_id=project.organization_id
             ).values_list("id", flat=True)
@@ -83,7 +87,13 @@ def validate_codeowners_associations(
             else:
                 teams_without_access.append(f"#{team.slug}")
 
-    emails_dict = {item.email: item.email for item in user_emails}
+    emails_dict = {}
+    user_emails = set()
+    for user in users:
+        for user_email in user.emails:
+            emails_dict[user_email] = user_email
+            user_emails.add(user_email)
+
     associations = {**users_dict, **teams_dict, **emails_dict}
 
     errors = {

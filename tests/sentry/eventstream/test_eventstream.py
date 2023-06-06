@@ -130,6 +130,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 end=now + timedelta(days=1),
                 groupby=["project_id"],
                 filter_keys={"project_id": [self.project.id]},
+                tenant_ids={"organization_id": 1, "referrer": "r"},
             ).get(self.project.id, 0)
             == 1
         )
@@ -158,6 +159,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             selected_columns=["event_id"],
             groupby=None,
             filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            tenant_ids={"organization_id": 1, "referrer": "r"},
         )
         assert len(result["data"]) == 1
 
@@ -190,6 +192,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             selected_columns=["event_id", "group_ids"],
             groupby=None,
             filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            tenant_ids={"organization_id": 1, "referrer": "r"},
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["group_ids"] == [self.group.id]
@@ -261,7 +264,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             ],
         )
         request = Request(
-            dataset=Dataset.IssuePlatform.value, app_id="test_eventstream", query=query
+            dataset=Dataset.IssuePlatform.value,
+            app_id="test_eventstream",
+            query=query,
+            tenant_ids={"referrer": "test_eventstream", "organization_id": 1},
         )
         result = snuba.raw_snql_query(
             request,

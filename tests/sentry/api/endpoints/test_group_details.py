@@ -251,6 +251,20 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
 
+    def test_collapse_tags(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # Without collapse param, tags should be present
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["tags"] == []
+
+        # With collapse param, tags should not be present
+        response = self.client.get(url, {"collapse": ["tags"]})
+        assert "tags" not in response.data
+
 
 @region_silo_test(stable=True)
 class GroupUpdateTest(APITestCase):

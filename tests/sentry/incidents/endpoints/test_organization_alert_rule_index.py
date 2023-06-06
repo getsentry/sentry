@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -16,6 +17,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import AuditLogEntry, Rule, RuleFireHistory
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.rule import RuleSource
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -336,7 +338,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
-        OrganizationMember.objects.filter(user=self.user).update(role="member")
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user).update(role="member")
 
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
@@ -364,6 +367,27 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 @region_silo_test
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
+
+    def test_no_cron_monitor_rules(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule()
+        Rule.objects.create(
+            project=self.project,
+            label="Generic rule",
+        )
+        cron_rule = Rule.objects.create(
+            project=self.project,
+            label="Cron Rule",
+            source=RuleSource.CRON_MONITOR,
+        )
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        # 3 because there is a default rule created
+        assert len(resp.data) == 3
+        assert cron_rule.id not in (r["id"] for r in resp.data), resp.data
 
     def test_no_perf_alerts(self):
         self.create_team(organization=self.organization, members=[self.user])

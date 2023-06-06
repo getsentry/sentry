@@ -6,10 +6,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import UserAvatar
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.region import get_local_region
 
 
+# TODO(hybridcloud) This needs to become a control_silo_endpoint again.
+# Doing this requires that we solve File uploads for ControlSilo
+#
 # This implementation deviates a bit from the typical AvatarMixin because of hybrid cloud
 # We have the usual problems with user->user_id translation, but also need to handle synchronizing
 # attributes across silos to avoid fetching user avatars from user serializers.

@@ -10,6 +10,10 @@ from sentry.utils import json
 
 
 class ApiError(Exception):
+    """
+    Base class for errors which arise while making outgoing requests to third-party APIs.
+    """
+
     code: int | None = None
 
     def __init__(
@@ -53,6 +57,9 @@ class ApiError(Exception):
                 self.path = "[invalid URL]"
 
         super().__init__(text[:1024])
+
+    def __str__(self) -> str:
+        return self.text
 
     @classmethod
     def from_response(cls, response: Response, url: str | None = None) -> ApiError:

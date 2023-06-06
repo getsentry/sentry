@@ -16,7 +16,8 @@ from django.db.utils import IntegrityError
 from google.api_core.exceptions import TooManyRequests
 
 from sentry import options
-from sentry.models.file import File, get_storage
+from sentry.models.files.file import File
+from sentry.models.files.utils import get_storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
 

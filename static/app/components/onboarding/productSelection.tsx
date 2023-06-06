@@ -37,7 +37,7 @@ export function ProductSelection({
     if (!defaultSelectedProducts) {
       return;
     }
-    router.push({
+    router.replace({
       pathname: router.location.pathname,
       query: {
         ...router.location.query,
@@ -50,7 +50,7 @@ export function ProductSelection({
 
   const handleClickProduct = useCallback(
     (product: PRODUCT) => {
-      router.push({
+      router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,

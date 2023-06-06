@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import inspect
 import logging
 from typing import Any, Mapping, Protocol
@@ -19,11 +20,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.api.serializers import serialize
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Organization, OrganizationStatus, Project, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
@@ -185,7 +186,7 @@ class OrganizationMixin:
         except Team.DoesNotExist:
             return None
 
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return None
 
         return team
@@ -198,7 +199,7 @@ class OrganizationMixin:
         except Project.DoesNotExist:
             return None
 
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return None
 
         return project
@@ -418,12 +419,8 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
 
-class OrganizationView(BaseView):
+class AbstractOrganizationView(BaseView, abc.ABC):
     """
-    A deprecated view used by endpoints that act on behalf of an organization.
-    In the future, we should move endpoints to either of the subclasses, RegionSilo* or ControlSilo*, and
-    move out any ORM specific logic into the correct silo view.  This will likely become an ABC that shares some
-    common logic.
     The 'organization' keyword argument is automatically injected into the resulting dispatch, but currently the
     typing of 'organization' will vary based on the subclass.  It may either be an RpcOrganization or an orm
     Organization based on the subclass.  Be mindful during this transition of the typing.
@@ -543,58 +540,45 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def _lookup_orm_org(self) -> Organization | None:
-        """
-        Used by convert_args to convert the hybrid cloud safe active_organization object into an org ORM.
-        This should really only be used by the Region or Monolith silo modes -- calling this in a Control silo
-        endpoint or codepath will result in exceptions.
-        :return:
-        """
-        organization: Organization | None = None
-        if self.active_organization:
-            try:
-                organization = Organization.objects.get(id=self.active_organization.organization.id)
-            except Organization.DoesNotExist:
-                pass
-        return organization
+    @abc.abstractmethod
+    def _get_organization(self) -> Organization | RpcOrganization | None:
+        raise NotImplementedError
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
+            kwargs["organization"] = self._get_organization()
 
-        return args, kwargs
-
-
-class RegionSiloOrganizationView(OrganizationView):
-    """
-    A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
-    region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
-    the base class (OrganizationView) will likely disappear and only either ControlSilo* or RegionSilo* classes will
-    remain.
-    """
-
-    def convert_args(
-        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
-
-        return args, kwargs
-
-
-class ControlSiloOrganizationView(OrganizationView):
-    def convert_args(
-        self, request: Any, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        kwargs["organization"] = (
-            self.active_organization.organization if self.active_organization else None
-        )
         return super().convert_args(request, *args, **kwargs)
 
 
-class ProjectView(RegionSiloOrganizationView):
+class OrganizationView(AbstractOrganizationView):
+    """
+    A view which has direct ORM access to organization objects.  Only endpoints that exist in the
+    region silo should use this class.
+    """
+
+    def _get_organization(self) -> Organization | None:
+        if not self.active_organization:
+            return None
+        try:
+            return Organization.objects.get(id=self.active_organization.organization.id)
+        except Organization.DoesNotExist:
+            return None
+
+
+class ControlSiloOrganizationView(AbstractOrganizationView):
+    """A view which accesses organization objects over RPC.
+
+    Only endpoints on the control silo should use this class (but it works anywhere).
+    """
+
+    def _get_organization(self) -> RpcOrganization | None:
+        return self.active_organization.organization if self.active_organization else None
+
+
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
     matching URL pattern must pass 'org_slug' as well as 'project_slug'.
@@ -606,6 +590,8 @@ class ProjectView(RegionSiloOrganizationView):
     """
 
     def get_context_data(self, request: Request, organization: Organization, project: Project, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+        from sentry.api.serializers import serialize
+
         context = super().get_context_data(request, organization)
         context["project"] = project
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
@@ -638,7 +624,7 @@ class ProjectView(RegionSiloOrganizationView):
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            organization = self._lookup_orm_org()
+            organization = self._get_organization()
 
             if organization:
                 active_project = self.get_active_project(

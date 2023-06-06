@@ -48,6 +48,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
@@ -61,7 +62,10 @@ import {
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
-import {SESSION_DURATION_ALERT} from 'sentry/views/dashboards/widgetCard';
+import {
+  SESSION_DURATION_ALERT,
+  WidgetDescription,
+} from 'sentry/views/dashboards/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
@@ -173,6 +177,7 @@ function WidgetViewerModal(props: Props) {
     seriesResultsType,
   } = props;
   const location = useLocation();
+  const {projects} = useProjects();
   const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -500,6 +505,8 @@ function WidgetViewerModal(props: Props) {
               location,
               tableData: tableResults?.[0],
               isFirstPage,
+              projects,
+              eventView,
             }),
             onResizeColumn,
           }}
@@ -672,7 +679,7 @@ function WidgetViewerModal(props: Props) {
   };
 
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
-    // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+    // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
     const {seriesStart, seriesEnd} = evt;
     let startValue, endValue;
@@ -990,6 +997,9 @@ function WidgetViewerModal(props: Props) {
                   <Header closeButton>
                     <WidgetTitle>
                       <h3>{widget.title}</h3>
+                      {widget.description && (
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      )}
                       <DashboardsMEPConsumer>
                         {({}) => {
                           // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -1190,8 +1200,8 @@ const EmptyQueryContainer = styled('span')`
 
 const WidgetTitle = styled('div')`
   display: flex;
+  flex-direction: column;
   gap: ${space(1)};
-  align-items: center;
 `;
 
 export default withPageFilters(WidgetViewerModal);

@@ -2,7 +2,7 @@ import logging
 
 from django.http import Http404
 
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import PagerDutyService
 from sentry.shared_integrations.exceptions import ApiError
@@ -42,8 +42,13 @@ def build_incident_attachment(
     }
 
 
-def send_incident_alert_notification(action, incident, metric_value, new_status: IncidentStatus):
-    integration = action.integration
+def send_incident_alert_notification(
+    action: AlertRuleTriggerAction,
+    incident: Incident,
+    metric_value: int,
+    new_status: IncidentStatus,
+) -> None:
+    integration_id = action.integration_id
     try:
         service = PagerDutyService.objects.get(id=action.target_identifier)
     except PagerDutyService.DoesNotExist:
@@ -51,7 +56,7 @@ def send_incident_alert_notification(action, incident, metric_value, new_status:
         logger.info(
             "fetch.fail.pagerduty_metric_alert",
             extra={
-                "integration_id": integration.id,
+                "integration_id": integration_id,
                 "organization_id": incident.organization_id,
                 "target_identifier": action.target_identifier,
             },
@@ -69,7 +74,7 @@ def send_incident_alert_notification(action, incident, metric_value, new_status:
                 "error": str(e),
                 "service_name": service.service_name,
                 "service_id": service.id,
-                "integration_id": integration.id,
+                "integration_id": integration_id,
             },
         )
         raise e

@@ -67,6 +67,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project",
+            referrer="discover",
         )
 
         data = result["data"]
@@ -90,6 +91,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 3
@@ -112,6 +114,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="-project",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 3
@@ -134,6 +137,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project.name",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 3
@@ -165,6 +169,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             orderby="project",
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 2
@@ -182,6 +187,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query=query,
+                referrer="discover",
                 params=self.params,
             )
             data = result["data"]
@@ -203,6 +209,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["issue", "issue.id"],
                 query=query,
                 params=self.params,
+                referrer="discover",
             )
             data = result["data"]
             assert len(data) == 1
@@ -237,6 +244,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query="",
                 params=self.params,
                 orderby=orderby,
+                referrer="test_discover_query",
             )
             data = result["data"]
             assert len(data) == len(expected)
@@ -284,6 +292,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 params=self.params,
                 orderby=column,
+                referrer="test_discover_query",
             )
             data = result["data"]
             assert len(data) == len(expected), (column, query, expected)
@@ -316,6 +325,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 params=self.params,
                 orderby=column,
+                referrer="test_discover_query",
             )
             data = result["data"]
             assert len(data) == len(expected), (query, expected)
@@ -347,6 +357,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     query="",
                     params=self.params,
                     orderby=f"{direction}{column}",
+                    referrer="discover",
                 )
                 data = result["data"]
                 assert len(data) == 2
@@ -360,6 +371,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query="",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 1
@@ -391,6 +403,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 1
@@ -444,6 +457,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["user.display"],
             query="",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 4
@@ -472,6 +486,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["user.display"],
             query="has:user.display user.display:bruce@example.com",
             params=self.params,
+            referrer="test_discover_query",
         )
         data = result["data"]
         assert len(data) == 1
@@ -501,6 +516,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query="",
                 params=self.params,
                 orderby=orderby,
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -539,6 +555,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 params=self.params,
                 orderby="message",
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -598,6 +615,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "organization_id": self.organization.id,
                     "team_id": [team1.id, team2.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -672,6 +690,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id, project2.id],
                 "organization_id": self.organization.id,
             },
+            referrer="test_discover_query",
         )
 
         assert len(result["data"]) == 5
@@ -702,6 +721,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [project2.id],
                 "organization_id": self.organization.id,
             },
+            referrer="test_discover_query",
         )
 
         assert len(result["data"]) == 1
@@ -752,6 +772,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [project.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -805,6 +826,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [self.project.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -850,6 +872,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [self.project.id],
                 },
+                referrer="test_discover_query",
             )
 
             data = result["data"]
@@ -896,6 +919,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -963,6 +987,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction"] + col,
                 query=query,
                 orderby="transaction",
+                referrer="discover",
                 params={
                     "start": before_now(minutes=30),
                     "end": before_now(minutes=2),
@@ -1052,6 +1077,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction"] + col,
                 query=query,
                 orderby="transaction",
+                referrer="discover",
                 params={
                     "start": before_now(minutes=30),
                     "end": before_now(minutes=2),
@@ -1142,6 +1168,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for query, expected_user_misery, col, alias in queries:
             result = discover.query(
                 selected_columns=["transaction"] + col,
+                referrer="discover",
                 query=query,
                 orderby="transaction",
                 params={
@@ -1186,6 +1213,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [project.id],
                 },
+                referrer="discover",
                 use_aggregate_conditions=use_aggregate_conditions,
             )
             data = result["data"]
@@ -1233,6 +1261,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for i, test_case in enumerate(fields):
             selected, query = test_case
             result = discover.query(
+                referrer="discover",
                 selected_columns=selected,
                 query=query,
                 orderby="transaction",
@@ -1273,6 +1302,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction", "last_seen()"],
                 query=query,
+                referrer="discover",
                 orderby="transaction",
                 params={
                     "start": before_now(minutes=10),
@@ -1303,6 +1333,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["transaction", "latest_event()"],
             query="",
             orderby="transaction",
+            referrer="discover",
             params={
                 "start": before_now(minutes=10),
                 "end": before_now(minutes=2),
@@ -1354,6 +1385,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1388,6 +1420,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         for query, expected_length, use_aggregate_conditions in queries:
             result = discover.query(
+                referrer="discover",
                 selected_columns=[
                     "transaction",
                     "percentile(transaction.duration, 0.7)",
@@ -1423,6 +1456,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         for query, expected_length, use_aggregate_conditions in queries:
             result = discover.query(
+                referrer="discover",
                 selected_columns=[
                     "transaction",
                     "p50(transaction.duration)",
@@ -1468,6 +1502,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1501,6 +1536,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1534,6 +1570,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1567,6 +1604,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1609,6 +1647,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1635,6 +1674,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id],
             },
             use_aggregate_conditions=True,
+            referrer="discover",
         )
         data = result["data"]
 
@@ -1666,6 +1706,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id],
             },
             use_aggregate_conditions=True,
+            referrer="discover",
         )
         data = result["data"]
 
@@ -1710,6 +1751,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [self.project.id],
                 },
                 use_aggregate_conditions=True,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1740,6 +1782,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id],
             },
             use_aggregate_conditions=True,
+            referrer="discover",
         )
         data = result["data"]
 
@@ -1787,6 +1830,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1839,6 +1883,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "project_id": [project.id],
                 },
                 use_aggregate_conditions=use_aggregate_conditions,
+                referrer="discover",
             )
             data = result["data"]
 
@@ -1871,6 +1916,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["transaction.status"],
             query="",
             params=self.params,
+            referrer="discover",
         )
         data = result["data"]
         assert len(data) == 3
@@ -1897,6 +1943,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction.status"],
                 query=query,
                 params=self.params,
+                referrer="discover",
             )
             data = result["data"]
             assert len(data) == len(expected_statuses), message
@@ -1957,6 +2004,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": before_now(minutes=12),
                     "end": before_now(minutes=8),
                 },
+                referrer="discover",
             )
 
             data = result["data"]
@@ -1999,6 +2047,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": before_now(minutes=12),
                     "end": before_now(minutes=8),
                 },
+                referrer="discover",
             )
             data = result["data"]
 
@@ -2035,6 +2084,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": before_now(minutes=12),
                     "end": before_now(minutes=8),
                 },
+                referrer="discover",
             )
 
             data = result["data"]
@@ -2047,6 +2097,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["stack.filename"],
             query="stack.filename:[raven.js]",
+            referrer="discover",
             params={
                 "organization_id": self.organization.id,
                 "project_id": [self.project.id],
@@ -2092,6 +2143,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": before_now(minutes=12),
                     "end": before_now(minutes=8),
                 },
+                referrer="discover",
             )
             data = result["data"]
             assert len(data) == expected_len
@@ -2129,6 +2181,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": before_now(minutes=12),
                     "end": before_now(minutes=8),
                 },
+                referrer="discover",
             )
 
             data = result["data"]
@@ -2176,6 +2229,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "end": before_now(minutes=2),
                     "project_id": [project.id],
                 },
+                referrer="discover",
             )
             data = result["data"]
 
@@ -2186,6 +2240,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
             query="",
             params=self.params,
+            referrer="discover",
         )
         data = result["data"]
         assert len(data) == 1
@@ -2209,6 +2264,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project.id", "user", "user.email"],
             query="",
             params=self.params,
+            referrer="discover",
         )
         data = result["data"]
         assert len(data) == 1
@@ -2229,6 +2285,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             auto_fields=True,
+            referrer="discover",
         )
         data = result["data"]
         assert len(data) == 1
@@ -2240,6 +2297,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project.id", "user.email"],
             query="user.email:bruce@example.com",
             params=self.params,
+            referrer="discover",
             auto_fields=True,
         )
         data = result["data"]
@@ -2250,6 +2308,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_auto_fields_simple_fields(self):
         result = discover.query(
             selected_columns=["user.email", "release"],
+            referrer="discover",
             query="",
             params=self.params,
             auto_fields=True,
@@ -2272,6 +2331,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_auto_fields_aggregates(self):
         result = discover.query(
             selected_columns=["count_unique(user.email)"],
+            referrer="discover",
             query="",
             params=self.params,
             auto_fields=True,
@@ -2285,6 +2345,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id", "message"],
             query=f"release:{self.create_release(self.project).version}",
             params=self.params,
+            referrer="discover",
         )
         assert len(result["data"]) == 0
 
@@ -2292,6 +2353,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id", "message"],
             query=f"release:{self.release.version}",
             params=self.params,
+            referrer="discover",
         )
         assert len(result["data"]) == 1
         data = result["data"]
@@ -2333,6 +2395,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>1.2.3",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
@@ -2344,6 +2407,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>=1.2.3",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             release_1_e_1,
@@ -2357,12 +2421,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:<1.2.4",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
         result = discover.query(
             selected_columns=["id"],
             query=f"!{SEMVER_ALIAS}:1.2.3",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             self.event.event_id,
@@ -2426,6 +2492,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             adopted_release_e_1,
@@ -2436,6 +2503,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             adopted_release_e_1,
@@ -2447,6 +2515,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             adopted_release_e_1,
@@ -2474,6 +2543,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
+            referrer="discover",
             query=f"{SEMVER_PACKAGE_ALIAS}:test",
             params=self.params,
         )
@@ -2484,6 +2554,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_PACKAGE_ALIAS}:test2",
+            referrer="discover",
             params=self.params,
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2511,6 +2582,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:123",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             release_1_e_1,
@@ -2520,6 +2592,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:124",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
@@ -2528,6 +2601,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:>=123",
             params=self.params,
+            referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2, release_2_e_1}
 
@@ -2536,6 +2610,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id", "message"],
             query="release:latest",
             params=self.params,
+            referrer="discover",
         )
         assert len(result["data"]) == 1
         data = result["data"]
@@ -2548,6 +2623,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id", "message"],
             query=f"environment:{self.create_environment(self.project).name}",
             params=self.params,
+            referrer="discover",
         )
         assert len(result["data"]) == 0
 
@@ -2555,6 +2631,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id", "message"],
             query=f"environment:{self.environment.name}",
             params=self.params,
+            referrer="discover",
         )
         assert len(result["data"]) == 1
         data = result["data"]
@@ -2583,6 +2660,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="message",
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2620,6 +2698,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="release",
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2645,6 +2724,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="title",
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2663,6 +2743,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="title",
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2694,6 +2775,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             },
             orderby="trek",
             use_aggregate_conditions=True,
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2725,6 +2807,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             },
             orderby="trek",
             use_aggregate_conditions=True,
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2738,6 +2821,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
                     "b" * 32, "b" * 32
                 ),
+                referrer="discover",
                 params={
                     "project_id": [self.project.id],
                     "start": self.two_min_ago,
@@ -2770,6 +2854,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             },
             orderby="transaction",
             use_aggregate_conditions=True,
+            referrer="discover",
         )
 
         data = results["data"]
@@ -2785,6 +2870,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project.id", "user", "release"],
             query="timestamp.to_hour:" + iso_format(event_hour),
             params=self.params,
+            referrer="discover",
         )
         data = result["data"]
         assert len(data) == 1
@@ -2810,6 +2896,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params=self.params,
             orderby="transaction",
             use_aggregate_conditions=True,
+            referrer="discover",
         )
 
         data = results["data"]
@@ -2831,6 +2918,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             params=self.params,
             functions_acl=["array_join"],
+            referrer="discover",
         )
         assert {"fcp", "fp", "lcp"} == {
             row["array_join_measurements_key"] for row in results["data"]
@@ -2847,6 +2935,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": self.two_min_ago,
                     "end": self.now,
                 },
+                referrer="discover",
             )
 
         # using private functions in an aggregation without access should error
@@ -2861,6 +2950,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         "end": self.now,
                     },
                     use_aggregate_conditions=True,
+                    referrer="discover",
                 )
 
         # using private functions in an aggregation without access should error
@@ -2875,6 +2965,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         "start": self.two_min_ago,
                         "end": self.now,
                     },
+                    referrer="discover",
                     auto_aggregations=True,
                     use_aggregate_conditions=True,
                 )
@@ -2894,6 +2985,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params=self.params,
             # make sure to opt in to gain access to the function
             functions_acl=["sumArray"],
+            referrer="discover",
             # -Array combinator is only supported in SnQL
         )
         assert results["data"][0]["sumArray_measurements_value"] == 3000.0
@@ -2911,6 +3003,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": before_now(seconds=1),
                 "project_id": [self.project.id],
             },
+            referrer="discover",
             use_aggregate_conditions=True,
         )
 
@@ -2937,6 +3030,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             orderby="message",
             limit=1,
             offset=1,
+            referrer="discover",
         )
 
         data = result["data"]
@@ -2954,6 +3048,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             query="event.type:transaction",
             params=self.params,
             use_aggregate_conditions=True,
+            referrer="discover",
         )
 
         assert results["meta"]["fields"] == {
@@ -2977,6 +3072,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ],
             query="event.type:transaction",
             params=self.params,
+            referrer="discover",
         )
 
         data = results["data"]
@@ -3003,6 +3099,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ],
             query="event.type:transaction",
             params=self.params,
+            referrer="discover",
         )
 
         data = results["data"]
@@ -3031,6 +3128,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="project",
+            referrer="discover",
         )
         data = result["data"]
         assert len(data) == len(expected)
@@ -3061,6 +3159,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             equations=["spans.http / transaction.duration"],
             query=self.query,
             params=self.params,
+            referrer="discover",
         )
         assert len(results["data"]) == 1
         result = results["data"][0]
@@ -3079,6 +3178,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             query=self.query,
             params=self.params,
+            referrer="discover",
         )
         assert len(results["data"]) == 1
         result = results["data"][0]
@@ -3097,6 +3197,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 equations=["spans.http / transaction.status"],
                 query=self.query,
                 params=self.params,
+                referrer="discover",
             )
 
     def test_invalid_function(self):
@@ -3109,6 +3210,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 equations=["p50(transaction.duration) / last_seen()"],
                 query=self.query,
                 params=self.params,
+                referrer="discover",
             )
 
     def test_unselected_field(self):
@@ -3120,6 +3222,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 equations=["spans.http / transaction.duration"],
                 query=self.query,
                 params=self.params,
+                referrer="discover",
             )
 
     def test_unselected_function(self):
@@ -3131,6 +3234,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 equations=["p50(transaction.duration) / p100(transaction.duration)"],
                 query=self.query,
                 params=self.params,
+                referrer="discover",
             )
 
     def test_orderby_equation(self):
@@ -3154,6 +3258,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             "orderby": ["equation[0]"],
             "query": self.query,
             "params": self.params,
+            "referrer": "discover",
         }
         results = discover.query(**query_params)
         assert len(results["data"]) == 3
@@ -3179,6 +3284,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 orderby=["equation[1]"],
                 query=self.query,
                 params=self.params,
+                referrer="discover",
             )
 
     def test_equation_without_field_or_function(self):
@@ -3193,6 +3299,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 query=self.query,
                 params=self.params,
+                referrer="discover",
             )
 
     def test_aggregate_equation(self):
@@ -3203,6 +3310,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             equations=["p50(transaction.duration) / 2"],
             query=self.query,
             params=self.params,
+            referrer="discover",
         )
         assert len(results["data"]) == 1
         result = results["data"][0]
@@ -3217,6 +3325,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             equations=["p50(transaction.duration) + 2", "p50(transaction.duration) / count()"],
             query=self.query,
             params=self.params,
+            referrer="discover",
         )
         assert len(results["data"]) == 1
         result = results["data"][0]
@@ -3237,6 +3346,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             query=self.query,
             params=self.params,
+            referrer="discover",
         )
         assert len(results["data"]) == 1
         result = results["data"][0]
@@ -3272,6 +3382,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             "orderby": ["equation[0]"],
             "query": self.query,
             "params": self.params,
+            "referrer": "discover",
         }
         results = discover.query(**query_params)
         assert len(results["data"]) == 3

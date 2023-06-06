@@ -62,10 +62,12 @@ describe('ProjectSourceMaps', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
+            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
+              initializeOrg().project.slug
+            }/source-maps/release-bundles/`,
           },
           params: {},
         },
@@ -97,12 +99,12 @@ describe('ProjectSourceMaps', function () {
       expect(tabs).toHaveLength(2);
 
       // Tab 1
-      expect(tabs[0]).toHaveTextContent('Release Bundles');
-      expect(tabs[0]).toHaveClass('active');
+      expect(tabs[0]).toHaveTextContent('Artifact Bundles');
+      expect(tabs[0]).not.toHaveClass('active');
 
       // Tab 2
-      expect(tabs[1]).toHaveTextContent('Artifact Bundles');
-      expect(tabs[1]).not.toHaveClass('active');
+      expect(tabs[1]).toHaveTextContent('Release Bundles');
+      expect(tabs[1]).toHaveClass('active');
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Name')).toBeInTheDocument();
@@ -123,7 +125,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       // Active tab contains correct link
-      expect(screen.getByRole('link', {name: 'Release Bundles'})).toHaveAttribute(
+      expect(screen.getByRole('link', {name: /Release Bundles/})).toHaveAttribute(
         'href',
         '/settings/org-slug/projects/project-slug/source-maps/release-bundles/'
       );
@@ -167,10 +169,12 @@ describe('ProjectSourceMaps', function () {
 
     it('renders empty state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
+            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
+              initializeOrg().project.slug
+            }/source-maps/release-bundles/`,
           },
           params: {},
         },
@@ -204,7 +208,6 @@ describe('ProjectSourceMaps', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},
@@ -242,12 +245,12 @@ describe('ProjectSourceMaps', function () {
       expect(tabs).toHaveLength(2);
 
       // Tab 1
-      expect(tabs[0]).toHaveTextContent('Release Bundles');
-      expect(tabs[0]).not.toHaveClass('active');
+      expect(tabs[0]).toHaveTextContent('Artifact Bundles');
+      expect(tabs[0]).toHaveClass('active');
 
       // Tab 2
-      expect(tabs[1]).toHaveTextContent('Artifact Bundles');
-      expect(tabs[1]).toHaveClass('active');
+      expect(tabs[1]).toHaveTextContent('Release Bundles');
+      expect(tabs[1]).not.toHaveClass('active');
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Bundle ID')).toBeInTheDocument();
@@ -267,11 +270,6 @@ describe('ProjectSourceMaps', function () {
         );
       });
 
-      // Chip
-      await userEvent.hover(screen.getByText('none'));
-      expect(
-        await screen.findByText('Not associated with a release or distribution')
-      ).toBeInTheDocument();
       // Artifacts
       expect(screen.getByText('39')).toBeInTheDocument();
       // Date Uploaded
@@ -309,7 +307,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       // Switch tab
-      await userEvent.click(screen.getByRole('link', {name: 'Release Bundles'}));
+      await userEvent.click(screen.getByRole('link', {name: /Release Bundles/}));
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/settings/org-slug/projects/project-slug/source-maps/release-bundles/',
         query: undefined,
@@ -318,7 +316,6 @@ describe('ProjectSourceMaps', function () {
 
     it('renders empty state', async function () {
       const {organization, route, project, router, routerContext} = initializeOrg({
-        ...initializeOrg(),
         router: {
           location: {
             query: {},

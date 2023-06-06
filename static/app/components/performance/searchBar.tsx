@@ -24,10 +24,17 @@ export type SearchBarProps = {
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
+  className?: string;
 };
 
 function SearchBar(props: SearchBarProps) {
-  const {organization, eventView: _eventView, onSearch, query: searchQuery} = props;
+  const {
+    organization,
+    eventView: _eventView,
+    onSearch,
+    query: searchQuery,
+    className,
+  } = props;
 
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
   const transactionCount = searchResults[0]?.children?.length || 0;
@@ -217,7 +224,11 @@ function SearchBar(props: SearchBarProps) {
   };
 
   return (
-    <Container data-test-id="transaction-search-bar" ref={containerRef}>
+    <Container
+      className={className || ''}
+      data-test-id="transaction-search-bar"
+      ref={containerRef}
+    >
       <BaseSearchBar
         placeholder={t('Search Transactions')}
         onChange={handleSearchChange}

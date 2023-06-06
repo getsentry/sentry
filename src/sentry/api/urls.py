@@ -1,5 +1,14 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.api.endpoints.organization_events_facets_stats_performance import (
+    OrganizationEventsFacetsStatsPerformanceEndpoint,
+)
+from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
+from sentry.api.endpoints.organization_projects_experiment import (
+    OrganizationProjectsExperimentEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -67,6 +76,7 @@ from sentry.monitors.endpoints.organization_monitor_details import (
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.monitors.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
+from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -114,7 +124,6 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.client_state import ClientStateEndpoint, ClientStateListEndpoint
 from .endpoints.codeowners import (
     ExternalTeamDetailsEndpoint,
     ExternalTeamEndpoint,
@@ -145,8 +154,6 @@ from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
-from .endpoints.group_events_latest import GroupEventsLatestEndpoint
-from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
@@ -268,7 +275,6 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
-from .endpoints.organization_events_new_trends import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
@@ -286,6 +292,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
+from .endpoints.organization_events_trendsv2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -328,7 +335,10 @@ from .endpoints.organization_onboarding_continuation_email import (
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
-from .endpoints.organization_profiling_profiles import OrganizationProfilingFiltersEndpoint
+from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingFlamegraphEndpoint,
+)
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -374,7 +384,6 @@ from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
@@ -417,7 +426,6 @@ from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_processingissues import (
     ProjectProcessingIssuesDiscardEndpoint,
     ProjectProcessingIssuesEndpoint,
-    ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
@@ -448,6 +456,7 @@ from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndp
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
+from .endpoints.project_stacktrace_links import ProjectStacktraceLinksEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
@@ -547,12 +556,8 @@ GROUP_URLS = [
         GroupEventsEndpoint.as_view(),
     ),
     url(
-        r"^(?P<issue_id>[^\/]+)/events/latest/$",
-        GroupEventsLatestEndpoint.as_view(),
-    ),
-    url(
-        r"^(?P<issue_id>[^\/]+)/events/oldest/$",
-        GroupEventsOldestEndpoint.as_view(),
+        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|\d+|[A-Fa-f0-9-]{32,36}))/$",
+        GroupEventDetailsEndpoint.as_view(),
     ),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$",
@@ -1166,6 +1171,16 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-facets",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/events-facets-stats/$",
+        OrganizationEventsFacetsStatsPerformanceEndpoint.as_view(),
+        name="sentry-api-0-organization-events-facets-stats-performance",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/events-starfish/$",
+        OrganizationEventsStarfishEndpoint.as_view(),
+        name="sentry-api-0-organization-events-starfish",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
         OrganizationEventsFacetsPerformanceEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets-performance",
@@ -1243,9 +1258,9 @@ ORGANIZATION_URLS = [
     # This endpoint is for experimentation only
     # Once this feature is developed, the endpoint will replace /events-trends-stats
     url(
-        r"^(?P<organization_slug>[^\/]+)/new-events-trends-stats/$",
+        r"^(?P<organization_slug>[^\/]+)/events-trends-statsv2/$",
         OrganizationEventsNewTrendsStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-new-trends-stats",
+        name="sentry-api-0-organization-events-trends-statsv2",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -1371,6 +1386,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1380,6 +1398,9 @@ ORGANIZATION_URLS = [
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        # XXX(epurkhiser): When removing method dispatch (once the legacy
+        # ingest endpoints are removed) we need to update apidocs/hooks.py to
+        # remove these from the explicit endpoints
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
             csrf_exempt=True,
@@ -1422,11 +1443,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sessions",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/users/issues/$",
-        OrganizationUserIssuesSearchEndpoint.as_view(),
-        name="sentry-api-0-organization-issue-search",
-    ),
-    url(
         r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
         OrganizationIssuesResolvedInReleaseEndpoint.as_view(),
         name="sentry-api-0-organization-release-resolved",
@@ -1460,6 +1476,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/experimental/projects/$",
+        OrganizationProjectsExperimentEndpoint.as_view(),
+        name="sentry-api-0-organization-projects-experiment",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/projects-count/$",
@@ -1653,6 +1674,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-replay-count",
     ),
     url(
+        r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$",
+        OrganizationReplayDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-replay-details",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
@@ -1738,18 +1764,13 @@ ORGANIZATION_URLS = [
                     OrganizationProfilingFiltersEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-filters",
                 ),
+                url(
+                    r"^flamegraph/$",
+                    OrganizationProfilingFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-flamegraph",
+                ),
             ],
         ),
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/client-state/$",
-        ClientStateListEndpoint.as_view(),
-        name="sentry-api-0-organization-client-state-list",
-    ),
-    url(
-        r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
-        ClientStateEndpoint.as_view(),
-        name="sentry-api-0-organization-client-state",
     ),
 ]
 
@@ -2068,7 +2089,7 @@ PROJECT_URLS = [
         name="sentry-api-0-project-rules-configuration",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
         ProjectRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-details",
     ),
@@ -2083,7 +2104,7 @@ PROJECT_URLS = [
         name="sentry-api-0-metric-rule-snooze",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview/$",
         ProjectRulePreviewEndpoint.as_view(),
         name="sentry-api-0-project-rule-preview",
     ),
@@ -2168,11 +2189,6 @@ PROJECT_URLS = [
         name="sentry-api-0-project-processing-issues",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/fix$",
-        ProjectProcessingIssuesFixEndpoint.as_view(),
-        name="sentry-api-0-project-fix-processing-issues",
-    ),
-    url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$",
         ProjectReprocessingEndpoint.as_view(),
         name="sentry-api-0-project-reprocessing",
@@ -2242,6 +2258,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-links/$",
+        ProjectStacktraceLinksEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-links",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",
@@ -2533,6 +2554,12 @@ INTERNAL_URLS = [
         r"^project-config/$",
         AdminRelayProjectConfigsEndpoint.as_view(),
         name="sentry-api-0-internal-project-config",
+    ),
+    url(
+        # If modifying, ensure PROXY_BASE_PATH is updated as well
+        r"^integration-proxy/\S+$",
+        InternalIntegrationProxyEndpoint.as_view(),
+        name="sentry-api-0-internal-integration-proxy",
     ),
     url(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",

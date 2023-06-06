@@ -3,6 +3,7 @@ export function Project(params = {}) {
     id: '2',
     slug: 'project-slug',
     name: 'Project Name',
+    access: ['project:read'],
     hasAccess: true,
     isMember: true,
     isBookmarked: false,

@@ -1,5 +1,5 @@
 from sentry.models import Group, Integration
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils import TestCase
 
 
@@ -20,7 +20,7 @@ class SentryManagerTest(TestCase):
             metadata={"base_url": "https://example.com"},
         )
         integration_model.add_organization(group.organization, self.user)
-        integration = integration_service._serialize_integration(integration=integration_model)
+        integration = serialize_integration(integration=integration_model)
         self.create_integration_external_issue(
             group=group, integration=integration, key=external_issue_key
         )

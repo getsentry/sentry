@@ -19,7 +19,7 @@ export default styled('div')<Props>`
     p.color
       ? `background: ${p.color};`
       : `background: ${
-          p.status === CheckInStatus.ERROR
+          p.status === CheckInStatus.ERROR || p.status === CheckInStatus.TIMEOUT
             ? p.theme.error
             : p.status === CheckInStatus.OK
             ? p.theme.success

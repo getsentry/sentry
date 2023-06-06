@@ -121,8 +121,20 @@ export function getLeadHint({
 
   switch (event.type) {
     case EventOrGroupType.ERROR:
-      return t('Crashed in non-app');
+      // ANRs/AppHangs are errors, but not crashes, so "Crashed in non-app" might be confusing as if
+      // there was a crash prior to ANR, hence special-casing them
+      return isAnrEvent(event) ? t('Occurred in non-app') : t('Crashed in non-app');
     default:
       return t('Occurred in non-app');
   }
+}
+
+function isAnrEvent(event: Event) {
+  const mechanismTag = event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isANR =
+    mechanismTag === 'ANR' ||
+    mechanismTag === 'AppExitInfo' ||
+    mechanismTag === 'AppHang' ||
+    mechanismTag === 'mx_hang_diagnostic';
+  return isANR;
 }

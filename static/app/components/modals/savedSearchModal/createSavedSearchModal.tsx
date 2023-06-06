@@ -26,20 +26,8 @@ const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-function getSortOptions(organization: Organization) {
-  return organization?.features?.includes('issue-list-trend-sort')
-    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
-    : DEFAULT_SORT_OPTIONS;
-}
-
-function validateSortOption({
-  organization,
-  sort,
-}: {
-  organization: Organization;
-  sort?: string;
-}) {
-  if (getSortOptions(organization).find(option => option === sort)) {
+function validateSortOption({sort}: {sort?: string}) {
+  if (DEFAULT_SORT_OPTIONS.find(option => option === sort)) {
     return sort as string;
   }
 
@@ -61,8 +49,8 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({organization, sort}),
-    visibility: SavedSearchVisibility.Owner,
+    sort: validateSortOption({sort}),
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (

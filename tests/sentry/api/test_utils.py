@@ -1,16 +1,21 @@
 import datetime
 import unittest
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
 from freezegun import freeze_time
+from sentry_sdk import Scope
+from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
     InvalidParams,
     customer_domain_path,
     get_date_range_from_params,
+    print_and_capture_handler_exception,
 )
+from sentry.testutils.cases import APITestCase
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -79,6 +84,64 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_relative_date_range_incomplete(self):
         with pytest.raises(InvalidParams):
             start, end = get_date_range_from_params({"timeframeStart": "14d"})
+
+
+class PrintAndCaptureHandlerExceptionTest(APITestCase):
+    def setUp(self):
+        self.handler_error = Exception("nope")
+
+    @patch("sys.stderr.write")
+    def test_logs_error_locally(self, mock_stderr_write: MagicMock):
+        exc_info = exc_info_from_error(self.handler_error)
+
+        with patch("sys.exc_info", return_value=exc_info):
+            print_and_capture_handler_exception(self.handler_error)
+
+            mock_stderr_write.assert_called_with("Exception: nope\n")
+
+    @patch("sentry.api.utils.capture_exception")
+    def test_passes_along_exception(
+        self,
+        mock_capture_exception: MagicMock,
+    ):
+        print_and_capture_handler_exception(self.handler_error)
+
+        assert mock_capture_exception.call_args.args[0] == self.handler_error
+
+    @patch("sentry.api.utils.capture_exception")
+    def test_merges_handler_context_with_scope(
+        self,
+        mock_capture_exception: MagicMock,
+    ):
+        handler_context = {"api_request_URL": "http://dogs.are.great/"}
+        scope = Scope()
+        tags = {"maisey": "silly", "charlie": "goofy"}
+        for tag, value in tags.items():
+            scope.set_tag(tag, value)
+
+        cases = [
+            # The first half of each tuple is what's passed to
+            # `print_and_capture_handler_exception`, and the second half is what we expect in the
+            # scope passed to `capture_exception`
+            (None, None, {}, {}),
+            (handler_context, None, {"Request Handler Data": handler_context}, {}),
+            (None, scope, {}, tags),
+            (
+                handler_context,
+                scope,
+                {"Request Handler Data": handler_context},
+                tags,
+            ),
+        ]
+
+        for handler_context_arg, scope_arg, expected_scope_contexts, expected_scope_tags in cases:
+            print_and_capture_handler_exception(self.handler_error, handler_context_arg, scope_arg)
+
+            capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get("scope")
+
+            assert isinstance(capture_exception_scope_kwarg, Scope)
+            assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
+            assert capture_exception_scope_kwarg._tags == expected_scope_tags
 
 
 def test_customer_domain_path():

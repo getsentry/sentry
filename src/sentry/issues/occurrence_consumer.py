@@ -160,7 +160,15 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     if optional_param in event_payload:
                         event_data[optional_param] = event_payload.get(optional_param)
 
-                _validate_event_data(event_data)
+                try:
+                    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+                except jsonschema.exceptions.ValidationError:
+                    metrics.incr(
+                        "occurrence_ingest.event_payload_invalid",
+                        sample_rate=1.0,
+                        tags={"occurrence_type": occurrence_data["type"]},
+                    )
+                    raise
 
                 event_data["metadata"] = {
                     # This allows us to show the title consistently in discover
@@ -178,14 +186,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
     except (KeyError, ValueError) as e:
         raise InvalidEventPayloadError(e)
-
-
-def _validate_event_data(event_data: Mapping[str, Any]) -> None:
-    try:
-        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
-    except jsonschema.exceptions.ValidationError:
-        metrics.incr("occurrence_ingest.event_payload_invalid")
-        raise
 
 
 def _process_message(

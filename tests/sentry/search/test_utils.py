@@ -710,7 +710,7 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class ConvertUserTagTest(TestCase):
     def test_simple_user_tag(self):
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'

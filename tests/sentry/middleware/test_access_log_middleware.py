@@ -11,7 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -171,6 +171,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
             assert int(self.captured_logs[i].remaining) < 20
 
 
+@control_silo_test
 class TestAccessLogSuccess(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"
@@ -185,6 +186,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 
 
 @override_settings(LOG_API_ACCESS=False)
+@control_silo_test
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"

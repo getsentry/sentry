@@ -7,7 +7,7 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

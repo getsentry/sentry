@@ -27,11 +27,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useProfiles} from './profilesProvider';
+import {useProfiles, useProfileTransaction} from './profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
   const profiles = useProfiles();
+  const profiledTransaction = useProfileTransaction();
   const params = useParams();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
@@ -97,7 +98,7 @@ function ProfileFlamegraph(): React.ReactElement {
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
-              {profiles.type === 'loading' ? (
+              {profiles.type === 'loading' || profiledTransaction.type === 'loading' ? (
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>

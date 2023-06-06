@@ -22,7 +22,6 @@ describe('Discover > ResultsChart', function () {
     router: {
       location,
     },
-    project: 1,
     projects: [],
   });
 

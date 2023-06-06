@@ -181,15 +181,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        member.regenerate_token()
-                        member.save()
+                        with transaction.atomic():
+                            member.regenerate_token()
+                            member.save()
+                        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user, auth_provider)
+                member.send_sso_link_email(request.user.id, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
@@ -212,15 +214,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 return Response({"teams": "Invalid team"}, status=400)
 
         assigned_org_role = result.get("orgRole") or result.get("role")
-        if assigned_org_role and getattr(member.flags, "idp:role-restricted"):
-            return Response(
-                {
-                    "role": "This user's org-role is managed through your organization's identity provider."
-                },
-                status=403,
-            )
-        elif assigned_org_role:
+        is_update_org_role = assigned_org_role and assigned_org_role != member.role
+
+        if is_update_org_role:
+            if getattr(member.flags, "idp:role-restricted"):
+                return Response(
+                    {
+                        "role": "This user's org-role is managed through your organization's identity provider."
+                    },
+                    status=403,
+                )
+
             allowed_role_ids = {r.id for r in allowed_roles}
+
             # A user cannot promote others above themselves
             if assigned_org_role not in allowed_role_ids:
                 return Response(
@@ -253,7 +259,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_EDIT"),
             data=member.get_audit_log_data(),
         )
@@ -285,8 +291,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 organizationmember=member, role__in=lesser_team_roles
             ).update(role=None)
 
-            member.update(role=role)
-
+            member.role = role
+            member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",
@@ -371,7 +377,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_REMOVE"),
             data=audit_data,
         )

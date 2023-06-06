@@ -39,6 +39,7 @@ from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
+    PrioritySortWeights,
 )
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -363,9 +364,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-        search_filters = search_filters if search_filters is not None else []
 
+        search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
             raise RuntimeError("Cross organization search not supported")
@@ -418,6 +420,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             max_hits=max_hits,
             referrer=referrer,
             actor=actor,
+            aggregate_kwargs=aggregate_kwargs,
         )
 
     def _build_group_queryset(
@@ -508,6 +511,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     ) -> Mapping[str, Condition]:
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
+            "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
             "bookmarked_by": QCallbackCondition(
                 lambda users: Q(
                     bookmark_set__project__in=projects,

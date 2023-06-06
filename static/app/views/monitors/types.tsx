@@ -24,6 +24,7 @@ export enum MonitorStatus {
   DISABLED = 'disabled',
   ACTIVE = 'active',
   MISSED_CHECKIN = 'missed_checkin',
+  TIMEOUT = 'timeout',
 }
 
 export enum CheckInStatus {
@@ -31,12 +32,14 @@ export enum CheckInStatus {
   ERROR = 'error',
   IN_PROGRESS = 'in_progress',
   MISSED = 'missed',
+  TIMEOUT = 'timeout',
 }
 
 interface BaseConfig {
   checkin_margin: number;
   max_runtime: number;
   timezone: string;
+  alert_rule_id?: number;
 }
 
 /**
@@ -84,6 +87,12 @@ export interface Monitor {
   slug: string;
   status: ObjectStatus;
   type: MonitorType;
+  alertRule?: {
+    targets: Array<{
+      targetIdentifier: number;
+      targetType: 'Member' | 'Team';
+    }>;
+  };
 }
 
 export interface MonitorStat {
@@ -91,5 +100,14 @@ export interface MonitorStat {
   error: number;
   missed: number;
   ok: number;
+  timeout: number;
   ts: number;
+}
+
+export interface CheckIn {
+  dateCreated: string;
+  duration: number;
+  id: string;
+  status: CheckInStatus;
+  attachmentId?: number;
 }

@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 
 import splitCrumbs from './splitCrumbs';
 
@@ -9,7 +9,7 @@ const PAGELOAD_CRUMB = TestStubs.Breadcrumb({
   data: {
     to: 'https://sourcemaps.io/',
   },
-}) as BreadcrumbTypeNavigation;
+}) as Crumb;
 
 const NAV_CRUMB_BOOTSTRAP = TestStubs.Breadcrumb({
   id: 5,
@@ -17,7 +17,7 @@ const NAV_CRUMB_BOOTSTRAP = TestStubs.Breadcrumb({
     from: '/',
     to: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
   },
-}) as BreadcrumbTypeNavigation;
+}) as Crumb;
 
 const NAV_CRUMB_UNDERSCORE = TestStubs.Breadcrumb({
   id: 6,
@@ -25,7 +25,7 @@ const NAV_CRUMB_UNDERSCORE = TestStubs.Breadcrumb({
     from: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
     to: '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js',
   },
-}) as BreadcrumbTypeNavigation;
+}) as Crumb;
 
 describe('splitCrumbs', () => {
   const onClick = null;

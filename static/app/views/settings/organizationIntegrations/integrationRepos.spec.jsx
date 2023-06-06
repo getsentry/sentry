@@ -156,7 +156,7 @@ describe('IntegrationRepos', function () {
       const updateRepo = MockApiClient.addMockResponse({
         method: 'PUT',
         url: `/organizations/${org.slug}/repos/4/`,
-        body: {},
+        body: {id: 244},
       });
       render(<IntegrationRepos integration={integration} />);
 
@@ -176,7 +176,7 @@ describe('IntegrationRepos', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [TestStubs.Repository({name: 'repo-name', externalSlug: 9876})],
+        body: [TestStubs.Repository({name: 'repo-name-other', externalSlug: 9876})],
       });
       const getItems = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
@@ -188,7 +188,7 @@ describe('IntegrationRepos', function () {
       const updateRepo = MockApiClient.addMockResponse({
         method: 'PUT',
         url: `/organizations/${org.slug}/repos/4/`,
-        body: {},
+        body: {id: 4320},
       });
       render(<IntegrationRepos integration={integration} />);
 

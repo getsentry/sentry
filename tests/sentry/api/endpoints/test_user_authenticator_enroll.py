@@ -6,14 +6,17 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
+from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -260,7 +263,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class AcceptOrganizationInviteTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -279,19 +282,28 @@ class AcceptOrganizationInviteTest(APITestCase):
     def _assert_pending_invite_details_in_session(self, om):
         assert self.client.session["invite_token"] == om.token
         assert self.client.session["invite_member_id"] == om.id
+        assert self.client.session["invite_organization_id"] == om.organization_id
 
     def create_existing_om(self):
-        OrganizationMember.objects.create(
-            user=self.user, role="member", organization=self.organization
-        )
+        with exempt_from_silo_limits(), outbox_runner():
+            OrganizationMember.objects.create(
+                user=self.user, role="member", organization=self.organization
+            )
 
     def get_om_and_init_invite(self):
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", role="member", token="abc", organization=self.organization
-        )
+        with exempt_from_silo_limits(), outbox_runner():
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com",
+                role="member",
+                token="abc",
+                organization=self.organization,
+            )
 
         resp = self.client.get(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            reverse(
+                "sentry-api-0-organization-accept-organization-invite",
+                args=[self.organization.slug, om.id, om.token],
+            )
         )
         assert resp.status_code == 200
         self._assert_pending_invite_details_in_session(om)
@@ -299,17 +311,19 @@ class AcceptOrganizationInviteTest(APITestCase):
         return om
 
     def assert_invite_accepted(self, response, member_id: int) -> None:
-        om = OrganizationMember.objects.get(id=member_id)
-        assert om.user == self.user
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(id=member_id)
+        assert om.user_id == self.user.id
         assert om.email is None
 
-        AuditLogEntry.objects.get(
-            organization_id=self.organization.id,
-            target_object=om.id,
-            target_user=self.user,
-            event=audit_log.get_event_id("MEMBER_ACCEPT"),
-            data=om.get_audit_log_data(),
-        )
+        with exempt_from_silo_limits():
+            AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                target_object=om.id,
+                target_user=self.user,
+                event=audit_log.get_event_id("MEMBER_ACCEPT"),
+                data=serialize_member(om).get_audit_log_metadata(),
+            )
 
         assert not self.client.session.get("invite_token")
         assert not self.client.session.get("invite_member_id")
@@ -325,6 +339,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             self.session["webauthn_register_state"] = "state"
             self.session["invite_token"] = self.client.session["invite_token"]
             self.session["invite_member_id"] = self.client.session["invite_member_id"]
+            self.session["invite_organization_id"] = self.client.session["invite_organization_id"]
             self.save_session()
             return self.get_success_response(
                 "me",
@@ -336,7 +351,8 @@ class AcceptOrganizationInviteTest(APITestCase):
     def test_cannot_accept_invite_pending_invite__2fa_required(self):
         om = self.get_om_and_init_invite()
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
         assert om.email == "newuser@example.com"
 
@@ -412,7 +428,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.create_existing_om()
         self.setup_u2f(om)
 
-        assert not OrganizationMember.objects.filter(id=om.id).exists()
+        with exempt_from_silo_limits():
+            assert not OrganizationMember.objects.filter(id=om.id).exists()
 
         log.info.assert_called_once_with(
             "Pending org invite not accepted - User already org member",
@@ -426,11 +443,13 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(id=om.id + 1)
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+            om.update(id=om.id + 1)
 
         self.setup_u2f(om)
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
         assert om.email == "newuser@example.com"
 
@@ -444,11 +463,13 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        om.update(token="123")
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+            om.update(token="123")
 
         self.setup_u2f(om)
 
-        om = OrganizationMember.objects.get(id=om.id)
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
         assert om.email == "newuser@example.com"
 

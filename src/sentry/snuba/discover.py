@@ -4,7 +4,7 @@ import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -93,6 +93,35 @@ def is_real_column(col):
         return False
 
     return True
+
+
+def format_time(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
+            # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
+            # the format returned by snuba. This is significantly faster when compared to other
+            # parsers like `dateutil.parser.parse` and `datetime.strptime`.
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in range(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv.extend(data_by_time[key])
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
 
 
 def zerofill(data, start, end, rollup, orderby):
@@ -1333,3 +1362,39 @@ def check_multihistogram_fields(fields):
         elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return False
     return histogram_type
+
+
+def corr_snuba_timeseries(
+    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+):
+    """
+    Returns the Pearson's coefficient of two snuba timeseries.
+    """
+    if len(x) != len(y):
+        return
+
+    n = len(x)
+    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0, 0, 0, 0, 0
+    for i in range(n):
+        x_datum = x[i]
+        y_datum = y[i]
+
+        x_ = x_datum[1][0]["count"]
+        y_ = y_datum[1][0]["count"]
+
+        sum_x += x_
+        sum_y += y_
+        sum_xy += x_ * y_
+        sum_x_squared += x_ * x_
+        sum_y_squared += y_ * y_
+
+    denominator = math.sqrt(
+        (n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)
+    )
+    if denominator == 0:
+        return
+
+    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
+
+    return pearsons_corr_coeff

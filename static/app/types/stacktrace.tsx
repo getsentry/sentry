@@ -44,7 +44,11 @@ export type StackTraceMechanism = {
   type: string;
   data?: object;
   description?: string;
+  exception_id?: number;
   help_link?: string;
+  is_exception_group?: boolean;
   meta?: MechanismMeta;
+  parent_id?: number;
+  source?: string;
   synthetic?: boolean;
 };

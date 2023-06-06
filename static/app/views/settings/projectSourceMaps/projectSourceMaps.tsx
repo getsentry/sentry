@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -8,6 +8,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
+import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
@@ -39,8 +40,8 @@ enum SORT_BY {
 }
 
 enum SourceMapsBundleType {
-  Release,
-  DebugId,
+  RELEASE,
+  DEBUG_ID,
 }
 
 function SourceMapsTableRow({
@@ -61,7 +62,7 @@ function SourceMapsTableRow({
   idColumnDetails?: React.ReactNode;
 }) {
   const isEmptyReleaseBundle =
-    bundleType === SourceMapsBundleType.Release && fileCount === -1;
+    bundleType === SourceMapsBundleType.RELEASE && fileCount === -1;
 
   return (
     <Fragment>
@@ -148,25 +149,30 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
   );
 
+  const sourceMapsUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/`
+  );
+
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
+
+  useEffect(() => {
+    if (location.pathname === sourceMapsUrl) {
+      router.replace(debugIdsUrl);
+    }
+  }, [location.pathname, sourceMapsUrl, debugIdsUrl, router]);
 
   const {
     data: archivesData,
+    getResponseHeader: archivesHeaders,
     isLoading: archivesLoading,
     refetch: archivesRefetch,
-  } = useApiQuery<[SourceMapsArchive[], any, any]>(
+  } = useApiQuery<SourceMapsArchive[]>(
     [
       sourceMapsEndpoint,
       {
         query: {query, cursor, sortBy},
       },
     ],
-    () => {
-      return api.requestPromise(sourceMapsEndpoint, {
-        query: {query, cursor, sortBy},
-        includeAllArgs: true,
-      });
-    },
     {
       staleTime: 0,
       keepPreviousData: true,
@@ -176,21 +182,16 @@ export function ProjectSourceMaps({location, router, project}: Props) {
 
   const {
     data: debugIdBundlesData,
+    getResponseHeader: debugIdBundlesHeaders,
     isLoading: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
-  } = useApiQuery<[DebugIdBundle[], any, any]>(
+  } = useApiQuery<DebugIdBundle[]>(
     [
       debugIdBundlesEndpoint,
       {
         query: {query, cursor, sortBy},
       },
     ],
-    () => {
-      return api.requestPromise(debugIdBundlesEndpoint, {
-        query: {query, cursor, sortBy},
-        includeAllArgs: true,
-      });
-    },
     {
       staleTime: 0,
       keepPreviousData: true,
@@ -260,11 +261,29 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
-          {t('Release Bundles')}
-        </ListLink>
-        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
+        <ListLink to={debugIdsUrl} index isActive={() => tabDebugIdBundlesActive}>
           {t('Artifact Bundles')}
+        </ListLink>
+        <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
+          {t('Release Bundles')}
+          <Tooltip
+            title={tct(
+              'Release Bundles have been deprecated in favor of Artifact Bundles. Learn more about [link:Artifact Bundles].',
+              {
+                link: (
+                  <ExternalLink
+                    href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/"
+                    onClick={event => {
+                      event.stopPropagation();
+                    }}
+                  />
+                ),
+              }
+            )}
+            isHoverable
+          >
+            <Badge type="warning" text={t('Deprecated')} />
+          </Tooltip>
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
@@ -312,18 +331,16 @@ export function ProjectSourceMaps({location, router, project}: Props) {
               })
         }
         isEmpty={
-          (tabDebugIdBundlesActive
-            ? debugIdBundlesData?.[0] ?? []
-            : archivesData?.[0] ?? []
-          ).length === 0
+          (tabDebugIdBundlesActive ? debugIdBundlesData ?? [] : archivesData ?? [])
+            .length === 0
         }
         isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : archivesLoading}
       >
         {tabDebugIdBundlesActive
-          ? debugIdBundlesData?.[0].map(data => (
+          ? debugIdBundlesData?.map(data => (
               <SourceMapsTableRow
                 key={data.bundleId}
-                bundleType={SourceMapsBundleType.DebugId}
+                bundleType={SourceMapsBundleType.DEBUG_ID}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.bundleId}
@@ -336,10 +353,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                 }
               />
             ))
-          : archivesData?.[0].map(data => (
+          : archivesData?.map(data => (
               <SourceMapsTableRow
                 key={data.name}
-                bundleType={SourceMapsBundleType.Release}
+                bundleType={SourceMapsBundleType.RELEASE}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.name}
@@ -353,8 +370,8 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
-            ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
-            : archivesData?.[2]?.getResponseHeader('Link') ?? ''
+            ? debugIdBundlesHeaders?.('Link') ?? ''
+            : archivesHeaders?.('Link') ?? ''
         }
       />
     </Fragment>

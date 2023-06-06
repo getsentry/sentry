@@ -2,7 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from django.db.models import Q
 
@@ -23,6 +33,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.commit import Commit
 from sentry.notifications.helpers import (
     get_settings_by_provider,
     get_values_by_provider_by_type,
@@ -39,7 +50,8 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -100,12 +112,14 @@ class ParticipantMap:
 
     def split_participants_and_context(
         self,
-    ) -> Iterable[Tuple[ExternalProviders, Iterable[RpcActor], Mapping[int, Mapping[str, Any]]]]:
+    ) -> Iterable[
+        Tuple[ExternalProviders, Iterable[RpcActor], Mapping[RpcActor, Mapping[str, Any]]]
+    ]:
         for provider, participants_with_reasons in self._dict.items():
             extra_context = {
-                participant.actor_id: {"reason": reason}
+                participant: {"reason": reason}
                 for participant, reason in participants_with_reasons.items()
-                if participant.actor_id is not None
+                if participant is not None
             }
             yield provider, participants_with_reasons.keys(), extra_context
 
@@ -152,7 +166,7 @@ def get_participants_for_group(group: Group, user: RpcUser | None = None) -> Par
 
 
 def get_reason(
-    user: User, value: NotificationSettingOptionValues, user_ids: set[int]
+    user: Union[User, RpcActor], value: NotificationSettingOptionValues, user_ids: set[int]
 ) -> int | None:
     # Members who opt into all deploy emails.
     if value == NotificationSettingOptionValues.ALWAYS:
@@ -168,10 +182,8 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    users = {
-        RpcActor.from_orm_user(user)
-        for user in User.objects.get_team_members_with_verified_email_for_projects(projects)
-    }
+    orm_users = User.objects.get_team_members_with_verified_email_for_projects(projects)
+    users = set(RpcActor.many_from_object(orm_users))
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
@@ -228,11 +240,12 @@ def get_owners(
         users = user_service.get_many(
             filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
         )
-        recipients = [RpcActor.from_object(user) for user in users]
+        recipients = RpcActor.many_from_object(users)
 
     else:
         outcome = "match"
-        recipients = [RpcActor.from_object(obj) for obj in ActorTuple.resolve_many(owners)]
+        resolved_owners = ActorTuple.resolve_many(owners)
+        recipients = RpcActor.many_from_object(resolved_owners)
         # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
         if not features.has("organizations:notification-all-recipients", project.organization):
             recipients = recipients[-1:]
@@ -271,9 +284,11 @@ def get_owner_reason(
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
-    users = [RpcActor.from_orm_user(user) for user in User.objects.filter(id__in=user_ids)]
+    rpc_users = user_service.get_many(filter={"user_ids": user_ids})
+    users = RpcActor.many_from_object(rpc_users)
+
     notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        type=NotificationSettingTypes.ISSUE_ALERTS,
+        NotificationSettingTypes.ISSUE_ALERTS,
         parent=project,
         recipients=users,
     )
@@ -350,12 +365,11 @@ def determine_eligible_recipients(
         suspect_commit_users = None
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:
-                suspect_commit_users = [
-                    RpcActor.from_rpc_user(user)
-                    for user in get_suspect_commit_users(project, event)
-                ]
+                suspect_commit_users = RpcActor.many_from_object(
+                    get_suspect_commit_users(project, event)
+                )
                 suggested_assignees.extend(suspect_commit_users)
-            except Release.DoesNotExist:
+            except (Release.DoesNotExist, Commit.DoesNotExist):
                 logger.info("Skipping suspect committers because release does not exist.")
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
@@ -373,10 +387,7 @@ def determine_eligible_recipients(
         if suggested_assignees:
             return dedupe_suggested_assignees(suggested_assignees)
 
-        return [
-            RpcActor.from_rpc_user(user)
-            for user in get_fallthrough_recipients(project, fallthrough_choice)
-        ]
+        return RpcActor.many_from_object(get_fallthrough_recipients(project, fallthrough_choice))
 
     return set()
 
@@ -545,10 +556,7 @@ def get_recipients_by_provider(
     }
 
     # If there are any teams that didn't get added, fall back and add all users.
-    users |= {
-        RpcActor.from_rpc_user(user)
-        for user in get_users_from_team_fall_back(teams, teams_by_provider)
-    }
+    users |= set(RpcActor.many_from_object(get_users_from_team_fall_back(teams, teams_by_provider)))
 
     # Repeat for users.
     users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(

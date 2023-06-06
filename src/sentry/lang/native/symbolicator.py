@@ -40,25 +40,32 @@ class SymbolicatorTaskKind:
     def with_low_priority(self, is_low_priority: bool) -> "SymbolicatorTaskKind":
         return dataclasses.replace(self, is_low_priority=is_low_priority)
 
+    def with_js(self, is_js: bool) -> "SymbolicatorTaskKind":
+        return dataclasses.replace(self, is_js=is_js)
+
 
 class SymbolicatorPools(Enum):
+    default = "default"
     js = "js"
     lpq = "lpq"
-    default = "default"
+    lpq_js = "lpq_js"
 
 
 class Symbolicator:
     def __init__(self, task_kind: SymbolicatorTaskKind, project: Project, event_id: str):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = SymbolicatorPools.default
+        pool = SymbolicatorPools.default.value
         if task_kind.is_low_priority:
-            pool = SymbolicatorPools.lpq
+            if task_kind.is_js:
+                pool = SymbolicatorPools.lpq_js.value
+            else:
+                pool = SymbolicatorPools.lpq.value
         elif task_kind.is_js:
-            pool = SymbolicatorPools.js
+            pool = SymbolicatorPools.js.value
 
         base_url = (
             URLS.get(pool)
-            or URLS.get(SymbolicatorPools.default)
+            or URLS.get(SymbolicatorPools.default.value)
             or options.get("symbolicator.options")["url"]
         )
         base_url = base_url.rstrip("/")
@@ -146,11 +153,11 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_payload(self, stacktraces, modules, signal=None):
+    def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
         (sources, process_response) = sources_for_symbolication(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True},
+            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
             "stacktraces": stacktraces,
             "modules": modules,
         }
@@ -161,20 +168,24 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, release, dist, allow_scraping=True):
+    def process_js(
+        self, stacktraces, modules, release, dist, scraping_config=None, apply_source_context=True
+    ):
         source = get_internal_artifact_lookup_source(self.project)
 
         json = {
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
-            "allow_scraping": allow_scraping,
+            "options": {"apply_source_context": apply_source_context},
         }
 
         if release is not None:
             json["release"] = release
         if dist is not None:
             json["dist"] = dist
+        if scraping_config is not None:
+            json["scraping"] = scraping_config
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
 

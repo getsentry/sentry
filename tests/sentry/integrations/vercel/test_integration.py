@@ -19,9 +19,11 @@ from sentry.models import (
     SentryAppInstallationToken,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 

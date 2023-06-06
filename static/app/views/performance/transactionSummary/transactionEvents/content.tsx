@@ -20,6 +20,10 @@ import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {
+  platformToPerformanceType,
+  PROJECT_PERFORMANCE_TYPE,
+} from 'sentry/views/performance/utils';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import {SetStateAction} from '../types';
@@ -83,6 +87,15 @@ function EventsContent(props: Props) {
   if (spanOperationBreakdownConditions) {
     eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
     transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
+  }
+
+  const platform = platformToPerformanceType(projects, eventView.project);
+  if (platform === PROJECT_PERFORMANCE_TYPE.BACKEND) {
+    const userIndex = transactionsListTitles.indexOf('user');
+    if (userIndex > 0) {
+      transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
+      fields.splice(userIndex + 1, 0, {field: 'http.method'});
+    }
   }
 
   if (

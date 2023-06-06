@@ -41,9 +41,12 @@ export type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
+  cause_span_ids?: string[];
   offender_span_hashes?: string[];
+  offender_span_ids?: string[];
   op?: string;
   parent_span_hashes?: string[];
+  parent_span_ids?: string[];
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
@@ -173,6 +176,7 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
   minGroupingLevel?: number;
@@ -588,6 +592,10 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export interface ReplayContext {
+  replay_id: string;
+  type: string;
+}
 export interface BrowserContext {
   name: string;
   version: string;
@@ -606,6 +614,7 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  replay?: ReplayContext;
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
@@ -641,7 +650,7 @@ type EventEvidenceDisplay = {
   value: string;
 };
 
-type EventOccurrence = {
+export type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -660,6 +669,24 @@ type EventOccurrence = {
   subtitle: string;
   type: number;
 };
+
+type EventRelease = Pick<
+  Release,
+  | 'commitCount'
+  | 'data'
+  | 'dateCreated'
+  | 'dateReleased'
+  | 'deployCount'
+  | 'id'
+  | 'lastCommit'
+  | 'lastDeploy'
+  | 'ref'
+  | 'status'
+  | 'url'
+  | 'userAgent'
+  | 'version'
+  | 'versionInfo'
+>;
 
 interface EventBase {
   contexts: EventContexts;
@@ -706,7 +733,7 @@ interface EventBase {
   platform?: PlatformType;
   previousEventID?: string | null;
   projectSlug?: string;
-  release?: Release | null;
+  release?: EventRelease | null;
   sdk?: {
     name: string;
     version: string;

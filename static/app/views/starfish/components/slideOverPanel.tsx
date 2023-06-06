@@ -1,17 +1,24 @@
+import {ForwardedRef, forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-const PANEL_WIDTH = '640px';
+const PANEL_WIDTH = '50vw';
 
 type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
 };
 
-export default function SlideOverPanel({collapsed, children}: SlideOverPanelProps) {
+export default forwardRef(SlideOverPanel);
+
+function SlideOverPanel(
+  {collapsed, children}: SlideOverPanelProps,
+  ref: ForwardedRef<HTMLDivElement>
+) {
   return (
     <_SlideOverPanel
+      ref={ref}
       collapsed={collapsed}
       initial={{opacity: 0, x: PANEL_WIDTH}}
       animate={!collapsed ? {opacity: 1, x: 0} : {opacity: 0, x: PANEL_WIDTH}}
@@ -28,7 +35,7 @@ export default function SlideOverPanel({collapsed, children}: SlideOverPanelProp
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
-    ['animate', 'transition'].includes(prop) ||
+    ['animate', 'transition', 'initial'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
   collapsed: boolean;
@@ -43,5 +50,9 @@ const _SlideOverPanel = styled(motion.div, {
   border-left: 1px solid ${p => p.theme.border};
   text-align: left;
   z-index: ${p => p.theme.zIndex.sidebar - 1};
-  ${p => (p.collapsed ? 'overflow: hidden;' : 'overflow:scroll')}
+  ${p =>
+    p.collapsed
+      ? 'overflow: hidden;'
+      : `overflow-x: hidden;
+  overflow-y: scroll;`}
 `;

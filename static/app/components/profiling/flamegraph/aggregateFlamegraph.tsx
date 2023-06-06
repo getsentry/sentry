@@ -40,6 +40,7 @@ import {
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
@@ -61,7 +62,10 @@ export function AggregateFlamegraph(): ReactElement {
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
-  const [hideSystemFrames, setHideSystemFrames] = useState(true);
+  const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
+    'profiling-flamegraph-collapsed-frames',
+    true
+  );
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -290,7 +294,7 @@ export function AggregateFlamegraph(): ReactElement {
           <Flex align="center" gap={space(1)}>
             <span>{t('Hide System Frames')}</span>
             <SwitchButton
-              toggle={() => setHideSystemFrames(v => !v)}
+              toggle={() => setHideSystemFrames(!hideSystemFrames)}
               isActive={hideSystemFrames}
             />
           </Flex>

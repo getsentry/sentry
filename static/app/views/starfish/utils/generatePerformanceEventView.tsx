@@ -5,17 +5,16 @@ import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
-import {getMiddleTimestamp} from 'sentry/views/starfish/utils/dates';
 
 const DEFAULT_STATS_PERIOD = '7d';
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
-export const TIME_SPENT_IN_SERVICE =
-  'equation|sum(transaction.duration) / total.transaction_duration';
+export const TIME_SPENT_IN_SERVICE = 'time_spent_percentage()';
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
@@ -120,28 +119,16 @@ export function generateWebServiceEventView(
 ) {
   const {query} = location;
   const hasStartAndEnd = query.start && query.end;
-  const middleTimestamp = getMiddleTimestamp({
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
-    statsPeriod:
-      !query.statsPeriod && !hasStartAndEnd
-        ? getDefaultStatsPeriod(organization)
-        : decodeScalar(query.statsPeriod),
-  });
+  const orderby = decodeScalar(query.sort, `-time_spent_percentage`);
 
   const fields = [
     'transaction',
     'http.method',
     'tpm()',
-    'p50()',
-    'p95()',
-    'count_if(http.status_code,greaterOrEquals,500)',
-    TIME_SPENT_IN_SERVICE,
-    `equation|percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp})`,
-    'total.transaction_duration',
+    'p95(transaction.duration)',
+    'http_error_count()',
+    'time_spent_percentage()',
     'sum(transaction.duration)',
-    `percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`,
-    `percentile_range(transaction.duration,0.50,greater,${middleTimestamp})`,
   ];
 
   const savedQuery: NewQuery = {
@@ -151,6 +138,7 @@ export function generateWebServiceEventView(
     projects: [],
     fields,
     version: 2,
+    dataset: DiscoverDatasets.METRICS,
   };
 
   const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
@@ -160,7 +148,7 @@ export function generateWebServiceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = getDefaultStatsPeriod(organization);
   }
-  savedQuery.orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
+  savedQuery.orderby = orderby;
 
   const searchQuery = decodeScalar(query.query, '');
   savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(

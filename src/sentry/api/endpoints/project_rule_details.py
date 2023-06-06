@@ -25,7 +25,7 @@ from sentry.models.integrations.sentry_app_installation import (
     prepare_ui_component,
 )
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics

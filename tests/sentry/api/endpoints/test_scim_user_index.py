@@ -1,12 +1,17 @@
 import unittest
+from datetime import timedelta
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry import audit_log
-from sentry.models import OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -17,7 +22,8 @@ CREATE_USER_POST_DATA = {
 }
 
 
-class SCIMMemberIndexTests(SCIMTestCase):
+@control_silo_test
+class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
 
     def test_get_users_index_empty(self):
@@ -37,11 +43,13 @@ class SCIMMemberIndexTests(SCIMTestCase):
 
     def test_post_users_successful(self):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.post(url, CREATE_USER_POST_DATA)
+        with outbox_runner():
+            response = self.client.post(url, CREATE_USER_POST_DATA)
         assert response.status_code == 201, response.content
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
         )
+        self.assert_org_member_mapping(org_member=member)
         correct_post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "id": str(member.id),
@@ -62,6 +70,47 @@ class SCIMMemberIndexTests(SCIMTestCase):
         assert not member.flags["idp:role-restricted"]
         assert member.role == self.organization.default_role
 
+    def test_post_users_successful_existing_invite(self):
+        member = self.create_member(
+            organization=self.organization,
+            email="test.user@okta.local",
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            token_expires_at=timezone.now() - timedelta(weeks=52),
+        )
+        assert member.token_expired
+
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        with outbox_runner():
+            response = self.client.post(url, CREATE_USER_POST_DATA)
+
+        assert response.status_code == 201, response.content
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email="test.user@okta.local"
+        )
+        # Token was refreshed
+        assert member.token_expired is False
+
+        self.assert_org_member_mapping(org_member=member)
+        correct_post_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": str(member.id),
+            "userName": "test.user@okta.local",
+            "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+            "active": True,
+            "name": {"familyName": "N/A", "givenName": "N/A"},
+            "meta": {"resourceType": "User"},
+            "sentryOrgRole": self.organization.default_role,
+        }
+
+        assert AuditLogEntry.objects.filter(
+            target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
+        ).exists()
+        assert correct_post_data == response.data
+        assert member.email == "test.user@okta.local"
+        assert not member.flags["idp:provisioned"]
+        assert not member.flags["idp:role-restricted"]
+        assert member.role == self.organization.default_role
+
     def test_post_users_already_exists(self):
         # test that response 409s if member already exists (by email)
         member = self.create_member(
@@ -79,12 +128,14 @@ class SCIMMemberIndexTests(SCIMTestCase):
 
     def test_post_users_with_role_valid(self):
         CREATE_USER_POST_DATA["sentryOrgRole"] = "manager"
-        resp = self.get_success_response(
-            self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
-        )
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            )
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
         )
+        self.assert_org_member_mapping(org_member=member)
 
         correct_post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -253,6 +304,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
         assert response.data["startIndex"] == 101
 
 
+@control_silo_test
 class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
     def test_user_index_get_no_active(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
@@ -280,6 +332,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
         }
 
 
+@control_silo_test
 class SCIMQueryParameterSerializerTest(unittest.TestCase):
     def test_defaults(self):
         serializer = SCIMQueryParamSerializer(data={})

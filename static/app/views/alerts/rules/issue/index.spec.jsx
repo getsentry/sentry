@@ -88,7 +88,7 @@ const createWrapper = (props = {}) => {
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts organization={organization} params={params}>
+    <ProjectAlerts organization={organization} project={project} params={params}>
       <IssueRuleEditor
         params={params}
         location={router.location}
@@ -136,6 +136,11 @@ describe('IssueRuleEditor', function () {
         fallthrough: false,
         autoAssignment: false,
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/preview/',
+      method: 'POST',
+      body: [],
     });
     ProjectsStore.loadInitialData([TestStubs.Project()]);
   });

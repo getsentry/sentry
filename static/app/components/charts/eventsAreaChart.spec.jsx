@@ -10,20 +10,20 @@ jest.mock('sentry/components/charts/baseChart', () => {
 });
 
 describe('EventsChart with legend', function () {
-  const {router, org} = initializeOrg();
+  const {router, organization} = initializeOrg();
 
   beforeEach(function () {
     mockZoomRange(1543449600000, 1543708800000);
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/releases/`,
+      url: `/organizations/${organization.slug}/releases/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/releases/stats/`,
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
         data: [
@@ -39,7 +39,7 @@ describe('EventsChart with legend', function () {
       <EventsChart
         api={new MockApiClient()}
         location={{query: {}}}
-        organization={org}
+        organization={organization}
         project={[]}
         environment={[]}
         period="14d"

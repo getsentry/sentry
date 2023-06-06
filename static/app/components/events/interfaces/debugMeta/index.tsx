@@ -126,7 +126,10 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
-      this.setState({searchTerm: store.filter}, this.filterImagesBySearchTerm);
+      this.setState(
+        {searchTerm: store.filter, isOpen: true},
+        this.filterImagesBySearchTerm
+      );
     }
   };
 

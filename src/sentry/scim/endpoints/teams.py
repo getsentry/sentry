@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -82,7 +82,7 @@ def _team_expand(excluded_attributes):
 
 
 @extend_schema(tags=["SCIM"])
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "POST"}
@@ -136,7 +136,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         query_params = self.get_query_parameters(request)
 
         queryset = Team.objects.filter(
-            organization=organization, status=TeamStatus.VISIBLE
+            organization=organization, status=TeamStatus.ACTIVE
         ).order_by("slug")
         if query_params["filter"]:
             queryset = queryset.filter(slug__iexact=slugify(query_params["filter"]))
@@ -212,7 +212,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
 
 
 @extend_schema(tags=["SCIM"])
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "PATCH", "DELETE"}
@@ -231,7 +231,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             .select_related("organization")
             .get()
         )
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             raise Team.DoesNotExist
         return team
 
@@ -286,7 +286,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     request=request,
                     organization=team.organization,
                     target_object=omt.id,
-                    target_user=member.user,
+                    target_user_id=member.user_id,
                     event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                     data=omt.get_audit_log_data(),
                 )
@@ -303,7 +303,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 request=request,
                 organization=team.organization,
                 target_object=omt.id,
-                target_user=member.user,
+                target_user_id=member.user_id,
                 event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                 data=omt.get_audit_log_data(),
             )

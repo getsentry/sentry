@@ -7,6 +7,7 @@ from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
 from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.silo import control_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -29,6 +30,7 @@ def generate_put_data(member: OrganizationMember, role: str = "") -> dict:
     return put_data
 
 
+@control_silo_test
 class SCIMMemberTestsPermissions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -46,6 +48,7 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
 
+@control_silo_test
 class SCIMMemberRoleUpdateTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 
@@ -313,6 +316,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
 
 
+@control_silo_test
 class SCIMMemberDetailsTests(SCIMTestCase):
     def test_user_details_get(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
@@ -638,6 +642,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     # TODO: test patch with bad op
 
 
+@control_silo_test
 class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
     def test_user_details_get_no_active(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")

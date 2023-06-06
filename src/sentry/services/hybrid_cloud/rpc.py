@@ -4,6 +4,7 @@ import inspect
 import logging
 import urllib.response
 from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 from urllib.request import Request, urlopen
@@ -72,12 +73,31 @@ class RpcMethodSignature:
     def method_name(self) -> str:
         return self._base_method.__name__
 
+    @staticmethod
+    def _validate_type_token(token: Any) -> None:
+        """Check whether a type token is usable.
+
+        Strings as type annotations, which Mypy can use if their types are imported
+        in an `if TYPE_CHECKING` block, can't be used for (de)serialization. Raise an
+        exception if the given token is one of these.
+
+        We can check only on a best-effort basis. String tokens may still be nested
+        in type parameters (e.g., `Optional["RpcThing"]`), which this won't catch.
+        Such a state would cause an exception when we attempt to use the signature
+        object to (de)serialize something.
+        """
+        if isinstance(token, str):
+            raise RpcServiceSetupException(
+                "Type annotations on RPC methods must be actual type tokens, not strings"
+            )
+
     def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
-                raise RpcServiceSetupException("Type hints are required on RPC methods")
+                raise RpcServiceSetupException("Type annotations are required on RPC methods")
+            self._validate_type_token(param.annotation)
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value
@@ -102,6 +122,8 @@ class RpcMethodSignature:
         return_type = inspect.signature(self._base_method).return_annotation
         if return_type is None:
             return None
+        self._validate_type_token(return_type)
+
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
@@ -329,10 +351,13 @@ class RpcService(InterfaceWithLifecycle):
                     return remote_method(service_obj, **kwargs)
                 except RpcServiceUnimplementedException as e:
                     logger.info(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
+                    # Drop out of the except block, so that we don't get a spurious
+                    #     "During handling of the above exception, another exception occurred"
+                    # message in case the fallback method raises an unrelated exception.
 
-                    service = fallback()
-                    method = getattr(service, method_name)
-                    return method(**kwargs)
+                service = fallback()
+                method = getattr(service, method_name)
+                return method(**kwargs)
 
             return remote_method_with_fallback
 
@@ -397,7 +422,20 @@ def dispatch_to_local_service(
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
-    return result.dict() if isinstance(result, RpcModel) else result
+
+    def result_to_dict(value: Any) -> Any:
+        if isinstance(value, RpcModel):
+            return value.dict()
+
+        if isinstance(value, dict):
+            return {key: result_to_dict(val) for key, val in value.items()}
+
+        if isinstance(value, Iterable) and not isinstance(value, str):
+            return [result_to_dict(item) for item in value]
+
+        return value
+
+    return result_to_dict(result)
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -443,13 +481,13 @@ def dispatch_remote_call(
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
-
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
     request = Request(url)
     request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
     request.add_header("Content-Length", str(len(data)))
-    request.add_header("Authorization", f"Bearer {api_token}")
+    # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
+    # request.add_header("Authorization", f"Bearer {api_token}")
     return urlopen(request, data)  # type: ignore
 
 

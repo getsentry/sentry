@@ -143,7 +143,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         """
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
-        updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
+        updated = Team.objects.filter(id=team.id, status=TeamStatus.ACTIVE).update(
             slug=new_slug, status=TeamStatus.PENDING_DELETION
         )
         if updated:

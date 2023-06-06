@@ -34,7 +34,7 @@ type Props = {
   disabled?: boolean;
   onSubmitSuccess?: (data: {relayPiiConfig: string}) => void;
   project?: Project;
-  relayPiiConfig?: string;
+  relayPiiConfig?: string | null;
 };
 
 export function DataScrubbing({

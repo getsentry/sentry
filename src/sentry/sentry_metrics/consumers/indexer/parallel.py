@@ -12,7 +12,6 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
-from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
@@ -30,7 +29,6 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
-from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +182,7 @@ def get_parallel_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
+    join_timeout: int,
     indexer_profile: MetricsIngestConfiguration,
     slicing_router: Optional[SlicingRouter],
 ) -> StreamProcessor[KafkaPayload]:
@@ -199,9 +198,6 @@ def get_parallel_metrics_consumer(
         slicing_router=slicing_router,
     )
 
-    cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
-    create_topics(cluster_name, [indexer_profile.input_topic])
-
     return StreamProcessor(
         KafkaConsumer(
             get_config(
@@ -214,4 +210,5 @@ def get_parallel_metrics_consumer(
         Topic(indexer_profile.input_topic),
         processing_factory,
         ONCE_PER_SECOND,
+        join_timeout=join_timeout,
     )

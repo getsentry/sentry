@@ -8,11 +8,10 @@ from sentry import deletions
 from sentry.models import ServiceHook
 from sentry.sentry_apps.apps import expand_events
 from sentry.services.hybrid_cloud.hook import HookService, RpcServiceHook
+from sentry.services.hybrid_cloud.hook.serial import serialize_service_hook
 
 
-class DatabaseBackedAppService(
-    HookService,
-):
+class DatabaseBackedAppService(HookService):
     def update_webhook_and_events(
         self,
         *,
@@ -27,7 +26,7 @@ class DatabaseBackedAppService(
                     hook.url = webhook_url
                     hook.events = expand_events(events)
                     hook.save()
-                return [self.serialize_service_hook(h) for h in hooks]
+                return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
                 return []
@@ -60,7 +59,7 @@ class DatabaseBackedAppService(
                 for project_id in project_ids:
                     hook.add_project(project_id)
 
-            return self.serialize_service_hook(hook)
+            return serialize_service_hook(hook)
 
     def close(self) -> None:
         pass

@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.models import (
@@ -12,6 +13,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -29,6 +31,7 @@ def naive_build_integration(data):
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
+@control_silo_test(stable=True)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -50,6 +53,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
 
         self.assertDialogSuccess(resp)
+        assert b"document.origin);" in resp.content
 
         integration = Integration.objects.get(
             provider=self.provider.key, external_id=self.external_id
@@ -59,6 +63,31 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
+
+    def test_with_customer_domain(self, *args):
+        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+            data = {
+                "external_id": self.external_id,
+                "name": "Name",
+                "metadata": {"url": "https://example.com"},
+            }
+            self.pipeline.state.data = data
+            resp = self.pipeline.finish_pipeline()
+
+            self.assertDialogSuccess(resp)
+            assert (
+                f', "{generate_organization_url(self.organization.slug)}");'.encode()
+                in resp.content
+            )
+
+            integration = Integration.objects.get(
+                provider=self.provider.key, external_id=self.external_id
+            )
+            assert integration.name == data["name"]
+            assert integration.metadata == data["metadata"]
+            assert OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).exists()
 
     def test_aliased_integration_key(self, *args):
         self.provider = AliasedIntegrationProvider
@@ -304,13 +333,14 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="user/repo",
-            url="https://example.org/user/repo",
-            provider=self.provider.key,
-            external_id=self.external_id,
-        )
+        with exempt_from_silo_limits():
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="user/repo",
+                url="https://example.org/user/repo",
+                provider=self.provider.key,
+                external_id=self.external_id,
+            )
 
         self.pipeline.state.data = {
             "external_id": self.external_id,
@@ -327,6 +357,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
+@control_silo_test(stable=True)
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 

@@ -11,3 +11,24 @@ def has_event_minified_stack_trace(event):
                 return True
 
     return False
+
+
+def is_event_from_browser_javascript_sdk(event):
+    sdk_name = get_path(event, "sdk", "name")
+    if sdk_name is None:
+        return False
+
+    return sdk_name.lower() in [
+        "sentry.javascript.browser",
+        "sentry.javascript.react",
+        "sentry.javascript.gatsby",
+        "sentry.javascript.ember",
+        "sentry.javascript.vue",
+        "sentry.javascript.angular",
+        "sentry.javascript.angular-ivy",
+        "sentry.javascript.nextjs",
+        "sentry.javascript.electron",
+        "sentry.javascript.remix",
+        "sentry.javascript.svelte",
+        "sentry.javascript.sveltekit",
+    ]

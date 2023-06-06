@@ -19,22 +19,14 @@ const otherPlatform = {
   name: t('Other'),
 };
 
-export enum ReactDocVariant {
-  ErrorMonitoring = 'javascript-react-with-error-monitoring',
-  ErrorMonitoringAndPerformance = 'javascript-react-with-error-monitoring-and-performance',
-  ErrorMonitoringAndSessionReplay = 'javascript-react-with-error-monitoring-and-replay',
-  ErrorMonitoringPerformanceAndReplay = 'javascript-react-with-error-monitoring-performance-and-replay',
-}
-
 const platformIntegrations: PlatformIntegration[] = [
   ...integrationDocsPlatforms.platforms,
   otherPlatform,
 ]
   .map(platform => {
     const integrations = platform.integrations.reduce((acc, value) => {
-      // filter out any javascript-react-* platforms; as they're not meant to be used as a platform in the PlatformPicker component
-      // but only to load specific documentation for the React SDK
-      if (Object.values(ReactDocVariant).includes(value.id as ReactDocVariant)) {
+      // filter out any javascript-[angular|angularjs|ember|gatsby|nextjs|react|remix|svelte|sveltekit|vue]-* platforms; as they're not meant to be used as a platform in the PlatformPicker component
+      if (value.id.match('^javascript-([A-Za-z]+)-([a-zA-Z0-9]+.*)$')) {
         return acc;
       }
 

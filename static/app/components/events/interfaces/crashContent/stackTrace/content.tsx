@@ -7,7 +7,7 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -30,6 +30,7 @@ type Props = {
   hideIcon?: boolean;
   isHoverPreviewed?: boolean;
   maxDepth?: number;
+  mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
@@ -197,6 +198,9 @@ class Content extends Component<Props, State> {
     );
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
+    const mechanism =
+      platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
+    const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
@@ -238,10 +242,10 @@ class Content extends Component<Props, State> {
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
-            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
             frameMeta={meta?.frames?.[frameIdx]}
             registersMeta={meta?.registers}
             debugFrames={debugFrames}
+            isANR={isANR}
           />
         );
       }

@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 from django.utils import timezone
 
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.models import Group, Project
+from sentry.models import Group, Organization, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
     DATASET_TO_COLUMN_NAME,
@@ -276,9 +276,13 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
     Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
     If the dataset is not found/supported, it is mapped to None.
     """
-    group_categories = Group.objects.filter(id__in=group_ids).values_list("id", "type")
+    group_categories = list(Group.objects.filter(id__in=group_ids).values_list("id", "type"))
+    if not group_categories:
+        return {}
+    org = Organization.objects.get(project__group__id=group_categories[0][0])
+
     return {
-        group_id: get_dataset_from_category(get_group_type_by_type_id(group_type).category)
+        group_id: get_dataset_from_category(get_group_type_by_type_id(group_type).category, org)
         for group_id, group_type in group_categories
     }
 

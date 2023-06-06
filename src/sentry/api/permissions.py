@@ -120,7 +120,7 @@ class SentryPermission(ScopedPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
-        if request.user and request.user.is_authenticated and request.auth:
+        if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
                 request=request,
                 rpc_user_org_context=org_context,

@@ -29,7 +29,7 @@ class Repository(Model, PendingDeletionMixin):
     external_id = models.CharField(max_length=64, null=True)
     config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), db_index=True
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
     )
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)

@@ -53,7 +53,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         except Organization.DoesNotExist:
             return self.redirect(reverse("sentry-login"))
 
-        if organization.status != OrganizationStatus.VISIBLE:
+        if organization.status != OrganizationStatus.ACTIVE:
             return self.redirect(reverse("sentry-login"))
 
         request.session.set_test_cookie()

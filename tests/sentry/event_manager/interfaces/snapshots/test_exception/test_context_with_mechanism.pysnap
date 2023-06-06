@@ -1,5 +1,5 @@
 ---
-created: '2023-04-19T16:08:28.133847Z'
+created: '2023-05-05T19:28:49.089651Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
@@ -9,9 +9,7 @@ get_api_context:
   hasSystemFrames: true
   values:
   - mechanism:
-      exception_id: 1
-      is_exception_group: true
-      parent_id: 0
+      exception_id: 0
       source: __context__
       type: generic
     module: foo.bar
@@ -41,12 +39,13 @@ get_api_context:
     threadId: null
     type: ValueError
     value: hello world
+tags:
+- - mechanism
+  - generic
 to_json:
   values:
   - mechanism:
-      exception_id: 1
-      is_exception_group: true
-      parent_id: 0
+      exception_id: 0
       source: __context__
       type: generic
     module: foo.bar

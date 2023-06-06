@@ -88,10 +88,10 @@ class VitalDetail extends Component<Props, State> {
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
     if (hasTransactionName) {
-      return [String(name).trim(), t('Performance')].join(' - ');
+      return [String(name).trim(), t('Performance')].join(' — ');
     }
 
-    return [t('Vital Detail'), t('Performance')].join(' - ');
+    return [t('Vital Detail'), t('Performance')].join(' — ');
   }
 
   render() {

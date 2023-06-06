@@ -21,6 +21,7 @@ import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import SearchBarAction from '../searchBarAction';
@@ -43,15 +44,15 @@ type Props = {
 };
 
 enum BreadcrumbSort {
-  Newest = 'newest',
-  Oldest = 'oldest',
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
 }
 
 const EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
 
 const sortOptions = [
-  {label: t('Newest'), value: BreadcrumbSort.Newest},
-  {label: t('Oldest'), value: BreadcrumbSort.Oldest},
+  {label: t('Newest'), value: BreadcrumbSort.NEWEST},
+  {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
 function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
@@ -60,7 +61,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-    BreadcrumbSort.Newest
+    BreadcrumbSort.NEWEST
   );
 
   const entryIndex = event.entries.findIndex(
@@ -248,7 +249,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     // Breadcrumbs come back from API sorted oldest -> newest.
     // Need to `reverse()` instead of sort by timestamp because crumbs with
     // exact same timestamp will appear out of order.
-    return sort === BreadcrumbSort.Newest
+    return sort === BreadcrumbSort.NEWEST
       ? [...filteredBreadcrumbs].reverse()
       : filteredBreadcrumbs;
   }, [
@@ -287,7 +288,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     };
   }
 
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+  const replayId = getReplayIdFromEvent(event);
   const showReplay = !isShare && organization.features.includes('session-replay');
 
   const actions = (

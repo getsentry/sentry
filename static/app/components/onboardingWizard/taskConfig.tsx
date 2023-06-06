@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Client} from 'sentry/api';
+import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
@@ -20,7 +21,6 @@ import {
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
-import {OnboardingState} from 'sentry/views/onboarding/types';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
 
@@ -39,7 +39,7 @@ type Options = {
    * The organization to show onboarding tasks for
    */
   organization: Organization;
-  onboardingState?: OnboardingState;
+  onboardingContext?: OnboardingContextProps;
 
   /**
    * A list of the organizations projects. This is used for some onboarding
@@ -58,6 +58,36 @@ function getIssueAlertUrl({projects, organization}: Options) {
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
 }
 
+function getOnboardingInstructionsUrl({projects, organization}: Options) {
+  // This shall never be the case, since this is step is locked until a project is created,
+  // but if the user falls into this case for some reason,
+  // he needs to select the platform again since it is not available as a parameter here
+  if (!projects || !projects.length) {
+    return `/getting-started/:projectId/`;
+  }
+
+  const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
+  // If all created projects don't have any errors,
+  // we ask the user to pick a project before navigating to the instructions
+  if (allProjectsWithoutErrors) {
+    return `/getting-started/:projectId/`;
+  }
+
+  // Pick the first project without an error
+  const firstProjectWithoutError = projects.find(project => !project.firstEvent);
+  // If all projects contain errors, this step will not be visible to the user,
+  // but if the user falls into this case for some reason, we pick the first project
+  const project = firstProjectWithoutError ?? projects[0];
+
+  let url = `/${organization.slug}/${project.slug}/getting-started/`;
+
+  if (project.platform) {
+    url = url + `${project.platform}/`;
+  }
+
+  return url;
+}
+
 function getMetricAlertUrl({projects, organization}: Options) {
   if (!projects || !projects.length) {
     return `/organizations/${organization.slug}/alerts/rules/`;
@@ -73,7 +103,7 @@ function getMetricAlertUrl({projects, organization}: Options) {
 export function getOnboardingTasks({
   organization,
   projects,
-  onboardingState,
+  onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
   if (isDemoWalkthrough()) {
     return [
@@ -147,7 +177,7 @@ export function getOnboardingTasks({
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/install/`,
+      location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
@@ -356,7 +386,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: getIssueAlertUrl({projects, organization, onboardingState}),
+      location: getIssueAlertUrl({projects, organization, onboardingContext}),
       display: true,
     },
     {
@@ -368,7 +398,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
       actionType: 'app',
-      location: getMetricAlertUrl({projects, organization, onboardingState}),
+      location: getMetricAlertUrl({projects, organization, onboardingContext}),
       // Use `features?.` because getsentry has a different `Organization` type/payload
       display: organization.features?.includes('incidents'),
     },
@@ -386,8 +416,8 @@ export function getOnboardingTasks({
   ];
 }
 
-export function getMergedTasks({organization, projects, onboardingState}: Options) {
-  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingState});
+export function getMergedTasks({organization, projects, onboardingContext}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
   const serverTasks = organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects

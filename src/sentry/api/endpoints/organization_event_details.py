@@ -6,7 +6,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
-from sentry.models.project import Project, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 
 
 @region_silo_endpoint
@@ -18,7 +19,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         try:
             project = Project.objects.get(
-                slug=project_slug, organization_id=organization.id, status=ProjectStatus.VISIBLE
+                slug=project_slug, organization_id=organization.id, status=ObjectStatus.ACTIVE
             )
         except Project.DoesNotExist:
             return Response(status=404)

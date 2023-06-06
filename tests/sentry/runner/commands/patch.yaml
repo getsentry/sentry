@@ -1,0 +1,14 @@
+# the yaml options file that gets passed from k8 job to senty runner
+fetch : ["system.admin-email",
+"system.support-email",
+"system.security-email",
+"system.rate-limit",
+"github-login.base-domain",
+"github-login.api-domain",
+"github-login.extended-permissions",
+"symbolserver.options",
+"nodedata.cache-sample-rate",]
+update :
+  github-login.api-domain  : "testing"
+  nodedata.cache-sample-rate : 4.0
+delete : ["symbolserver.options"]

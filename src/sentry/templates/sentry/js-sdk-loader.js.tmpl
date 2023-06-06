@@ -1,4 +1,4 @@
-{% load sentry_helpers %}(function sentryLoader(_window, _document, _script, _onerror, _onunhandledrejection, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
+{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
     var lazy = _lazy;
     var forceLoad = false;
     for (var i = 0; i < document.scripts.length; i++) {
@@ -59,14 +59,14 @@
         // it was probably(?) a legacy behavior that they left to not modify few years old snippet
         // https://www.html5rocks.com/en/tutorials/speed/script-loading/
         var _currentScriptTag = _document.scripts[0];
-        var _newScriptTag = _document.createElement(_script);
+        var _newScriptTag = _document.createElement('script');
         _newScriptTag.src = _sdkBundleUrl;
         _newScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
         _newScriptTag.addEventListener('load', function () {
             try {
-                _window.removeEventListener('error', onError);
-                _window.removeEventListener('unhandledrejection', onUnhandledRejection);
+                _window.removeEventListener(_errorEvent, onError);
+                _window.removeEventListener(_unhandledrejectionEvent, onUnhandledRejection);
                 // Add loader as SDK source
                 _window.SENTRY_SDK_SOURCE = 'loader';
                 var SDK_1 = _window[_namespace];
@@ -148,8 +148,8 @@
             }
             // Because we installed the SDK, at this point we have an access to TraceKit's handler,
             // which can take care of browser differences (eg. missing exception argument in onerror)
-            var tracekitErrorHandler = _window[_onerror];
-            var tracekitUnhandledRejectionHandler = _window[_onunhandledrejection];
+            var tracekitErrorHandler = _window.onerror;
+            var tracekitUnhandledRejectionHandler = _window.onunhandledrejection;
             // And now capture all previously caught exceptions
             for (var i = 0; i < data.length; i++) {
                 if ('e' in data[i] && tracekitErrorHandler) {
@@ -195,11 +195,11 @@
             queue({ f: f, a: arguments });
         };
     });
-    _window.addEventListener('error', onError);
-    _window.addEventListener('unhandledrejection', onUnhandledRejection);
+    _window.addEventListener(_errorEvent, onError);
+    _window.addEventListener(_unhandledrejectionEvent, onUnhandledRejection);
     if (!lazy) {
         setTimeout(function () {
             injectSdk(onLoadCallbacks);
         });
     }
-})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
+})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});

@@ -21,9 +21,6 @@ class TSDBModel(Enum):
     group = 4
     release = 7
 
-    # number of transactions seen specific to a group
-    group_performance = 10
-
     # number of occurrences seen specific to a generic group
     group_generic = 20
 
@@ -47,8 +44,6 @@ class TSDBModel(Enum):
     users_affected_by_group = 300
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
-    # distinct count of users that have been affected by an event in a performance group
-    users_affected_by_perf_group = 302
     # distinct count of users that have been affected by an event in a generic group
     users_affected_by_generic_group = 303
 
@@ -447,7 +442,14 @@ class BaseTSDB(Service):
             self.record(model, key, values, timestamp, environment_id=environment_id)
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Fetch counts of distinct items for each rollup interval within the range.
@@ -473,7 +475,14 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Count the total number of distinct items across multiple counters
@@ -508,7 +517,15 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_most_frequent(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Retrieve the most frequently seen items in a frequency table.
@@ -522,7 +539,15 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_most_frequent_series(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         """
         Retrieve the most frequently seen items in a frequency table for each
@@ -553,7 +578,9 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_totals(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         """
         Retrieve the total frequency of known items in a table over time.
 

@@ -3,14 +3,17 @@ from __future__ import annotations
 import datetime
 import logging
 import re
+import sys
+import traceback
 from datetime import timedelta
-from typing import Any, List, Literal, Tuple, overload
+from typing import Any, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
+from sentry_sdk import Scope
 
 from sentry import options
 
@@ -27,6 +30,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 logger = logging.getLogger(__name__)
 
@@ -310,3 +314,23 @@ def method_dispatch(**dispatch_mapping):  # type: ignore[no-untyped-def]
         return csrf_exempt(dispatcher)
 
     return dispatcher
+
+
+def print_and_capture_handler_exception(
+    exception: Exception,
+    handler_context: Mapping[str, Any] | None = None,
+    scope: Scope | None = None,
+) -> str | None:
+    """
+    Logs the given exception locally, then sends it to Sentry, along with the given context data.
+    Returns the id of the captured event.
+    """
+
+    sys.stderr.write(traceback.format_exc())
+
+    scope = scope or Scope()
+    if handler_context:
+        merge_context_into_scope("Request Handler Data", handler_context, scope)
+    event_id: str | None = capture_exception(exception, scope=scope)
+
+    return event_id

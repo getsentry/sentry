@@ -1,7 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 import {CrumbWalker, StringWalker} from './urlWalker';
 
@@ -71,17 +70,6 @@ describe('UrlWalker', () => {
           '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js'
         )
       ).toBeInTheDocument();
-    });
-
-    it('should filter out non-navigation crumbs', () => {
-      const ERROR_CRUMB = TestStubs.Breadcrumb({
-        type: BreadcrumbType.ERROR,
-      });
-
-      const crumbs = [ERROR_CRUMB];
-
-      render(<CrumbWalker crumbs={crumbs} replayRecord={replayRecord} />);
-      expect(screen.getByText('0 Pages')).toBeInTheDocument();
     });
   });
 });

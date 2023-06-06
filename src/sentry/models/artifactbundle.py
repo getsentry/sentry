@@ -15,6 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.utils import json
+from sentry.utils.hashlib import sha1_text
 
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
@@ -72,6 +73,12 @@ class ArtifactBundle(Model):
             return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
         except IndexError:
             return None, None
+
+    @classmethod
+    def get_ident(cls, url, dist=None):
+        if dist is not None:
+            return sha1_text(url + "\x00\x00" + dist).hexdigest()
+        return sha1_text(url).hexdigest()
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):

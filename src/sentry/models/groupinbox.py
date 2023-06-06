@@ -28,12 +28,14 @@ INBOX_REASON_DETAILS = {
 
 class GroupInboxReason(Enum):
     NEW = 0
-    UNIGNORED = 1
     REGRESSION = 2
     MANUAL = 3
     REPROCESSED = 4
     ESCALATING = 5
     ONGOING = 6
+
+    # DEPRECATED: Use ONGOING instead
+    UNIGNORED = 1
 
 
 class GroupInboxRemoveAction(Enum):
@@ -84,8 +86,8 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    # Ignore new issues, too many events
     if reason is not GroupInboxReason.NEW:
+        # Ignore new issues, too many events
         inbox_in.send_robust(
             project=group.project,
             user=None,

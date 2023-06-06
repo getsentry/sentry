@@ -4,12 +4,10 @@ from unittest.mock import patch
 import pytz
 from django.utils import timezone
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
-from sentry.issues.grouptype import (
-    PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import (
     Group,
     GroupEnvironment,
@@ -24,10 +22,12 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -442,45 +442,80 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
             assert iso_format(start) == iso_format(before_now(days=expected))
 
+    def test_skipped_date_timestamp_filters(self):
+        group = self.create_group()
+        serializer = GroupSerializerSnuba(
+            search_filters=[
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("timestamp"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    ">",
+                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                ),
+                SearchFilter(
+                    SearchKey("date"),
+                    "<",
+                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                ),
+            ]
+        )
+        assert not serializer.conditions
+        result = serialize(group, self.user, serializer=serializer)
+        assert result["id"] == str(group.id)
+
 
 @region_silo_test
 class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
     PerfIssueTransactionTestMixin,
+    PerformanceIssueTestCase,
 ):
     def test_perf_seen_stats(self):
         proj = self.create_project()
-        environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
+        first_group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
         timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
-            self.store_transaction(
-                proj.id,
-                "user1",
-                [first_group_fingerprint],
-                environment.name,
+            event_data = load_data(
+                "transaction-n-plus-one",
                 timestamp=timestamp + timedelta(minutes=1),
+                start_timestamp=timestamp + timedelta(minutes=1),
+            )
+            event_data["user"] = {"email": "test1@example.com"}
+
+            self.create_performance_issue(
+                event_data=event_data, fingerprint=first_group_fingerprint, project_id=proj.id
             )
 
-        event = self.store_transaction(
-            proj.id,
-            "user2",
-            [first_group_fingerprint],
-            environment.name,
+        event_data = load_data(
+            "transaction-n-plus-one",
             timestamp=timestamp + timedelta(minutes=2),
+            start_timestamp=timestamp + timedelta(minutes=2),
+        )
+        event_data["user"] = {"email": "test2@example.com"}
+
+        event = self.create_performance_issue(
+            event_data=event_data, fingerprint=first_group_fingerprint, project_id=proj.id
         )
 
-        first_group = event.groups[0]
+        first_group = event.group
 
         result = serialize(
             first_group,
             serializer=GroupSerializerSnuba(
-                environment_ids=[environment.id],
-                start=timestamp - timedelta(hours=1),
-                end=timestamp + timedelta(hours=1),
+                start=timezone.now() - timedelta(days=60),
+                end=timezone.now() + timedelta(days=10),
             ),
         )
 

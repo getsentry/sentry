@@ -5,7 +5,7 @@ import logging
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
@@ -251,17 +251,8 @@ def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
-        elif group_category == GroupCategory.PERFORMANCE:
-            if not options.get("performance.issues.create_issues_through_platform", False):
-                strategy = _query_params_for_perf
-            else:
-                strategy = functools.partial(
-                    _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
-                )
         else:
-            strategy = functools.partial(
-                _query_params_for_generic, categories=[GroupCategory.PROFILE]
-            )
+            strategy = functools.partial(_query_params_for_generic, categories=[group_category])
         strategies[group_category.value] = strategy
     return strategies
 
@@ -288,7 +279,7 @@ SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
-        for sf in search_filters
+        for sf in _update_profiling_search_filters(search_filters)
         if sf.key.name != "message"
     ],
     GroupCategory.PROFILE.value: _update_profiling_search_filters,

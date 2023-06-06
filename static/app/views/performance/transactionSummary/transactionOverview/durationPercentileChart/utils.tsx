@@ -50,7 +50,7 @@ export function transformData(
 
 export function getPercentiles(organization: Organization) {
   const isUsingMetrics = canUseMetricsData(organization);
-  const METRICS_PERCENTILES = ['0.25', '0.5', '0.75', '0.9', '0.95', '0.99', '1'];
+  const METRICS_PERCENTILES = ['0.25', '0.50', '0.75', '0.90', '0.95', '0.99', '1'];
   const INDEXED_PERCENTILES = [
     '0.10',
     '0.25',

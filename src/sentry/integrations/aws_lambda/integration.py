@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, options
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -16,7 +17,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import OrganizationIntegration, Project, ProjectStatus
+from sentry.models import OrganizationIntegration, Project
 from sentry.pipeline import PipelineView
 from sentry.utils.sdk import capture_exception
 
@@ -240,7 +241,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
         organization = pipeline.organization
         projects = Project.objects.filter(
-            organization=organization, status=ProjectStatus.VISIBLE
+            organization=organization, status=ObjectStatus.ACTIVE
         ).order_by("slug")
 
         # if only one project, automatically use that

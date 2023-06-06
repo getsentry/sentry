@@ -90,6 +90,28 @@ ISSUE_PLATFORM_MAP = {
     if col.value.issue_platform_name is not None
 }
 
+SPAN_COLUMN_MAP = {
+    "action": "action",
+    "description": "description",
+    "domain": "domain",
+    "group": "group",
+    "id": "span_id",
+    "module": "module",
+    "parent_span": "parent_span_id",
+    "platform": "platform",
+    "project": "project_id",
+    "span.duration": "duration",
+    "span.self_time": "exclusive_time",
+    "span.op": "op",
+    "span.status": "span_status",
+    "timestamp": "timestamp",
+    "trace": "trace_id",
+    "transaction": "segment_name",
+    "transaction.id": "transaction_id",
+    "transaction.op": "transaction_op",
+    "user": "user",
+}
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
@@ -137,6 +159,7 @@ DATASETS = {
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
+    Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -150,6 +173,7 @@ DATASET_FIELDS = {
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
+    Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -817,7 +841,6 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
-
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -1196,6 +1219,21 @@ def _aliased_query_impl(**kwargs):
     return raw_query(**aliased_query_params(**kwargs))
 
 
+def resolve_conditions(
+    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
+) -> Optional[Sequence[Any]]:
+    if conditions is None:
+        return conditions
+
+    replacement_conditions = []
+    for condition in conditions:
+        replacement = resolve_condition(deepcopy(condition), column_resolver)
+        if replacement:
+            replacement_conditions.append(replacement)
+
+    return replacement_conditions
+
+
 def aliased_query_params(
     start=None,
     end=None,
@@ -1234,10 +1272,9 @@ def aliased_query_params(
             if condition_resolver
             else resolve_func
         )
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, column_resolver)
-            conditions[i] = replacement
-        conditions = [c for c in conditions if c]
+        resolved_conditions = resolve_conditions(conditions, column_resolver)
+    else:
+        resolved_conditions = conditions
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1253,7 +1290,7 @@ def aliased_query_params(
         start=start,
         end=end,
         groupby=groupby,
-        conditions=conditions,
+        conditions=resolved_conditions,
         aggregations=aggregations,
         selected_columns=selected_columns,
         filter_keys=filter_keys,

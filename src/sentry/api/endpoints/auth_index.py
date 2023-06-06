@@ -81,6 +81,8 @@ class AuthIndexEndpoint(Endpoint):
                         "u2f_authentication.verification_failed",
                         extra={"user": request.user.id},
                     )
+                else:
+                    metrics.incr("auth.2fa.success", sample_rate=1.0, skip_internal=False)
                 return authenticated
             except ValueError as err:
                 logger.warning(
@@ -97,6 +99,8 @@ class AuthIndexEndpoint(Endpoint):
             authenticated = promote_request_rpc_user(request).check_password(
                 validator.validated_data["password"]
             )
+            if authenticated:
+                metrics.incr("auth.password.success", sample_rate=1.0, skip_internal=False)
             return authenticated
         return False
 

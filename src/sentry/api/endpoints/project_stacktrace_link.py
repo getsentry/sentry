@@ -10,8 +10,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
@@ -23,17 +25,22 @@ def get_link(
     config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
 ) -> Dict[str, str]:
     result = {}
-    oi = config.organization_integration
-    integration = oi.integration
-    install = integration.get_installation(oi.organization_id)
+
+    integration = integration_service.get_integration(
+        organization_integration_id=config.organization_integration_id
+    )
+    install = integration_service.get_installation(
+        integration=integration, organization_id=config.project.organization_id
+    )
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
     link = None
     try:
-        link = install.get_stacktrace_link(
-            config.repository, formatted_path, config.default_branch, version
-        )
+        if isinstance(install, RepositoryMixin):
+            link = install.get_stacktrace_link(
+                config.repository, formatted_path, config.default_branch, version
+            )
 
     except ApiError as e:
         if e.code != 403:
@@ -45,6 +52,7 @@ def get_link(
         result["sourceUrl"] = link
     else:
         result["error"] = result.get("error") or "file_not_found"
+        assert isinstance(install, RepositoryMixin)
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
@@ -131,37 +139,27 @@ def set_tags(scope: Scope, result: JSONData) -> None:
     scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
 
 
-@region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
     """
-    Returns valid links for source code providers so that
-    users can go from the file in the stack trace to the
-    provider of their choice.
+    Returns the code mapping config list for a project sorted based on precedence.
+    User generated code mappings are evaluated before Sentry generated code mappings.
+    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
+    roots.
 
-    `file`: The file path from the stack trace
-    `commitId` (optional): The commit_id for the last commit of the
-                           release associated to the stack trace's event
-    `sdkName` (optional): The sdk.name associated with the event
-    `absPath` (optional): The abs_path field value of the relevant stack frame
-    `module`   (optional): The module field value of the relevant stack frame
-    `package`  (optional): The package field value of the relevant stack frame
-
+    `project`: The project to get the list of sorted code mapping configs for
     """
 
-    def sort_code_mapping_configs(
-        self,
-        configs: List[RepositoryProjectPathConfig],
-    ) -> List[RepositoryProjectPathConfig]:
-        """
-        Sorts the code mapping config list based on precedence.
-        User generated code mappings are evaluated before Sentry generated code mappings.
-        Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-        roots.
+    # xxx(meredith): if there are ever any changes to this query, make
+    # sure that we are still ordering by `id` because we want to make sure
+    # the ordering is deterministic
+    # codepath mappings must have an associated integration for stacktrace linking.
+    configs = RepositoryProjectPathConfig.objects.filter(
+        project=project, organization_integration_id__isnull=False
+    )
 
-        `configs`: The list of code mapping configs
+    sorted_configs = []  # type: List[RepositoryProjectPathConfig]
 
-        """
-        sorted_configs = []  # type: List[RepositoryProjectPathConfig]
+    try:
         for config in configs:
             inserted = False
             for index, sorted_config in enumerate(sorted_configs):
@@ -181,7 +179,27 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(len(sorted_configs), config)
                 else:
                     sorted_configs.insert(0, config)
-        return sorted_configs
+    except Exception:
+        logger.exception("There was a failure sorting the code mappings")
+
+    return sorted_configs
+
+
+@region_silo_endpoint
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+    """
+    Returns valid links for source code providers so that
+    users can go from the file in the stack trace to the
+    provider of their choice.
+
+    `file`: The file path from the stack trace
+    `commitId` (optional): The commit_id for the last commit of the
+                           release associated to the stack trace's event
+    `sdkName` (optional): The sdk.name associated with the event
+    `absPath` (optional): The abs_path field value of the relevant stack frame
+    `module`   (optional): The module field value of the relevant stack frame
+    `package`  (optional): The package field value of the relevant stack frame
+    """
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -202,17 +220,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
-        # xxx(meredith): if there are ever any changes to this query, make
-        # sure that we are still ordering by `id` because we want to make sure
-        # the ordering is deterministic
-        # codepath mappings must have an associated integration for stacktrace linking.
-        configs = RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration__isnull=False
-        )
-        try:
-            configs = self.sort_code_mapping_configs(configs)
-        except Exception:
-            logger.exception("There was a failure sorting the code mappings")
+        configs = get_code_mapping_configs(project)
 
         current_config = None
         with configure_scope() as scope:

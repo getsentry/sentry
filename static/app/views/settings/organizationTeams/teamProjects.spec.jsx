@@ -11,11 +11,15 @@ describe('OrganizationTeamProjects', function () {
   let postMock;
   let deleteMock;
 
-  const project = TestStubs.Project({teams: [team]});
+  const project = TestStubs.Project({
+    teams: [team],
+    access: ['project:read', 'project:write', 'project:admin'],
+  });
   const project2 = TestStubs.Project({
     id: '3',
     slug: 'project-slug-2',
     name: 'Project Name 2',
+    access: ['project:read', 'project:write', 'project:admin'],
   });
 
   const {routerContext, organization} = initializeOrg({
@@ -61,6 +65,7 @@ describe('OrganizationTeamProjects', function () {
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
+        team={team}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
@@ -78,6 +83,7 @@ describe('OrganizationTeamProjects', function () {
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
+        team={team}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
@@ -93,6 +99,7 @@ describe('OrganizationTeamProjects', function () {
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
+        team={team}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
@@ -115,6 +122,7 @@ describe('OrganizationTeamProjects', function () {
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
+        team={team}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
@@ -124,6 +132,7 @@ describe('OrganizationTeamProjects', function () {
     expect(getMock).toHaveBeenCalledTimes(2);
 
     await userEvent.click(await screen.findByText('Add Project'));
+    // console.log(screen.debug());
     await userEvent.click(screen.getByRole('option', {name: 'project-slug-2'}));
 
     expect(postMock).toHaveBeenCalledTimes(1);
@@ -140,6 +149,7 @@ describe('OrganizationTeamProjects', function () {
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
+        team={team}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,

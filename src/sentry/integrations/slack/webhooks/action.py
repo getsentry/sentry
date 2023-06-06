@@ -222,7 +222,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not len(status_data):
             return
 
-        status: MutableMapping[str, Any] = {"status": status_data[0]}
+        status: MutableMapping[str, Any] = {
+            "status": status_data[0],
+        }
+
+        # sub-status only applies to ignored/archived issues
+        if len(status_data) > 1 and status_data[0] == "ignored":
+            status["substatus"] = status_data[1]
 
         resolve_type = status_data[-1]
 
@@ -235,9 +241,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         analytics.record(
             "integrations.slack.status",
+            organization_id=group.project.organization.id,
             status=status["status"],
             resolve_type=resolve_type,
-            actor_id=user.id,
+            user_id=user.id,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
@@ -264,10 +271,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         payload = {
             "dialog": json.dumps(dialog),
             "trigger_id": slack_request.data["trigger_id"],
-            "token": slack_request.integration.metadata["access_token"],
         }
-
-        slack_client = SlackClient()
+        slack_client = SlackClient(integration_id=slack_request.integration.id)
         try:
             slack_client.post("/dialog.open", data=payload)
         except ApiError as e:
@@ -337,7 +342,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
 
             # use the original response_url to update the link attachment
-            slack_client = SlackClient()
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
                 slack_client.post(
                     slack_request.callback_data["orig_response_url"], data=body, json=True

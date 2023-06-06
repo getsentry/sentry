@@ -1,8 +1,10 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
+import {CommonStoreDefinition} from 'sentry/stores/types';
 import {SentryAppInstallation} from 'sentry/types';
 
-interface SentryAppInstallationStoreDefinition extends StoreDefinition {
+interface SentryAppInstallationStoreDefinition
+  extends CommonStoreDefinition<SentryAppInstallation[]> {
   getInitialState(): SentryAppInstallation[];
   load(items: SentryAppInstallation[]): void;
 }
@@ -13,6 +15,10 @@ const storeConfig: SentryAppInstallationStoreDefinition = {
     // listeners due to their leaky nature in tests.
 
     this.items = [];
+  },
+
+  getState() {
+    return this.items;
   },
 
   getInitialState(): SentryAppInstallation[] {

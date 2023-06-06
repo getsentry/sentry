@@ -7,6 +7,7 @@ from sentry.api.serializers.models.organization_member import (
     OrganizationMemberSCIMSerializer,
     OrganizationMemberWithTeamsSerializer,
 )
+from sentry.models.organizationmember import InviteStatus
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -30,6 +31,28 @@ class OrganizationMemberSerializerTest(TestCase):
             )
         )
 
+    def test_inviter(self):
+        inviter = self.create_user(name="bob")
+        member = self.create_member(
+            organization=self.org,
+            email="foo@sentry.io",
+            inviter_id=inviter.id,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result["inviteStatus"] == "requested_to_join"
+        assert result["inviterName"] == "bob"
+
+    def test_user(self):
+        user = self.create_user(name="bob")
+        member = self.create_member(
+            organization=self.org,
+            user_id=user.id,
+        )
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        assert result["user"]["id"] == str(user.id)
+        assert result["user"]["name"] == "bob"
+
 
 @region_silo_test(stable=True)
 class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest):
@@ -44,11 +67,11 @@ class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest)
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
 
-        assert len(result["orgRolesFromTeams"]) == 3
-        assert result["orgRolesFromTeams"][0]["role"]["id"] == "owner"
-        assert result["orgRolesFromTeams"][0]["teamSlug"] == owner_team.slug
-        assert result["orgRolesFromTeams"][1]["role"]["id"] == "manager"
-        assert result["orgRolesFromTeams"][2]["role"]["id"] == "manager"
+        assert len(result["groupOrgRoles"]) == 3
+        assert result["groupOrgRoles"][0]["role"]["id"] == "owner"
+        assert result["groupOrgRoles"][0]["teamSlug"] == owner_team.slug
+        assert result["groupOrgRoles"][1]["role"]["id"] == "manager"
+        assert result["groupOrgRoles"][2]["role"]["id"] == "manager"
 
 
 @region_silo_test(stable=True)

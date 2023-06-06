@@ -12,9 +12,9 @@ from sentry.digests.utils import (
 )
 from sentry.eventstore.models import Event
 from sentry.models import Project, ProjectOwnership
-from sentry.models.actor import Actor
 from sentry.notifications.types import ActionTargetType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -80,13 +80,12 @@ def assert_get_personalized_digests(
         digest, project, target_type, target_identifier
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
-    for actor_id, user_digest in personalized_digests.items():
-        actor = Actor.objects.get(id=actor_id)
-        assert actor.user_id in expected_result
+    for actor, user_digest in personalized_digests.items():
+        assert actor.actor_type == ActorType.USER and actor.id in expected_result
         assert {e.event_id for e in get_event_from_groups_in_digest(user_digest)} == {
-            e.event_id for e in expected_result[actor.user_id]
+            e.event_id for e in expected_result[actor.id]
         }
-        result_user_ids.append(actor.user_id)
+        result_user_ids.append(actor.id)
 
     assert sorted(expected_result.keys()) == sorted(result_user_ids)
 

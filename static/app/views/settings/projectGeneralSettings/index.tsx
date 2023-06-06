@@ -7,6 +7,7 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -22,8 +23,9 @@ import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -70,7 +72,12 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       return;
     }
 
-    removeProject(this.api, organization.slug, project.slug)
+    removeProject({
+      api: this.api,
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      origin: 'settings',
+    })
       .then(
         () => {
           addSuccessMessage(
@@ -82,10 +89,13 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           throw err;
         }
       )
-      .then(() => {
-        // Need to hard reload because lots of components do not listen to Projects Store
-        window.location.assign('/');
-      }, handleXhrErrorResponse('Unable to remove project'));
+      .then(
+        () => {
+          // Need to hard reload because lots of components do not listen to Projects Store
+          window.location.assign('/');
+        },
+        (err: RequestError) => handleXhrErrorResponse('Unable to remove project', err)
+      );
   };
 
   handleTransferProject = async () => {
@@ -104,12 +114,16 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        handleXhrErrorResponse('Unable to transfer project')(err);
+        handleXhrErrorResponse('Unable to transfer project', err);
       }
     }
   };
 
-  isProjectAdmin = () => this.props.organization.access.includes('project:admin');
+  isProjectAdmin = () =>
+    hasEveryAccess(['project:admin'], {
+      organization: this.props.organization,
+      project: this.state.data,
+    });
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -240,15 +254,17 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const project = this.state.data;
     const {projectId} = this.props.params;
     const endpoint = `/projects/${organization.slug}/${projectId}/`;
-    const access = new Set(organization.access);
+    const access = new Set(organization.access.concat(project.access));
+
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
       },
       features: new Set(organization.features),
       access,
-      disabled: !access.has('project:write'),
+      disabled: !hasEveryAccess(['project:write'], {organization, project}),
     };
+
     const team = project.teams.length ? project.teams?.[0] : undefined;
 
     /*
@@ -282,7 +298,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <Form {...formProps}>
           <JsonForm

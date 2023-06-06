@@ -113,6 +113,9 @@ _hack_pydantic_type_validation()
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
 
+    class Config:
+        orm_mode = True
+
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
         return iter(cls.__fields__.keys())

@@ -10,7 +10,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import NotificationsService
+from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -27,6 +27,7 @@ class TransformTestCase(TestCase):
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
                 target_id=get_actor_id_for_user(self.user),
+                user_id=self.user.id,
                 scope_type=NotificationScopeType.PROJECT.value,
                 scope_identifier=self.project.id,
             ),
@@ -35,6 +36,7 @@ class TransformTestCase(TestCase):
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
                 target_id=get_actor_id_for_user(self.user),
+                user_id=self.user.id,
                 scope_type=NotificationScopeType.USER.value,
                 scope_identifier=self.user.id,
             ),
@@ -42,12 +44,11 @@ class TransformTestCase(TestCase):
 
         self.user_actor = RpcActor.from_orm_user(self.user)
         self.rpc_notification_settings = [
-            NotificationsService.serialize_notification_setting(setting)
-            for setting in self.notification_settings
+            serialize_notification_setting(setting) for setting in self.notification_settings
         ]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
     def test_transform_to_notification_settings_by_recipient_empty(self):
         assert (

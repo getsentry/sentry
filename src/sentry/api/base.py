@@ -18,8 +18,9 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_sdk import Scope
 
-from sentry import analytics, tsdb
+from sentry import analytics, options, tsdb
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -30,7 +31,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.sdk import capture_exception
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -82,7 +83,6 @@ def allow_cors_options(func):
 
     @functools.wraps(func)
     def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
-
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
             response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
@@ -109,6 +109,14 @@ def allow_cors_options(func):
         else:
             response["Access-Control-Allow-Origin"] = origin
 
+        # If the requesting origin is a subdomain of
+        # the application's base-hostname we should allow cookies
+        # to be sent.
+        basehost = options.get("system.base-hostname")
+        if basehost and origin:
+            if origin.endswith(basehost):
+                response["Access-Control-Allow-Credentials"] = "true"
+
         return response
 
     return allow_cors_options_wrapper
@@ -129,7 +137,8 @@ class Endpoint(APIView):
     def get_authenticators(self) -> List[BaseAuthentication]:
         """
         Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that can be supported using HybridCloud.
+        Aggregates together authenticators that should be called cross silo, while
+        leaving methods that should be run locally.
         """
 
         # TODO: Increase test coverage and get this working for monolith mode.
@@ -184,15 +193,21 @@ class Endpoint(APIView):
         return (args, kwargs)
 
     def handle_exception(
-        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
     ) -> Response:
         """
         Handle exceptions which arise while processing incoming API requests.
 
         :param request:          The incoming request.
         :param exc:              The exception raised during handling.
-        :param handler_context:  (Optional) Extra data which will be attached to the event sent
-                                 to Sentry, under the "Request Handler Data" heading.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent to
+                                 Sentry, under the "Request Handler Data" heading.
+        :param scope:            (Optional) A `Scope` object containing extra data which will be
+                                 attached to the event sent to Sentry.
 
         :returns: A 500 response including the event id of the captured Sentry event.
         """
@@ -206,12 +221,16 @@ class Endpoint(APIView):
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception(
-                err, contexts={"Request Handler Data": handler_context} if handler_context else None
-            )
+
+            scope = scope or sentry_sdk.Scope()
+            if handler_context:
+                merge_context_into_scope("Request Handler Data", handler_context, scope)
+            event_id = capture_exception(err, scope=scope)
+
             response_body = {"detail": "Internal Error", "errorId": event_id}
             response = Response(response_body, status=500)
             response.exception = True
+
         return response
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
@@ -394,6 +413,14 @@ class Endpoint(APIView):
         count_hits=None,
         **paginator_kwargs,
     ):
+        # XXX(epurkhiser): This is an experiment that overrides all paginated
+        # API requests so that we can more easily debug on the frontend the
+        # experiemce customers have when they have lots of entites.
+        override_limit = request.COOKIES.get("__sentry_dev_pagination_limit", None)
+        if override_limit is not None:
+            default_per_page = int(override_limit)
+            max_per_page = int(override_limit)
+
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)

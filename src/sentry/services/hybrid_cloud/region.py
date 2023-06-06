@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from sentry.db.models import BaseManager
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import Region, get_region_by_name
 
 if TYPE_CHECKING:
+    from sentry.db.models import BaseManager
     from sentry.models import OrganizationMapping
 
 
@@ -43,6 +43,17 @@ class ByOrganizationObject(RegionResolution):
         value = arguments[self.parameter_name]
         mapping = self.organization_mapping_manager.get(organization_id=value.id)
         return self._resolve_from_mapping(mapping)
+
+
+@dataclass(frozen=True)
+class ByRegionName(RegionResolution):
+    """Resolve from an `str` parameter representing a region's name"""
+
+    parameter_name: str = "region_name"
+
+    def resolve(self, arguments: ArgumentDict) -> Region:
+        region_name = arguments[self.parameter_name]
+        return get_region_by_name(region_name)
 
 
 @dataclass(frozen=True)

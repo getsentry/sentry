@@ -19,9 +19,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
+from rest_framework.request import Request
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import remove_invite_details_from_session
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -35,13 +36,13 @@ from sentry.locks import locks
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
-from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, auth_service
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
+    RpcOrganizationMemberFlags,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, json, metrics
@@ -226,28 +227,70 @@ class AuthIdentityHandler:
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(self, auth_identity: RpcAuthIdentity) -> RpcOrganizationMember:
-        user, om = auth_service.handle_new_membership(
+    def _handle_membership(
+        self,
+        request: Request,
+        organization: RpcOrganization,
+        auth_identity: AuthIdentity,
+    ) -> Tuple[User, RpcOrganizationMember]:
+        user = User.objects.get(id=auth_identity.user_id)
+
+        # If the user is either currently *pending* invite acceptance (as indicated
+        # from the invite token and member id in the session) OR an existing invite exists on this
+        # organization for the email provided by the identity provider.
+        invite_helper = ApiInviteHelper.from_session_or_email(
+            request=request, organization_id=organization.id, email=user.email
+        )
+
+        # If we are able to accept an existing invite for the user for this
+        # organization, do so, otherwise handle new membership
+        if invite_helper:
+            if invite_helper.invite_approved:
+                rpc_om = invite_helper.accept_invite(user)
+                assert rpc_om
+                return user, rpc_om
+
+            # It's possible the user has an _invite request_ that hasn't been approved yet,
+            # and is able to join the organization without an invite through the SSO flow.
+            # In that case, delete the invite request and create a new membership.
+            invite_helper.handle_invite_not_approved()
+
+        flags = RpcOrganizationMemberFlags(sso__linked=True)
+        # if the org doesn't have the ability to add members then anyone who got added
+        # this way should be disabled until the org upgrades
+        if not features.has("organizations:invite-members", organization):
+            flags.member_limit__restricted = True
+
+        # Otherwise create a new membership
+        om = organization_service.add_organization_member(
+            organization_id=organization.id,
+            default_org_role=organization.default_role,
+            role=organization.default_role,
+            user_id=user.id,
+            flags=flags,
+        )
+        return user, om
+
+    def _handle_new_membership(self, auth_identity: AuthIdentity) -> RpcOrganizationMember:
+        user, om = self._handle_membership(
             request=self.request,
             organization=self.organization,
             auth_identity=auth_identity,
-            auth_provider=self.auth_provider,
         )
 
-        if om is not None:
-            log_service.record_audit_log(
-                event=AuditLogEvent(
-                    organization_id=self.organization.id,
-                    date_added=timezone.now(),
-                    event_id=audit_log.get_event_id("MEMBER_ADD"),
-                    actor_user_id=user.id,
-                    actor_label=user.username,
-                    ip_address=self.request.META["REMOTE_ADDR"],
-                    target_object_id=om.id,
-                    data=om.get_audit_log_metadata(user.email),
-                    target_user_id=user.id,
-                )
+        log_service.record_audit_log(
+            event=AuditLogEvent(
+                organization_id=self.organization.id,
+                date_added=timezone.now(),
+                event_id=audit_log.get_event_id("MEMBER_ADD"),
+                actor_user_id=user.id,
+                actor_label=user.username,
+                ip_address=self.request.META["REMOTE_ADDR"],
+                target_object_id=om.id,
+                data=om.get_audit_log_metadata(user.email),
+                target_user_id=user.id,
             )
+        )
 
         return om
 
@@ -737,7 +780,7 @@ class AuthHelper(Pipeline):
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         # This is a temporary step to keep test_helper integrated
         # TODO: Move this conversion further upstream
-        rpc_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
+        rpc_org = serialize_organization(self.organization)
 
         return AuthIdentityHandler(
             self.provider_model, self.provider, rpc_org, self.request, identity

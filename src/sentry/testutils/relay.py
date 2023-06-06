@@ -42,6 +42,7 @@ class RelayStoreHelper:
     Note that any methods defined on this mixin are very slow. Consider whether
     your test really needs to test the entire ingestion pipeline or whether
     it's fine to call the regular `store_event` or `create_event`.
+
     """
 
     def use_relay(self):
@@ -61,7 +62,11 @@ class RelayStoreHelper:
         event_id = resp_body["id"]
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+            lambda: eventstore.get_event_by_id(
+                self.project.id,
+                event_id,
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            )
         )
         # check that we found it in Snuba
         assert event is not None
@@ -73,12 +78,18 @@ class RelayStoreHelper:
 
         event_ids = {
             event.event_id
-            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id]))
+            for event in eventstore.get_events(
+                eventstore.Filter(project_ids=[self.project.id]),
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            )
         }
 
         def has_new_event():
             # Hack: security report endpoint does not return event ID
-            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id])):
+            for event in eventstore.get_events(
+                eventstore.Filter(project_ids=[self.project.id]),
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            ):
                 if event.event_id not in event_ids:
                     return event
 
@@ -128,7 +139,11 @@ class RelayStoreHelper:
         event_id = resp.text.strip().replace("-", "")
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+            lambda: eventstore.get_event_by_id(
+                self.project.id,
+                event_id,
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            )
         )
         # check that we found it in Snuba
         assert event is not None
@@ -147,7 +162,11 @@ class RelayStoreHelper:
         event_id = resp.text.strip().replace("-", "")
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+            lambda: eventstore.get_event_by_id(
+                self.project.id,
+                event_id,
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            )
         )
         # check that we found it in Snuba
         assert event is not None

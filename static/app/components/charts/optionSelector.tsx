@@ -48,6 +48,7 @@ function OptionSelector({
   featureType,
   multiple,
   defaultValue,
+  closeOnSelect,
   ...rest
 }: SingleProps | MultipleProps) {
   const mappedOptions = useMemo(() => {
@@ -68,6 +69,7 @@ function OptionSelector({
         onChange: (sel: SelectOption<string>[]) => {
           onChange?.(sel.map(o => o.value));
         },
+        closeOnSelect,
       };
     }
 
@@ -76,8 +78,9 @@ function OptionSelector({
       value: selected,
       defaultValue,
       onChange: opt => onChange?.(opt.value),
+      closeOnSelect,
     };
-  }, [multiple, selected, defaultValue, onChange]);
+  }, [multiple, selected, defaultValue, onChange, closeOnSelect]);
 
   function isOptionDisabled(option) {
     return (

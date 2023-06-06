@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Alert} from 'sentry/components/alert';
@@ -120,7 +121,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
   renderBody() {
     const {organization, project} = this.props;
     const plugins = this.forwardingPlugins;
-    const hasAccess = organization.access.includes('project:write');
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
     const params = {...this.props.params, orgId: organization.slug};
 
     const pluginsPanel =
@@ -162,7 +163,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
                   }
                 )}
               </TextBlock>
-              <PermissionAlert />
+              <PermissionAlert project={project} />
 
               <Alert showIcon>
                 {tct(

@@ -9,7 +9,7 @@ import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {CodeOwner, CodeownersFile, Project} from 'sentry/types';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';

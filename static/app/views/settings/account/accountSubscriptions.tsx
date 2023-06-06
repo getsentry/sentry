@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import findIndex from 'lodash/findIndex';
 import groupBy from 'lodash/groupBy';
+import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,16 +38,23 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
   }
 
   getTitle() {
-    return 'Subscriptions';
+    return t('Subscriptions');
   }
 
-  handleToggle = (subscription: Subscription, listId: number, _e: React.MouseEvent) => {
+  handleToggle = (
+    subscription: Subscription,
+    email: string,
+    listId: number,
+    _e: React.MouseEvent
+  ) => {
     const subscribed = !subscription.subscribed;
     const oldSubscriptions = this.state.subscriptions;
 
     this.setState(state => {
-      const newSubscriptions = state.subscriptions.slice();
-      const index = findIndex(newSubscriptions, {listId});
+      const newSubscriptions = [...state.subscriptions];
+      const index = newSubscriptions.findIndex(
+        sub => sub.listId === listId && sub.email === email
+      );
       newSubscriptions[index] = {
         ...subscription,
         subscribed,
@@ -80,11 +87,15 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
   };
 
   renderBody() {
-    const subGroups = Object.entries(groupBy(this.state.subscriptions, sub => sub.email));
+    // Group by does not guarantee order, so we sort by email
+    const subGroups = orderBy(
+      Object.entries(groupBy(this.state.subscriptions, sub => sub.email)),
+      ([email]) => email
+    );
 
     return (
       <div>
-        <SettingsPageHeader title="Subscriptions" />
+        <SettingsPageHeader title={this.getTitle()} />
         <TextBlock>
           {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
@@ -111,45 +122,52 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                       </Heading>
                     )}
 
-                    {subscriptions.map(subscription => (
-                      <PanelItem center key={subscription.listId}>
-                        <SubscriptionDetails>
-                          <SubscriptionName>{subscription.listName}</SubscriptionName>
-                          {subscription.listDescription && (
-                            <Description>{subscription.listDescription}</Description>
-                          )}
-                          {subscription.subscribed ? (
-                            <SubscribedDescription>
-                              <div>
-                                {tct('[email] on [date]', {
-                                  email: subscription.email,
-                                  date: (
-                                    <DateTime
-                                      date={moment(subscription.subscribedDate!)}
-                                    />
-                                  ),
-                                })}
-                              </div>
-                            </SubscribedDescription>
-                          ) : (
-                            <SubscribedDescription>
-                              {t('Not currently subscribed')}
-                            </SubscribedDescription>
-                          )}
-                        </SubscriptionDetails>
-                        <div>
-                          <Switch
-                            isActive={subscription.subscribed}
-                            size="lg"
-                            toggle={this.handleToggle.bind(
-                              this,
-                              subscription,
-                              subscription.listId
+                    {subscriptions
+                      .sort((a, b) => a.listId - b.listId)
+                      .map(subscription => (
+                        <PanelItem center key={subscription.listId}>
+                          <SubscriptionDetails
+                            htmlFor={`${subscription.email}-${subscription.listId}`}
+                            aria-label={subscription.listName}
+                          >
+                            <SubscriptionName>{subscription.listName}</SubscriptionName>
+                            {subscription.listDescription && (
+                              <Description>{subscription.listDescription}</Description>
                             )}
-                          />
-                        </div>
-                      </PanelItem>
-                    ))}
+                            {subscription.subscribed ? (
+                              <SubscribedDescription>
+                                <div>
+                                  {tct('[email] on [date]', {
+                                    email: subscription.email,
+                                    date: (
+                                      <DateTime
+                                        date={moment(subscription.subscribedDate!)}
+                                      />
+                                    ),
+                                  })}
+                                </div>
+                              </SubscribedDescription>
+                            ) : (
+                              <SubscribedDescription>
+                                {t('Not currently subscribed')}
+                              </SubscribedDescription>
+                            )}
+                          </SubscriptionDetails>
+                          <div>
+                            <Switch
+                              id={`${subscription.email}-${subscription.listId}`}
+                              isActive={subscription.subscribed}
+                              size="lg"
+                              toggle={this.handleToggle.bind(
+                                this,
+                                subscription,
+                                email,
+                                subscription.listId
+                              )}
+                            />
+                          </div>
+                        </PanelItem>
+                      ))}
                   </Fragment>
                 ))}
               </PanelBody>
@@ -187,9 +205,17 @@ const Heading = styled(PanelItem)`
   color: ${p => p.theme.subText};
 `;
 
-const SubscriptionDetails = styled('div')`
-  width: 50%;
+const SubscriptionDetails = styled('label')`
+  font-weight: initial;
   padding-right: ${space(2)};
+  width: 85%;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 75%;
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 50%;
+  }
 `;
 
 const SubscriptionName = styled('div')`

@@ -10,7 +10,7 @@ import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AvailableNotificationAction,
   NotificationAction,
@@ -86,9 +86,10 @@ function PagerdutyForm({
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={accountOptions}
-          trigger={triggerProps => (
+          trigger={(triggerProps, isOpen) => (
             <DropdownButton
               {...triggerProps}
+              isOpen={isOpen}
               aria-label={t('Select Account')}
               size="xs"
               data-test-id="pagerduty-account-dropdown"

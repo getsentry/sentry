@@ -285,36 +285,22 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to transaction without project column selected', async function () {
-    rows.data[0]['project.name'] = 'project-slug';
-
-    renderComponent(initialData, rows, eventView);
-    await openContextMenu(2);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: expect.objectContaining({
-        transaction: '/organizations/',
-        project: ['2'],
-      }),
-    });
-  });
-
-  it('handles go to transaction with project column selected', async function () {
+  it('renders transaction summary link', function () {
     rows.data[0].project = 'project-slug';
 
     renderComponent(initialData, rows, eventView);
-    await openContextMenu(2);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: expect.objectContaining({
-        transaction: '/organizations/',
-        project: ['2'],
-      }),
-    });
+    const firstRow = screen.getAllByRole('row')[1];
+    const link = within(firstRow).getByTestId('tableView-transaction-link');
+
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringMatching(
+        RegExp(
+          '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+        )
+      )
+    );
   });
 
   it('handles go to release', async function () {

@@ -13,7 +13,6 @@ import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSel
 describe('Onboarding Product Selection', function () {
   it('renders default state', async function () {
     const {router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {
           query: {product: ['performance-monitoring', 'session-replay']},
@@ -71,7 +70,7 @@ describe('Onboarding Product Selection', function () {
     // Uncheck performance monitoring
     await userEvent.click(performanceMonitoring);
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
         query: {product: ['session-replay']},
       })
@@ -86,7 +85,7 @@ describe('Onboarding Product Selection', function () {
     // Uncheck sesseion replay
     await userEvent.click(sessionReplay);
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
         query: {product: ['performance-monitoring']},
       })
@@ -101,7 +100,6 @@ describe('Onboarding Product Selection', function () {
 
   it('renders for Loader Script', async function () {
     const {routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {
           query: {product: ['performance-monitoring', 'session-replay']},

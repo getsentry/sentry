@@ -39,7 +39,7 @@ class CommitAuthor(Model):
 
     def find_users(self) -> List["RpcUser"]:
         from sentry.models import OrganizationMember
-        from sentry.services.hybrid_cloud.user import user_service
+        from sentry.services.hybrid_cloud.user.service import user_service
 
         users = user_service.get_many_by_email(emails=[self.email])
         org_member_user_ids = set(

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -10,28 +10,26 @@ import Version from 'sentry/components/version';
 
 interface Props {
   name: string;
-  values: string[];
-  generateUrl?: (name: string, value: string) => LocationDescriptor;
+  values: ReactNode[];
+  generateUrl?: (name: string, value: ReactNode) => LocationDescriptor;
 }
 
 function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   const renderTagValue = useMemo(() => {
     if (name === 'release') {
-      return values.map((value, index) => {
-        return (
-          <Fragment key={value}>
-            {index > 0 && ', '}
-            <Version key={index} version={value} anchor={false} withPackage />
-          </Fragment>
-        );
-      });
+      return values.map((value, index) => (
+        <Fragment key={`${name}-${index}-${value}`}>
+          {index > 0 && ', '}
+          <Version key={index} version={String(value)} anchor={false} withPackage />
+        </Fragment>
+      ));
     }
 
     return values.map((value, index) => {
       const target = generateUrl?.(name, value);
 
       return (
-        <Fragment key={value}>
+        <Fragment key={`${name}-${index}-${value}`}>
           {index > 0 && ', '}
           {target ? <Link to={target}>{value}</Link> : <AnnotatedText value={value} />}
         </Fragment>

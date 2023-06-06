@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -10,6 +11,8 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
+  EntrySpans,
+  Event,
   EventGroupComponent,
   EventGroupVariant,
   EventGroupVariantType,
@@ -19,6 +22,7 @@ import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
 type Props = {
+  event: Event;
   showGroupingConfig: boolean;
   variant: EventGroupVariant;
 };
@@ -69,7 +73,7 @@ class GroupVariant extends Component<Props, State> {
   };
 
   getVariantData(): [VariantData, EventGroupComponent | undefined] {
-    const {variant, showGroupingConfig} = this.props;
+    const {event, variant, showGroupingConfig} = this.props;
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
@@ -153,6 +157,11 @@ class GroupVariant extends Component<Props, State> {
         }
         break;
       case EventGroupVariantType.PERFORMANCE_PROBLEM:
+        const spansToHashes = Object.fromEntries(
+          event.entries
+            .find((c): c is EntrySpans => c.type === 'spans')
+            ?.data?.map((span: RawSpanType) => [span.span_id, span.hash]) ?? []
+        );
         data.push([
           t('Type'),
           <TextWithQuestionTooltip key="type">
@@ -169,11 +178,17 @@ class GroupVariant extends Component<Props, State> {
 
         data.push(['Performance Issue Type', variant.key]);
         data.push(['Span Operation', variant.evidence.op]);
-        data.push(['Parent Span Hashes', variant.evidence.parent_span_hashes]);
-        data.push(['Source Span Hashes', variant.evidence.cause_span_hashes]);
+        data.push([
+          'Parent Span Hashes',
+          variant.evidence?.parent_span_ids?.map(id => spansToHashes[id]) ?? [],
+        ]);
+        data.push([
+          'Source Span Hashes',
+          variant.evidence?.cause_span_ids?.map(id => spansToHashes[id]) ?? [],
+        ]);
         data.push([
           'Offender Span Hashes',
-          [...new Set(variant.evidence.offender_span_hashes)],
+          [...new Set(variant.evidence?.offender_span_ids?.map(id => spansToHashes[id]))],
         ]);
         break;
       default:

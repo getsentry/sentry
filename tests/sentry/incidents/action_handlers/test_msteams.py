@@ -7,28 +7,31 @@ from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
 from sentry.models import Integration
 from sentry.testutils import TestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 from . import FireTest
 
 
+@region_silo_test(stable=True)
 @freeze_time()
 class MsTeamsActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.msteams.card_builder import build_incident_attachment
 
-        integration = Integration.objects.create(
-            provider="msteams",
-            name="Galactic Empire",
-            external_id="D4r7h_Pl4gu315_th3_w153",
-            metadata={
-                "service_url": "https://smba.trafficmanager.net/amer",
-                "access_token": "d4rk51d3",
-                "expires_at": int(time.time()) + 86400,
-            },
-        )
-        integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(
+                provider="msteams",
+                name="Galactic Empire",
+                external_id="D4r7h_Pl4gu315_th3_w153",
+                metadata={
+                    "service_url": "https://smba.trafficmanager.net/amer",
+                    "access_token": "d4rk51d3",
+                    "expires_at": int(time.time()) + 86400,
+                },
+            )
+            integration.add_organization(self.organization, self.user)
 
         channel_id = "d_s"
         channel_name = "Death Star"

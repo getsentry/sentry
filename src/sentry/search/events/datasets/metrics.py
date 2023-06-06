@@ -8,10 +8,10 @@ from snuba_sdk import Column, Condition, Function, Op, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.search.events.types import SelectType, WhereType
+from sentry.snuba.referrer import Referrer
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -19,6 +19,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
+        self.total_transaction_duration: Optional[float] = None
 
     @property
     def search_filter_converter(
@@ -655,6 +656,40 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                fields.MetricsFunction(
+                    "time_spent_percentage",
+                    snql_distribution=self._resolve_time_spent_percentage,
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_error_rate",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            self._resolve_http_error_count(args),
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count",
+                    snql_distribution=self._resolve_http_error_count,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -694,7 +729,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        return resolve_project_threshold_config(
+        return function_aliases.resolve_project_threshold_config(
             tag_value_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_tag_value(
                 value
             ),
@@ -978,40 +1013,40 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_http_error_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.HTTP_SERVER_ERROR_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("transaction.duration"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("http.status_code"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
+            alias,
+        )
+
     def _resolve_percentile(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
         fixed_percentile: Optional[float] = None,
     ) -> SelectType:
-        if fixed_percentile is None:
-            fixed_percentile = args["percentile"]
-        if fixed_percentile not in constants.METRIC_PERCENTILES:
-            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
-        return (
-            Function(
-                "maxIf",
-                [
-                    Column("value"),
-                    Function("equals", [Column("metric_id"), args["metric_id"]]),
-                ],
-                alias,
-            )
-            if fixed_percentile == 1
-            else Function(
-                "arrayElement",
-                [
-                    Function(
-                        f"quantilesIf({fixed_percentile})",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                    ),
-                    1,
-                ],
-                alias,
-            )
+        return function_aliases.resolve_metrics_percentile(
+            args=args, alias=alias, fixed_percentile=fixed_percentile
         )
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
@@ -1071,6 +1106,57 @@ class MetricsDatasetConfig(DatasetConfig):
                         Function("equals", [Column("metric_id"), metric_id]),
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_total_transaction_duration(self, alias: str) -> SelectType:
+        """This calculates the app's total time, so other filters that are
+        a part of the original query will not be applies. Only filter conditions
+        that will be applied are snuba params.
+        This must be cached since it runs another query."""
+        self.builder.requires_other_aggregates = True
+        if self.total_transaction_duration is not None:
+            return Function("toFloat64", [self.total_transaction_duration], alias)
+
+        total_query = builder.MetricsQueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["sum(transaction.duration)"],
+        )
+
+        total_query.columns += self.builder.resolve_groupby()
+        total_results = total_query.run_query(
+            Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
+        )
+        results = total_query.process_results(total_results)
+
+        if len(results["data"]) != 1:
+            self.total_transaction_duration = 0
+            return Function("toFloat64", [0], alias)
+        self.total_transaction_duration = results["data"][0]["sum_transaction_duration"]
+        return Function("toFloat64", [self.total_transaction_duration], alias)
+
+    def _resolve_time_spent_percentage(
+        self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
+    ) -> SelectType:
+        total_time = self._resolve_total_transaction_duration(
+            constants.TOTAL_TRANSACTION_DURATION_ALIAS
+        )
+        metric_id = self.resolve_metric("transaction.duration")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
+                total_time,
             ],
             alias,
         )

@@ -18,6 +18,8 @@ export enum DiscoverDatasets {
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',
+  SPANS_INDEXED = 'spansIndexed',
+  SPANS_METRICS = 'spansMetrics',
 }
 
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];

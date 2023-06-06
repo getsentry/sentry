@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import Scope
 
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.utils import get_integration_from_jwt
@@ -24,14 +25,18 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
     """
 
     def handle_exception(
-        self, request: Request, exc: Exception, handler_context: Mapping[str, Any] | None = None
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
     ) -> Response:
         if isinstance(exc, ApiError):
             response_option = handle_jira_api_error(exc, " to get email")
             if response_option:
                 return self.respond(response_option)
 
-        return super().handle_exception(request, exc, handler_context)
+        return super().handle_exception(request, exc, handler_context, scope)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)

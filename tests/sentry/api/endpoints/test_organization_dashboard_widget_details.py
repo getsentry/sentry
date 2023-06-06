@@ -34,6 +34,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "orderby": "count()",
                 },
             ],
+            "description": "Valid widget description",
         }
         response = self.do_request(
             "post",
