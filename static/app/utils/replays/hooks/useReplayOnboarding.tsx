@@ -54,7 +54,7 @@ export function useReplayOnboardingSidebarPanel() {
 
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
       trackAnalytics('replay.list-view-setup-sidebar', {
         organization,
       });
@@ -64,7 +64,7 @@ export function useReplayOnboardingSidebarPanel() {
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
     window.location.hash = 'replay-sidequest';
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
   }, []);
 
   return {activateSidebar};

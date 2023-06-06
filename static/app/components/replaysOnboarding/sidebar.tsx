@@ -31,7 +31,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
-  const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
+  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {
