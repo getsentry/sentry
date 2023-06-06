@@ -400,7 +400,7 @@ describe('IssueListActions', function () {
       // 'Add to Bookmarks' is supported
       expect(
         screen.getByRole('menuitemradio', {name: 'Add to Bookmarks'})
-      ).toHaveAttribute('aria-disabled', 'false');
+      ).not.toHaveAttribute('aria-disabled');
 
       // Deleting is not supported and menu item should be disabled
       expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(

@@ -6,7 +6,7 @@ import {useKeyboard} from '@react-aria/interactions';
 import {AriaMenuOptions, useMenu} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
-import {TreeState, useTreeState} from '@react-stately/tree';
+import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
@@ -37,13 +37,14 @@ export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
   extends Omit<
-    AriaMenuOptions<MenuItemProps>,
-    | 'selectionMode'
-    | 'selectedKeys'
-    | 'defaultSelectedKeys'
-    | 'onSelectionChange'
-    | 'disallowEmptySelection'
-  > {
+      AriaMenuOptions<MenuItemProps>,
+      | 'selectionMode'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'disallowEmptySelection'
+    >,
+    TreeProps<MenuItemProps> {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
