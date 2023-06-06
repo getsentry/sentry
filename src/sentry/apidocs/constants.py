@@ -1,14 +1,5 @@
 from drf_spectacular.utils import OpenApiResponse
 
-RESPONSE_UNAUTHORIZED = OpenApiResponse(description="Unauthorized")
-
-# 400
-RESPONSE_BAD_REQUEST = OpenApiResponse(description="Bad Request")
-
-RESPONSE_FORBIDDEN = OpenApiResponse(description="Forbidden")
-
-RESPONSE_NOTFOUND = OpenApiResponse(description="Not Found")
-
 # 200
 RESPONSE_SUCCESS = OpenApiResponse(description="Success")
 
@@ -20,3 +11,18 @@ RESPONSE_ACCEPTED = OpenApiResponse(description="Accepted")
 
 # 208
 RESPONSE_ALREADY_REPORTED = OpenApiResponse(description="Already Reported")
+
+# 400
+RESPONSE_BAD_REQUEST = OpenApiResponse(description="Bad Request")
+
+# 401
+RESPONSE_UNAUTHORIZED = OpenApiResponse(description="Unauthorized")
+
+# 403
+RESPONSE_FORBIDDEN = OpenApiResponse(description="Forbidden")
+
+# 404
+RESPONSE_NOTFOUND = OpenApiResponse(description="Not Found")
+
+# 409
+RESPONSE_CONFLICT = OpenApiResponse(description="Conflict")
