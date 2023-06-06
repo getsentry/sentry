@@ -31,7 +31,6 @@ def create_name_mapping_layers() -> None:
             "sentry.sessions.user": SessionMRI.USER,
             "sentry.sessions.session.duration": SessionMRI.RAW_DURATION,
             "sentry.sessions.session.error": SessionMRI.ERROR,
-            # Transaction
         }
     )
 

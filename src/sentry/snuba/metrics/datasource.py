@@ -148,7 +148,6 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
     for mri in get_all_mris():
         parsed = parse_mri(mri)
 
-        # better way to get oprations from mri
         if parsed.entity not in ENTITY_SHORTHANDS:
             ops = []
         elif parsed.namespace == "sessions":
