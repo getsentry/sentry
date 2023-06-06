@@ -33,5 +33,8 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
             has_metrics=has_metrics,
             skip_tag_resolution=skip_tag_resolution,
         )
-        self.time_column = manual_group_on_time_aggregation(interval, "time")
         self.groupby = [self.time_column]
+
+    @property
+    def time_column(self):
+        return manual_group_on_time_aggregation(self.granularity.granularity)

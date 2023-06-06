@@ -18,8 +18,12 @@ class SpansIndexedQueryBuilder(QueryBuilder):
 
 
 class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
-    time_column = Function("toStartOfHour", [Column("end_timestamp")], "time")
+    @property
+    def time_column(self):
+        return Function("toStartOfHour", [Column("end_timestamp")], "time")
 
 
 class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
-    time_column = Function("toStartOfHour", [Column("timestamp")], "time")
+    @property
+    def time_column(self):
+        return Function("toStartOfHour", [Column("timestamp")], "time")
