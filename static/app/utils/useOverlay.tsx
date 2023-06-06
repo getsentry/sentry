@@ -1,16 +1,18 @@
 import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
 import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
-import {useButton} from '@react-aria/button';
+import {useButton as useButtonAria} from '@react-aria/button';
 import {
   AriaOverlayProps,
   OverlayTriggerProps,
-  useOverlay as useAriaOverlay,
-  useOverlayTrigger,
+  useOverlay as useOverlayAria,
+  useOverlayTrigger as useOverlayTriggerAria,
 } from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
-import {useOverlayTriggerState} from '@react-stately/overlays';
-import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
+import {
+  OverlayTriggerProps as OverlayTriggerStateProps,
+  useOverlayTriggerState,
+} from '@react-stately/overlays';
 
 type PreventOverflowOptions = NonNullable<(typeof preventOverflow)['options']>;
 
@@ -196,19 +198,19 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
+  const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
     {type},
     openState,
     triggerRef
   );
-  const {buttonProps: ariaTriggerProps} = useButton(
+  const {buttonProps: triggerAriaProps} = useButtonAria(
     {...triggerProps, isDisabled: disableTrigger},
     triggerRef
   );
 
   // Get props for overlay element
   const interactedOutside = useRef(false);
-  const {overlayProps} = useAriaOverlay(
+  const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
         onClose?.();
@@ -247,13 +249,13 @@ function useOverlay({
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
-      ...ariaTriggerProps,
+      ...triggerAriaProps,
     },
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,
       style: popperStyles.popper,
-      ...mergeProps(overlayTriggerProps, overlayProps),
+      ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {
       ref: setArrowElement,
