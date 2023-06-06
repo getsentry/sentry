@@ -1,24 +1,27 @@
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {
   datetimeToClickhouseFilterTimestamps,
-  PERIOD_REGEX,
+  getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
@@ -33,29 +36,71 @@ type AppliedFilters = {
   span_operation: string;
 };
 
+type ChartProps = {
+  filters: AppliedFilters;
+  moduleName: ModuleName;
+};
+
 export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
+  const {selection} = usePageFilters();
   const location = useLocation();
 
-  const {selection} = usePageFilters();
-  const [_, num, unit] = selection.datetime.period?.match(PERIOD_REGEX) ?? [];
-  const startTime =
-    num && unit
-      ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(selection.datetime.start);
-  const endTime = moment(selection.datetime.end ?? undefined);
+  const eventView = getEventView(moduleName, location, appliedFilters);
 
-  const query = getQuery(moduleName, selection, appliedFilters);
-  const eventView = getEventView(moduleName, selection, appliedFilters);
+  const {isLoading} = useSpansQuery({
+    eventView,
+    queryString: `${getQuery(
+      moduleName,
+      selection,
+      appliedFilters
+    )}&referrer=span-time-charts`,
+    initialData: [],
+  });
 
+  useSynchronizeCharts([!isLoading]);
+
+  const moduleCharts: Record<
+    ModuleName,
+    {Comp: (props: ChartProps) => JSX.Element; title: string}[]
+  > = {
+    [ModuleName.ALL]: [
+      {title: t('Throughput'), Comp: ThroughputChart},
+      {title: DataTitles.p95, Comp: DurationChart},
+    ],
+    [ModuleName.DB]: [],
+    [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
+    [ModuleName.NONE]: [],
+  };
+
+  const charts = [...moduleCharts[ModuleName.ALL], ...moduleCharts[moduleName]];
+
+  return (
+    <ChartsContainer>
+      {charts.map(({title, Comp}) => (
+        <ChartsContainerItem key={title}>
+          <ChartPanel title={title}>
+            <Comp moduleName={moduleName} filters={appliedFilters} />
+          </ChartPanel>
+        </ChartsContainerItem>
+      ))}
+    </ChartsContainer>
+  );
+}
+
+function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
+  const pageFilter = usePageFilters();
+  const location = useLocation();
+  const query = getQuery(moduleName, pageFilter.selection, filters);
+  const eventView = getEventView(moduleName, location, filters);
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const {span_operation, action, domain} = location.query;
+
+  const label = getSegmentLabel(span_operation, action, domain);
   const {isLoading, data} = useSpansQuery({
     eventView,
     queryString: `${query}&referrer=span-time-charts`,
     initialData: [],
   });
-
-  const {span_operation, action, domain} = location.query;
-
-  const label = getSegmentLabel(span_operation, action, domain);
   const dataByGroup = {[label]: data};
 
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
@@ -75,6 +120,49 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     );
   });
 
+  return (
+    <Chart
+      statsPeriod="24h"
+      height={100}
+      data={throughputTimeSeries}
+      start=""
+      end=""
+      loading={isLoading}
+      utc={false}
+      grid={{
+        left: '0',
+        right: '0',
+        top: '8px',
+        bottom: '0',
+      }}
+      definedAxisTicks={4}
+      stacked
+      isLineChart
+      chartColors={[THROUGHPUT_COLOR]}
+      tooltipFormatterOptions={{
+        valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
+      }}
+    />
+  );
+}
+
+function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
+  const pageFilter = usePageFilters();
+  const location = useLocation();
+  const query = getQuery(moduleName, pageFilter.selection, filters);
+  const eventView = getEventView(moduleName, location, filters);
+  const {startTime, endTime} = getDateFilters(pageFilter);
+  const {span_operation, action, domain} = location.query;
+
+  const label = getSegmentLabel(span_operation, action, domain);
+
+  const {isLoading, data} = useSpansQuery({
+    eventView,
+    queryString: `${query}&referrer=span-time-charts`,
+    initialData: [],
+  });
+  const dataByGroup = {[label]: data};
+
   const p95Series = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
@@ -92,61 +180,63 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     );
   });
 
-  useSynchronizeCharts([!isLoading]);
+  return (
+    <Chart
+      statsPeriod="24h"
+      height={100}
+      data={[...p95Series]}
+      start=""
+      end=""
+      loading={isLoading}
+      utc={false}
+      grid={{
+        left: '0',
+        right: '0',
+        top: '8px',
+        bottom: '0',
+      }}
+      definedAxisTicks={4}
+      stacked
+      isLineChart
+      chartColors={[P95_COLOR]}
+    />
+  );
+}
+
+function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
+  const query = buildDiscoverQueryConditions(moduleName, filters);
+  const {isLoading, data} = useErrorCountQuery(query);
+
+  const errorRateSeries: Series = {
+    seriesName: DataTitles.errorCount,
+    data: data?.length
+      ? data?.map(entry => ({
+          name: entry.interval,
+          value: entry['http_error_count()'],
+        }))
+      : [],
+  };
 
   return (
-    <ChartsContainer>
-      <ChartsContainerItem>
-        <ChartPanel title={t('Throughput')}>
-          <Chart
-            statsPeriod="24h"
-            height={100}
-            data={throughputTimeSeries}
-            start=""
-            end=""
-            loading={isLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '8px',
-              bottom: '0',
-            }}
-            definedAxisTicks={4}
-            stacked
-            isLineChart
-            chartColors={[THROUGHPUT_COLOR]}
-            tooltipFormatterOptions={{
-              valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
-            }}
-          />
-        </ChartPanel>
-      </ChartsContainerItem>
-
-      <ChartsContainerItem>
-        <ChartPanel title={DataTitles.p95}>
-          <Chart
-            statsPeriod="24h"
-            height={100}
-            data={[...p95Series]}
-            start=""
-            end=""
-            loading={isLoading}
-            utc={false}
-            grid={{
-              left: '0',
-              right: '0',
-              top: '8px',
-              bottom: '0',
-            }}
-            definedAxisTicks={4}
-            stacked
-            isLineChart
-            chartColors={[P95_COLOR]}
-          />
-        </ChartPanel>
-      </ChartsContainerItem>
-    </ChartsContainer>
+    <Chart
+      statsPeriod="24h"
+      height={100}
+      data={[errorRateSeries]}
+      start=""
+      end=""
+      loading={isLoading}
+      utc={false}
+      grid={{
+        left: '0',
+        right: '0',
+        top: '8px',
+        bottom: '0',
+      }}
+      definedAxisTicks={4}
+      stacked
+      isLineChart
+      chartColors={[ERRORS_COLOR]}
+    />
   );
 }
 
@@ -197,23 +287,23 @@ const buildSQLQueryConditions = (
 
 const getEventView = (
   moduleName: ModuleName,
-  pageFilters: PageFilters,
+  location: Location,
   appliedFilters: AppliedFilters
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters);
 
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: [''],
-    yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
-    query,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    projects: [1],
-    version: 2,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [''],
+      yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      projects: [1],
+      version: 2,
+    },
+    location
+  );
 };
 
 const buildDiscoverQueryConditions = (
