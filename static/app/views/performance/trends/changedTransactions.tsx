@@ -575,7 +575,6 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projects,
     location,
     currentTrendFunction,
-    currentTrendColumn,
   } = props;
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -586,7 +585,6 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projectID,
     display: DisplayModes.TREND,
     trendFunction: currentTrendFunction,
-    trendColumn: currentTrendColumn,
     additionalQuery: {
       trendParameter: location.query.trendParameter?.toString(),
     },

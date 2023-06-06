@@ -56,6 +56,18 @@ export enum TrendColumnField {
   SPANS_RESOURCE = 'spans.resource',
 }
 
+export enum TrendParameterField {
+  DURATION = 'Duration',
+  LCP = 'LCP',
+  FCP = 'FCP',
+  FID = 'FID',
+  CLS = 'CLS',
+  SPANS_DB = 'Spans (db)',
+  SPANS_HTTP = 'Spans (http)',
+  SPANS_BROWSER = 'Spans (browser)',
+  SPANS_RESOURCE = 'Spans (resource)',
+}
+
 export type TrendStat = {
   data: EventsStatsData;
   order: number;
