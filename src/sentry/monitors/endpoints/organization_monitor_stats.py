@@ -1,14 +1,27 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tsdb
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.utils.dates import to_timestamp
 
 from .base import MonitorEndpoint
+
+
+def normalize_to_epoch(timestamp: datetime, seconds: int):
+    """
+    Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
+
+    i.e. if the rollup is minutes, the resulting timestamp would have
+    the seconds and microseconds rounded down.
+    """
+    epoch = int(to_timestamp(timestamp))
+    return epoch - (epoch % seconds)
 
 
 @region_silo_endpoint
@@ -19,8 +32,9 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
 
         stats = {}
         duration_stats = {}
-        current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
-        end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
+        current = normalize_to_epoch(args["start"], args["rollup"])
+
+        end = normalize_to_epoch(args["end"], args["rollup"])
 
         tracked_statuses = [
             CheckInStatus.OK,
@@ -48,10 +62,10 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         if environments:
             history = history.filter(monitor_environment__environment__in=environments)
 
-        for datetime, status, duration in history.values_list(
+        for dt, status, duration in history.values_list(
             "date_added", "status", "duration"
         ).iterator():
-            ts = tsdb.normalize_to_epoch(datetime, args["rollup"])
+            ts = normalize_to_epoch(dt, args["rollup"])
             stats[ts][status] += 1
             if duration:
                 duration_stats[ts]["sum"] += duration
