@@ -65,7 +65,6 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
       scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
       utc={false}
       chartColors={[P95_COLOR]}
-      stacked
       isLineChart
       definedAxisTicks={4}
     />
