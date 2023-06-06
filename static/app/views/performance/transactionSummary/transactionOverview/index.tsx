@@ -182,7 +182,7 @@ function OverviewContentWrapper(props: ChildProps) {
       ...filterToLocationQuery(newFilter),
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
 

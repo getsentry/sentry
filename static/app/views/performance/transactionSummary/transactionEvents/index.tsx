@@ -121,7 +121,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...sortQuery,
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
     browserHistory.push({
@@ -244,7 +244,7 @@ function generateEventView({
     'timestamp',
   ];
   const breakdown = decodeFilterFromLocation(location);
-  if (breakdown !== SpanOperationBreakdownFilter.None) {
+  if (breakdown !== SpanOperationBreakdownFilter.NONE) {
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
