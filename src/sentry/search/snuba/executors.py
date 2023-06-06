@@ -647,12 +647,15 @@ def better_priority_aggregation_impl(
 
         date_period = end - start
 
-        overall_event_count_seconds = (
-            3600 * 24 * date_period.days
-            if date_period.days > 0
-            else int(date_period.total_seconds())
-        )
-        recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
+        if date_period.days >= 7:
+            overall_event_count_seconds = 3600 * 24 * 7
+            recent_event_count_seconds = 3600
+        elif 7 > date_period.days > 0:
+            overall_event_count_seconds = 3600 * 24 * date_period.days
+            recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
+        else:
+            overall_event_count_seconds = int(date_period.total_seconds())
+            recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
 
         recent_event_count = (
             f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {recent_event_count_seconds}))"
