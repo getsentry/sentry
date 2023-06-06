@@ -56,7 +56,7 @@ describe('DataDownload', function () {
 
   it("should render the 'Expired' view when appropriate", function () {
     const status = DownloadStatus.Expired;
-    const response = {status, query: {type: ExportQueryType.IssuesByTag}};
+    const response = {status, query: {type: ExportQueryType.ISSUES_BY_TAG}};
     getDataExportDetails(response);
 
     render(<DataDownload params={mockRouteParams} />);
@@ -90,7 +90,7 @@ describe('DataDownload', function () {
       dateExpired,
       status,
       query: {
-        type: ExportQueryType.Discover,
+        type: ExportQueryType.DISCOVER,
         info: {},
       },
     });
@@ -105,7 +105,7 @@ describe('DataDownload', function () {
       dateExpired,
       status,
       query: {
-        type: ExportQueryType.IssuesByTag,
+        type: ExportQueryType.ISSUES_BY_TAG,
         info: {},
       },
     });

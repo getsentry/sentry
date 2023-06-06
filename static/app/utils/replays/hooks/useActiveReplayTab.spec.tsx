@@ -30,7 +30,7 @@ describe('useActiveReplayTab', () => {
   it('should use Console as a default', () => {
     const {result} = reactHooks.renderHook(useActiveReplayTab);
 
-    expect(result.current.getActiveTab()).toBe(TabKey.console);
+    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
   });
 
   it('should use DOM as a default, when there is a click search in the url', () => {
@@ -38,6 +38,6 @@ describe('useActiveReplayTab', () => {
 
     const {result} = reactHooks.renderHook(useActiveReplayTab);
 
-    expect(result.current.getActiveTab()).toBe(TabKey.dom);
+    expect(result.current.getActiveTab()).toBe(TabKey.DOM);
   });
 });
