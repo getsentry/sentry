@@ -31,6 +31,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models.grouplink import GroupLink
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -299,6 +300,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         from sentry.models import (
             Environment,
             EnvironmentProject,
+            ExternalIssue,
             ProjectTeam,
             RegionScheduledDeletion,
             ReleaseProject,
@@ -403,6 +405,12 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             )
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
+
+        # Manually move over external issues to the new org
+        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list("id", flat=True)
+        ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups).update(
+            organization_id=organization.id
+        )
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam

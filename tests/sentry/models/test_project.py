@@ -7,6 +7,8 @@ from sentry.models import (
     ActorTuple,
     Environment,
     EnvironmentProject,
+    ExternalIssue,
+    GroupLink,
     NotificationSetting,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -28,6 +30,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -35,7 +38,7 @@ from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test(stable=True)
-class ProjectTest(TestCase):
+class ProjectTest(APITestCase, TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -255,6 +258,49 @@ class ProjectTest(TestCase):
         assert rule2.owner is None
         assert rule3.owner is not None
         assert rule4.owner is not None
+
+    def test_transfer_to_organization_external_issues(self):
+        from_org = self.create_organization()
+        team = self.create_team(organization=from_org)
+        to_org = self.create_organization()
+
+        project = self.create_project(teams=[team])
+        group = self.create_group(project=project)
+        other_project = self.create_project()
+        other_group = self.create_group(project=other_project)
+
+        self.integration = self.create_integration(
+            organization=self.organization, provider="jira", name="Jira", external_id="jira:1"
+        )
+        ext_issue = ExternalIssue.objects.create(
+            organization_id=from_org.id, integration_id=self.integration.id, key="123"
+        )
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=ext_issue.id,
+        )
+        other_ext_issue = ExternalIssue.objects.create(
+            organization_id=from_org.id, integration_id=self.integration.id, key="124"
+        )
+        GroupLink.objects.create(
+            group_id=other_group.id,
+            project_id=other_group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=other_ext_issue.id,
+        )
+
+        project.transfer_to(organization=to_org)
+        project = Project.objects.get(id=project.id)
+
+        assert project.organization_id == to_org.id
+        assert GroupLink.objects.filter(project_id=project.id).count() == 1
+        assert ExternalIssue.objects.filter(organization_id=to_org.id).count() == 1
+
+        # Check that the other project is not affected
+        assert GroupLink.objects.filter(project_id=other_project.id).count() == 1
+        assert ExternalIssue.objects.filter(organization_id=from_org.id).count() == 1
 
     def test_get_absolute_url(self):
         url = self.project.get_absolute_url()
