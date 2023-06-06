@@ -64,7 +64,7 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
     [ModuleName.ALL]: [
-      {title: t('Throughput'), Comp: ThroughputChart},
+      {title: DataTitles.throughput, Comp: ThroughputChart},
       {title: DataTitles.p95, Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
@@ -110,7 +110,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum['spm()'],
+          value: datum['spm()'] / 60,
           name: datum.interval,
         })),
       },
@@ -140,7 +140,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => `${value.toFixed(3)} / ${t('min')}`,
+        valueFormatter: value => `${value.toFixed(3)} / ${t('sec')}`,
       }}
     />
   );
