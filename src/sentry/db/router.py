@@ -116,7 +116,7 @@ class SiloRouter:
 
     def allow_migrate(self, db, app_label, model=None, **hints):
         if model:
-            return self._db_for_model(model) == db
+            return self._db_for_table(model._meta.db_table, app_label) == db
 
         # We use this hint in our RunSql/RunPython migrations to help resolve databases.
         if "tables" in hints:
