@@ -22,9 +22,9 @@ import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 import {
-  TrendColumnField,
   TrendFunctionField,
-  TrendParameterField,
+  TrendParameterColumn,
+  TrendParameterLabel,
 } from '../../trends/types';
 import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from '../../trends/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
@@ -147,14 +147,14 @@ function TransactionSummaryCharts({
     trendFunction = TrendFunctionField.P50;
   }
   if (
-    !Object.values(TrendParameterField).includes(trendParameter as TrendParameterField)
+    !Object.values(TrendParameterLabel).includes(trendParameter as TrendParameterLabel)
   ) {
-    trendParameter = TrendParameterField.DURATION;
+    trendParameter = TrendParameterLabel.DURATION;
   }
 
   const trendColumn =
     TRENDS_PARAMETERS.find(parameter => parameter.label === trendParameter)?.column ||
-    TrendColumnField.DURATION;
+    TrendParameterColumn.DURATION;
 
   const releaseQueryExtra = {
     yAxis: display === DisplayModes.VITALS ? 'countVital' : 'countDuration',

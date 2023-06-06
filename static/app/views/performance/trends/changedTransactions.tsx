@@ -43,8 +43,8 @@ import Chart from './chart';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
-  TrendColumnField,
   TrendFunctionField,
+  TrendParameterColumn,
   TrendsStats,
   TrendView,
 } from './types';
@@ -68,7 +68,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   trendChangeType: TrendChangeType;
   trendView: TrendView;
-  previousTrendColumn?: TrendColumnField;
+  previousTrendColumn?: TrendParameterColumn;
   previousTrendFunction?: TrendFunctionField;
   withBreakpoint?: boolean;
 };

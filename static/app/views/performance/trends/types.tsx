@@ -27,8 +27,8 @@ export type TrendFunction = {
 };
 
 export type TrendParameter = {
-  column: string;
-  label: string;
+  column: TrendParameterColumn;
+  label: TrendParameterLabel;
 };
 
 export enum TrendChangeType {
@@ -44,7 +44,7 @@ export enum TrendFunctionField {
   AVG = 'avg',
 }
 
-export enum TrendColumnField {
+export enum TrendParameterColumn {
   DURATION = 'transaction.duration',
   LCP = 'measurements.lcp',
   FCP = 'measurements.fcp',
@@ -56,7 +56,7 @@ export enum TrendColumnField {
   SPANS_RESOURCE = 'spans.resource',
 }
 
-export enum TrendParameterField {
+export enum TrendParameterLabel {
   DURATION = 'Duration',
   LCP = 'LCP',
   FCP = 'FCP',

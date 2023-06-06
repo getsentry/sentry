@@ -545,7 +545,7 @@ describe('Performance > Trends', function () {
     );
 
     for (const parameter of TRENDS_PARAMETERS) {
-      if (Object.values(WebVital).includes(parameter.column as WebVital)) {
+      if (Object.values(WebVital).includes(parameter.column as string as WebVital)) {
         trendsStatsMock.mockReset();
 
         const newLocation = {
