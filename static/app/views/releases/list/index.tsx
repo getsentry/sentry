@@ -94,8 +94,8 @@ class ReleasesList extends AsyncView<Props, State> {
       adoptionStages: 1,
       status:
         activeStatus === ReleasesStatusOption.ARCHIVED
-          ? ReleaseStatus.Archived
-          : ReleaseStatus.Active,
+          ? ReleaseStatus.ARCHIVED
+          : ReleaseStatus.ACTIVE,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [

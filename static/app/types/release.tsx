@@ -5,8 +5,8 @@ import type {Commit} from './integrations';
 import type {User} from './user';
 
 export enum ReleaseStatus {
-  Active = 'open',
-  Archived = 'archived',
+  ACTIVE = 'open',
+  ARCHIVED = 'archived',
 }
 
 export type SourceMapsArchive = {
