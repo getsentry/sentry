@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
@@ -84,7 +84,7 @@ def _strip_event_data_with_allowlist(
     if allowlist is None:
         return None
 
-    stripped_data = {}
+    stripped_data: Dict[str, Any] = {}
     for data_key, data_value in data.items():
         allowlist_for_data = allowlist.get(data_key)
         if allowlist_for_data is None:
