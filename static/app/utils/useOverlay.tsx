@@ -3,7 +3,7 @@ import {PopperProps, usePopper} from 'react-popper';
 import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
 import {useButton} from '@react-aria/button';
 import {
-  OverlayProps,
+  AriaOverlayProps,
   OverlayTriggerProps,
   useOverlay as useAriaOverlay,
   useOverlayTrigger,
@@ -72,7 +72,7 @@ const applyMaxSize: Modifier<'applyMaxSize', {}> = {
 };
 
 export interface UseOverlayProps
-  extends Partial<OverlayProps>,
+  extends Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
   disableTrigger?: boolean;
@@ -196,13 +196,13 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const {buttonProps} = useButton(
-    {onPress: openState.toggle, isDisabled: disableTrigger},
-    triggerRef
-  );
   const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
     {type},
     openState,
+    triggerRef
+  );
+  const {buttonProps: ariaTriggerProps} = useButton(
+    {...triggerProps, isDisabled: disableTrigger},
     triggerRef
   );
 
@@ -247,7 +247,7 @@ function useOverlay({
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
-      ...mergeProps(buttonProps, triggerProps),
+      ...ariaTriggerProps,
     },
     overlayRef,
     overlayProps: {
