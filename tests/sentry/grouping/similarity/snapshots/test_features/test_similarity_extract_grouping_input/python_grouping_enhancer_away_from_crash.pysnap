@@ -1,12 +1,18 @@
 ---
-created: '2020-08-21T21:07:52.790416Z'
+created: '2023-06-06T14:17:32.843124Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","email = request.POST['user']"],["filename","plugin.py"],["function","handle"],["module","sentry_plugins.heroku.plugin"]],[["context-line","raise MultiValueDictKeyError(repr(key))"],["filename","datastructures.py"],["function","__getitem__"],["module","django.utils.datastructures"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","hook.handle(request)"],["filename","release_webhook.py"],["function","post"],["module","sentry.web.frontend.release_webhook"]],[["context-line","email = request.POST['user']"],["filename","plugin.py"],["function","handle"],["module","sentry_plugins.heroku.plugin"]]]
 similarity:2020-07-23:type:ident-shingle: "MultiValueDictKeyError"
-similarity:2020-07-23:value:character-5-shingle: "'user"
-similarity:2020-07-23:value:character-5-shingle: "\"'use"
-similarity:2020-07-23:value:character-5-shingle: "ser'\""
-similarity:2020-07-23:value:character-5-shingle: "user'"
+similarity:2020-07-23:value:character-5-shingle: "<quot"
+similarity:2020-07-23:value:character-5-shingle: "\"<quo"
+similarity:2020-07-23:value:character-5-shingle: "_str>"
+similarity:2020-07-23:value:character-5-shingle: "d_str"
+similarity:2020-07-23:value:character-5-shingle: "ed_st"
+similarity:2020-07-23:value:character-5-shingle: "oted_"
+similarity:2020-07-23:value:character-5-shingle: "quote"
+similarity:2020-07-23:value:character-5-shingle: "str>\""
+similarity:2020-07-23:value:character-5-shingle: "ted_s"
+similarity:2020-07-23:value:character-5-shingle: "uoted"

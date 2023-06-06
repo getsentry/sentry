@@ -1,4 +1,6 @@
 ---
+created: '2023-06-06T14:17:14.355497Z'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -99,8 +101,8 @@ app:
               "raise MultiValueDictKeyError(repr(key))"
         type*
           "MultiValueDictKeyError"
-        value*
-          "\"'user'\""
+        value* (stripped common values)
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 system:
   hash: "90888e813b09fa25061af2883c0fb9bd"
@@ -201,4 +203,4 @@ system:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""

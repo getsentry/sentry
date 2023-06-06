@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:37.468314Z'
+created: '2023-06-06T14:17:00.127464Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,4 +14,4 @@ default:
         uri*
           "YYY"
       message (csp takes precedence)
-        "Blocked 'script' from 'YYY'"
+        "Blocked <quoted_str> from <quoted_str>"

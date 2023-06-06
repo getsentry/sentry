@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:56:58.078359Z'
+created: '2023-06-06T14:17:23.238185Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -81,8 +81,8 @@ app:
               "__getitem__"
         type*
           "MultiValueDictKeyError"
-        value*
-          "\"'user'\""
+        value* (stripped common values)
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 system:
   hash: "761cbc1236089dd8bd96706c896d7087"
@@ -163,4 +163,4 @@ system:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""

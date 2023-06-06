@@ -1,4 +1,6 @@
 ---
+created: '2023-06-06T14:17:16.236193Z'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -100,7 +102,7 @@ app:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 system:
   hash: "a5af2577d4caca8f983657c5d1919e14"
@@ -201,4 +203,4 @@ system:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""

@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:56:59.426072Z'
+created: '2023-06-06T14:17:24.630093Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -82,7 +82,7 @@ app:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 system:
   hash: "193e32de84a65a6423cc047e47619ab8"
@@ -163,4 +163,4 @@ system:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""

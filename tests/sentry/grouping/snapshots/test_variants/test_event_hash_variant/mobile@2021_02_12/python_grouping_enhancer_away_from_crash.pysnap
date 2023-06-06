@@ -1,5 +1,5 @@
 ---
-created: '2021-08-04T15:53:48.370415Z'
+created: '2023-06-06T14:17:10.662869Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "121caa876de75ec51bf72ed4c852cd75"
@@ -52,7 +52,7 @@ app-depth-2:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "121caa876de75ec51bf72ed4c852cd75"
@@ -82,7 +82,7 @@ app-depth-max:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""
 --------------------------------------------------------------------------
 system:
   hash: "a5af2577d4caca8f983657c5d1919e14"
@@ -184,4 +184,4 @@ system:
         type*
           "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          "\"'user'\""
+          "\"<quoted_str>\""
