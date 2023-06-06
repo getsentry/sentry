@@ -37,15 +37,7 @@ export function useDelayedLoadingState() {
   };
 }
 
-export function usePreviewEvent<T = Event>({
-  groupId,
-  projectSlug,
-  eventId,
-}: {
-  groupId: string;
-  eventId?: string;
-  projectSlug?: string;
-}) {
+export function usePreviewEvent<T = Event>({groupId}: {groupId: string}) {
   const organization = useOrganization();
   const hasPrefetchIssueFeature = organization.features.includes(
     'issue-list-prefetch-issue-on-hover'
@@ -55,9 +47,7 @@ export function usePreviewEvent<T = Event>({
   // be fully loaded already if you preview then click.
   const eventQuery = useApiQuery<T>(
     [
-      eventId && projectSlug
-        ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-        : `/issues/${groupId}/events/latest/`,
+      `/issues/${groupId}/events/latest/`,
       {query: getGroupEventDetailsQueryData({stacktraceOnly: !hasPrefetchIssueFeature})},
     ],
     {staleTime: 30000, cacheTime: 30000}

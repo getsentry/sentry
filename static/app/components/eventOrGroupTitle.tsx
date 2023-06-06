@@ -25,7 +25,7 @@ function EventOrGroupTitle({
   grouping = false,
   className,
 }: EventOrGroupTitleProps) {
-  const {id, eventID, groupID, projectID} = data as Event;
+  const {id, groupID} = data as Event;
 
   const {title, subtitle, treeLabel} = getTitle(data, organization?.features, grouping);
   const titleLabel = treeLabel ? (
@@ -41,8 +41,6 @@ function EventOrGroupTitle({
           groupId={groupID ? groupID : id}
           issueCategory={data.issueCategory}
           groupingCurrentLevel={data.metadata?.current_level}
-          eventId={eventID}
-          projectId={projectID}
         >
           {titleLabel}
         </GroupPreviewTooltip>
