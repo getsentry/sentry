@@ -56,11 +56,11 @@ export function SpanGroupBreakdown({
     <FlexRowContainer>
       <ChartPadding>
         <Header>
-          <ChartLabel>{t('App Time Breakdown (p95)')}</ChartLabel>
+          <ChartLabel>{t('App Time Breakdown (P95)')}</ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
-          height={175}
+          height={210}
           data={visibleSeries}
           start=""
           end=""
