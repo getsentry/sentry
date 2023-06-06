@@ -16,7 +16,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -381,7 +380,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule, previewCursor, previewEndpoint} = this.state;
 
-    if (!rule || !organization.features.includes('issue-alert-preview')) {
+    if (!rule) {
       return;
     }
 
@@ -1416,23 +1415,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   )
                                 }
                               />
-                              <Feature
-                                organization={organization}
-                                features={['issue-alert-test-notifications']}
-                              >
-                                <TestButtonWrapper>
-                                  <Button
-                                    onClick={this.testNotifications}
-                                    disabled={
-                                      sendingNotification ||
-                                      rule?.actions === undefined ||
-                                      rule?.actions.length === 0
-                                    }
-                                  >
-                                    {t('Send Test Notification')}
-                                  </Button>
-                                </TestButtonWrapper>
-                              </Feature>
+                              <TestButtonWrapper>
+                                <Button
+                                  onClick={this.testNotifications}
+                                  disabled={
+                                    sendingNotification || rule?.actions?.length === 0
+                                  }
+                                >
+                                  {t('Send Test Notification')}
+                                </Button>
+                              </TestButtonWrapper>
                             </StepContent>
                           </StepContainer>
                         </Step>
@@ -1446,17 +1438,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </StyledFieldHelp>
                   </StyledListItem>
                   <ContentIndent>{this.renderActionInterval(disabled)}</ContentIndent>
-                  <Feature organization={organization} features={['issue-alert-preview']}>
-                    <StyledListItem>
-                      <StyledListItemSpaced>
-                        <div>
-                          <StepHeader>{t('Preview')}</StepHeader>
-                          <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
-                        </div>
-                      </StyledListItemSpaced>
-                    </StyledListItem>
-                    <ContentIndent>{this.renderPreviewTable()}</ContentIndent>
-                  </Feature>
+                  <StyledListItem>
+                    <StyledListItemSpaced>
+                      <div>
+                        <StepHeader>{t('Preview')}</StepHeader>
+                        <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
+                      </div>
+                    </StyledListItemSpaced>
+                  </StyledListItem>
+                  <ContentIndent>{this.renderPreviewTable()}</ContentIndent>
                   <StyledListItem>
                     <StepHeader>{t('Add a name and owner')}</StepHeader>
                     <StyledFieldHelp>

@@ -21,7 +21,7 @@ import PageLayout, {
 } from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import useReplaysFromTransaction, {EventSpanData} from './useReplaysFromTransaction';
@@ -43,7 +43,7 @@ function TransactionReplays() {
       }}
       organization={organization}
       projects={projects}
-      tab={Tab.Replays}
+      tab={Tab.REPLAYS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={ReplaysContentWrapper}
@@ -159,13 +159,13 @@ function ReplaysContent({
         replays={replaysWithTx}
         sort={undefined}
         visibleColumns={[
-          ReplayColumns.replay,
-          ...(hasRoomForColumns ? [ReplayColumns.slowestTransaction] : []),
-          ReplayColumns.os,
-          ReplayColumns.browser,
-          ReplayColumns.duration,
-          ReplayColumns.countErrors,
-          ReplayColumns.activity,
+          ReplayColumn.REPLAY,
+          ...(hasRoomForColumns ? [ReplayColumn.SLOWEST_TRANSACTION] : []),
+          ReplayColumn.OS,
+          ReplayColumn.BROWSER,
+          ReplayColumn.DURATION,
+          ReplayColumn.COUNT_ERRORS,
+          ReplayColumn.ACTIVITY,
         ]}
       />
     </Layout.Main>

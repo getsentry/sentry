@@ -556,8 +556,8 @@ export function getMeasurements(
     WebVital.FID,
     WebVital.LCP,
     WebVital.TTFB,
-    MobileVital.TimeToFullDisplay,
-    MobileVital.TimeToInitialDisplay,
+    MobileVital.TIME_TO_FULL_DISPLAY,
+    MobileVital.TIME_TO_INITIAL_DISPLAY,
   ]);
 
   const measurements = Object.keys(event.measurements)
