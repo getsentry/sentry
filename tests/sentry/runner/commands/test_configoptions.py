@@ -15,6 +15,12 @@ class ConfigOptionsTest(CliTestCase):
 
     def test_patch(self):
         def clean_cache() -> None:
+            """
+            The isset method returns true even if the option is not set
+            in the DB but still present in cache after a call to `get`.
+            Till we fix that behavior, we need to clean up the cache
+            when we run this test.
+            """
             options.default_store.flush_local_cache()
 
             options.default_store.delete_cache(
@@ -53,7 +59,11 @@ class ConfigOptionsTest(CliTestCase):
             )
             assert output in rv.output
 
+        # This option will test the drift scenario. We set it to a different
+        # value with respect to the file.
         options.set("hybrid_cloud.outbox_rate", 0.5, channel=UpdateChannel.CLI)
+        # This tests the scenario were we update the channel. The value
+        # is the same we have in the file.
         options.set("backpressure.monitor_queues.enable", True, channel=UpdateChannel.CLI)
 
         assert_not_set()
@@ -83,19 +93,25 @@ class ConfigOptionsTest(CliTestCase):
         options.delete("dynamic-sampling:boost-latest-release")
         options.delete("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org")
 
+        # Drifted option
         options.set("hybrid_cloud.outbox_rate", 0.5, channel=UpdateChannel.CLI)
+        # This option will be unset as it is not in the file.
         options.set("dynamic-sampling:sliding_window.size", 12, channel=UpdateChannel.AUTOMATOR)
 
         rv = self.invoke("sync", "tests/sentry/runner/commands/valid_patch.yaml")
         assert rv.exit_code == 0, rv.output
-        assert UPDATE_MSG % "sourcemaps.enable-artifact-bundles" in rv.output
-        assert UPDATE_MSG % "dynamic-sampling:boost-latest-release" in rv.output
-        assert (
-            UPDATE_MSG % "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org"
-            in rv.output
+        output = "\n".join(
+            [
+                UPDATE_MSG % "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+                UPDATE_MSG % "dynamic-sampling:boost-latest-release",
+                UNSET_MSG % "dynamic-sampling:sliding_window.size",
+                DRIFT_MSG % "hybrid_cloud.outbox_rate",
+                UPDATE_MSG % "sourcemaps.enable-artifact-bundles",
+                CHANNEL_UPDATE_MSG % "backpressure.monitor_queues.enable",
+            ]
         )
-        assert DRIFT_MSG % "hybrid_cloud.outbox_rate" in rv.output
-        assert UNSET_MSG % "dynamic-sampling:sliding_window.size" in rv.output
+
+        assert output in rv.output
 
         assert options.get("sourcemaps.enable-artifact-bundles") == 0.1
         assert options.get("dynamic-sampling:boost-latest-release") is True

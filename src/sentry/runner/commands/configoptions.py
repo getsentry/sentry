@@ -16,6 +16,10 @@ UNSET_MSG = "[UNSET] Option %s unset."
 
 
 class InvalidOption(Exception):
+    """
+    The option we tried to update is not writable.
+    """
+
     def __init__(self, key: str, reason: "NotWritableReason") -> None:
         super.__init__(f"Invalid Option: {key}. Reason: {key}")
         self.key = key
@@ -23,6 +27,15 @@ class InvalidOption(Exception):
 
 
 def _validate_options(content: Mapping[str, Any]) -> Set[str]:
+    """
+    Checks all the options provided in the `content` argument to verify
+    whether they are read only options.
+
+    If an option provided cannot be updated we want the script to fail
+    before doing anything else. So this raises an Exception. We also
+    want to simply skip drifted options, thus this method returns
+    the list of drifted options.
+    """
     from sentry import options
 
     drifted_options = set()
@@ -39,6 +52,10 @@ def _validate_options(content: Mapping[str, Any]) -> Set[str]:
 
 
 def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bool) -> None:
+    """
+    Updates the option if it is not drifted and if we are not in dry
+    run mode.
+    """
     from sentry import options
 
     if key in drifted_options:
@@ -74,7 +91,7 @@ def _load_options_file(filename: str) -> Mapping[str, Any]:
 
 @click.group()
 def configoptions() -> None:
-    "Manages Sentry options."
+    "Applies changes to sentry options in batches from a file."
 
 
 @configoptions.command()
@@ -83,11 +100,21 @@ def configoptions() -> None:
     "--dry-run",
     is_flag=True,
     required=False,
-    help="Output exactly what changes would be made and in which order.",
+    help="Prints the updates without applying them.",
 )
 @configuration
 def patch(filename: str, dry_run: bool) -> None:
-    "Updates, gets, and deletes options that are each subsectioned in the given file."
+    """
+    Applies to the DB the option values found in the config file.
+
+    Only the options present in the file are updated. No deletions
+    are performed.
+    Drifted option values are simply skipped.
+
+    The list of option is validated in advance. If a single option
+    cannot be updated by the Automator (with the exception of drifted
+    ones) the whole process fails and nothing gets updated.
+    """
 
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
@@ -104,13 +131,20 @@ def patch(filename: str, dry_run: bool) -> None:
 @click.option(
     "--dry-run",
     is_flag=True,
-    default=False,
     required=False,
-    help="Output exactly what changes would be made and in which order.",
+    help="Prints the updates without applying them.",
 )
 @configuration
 def sync(filename: str, dry_run: bool):
-    "Deletes everything not in the uploaded file, and applies all of the changes in the file."
+    """
+    Synchronizes the content of the file with the DB. The source of
+    truth is the config file, not the DB. If an option is missing in
+    the file, it is deleted from the DB.
+
+    Options are validated in the same way as for the `patch` command.
+    Drifted options are skipped. If an option is read only the script
+    fails.
+    """
 
     from sentry import options
 
@@ -126,6 +160,10 @@ def sync(filename: str, dry_run: bool):
         if opt.name in options_to_update:
             _attempt_update(opt.name, options_to_update[opt.name], drifted_options, dry_run)
         else:
-            if not dry_run:
-                options.delete(opt.name)
-            click.echo(UNSET_MSG % opt.name)
+            if options.isset(opt.name):
+                if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
+                    if not dry_run:
+                        options.delete(opt.name)
+                    click.echo(UNSET_MSG % opt.name)
+                else:
+                    click.echo(DRIFT_MSG % opt.name)
