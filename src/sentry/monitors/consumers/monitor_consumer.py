@@ -300,7 +300,7 @@ def _process_message(wrapper: Dict) -> None:
                     logger.debug("failed to acquire lock to create check-in: %s", guid)
                     return
 
-            if check_in.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
+            if check_in.status == CheckInStatus.ERROR:
                 monitor_environment.mark_failed(start_time)
             else:
                 monitor_environment.mark_ok(check_in, start_time)

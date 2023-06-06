@@ -203,7 +203,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             signal_first_checkin(project, monitor)
 
-            if checkin.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
+            if checkin.status == CheckInStatus.ERROR:
                 monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
