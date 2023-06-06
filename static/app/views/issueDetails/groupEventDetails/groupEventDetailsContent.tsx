@@ -26,6 +26,7 @@ import {Event, Group, IssueCategory, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import ReplayIssueLoader from 'sentry/views/issueDetails/replayIssue/replayIssueLoader';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
 type GroupEventDetailsContentProps = {
@@ -113,6 +114,9 @@ function GroupEventDetailsContent({
       {hasAnrImprovementsFeature && isANR && (
         <AnrRootCause event={event} organization={organization} />
       )}
+      {group.issueCategory === IssueCategory.REPLAY ? (
+        <ReplayIssueLoader organization={organization} {...eventEntryProps} />
+      ) : null}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
         <SpanEvidenceSection
           event={event as EventTransaction}

@@ -52,6 +52,7 @@ export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
   PROFILE = 'profile',
+  REPLAY = 'replay',
 }
 
 export enum IssueType {
