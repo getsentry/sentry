@@ -103,7 +103,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
         original_future = self.producer.produce(Topic(self.kafka_topic), payload)
 
-        new_future = original_future.add_done_callback(set_future)
+        new_future = set_future(original_future)
 
         return new_future
 
@@ -137,6 +137,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
         original_future = self.producer.produce(Topic(self.kafka_topic), payload)
 
-        new_future = original_future.add_done_callback(set_future)
+        new_future = set_future(original_future)
 
         return new_future
