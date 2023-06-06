@@ -90,7 +90,7 @@ export const useErrorRateQuery = (queryString: string) => {
   const interval = 12;
   const discoverQuery: NewQuery = {
     id: undefined,
-    name: 'Db module - http error rate',
+    name: 'HTTP Module - HTTP error rate',
     projects: [1],
     fields: ['http_error_count()'],
     query: queryString,
