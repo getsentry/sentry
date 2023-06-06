@@ -183,7 +183,9 @@ class MonitorConsumerTest(TestCase):
         other_monitor = self._create_monitor(slug="other-monitor")
 
         self.send_message(monitor.slug, status="in_progress")
-        self.send_message(other_monitor.slug, guid=self.guid, enviroment="other-environment")
+        self.send_message(
+            monitor.slug, guid=self.guid, status="done", enviroment="other-environment"
+        )
         self.send_message(other_monitor.slug, guid=self.guid, status="done")
 
         # Assert check-in was not modified
