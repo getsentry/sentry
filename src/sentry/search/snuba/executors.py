@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
+from math import ceil
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
 
 import sentry_sdk
@@ -535,6 +536,8 @@ def better_priority_aggregation(
         ),
         "timestamp",
         True,
+        start,
+        end,
     )
 
 
@@ -559,11 +562,17 @@ def better_priority_issue_platform_aggregation(
         ),
         "client_timestamp",
         False,
+        start,
+        end,
     )
 
 
 def better_priority_aggregation_impl(
-    params: BetterPriorityParams, timestamp_column: str, use_stacktrace: bool
+    params: BetterPriorityParams,
+    timestamp_column: str,
+    use_stacktrace: bool,
+    start: datetime,
+    end: datetime,
 ) -> Sequence[str]:
     min_score = params.min_score
     max_pow = params.max_pow
@@ -636,15 +645,24 @@ def better_priority_aggregation_impl(
         # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72, +inf
         aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
 
-        event_count_60_mins = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), 3600))"
-        avg_hourly_event_count_last_7_days = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), 604800))"  # 604800 = 3600 * 24 * 7
+        date_period = end - start
+
+        if date_period.days > 0:
+            overall_event_count_seconds = 3600 * 24 * date_period.days
+            recent_event_count_seconds = ceil(overall_event_count_seconds * 0.01)
+        else:
+            overall_event_count_seconds = date_period.total_seconds()
+            recent_event_count_seconds = max(ceil(overall_event_count_seconds * 0.01), 5)
+
+        recent_event_count = (
+            f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {recent_event_count_seconds}))"
+        )
+        overall_event_count = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {overall_event_count_seconds}))"
 
         max_relative_volume_weight = 10
         if relative_volume_weight > max_relative_volume_weight:
             relative_volume_weight = max_relative_volume_weight
-        relative_volume_score = (
-            f"divide({event_count_60_mins}, plus({avg_hourly_event_count_last_7_days}, 1))"
-        )
+        relative_volume_score = f"divide({recent_event_count}, plus({overall_event_count}, 1))"
         scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
 
         if not params.normalize:
