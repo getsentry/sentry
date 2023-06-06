@@ -3,7 +3,13 @@ import {Fragment} from 'react';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 
-export type DataKey = 'timeSpent' | 'p50p95' | 'p50' | 'p95' | 'errorCount';
+export type DataKey =
+  | 'timeSpent'
+  | 'p50p95'
+  | 'p50'
+  | 'p95'
+  | 'throughput'
+  | 'errorCount';
 
 export const DataTitles: Record<DataKey, string> = {
   timeSpent: t('Time Spent'),
@@ -11,6 +17,7 @@ export const DataTitles: Record<DataKey, string> = {
   p50: t('Duration (P50)'),
   p95: t('Duration (P95)'),
   errorCount: t('5xx Responses'),
+  throughput: t('Throughput'),
 };
 
 export const getTooltip = (

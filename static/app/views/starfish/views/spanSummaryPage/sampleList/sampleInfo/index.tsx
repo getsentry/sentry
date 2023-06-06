@@ -1,6 +1,7 @@
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/formatters';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {DataTitles, getTooltip} from 'sentry/views/starfish/views/spans/types';
@@ -18,7 +19,7 @@ function SampleInfo(props: Props) {
     transactionName,
   ]);
   const {data: applicationMetrics} = useApplicationMetrics();
-  const spm = spanMetrics[transactionName]?.spm;
+  const spansPerSecond = spanMetrics[transactionName]?.spans_per_second;
   const p95 = spanMetrics[transactionName]?.p95;
   const span_total_time = spanMetrics[transactionName]?.total_time;
   const application_total_time = applicationMetrics['sum(span.duration)'];
@@ -27,7 +28,9 @@ function SampleInfo(props: Props) {
 
   return (
     <BlockContainer>
-      <Block title={t('Throughput')}>{spm?.toFixed(2)} / min</Block>
+      <Block title={t('Throughput')}>
+        <ThroughputCell throughputPerSecond={spansPerSecond} />
+      </Block>
       <Block title={DataTitles.p95}>{p95?.toFixed(2)} ms</Block>
       <Block title={DataTitles.timeSpent}>
         <Tooltip isHoverable title={tooltip}>

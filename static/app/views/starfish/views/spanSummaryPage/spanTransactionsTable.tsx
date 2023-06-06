@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
 import GridEditable, {
@@ -11,10 +10,9 @@ import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import type {Span} from 'sentry/views/starfish/queries/types';
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {
@@ -24,10 +22,6 @@ import {
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {
-  DurationTrendCell,
-  TimeSpentCell,
-} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Row = {
   count: number;
@@ -42,7 +36,11 @@ type Props = {
   openSidebar?: boolean;
 };
 
-export type Keys = 'transaction' | 'epm()' | 'p95(transaction.duration)' | 'timeSpent';
+export type Keys =
+  | 'transaction'
+  | 'p95(transaction.duration)'
+  | 'timeSpent'
+  | 'spans_per_second';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
@@ -124,24 +122,18 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   }
 
   if (column.key === 'p95(transaction.duration)') {
-    return (
-      <DurationTrendCell
-        duration={row.metrics?.p95}
-        color={P95_COLOR}
-        durationSeries={row.metricSeries?.p95}
-      />
-    );
+    return <DurationCell seconds={row.metrics?.p95} />;
   }
 
-  if (column.key === 'epm()') {
-    return <EPMCell span={span} row={row} column={column} />;
+  if (column.key === 'spans_per_second') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.spans_per_second} />;
   }
 
   if (column.key === 'timeSpent') {
     return (
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
-        totalSpanTime={row.metrics.total_time}
+        totalSpanTime={row.metrics?.total_time}
       />
     );
   }
@@ -163,26 +155,6 @@ function TransactionCell({span, column, row}: CellProps) {
   );
 }
 
-function EPMCell({row}: CellProps) {
-  const theme = useTheme();
-  const epm = row.metrics?.spm;
-  const epmSeries = row.metricSeries?.spm;
-
-  return (
-    <Fragment>
-      {epmSeries ? (
-        <Sparkline
-          color={THROUGHPUT_COLOR}
-          series={epmSeries}
-          markLine={
-            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
-          }
-        />
-      ) : null}
-    </Fragment>
-  );
-}
-
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction',
@@ -190,8 +162,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'epm()',
-    name: 'Throughput (TPM)',
+    key: 'spans_per_second',
+    name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
   {
