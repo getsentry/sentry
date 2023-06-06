@@ -1,8 +1,8 @@
 import datetime
 import logging
-from typing import Any, Dict
 
 from sentry.issues.grouptype import ReplayDeadClickType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
 
@@ -22,13 +22,31 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
     timestamp = datetime.datetime.fromtimestamp(payload["timestamp"])
     timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
 
-    _report_dead_click_issue(
-        culprit=payload["message"].split(" > ")[-1],
+    selector = payload["message"]
+    clicked_element = selector.split(" > ")[-1]
+
+    new_issue_occurrence(
+        culprit=clicked_element,
         environment="prod",
-        fingerprint=payload["message"],
+        fingerprint=[selector],
+        issue_type=ReplayDeadClickType,
+        level="warning",
+        platform="javascript",
         project_id=project_id,
-        subtitle=payload["message"],
+        subtitle=selector,
         timestamp=timestamp,
+        title="Suspected Dead Click",
+        evidence_data={
+            # RRWeb node data of clicked element.
+            "node": payload["data"]["node"],
+            # CSS selector path to clicked element.
+            "selector": selector,
+        },
+        evidence_display=[
+            IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
+            IssueEvidence(name="Selector Path", value=selector, important=True),
+            IssueEvidence(name="Page URL", value=payload["data"]["url"], important=True),
+        ],
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
             "level": "warning",
@@ -49,28 +67,3 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
     logger.info("sentry.replays.dead_click", extra=log)
 
     return True
-
-
-def _report_dead_click_issue(
-    culprit: str,
-    environment: str,
-    fingerprint: str,
-    project_id: int,
-    subtitle: str,
-    timestamp: datetime.datetime,
-    extra_event_data: Dict[str, Any],
-) -> None:
-    """Produce a new dead click issue occurence to Kafka."""
-    new_issue_occurrence(
-        environment=environment,
-        fingerprint=[fingerprint],
-        issue_type=ReplayDeadClickType,
-        level="warning",
-        platform="javascript",
-        project_id=project_id,
-        subtitle=subtitle,
-        timestamp=timestamp,
-        title="Suspected Dead Click",
-        culprit=culprit,
-        extra_event_data=extra_event_data,
-    )
