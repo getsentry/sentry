@@ -651,7 +651,7 @@ def better_priority_aggregation_impl(
             overall_event_count_seconds = 3600 * 24 * date_period.days
             recent_event_count_seconds = ceil(overall_event_count_seconds * 0.01)
         else:
-            overall_event_count_seconds = date_period.total_seconds()
+            overall_event_count_seconds = int(date_period.total_seconds())
             recent_event_count_seconds = max(ceil(overall_event_count_seconds * 0.01), 5)
 
         recent_event_count = (
