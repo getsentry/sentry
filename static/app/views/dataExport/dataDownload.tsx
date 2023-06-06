@@ -13,9 +13,9 @@ import AsyncView from 'sentry/views/asyncView';
 import Layout from 'sentry/views/auth/layout';
 
 export enum DownloadStatus {
-  Early = 'EARLY',
-  Valid = 'VALID',
-  Expired = 'EXPIRED',
+  EARLY = 'EARLY',
+  VALID = 'VALID',
+  EXPIRED = 'EXPIRED',
 }
 
 type RouteParams = {
@@ -256,9 +256,9 @@ class DataDownload extends AsyncView<Props, State> {
   renderContent(): React.ReactNode {
     const {download} = this.state;
     switch (download.status) {
-      case DownloadStatus.Early:
+      case DownloadStatus.EARLY:
         return this.renderEarly();
-      case DownloadStatus.Expired:
+      case DownloadStatus.EXPIRED:
         return this.renderExpired();
       default:
         return this.renderValid();
