@@ -63,6 +63,7 @@ def _report_dead_click_issue(
         environment=environment,
         fingerprint=fingerprint,
         issue_type=ReplayDeadClickType,
+        level="warning",
         platform="javascript",
         project_id=project_id,
         subtitle=subtitle,
