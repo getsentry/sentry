@@ -10,7 +10,11 @@ def test_report_dead_click_issue_a_tag():
     event = {
         "data": {
             "payload": {
-                "data": {"node": {"tagName": "a"}, "endReason": "timeout"},
+                "data": {
+                    "node": {"tagName": "a"},
+                    "endReason": "timeout",
+                    "url": "https://www.sentry.io",
+                },
                 "message": "div.xyz > a",
                 "timestamp": time.time(),
             }
