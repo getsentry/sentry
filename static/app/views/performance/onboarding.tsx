@@ -115,7 +115,7 @@ function Onboarding({organization, project}: Props) {
       location.hash === '#performance-sidequest' &&
       projectsForOnboarding.some(p => p.id === project.id)
     ) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
     }
   }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
 
@@ -157,7 +157,7 @@ function Onboarding({organization, project}: Props) {
         onClick={event => {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
-          SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+          SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
         }}
       >
         {t('Start Checklist')}
