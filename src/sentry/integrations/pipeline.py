@@ -64,15 +64,17 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     }
 
     organization_ids = {oi.organization_id for oi in ois}
-    region_names = OrganizationMapping.objects.filter(
-        organization_id__in=organization_ids
-    ).values_list("region_name", flat=True)
+    region_names = (
+        OrganizationMapping.objects.filter(organization_id__in=organization_ids)
+        .values_list("region_name", flat=True)
+        .distinct()
+    )
 
-    if len(region_names > 1):
+    if len(region_names) > 1:
         logger.error("region_violation", extra={"regions": region_names, **logger_extra})
 
     try:
-        mapping = OrganizationMapping.objects.get(organzation_id=organization_id)
+        mapping = OrganizationMapping.objects.get(organization_id=organization_id)
     except OrganizationMapping.DoesNotExist:
         logger.error("mapping_missing", extra=logger_extra)
         return True
@@ -215,7 +217,6 @@ class IntegrationPipeline(Pipeline):
             if not (identity and identity_model):
                 raise NotImplementedError("Integration requires an identity")
             default_auth_id = identity_model.id
-
         if self.provider.is_region_restricted and is_violating_region_restriction(
             organization_id=self.organization.id, integration_id=self.integration.id
         ):
