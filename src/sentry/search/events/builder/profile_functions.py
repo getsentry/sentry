@@ -5,7 +5,7 @@ from snuba_sdk.function import Function
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SelectType, SnubaParams
 
 
 class ProfileFunctionsQueryBuilderProtocol(Protocol):
@@ -41,7 +41,7 @@ class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
     @property
-    def time_column(self):
+    def time_column(self) -> SelectType:
         return Function(
             "toDateTime",
             [

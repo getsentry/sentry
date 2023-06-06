@@ -925,7 +925,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.groupby.insert(0, groupby)
 
     @property
-    def time_column(self):
+    def time_column(self) -> SelectType:
         return self.resolve_time_column(self.granularity.granularity)
 
     def resolve_time_column(self, interval: int) -> Function:

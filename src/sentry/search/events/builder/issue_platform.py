@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.search.events.builder import TimeseriesQueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, SelectType
 from sentry.utils.snuba import Dataset
 
 
@@ -36,5 +36,5 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
         self.groupby = [self.time_column]
 
     @property
-    def time_column(self):
-        return manual_group_on_time_aggregation(self.granularity.granularity)
+    def time_column(self) -> SelectType:
+        return manual_group_on_time_aggregation(self.granularity.granularity, "time")

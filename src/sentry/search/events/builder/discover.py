@@ -1600,7 +1600,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         self.groupby = [self.time_column]
 
     @property
-    def time_column(self):
+    def time_column(self) -> SelectType:
         return Column("time")
 
     def resolve_query(

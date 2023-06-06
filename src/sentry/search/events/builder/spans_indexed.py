@@ -3,6 +3,7 @@ from typing import Optional
 from snuba_sdk import Column, Function
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
+from sentry.search.events.types import SelectType
 
 
 class SpansIndexedQueryBuilder(QueryBuilder):
@@ -19,11 +20,11 @@ class SpansIndexedQueryBuilder(QueryBuilder):
 
 class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
     @property
-    def time_column(self):
+    def time_column(self) -> SelectType:
         return Function("toStartOfHour", [Column("end_timestamp")], "time")
 
 
 class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
     @property
-    def time_column(self):
+    def time_column(self) -> SelectType:
         return Function("toStartOfHour", [Column("timestamp")], "time")
