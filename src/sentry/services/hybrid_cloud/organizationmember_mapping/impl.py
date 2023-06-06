@@ -27,6 +27,15 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
+        def apply_update(existing: OrganizationMemberMapping) -> None:
+            existing.role = mapping.role
+            existing.user_id = mapping.user_id
+            existing.email = mapping.email
+            existing.inviter_id = mapping.inviter_id
+            existing.invite_status = mapping.invite_status
+            existing.organizationmember_id = organizationmember_id
+            existing.save()
+
         try:
             with transaction.atomic():
                 existing = self._find_organization_member(
@@ -39,18 +48,15 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                         organization_id=organization_id
                     )
 
-                existing.role = mapping.role
-                existing.user_id = mapping.user_id
-                existing.email = mapping.email
-                existing.inviter_id = mapping.inviter_id
-                existing.invite_status = mapping.invite_status
-                existing.organizationmember_id = organizationmember_id
-
-                existing.save()
+                assert existing
+                apply_update(existing)
                 return serialize_org_member_mapping(existing)
         except IntegrationError:
-
-            pass
+            existing = self._find_organization_member(
+                organization_id=organization_id,
+                organizationmember_id=organizationmember_id,
+            )
+            apply_update(existing)
 
     def _find_organization_member(
         self,
