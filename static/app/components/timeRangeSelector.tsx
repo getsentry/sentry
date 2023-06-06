@@ -305,7 +305,7 @@ export function TimeRangeSelector({
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
           trigger={
             trigger ??
-            (triggerProps => {
+            ((triggerProps, isOpen) => {
               const relativeSummary =
                 items.findIndex(item => item.value === relative) > -1
                   ? relative?.toUpperCase()
@@ -314,7 +314,12 @@ export function TimeRangeSelector({
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
               return (
-                <DropdownButton icon={<IconCalendar />} {...triggerProps}>
+                <DropdownButton
+                  {...triggerProps}
+                  isOpen={isOpen}
+                  size={selectProps.size}
+                  icon={<IconCalendar />}
+                >
                   <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
                 </DropdownButton>
               );

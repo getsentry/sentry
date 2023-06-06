@@ -203,13 +203,15 @@ export function EnvironmentPageFilter({
       menuFooterMessage={footerMessage}
       trigger={
         trigger ??
-        (triggerProps => (
+        ((triggerProps, isOpen) => (
           <EnvironmentPageFilterTrigger
+            {...triggerProps}
+            isOpen={isOpen}
+            size={selectProps.size}
             value={value}
             environments={environments}
             ready={projectsLoaded && pageFilterIsReady}
             desynced={desynced}
-            {...triggerProps}
           />
         ))
       }
