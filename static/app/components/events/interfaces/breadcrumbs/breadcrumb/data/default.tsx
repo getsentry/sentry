@@ -105,7 +105,7 @@ function FormatMessage({
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    const newContent =
+    const description =
       queryData && queryData.data.length > 0 ? (
         <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>
           <Highlight text={searchTerm}>{queryData.data[0].title}</Highlight>
@@ -114,7 +114,7 @@ function FormatMessage({
         content
       );
 
-    return newContent;
+    return description;
   }
   switch (breadcrumb.messageFormat) {
     case 'sql':
