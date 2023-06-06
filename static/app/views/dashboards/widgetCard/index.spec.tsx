@@ -716,9 +716,9 @@ describe('Dashboards > WidgetCard', function () {
     const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
     expect(tooltip).toBeDefined();
     expect(yAxis).toBeDefined();
-    // @ts-ignore
+    // @ts-expect-error
     expect(tooltip.valueFormatter(24, 'p95(measurements.custom)')).toEqual('24.00ms');
-    // @ts-ignore
+    // @ts-expect-error
     expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
   });
 
@@ -812,7 +812,7 @@ describe('Dashboards > WidgetCard', function () {
     const {yAxis} = spy.mock.calls.pop()?.[0] ?? {};
     expect(yAxis).toBeDefined();
 
-    // @ts-ignore
+    // @ts-expect-error
     expect(yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')).toEqual('60s');
     expect((yAxis as any).minInterval).toEqual(SECOND);
   });

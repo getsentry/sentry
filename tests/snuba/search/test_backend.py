@@ -2470,7 +2470,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         error_group_score = results[0][1]
         profile_group_score = results[1][1]
         assert error_group_score > 0
-        assert profile_group_score == 0
+        assert profile_group_score > 0
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
