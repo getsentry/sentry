@@ -43,8 +43,8 @@ import Chart from './chart';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
-  TrendColumnField,
   TrendFunctionField,
+  TrendParameterColumn,
   TrendsStats,
   TrendView,
 } from './types';
@@ -68,7 +68,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   trendChangeType: TrendChangeType;
   trendView: TrendView;
-  previousTrendColumn?: TrendColumnField;
+  previousTrendColumn?: TrendParameterColumn;
   previousTrendFunction?: TrendFunctionField;
   withBreakpoint?: boolean;
 };
@@ -573,8 +573,8 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     trendView: eventView,
     transaction,
     projects,
+    location,
     currentTrendFunction,
-    currentTrendColumn,
   } = props;
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -585,7 +585,9 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projectID,
     display: DisplayModes.TREND,
     trendFunction: currentTrendFunction,
-    trendColumn: currentTrendColumn,
+    additionalQuery: {
+      trendParameter: location.query.trendParameter?.toString(),
+    },
   });
 
   return (
