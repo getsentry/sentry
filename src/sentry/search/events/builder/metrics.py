@@ -926,7 +926,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     @property
     def time_column(self) -> SelectType:
-        return self.resolve_time_column(self.granularity.granularity)
+        return self.resolve_time_column(self.interval)
 
     def resolve_time_column(self, interval: int) -> Function:
         """Need to round the timestamp to the interval requested

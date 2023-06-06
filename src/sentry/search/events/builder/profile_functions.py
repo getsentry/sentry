@@ -52,10 +52,10 @@ class ProfileFunctionsTimeseriesQueryBuilder(
                             "intDiv",
                             [
                                 Function("toUInt32", [Column("timestamp")]),
-                                self.granularity.granularity,
+                                self.interval,
                             ],
                         ),
-                        self.granularity.granularity,
+                        self.interval,
                     ],
                 ),
             ],

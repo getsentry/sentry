@@ -37,4 +37,4 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
 
     @property
     def time_column(self) -> SelectType:
-        return manual_group_on_time_aggregation(self.granularity.granularity, "time")
+        return manual_group_on_time_aggregation(self.interval, "time")

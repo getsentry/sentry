@@ -1592,6 +1592,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             skip_tag_resolution=skip_tag_resolution,
         )
 
+        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
