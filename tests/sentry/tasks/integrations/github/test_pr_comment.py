@@ -1,7 +1,11 @@
 from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
 from sentry.tasks.integrations.github import pr_comment
-from sentry.tasks.integrations.github.pr_comment import PullRequestIssue, get_comment_contents
-from sentry.testutils import TestCase
+from sentry.tasks.integrations.github.pr_comment import (
+    PullRequestIssue,
+    get_comment_contents,
+    get_top_5_issues_by_count,
+)
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -51,6 +55,7 @@ class GithubCommentTestCase(TestCase):
         )
         self.pr_key = 1
         self.commit_sha = 1
+        self.fingerprint = 1
 
     def add_commit_to_repo(self, repo, user, project):
         if user not in self.user_to_commit_author_map:
@@ -84,7 +89,10 @@ class GithubCommentTestCase(TestCase):
         return pr
 
     def add_groupowner_to_commit(self, commit: Commit, project, user):
-        event = self.store_event(data={}, project_id=project.id)
+        event = self.store_event(
+            data={"fingerprint": [f"issue{self.fingerprint}"]}, project_id=project.id
+        )
+        self.fingerprint += 1
         groupowner = GroupOwner.objects.create(
             group=event.group,
             user_id=user.id,
@@ -119,9 +127,9 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results[0][0:3] == (self.gh_repo.id, pr.key, self.organization.id)
         assert (
-            groupowner_1.id in results[0][3]
-            and groupowner_2.id in results[0][3]
-            and groupowner_3.id in results[0][3]
+            groupowner_1.group_id in results[0][3]
+            and groupowner_2.group_id in results[0][3]
+            and groupowner_3.group_id in results[0][3]
         )
 
     def test_multiple_prs(self):
@@ -197,6 +205,44 @@ class TestPrToIssueQuery(GithubCommentTestCase):
             self.another_organization.id,
             [groupowner_2.group_id],
         )
+
+
+class TestTop5IssuesByCount(TestCase, SnubaTestCase):
+    def test_simple(self):
+        group1 = [
+            self.store_event(
+                {"fingerprint": ["group-1"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {"fingerprint": ["group-3"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = get_top_5_issues_by_count([group1, group2, group3], self.project)
+        assert [issue["group_id"] for issue in res] == [group2, group3, group1]
+
+    def test_over_5_issues(self):
+        issue_ids = [
+            self.store_event(
+                {"fingerprint": [f"group-{idx}"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            ).group.id
+            for idx in range(6)
+        ]
+        res = get_top_5_issues_by_count(issue_ids, self.project)
+        assert len(res) == 5
 
 
 class TestCommentBuilderQueries(GithubCommentTestCase):

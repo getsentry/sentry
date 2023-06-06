@@ -1,11 +1,12 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import List
 
 from django.db import connection
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
-from sentry.models import Group, GroupOwnerType
+from sentry.models import Group, GroupOwnerType, Project
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 
@@ -67,16 +68,24 @@ def pr_to_issue_query():
         return cursor.fetchall()
 
 
-def get_top_5_issues_by_count(issue_list: List[int]) -> List[int]:
+def get_top_5_issues_by_count(issue_list: List[int], project: Project) -> List[int]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     request = SnubaRequest(
         dataset=Dataset.Events.value,
         app_id="default",
+        tenant_ids={"organization_id": project.organization_id},
         query=(
             Query(Entity("events"))
             .set_select([Column("group_id"), Function("count", [], "event_count")])
             .set_groupby([Column("group_id")])
-            .set_where([Condition(Column("group_id"), Op.IN, issue_list)])
+            .set_where(
+                [
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("group_id"), Op.IN, issue_list),
+                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
+                    Condition(Column("timestamp"), Op.LT, datetime.now()),
+                ]
+            )
             .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
             .set_limit(5)
         ),
