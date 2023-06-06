@@ -678,19 +678,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     if (canRunShortcut(token, this.filterTokens.length)) {
       switch (shortcutType) {
-        case ShortcutType.Delete: {
+        case ShortcutType.DELETE: {
           this.deleteToken();
           break;
         }
-        case ShortcutType.Negate: {
+        case ShortcutType.NEGATE: {
           this.negateToken();
           break;
         }
-        case ShortcutType.Next: {
+        case ShortcutType.NEXT: {
           this.moveToNextToken(filterTokens);
           break;
         }
-        case ShortcutType.Previous: {
+        case ShortcutType.PREVIOUS: {
           this.moveToNextToken(filterTokens.reverse());
           break;
         }
