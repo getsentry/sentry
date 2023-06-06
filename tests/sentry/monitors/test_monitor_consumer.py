@@ -184,9 +184,9 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
-        # The created monitor environment is active, but the parent monitor is
-        # disabled
-        assert monitor_environment.status == MonitorStatus.ACTIVE
+        # The created monitor environment is in line with the check-in, but the parent monitor
+        # is disabled
+        assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
