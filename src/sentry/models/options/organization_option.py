@@ -6,7 +6,7 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
-from sentry.db.models.manager import OptionManager, Value
+from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -25,7 +25,11 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         return result
 
     def get_value(
-        self, organization: Organization, key: str, default: Value | None = None
+        self,
+        organization: Organization,
+        key: str,
+        default: Value | None = None,
+        validate: ValidateFunction | None = None,
     ) -> Value:
         result = self.get_all_values(organization)
         return result.get(key, default)
