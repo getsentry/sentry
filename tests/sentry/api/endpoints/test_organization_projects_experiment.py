@@ -3,10 +3,11 @@ from functools import cached_property
 from unittest.mock import patch
 
 from django.urls import reverse
+from django.utils.text import slugify
 
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
-    fetch_email_username,
+    fetch_slugifed_email_username,
 )
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.models.project import Project
@@ -26,7 +27,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.email_username = fetch_email_username(self.user.email)
+        self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
         self.mock_experiment_get = patch("sentry.experiments.manager.get", return_value=1).start()
 
@@ -96,6 +97,54 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_valid_params(self):
         response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
+
+        team = Team.objects.get(slug=self.t1, name=self.t1)
+        assert not team.idp_provisioned
+        assert team.organization == self.organization
+        assert team.name == team.slug == self.t1
+
+        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True, role="admin"
+        ).exists()
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == project.slug == self.p1
+        assert project.teams.first() == team
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    def test_project_slug_is_slugified(self):
+        unslugified_name = "not_slugged_$!@#$"
+        response = self.get_success_response(
+            self.organization.slug, name=unslugified_name, status_code=201
+        )
+
+        team = Team.objects.get(slug=self.t1, name=self.t1)
+        assert not team.idp_provisioned
+        assert team.organization == self.organization
+        assert team.name == team.slug == self.t1
+
+        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True, role="admin"
+        ).exists()
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == unslugified_name
+        assert project.slug == slugify(unslugified_name)
+        assert project.teams.first() == team
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    def test_team_slug_is_slugified(self):
+        special_email = fetch_slugifed_email_username("++!#$%&'*+-/=.me@test.com")
+        self.t1 = f"team-{special_email}"
+        with patch(
+            "sentry.api.endpoints.organization_projects_experiment.fetch_slugifed_email_username",
+            return_value=special_email,
+        ):
+            response = self.get_success_response(
+                self.organization.slug, name=self.p1, status_code=201
+            )
 
         team = Team.objects.get(slug=self.t1, name=self.t1)
         assert not team.idp_provisioned
