@@ -1,16 +1,16 @@
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import SortableHeader from 'sentry/views/replays/replayTable/sortableHeader';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 type Props = {
-  column: keyof typeof ReplayColumns;
+  column: ReplayColumn;
   sort?: Sort;
 };
 
 function HeaderCell({column, sort}: Props) {
   switch (column) {
-    case ReplayColumns.activity:
+    case ReplayColumn.ACTIVITY:
       return (
         <SortableHeader
           sort={sort}
@@ -22,22 +22,22 @@ function HeaderCell({column, sort}: Props) {
         />
       );
 
-    case ReplayColumns.browser:
+    case ReplayColumn.BROWSER:
       return <SortableHeader sort={sort} fieldName="browser.name" label={t('Browser')} />;
 
-    case ReplayColumns.countErrors:
+    case ReplayColumn.COUNT_ERRORS:
       return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
 
-    case ReplayColumns.duration:
+    case ReplayColumn.DURATION:
       return <SortableHeader sort={sort} fieldName="duration" label={t('Duration')} />;
 
-    case ReplayColumns.os:
+    case ReplayColumn.OS:
       return <SortableHeader sort={sort} fieldName="os.name" label={t('OS')} />;
 
-    case ReplayColumns.replay:
+    case ReplayColumn.REPLAY:
       return <SortableHeader sort={sort} fieldName="started_at" label={t('Replay')} />;
 
-    case ReplayColumns.slowestTransaction:
+    case ReplayColumn.SLOWEST_TRANSACTION:
       return (
         <SortableHeader
           label={t('Slowest Transaction')}
