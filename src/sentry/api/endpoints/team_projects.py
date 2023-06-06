@@ -112,41 +112,39 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         serializer = ProjectSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            with transaction.atomic():
-                try:
-                    with transaction.atomic():
-                        project = Project.objects.create(
-                            name=result["name"],
-                            slug=result.get("slug"),
-                            organization=team.organization,
-                            platform=result.get("platform"),
-                        )
-                except (IntegrityError, MaxSnowflakeRetryError):
-                    return Response(
-                        {"detail": "A project with this slug already exists."}, status=409
+        result = serializer.validated_data
+        with transaction.atomic():
+            try:
+                with transaction.atomic():
+                    project = Project.objects.create(
+                        name=result["name"],
+                        slug=result.get("slug"),
+                        organization=team.organization,
+                        platform=result.get("platform"),
                     )
-                else:
-                    project.add_team(team)
+            except (IntegrityError, MaxSnowflakeRetryError):
+                return Response({"detail": "A project with this slug already exists."}, status=409)
+            else:
+                project.add_team(team)
 
-                # XXX: create sample event?
+            # XXX: create sample event?
 
-                self.create_audit_entry(
-                    request=request,
-                    organization=team.organization,
-                    target_object=project.id,
-                    event=audit_log.get_event_id("PROJECT_ADD"),
-                    data=project.get_audit_log_data(),
-                )
+            self.create_audit_entry(
+                request=request,
+                organization=team.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_ADD"),
+                data=project.get_audit_log_data(),
+            )
 
-                project_created.send(
-                    project=project,
-                    user=request.user,
-                    default_rules=result.get("default_rules", True),
-                    sender=self,
-                )
+            project_created.send(
+                project=project,
+                user=request.user,
+                default_rules=result.get("default_rules", True),
+                sender=self,
+            )
 
-            return Response(serialize(project, request.user), status=201)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serialize(project, request.user), status=201)
