@@ -178,6 +178,18 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
 
+    def test_check_in_existing_guid(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        other_monitor = self._create_monitor(slug="other-monitor")
+
+        self.send_message(monitor.slug, status="in_progress")
+        self.send_message(other_monitor.slug, guid=self.guid, enviroment="other-environment")
+        self.send_message(other_monitor.slug, guid=self.guid, status="done")
+
+        # Assert check-in was not modified
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+
     def test_check_in_update_terminal(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_message(monitor.slug, duration=10.0)
@@ -341,6 +353,15 @@ class MonitorConsumerTest(TestCase):
             monitor=monitor, environment__name="my-environment"
         )
         assert monitor_environment is not None
+
+    def test_monitor_invalid_config(self):
+        self.send_message(
+            "my-invalid-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * * *"}},
+            environment="my-environment",
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_limits(self):
