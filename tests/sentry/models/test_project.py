@@ -261,30 +261,36 @@ class ProjectTest(APITestCase, TestCase):
 
     def test_transfer_to_organization_external_issues(self):
         from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
         to_org = self.create_organization()
 
-        project = self.create_project(teams=[team])
+        project = self.create_project(organization=from_org)
         group = self.create_group(project=project)
-        other_project = self.create_project()
+        other_project = self.create_project(organization=from_org)
         other_group = self.create_group(project=other_project)
 
         self.integration = self.create_integration(
-            organization=self.organization, provider="jira", name="Jira", external_id="jira:1"
+            organization=self.organization,
+            provider="jira",
+            name="Jira",
+            external_id="jira:1",
         )
         ext_issue = ExternalIssue.objects.create(
-            organization_id=from_org.id, integration_id=self.integration.id, key="123"
+            organization_id=from_org.id,
+            integration_id=self.integration.id,
+            key="123",
         )
-        GroupLink.objects.create(
+        other_ext_issue = ExternalIssue.objects.create(
+            organization_id=from_org.id,
+            integration_id=self.integration.id,
+            key="124",
+        )
+        group_link = GroupLink.objects.create(
             group_id=group.id,
             project_id=group.project_id,
             linked_type=GroupLink.LinkedType.issue,
             linked_id=ext_issue.id,
         )
-        other_ext_issue = ExternalIssue.objects.create(
-            organization_id=from_org.id, integration_id=self.integration.id, key="124"
-        )
-        GroupLink.objects.create(
+        other_group_link = GroupLink.objects.create(
             group_id=other_group.id,
             project_id=other_group.project_id,
             linked_type=GroupLink.LinkedType.issue,
@@ -292,15 +298,20 @@ class ProjectTest(APITestCase, TestCase):
         )
 
         project.transfer_to(organization=to_org)
-        project = Project.objects.get(id=project.id)
+        project.refresh_from_db()
+        other_project.refresh_from_db()
+        ext_issue.refresh_from_db()
+        other_ext_issue.refresh_from_db()
+        group_link.refresh_from_db()
+        other_group_link.refresh_from_db()
 
         assert project.organization_id == to_org.id
-        assert GroupLink.objects.filter(project_id=project.id).count() == 1
-        assert ExternalIssue.objects.filter(organization_id=to_org.id).count() == 1
+        assert ext_issue.organization_id == to_org.id
+        assert group_link.project_id == project.id
 
-        # Check that the other project is not affected
-        assert GroupLink.objects.filter(project_id=other_project.id).count() == 1
-        assert ExternalIssue.objects.filter(organization_id=from_org.id).count() == 1
+        assert other_project.organization_id == from_org.id
+        assert other_ext_issue.organization_id == from_org.id
+        assert other_group_link.project_id == other_project.id
 
     def test_get_absolute_url(self):
         url = self.project.get_absolute_url()
