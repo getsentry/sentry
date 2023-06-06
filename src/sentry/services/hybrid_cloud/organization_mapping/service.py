@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import Optional, cast
 
-from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
@@ -68,7 +67,7 @@ class OrganizationMappingService(RpcService):
     @abstractmethod
     def upsert(
         self, *, organization_id: int, update: RpcOrganizationMappingUpdate
-    ) -> OrganizationMapping:
+    ) -> RpcOrganizationMapping:
         pass
 
     @rpc_method

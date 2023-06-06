@@ -10,6 +10,8 @@ import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MODULE_COLOR} from 'sentry/views/starfish/colours';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -33,7 +35,7 @@ type Group = {
 };
 
 export type Segment = Group & {
-  'p50(span.duration)': number;
+  'p95(span.duration)': number;
   'sum(span.duration)': number;
 };
 
@@ -53,7 +55,11 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       transaction,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, 'span.module:[db,http]', ['span.module']),
+    eventView: getEventView(
+      selection,
+      `span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
+      ['span.module']
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -63,7 +69,11 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       transaction,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, '', []),
+    eventView: getEventView(
+      selection,
+      `${transaction ? `transaction:${transaction}` : ''}`,
+      []
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -114,7 +124,12 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       topConditions,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, 'span.module:[db,http]', ['span.module'], true),
+    eventView: getEventView(
+      selection,
+      `span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
+      ['span.module'],
+      true
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -125,7 +140,12 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
       topConditions,
       datetime: selection.datetime,
     })}`,
-    eventView: getEventView(selection, '!span.module:[db,http]', [], true),
+    eventView: getEventView(
+      selection,
+      `!span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
+      [],
+      true
+    ),
     initialData: [],
     forceUseDiscover: FORCE_USE_DISCOVER,
   });
@@ -146,18 +166,18 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     topData.length > 0 &&
     segments.length > 0
   ) {
-    segments.forEach((segment, index) => {
-      const label = segment['span.module'];
+    segments.forEach(segment => {
+      const label = segment['span.module'] as ModuleName;
       seriesByDomain[label] = {
         seriesName: `${label}`,
         data: [],
-        color: colorPalette[index],
+        color: MODULE_COLOR[label],
       };
     });
 
     topData.forEach(value => {
       seriesByDomain[value['span.module'] ?? value.group].data.push({
-        value: value['p50(span.duration)'],
+        value: value['p95(span.duration)'],
         name: value.interval,
       });
     });
@@ -170,7 +190,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
 
     otherData.forEach(value => {
       seriesByDomain.Other.data.push({
-        value: value['p50(span.duration)'],
+        value: value['p95(span.duration)'],
         name: value.interval,
       });
     });
@@ -211,8 +231,8 @@ const getEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['sum(span.duration)', 'p50(span.duration)', ...groups],
-    yAxis: getTimeseries ? ['sum(span.duration)', 'p50(span.duration)'] : [],
+    fields: ['sum(span.duration)', 'p95(span.duration)', ...groups],
+    yAxis: getTimeseries ? ['sum(span.duration)', 'p95(span.duration)'] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,

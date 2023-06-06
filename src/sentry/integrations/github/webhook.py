@@ -12,10 +12,10 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import (
@@ -434,8 +434,11 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GitHubWebhookBase(View):  # type: ignore
-    """https://developer.github.com/webhooks/"""
+class GitHubWebhookBase(Endpoint):  # type: ignore
+    """https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks"""
+
+    authentication_classes = ()
+    permission_classes = ()
 
     def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
         handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
@@ -517,6 +520,7 @@ class GitHubWebhookBase(View):  # type: ignore
         return HttpResponse(status=204)
 
 
+@region_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     _handlers = {
         "push": PushEventWebhook,

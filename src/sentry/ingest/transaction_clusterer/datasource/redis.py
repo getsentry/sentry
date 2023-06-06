@@ -20,7 +20,7 @@ from sentry.utils.safe import safe_execute
 
 #: Maximum number of transaction names per project that we want
 #: to store in redis.
-MAX_SET_SIZE = 2000
+MAX_SET_SIZE = 4000
 
 #: Retention of a set.
 #: Remove the set if it has not received any updates for 24 hours.

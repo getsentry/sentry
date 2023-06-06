@@ -6,7 +6,6 @@
 from typing import Optional
 
 from django.db import transaction
-from django.db.models import Q
 
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -20,84 +19,53 @@ from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
-    def create_mapping(
+    def upsert_mapping(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
-        role: str,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = None,
+        organizationmember_id: int,
+        mapping: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
-        assert (user_id is None and email) or (
-            user_id and email is None
-        ), "Must set either user or email"
         with transaction.atomic():
-            conditions = Q(organizationmember_id=organizationmember_id)
-            if user_id is not None:
-                conditions = conditions | Q(user_id=user_id)
-            else:
-                conditions = conditions | Q(email=email)
-            query = OrganizationMemberMapping.objects.filter(
-                Q(organization_id=organization_id), conditions
-            )
-
-            if query.exists():
-                org_member_mapping = query.get()
-                org_member_mapping.update(
-                    organizationmember_id=organizationmember_id,
-                    organization_id=organization_id,
-                    user_id=user_id,
-                    email=email,
-                    role=role,
-                    inviter_id=inviter_id,
-                    invite_status=invite_status,
-                )
-            else:
-                org_member_mapping = OrganizationMemberMapping.objects.create(
-                    organizationmember_id=organizationmember_id,
-                    organization_id=organization_id,
-                    user_id=user_id,
-                    email=email,
-                    role=role,
-                    inviter_id=inviter_id,
-                    invite_status=invite_status,
-                )
-        return serialize_org_member_mapping(org_member_mapping)
-
-    def update_with_organization_member(
-        self,
-        *,
-        organizationmember_id: int,
-        organization_id: int,
-        rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
-        try:
-            org_member_map = OrganizationMemberMapping.objects.get(
+            existing = self._find_organization_member(
                 organization_id=organization_id,
                 organizationmember_id=organizationmember_id,
             )
-            org_member_map.update(**rpc_update_org_member.dict())
-            return serialize_org_member_mapping(org_member_map)
-        except OrganizationMemberMapping.DoesNotExist:
-            return self.create_mapping(
-                organizationmember_id=organizationmember_id,
-                organization_id=organization_id,
-                **rpc_update_org_member.dict(),
-            )
 
-    def delete_with_organization_member(
+            if not existing:
+                existing = OrganizationMemberMapping.objects.create(organization_id=organization_id)
+
+            existing.role = mapping.role
+            existing.user_id = mapping.user_id
+            existing.email = mapping.email
+            existing.inviter_id = mapping.inviter_id
+            existing.invite_status = mapping.invite_status
+            existing.organizationmember_id = organizationmember_id
+
+            existing.save()
+            return serialize_org_member_mapping(existing)
+
+    def _find_organization_member(
+        self,
+        organization_id: int,
+        organizationmember_id: int,
+    ) -> Optional[OrganizationMemberMapping]:
+        return OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id, organizationmember_id=organizationmember_id
+        ).first()
+
+    def delete(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
+        organizationmember_id: int,
     ) -> None:
-        OrganizationMemberMapping.objects.filter(
+        org_member_map = self._find_organization_member(
             organization_id=organization_id,
             organizationmember_id=organizationmember_id,
-        ).delete()
+        )
+        if org_member_map:
+            org_member_map.delete()
 
     def close(self) -> None:
         pass
