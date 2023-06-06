@@ -2,7 +2,7 @@ import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
-import {mergeProps, useResizeObserver} from '@react-aria/utils';
+import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
