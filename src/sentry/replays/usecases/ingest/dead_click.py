@@ -13,9 +13,9 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
     payload = event["data"]["payload"]
 
     # Only timeout reasons on <a> and <button> tags are accepted.
-    if payload["data"]["node"]["tagName"] not in ("a", "button"):
+    if payload["data"]["endReason"] != "timeout":
         return False
-    elif payload["data"]["endReason"] != "timeout":
+    elif payload["data"]["node"]["tagName"] not in ("a", "button"):
         return False
 
     # Seconds since epoch is UTC.
@@ -32,7 +32,7 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
             "level": "warning",
-            "tags": {"replayId": replay_id},
+            "tags": {"replayId": replay_id, "url": payload["data"]["url"]},
             "user": {
                 "id": "1",
                 "username": "Test User",
@@ -65,6 +65,7 @@ def _report_dead_click_issue(
         environment=environment,
         fingerprint=[fingerprint],
         issue_type=ReplayDeadClickType,
+        level="warning",
         platform="javascript",
         project_id=project_id,
         subtitle=subtitle,

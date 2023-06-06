@@ -12,6 +12,7 @@ def new_issue_occurrence(
     environment: str,
     fingerprint: Sequence[str],
     issue_type: Type[GroupType],
+    level: str,
     platform: str,
     project_id: int,
     subtitle: str,
@@ -35,8 +36,8 @@ def new_issue_occurrence(
         evidence_display=[],
         type=issue_type,
         detection_time=timestamp,
-        level="info",
         culprit=culprit,
+        level=level,
     )
 
     event_data = {
