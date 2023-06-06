@@ -30,7 +30,7 @@ class VstsExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        OrganizationMember.objects.create(user=self.user, organization=org)
+        OrganizationMember.objects.create(user_id=self.user.id, organization=org)
 
         resp = self.client.get(self.path, {"targetId": "1", "targetName": "foo"})
 
