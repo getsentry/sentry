@@ -89,18 +89,16 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          ['span.module'].forEach(key => {
-            if (group[key] !== undefined && group[key] !== null) {
-              spansLinkQueryParams[key] = group[key];
-            }
-          });
+          if (['db', 'http'].includes(group['span.category'])) {
+            spansLinkQueryParams['span.module'] = group['span.category'];
+          }
 
           const spansLink =
-            group['span.module'] === 'other'
+            group['span.category'] === 'Other'
               ? `/starfish/spans/`
               : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
-            <StyledLineItem key={`${group['span.module']}`}>
+            <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
                 <StyledTopResultsIndicator
                   count={Math.max(transformedData.length - 1, 1)}
@@ -117,7 +115,7 @@ export function SpanGroupBreakdown({
                 />
                 <TextAlignLeft>
                   <Link to={spansLink}>
-                    <TextOverflow>{group['span.module']}</TextOverflow>
+                    <TextOverflow>{group['span.category']}</TextOverflow>
                   </Link>
                 </TextAlignLeft>
                 <RightAlignedCell>
@@ -125,7 +123,7 @@ export function SpanGroupBreakdown({
                     title={t(
                       '%s time spent on %s',
                       formatPercentage(row.cumulativeTime / totalValues, 1),
-                      group['span.module']
+                      group['span.category']
                     )}
                     containerDisplayMode="block"
                     position="top"
