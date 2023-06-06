@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +9,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
@@ -46,7 +48,9 @@ class TeamProjectPermission(TeamPermission):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Teams"])
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
+    public = {"GET", "POST"}
     permission_classes = (TeamProjectPermission,)
 
     def get(self, request: Request, team) -> Response:
@@ -93,6 +97,10 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        operation_id="Create a new project bound to a team.",
+        paramters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.TEAM_SLUG],
+    )
     def post(self, request: Request, team) -> Response:
         """
         Create a New Project
