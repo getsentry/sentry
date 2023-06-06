@@ -1,5 +1,5 @@
 from django.db import IntegrityError, transaction
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +9,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.constants import ObjectStatus
 from sentry.models import Project
@@ -100,6 +101,15 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     @extend_schema(
         operation_id="Create a new project bound to a team.",
         paramters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.TEAM_SLUG],
+        request=ProjectSerializer,
+        responses={
+            201: "TO_DO",
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="Team not found."),
+            409: OpenApiResponse(description="A project with the given slug already exists."),
+        },
+        examples=["can this go in a serializer?"],
     )
     def post(self, request: Request, team) -> Response:
         """
