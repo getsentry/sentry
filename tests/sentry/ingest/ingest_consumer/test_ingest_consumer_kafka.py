@@ -16,6 +16,7 @@ from sentry.event_manager import EventManager
 from sentry.ingest.consumer_v2 import factory
 from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     admin = kafka_admin(settings)
     admin.delete_topic(topic_event_name)
     producer = kafka_producer(settings)
+
+    create_topics("default", [topic_event_name])
 
     message, event_id = get_test_message(type="event")
     producer.produce(topic_event_name, message)

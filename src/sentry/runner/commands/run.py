@@ -563,7 +563,16 @@ def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
         # Our batcher expects the time in seconds
         options["max_batch_time"] = int(options["max_batch_time"] / 1000)
 
-        consumer = get_ingest_consumer(type_=consumer_types[0], **options)
+        type_ = consumer_types[0]
+        metrics_name = f"ingest_{type_}"
+        from arroyo import configure_metrics
+
+        from sentry.utils import metrics
+        from sentry.utils.arroyo import MetricsWrapper
+
+        configure_metrics(MetricsWrapper(metrics.backend, name=metrics_name))
+
+        consumer = get_ingest_consumer(type_=type_, **options)
         run_processor_with_signals(consumer)
 
         return
