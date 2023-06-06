@@ -5,14 +5,13 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import withOrganizations from 'sentry/utils/withOrganizations';
 import NotificationSettingsByProjects, {
-  Props as NotificationSettingsByProjectsProps,
+  NotificationSettingsByProjectsBaseProps,
 } from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 
 type Props = {
   organizations: Organization[];
-} & NotificationSettingsByProjectsProps &
+} & NotificationSettingsByProjectsBaseProps &
   AsyncComponent['props'];
 
 type State = {
@@ -72,4 +71,4 @@ class NotificationSettingsByOrganizationByProjects extends AsyncComponent<Props,
   };
 }
 
-export default withOrganizations(NotificationSettingsByOrganizationByProjects);
+export default NotificationSettingsByOrganizationByProjects;

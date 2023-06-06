@@ -30,7 +30,7 @@ function renderMockRequests(
   });
 
   MockApiClient.addMockResponse({
-    url: '/projects/',
+    url: `/projects/`,
     method: 'GET',
     body: [],
   });

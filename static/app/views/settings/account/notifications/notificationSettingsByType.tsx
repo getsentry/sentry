@@ -357,6 +357,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}
               onSubmitSuccess={() => this.trackTuningUpdated('project')}
+              organizations={this.props.organizations}
             />
           ) : (
             <NotificationSettingsByOrganization

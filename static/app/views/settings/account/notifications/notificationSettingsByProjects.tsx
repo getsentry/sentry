@@ -25,7 +25,7 @@ import {
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
 
-export type Props = {
+export type NotificationSettingsByProjectsBaseProps = {
   notificationSettings: NotificationSettingsObject;
   notificationType: string;
   onChange: (
@@ -33,8 +33,11 @@ export type Props = {
     parentId: string
   ) => NotificationSettingsObject;
   onSubmitSuccess: () => void;
+};
+export type Props = {
   organizationId: string;
-} & AsyncComponent['props'];
+} & NotificationSettingsByProjectsBaseProps &
+  AsyncComponent['props'];
 
 type State = {
   projects: Project[];
