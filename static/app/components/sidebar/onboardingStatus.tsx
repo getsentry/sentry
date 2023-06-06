@@ -69,7 +69,7 @@ function OnboardingStatus({
       !task.completionSeen
   );
 
-  const isActive = currentPanel === SidebarPanelKey.OnboardingWizard;
+  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
 
   if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
     return null;

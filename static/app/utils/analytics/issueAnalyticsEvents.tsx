@@ -141,7 +141,10 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
-  'issues_stream.archived': {status_details?: string; substatus?: string};
+  'issues_stream.archived': {
+    action_status_details?: string;
+    action_substatus?: string;
+  };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
     did_assign_suggestion: boolean;

@@ -1293,7 +1293,7 @@ function buildRoutes() {
   const cronsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
     return (
       <Fragment>
-        <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
+        <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
         <Route
           path={
             forCustomerDomain ? '/crons/create/' : '/organizations/:orgId/crons/create/'
