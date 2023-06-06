@@ -4,6 +4,10 @@ import type {experimentList, unassignedValue} from 'sentry/data/experimentConfig
  * The grouping of the experiment
  */
 export enum ExperimentType {
+  ORGANIZATION = 'organization',
+  USER = 'user',
+
+  // TODO(epurkhiser): Delete
   Organization = 'organization',
   User = 'user',
 }
@@ -71,11 +75,11 @@ type GetExperimentAssignment<E extends ExperimentList['key']> = {
 };
 
 export type OrgExperiments = GetExperimentAssignment<
-  TypeSelect<ExperimentList, ExperimentType.Organization>['key']
+  TypeSelect<ExperimentList, ExperimentType.ORGANIZATION>['key']
 >;
 
 export type UserExperiments = GetExperimentAssignment<
-  TypeSelect<ExperimentList, ExperimentType.User>['key']
+  TypeSelect<ExperimentList, ExperimentType.USER>['key']
 >;
 
 export type ExperimentAssignment = GetExperimentAssignment<ExperimentList['key']>;

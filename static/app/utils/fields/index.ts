@@ -138,57 +138,57 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
-  RequestTime = 'measurements.ttfb.requesttime',
+  REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
 export enum MobileVital {
-  AppStartCold = 'measurements.app_start_cold',
-  AppStartWarm = 'measurements.app_start_warm',
-  FramesTotal = 'measurements.frames_total',
-  FramesSlow = 'measurements.frames_slow',
-  FramesFrozen = 'measurements.frames_frozen',
-  FramesSlowRate = 'measurements.frames_slow_rate',
-  FramesFrozenRate = 'measurements.frames_frozen_rate',
-  StallCount = 'measurements.stall_count',
-  StallTotalTime = 'measurements.stall_total_time',
-  StallLongestTime = 'measurements.stall_longest_time',
-  StallPercentage = 'measurements.stall_percentage',
-  TimeToFullDisplay = 'measurements.time_to_full_display',
-  TimeToInitialDisplay = 'measurements.time_to_initial_display',
+  APP_START_COLD = 'measurements.app_start_cold',
+  APP_START_WARM = 'measurements.app_start_warm',
+  FRAMES_TOTAL = 'measurements.frames_total',
+  FRAMES_SLOW = 'measurements.frames_slow',
+  FRAMES_FROZEN = 'measurements.frames_frozen',
+  FRAMES_SLOW_RATE = 'measurements.frames_slow_rate',
+  FRAMES_FROZEN_RATE = 'measurements.frames_frozen_rate',
+  STALL_COUNT = 'measurements.stall_count',
+  STALL_TOTAL_TIME = 'measurements.stall_total_time',
+  STALL_LONGEST_TIME = 'measurements.stall_longest_time',
+  STALL_PERCENTAGE = 'measurements.stall_percentage',
+  TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
+  TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
 }
 
 export enum SpanOpBreakdown {
-  SpansBrowser = 'spans.browser',
-  SpansDb = 'spans.db',
-  SpansHttp = 'spans.http',
-  SpansResource = 'spans.resource',
-  SpansUi = 'spans.ui',
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_RESOURCE = 'spans.resource',
+  SPANS_UI = 'spans.ui',
 }
 
 export enum AggregationKey {
-  Count = 'count',
-  CountUnique = 'count_unique',
-  CountMiserable = 'count_miserable',
-  CountIf = 'count_if',
-  CountWebVitals = 'count_web_vitals',
-  Eps = 'eps',
-  Epm = 'epm',
-  FailureCount = 'failure_count',
-  Min = 'min',
-  Max = 'max',
-  Sum = 'sum',
-  Any = 'any',
+  COUNT = 'count',
+  COUNT_UNIQUE = 'count_unique',
+  COUNT_MISERABLE = 'count_miserable',
+  COUNT_IF = 'count_if',
+  COUNT_WEB_VITALS = 'count_web_vitals',
+  EPS = 'eps',
+  EPM = 'epm',
+  FAILURE_COUNT = 'failure_count',
+  MIN = 'min',
+  MAX = 'max',
+  SUM = 'sum',
+  ANY = 'any',
   P50 = 'p50',
   P75 = 'p75',
   P95 = 'p95',
   P99 = 'p99',
   P100 = 'p100',
-  Percentile = 'percentile',
-  Avg = 'avg',
-  Apdex = 'apdex',
-  UserMisery = 'user_misery',
-  FailureRate = 'failure_rate',
-  LastSeen = 'last_seen',
+  PERCENTILE = 'percentile',
+  AVG = 'avg',
+  APDEX = 'apdex',
+  USER_MISERY = 'user_misery',
+  FAILURE_RATE = 'failure_rate',
+  LAST_SEEN = 'last_seen',
 }
 
 export interface FieldDefinition {
@@ -213,67 +213,67 @@ export interface FieldDefinition {
 }
 
 export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
-  [AggregationKey.Count]: {
+  [AggregationKey.COUNT]: {
     desc: t('count of events'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.CountUnique]: {
+  [AggregationKey.COUNT_UNIQUE]: {
     desc: t('Unique count of the field values'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.INTEGER,
   },
-  [AggregationKey.CountMiserable]: {
+  [AggregationKey.COUNT_MISERABLE]: {
     desc: t('Count of unique miserable users'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.CountIf]: {
+  [AggregationKey.COUNT_IF]: {
     desc: t('Count of events matching the parameter conditions'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.CountWebVitals]: {
+  [AggregationKey.COUNT_WEB_VITALS]: {
     desc: t('Count of web vitals with a specific status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.Eps]: {
+  [AggregationKey.EPS]: {
     desc: t('Events per second'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.Epm]: {
+  [AggregationKey.EPM]: {
     desc: t('Events per minute'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.FailureRate]: {
+  [AggregationKey.FAILURE_RATE]: {
     desc: t('Failed event percentage based on transaction.status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.PERCENTAGE,
   },
-  [AggregationKey.FailureCount]: {
+  [AggregationKey.FAILURE_COUNT]: {
     desc: t('Failed event count based on transaction.status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.Min]: {
+  [AggregationKey.MIN]: {
     desc: t('Returns the minimum value of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.Max]: {
+  [AggregationKey.MAX]: {
     desc: t('Returns maximum value of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.Sum]: {
+  [AggregationKey.SUM]: {
     desc: t('Returns the total value for the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.Any]: {
+  [AggregationKey.ANY]: {
     desc: t('Not Recommended, a random field value'),
     kind: FieldKind.FUNCTION,
     valueType: null,
@@ -303,29 +303,29 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.Percentile]: {
+  [AggregationKey.PERCENTILE]: {
     desc: t('Returns the percentile of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.Avg]: {
+  [AggregationKey.AVG]: {
     desc: t('Returns averages for a selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.Apdex]: {
+  [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [AggregationKey.UserMisery]: {
+  [AggregationKey.USER_MISERY]: {
     desc: t(
       'User-weighted performance metric that counts the number of unique users who were frustrated'
     ),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
-  [AggregationKey.LastSeen]: {
+  [AggregationKey.LAST_SEEN]: {
     desc: t('Issues last seen at a date and time'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.DATE,
@@ -363,74 +363,74 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [WebVital.RequestTime]: {
+  [WebVital.REQUEST_TIME]: {
     desc: t('Time between start of request to start of response'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [MobileVital.AppStartCold]: {
+  [MobileVital.APP_START_COLD]: {
     desc: t('First launch (not in memory and no process exists)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [MobileVital.AppStartWarm]: {
+  [MobileVital.APP_START_WARM]: {
     desc: t('Already launched (partial memory and process may exist)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [MobileVital.FramesTotal]: {
+  [MobileVital.FRAMES_TOTAL]: {
     desc: t('Total number of frames'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
-  [MobileVital.FramesSlow]: {
+  [MobileVital.FRAMES_SLOW]: {
     desc: t('Number of slow frames'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
-  [MobileVital.FramesFrozen]: {
+  [MobileVital.FRAMES_FROZEN]: {
     desc: t('Number of frozen frames'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
-  [MobileVital.FramesSlowRate]: {
+  [MobileVital.FRAMES_SLOW_RATE]: {
     desc: t('Number of slow frames out of the total'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
-  [MobileVital.FramesFrozenRate]: {
+  [MobileVital.FRAMES_FROZEN_RATE]: {
     desc: t('Number of frozen frames out of the total'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
-  [MobileVital.StallCount]: {
+  [MobileVital.STALL_COUNT]: {
     desc: t('Count of slow Javascript event loops (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
-  [MobileVital.StallTotalTime]: {
+  [MobileVital.STALL_TOTAL_TIME]: {
     desc: t('Total stall duration (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
-  [MobileVital.StallLongestTime]: {
+  [MobileVital.STALL_LONGEST_TIME]: {
     desc: t('Duration of slowest Javascript event loop (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
-  [MobileVital.StallPercentage]: {
+  [MobileVital.STALL_PERCENTAGE]: {
     desc: t('Total stall duration out of the total transaction duration (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
-  [MobileVital.TimeToFullDisplay]: {
+  [MobileVital.TIME_TO_FULL_DISPLAY]: {
     desc: t(
       'The time between application launch and complete display of all resources and views'
     ),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [MobileVital.TimeToInitialDisplay]: {
+  [MobileVital.TIME_TO_INITIAL_DISPLAY]: {
     desc: t('The time it takes for an application to produce its first frame'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
@@ -438,27 +438,27 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
 };
 
 export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
-  [SpanOpBreakdown.SpansBrowser]: {
+  [SpanOpBreakdown.SPANS_BROWSER]: {
     desc: t('Cumulative time based on the browser operation'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanOpBreakdown.SpansDb]: {
+  [SpanOpBreakdown.SPANS_DB]: {
     desc: t('Cumulative time based on the database operation'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanOpBreakdown.SpansHttp]: {
+  [SpanOpBreakdown.SPANS_HTTP]: {
     desc: t('Cumulative time based on the http operation'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanOpBreakdown.SpansResource]: {
+  [SpanOpBreakdown.SPANS_RESOURCE]: {
     desc: t('Cumulative time based on the resource operation'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanOpBreakdown.SpansUi]: {
+  [SpanOpBreakdown.SPANS_UI]: {
     desc: t('Cumulative time based on the ui operation'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
@@ -1148,11 +1148,11 @@ export const DISCOVER_FIELDS = [
   FieldKey.USER_DISPLAY,
 
   // Span Op fields
-  SpanOpBreakdown.SpansBrowser,
-  SpanOpBreakdown.SpansDb,
-  SpanOpBreakdown.SpansHttp,
-  SpanOpBreakdown.SpansResource,
-  SpanOpBreakdown.SpansUi,
+  SpanOpBreakdown.SPANS_BROWSER,
+  SpanOpBreakdown.SPANS_DB,
+  SpanOpBreakdown.SPANS_HTTP,
+  SpanOpBreakdown.SPANS_RESOURCE,
+  SpanOpBreakdown.SPANS_UI,
 ];
 
 export enum ReplayFieldKey {

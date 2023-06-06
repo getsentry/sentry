@@ -23,6 +23,10 @@ from sentry.monitors.models import (
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.locking.manager import LockManager
+from sentry.utils.services import build_instance_from_options
+
+locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 
 class MonitorConsumerTest(TestCase):
@@ -153,6 +157,18 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+    def test_create_lock(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        guid = uuid.uuid4().hex
+
+        lock = locks.get(f"checkin-creation:{uuid.UUID(guid)}", duration=2, name="checkin_creation")
+        lock.acquire()
+
+        self.send_messag(monitor.slug, guid=guid)
+
+        # Lock should prevent creation of new check-in
+        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
 
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")

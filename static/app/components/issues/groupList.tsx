@@ -135,7 +135,7 @@ class GroupList extends Component<Props, State> {
           tree: parsedQuery,
           noResultValue: false,
           visitorTest: ({token, returnResult}) => {
-            return token.type === Token.LogicBoolean ? returnResult(true) : null;
+            return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
           },
         })
       : false;
