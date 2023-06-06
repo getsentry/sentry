@@ -89,12 +89,14 @@ def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
 
     if mri_matches:
-        return parse_mri_field(field, mri_matches)
+        return parse_mri_field(field)
 
     return parse_public_field(field)
 
 
-def parse_mri_field(field: str, matches: List[str]) -> MetricField:
+def parse_mri_field(field: str) -> MetricField:
+
+    matches = MRI_EXPRESSION_REGEX.match(field)
 
     try:
         operation = matches[1]
