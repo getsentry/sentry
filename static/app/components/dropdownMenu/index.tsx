@@ -2,7 +2,7 @@ import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
-import {useResizeObserver} from '@react-aria/utils';
+import {mergeProps, useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
@@ -103,9 +103,8 @@ interface DropdownMenuProps
    * features won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<Element>, 'children'> & {
-      onClick?: (e: MouseEvent) => void;
-    }
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
   ) => React.ReactNode;
   /**
    * By default, the menu trigger will be rendered as a button, with
@@ -210,13 +209,7 @@ function DropdownMenu({
 
   function renderTrigger() {
     if (trigger) {
-      return trigger({
-        size,
-        isOpen,
-        ...triggerProps,
-        ...overlayTriggerProps,
-        ...buttonProps,
-      });
+      return trigger({...mergeProps(overlayTriggerProps, buttonProps)}, isOpen);
     }
     return (
       <DropdownButton
