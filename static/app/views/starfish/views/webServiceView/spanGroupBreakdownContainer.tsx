@@ -10,6 +10,8 @@ import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MODULE_COLOR} from 'sentry/views/starfish/colours';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -164,12 +166,12 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     topData.length > 0 &&
     segments.length > 0
   ) {
-    segments.forEach((segment, index) => {
-      const label = segment['span.module'];
+    segments.forEach(segment => {
+      const label = segment['span.module'] as ModuleName;
       seriesByDomain[label] = {
         seriesName: `${label}`,
         data: [],
-        color: colorPalette[index],
+        color: MODULE_COLOR[label],
       };
     });
 
