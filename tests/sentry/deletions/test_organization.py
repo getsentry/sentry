@@ -38,15 +38,14 @@ from sentry.testutils.silo import region_silo_test
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org_owner = self.create_user()
-        org = self.create_organization(name="test", owner=org_owner, no_mapping=True)
+        org = self.create_organization(name="test", owner=org_owner)
+        org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
         org_member = OrganizationMember.objects.get(organization_id=org.id, user_id=org_owner.id)
         self.assert_org_member_mapping(org_member=org_member)
 
         org_owner2 = self.create_user()
-        org2 = self.create_organization(name="test2", owner=org_owner2, no_mapping=True)
-
-        org_mapping = self.create_organization_mapping(org)
-        org_mapping2 = self.create_organization_mapping(org2)
+        org2 = self.create_organization(name="test2", owner=org_owner2)
+        org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
 
         self.create_team(organization=org, name="test1")
         self.create_team(organization=org, name="test2")

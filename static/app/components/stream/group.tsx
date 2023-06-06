@@ -210,7 +210,7 @@ function BaseGroupRow({
       isFiltered && typeof query === 'string' ? query : ''
     );
     const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
     );
     const filteredQuery = joinQuery(filteredTerms, true);
 

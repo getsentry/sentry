@@ -23,7 +23,7 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
   const percentiles = getPercentiles(props.organization as Organization);
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
+      {currentFilter === SpanOperationBreakdownFilter.NONE
         ? t('Duration Percentiles')
         : tct('Span Operation Percentiles - [operationName]', {
             operationName: currentFilter,
@@ -40,7 +40,7 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
 
   function generateFields() {
     let field: string | undefined;
-    if (currentFilter === SpanOperationBreakdownFilter.None) {
+    if (currentFilter === SpanOperationBreakdownFilter.NONE) {
       field = 'transaction.duration';
     } else {
       field = filterToField(currentFilter);

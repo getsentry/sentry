@@ -168,9 +168,13 @@ register("api.rate-limit.org-create", default=5, flags=FLAG_ALLOW_EMPTY | FLAG_P
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
-# Filestore
+# Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+
+# Filestore for control silo
+register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
+register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
 # Symbol server
 register("symbolserver.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -714,3 +718,11 @@ register("txnames.bump-lifetime-sample-rate", default=0.1)
 register("span_descs.bump-lifetime-sample-rate", default=0.25)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0)
+# Enables queue monitoring for backpressure management.
+register("backpressure.monitor_queues.enable", default=False)
+register("backpressure.monitor_queues.unhealthy_threshold", default=1000)
+# How often we check queue health.
+register("backpressure.monitor_queues.check_interval", default=5)
+# How many times in a row a queue must be unhealthy before it is
+# recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
+register("backpressure.monitor_queues.strike_threshold", default=12)

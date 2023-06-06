@@ -1,11 +1,14 @@
 from io import BytesIO
 from uuid import uuid4
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, router
 from django.utils.encoding import force_bytes
 from PIL import Image
 
 from sentry.db.models import BoundedBigIntegerField, Model
+from sentry.models.files.file import File
+from sentry.tasks.files import copy_file_to_control_and_update_model
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 
@@ -35,17 +38,31 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        from sentry.models import File
-
-        if self.file_id is None:
-            return None
+        # Favor control_file_id if it exists and is set.
+        # Otherwise fallback to file_id. If still None, return.
+        file_class = self.file_class()
+        file_id = getattr(self, self.file_fk())
+        if file_id is None:
+            file_id = self.file_id
+            file_class = File
+            if file_id is None:
+                return None
+            copy_file_to_control_and_update_model.apply_async(
+                kwargs={
+                    "app_name": "sentry",
+                    "model_name": type(self).__name__,
+                    "model_id": self.id,
+                    "file_id": file_id,
+                }
+            )
 
         try:
-            return File.objects.get(pk=self.file_id)
-        except File.DoesNotExist:
+            return file_class.objects.get(pk=file_id)
+        except ObjectDoesNotExist:
             # Best effort replication of previous behaviour with foreign key
             # which was set with on_delete=models.SET_NULL
-            self.update(file_id=None)
+            update = {self.file_fk(): None}
+            self.update(**update)
             return None
 
     def delete(self, *args, **kwargs):
@@ -79,12 +96,20 @@ class AvatarBase(Model):
         return photo
 
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
+    def file_class(cls):
         from sentry.models import File
 
+        return File
+
+    @classmethod
+    def file_fk(cls) -> str:
+        return "file_id"
+
+    @classmethod
+    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
         if avatar:
-            with atomic_transaction(using=router.db_for_write(File)):
-                photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
+            with atomic_transaction(using=router.db_for_write(cls.file_class())):
+                photo = cls.file_class().objects.create(name=filename, type=cls.FILE_TYPE)
                 # XXX: Avatar may come in as a string instance in python2
                 # if it's not wrapped in BytesIO.
                 if isinstance(avatar, str):
@@ -99,7 +124,7 @@ class AvatarBase(Model):
         with atomic_transaction(
             using=(
                 router.db_for_write(cls),
-                router.db_for_write(File),
+                router.db_for_write(cls.file_class()),
             )
         ):
             if relation.get("sentry_app") and color is not None:
@@ -111,7 +136,7 @@ class AvatarBase(Model):
                 file.delete()
 
             if photo:
-                instance.file_id = photo.id
+                setattr(instance, cls.file_fk(), photo.id)
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]

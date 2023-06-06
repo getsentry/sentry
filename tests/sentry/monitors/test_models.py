@@ -6,6 +6,11 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from sentry.issues.grouptype import (
+    MonitorCheckInFailure,
+    MonitorCheckInMissed,
+    MonitorCheckInTimeout,
+)
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -18,6 +23,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -153,7 +159,7 @@ class MonitorTestCase(TestCase):
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
     @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_default_params(self, mock_insert_data_to_database_legacy):
+    def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -197,7 +203,7 @@ class MonitorEnvironmentTestCase(TestCase):
         ) == dict(event)
 
     @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_reason(self, mock_insert_data_to_database_legacy):
+    def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -241,7 +247,7 @@ class MonitorEnvironmentTestCase(TestCase):
         ) == dict(event)
 
     @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_missed_reason(self, mock_insert_data_to_database_legacy):
+    def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -285,6 +291,216 @@ class MonitorEnvironmentTestCase(TestCase):
                 "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
                 "logger": "",
                 "type": "default",
+            },
+        ) == dict(event)
+
+    @with_feature("organizations:issue-platform")
+    @with_feature("organizations:crons-issue-platform")
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=monitor.status,
+        )
+
+        last_checkin = timezone.now()
+        assert monitor_environment.mark_failed(last_checkin=last_checkin)
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+
+        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
+        occurrence = occurrence.to_dict()
+
+        assert dict(
+            occurrence,
+            **{
+                "project_id": self.project.id,
+                "fingerprint": [f"monitor-{str(monitor.guid)}-unknown"],
+                "issue_title": f"Monitor failure: {monitor.name} (unknown)",
+                "subtitle": "",
+                "resource_id": None,
+                "evidence_data": {},
+                "evidence_display": [
+                    {"name": "Failure reason", "value": "unknown", "important": True},
+                    {
+                        "name": "Environment",
+                        "value": monitor_environment.environment.name,
+                        "important": False,
+                    },
+                    {
+                        "name": "Last check-in",
+                        "value": last_checkin.isoformat(),
+                        "important": False,
+                    },
+                ],
+                "type": MonitorCheckInFailure.type_id,
+                "level": "error",
+                "culprit": "",
+            },
+        ) == dict(occurrence)
+
+        assert dict(
+            event,
+            **{
+                "environment": monitor_environment.environment.name,
+                "event_id": occurrence["event_id"],
+                "platform": "other",
+                "project_id": monitor.project_id,
+                "sdk": None,
+                "tags": {
+                    "monitor.id": str(monitor.guid),
+                    "monitor.slug": monitor.slug,
+                },
+            },
+        ) == dict(event)
+
+    @with_feature("organizations:issue-platform")
+    @with_feature("organizations:crons-issue-platform")
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=monitor.status,
+        )
+        last_checkin = timezone.now()
+        assert monitor_environment.mark_failed(
+            last_checkin=last_checkin, reason=MonitorFailure.DURATION
+        )
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+
+        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
+        occurrence = occurrence.to_dict()
+
+        assert dict(
+            occurrence,
+            **{
+                "project_id": self.project.id,
+                "fingerprint": [f"monitor-{str(monitor.guid)}-duration"],
+                "issue_title": f"Monitor failure: {monitor.name} (duration)",
+                "subtitle": "",
+                "resource_id": None,
+                "evidence_data": {},
+                "evidence_display": [
+                    {"name": "Failure reason", "value": "duration", "important": True},
+                    {
+                        "name": "Environment",
+                        "value": monitor_environment.environment.name,
+                        "important": False,
+                    },
+                    {
+                        "name": "Last check-in",
+                        "value": last_checkin.isoformat(),
+                        "important": False,
+                    },
+                ],
+                "type": MonitorCheckInTimeout.type_id,
+                "level": "error",
+                "culprit": "",
+            },
+        ) == dict(occurrence)
+
+        assert dict(
+            event,
+            **{
+                "environment": monitor_environment.environment.name,
+                "event_id": occurrence["event_id"],
+                "platform": "other",
+                "project_id": monitor.project_id,
+                "sdk": None,
+                "tags": {
+                    "monitor.id": str(monitor.guid),
+                    "monitor.slug": monitor.slug,
+                },
+            },
+        ) == dict(event)
+
+    @with_feature("organizations:issue-platform")
+    @with_feature("organizations:crons-issue-platform")
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_with_missed_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=monitor.status,
+        )
+        last_checkin = timezone.now()
+        assert monitor_environment.mark_failed(
+            last_checkin=last_checkin, reason=MonitorFailure.MISSED_CHECKIN
+        )
+
+        monitor.refresh_from_db()
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.MISSED_CHECKIN
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+
+        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
+        occurrence = occurrence.to_dict()
+
+        assert dict(
+            occurrence,
+            **{
+                "project_id": self.project.id,
+                "fingerprint": [f"monitor-{str(monitor.guid)}-missed_checkin"],
+                "issue_title": f"Monitor failure: {monitor.name} (missed_checkin)",
+                "subtitle": "",
+                "resource_id": None,
+                "evidence_data": {},
+                "evidence_display": [
+                    {"name": "Failure reason", "value": "missed_checkin", "important": True},
+                    {
+                        "name": "Environment",
+                        "value": monitor_environment.environment.name,
+                        "important": False,
+                    },
+                    {
+                        "name": "Last check-in",
+                        "value": last_checkin.isoformat(),
+                        "important": False,
+                    },
+                ],
+                "type": MonitorCheckInMissed.type_id,
+                "level": "warning",
+                "culprit": "",
+            },
+        ) == dict(occurrence)
+
+        assert dict(
+            event,
+            **{
+                "environment": monitor_environment.environment.name,
+                "event_id": occurrence["event_id"],
+                "platform": "other",
+                "project_id": monitor.project_id,
+                "sdk": None,
+                "tags": {
+                    "monitor.id": str(monitor.guid),
+                    "monitor.slug": monitor.slug,
+                },
             },
         ) == dict(event)
 

@@ -60,6 +60,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
             selected_columns=["event_id", "group_id", "occurrence_id"],
             groupby=None,
             filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            tenant_ids={"referrer": "r", "organization_id": 1},
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["group_id"] == group_info.group.id
