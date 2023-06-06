@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentTrigger,
@@ -121,7 +122,7 @@ class SubscriptionProcessor:
             self._incident_triggers = incident_triggers
         return self._incident_triggers
 
-    def check_trigger_status(self, trigger: AlertRuleTrigger, status: IncidentStatus) -> bool:
+    def check_trigger_status(self, trigger: AlertRuleTrigger, status: TriggerStatus) -> bool:
         """
         Determines whether a trigger is currently at the specified status
         :param trigger: An `AlertRuleTrigger`
@@ -633,19 +634,69 @@ class SubscriptionProcessor:
     def handle_trigger_actions(
         self, incident_triggers: List[IncidentTrigger], metric_value: float
     ) -> None:
-        actions = deduplicate_trigger_actions(triggers=deepcopy(incident_triggers))
+        actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
-        method = "fire" if incident_triggers[0].status == TriggerStatus.ACTIVE.value else "resolve"
+        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+        try:
+            incident = Incident.objects.get(id=incident_trigger.incident_id)
+        except Incident.DoesNotExist:
+            metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
+            return
+
+        incident_activities = IncidentActivity.objects.filter(incident=incident).values_list(
+            "value", flat=True
+        )
+        past_statuses = {
+            int(value) for value in incident_activities.distinct() if value is not None
+        }
+
+        critical_actions = []
+        warning_actions = []
         for action in actions:
+            if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
+                critical_actions.append(action)
+            else:
+                warning_actions.append(action)
+
+        actions_to_fire = []
+        new_status = IncidentStatus.CLOSED.value
+
+        if method == "resolve":
+            if incident.status != IncidentStatus.CLOSED.value:
+                # Critical -> warning
+                actions_to_fire = actions
+                new_status = IncidentStatus.WARNING.value
+            elif IncidentStatus.CRITICAL.value in past_statuses:
+                # Critical -> resolved or warning -> resolved, but was critical previously
+                actions_to_fire = actions
+                new_status = IncidentStatus.CLOSED.value
+            else:
+                # Warning -> resolved
+                actions_to_fire = warning_actions
+                new_status = IncidentStatus.CLOSED.value
+        else:
+            # method == "fire"
+            if incident.status == IncidentStatus.CRITICAL.value:
+                # Anything -> critical
+                actions_to_fire = actions
+                new_status = IncidentStatus.CRITICAL.value
+            else:
+                # Resolved -> warning:
+                actions_to_fire = warning_actions
+                new_status = IncidentStatus.WARNING.value
+
+        # Schedule the actions to be fired
+        for action in actions_to_fire:
             transaction.on_commit(
                 handle_trigger_action.s(
                     action_id=action.id,
-                    incident_id=incident_trigger.incident_id,
+                    incident_id=incident.id,
                     project_id=self.subscription.project_id,
-                    metric_value=metric_value,
                     method=method,
+                    new_status=new_status,
+                    metric_value=metric_value,
                 ).delay
             )
 
