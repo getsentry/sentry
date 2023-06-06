@@ -36,6 +36,7 @@
   },
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/config/chartcuterie/*",
     "**/node_modules/@testing-library/*",
     "**/node_modules/@tanstack/react-query"
   ],
