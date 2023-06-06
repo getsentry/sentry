@@ -26,7 +26,13 @@ const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-function validateSortOption({sort, organization}: {sort?: string}) {
+function validateSortOption({
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  sort?: string;
+}) {
   const hasBetterPrioritySort = organization.features.includes(
     'issue-list-better-priority-sort'
   );
