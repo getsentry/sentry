@@ -24,7 +24,6 @@ import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -212,7 +211,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <MiniChartPanel title={t('Throughput Per Second')}>
               {renderThroughputChart()}
             </MiniChartPanel>
-            <MiniChartPanel title={t('Errors (5XXs)')}>
+            <MiniChartPanel title={t('5XX Responses')}>
               {renderFailureRateChart()}
             </MiniChartPanel>
           </ChartsContainerItem2>
@@ -222,16 +221,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
         onSelect={onSelect}
-        columnTitles={[
-          'endpoint',
-          'tpm',
-          DataTitles.p95,
-          'p95 change',
-          'errors (5XXs)',
-          'cumulative time',
-        ]}
       />
     </div>
   );

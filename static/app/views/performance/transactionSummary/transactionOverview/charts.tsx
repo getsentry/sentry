@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -36,7 +37,7 @@ import VitalsChart from './vitalsChart';
 function generateDisplayOptions(
   currentFilter: SpanOperationBreakdownFilter
 ): SelectValue<string>[] {
-  if (currentFilter === SpanOperationBreakdownFilter.None) {
+  if (currentFilter === SpanOperationBreakdownFilter.NONE) {
     return [
       {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
       {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
@@ -153,7 +154,12 @@ function TransactionSummaryCharts({
   };
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
+  const mepCardinalityContext = useMetricsCardinalityContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   return (
     <Panel>

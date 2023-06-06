@@ -27,6 +27,10 @@ from sentry.monitors.models import (
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.locking.manager import LockManager
+from sentry.utils.services import build_instance_from_options
+
+locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 
 class MonitorConsumerTest(TestCase):
@@ -187,6 +191,20 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+    def test_create_lock(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        message = self.get_message(monitor.slug)
+
+        lock = locks.get(
+            f"checkin-creation:{uuid.UUID(self.guid)}", duration=2, name="checkin_creation"
+        )
+        lock.acquire()
+
+        _process_message(message)
+
+        # Lock should prevent creation of new check-in
+        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
 
     @pytest.mark.django_db
     def test_check_in_update(self):
