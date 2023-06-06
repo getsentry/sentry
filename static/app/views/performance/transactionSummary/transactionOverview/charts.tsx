@@ -37,7 +37,7 @@ import VitalsChart from './vitalsChart';
 function generateDisplayOptions(
   currentFilter: SpanOperationBreakdownFilter
 ): SelectValue<string>[] {
-  if (currentFilter === SpanOperationBreakdownFilter.None) {
+  if (currentFilter === SpanOperationBreakdownFilter.NONE) {
     return [
       {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
       {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},

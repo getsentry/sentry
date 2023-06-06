@@ -165,7 +165,7 @@ function Chart({
         stacked
       )
     : percentOnly
-    ? computeMax(data)
+    ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
     : undefined;
   // Fix an issue where max == 1 for duration charts would look funky cause we round
   if (dataMax === 1 && durationOnly) {
@@ -236,12 +236,19 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
+
     if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(
+            value,
+            aggregateOutputFormat ?? aggregateOutputType(seriesName)
+          );
+        },
         ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }
