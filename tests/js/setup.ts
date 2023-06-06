@@ -18,6 +18,11 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
+// Emotion triggers access to Error().stack
+// which in turn triggers prepareStackTrace which ends up resolving
+// call site depending on sourcemaps which is slow. Noop it.
+Error.prepareStackTrace = (_error, _stack) => {};
+
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
  * framer-motion SVG components fail
