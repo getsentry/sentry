@@ -8,6 +8,7 @@ from sentry.issues.producer import produce_occurrence_to_kafka
 
 
 def new_issue_occurrence(
+    culprit: str,
     environment: str,
     fingerprint: str,
     issue_type: Type[GroupType],
@@ -35,7 +36,7 @@ def new_issue_occurrence(
         type=issue_type,
         detection_time=timestamp,
         level="info",
-        culprit="user",
+        culprit=culprit,
     )
 
     event_data = {
