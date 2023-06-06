@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {Link} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -15,9 +16,7 @@ import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {MODULE_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {ModuleName} from 'sentry/views/starfish/types';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
@@ -36,6 +35,7 @@ export function SpanGroupBreakdown({
   initialShowSeries,
 }: Props) {
   const {selection} = usePageFilters();
+  const theme = useTheme();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
 
   useEffect(() => {
@@ -50,16 +50,17 @@ export function SpanGroupBreakdown({
       visibleSeries.push(series);
     }
   }
+  const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
   return (
     <FlexRowContainer>
       <ChartPadding>
         <Header>
-          <ChartLabel>{t('App Time Breakdown (p95)')}</ChartLabel>
+          <ChartLabel>{t('App Time Breakdown (P95)')}</ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
-          height={175}
+          height={210}
           data={visibleSeries}
           start=""
           end=""
@@ -89,23 +90,20 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          ['span.module'].forEach(key => {
-            if (group[key] !== undefined && group[key] !== null) {
-              spansLinkQueryParams[key] = group[key];
-            }
-          });
+          if (['db', 'http'].includes(group['span.category'])) {
+            spansLinkQueryParams['span.module'] = group['span.category'];
+          }
 
           const spansLink =
-            group['span.module'] === 'other'
+            group['span.category'] === 'Other'
               ? `/starfish/spans/`
               : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
-          const module = group['span.module'] as ModuleName;
           return (
-            <StyledLineItem key={`${group['span.module']}`}>
+            <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
                 <Checkbox
                   size="sm"
-                  checkboxColor={MODULE_COLOR[module]}
+                  checkboxColor={colorPalette[index]}
                   inputCss={{backgroundColor: 'red'}}
                   checked={checkedValue}
                   onChange={() => {
@@ -116,7 +114,7 @@ export function SpanGroupBreakdown({
                 />
                 <TextAlignLeft>
                   <Link to={spansLink}>
-                    <TextOverflow>{group['span.module']}</TextOverflow>
+                    <TextOverflow>{group['span.category']}</TextOverflow>
                   </Link>
                 </TextAlignLeft>
                 <RightAlignedCell>
@@ -124,7 +122,7 @@ export function SpanGroupBreakdown({
                     title={t(
                       '%s time spent on %s',
                       formatPercentage(row.cumulativeTime / totalValues, 1),
-                      group['span.module']
+                      group['span.category']
                     )}
                     containerDisplayMode="block"
                     position="top"
