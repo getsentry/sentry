@@ -79,7 +79,7 @@ function Breadcrumb(props: Props) {
       };
 
       switch (tab) {
-        case Tab.Tags: {
+        case Tab.TAGS: {
           const tagsTarget = tagsRouteWithQuery(routeQuery);
           crumbs.push({
             to: tagsTarget,
@@ -88,7 +88,7 @@ function Breadcrumb(props: Props) {
           });
           break;
         }
-        case Tab.Events: {
+        case Tab.EVENTS: {
           const eventsTarget = eventsRouteWithQuery(routeQuery);
           crumbs.push({
             to: eventsTarget,
@@ -97,7 +97,7 @@ function Breadcrumb(props: Props) {
           });
           break;
         }
-        case Tab.WebVitals: {
+        case Tab.WEB_VITALS: {
           const webVitalsTarget = vitalsRouteWithQuery(routeQuery);
           crumbs.push({
             to: webVitalsTarget,
@@ -106,7 +106,7 @@ function Breadcrumb(props: Props) {
           });
           break;
         }
-        case Tab.Spans: {
+        case Tab.SPANS: {
           const spansTarget = spansRouteWithQuery(routeQuery);
           crumbs.push({
             to: spansTarget,
@@ -115,7 +115,7 @@ function Breadcrumb(props: Props) {
           });
           break;
         }
-        case Tab.TransactionSummary:
+        case Tab.TRANSACTION_SUMMARY:
         default: {
           const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
           crumbs.push({

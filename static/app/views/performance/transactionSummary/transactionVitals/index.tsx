@@ -31,7 +31,7 @@ function TransactionVitals(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.WebVitals}
+      tab={Tab.WEB_VITALS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={VitalsContent}

@@ -190,12 +190,12 @@ function TransactionHeader({
                 gridColumn: '1 / -1',
               }}
             >
-              <TabList.Item key={Tab.TransactionSummary}>{t('Overview')}</TabList.Item>
-              <TabList.Item key={Tab.Events}>{t('All Events')}</TabList.Item>
-              <TabList.Item key={Tab.Tags}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.Spans}>{t('Spans')}</TabList.Item>
+              <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
+              <TabList.Item key={Tab.EVENTS}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
-                key={Tab.Anomalies}
+                key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}
                 hidden={!hasAnomalyDetection}
               >
@@ -203,14 +203,14 @@ function TransactionHeader({
                 <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
-                key={Tab.WebVitals}
+                key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}
                 hidden={!renderWebVitals}
               >
                 {t('Web Vitals')}
               </TabList.Item>
               <TabList.Item
-                key={Tab.Replays}
+                key={Tab.REPLAYS}
                 textValue={t('Replays')}
                 hidden={!hasSessionReplay}
               >
@@ -218,7 +218,7 @@ function TransactionHeader({
                 <ReplayCountBadge count={replaysCount} />
               </TabList.Item>
               <TabList.Item
-                key={Tab.Profiling}
+                key={Tab.PROFILING}
                 textValue={t('Profiling')}
                 hidden={!hasProfiling}
               >

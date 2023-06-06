@@ -55,7 +55,7 @@ function TransactionEvents(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Events}
+      tab={Tab.EVENTS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={EventsContentWrapper}

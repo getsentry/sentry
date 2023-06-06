@@ -93,7 +93,7 @@ function Profiles(): React.ReactElement {
       location={location}
       organization={organization}
       projects={projects.projects}
-      tab={Tab.Profiling}
+      tab={Tab.PROFILING}
       generateEventView={() => EventView.fromLocation(location)}
       getDocumentTitle={() => t(`Profile: %s`, transaction)}
       childComponent={() => {
