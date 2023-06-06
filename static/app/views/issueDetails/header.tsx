@@ -271,38 +271,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Consecutive HTTP Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Slow DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="beta"
-            title={t(
-              'Consecutive DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Large Render Blocking Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
