@@ -96,7 +96,7 @@ _irrelevant_re = re.compile(
         \b\d+\b
     ) |
     (?P<quoted_str>
-        '([\w\s]+)'
+        ='([\w\s]+)'
     )
 """
 )
@@ -108,9 +108,11 @@ def trim_message_for_grouping(string: str) -> str:
         s += "..."
 
     def _handle_match(match: Match[str]) -> str:
+        # e.g. hex, 0x40000015
         for key, value in match.groupdict().items():
             if value is not None:
-                return "<%s>" % key
+                # For quoted_str we want to preserver the = symbol
+                return f"=<{key}>" if key == "quoted_str" else f"<{key}>"
         return ""
 
     return _irrelevant_re.sub(_handle_match, s)

@@ -1,6 +1,4 @@
 ---
-created: '2023-06-06T14:17:23.049190Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -23,8 +21,8 @@ app:
               "onError"
         type*
           "TypeError"
-        value* (stripped common values)
-          "Cannot read property <quoted_str> of null"
+        value*
+          "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
   hash: "8717a0fb8a1ddcabdd21bc2b7ca9ebee"
@@ -47,4 +45,4 @@ system:
         type*
           "TypeError"
         value (ignored because stacktrace takes precedence)
-          "Cannot read property <quoted_str> of null"
+          "Cannot read property 'submitError' of null"

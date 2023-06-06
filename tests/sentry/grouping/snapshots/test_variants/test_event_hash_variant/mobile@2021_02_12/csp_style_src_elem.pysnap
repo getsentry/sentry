@@ -1,5 +1,5 @@
 ---
-created: '2023-06-06T14:17:09.920275Z'
+created: '2023-06-06T14:26:20.763046Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,4 +14,4 @@ default:
         uri*
           "use.fontawesome.com"
       message (csp takes precedence)
-        "Blocked <quoted_str> from 'use.fontawesome.com'"
+        "Blocked 'style' from 'use.fontawesome.com'"
