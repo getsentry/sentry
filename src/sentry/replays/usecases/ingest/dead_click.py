@@ -31,7 +31,7 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
             "level": "warning",
-            "tags": {"replayId": replay_id},
+            "tags": {"replayId": replay_id, "url": payload["data"]["url"]},
             "user": {
                 "id": "1",
                 "username": "Test User",
