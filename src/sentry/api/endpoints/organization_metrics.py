@@ -17,32 +17,35 @@ from sentry.snuba.metrics import (
     get_tag_values,
     get_tags,
 )
-from sentry.snuba.metrics.naming_layer import get_all_mris, parse_mri
-from sentry.snuba.metrics.utils import (
-    AVAILABLE_GENERIC_OPERATIONS,
-    AVAILABLE_OPERATIONS,
-    DerivedMetricException,
-    DerivedMetricParseException,
-    MetricMeta,
-)
+from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-def get_use_case_id(use_case: str) -> UseCaseKey:
+def get_use_case_id(request: Request) -> UseCaseKey:
     """
-    Get use_case from str and validate it against UseCaseKey enum type
-    if use_case parameter has wrong value just raise an ParseError.
+    Get use_case from query params and validate it against UseCaseKey enum type
+    If use_case parameter is not provided, check the queried field in order to
+    determine the use_case. Default to release-health if the field is not provided.
+    Raise a ParseError if the use_case parameter is invalid.
     """
-    try:
-        if use_case == "releaseHealth":
-            use_case = "release-health"
 
-        return UseCaseKey(use_case)
-    except ValueError:
+    allowed_use_cases = ["releaseHealth", "performance"]
+
+    use_case_param = request.GET.get("useCase")
+
+    if use_case_param is not None and use_case_param not in allowed_use_cases:
         raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
+            detail=f"Invalid useCase parameter. Please use one of: {allowed_use_cases}"
         )
+
+    elif use_case_param is None:
+        field_param = request.GET.get("field", "")
+        return (
+            UseCaseKey.PERFORMANCE if "transactions" in field_param else UseCaseKey.RELEASE_HEALTH
+        )
+
+    return UseCaseKey(use_case_param)
 
 
 @region_silo_endpoint
@@ -54,57 +57,10 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(
-            projects, use_case_id=get_use_case_id(request.GET.get("useCase", "release-health"))
-        )
-        # TODO: replace this with a serializer so that if the structure of MetricMeta changes the response of this
-        # endpoint does not
-        for metric in metrics:
-            del metric["metric_id"]
-            del metric["mri_string"]
+
+        metrics = get_metrics(projects, use_case_id=get_use_case_id(request))
+
         return Response(metrics, status=200)
-
-
-@region_silo_endpoint
-class OrganizationMetricsRawEndpoint(OrganizationEndpoint):
-    """Get metric name, available operations and the metric unit"""
-
-    def get(self, request: Request, organization) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
-        ENTITY_SHORTHANDS = {
-            "c": "metrics_counters",
-            "s": "metrics_sets",
-            "d": "metrics_distributions",
-            "g": "metrics_gauges",
-        }
-
-        # projects = self.get_projects(request, organization)
-        # mris = [mri.value for mri in SessionMRI] + [mri.value for mri in TransactionMRI]
-
-        result = []
-        for mri in get_all_mris():
-            parsed = parse_mri(mri)
-
-            # better way to get oprations from mri
-            if parsed.entity not in ENTITY_SHORTHANDS:
-                ops = []
-            elif parsed.namespace == "sessions":
-                ops = AVAILABLE_OPERATIONS[ENTITY_SHORTHANDS[parsed.entity]]
-            else:
-                ops = AVAILABLE_GENERIC_OPERATIONS[f"generic_{ENTITY_SHORTHANDS[parsed.entity]}"]
-
-            result.append(
-                MetricMeta(
-                    mri=mri,
-                    unit=parsed.unit,
-                    name=parsed.name,
-                    operations=ops,
-                )
-            )
-
-        return Response(result, status=200)
 
 
 @region_silo_endpoint
@@ -120,7 +76,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             metric = get_single_metric_info(
                 projects,
                 metric_name,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
@@ -153,7 +109,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
             tags = get_tags(
                 projects,
                 metric_names,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
@@ -178,7 +134,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 projects,
                 tag_name,
                 metric_names,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
@@ -189,56 +145,6 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 raise ParseError(msg)
 
         return Response(tag_values, status=200)
-
-
-@region_silo_endpoint
-class OrganizationMetricsRawDataEndpoint(OrganizationEndpoint):
-    """Get the time series data for one or more metrics.
-
-    The data can be filtered and grouped by tags.
-    Based on `OrganizationSessionsEndpoint`.
-    """
-
-    default_per_page = 50
-
-    def get(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-
-        def data_fn(offset: int, limit: int):
-            try:
-                query = QueryDefinition(
-                    projects,
-                    request.GET,
-                    identifier="mri",
-                    paginator_kwargs={"limit": limit, "offset": offset},
-                )
-                metrics_query = query.to_metrics_query()
-
-                if "sessions" in metrics_query.select[0].metric_mri:
-                    use_case_id = UseCaseKey.RELEASE_HEALTH
-                else:
-                    use_case_id = UseCaseKey.PERFORMANCE
-
-                data = get_series(
-                    projects=projects,
-                    metrics_query=metrics_query,
-                    use_case_id=use_case_id,
-                    tenant_ids={"organization_id": organization.id},
-                )
-                data["query"] = query.query
-            except (
-                InvalidParams,
-                DerivedMetricException,
-            ) as exc:
-                raise (ParseError(detail=str(exc)))
-            return data
-
-        return self.paginate(
-            request,
-            paginator=MetricsDataSeriesPaginator(data_fn=data_fn),
-            default_per_page=self.default_per_page,
-            max_per_page=100,
-        )
 
 
 @region_silo_endpoint
@@ -257,12 +163,14 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int):
             try:
                 query = QueryDefinition(
-                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                    projects,
+                    request.GET,
+                    paginator_kwargs={"limit": limit, "offset": offset},
                 )
                 data = get_series(
                     projects,
-                    query.to_metrics_query(),
-                    use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                    metrics_query=query.to_metrics_query(),
+                    use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
                 data["query"] = query.query
