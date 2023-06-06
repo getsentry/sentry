@@ -1,3 +1,4 @@
+import {getCrumbDescriptionAndColor} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,9 +11,32 @@ function stringifyNodeAttributes(tagName: string, attributes: Record<string, str
   const attributesEntries = Object.entries(attributes);
   return `${tagName}${
     attributesEntries.length
-      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`)
+      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`).join('')
       : ''
   }`;
+}
+
+function getColor(crumb: Crumb) {
+  const crumbData: MaybeCrumbData = crumb.data as MaybeCrumbData;
+  if (crumb.category === 'ui.slowClickDetected') {
+    return getCrumbDescriptionAndColor(
+      crumbData!.endReason === 'timeout' ? BreadcrumbType.ERROR : BreadcrumbType.WARNING
+    ).color;
+  }
+
+  return crumb.color;
+}
+
+function getType(crumb: Crumb) {
+  const crumbData: MaybeCrumbData = crumb.data as MaybeCrumbData;
+
+  if (crumb.category === 'ui.slowClickDetected') {
+    return crumbData!.endReason === 'timeout'
+      ? BreadcrumbType.ERROR
+      : BreadcrumbType.WARNING;
+  }
+
+  return crumb.type;
 }
 
 /**
@@ -130,11 +154,14 @@ export function getProjectSlug(crumb: Crumb) {
   }
   return null;
 }
+
 /**
  * Generate breadcrumb title + descriptions
  */
 export function getDetails(crumb: Crumb) {
   return {
+    color: getColor(crumb),
+    type: getType(crumb),
     title: getTitle(crumb),
     description: getDescription(crumb),
     projectSlug: getProjectSlug(crumb),
