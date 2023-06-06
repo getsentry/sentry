@@ -273,7 +273,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         </Cell>
       );
     });
-    const emptyColumn = <CellStat key="extra" />;
+    const emptyColumn = <CellStat key="extra" />; // For displaying extra buttons
     columnHeaders.push(emptyColumn);
     return columnHeaders;
   }
