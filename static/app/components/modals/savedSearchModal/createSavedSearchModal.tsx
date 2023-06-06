@@ -26,7 +26,14 @@ const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-function validateSortOption({sort}: {sort?: string}) {
+function validateSortOption({sort, organization}: {sort?: string}) {
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
+  const sortOptions = [...DEFAULT_SORT_OPTIONS];
+  if (hasBetterPrioritySort) {
+    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+  }
   if (DEFAULT_SORT_OPTIONS.find(option => option === sort)) {
     return sort as string;
   }
@@ -49,7 +56,7 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({sort}),
+    sort: validateSortOption({sort, organization}),
     visibility: SavedSearchVisibility.OWNER,
   };
 
