@@ -103,7 +103,7 @@ export const useErrorRateQuery = (queryString: string) => {
 
   const FAILURE_RATE_QUERY = `SELECT
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    countIf(greaterOrEquals(status, 500)) as "http_error_count()"",
+    countIf(greaterOrEquals(status, 500)) as "http_error_count()"
     FROM spans_experimental_starfish
     WHERE module = 'http'
     ${dateFilters}
