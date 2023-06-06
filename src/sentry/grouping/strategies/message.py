@@ -94,6 +94,9 @@ _irrelevant_re = re.compile(
     (?P<int>
         -\d+\b |
         \b\d+\b
+    ) |
+    (?P<quoted_str>
+        '([\w\s]+)'
     )
 """
 )
