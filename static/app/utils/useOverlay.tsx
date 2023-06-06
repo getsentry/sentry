@@ -109,7 +109,7 @@ function useOverlay({
   disableTrigger,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
-  const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
 
