@@ -18,6 +18,13 @@ class GLOBAL_PARAMS:
         type=str,
         location="path",
     )
+    TEAM_SLUG = OpenApiParameter(
+        name="team_slug",
+        description="The slug of the team the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     STATS_PERIOD = OpenApiParameter(
         name="statsPeriod",
         location="query",
