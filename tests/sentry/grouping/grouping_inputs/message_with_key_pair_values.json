@@ -1,0 +1,7 @@
+{
+    "message": "Error key1='some_str' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc)",
+    "metadata": {
+        "title": "Error key1='some_str' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc)"
+    },
+    "title": "Error key1='some_str' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc)"
+}
