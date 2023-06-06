@@ -34,7 +34,7 @@ function validateSortOption({sort, organization}: {sort?: string}) {
   if (hasBetterPrioritySort) {
     sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
   }
-  if (DEFAULT_SORT_OPTIONS.find(option => option === sort)) {
+  if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
 
