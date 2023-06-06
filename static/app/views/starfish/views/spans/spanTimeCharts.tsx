@@ -230,7 +230,7 @@ const buildDiscoverQueryConditions = (
     });
 
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:'${moduleName}'`);
+    result.push(`span.module:${moduleName}`);
   }
 
   return result.join(' ');
