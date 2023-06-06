@@ -40,8 +40,8 @@ enum SORT_BY {
 }
 
 enum SourceMapsBundleType {
-  Release,
-  DebugId,
+  RELEASE,
+  DEBUG_ID,
 }
 
 function SourceMapsTableRow({
@@ -62,7 +62,7 @@ function SourceMapsTableRow({
   idColumnDetails?: React.ReactNode;
 }) {
   const isEmptyReleaseBundle =
-    bundleType === SourceMapsBundleType.Release && fileCount === -1;
+    bundleType === SourceMapsBundleType.RELEASE && fileCount === -1;
 
   return (
     <Fragment>
@@ -340,7 +340,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           ? debugIdBundlesData?.map(data => (
               <SourceMapsTableRow
                 key={data.bundleId}
-                bundleType={SourceMapsBundleType.DebugId}
+                bundleType={SourceMapsBundleType.DEBUG_ID}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.bundleId}
@@ -356,7 +356,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           : archivesData?.map(data => (
               <SourceMapsTableRow
                 key={data.name}
-                bundleType={SourceMapsBundleType.Release}
+                bundleType={SourceMapsBundleType.RELEASE}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.name}

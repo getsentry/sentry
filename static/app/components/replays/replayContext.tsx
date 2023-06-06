@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 enum ReplayLocalstorageKeys {
-  ReplayConfig = 'replay-config',
+  REPLAY_CONFIG = 'replay-config',
 }
 type ReplayConfig = {
   skip?: boolean;
@@ -210,7 +210,7 @@ function useCurrentTime(callback: () => number) {
 }
 
 function updateSavedReplayConfig(config: ReplayConfig) {
-  localStorage.setItem(ReplayLocalstorageKeys.ReplayConfig, JSON.stringify(config));
+  localStorage.setItem(ReplayLocalstorageKeys.REPLAY_CONFIG, JSON.stringify(config));
 }
 
 export function Provider({
@@ -224,7 +224,7 @@ export function Provider({
   const organization = useOrganization();
   const events = replay?.getRRWebEvents();
   const savedReplayConfigRef = useRef<ReplayConfig>(
-    JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.ReplayConfig) || '{}')
+    JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.REPLAY_CONFIG) || '{}')
   );
 
   const theme = useTheme();
