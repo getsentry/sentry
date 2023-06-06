@@ -49,7 +49,7 @@ export default [
           return formatStoreCrashReports(value);
         },
         choices: ({organization}) =>
-          getStoreCrashReportsValues(SettingScope.Project).map(value => [
+          getStoreCrashReportsValues(SettingScope.PROJECT).map(value => [
             value,
             formatStoreCrashReports(value, organization.storeCrashReports),
           ]),

@@ -92,7 +92,7 @@ export default [
         // we therefore display it in a placeholder
         placeholder: ({value}) => formatStoreCrashReports(value),
         choices: () =>
-          getStoreCrashReportsValues(SettingScope.Organization).map(value => [
+          getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(value => [
             value,
             formatStoreCrashReports(value),
           ]),

@@ -23,8 +23,8 @@ export function formatStoreCrashReports(
 }
 
 export enum SettingScope {
-  Organization,
-  Project,
+  ORGANIZATION,
+  PROJECT,
 }
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
   const values: Array<number | null> = [
@@ -38,7 +38,7 @@ export function getStoreCrashReportsValues(settingScope: SettingScope) {
     -1, // unlimited
   ];
 
-  if (settingScope === SettingScope.Project) {
+  if (settingScope === SettingScope.PROJECT) {
     values.unshift(null); // inherit option
   }
 
