@@ -8,6 +8,8 @@ import {t} from 'sentry/locale';
 
 // Configuration Start
 
+const language = 'javascript';
+
 const replayIntegration = 'new Sentry.Replay(),';
 
 const replayOtherConfig = `// Session Replay
@@ -134,7 +136,7 @@ export default function GettingStartedWithReact({dsn, activeProductSelection}: P
 
   return (
     <Layout
-      language="javascript"
+      language={language}
       steps={steps(sentryInitContent.join('\n'))}
       nextSteps={nextStepDocs}
     />
