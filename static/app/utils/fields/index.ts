@@ -138,7 +138,7 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
-  RequestTime = 'measurements.ttfb.requesttime',
+  REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
 export enum MobileVital {
@@ -363,7 +363,7 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [WebVital.RequestTime]: {
+  [WebVital.REQUEST_TIME]: {
     desc: t('Time between start of request to start of response'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,

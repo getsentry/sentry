@@ -64,7 +64,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     poorThreshold: 600,
     type: measurementType(WebVital.TTFB),
   },
-  [WebVital.RequestTime]: {
+  [WebVital.REQUEST_TIME]: {
     slug: 'ttfb.requesttime',
     name: t('Request Time'),
     acronym: 'RT',
@@ -72,7 +72,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Captures the time spent making the request and receiving the first byte of the response.'
     ),
     poorThreshold: 600,
-    type: measurementType(WebVital.RequestTime),
+    type: measurementType(WebVital.REQUEST_TIME),
   },
 };
 
