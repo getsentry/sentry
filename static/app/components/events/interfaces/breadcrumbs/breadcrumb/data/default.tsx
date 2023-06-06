@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
@@ -10,7 +11,6 @@ import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 
 import Summary from './summary';
@@ -21,9 +21,17 @@ type Props = {
   searchTerm: string;
   event?: Event;
   meta?: Record<any, any>;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 };
 
-export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
+export function Default({
+  meta,
+  breadcrumb,
+  event,
+  orgSlug,
+  searchTerm,
+  transactionEvents,
+}: Props) {
   const {message, data} = breadcrumb;
   return (
     <Summary kvData={data} meta={meta}>
@@ -37,6 +45,7 @@ export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
             orgSlug={orgSlug}
             breadcrumb={breadcrumb}
             message={message}
+            transactionEvents={transactionEvents}
           />
         )
       )}
@@ -44,16 +53,10 @@ export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
   );
 }
 
-function isEventId(maybeEventId: string): boolean {
+export function isEventId(maybeEventId: string): boolean {
   // maybeEventId is an event id if it's a hex string of 32 characters long
   return /^[a-fA-F0-9]{32}$/.test(maybeEventId);
 }
-
-type DataItem = {
-  id: string;
-  'project.name': string;
-  title: string;
-};
 
 function FormatMessage({
   searchTerm,
@@ -61,41 +64,29 @@ function FormatMessage({
   message,
   breadcrumb,
   orgSlug,
+  transactionEvents,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   message: string;
   orgSlug: Organization['slug'];
   searchTerm: string;
   event?: Event;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 }) {
-  const {projects, fetching: loadingProjects} = useProjects();
-
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
 
   const isSentryTransaction =
     breadcrumb.category === 'sentry.transaction' && isEventId(message);
 
+  const {projects, fetching: loadingProjects} = useProjects();
   const maybeProject = !loadingProjects
     ? projects.find(project => {
         return event && project.id === event.projectID;
       })
     : null;
 
-  const {data: queryData} = useApiQuery<{data: DataItem[]; meta: any}>(
-    [
-      `/organizations/${orgSlug}/events/`,
-      {
-        query: {
-          query: `id:${message}`,
-          field: ['title'],
-          project: [maybeProject?.id],
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: defined(maybeProject) && isSentryTransaction,
-    }
+  const transactionData = transactionEvents?.find(
+    transaction => transaction.id === message
   );
 
   if (isSentryTransaction) {
@@ -105,14 +96,17 @@ function FormatMessage({
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    const description =
-      queryData && queryData.data.length > 0 ? (
-        <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>
-          <Highlight text={searchTerm}>{queryData.data[0].title}</Highlight>
-        </Link>
-      ) : (
-        content
-      );
+    const description = transactionData ? (
+      <Link
+        to={getTransactionDetailsUrl(orgSlug, eventSlug, undefined, {
+          referrer: 'breadcrumbs',
+        })}
+      >
+        <Highlight text={searchTerm}>{transactionData.title}</Highlight>
+      </Link>
+    ) : (
+      content
+    );
 
     return description;
   }
