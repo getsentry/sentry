@@ -136,22 +136,22 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
     def test_team_slug_is_slugified(self):
-        special_email = fetch_slugifed_email_username("++!#$%&'*+-/=.me@test.com")
-        self.t1 = f"team-{special_email}"
-        with patch(
-            "sentry.api.endpoints.organization_projects_experiment.fetch_slugifed_email_username",
-            return_value=special_email,
-        ):
-            response = self.get_success_response(
-                self.organization.slug, name=self.p1, status_code=201
-            )
+        special_email = "test.bad$email@foo.com"
+        t1 = "team-testbademail"
+        user = self.create_user(email=special_email)
+        self.login_as(user=user)
+        self.create_member(
+            user=user, organization=self.organization, role="admin", teams=[self.team]
+        )
 
-        team = Team.objects.get(slug=self.t1, name=self.t1)
+        response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
+
+        team = Team.objects.get(slug=t1, name=t1)
         assert not team.idp_provisioned
         assert team.organization == self.organization
-        assert team.name == team.slug == self.t1
+        assert team.name == team.slug == t1
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True, role="admin"
         ).exists()
