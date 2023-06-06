@@ -1,8 +1,19 @@
-from typing import Mapping, Optional, Union
+from __future__ import annotations
 
+from functools import partial
+from typing import Any, Callable, Mapping, Optional, Type, Union
+
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.commit import ONCE_PER_SECOND
+from arroyo.processing.processor import StreamProcessor
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
+from arroyo.types import FilteredPayload, Message, Topic, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 
 from sentry.metrics.base import MetricsBackend
+from sentry.utils import kafka_config
 
 Tags = Mapping[str, str]
 
@@ -51,3 +62,105 @@ class MetricsWrapper(Metrics):
         self.__backend.timing(
             key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags)
         )
+
+
+def _get_arroyo_subprocess_initializer(
+    initializer: Optional[Callable[[], None]]
+) -> Callable[[], None]:
+    from sentry.metrics.middleware import get_current_global_tags
+
+    # One can add integer tags and other invalid types today. Filter out any
+    # tags that may not be pickleable. Because those tags are getting pickled
+    # as part of the constructed partial()
+    tags: Tags = {k: v for k, v in get_current_global_tags().items() if isinstance(v, str)}
+    return partial(_initialize_arroyo_subprocess, initializer=initializer, tags=tags)
+
+
+def _initialize_arroyo_subprocess(initializer: Optional[Callable[[], None]], tags: Tags) -> None:
+    from sentry.runner import configure
+
+    configure()
+
+    if initializer:
+        initializer()
+
+    from sentry.metrics.middleware import add_global_tags
+
+    # Inherit global tags from the parent process
+    add_global_tags(_all_threads=True, **tags)
+
+    _initialize_arroyo_main()
+
+
+def _initialize_arroyo_main() -> None:
+    from arroyo import configure_metrics
+
+    from sentry.utils.metrics import backend
+
+    metrics_wrapper = MetricsWrapper(backend, name="consumer")
+    configure_metrics(metrics_wrapper)
+
+
+class RunTaskWithMultiprocessing(ProcessingStrategy[Union[FilteredPayload, TStrategyPayload]]):
+    def __new__(
+        cls,
+        *function: Callable[[Message[TStrategyPayload]], TResult],
+        next_step: ProcessingStrategy[Union[FilteredPayload, TResult]],
+        initializer: Optional[Callable[[], None]] = None,
+        **kwargs: Any,
+    ) -> RunTaskWithMultiprocessing[Union[FilteredPayload, TStrategyPayload]]:
+
+        from django.conf import settings
+
+        if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
+            from arroyo.processing.strategies.run_task import RunTask
+
+            return RunTask(**kwargs)  # type: ignore[return-value]
+        else:
+            from arroyo.processing.strategies.run_task_with_multiprocessing import (
+                RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
+            )
+
+            return ArroyoRunTaskWithMultiprocessing(  # type: ignore[return-value]
+                initializer=_get_arroyo_subprocess_initializer(initializer), **kwargs
+            )
+
+
+def run_basic_consumer(
+    topic: str,
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    force_topic: str | None,
+    force_cluster: str | None,
+    strategy_factory_cls: Type[ProcessingStrategyFactory[Any]],
+) -> None:
+    from django.conf import settings
+
+    from sentry.metrics.middleware import add_global_tags
+
+    add_global_tags(kafka_topic=topic, group_id=group_id)
+
+    topic = force_topic or topic
+
+    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+    consumer_config = build_kafka_consumer_configuration(
+        kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+        ),
+        group_id=group_id,
+        auto_offset_reset="latest",
+    )
+
+    consumer = KafkaConsumer(consumer_config)
+
+    processor = StreamProcessor(
+        consumer=consumer,
+        topic=Topic(topic),
+        processor_factory=strategy_factory_cls(),
+        commit_policy=ONCE_PER_SECOND,
+    )
+
+    from sentry.utils.kafka import run_processor_with_signals
+
+    run_processor_with_signals(processor)

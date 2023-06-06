@@ -12,6 +12,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
+from sentry.utils.imports import import_string
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -650,6 +651,42 @@ def profiles_consumer(**options):
 
     consumer = get_profiles_process_consumer(**options)
     run_processor_with_signals(consumer)
+
+
+@run.command("consumer")
+@log_options()
+@click.option(
+    "--topic",
+    required=True,
+    help="Logical topic to run consumer for. This corresponds to a key in KAFKA_TOPICS and determines which consumer logic to run internally",
+)
+@kafka_options("")
+@strict_offset_reset_option()
+@configuration
+def basic_consumer(topic, **options):
+    from django.conf import settings
+
+    try:
+        consumer_definition = settings.KAFKA_TOPICS[topic]
+    except KeyError:
+        raise click.ClickException(f"No logical topic named {topic} in settings.KAFKA_TOPICS")
+
+    try:
+        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+        default_group_id = consumer_definition["group_id"]
+    except KeyError:
+        raise click.ClickException(
+            f"The logical topic {topic} does not have a strategy factory or group_id "
+            f"registered. Most likely there is another subcommand in 'sentry run' "
+            f"responsible for this topic"
+        )
+
+    if options["group_id"] == "":
+        options["group_id"] = default_group_id
+
+    from sentry.utils.arroyo import run_basic_consumer
+
+    run_basic_consumer(topic=topic, **options, strategy_factory_cls=strategy_factory_cls)
 
 
 @run.command("ingest-replay-recordings")

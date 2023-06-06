@@ -9,8 +9,21 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Tuple,
+    TypedDict,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
+
+from typing_extensions import NotRequired
 
 import sentry
 from sentry.types.region import Region
@@ -2929,8 +2942,15 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
 
+
+class TopicDefinition(TypedDict):
+    cluster: str
+    group_id: NotRequired[str]
+    strategy_factory: NotRequired[str]
+
+
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS = {
+KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -2955,7 +2975,11 @@ KAFKA_TOPICS = {
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {"cluster": "default"},
+    KAFKA_PROFILES: {
+        "cluster": "default",
+        "group_id": "ingest-profiles",
+        "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
+    },
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
@@ -2969,6 +2993,10 @@ KAFKA_TOPICS = {
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
+# If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
+# single-threaded under the hood for performance
+KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
+
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
