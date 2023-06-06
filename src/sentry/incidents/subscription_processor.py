@@ -645,8 +645,12 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
             return
 
-        incident_activities = IncidentActivity.objects.filter(incident=incident)
-        past_statuses = {int(i.value) for i in incident_activities if i.value is not None}
+        incident_activities = IncidentActivity.objects.filter(incident=incident).values_list(
+            "value", flat=True
+        )
+        past_statuses = {
+            int(value) for value in incident_activities.distinct() if value is not None
+        }
 
         critical_actions = []
         warning_actions = []
