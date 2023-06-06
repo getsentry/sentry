@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/starfish/utils/dates';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {useErrorRateQuery} from 'sentry/views/starfish/views/spans/queries';
+import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
@@ -68,7 +68,7 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
       {title: DataTitles.p95, Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
-    [ModuleName.HTTP]: [{title: t('5XX Rate'), Comp: ErrorChart}],
+    [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.NONE]: [],
   };
 
@@ -205,14 +205,14 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
 function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
   const query = buildDiscoverQueryConditions(moduleName, filters);
-  const {isLoading, data} = useErrorRateQuery(query);
+  const {isLoading, data} = useErrorCountQuery(query);
 
   const errorRateSeries: Series = {
-    seriesName: 'Error Rate',
+    seriesName: DataTitles.errorCount,
     data: data?.length
       ? data?.map(entry => ({
           name: entry.interval,
-          value: entry['http_error_rate()'],
+          value: entry['http_error_count()'],
         }))
       : [],
   };
