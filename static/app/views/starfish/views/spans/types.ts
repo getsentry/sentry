@@ -1,12 +1,20 @@
 import {t} from 'sentry/locale';
 
-export type DataKey = 'timeSpent' | 'p50p95' | 'p50' | 'p95';
+export type DataKey =
+  | 'timeSpent'
+  | 'p50p95'
+  | 'p50'
+  | 'p95'
+  | 'throughput'
+  | 'errorCount';
 
 export const DataTitles: Record<DataKey, string> = {
   timeSpent: t('Time Spent'),
   p50p95: t('Duration (P50, P95)'),
   p50: t('Duration (P50)'),
   p95: t('Duration (P95)'),
+  errorCount: t('5xx Responses'),
+  throughput: t('Throughput'),
 };
 
 export const getTooltip = (key: DataKey, ...options: (string | number)[]): string => {

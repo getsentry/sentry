@@ -63,10 +63,10 @@ export type Tag = {
 };
 
 export enum ShortcutType {
-  Delete = 'delete',
-  Negate = 'negate',
-  Next = 'next',
-  Previous = 'previous',
+  DELETE = 'delete',
+  NEGATE = 'negate',
+  NEXT = 'next',
+  PREVIOUS = 'previous',
 }
 
 export type Shortcut = {

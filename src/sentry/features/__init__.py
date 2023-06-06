@@ -71,6 +71,7 @@ default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, Fe
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:mute-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crons-issue-platform", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:crons-timeline-listing-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -85,6 +86,7 @@ default_manager.add("organizations:invite-members", OrganizationFeature, Feature
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sql-format", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-list-prefetch-issue-on-hover", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-list-better-priority-sort", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -250,6 +252,7 @@ default_manager.add("organizations:codecov-commit-sha-from-git-blame", Organizat
 default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-boost-new-projects", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

@@ -361,8 +361,11 @@ export function ProjectPageFilter({
       menuFooterMessage={footerMessage}
       trigger={
         trigger ??
-        (triggerProps => (
+        ((triggerProps, isOpen) => (
           <ProjectPageFilterTrigger
+            {...triggerProps}
+            isOpen={isOpen}
+            size={selectProps.size}
             value={value}
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}

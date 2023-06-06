@@ -1,4 +1,3 @@
-import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -13,10 +12,8 @@ import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {
   ApplicationMetrics,
   useApplicationMetrics,
@@ -24,10 +21,6 @@ import {
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {
-  DurationTrendCell,
-  TimeSpentCell,
-} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Props = {
   isLoading: boolean;
@@ -49,6 +42,7 @@ export type SpanDataRow = {
   p50: number;
   p95: number;
   span_operation: string;
+  spans_per_second: number;
   total_exclusive_time: number;
 };
 
@@ -63,11 +57,10 @@ export type Keys =
   | 'description'
   | 'p50_trend'
   | 'p95_trend'
-  | 'throughput_trend'
   | 'span_operation'
   | 'domain'
-  | 'epm()'
-  | 'p95(span.self_time)'
+  | 'spans_per_second'
+  | 'p95'
   | 'timeSpent'
   | 'total_exclusive_time';
 export type TableColumnHeader = GridColumnHeader<Keys>;
@@ -82,7 +75,6 @@ export default function SpansTable({
   columnOrder,
 }: Props) {
   const location = useLocation();
-  const theme = useTheme();
   const {data: applicationMetrics} = useApplicationMetrics();
 
   const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
@@ -151,8 +143,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, theme, applicationMetrics),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, applicationMetrics),
       }}
       location={location}
     />
@@ -185,35 +176,8 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: TableColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
   applicationMetrics: ApplicationMetrics
 ): React.ReactNode {
-  if (column.key === 'throughput_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${row.epm.toFixed(2)}`,
-      row.epm,
-      theme
-    );
-    return (
-      <Sparkline
-        color={THROUGHPUT_COLOR}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
-      />
-    );
-  }
-
-  if (column.key === 'p95_trend' && row[column.key]) {
-    return (
-      <DurationTrendCell
-        color={P95_COLOR}
-        duration={row.p95}
-        durationSeries={row[column.key]}
-      />
-    );
-  }
-
   if (column.key === 'description') {
     const description = row.description;
     return (
@@ -235,6 +199,10 @@ function renderBodyCell(
         totalSpanTime={row.total_exclusive_time}
       />
     );
+  }
+
+  if (column.key === 'spans_per_second') {
+    return <ThroughputCell throughputPerSecond={row[column.key]} />;
   }
 
   return row[column.key];
@@ -308,12 +276,12 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
         ]
       : []),
     {
-      key: 'throughput_trend',
+      key: 'spans_per_second',
       name: 'Throughput',
       width: 175,
     },
     {
-      key: 'p95_trend',
+      key: 'p95',
       name: DataTitles.p95,
       width: 175,
     },

@@ -157,10 +157,10 @@ export interface ControlProps
    * forward `props` and `ref` its outer wrap, otherwise many accessibility features
    * won't work correctly.
    */
-  trigger?: (args: {
-    props: Omit<DropdownButtonProps, 'children'>;
-    ref: React.RefObject<HTMLButtonElement>;
-  }) => React.ReactNode;
+  trigger?: (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => React.ReactNode;
   /**
    * Label text inside the default trigger button. This is optional — by default the
    * selected option's label will be used.
@@ -430,13 +430,7 @@ export function Control({
     <SelectContext.Provider value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
-          trigger(
-            mergeProps(triggerProps, triggerKeyboardProps, overlayTriggerProps, {
-              size,
-              disabled,
-              isOpen: overlayIsOpen,
-            })
-          )
+          trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
         ) : (
           <DropdownButton
             size={size}

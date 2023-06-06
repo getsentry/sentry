@@ -50,7 +50,7 @@ export function CreateSavedSearchModal({
     name: '',
     query,
     sort: validateSortOption({sort}),
-    visibility: SavedSearchVisibility.Owner,
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (
