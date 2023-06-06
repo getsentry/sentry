@@ -29,7 +29,7 @@ def get_use_case_id(request: Request) -> UseCaseKey:
     """
 
     try:
-        return UseCaseKey(request.GET.get("useCase"))
+        return UseCaseKey(request.GET.get("useCase", "release-health"))
     except ValueError:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseKey]}"
