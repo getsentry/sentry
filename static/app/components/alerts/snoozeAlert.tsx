@@ -172,6 +172,7 @@ function SnoozeAlert({
           trigger={triggerProps => (
             <DropdownTrigger
               {...triggerProps}
+              size="sm"
               aria-label={t('Mute alert options')}
               icon={<IconChevron direction="down" size="xs" />}
             />

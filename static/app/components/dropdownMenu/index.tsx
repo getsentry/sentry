@@ -103,9 +103,8 @@ interface DropdownMenuProps
    * features won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<Element>, 'children'> & {
-      onClick?: (e: MouseEvent) => void;
-    }
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
   ) => React.ReactNode;
   /**
    * By default, the menu trigger will be rendered as a button, with
@@ -210,13 +209,7 @@ function DropdownMenu({
 
   function renderTrigger() {
     if (trigger) {
-      return trigger({
-        size,
-        isOpen,
-        ...triggerProps,
-        ...overlayTriggerProps,
-        ...buttonProps,
-      });
+      return trigger({...overlayTriggerProps, ...buttonProps}, isOpen);
     }
     return (
       <DropdownButton
