@@ -61,7 +61,7 @@ def _report_dead_click_issue(
     """Produce a new dead click issue occurence to Kafka."""
     new_issue_occurrence(
         environment=environment,
-        fingerprint=fingerprint,
+        fingerprint=[fingerprint],
         issue_type=ReplayDeadClickType,
         platform="javascript",
         project_id=project_id,
