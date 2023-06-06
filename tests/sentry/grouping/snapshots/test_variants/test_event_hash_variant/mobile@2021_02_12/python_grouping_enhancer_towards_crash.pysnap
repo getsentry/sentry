@@ -1,4 +1,6 @@
 ---
+created: '2021-08-04T15:53:47.865951Z'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
