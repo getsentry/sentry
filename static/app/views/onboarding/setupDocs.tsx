@@ -569,6 +569,10 @@ const SyntaxHighlight = styled(CodeSnippet)`
 `;
 
 const GettingStartedDocWrapper = styled('div')<{activeProductSelection: PRODUCT[]}>`
+  hr {
+    border-color: ${p => p.theme.border};
+  }
+
   .replay,
   .performance,
   .replay-and-performance,
