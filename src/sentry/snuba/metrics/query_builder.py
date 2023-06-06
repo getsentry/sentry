@@ -9,6 +9,7 @@ __all__ = (
     "translate_meta_results",
 )
 
+import re
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -57,8 +58,8 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     get_operation_with_public_name,
     parse_expression,
 )
-from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX
-from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
+from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, MRI_SCHEMA_REGEX
+from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX, PUBLIC_NAME_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
     MetricConditionField,
@@ -91,11 +92,23 @@ def parse_field(field: str) -> MetricField:
     mri_matches = MRI_EXPRESSION_REGEX.match(field)
 
     if (public_matches is None) and (mri_matches is None):
-        return MetricField(None, get_mri(field))
+        return parse_derived_field(field)
     elif public_matches is not None:
         return parse_public_field(field, public_matches)
     else:
         return parse_mri_field(field, mri_matches)
+
+
+def parse_derived_field(field: str) -> MetricField:
+    public_name_match = re.compile(rf"^{PUBLIC_NAME_REGEX}$").match(field)
+    mri_match = MRI_SCHEMA_REGEX.match(field)
+
+    if (public_name_match is None) and (mri_match is None):
+        raise TypeError
+    elif public_name_match is not None:
+        return MetricField(None, get_mri(public_name_match[0]))
+    else:
+        return MetricField(None, mri_match[0], alias=mri_match[0])
 
 
 def parse_public_field(field: str, matches: List[str]) -> MetricField:
