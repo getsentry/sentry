@@ -9,13 +9,13 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 // Copied from `node_modules/rrweb/typings/types.d.ts`
 enum EventType {
-  DomContentLoaded = 0,
-  Load = 1,
-  FullSnapshot = 2,
-  IncrementalSnapshot = 3,
-  Meta = 4,
-  Custom = 5,
-  Plugin = 6,
+  DOM_CONTENT_LOADED = 0,
+  LOAD = 1,
+  FULL_SNAPSHOT = 2,
+  INCREMENTAL_SNAPSHOT = 3,
+  META = 4,
+  CUSTOM = 5,
+  PLUGIN = 6,
 }
 
 export type Extraction = {
@@ -152,9 +152,9 @@ class BreadcrumbReferencesPlugin {
   }
 
   handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
-    if (event.type === EventType.FullSnapshot) {
+    if (event.type === EventType.FULL_SNAPSHOT) {
       this.extractNextCrumb({replayer});
-    } else if (event.type === EventType.IncrementalSnapshot) {
+    } else if (event.type === EventType.INCREMENTAL_SNAPSHOT) {
       this.extractCurrentCrumb(event, {replayer});
       this.extractNextCrumb({replayer});
     }
