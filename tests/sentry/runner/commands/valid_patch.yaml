@@ -4,3 +4,4 @@ dynamic-sampling:boost-latest-release: true
 sentry-metrics.cardinality-limiter.limits.releasehealth.per-org:
 - a
 - b
+backpressure.monitor_queues.enable: true
