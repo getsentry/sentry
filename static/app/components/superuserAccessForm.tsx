@@ -63,7 +63,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const suReason = superuserReason || data.superuserReason;
 
     if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError(ErrorCodes.noAuthenticator);
+      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
 
@@ -106,18 +106,18 @@ class SuperuserAccessForm extends Component<Props, State> {
     let errorType = '';
     if (err.status === 403) {
       if (err.responseJSON.detail.code === 'no_u2f') {
-        errorType = ErrorCodes.noAuthenticator;
+        errorType = ErrorCodes.NO_AUTHENTICATOR;
       } else {
-        errorType = ErrorCodes.invalidPassword;
+        errorType = ErrorCodes.INVALID_PASSWORD;
       }
     } else if (err.status === 401) {
-      errorType = ErrorCodes.invalidSSOSession;
+      errorType = ErrorCodes.INVALID_SSO_SESSION;
     } else if (err.status === 400) {
-      errorType = ErrorCodes.invalidAccessCategory;
-    } else if (err === ErrorCodes.noAuthenticator) {
-      errorType = ErrorCodes.noAuthenticator;
+      errorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
+    } else if (err === ErrorCodes.NO_AUTHENTICATOR) {
+      errorType = ErrorCodes.NO_AUTHENTICATOR;
     } else {
-      errorType = ErrorCodes.unknownError;
+      errorType = ErrorCodes.UNKNOWN_ERROR;
     }
     this.setState({
       error: true,
@@ -156,7 +156,7 @@ class SuperuserAccessForm extends Component<Props, State> {
 
   render() {
     const {authenticators, error, errorType, showAccessForms} = this.state;
-    if (errorType === ErrorCodes.invalidSSOSession) {
+    if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
     }
