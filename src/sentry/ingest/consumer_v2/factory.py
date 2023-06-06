@@ -75,7 +75,6 @@ def get_ingest_consumer(
     output_block_size: int,
     force_topic: str | None,
     force_cluster: str | None,
-    **options: Any,
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or ConsumerType.get_topic_name(type_)
     consumer_config = get_config(

@@ -572,6 +572,9 @@ def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
 
         configure_metrics(MetricsWrapper(metrics.backend, name=metrics_name))
 
+        # Ignore these arguments which are only relevant for the old ingest consumer
+        options.pop("concurrency", None)
+
         consumer = get_ingest_consumer(type_=type_, **options)
         run_processor_with_signals(consumer)
 
@@ -581,6 +584,12 @@ def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
 
     from sentry.ingest.ingest_consumer import get_ingest_consumer
     from sentry.utils import metrics
+
+    # Ignore these arguments which are only relevant for new ingest consumer
+    options.pop("strict_offset_reset", None)
+    options.pop("processes", None)
+    options.pop("input_block_size", None)
+    options.pop("output_block_size", None)
 
     concurrency = options.pop("concurrency", None)
     if concurrency is not None:
