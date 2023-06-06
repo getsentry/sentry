@@ -7,14 +7,6 @@ export enum SidebarPanelKey {
   PERFORMANCE_ONBOARDING = 'performance_onboarding',
   REPLAYS_ONBOARDING = 'replays_onboarding',
   PROFILING_ONBOARDING = 'profiling_onboarding',
-
-  // TODO(epurkhiser): Delete
-  Broadcasts = 'broadcasts',
-  OnboardingWizard = 'todos',
-  ServiceIncidents = 'statusupdate',
-  PerformanceOnboarding = 'performance_onboarding',
-  ReplaysOnboarding = 'replays_onboarding',
-  ProfilingOnboarding = 'profiling_onboarding',
 }
 
 export type CommonSidebarProps = {

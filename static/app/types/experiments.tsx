@@ -6,10 +6,6 @@ import type {experimentList, unassignedValue} from 'sentry/data/experimentConfig
 export enum ExperimentType {
   ORGANIZATION = 'organization',
   USER = 'user',
-
-  // TODO(epurkhiser): Delete
-  Organization = 'organization',
-  User = 'user',
 }
 
 /**
