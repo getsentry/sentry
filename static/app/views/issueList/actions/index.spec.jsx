@@ -239,10 +239,7 @@ describe('IssueListActions', function () {
         expect(analyticsSpy).toHaveBeenCalledWith(
           'issues_stream.archived',
           expect.objectContaining({
-            status_details: {
-              ignoreUserCount: 300,
-              ignoreUserWindow: 10080,
-            },
+            action_status_details: 'ignoreUserCount',
           })
         );
       });
@@ -280,8 +277,7 @@ describe('IssueListActions', function () {
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issues_stream.archived',
       expect.objectContaining({
-        status_details: {},
-        substatus: 'archived_until_escalating',
+        action_substatus: 'archived_until_escalating',
       })
     );
   });
