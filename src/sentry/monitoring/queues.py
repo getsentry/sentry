@@ -170,7 +170,7 @@ def _update_queue_stats(queue_history: Dict[str, int]) -> None:
         pipeline.execute()
 
 
-def _run_queue_stats_updater() -> None:
+def run_queue_stats_updater() -> None:
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
         if not options.get("backpressure.monitor_queues.enable_status"):
@@ -209,6 +209,6 @@ def monitor_queues():
     if backend is None:
         return
     queue_stats_updater_process = Thread(
-        target=_run_queue_stats_updater,
+        target=run_queue_stats_updater,
     )
     queue_stats_updater_process.start()
