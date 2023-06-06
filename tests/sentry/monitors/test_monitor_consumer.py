@@ -165,7 +165,7 @@ class MonitorConsumerTest(TestCase):
         lock = locks.get(f"checkin-creation:{uuid.UUID(guid)}", duration=2, name="checkin_creation")
         lock.acquire()
 
-        self.send_messag(monitor.slug, guid=guid)
+        self.send_message(monitor.slug, guid=guid)
 
         # Lock should prevent creation of new check-in
         assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
