@@ -45,6 +45,7 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
 )
 @click.option("--file", help="File name to load. If not provided assume stdin.")
 @click.pass_context
+@configuration
 def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     """
     Makes changes to options in bulk starting from a yaml or json file.
