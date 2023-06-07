@@ -6,7 +6,11 @@ from django.db import connection
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
+from sentry import features
 from sentry.models import Group, GroupOwnerType, Project
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 
@@ -100,3 +104,45 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
         PullRequestIssue(title=issue.title, subtitle=issue.message, url=issue.get_absolute_url())
         for issue in issues
     ]
+
+
+def comment_workflow():
+    pr_list = pr_to_issue_query()
+    for (gh_repo_id, pr_key, org_id, issue_list) in pr_list:
+        try:
+            organization = Organization.objects.get_from_cache(id=org_id)
+        except Organization.DoesNotExist:
+            continue
+
+        # currently only posts new comments
+        if not features.has("organizations:pr-comment-bot", organization):
+            # or pr.summary_comment_meta is None:
+            continue
+
+        try:
+            project = Group.objects.get_from_cache(id=issue_list[0]).project
+        except Group.DoesNotExist:
+            continue
+
+        top_5_issues = get_top_5_issues_by_count(issue_list, project)
+        issue_comment_contents = get_comment_contents(top_5_issues)
+
+        try:
+            repo = Repository.objects.get(id=gh_repo_id)
+        except Repository.DoesNotExist:
+            continue
+
+        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        if not integration:
+            continue
+
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=org_id
+        )
+
+        # GitHubAppsClient (GithubClientMixin)
+        client = installation.get_client()
+
+        comment_body = format_comment(issue_comment_contents)
+
+        client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
