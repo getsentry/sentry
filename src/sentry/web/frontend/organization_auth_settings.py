@@ -16,7 +16,7 @@ from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView
@@ -77,7 +77,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request: Request, organization, auth_provider):
+    def _disable_provider(self, request: Request, organization: RpcOrganization, auth_provider):
         self.create_audit_entry(
             request,
             organization=organization,
@@ -103,7 +103,9 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
-    def handle_existing_provider(self, request: Request, organization, auth_provider):
+    def handle_existing_provider(
+        self, request: Request, organization: RpcOrganization, auth_provider
+    ):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
@@ -139,8 +141,9 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
             auth_provider.save()
 
-            organization.default_role = form.cleaned_data["default_role"]
-            organization.save()
+            organization = organization_service.update_default_role(
+                organization_id=organization.id, default_role=form.cleaned_data["default_role"]
+            )
 
             if form.initial != form.cleaned_data:
                 changed_data = {}

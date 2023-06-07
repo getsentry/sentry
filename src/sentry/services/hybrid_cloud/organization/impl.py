@@ -379,6 +379,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
         )
 
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        org = Organization.objects.get(id=organization_id)
+        org.default_role = default_role
+        org.save()
+        return serialize_organization(org)
+
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member = OrganizationMember.objects.get(
