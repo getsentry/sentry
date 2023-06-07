@@ -5,6 +5,6 @@ type StarfishOptions = {
 };
 
 export function useStarfishOptions() {
-  const [options, setOptions] = useState<StarfishOptions>({useDiscover: true});
+  const [options, setOptions] = useState<StarfishOptions>({useDiscover: false});
   return {options, setOptions};
 }
