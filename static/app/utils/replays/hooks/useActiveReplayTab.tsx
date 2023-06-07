@@ -39,7 +39,7 @@ function useActiveReplayTab() {
   const defaultTab = useDefaultTab();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
-  const paramValue = (getParamValue() || '').toLowerCase();
+  const paramValue = getParamValue()?.toLowerCase() ?? '';
 
   return {
     getActiveTab: useCallback(
