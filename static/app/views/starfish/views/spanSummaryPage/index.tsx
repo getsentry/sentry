@@ -33,7 +33,6 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
   const {data: spanMetrics} = useSpanMetrics({group: groupId});
-
   const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
   const {data: lastSeenSpanEvent} = useSpanLastSeenEvent({group_id: groupId});
 

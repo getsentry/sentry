@@ -89,7 +89,7 @@ function BodyCell({
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return <DurationCell seconds={row.metrics?.['p95(span.duration)']} />;
+    return <DurationCell milliseconds={row.metrics?.['p95(span.duration)']} />;
   }
 
   if (column.key === 'spm()') {

@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import moment, {Moment} from 'moment';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -10,8 +11,6 @@ import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 useSpansQuery;
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-
-const INTERVAL = 12;
 
 export type SpanMetrics = {
   'first_seen()': string;
@@ -37,7 +36,9 @@ export const useSpanMetrics = (
     filters.push(`transaction = ${queryFilters.transactionName}`);
   }
 
-  const query = span ? getQuery(span, dateFilters, queryFilters.transactionName) : '';
+  const query = span
+    ? getQuery(span, startTime, endTime, dateFilters, queryFilters.transactionName)
+    : '';
   const eventView = span
     ? getEventView(span, location, queryFilters.transactionName)
     : undefined;
@@ -53,7 +54,13 @@ export const useSpanMetrics = (
   return {isLoading, data: data[0] ?? {}};
 };
 
-function getQuery(span: {group: string}, dateFilters: string, transaction?: string) {
+function getQuery(
+  span: {group: string},
+  startTime: Moment,
+  endTime: Moment,
+  dateFilters: string,
+  transaction?: string
+) {
   return `
     SELECT
     count() as count,
@@ -61,7 +68,9 @@ function getQuery(span: {group: string}, dateFilters: string, transaction?: stri
     max(timestamp) as "last_seen()",
     quantile(0.5)(exclusive_time) as "p95(span.duration)",
     sum(exclusive_time) as "sum(span.duration)",
-    divide(count, multiply(${INTERVAL}, 60)) as "spm()"
+    divide(count(), ${
+      moment(endTime ?? undefined).unix() - moment(startTime).unix()
+    }) as "spm()"
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group}'
     ${dateFilters}

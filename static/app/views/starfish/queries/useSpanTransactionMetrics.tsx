@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import moment, {Moment} from 'moment';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -8,10 +9,6 @@ import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-
-useSpansQuery;
-
-const INTERVAL = 12;
 
 export type SpanTransactionMetrics = {
   'p50(span.duration)': number;
@@ -32,7 +29,9 @@ export const useSpanTransactionMetrics = (
   const {startTime, endTime} = getDateFilters(pageFilters);
   const dateFilters = getDateQueryFilter(startTime, endTime);
 
-  const query = span ? getQuery(span, dateFilters, transactions ?? []) : '';
+  const query = span
+    ? getQuery(span, startTime, endTime, dateFilters, transactions ?? [])
+    : '';
   const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
 
   const {isLoading, data} = useSpansQuery<SpanTransactionMetrics[]>({
@@ -45,14 +44,22 @@ export const useSpanTransactionMetrics = (
   return {isLoading, data};
 };
 
-function getQuery(span: {group: string}, dateFilters: string, transactions: string[]) {
+function getQuery(
+  span: {group: string},
+  startTime: Moment,
+  endTime: Moment,
+  dateFilters: string,
+  transactions: string[]
+) {
   return `
     SELECT
       transaction,
       quantile(0.5)(exclusive_time) as "p50(span.duration)",
       quantile(0.5)(exclusive_time) as "p95(span.duration)",
       sum(exclusive_time) as "sum(span.duration)",
-      divide(count, multiply(${INTERVAL}, 60)) as "spm()"
+      divide(count(), ${
+        moment(endTime ?? undefined).unix() - moment(startTime).unix()
+      }) as "spm()"
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group}'
     ${dateFilters}
