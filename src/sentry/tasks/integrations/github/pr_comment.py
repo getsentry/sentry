@@ -125,7 +125,7 @@ def comment_workflow():
             continue
 
         top_5_issues = get_top_5_issues_by_count(issue_list, project)
-        issue_comment_contents = get_comment_contents(top_5_issues)
+        issue_comment_contents = get_comment_contents([issue["group_id"] for issue in top_5_issues])
 
         try:
             repo = Repository.objects.get(id=gh_repo_id)

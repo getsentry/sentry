@@ -16,7 +16,9 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class GithubCommentTestCase(TestCase):
+class GithubCommentTestCase(IntegrationTestCase):
+    provider = GitHubIntegrationProvider
+
     def setUp(self):
         super().setUp()
         self.another_integration = self.create_integration(
@@ -305,8 +307,7 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
-class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
-    provider = GitHubIntegrationProvider
+class TestCommentWorkflow(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
     def setUp(self):
@@ -328,7 +329,9 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
         self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
 
         groups = [g.id for g in Group.objects.all()]
-        mock_issues.return_value = [g.id for g in Group.objects.all()]
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
 
         responses.add(
             responses.POST,
@@ -366,7 +369,6 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
-        return_value=[23, 24],
     )
     @patch("sentry.models.Repository.objects")
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
@@ -380,12 +382,15 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
         mock_repository.get.side_effect = Repository.DoesNotExist
         pr_comment.comment_workflow()
 
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
+
         assert mock_issues.called
         assert not mock_format_comment.called
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
-        return_value=[23, 24],
     )
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @with_feature("organizations:pr-comment-bot")
@@ -398,6 +403,10 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
         # invalid integration id
         self.gh_repo.integration_id = 0
         self.gh_repo.save()
+
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
 
         pr_comment.comment_workflow()
 
