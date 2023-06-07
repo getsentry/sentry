@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any, Optional
+from typing import Any, Optional, Set
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
@@ -35,6 +35,18 @@ class Key:
     grace: int
     cache_key: str
     grouping_info: Optional[GroupingInfo]
+
+    def has_any_flag(self, flags: Set[int]) -> bool:
+        """
+        Returns true if the option is registered with at least one
+        of the flags passed as argument.
+        """
+        assert flags, "Flags must be provided to check the option."
+        for f in flags:
+            if self.flags & f:
+                return True
+
+        return False
 
 
 def _make_cache_value(key, value):

@@ -394,7 +394,7 @@ class WidgetCard extends Component<Props, State> {
                             widget.widgetType === WidgetType.DISCOVER &&
                             metricSettingContext &&
                             metricSettingContext.metricSettingState !==
-                              MEPState.transactionsOnly
+                              MEPState.TRANSACTIONS_ONLY
                           ) {
                             if (!widgetContainsErrorFields) {
                               return (

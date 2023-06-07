@@ -35,9 +35,9 @@ export function MEPDataProvider({
         return;
       }
       if (value === true) {
-        setAutoSampleState(AutoSampleState.metrics);
+        setAutoSampleState(AutoSampleState.METRICS);
       } else if (value === false) {
-        setAutoSampleState(AutoSampleState.transactions);
+        setAutoSampleState(AutoSampleState.TRANSACTIONS);
       }
       _setIsMetricsData(value);
     },

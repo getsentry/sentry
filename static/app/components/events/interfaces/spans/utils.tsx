@@ -73,10 +73,10 @@ const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   return spanBounds;
 };
 
-export enum TimestampStatus {
-  Stable,
-  Reversed,
-  Equal,
+enum TimestampStatus {
+  STABLE = 0,
+  REVERSED = 1,
+  EQUAL = 2,
 }
 
 export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
@@ -84,14 +84,14 @@ export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus
   const endTimestamp: number = spanBounds.endTimestamp;
 
   if (startTimestamp < endTimestamp) {
-    return TimestampStatus.Stable;
+    return TimestampStatus.STABLE;
   }
 
   if (startTimestamp === endTimestamp) {
-    return TimestampStatus.Equal;
+    return TimestampStatus.EQUAL;
   }
 
-  return TimestampStatus.Reversed;
+  return TimestampStatus.REVERSED;
 };
 
 // given the start and end trace timestamps, and the view window, we want to generate a function
@@ -154,7 +154,7 @@ export const boundsGenerator = (bounds: {
     const isSpanVisibleInView = end > 0 && start < 1;
 
     switch (timestampStatus) {
-      case TimestampStatus.Equal: {
+      case TimestampStatus.EQUAL: {
         return {
           type: 'TIMESTAMPS_EQUAL',
           start,
@@ -166,7 +166,7 @@ export const boundsGenerator = (bounds: {
           isSpanVisibleInView: end >= 0 && start <= 1,
         };
       }
-      case TimestampStatus.Reversed: {
+      case TimestampStatus.REVERSED: {
         return {
           type: 'TIMESTAMPS_REVERSED',
           start,
@@ -174,7 +174,7 @@ export const boundsGenerator = (bounds: {
           isSpanVisibleInView,
         };
       }
-      case TimestampStatus.Stable: {
+      case TimestampStatus.STABLE: {
         return {
           type: 'TIMESTAMPS_STABLE',
           start,
@@ -556,8 +556,8 @@ export function getMeasurements(
     WebVital.FID,
     WebVital.LCP,
     WebVital.TTFB,
-    MobileVital.TimeToFullDisplay,
-    MobileVital.TimeToInitialDisplay,
+    MobileVital.TIME_TO_FULL_DISPLAY,
+    MobileVital.TIME_TO_INITIAL_DISPLAY,
   ]);
 
   const measurements = Object.keys(event.measurements)
