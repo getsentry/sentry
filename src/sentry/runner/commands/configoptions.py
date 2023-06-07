@@ -52,7 +52,7 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
 @configuration
 def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     """
-    Makes changes to options in bulk starting from a yaml or json file.
+    Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
     bulk updates only.
 
@@ -87,6 +87,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     with open(file) if file is not None else sys.stdin as stream:
         options_to_update = yaml.safe_load(stream)
 
+    options_to_update = options_to_update["options"]
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()

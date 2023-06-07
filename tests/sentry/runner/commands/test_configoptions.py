@@ -97,7 +97,6 @@ class ConfigOptionsTest(CliTestCase):
         )
         assert_output(rv)
 
-        self._clean_cache()
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
@@ -116,7 +115,6 @@ class ConfigOptionsTest(CliTestCase):
         )
 
         assert rv.exit_code == 0
-        self._clean_cache()
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
@@ -147,7 +145,6 @@ class ConfigOptionsTest(CliTestCase):
 
         assert output in rv.output
 
-        self._clean_cache()
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
