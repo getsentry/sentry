@@ -10,7 +10,10 @@ type Transaction = {
   transaction: string;
 };
 
-export const useSpanTransactions = (span?: Span, referrer = 'span-transactions') => {
+export const useSpanTransactions = (
+  span?: Pick<Span, 'group_id'>,
+  referrer = 'span-transactions'
+) => {
   const pageFilters = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilters);
   const dateFilters = getDateQueryFilter(startTime, endTime);
