@@ -1,54 +1,17 @@
-from typing import TYPE_CHECKING, Any, Mapping, Set
+import sys
+from typing import Any, Mapping, Optional, Set
 
 import click
 import yaml
 
 from sentry.runner.decorators import configuration
 
-if TYPE_CHECKING:
-    from sentry.options import NotWritableReason
-
-
+# These messages are produced more than once and referenced in tests.
+# This is the reason they are constants.
 DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
-CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option: %s value unchanged. Last update channel updated."
-UPDATE_MSG = "[UPDATE] Option: %s updated."
+CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
+UPDATE_MSG = "[UPDATE] Option %s updated."
 UNSET_MSG = "[UNSET] Option %s unset."
-
-
-class InvalidOption(Exception):
-    """
-    The option we tried to update is not writable.
-    """
-
-    def __init__(self, key: str, reason: "NotWritableReason") -> None:
-        super.__init__(f"Invalid Option: {key}. Reason: {key}")
-        self.key = key
-        self.reason = reason
-
-
-def _validate_options(content: Mapping[str, Any]) -> Set[str]:
-    """
-    Checks all the options provided in the `content` argument to verify
-    whether they are read only options.
-
-    If an option provided cannot be updated we want the script to fail
-    before doing anything else. So this raises an Exception. We also
-    want to simply skip drifted options, thus this method returns
-    the list of drifted options.
-    """
-    from sentry import options
-
-    drifted_options = set()
-
-    for key, value in content.items():
-        not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
-
-        if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-            raise InvalidOption(key, not_writable_reason)
-        elif not_writable_reason == options.NotWritableReason.DRIFTED:
-            drifted_options.add(key)
-
-    return drifted_options
 
 
 def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bool) -> None:
@@ -74,8 +37,47 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
     click.echo(UPDATE_MSG % key)
 
 
-def _load_options_file(filename: str) -> Mapping[str, Any]:
-    with open(filename) as stream:
+@click.group()
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    required=False,
+    help="Prints the updates without applying them.",
+)
+@click.option("--file", help="File name to load. If not provided assume stdin.")
+@click.pass_context
+def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
+    """
+    Makes changes to options in bulk starting from a yaml or json file.
+    Contrarily to the `config` command, this is meant to perform
+    bulk updates only.
+
+    The input must be in yaml or json format.
+    A dry run option is provided to test the update before performing it.
+
+    A single invalid option would make the command fail and return -1,
+    no update is performed in this way.
+    Invalid options are those the cannot be modified by the Option
+    Automator in any circumstance. Examples: read only options,
+    credentials, etc.
+
+    Valid options can be drifted: the option has been updated in the
+    store by another channel. These options are skipped in order not
+    to overwrite the change.
+
+    If an option updated by another channel is found but the value in
+    the store is the same as the one in the file, the update channel
+    is updated to Automator.
+
+    All other options are considered valid and updated to the value
+    present in the file
+    """
+
+    from sentry import options
+
+    ctx.obj["dry_run"] = dry_run
+
+    with open(file) if file is not None else sys.stdin as stream:
         data = yaml.safe_load(stream)
 
     # This is to support the legacy structure of the options file that
@@ -86,79 +88,65 @@ def _load_options_file(filename: str) -> Mapping[str, Any]:
     options_to_update: Mapping[str, Any] = data.get("update", {})
     if not options_to_update:
         options_to_update = data
-    return options_to_update
 
+    ctx.obj["options_to_update"] = options_to_update
 
-@click.group()
-def configoptions() -> None:
-    "Applies changes to sentry options in batches from a file."
+    drifted_options = set()
+
+    for key, value in options_to_update.items():
+        not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
+
+        if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
+            click.echo(f"Invalid option. {key} cannot be updated. Reason {not_writable_reason}")
+            exit(-1)
+        elif not_writable_reason == options.NotWritableReason.DRIFTED:
+            drifted_options.add(key)
+
+    ctx.obj["drifted_options"] = drifted_options
 
 
 @configoptions.command()
-@click.argument("filename", required=True)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    required=False,
-    help="Prints the updates without applying them.",
-)
+@click.pass_context
 @configuration
-def patch(filename: str, dry_run: bool) -> None:
+def patch(ctx) -> None:
     """
     Applies to the DB the option values found in the config file.
 
     Only the options present in the file are updated. No deletions
     are performed.
-    Drifted option values are simply skipped.
-
-    The list of option is validated in advance. If a single option
-    cannot be updated by the Automator (with the exception of drifted
-    ones) the whole process fails and nothing gets updated.
     """
-
+    dry_run = bool(ctx.obj["dry_run"])
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
 
-    options_to_update = _load_options_file(filename)
-    drifted_options = _validate_options(options_to_update)
-
-    for key, value in options_to_update.items():
-        _attempt_update(key, value, drifted_options, dry_run)
+    for key, value in ctx.obj["options_to_update"].items():
+        _attempt_update(key, value, ctx.obj["drifted_options"], dry_run)
 
 
 @configoptions.command()
-@click.argument("filename", required=True)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    required=False,
-    help="Prints the updates without applying them.",
-)
+@click.pass_context
 @configuration
-def sync(filename: str, dry_run: bool):
+def sync(ctx):
     """
     Synchronizes the content of the file with the DB. The source of
     truth is the config file, not the DB. If an option is missing in
     the file, it is deleted from the DB.
-
-    Options are validated in the same way as for the `patch` command.
-    Drifted options are skipped. If an option is read only the script
-    fails.
     """
 
     from sentry import options
 
+    dry_run = bool(ctx.obj["dry_run"])
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
 
-    options_to_update = _load_options_file(filename)
-
-    drifted_options = _validate_options(options_to_update)
     all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
+    options_to_update = ctx.obj["options_to_update"]
     for opt in all_options:
         if opt.name in options_to_update:
-            _attempt_update(opt.name, options_to_update[opt.name], drifted_options, dry_run)
+            _attempt_update(
+                opt.name, options_to_update[opt.name], ctx.obj["drifted_options"], dry_run
+            )
         else:
             if options.isset(opt.name):
                 if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:

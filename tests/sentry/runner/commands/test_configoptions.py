@@ -67,12 +67,19 @@ class ConfigOptionsTest(CliTestCase):
         options.set("backpressure.monitor_queues.enable", True, channel=UpdateChannel.CLI)
 
         assert_not_set()
-        rv = self.invoke("patch", "--dry-run", "tests/sentry/runner/commands/valid_patch.yaml")
+        rv = self.invoke(
+            "--dry-run",
+            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "patch",
+        )
         assert_output(rv)
 
         assert_not_set()
 
-        rv = self.invoke("patch", "tests/sentry/runner/commands/valid_patch.yaml")
+        rv = self.invoke(
+            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "patch",
+        )
         assert_output(rv)
 
         clean_cache()
@@ -98,7 +105,10 @@ class ConfigOptionsTest(CliTestCase):
         # This option will be unset as it is not in the file.
         options.set("dynamic-sampling:sliding_window.size", 12, channel=UpdateChannel.AUTOMATOR)
 
-        rv = self.invoke("sync", "tests/sentry/runner/commands/valid_patch.yaml")
+        rv = self.invoke(
+            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "sync",
+        )
         assert rv.exit_code == 0, rv.output
         output = "\n".join(
             [
