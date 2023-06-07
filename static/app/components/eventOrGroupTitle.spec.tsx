@@ -106,6 +106,34 @@ describe('EventOrGroupTitle', function () {
     expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
   });
 
+  it('does not render stacktrace preview when data is a tombstone', () => {
+    render(
+      <EventOrGroupTitle
+        data={{
+          id: '123',
+          level: 'error',
+          message: 'numTabItems is not defined ReferenceError something',
+          culprit:
+            'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
+          type: EventOrGroupType.ERROR,
+          metadata: {
+            value: 'numTabItems is not defined',
+            type: 'ReferenceError',
+            filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
+            function: 'useOverflowTabs',
+            display_title_with_tree_label: false,
+          },
+          actor: TestStubs.User(),
+          isTombstone: true,
+        }}
+        withStackTracePreview
+      />
+    );
+
+    expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
+    expect(screen.getByText('ReferenceError')).toBeInTheDocument();
+  });
+
   describe('performance issue list', () => {
     const perfData = {
       title: 'Hello',

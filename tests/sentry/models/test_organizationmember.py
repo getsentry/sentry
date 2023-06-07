@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.auth import manager
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import (
     INVITE_DAYS_VALID,
@@ -31,6 +32,14 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(SECRET_KEY="a"):
             assert member.legacy_token == "f3f2aa3e57f4b936dfd4f42c38db003e"
+
+    def test_legacy_token_generation_no_email(self):
+        """
+        We include membership tokens in RPC memberships so it needs to not error
+        for accepted invites.
+        """
+        member = OrganizationMember(organization_id=1, user_id=self.user.id)
+        assert member.legacy_token
 
     def test_legacy_token_generation_unicode_key(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
@@ -128,7 +137,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         with outbox_runner():
             user = self.create_user(email="foo@example.com")
-            member.set_user(user)
+            member.set_user(user.id)
             member.save()
 
         assert member.is_pending is False
@@ -278,7 +287,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         member.approve_invite()
         member.save()
-        member.outbox_for_create().drain_shard(max_updates_to_drain=10)
+        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved
@@ -477,8 +486,11 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_get_allowed_org_roles_to_invite(self):
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
-        member.update(role="manager")
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
+        with in_test_psql_role_override("postgres"):
+            member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
             roles.get("admin"),

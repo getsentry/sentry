@@ -20,7 +20,7 @@ type Props = {
 } & RouteComponentProps<{filterType: string; projectId: string}, {}>;
 
 function ProjectFilters(props: Props) {
-  const {organization, project, params, location} = props;
+  const {organization, project, params} = props;
   const {projectId, filterType} = params;
   if (!project) {
     return null;
@@ -59,11 +59,7 @@ function ProjectFilters(props: Props) {
         )}
 
         {filterType === 'discarded-groups' ? (
-          <GroupTombstones
-            organization={organization}
-            project={project}
-            location={location}
-          />
+          <GroupTombstones project={project} />
         ) : (
           <ProjectFiltersSettings project={project} params={params} features={features} />
         )}

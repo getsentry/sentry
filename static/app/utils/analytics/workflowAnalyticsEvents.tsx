@@ -20,6 +20,7 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
+  has_exception_group: boolean;
   has_release: boolean;
   has_source_maps: boolean;
   has_trace: boolean;
@@ -64,7 +65,6 @@ export type TeamInsightsEventParameters = {
   'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
-  'issue_alert_rule_details.viewed': {rule_id: number};
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
@@ -141,7 +141,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
-  'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
   'issue_details.attachment_tab.screenshot_title_clicked':
     'Attachment Tab: Screenshot title clicked',

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
+import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');

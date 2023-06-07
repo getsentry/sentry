@@ -177,7 +177,7 @@ function useReplayData({
     });
 
     for await (const pagedResults of paginatedErrors) {
-      setErrors(prev => [...prev, ...pagedResults]);
+      setErrors(prev => [...prev, ...(pagedResults || [])]);
     }
 
     setState(prev => ({...prev, fetchingErrors: false}));
@@ -307,12 +307,12 @@ async function* fetchPaginatedReplayErrors(
       cursor: nextCursor,
     });
   }
-  let cursor: ParsedHeader = {
+  let cursor: undefined | ParsedHeader = {
     cursor: '0:0:0',
     results: true,
     href: '',
   };
-  while (cursor.results) {
+  while (cursor && cursor.results) {
     const [{data}, , resp] = await next(cursor.cursor);
     const pageLinks = resp?.getResponseHeader('Link') ?? null;
     cursor = parseLinkHeader(pageLinks)?.next;

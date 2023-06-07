@@ -323,17 +323,18 @@ function TableView(props: TableViewProps) {
       );
     } else if (columnKey === 'transaction' && dataRow.transaction) {
       cell = (
-        <StyledLink
+        <TransactionLink
           data-test-id="tableView-transaction-link"
           to={getTargetForTransactionSummaryLink(
             dataRow,
             organization,
             projects,
-            eventView
+            eventView,
+            location
           )}
         >
           {cell}
-        </StyledLink>
+        </TransactionLink>
       );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
@@ -482,17 +483,6 @@ function TableView(props: TableViewProps) {
       });
 
       switch (action) {
-        case Actions.TRANSACTION: {
-          const target = getTargetForTransactionSummaryLink(
-            dataRow,
-            organization,
-            projects,
-            nextView
-          );
-
-          browserHistory.push(normalizeUrl(target));
-          return;
-        }
         case Actions.RELEASE: {
           const maybeProject = projects.find(project => {
             return project.slug === dataRow.project;
@@ -654,6 +644,10 @@ export const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
+`;
+
+export const TransactionLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledIcon = styled(IconStack)`

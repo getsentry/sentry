@@ -11,7 +11,7 @@ from sentry.models import Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.asserts import assert_commit_shape
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
@@ -24,7 +24,7 @@ def stub_installation_token(external_id=654321):
     )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -42,14 +42,17 @@ class GitHubAppsProviderTest(TestCase):
 
     @cached_property
     def repository(self):
-        return Repository.objects.create(
-            name="getsentry/example-repo",
-            provider="integrations:github",
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            url="https://github.com/getsentry/example-repo",
-            config={"name": "getsentry/example-repo"},
-        )
+        # TODO: Refactor this out with a call to the relevant factory if possible to avoid
+        # explicitly having to exempt it from silo limits
+        with exempt_from_silo_limits():
+            return Repository.objects.create(
+                name="getsentry/example-repo",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+                url="https://github.com/getsentry/example-repo",
+                config={"name": "getsentry/example-repo"},
+            )
 
     @responses.activate
     def test_build_repository_config(self):

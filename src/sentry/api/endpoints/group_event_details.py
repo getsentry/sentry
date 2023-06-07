@@ -57,5 +57,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):  # type: ignore
         if "stacktraceOnly" in collapse:
             return Response(serialize(event, request.user, EventSerializer()))
 
-        data = wrap_event_response(request.user, event, event.project, environments)
+        data = wrap_event_response(
+            request.user,
+            event,
+            environments,
+            include_full_release_data="fullRelease" not in collapse,
+        )
         return Response(data)

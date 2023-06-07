@@ -23,6 +23,7 @@ type Props = {
   noProjectRedirectPath: LocationDescriptor;
   projects: Project[];
   router: InjectedRouter;
+  allowAllProjectsSelection?: boolean;
 };
 
 function PickProjectToContinue({
@@ -30,6 +31,7 @@ function PickProjectToContinue({
   nextPath,
   router,
   projects,
+  allowAllProjectsSelection = false,
 }: Props) {
   const nextPathQuery = nextPath.query;
   let navigating = false;
@@ -63,6 +65,7 @@ function PickProjectToContinue({
           router.replace(pathname);
         }}
         projectSlugs={projects.map(p => p.slug)}
+        allowAllProjectsSelection={allowAllProjectsSelection}
       />
     ),
     {

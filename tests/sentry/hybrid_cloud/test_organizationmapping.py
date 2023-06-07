@@ -1,6 +1,8 @@
 import pytest
 from django.db import IntegrityError
 
+from sentry.models import Organization
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
@@ -8,103 +10,91 @@ from sentry.services.hybrid_cloud.organization_mapping import (
 )
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
-    def test_create(self):
-        self.organization = Factories.create_organization(no_mapping=True)
-        fields = {
-            "organization_id": self.organization.id,
-            "slug": self.organization.slug,
-            "name": "test name",
-            "region_name": "us",
-        }
-        rpc_org_mapping = organization_mapping_service.create(**fields)
+    def test_create_on_organization_save(self):
+        with exempt_from_silo_limits():
+            self.organization = Organization(
+                name="test name",
+            )
+            self.organization.save()
+
+        # Validate that organization mapping has not been created
+        with pytest.raises(OrganizationMapping.DoesNotExist):
+            OrganizationMapping.objects.get(organization_id=self.organization.id)
+
+        # Drain outbox to ensure mapping is created
+        with outbox_runner():
+            pass
+
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.idempotency_key == ""
-        assert (
-            rpc_org_mapping.organization_id == org_mapping.organization_id == self.organization.id
-        )
-        assert rpc_org_mapping.verified is org_mapping.verified is False
-        assert rpc_org_mapping.slug == org_mapping.slug == fields["slug"]
-        assert rpc_org_mapping.region_name == org_mapping.region_name == fields["region_name"]
-        assert rpc_org_mapping.date_created == org_mapping.date_created
-        assert rpc_org_mapping.name == org_mapping.name == fields["name"]
+        assert self.organization.id == org_mapping.organization_id
+        assert org_mapping.verified is False
+        assert self.organization.slug == org_mapping.slug
+        assert self.organization.name == org_mapping.name
 
-    def test_idempotency_key(self):
-        self.organization = Factories.create_organization(no_mapping=True)
-        data = {
-            "slug": self.organization.slug,
-            "name": "test name",
-            "region_name": "us",
-            "idempotency_key": "test",
-        }
-        self.create_organization_mapping(self.organization, **data)
-        next_organization_id = 7654321
-        rpc_org_mapping = organization_mapping_service.create(
-            **{**data, "organization_id": next_organization_id}
+    def test_upsert__create_if_not_found(self):
+        self.organization = self.create_organization(
+            name="test name",
+            slug="foobar",
         )
+
+        fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        fixture_org_mapping.delete()
 
         assert not OrganizationMapping.objects.filter(organization_id=self.organization.id).exists()
-        org_mapping = OrganizationMapping.objects.filter(organization_id=next_organization_id)
-        assert org_mapping
-        org_mapping = org_mapping.first()
-        assert org_mapping.idempotency_key == data["idempotency_key"]
 
-        assert rpc_org_mapping.organization_id == next_organization_id
-        assert rpc_org_mapping.region_name == "us"
-        assert rpc_org_mapping.name == data["name"]
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(
+                name=self.organization.name,
+                slug=self.organization.slug,
+                status=self.organization.status,
+            ),
+        )
 
-    def test_duplicate_slug(self):
-        self.organization = Factories.create_organization(no_mapping=True)
-        data = {
-            "slug": self.organization.slug,
-            "name": "test name",
-            "region_name": "us",
-            "idempotency_key": "test",
-        }
-        self.create_organization_mapping(self.organization, **data)
+        new_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert new_org_mapping.name == self.organization.name
+        assert not new_org_mapping.customer_id
+        assert new_org_mapping.slug == self.organization.slug
+        assert new_org_mapping.status == self.organization.status
 
-        with pytest.raises(IntegrityError):
-            organization_mapping_service.create(
-                **{
-                    **data,
-                    "organization_id": 7654321,
-                    "region_name": "de",
-                    "idempotency_key": "test2",
-                }
+    def test_upsert__update_if_found(self):
+        with exempt_from_silo_limits():
+            self.organization = Organization(
+                name="test name",
+                slug="foobar",
             )
 
-    def test_update(self):
-        self.organization = Factories.create_organization(no_mapping=True)
-        fields = {
-            "name": "test name",
-            "organization_id": self.organization.id,
-            "slug": self.organization.slug,
-            "region_name": "us",
-        }
-        rpc_org_mapping = organization_mapping_service.create(**fields)
-        assert rpc_org_mapping.customer_id is None
+            self.organization.save()
 
-        organization_mapping_service.update(
+        with outbox_runner():
+            pass
+
+        fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+
+        organization_mapping_service.upsert(
             organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(customer_id="test"),
+            update=RpcOrganizationMappingUpdate(
+                name="santry_org", slug="santryslug", status=OrganizationStatus.PENDING_DELETION
+            ),
         )
-        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.customer_id == "test"
 
-        organization_mapping_service.update(
-            organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(name="new name!"),
-        )
-        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.customer_id == "test"
-        assert org_mapping.name == "new name!"
+        fixture_org_mapping.refresh_from_db()
+        assert fixture_org_mapping.name == "santry_org"
+        assert fixture_org_mapping.slug == "santryslug"
+        assert fixture_org_mapping.status == OrganizationStatus.PENDING_DELETION
 
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update=RpcOrganizationMappingUpdate()
-        )
-        # Does not overwrite with empty value.
-        assert org_mapping.name == "new name!"
+    def test_upsert__duplicate_slug(self):
+        self.organization = Factories.create_organization(slug="alreadytaken")
+
+        with pytest.raises(IntegrityError):
+            organization_mapping_service.upsert(
+                organization_id=7654321,
+                update=RpcOrganizationMappingUpdate(slug=self.organization.slug),
+            )

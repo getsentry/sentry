@@ -39,7 +39,7 @@ export interface HybridFilterProps<Value extends React.Key>
   /**
    * Message to show in the menu footer
    */
-  menuFooterMessage?: string;
+  menuFooterMessage?: React.ReactNode;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
   onToggle?: (selected: Value[]) => void;

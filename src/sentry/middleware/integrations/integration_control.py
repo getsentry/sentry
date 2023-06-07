@@ -6,16 +6,19 @@ from typing import Mapping, Type
 
 from sentry.silo import SiloMode
 
-from .parsers import SlackRequestParser
+from .parsers import GithubRequestParser, SlackRequestParser
 from .parsers.base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_PARSERS = [SlackRequestParser]
+ACTIVE_PARSERS = [SlackRequestParser, GithubRequestParser]
 
 
 class IntegrationControlMiddleware:
     webhook_prefix: str = "/extensions/"
+    """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
+    setup_suffix: str = "/setup/"
+    """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
 
     integration_parsers: Mapping[str, Type[BaseRequestParser]] = {
         parser.provider: parser for parser in ACTIVE_PARSERS
@@ -45,8 +48,9 @@ class IntegrationControlMiddleware:
         Determines whether this middleware will operate or just pass the request along.
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
-        is_external = request.path.startswith(self.webhook_prefix)
-        return is_correct_silo and is_external
+        is_integration = request.path.startswith(self.webhook_prefix)
+        is_not_setup = not request.path.endswith(self.setup_suffix)
+        return is_correct_silo and is_integration and is_not_setup
 
     def __call__(self, request):
         if not self._should_operate(request):

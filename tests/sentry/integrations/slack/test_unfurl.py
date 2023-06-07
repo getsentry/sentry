@@ -19,6 +19,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -209,6 +210,23 @@ class UnfurlTest(TestCase):
             unfurls[links[1].url]
             == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
         )
+
+    @with_feature("organizations:slack-escape-messages")
+    def test_escape_issue(self):
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+        )
+
+        links = [
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group.id}/",
+                args={"issue_id": group.id, "event_id": None},
+            ),
+        ]
+
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        assert unfurls[links[0].url]["text"] == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
 
     def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()

@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
@@ -28,6 +30,32 @@ export enum SUPPORTED_LANGUAGES {
   NODE = 'node',
 }
 
+export const topJavascriptFrameworks = [
+  'javascript-react',
+  'javascript-nextjs',
+  'javascript-vue',
+  'javascript-angular',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-remix',
+];
+
+const topPythonFrameworks = [
+  'python-django',
+  'python-flask',
+  'python-fastapi',
+  'python-awslambda',
+  'python-aiohttp',
+];
+
+const topNodeFrameworks = [
+  'node-express',
+  'node-awslambda',
+  'node-gcpfunctions',
+  'node-serverlesscloud',
+  'node-koa',
+];
+
 export const languageDetails = {
   [SUPPORTED_LANGUAGES.JAVASCRIPT]: {
     description: t(
@@ -54,6 +82,7 @@ type Props = ModalRenderProps & {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  newOrg?: boolean;
 };
 
 export function FrameworkSuggestionModal({
@@ -65,6 +94,7 @@ export function FrameworkSuggestionModal({
   closeModal,
   CloseButton,
   organization,
+  newOrg,
 }: Props) {
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
@@ -75,34 +105,79 @@ export function FrameworkSuggestionModal({
       platform.type === 'framework' && platform.language === selectedPlatform.key
   );
 
+  const [topFrameworks, otherFrameworks] = partition(frameworks, framework => {
+    if (selectedPlatform.key === SUPPORTED_LANGUAGES.NODE) {
+      return topNodeFrameworks.includes(framework.id);
+    }
+    if (selectedPlatform.key === SUPPORTED_LANGUAGES.PYTHON) {
+      return topPythonFrameworks.includes(framework.id);
+    }
+    return topJavascriptFrameworks.includes(framework.id);
+  });
+
+  const otherFrameworksSortedAlphabetically = sortBy(otherFrameworks);
+  const topFrameworksOrdered = sortBy(topFrameworks, framework => {
+    if (selectedPlatform.key === SUPPORTED_LANGUAGES.NODE) {
+      return topNodeFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SUPPORTED_LANGUAGES.PYTHON) {
+      return topPythonFrameworks.indexOf(framework.id);
+    }
+    return topJavascriptFrameworks.indexOf(framework.id);
+  });
+
   useEffect(() => {
-    trackAnalytics('onboarding.select_framework_modal_rendered', {
-      platform: selectedPlatform.key,
-      organization,
-    });
-  }, [selectedPlatform.key, organization]);
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_rendered'
+        : 'project_creation.select_framework_modal_rendered',
+      {
+        platform: selectedPlatform.key,
+        organization,
+      }
+    );
+  }, [selectedPlatform.key, organization, newOrg]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
-    trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
-      platform: selectedPlatform.key,
-      framework: selectedFramework.key,
-      organization,
-    });
+
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
+        : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+      {
+        platform: selectedPlatform.key,
+        framework: selectedFramework.key,
+        organization,
+      }
+    );
+
     onConfigure(selectedFramework);
     closeModal();
-  }, [selectedPlatform, selectedFramework, organization, onConfigure, closeModal]);
+  }, [
+    selectedPlatform,
+    selectedFramework,
+    organization,
+    onConfigure,
+    closeModal,
+    newOrg,
+  ]);
 
   const handleSkip = useCallback(() => {
-    trackAnalytics('onboarding.select_framework_modal_skip_button_clicked', {
-      platform: selectedPlatform.key,
-      organization,
-    });
+    trackAnalytics(
+      newOrg
+        ? 'onboarding.select_framework_modal_skip_button_clicked'
+        : 'project_creation.select_framework_modal_skip_button_clicked',
+      {
+        platform: selectedPlatform.key,
+        organization,
+      }
+    );
     onSkip();
     closeModal();
-  }, [selectedPlatform, organization, closeModal, onSkip]);
+  }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
 
   return (
     <Fragment>
@@ -118,36 +193,38 @@ export function FrameworkSuggestionModal({
         <Panel>
           <PanelBody>
             <Frameworks>
-              {frameworks.map((framework, index) => {
-                const frameworkCategory =
-                  categoryList.find(category => {
-                    return category.platforms.includes(framework.id as never);
-                  })?.id ?? 'all';
+              {[...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically].map(
+                (framework, index) => {
+                  const frameworkCategory =
+                    categoryList.find(category => {
+                      return category.platforms.includes(framework.id as never);
+                    })?.id ?? 'all';
 
-                return (
-                  <Framework key={framework.id}>
-                    <RadioLabel
-                      index={index}
-                      onClick={() =>
-                        setSelectedFramework({
-                          key: framework.id,
-                          type: framework.type,
-                          language: framework.language,
-                          category: frameworkCategory,
-                        })
-                      }
-                    >
-                      <RadioBox
-                        radioSize="small"
-                        checked={selectedFramework?.key === framework.id}
-                        readOnly
-                      />
-                      <FrameworkIcon size={24} platform={framework.id} />
-                      {framework.name}
-                    </RadioLabel>
-                  </Framework>
-                );
-              })}
+                  return (
+                    <Framework key={framework.id}>
+                      <RadioLabel
+                        index={index}
+                        onClick={() =>
+                          setSelectedFramework({
+                            key: framework.id,
+                            type: framework.type,
+                            language: framework.language,
+                            category: frameworkCategory,
+                          })
+                        }
+                      >
+                        <RadioBox
+                          radioSize="small"
+                          checked={selectedFramework?.key === framework.id}
+                          readOnly
+                        />
+                        <FrameworkIcon size={24} platform={framework.id} />
+                        {framework.name}
+                      </RadioLabel>
+                    </Framework>
+                  );
+                }
+              )}
             </Frameworks>
           </PanelBody>
         </Panel>

@@ -14,9 +14,9 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  getOtherDomainsActionsAndOpTimeseries,
-  getTopDomainsActionsAndOp,
-  getTopDomainsActionsAndOpTimeseries,
+  getOtherModulesTimeseries,
+  getTopModules,
+  getTopModulesTimeseries,
   totalCumulativeTime,
 } from 'sentry/views/starfish/views/webServiceView/queries';
 import {WebServiceBreakdownChart} from 'sentry/views/starfish/views/webServiceView/webServiceBreakdownChart';
@@ -44,6 +44,17 @@ export function getSegmentLabel(span_operation, action, domain) {
     return t('%s queries on %s', action, domain);
   }
   return span_operation || domain || undefined;
+}
+
+export function getSegmentLabelForTable(span_operation, action, domain) {
+  const label = getSegmentLabel(span_operation, action, domain);
+  if (span_operation === 'http.client') {
+    return t('%s (http.client spans)', label);
+  }
+  if (span_operation === 'db') {
+    return t('%s (db spans)', label);
+  }
+  return t('%s spans', label);
 }
 
 function getNumSpansLabel(segment) {
@@ -80,7 +91,7 @@ function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
     queryKey: ['webServiceSpanGrouping', transaction, selection.datetime],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getTopDomainsActionsAndOp({
+        `${HOST}/?query=${getTopModules({
           transaction,
           datetime: selection.datetime,
         })}`
@@ -135,7 +146,7 @@ function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
     queryKey: ['topSpanGroupTimeseries', transaction, topConditions, selection.datetime],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getTopDomainsActionsAndOpTimeseries({
+        `${HOST}/?query=${getTopModulesTimeseries({
           transaction,
           topConditions,
           datetime: selection.datetime,
@@ -154,7 +165,7 @@ function FacetBreakdownBar({transaction: maybeTransaction}: Props) {
     ],
     queryFn: () =>
       fetch(
-        `${HOST}/?query=${getOtherDomainsActionsAndOpTimeseries({
+        `${HOST}/?query=${getOtherModulesTimeseries({
           transaction,
           topConditions,
           datetime: selection.datetime,

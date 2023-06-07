@@ -194,7 +194,9 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert not team.idp_provisioned
         assert team.organization == self.organization
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True
@@ -229,9 +231,13 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.get_success_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=201
         )
-        self.get_error_response(
+        resp = self.get_error_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=409
         )
+        assert resp.data == {
+            "non_field_errors": ["A team with this slug already exists."],
+            "detail": "A team with this slug already exists.",
+        }
 
     def test_name_too_long(self):
         self.get_error_response(

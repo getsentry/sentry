@@ -139,6 +139,11 @@ SHARED_TAG_STRINGS = {
     "span.description": PREFIX + 249,
     "http.status_code": PREFIX + 250,
     "geo.country_code": PREFIX + 251,
+    "span.group": PREFIX + 252,
+    "transaction.method": PREFIX + 253,
+    "span.category": PREFIX + 254,
+    # More Transactions
+    "has_profile": PREFIX + 260,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -147,6 +152,7 @@ SHARED_TAG_STRINGS = {
 SPAN_METRICS_NAMES = {
     "s:transactions/span.user@none": PREFIX + 400,
     "d:transactions/span.duration@millisecond": PREFIX + 401,
+    "d:transactions/span.exclusive_time@millisecond": PREFIX + 402,
 }
 
 SHARED_STRINGS = {

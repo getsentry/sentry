@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.types.region import Region
+from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -107,6 +108,13 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
+SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
+SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
+SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
+SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
+SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -193,6 +201,7 @@ if "DATABASE_URL" in os.environ:
     )
     if url.scheme == "postgres":
         DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
+
 
 # This should always be UTC.
 TIME_ZONE = "UTC"
@@ -316,6 +325,7 @@ MIDDLEWARE = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
+    "sentry.middleware.api_gateway.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -707,7 +717,9 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.auto_archive_issues",
 )
+
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
@@ -751,6 +763,7 @@ CELERY_QUEUES = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
+    Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -799,10 +812,6 @@ CELERY_QUEUES = [
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
-    Queue(
-        "dynamicsampling",
-        routing_key="dynamicsampling",
-    ),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
@@ -964,12 +973,18 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=17),
         "options": {"expires": 3600},
     },
-    "hybrid-cloud-repair-mappings": {
-        "task": "sentry.tasks.organization_mapping.repair_mappings",
-        # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
+    "span.descs.clusterer": {
+        "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
+        "schedule": crontab(minute=42),
         "options": {"expires": 3600},
     },
+    # TODO(HC) Remove or re-enable this once a decision is made on org mapping creation
+    # "hybrid-cloud-repair-mappings": {
+    #     "task": "sentry.tasks.organization_mapping.repair_mappings",
+    #     # Run every hour
+    #     "schedule": crontab(minute=0, hour="*/1"),
+    #     "options": {"expires": 3600},
+    # },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
@@ -1010,17 +1025,48 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
         "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job once a day at 02:30
-        "schedule": crontab(minute=30, hour="2"),
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
+        "options": {"expires": 3600},
+    },
+    "schedule_auto_archive_issues": {
+        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
+        # Run job every 6 hours
+        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
 }
+
+
+# Queues that belong to the processing pipeline and need to be monitored
+# for backpressure management
+PROCESSING_QUEUES = [
+    "events.preprocess_event",
+    "events.process_event",
+    "events.reprocess_events",
+    "events.reprocessing.preprocess_event",
+    "events.reprocessing.process_event",
+    "events.reprocessing.symbolicate_event",
+    "events.reprocessing.symbolicate_event_low_priority",
+    "events.save_event",
+    "events.save_event_attachments",
+    "events.save_event_transaction",
+    "events.symbolicate_event",
+    "events.symbolicate_event_low_priority",
+    "events.symbolicate_js_event",
+    "events.symbolicate_js_event_low_priority",
+    "post_process_errors",
+    "post_process_issue_platform",
+    "post_process_transactions",
+    "profiles.process",
+]
+
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
@@ -1131,7 +1177,7 @@ REST_FRAMEWORK = {
 
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
+    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
@@ -1150,6 +1196,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "SERVERS": [{"url": "https://sentry.io/"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
         "SORT_OPERATION_PARAMETERS": False,
     }
 
@@ -1191,6 +1238,10 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Use issue platform for crons issues
+    "organizations:crons-issue-platform": False,
+    # Use new listing page for crons
+    "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1211,12 +1262,12 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow UI, enable everything except post processing
     "organizations:escalating-issues-ui": False,
+    # Enable escalating forecast threshold a/b experiment
+    "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow features in v2
+    "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the task to transition new issues that are 3+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-new-ongoing": False,
-    # Enable the task to transition regressed issues that are 14+ days old to (Unresolved, Ongoing) state
-    "organizations:issue-states-auto-transition-regressed-ongoing": False,
     # Enable the new issue states and substates
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1225,24 +1276,18 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable flamegraph view for profiling
-    "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling aggregate flamegraph
-    "organizations:profiling-aggregate-flamegraph": False,
-    # Enable the profiling previews
-    "organizations:profiling-previews": False,
-    # Enable the profiling span previews
-    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
-    # Enable the sentry sample format response
-    "organizations:profiling-sampled-format": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enable profiling GA messaging (update paths from AM1 to AM2)
     "organizations:profiling-ga": False,
+    # Enable stacktrace linking of multiple frames in profiles
+    "organizations:profiling-stacktrace-links": False,
+    # Enable global suspect functions in profiling
+    "organizations:profiling-global-suspect-functions": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1259,12 +1304,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable issue alert incompatible rule check
-    "organizations:issue-alert-incompatible-rules": False,
-    # Enable issue alert previews
-    "organizations:issue-alert-preview": False,
-    # Enable issue alert test notifications
-    "organizations:issue-alert-test-notifications": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Whether to allow issue only search on the issue list
@@ -1344,8 +1383,10 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable SQL formatting for breadcrumb items and performance spans
     "organizations:sql-format": False,
-    # Enable removing issue from issue list if action taken.
-    "organizations:issue-list-removal-action": False,
+    # Enable experimental replay-issue rendering on Issue Details page
+    "organizations:issue-details-replay-event": False,
+    # Enable prefetching of issues from the issue list when hovered
+    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1412,6 +1453,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enable session replay click search banner rollout for eligible SDKs
+    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program
@@ -1425,7 +1468,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enables subquery optimizations for the replay_index page
+    # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
@@ -1433,6 +1476,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1458,6 +1503,12 @@ SENTRY_FEATURES = {
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
+    # Enable the sliding window per project
+    "organizations:ds-sliding-window": False,
+    # Enable the sliding window per org
+    "organizations:ds-sliding-window-org": False,
+    # Enable new project/org boost
+    "organizations:ds-boost-new-projects": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
@@ -1493,6 +1544,8 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable project creation for all
     "organizations:team-project-creation-all": False,
+    # Enable project creation for all and puts organization into test group
+    "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable team member role provisioning through scim
@@ -1501,10 +1554,12 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # Enable sliding window for dynamic sampling
-    "organizations:ds-sliding-window": False,
     # If true certain Slack messages will be escaped to prevent rendering markdown
     "organizations:slack-escape-messages": False,
+    # If true, allow to create/use org auth tokens
+    "organizations:org-auth-tokens": False,
+    # Enables commenting on PRs from the Sentry comment bot.
+    "organizations:pr-comment-bot": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1622,6 +1677,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # end APM config
 # ----
 
+# DSN to use for Sentry monitors
+SENTRY_MONITOR_DSN = None
+SENTRY_MONITOR_API_ROOT = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -1683,6 +1741,8 @@ SENTRY_SMTP_DISABLED_BACKENDS = frozenset(
         "sentry.utils.email.PreviewBackend",
     )
 )
+
+SENTRY_UPLOAD_RETRY_TIME = 60  # 1 min
 
 # Should users without superuser permissions be allowed to
 # make projects public
@@ -1819,6 +1879,7 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
@@ -3112,6 +3173,10 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     "backoff_timer": 5 * 60,
 }
 
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
 # Tunable knobs for automatic LPQ eligibility.
 #
 # LPQ eligibility is based on the average spent budget in a sliding time window
@@ -3173,10 +3238,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
-
-# Whether badly behaving projects will be automatically
-# sent to the low priority queue
-SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
 PG_VERSION = os.getenv("PG_VERSION") or "14"
 
@@ -3261,14 +3322,46 @@ DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 
-SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
-SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
-
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+SENTRY_MONOLITH_REGION: str = "--monolith--"
+
+# Enable siloed development environment.
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+
+if USE_SILOS:
+    # Add connections for the region & control silo databases.
+    DATABASES["control"] = DATABASES["default"].copy()
+    DATABASES["control"]["NAME"] = "control"
+
+    DATABASES["region"] = DATABASES["default"].copy()
+    DATABASES["region"]["NAME"] = "region"
+
+    # Addresses are hardcoded based on the defaults
+    # we use in commands/devserver.
+    SENTRY_REGION_CONFIG = json.dumps(
+        [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "category": "MULTI_TENANT",
+                "address": "http://localhost:8000",
+                "api_token": "dev-region-silo-token",
+            }
+        ]
+    )
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
+    DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
+        {
+            "is_allowed": True,
+            "control_silo_api_token": "dev-control-silo-token",
+            "control_silo_address": f"http://127.0.0.1:{control_port}",
+        }
+    )
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
@@ -3334,3 +3427,9 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
+
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.01
+
+# The Redis cluster to use for monitoring the health of
+# Celery queues.
+SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"

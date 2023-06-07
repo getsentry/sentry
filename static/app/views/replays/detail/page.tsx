@@ -34,8 +34,8 @@ function Page({
   replayErrors,
 }: Props) {
   const title = replayRecord
-    ? `${replayRecord.id} - Session Replay - ${orgSlug}`
-    : `Session Replay - ${orgSlug}`;
+    ? `${replayRecord.id} — Session Replay — ${orgSlug}`
+    : `Session Replay — ${orgSlug}`;
 
   const header = (
     <Header>

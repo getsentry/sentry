@@ -229,7 +229,7 @@ class UserDetailsEndpoint(UserEndpoint):
         # from `frontend/remove_account.py`
         org_list = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
-            member_set__user=user,
+            member_set__user_id=user.id,
             status=OrganizationStatus.ACTIVE,
         )
 
@@ -254,9 +254,10 @@ class UserDetailsEndpoint(UserEndpoint):
         ]
 
         if remaining_org_ids:
-            OrganizationMember.objects.filter(
+            for member in OrganizationMember.objects.filter(
                 organization__in=remaining_org_ids, user_id=user.id
-            ).delete()
+            ):
+                member.delete()
 
         logging_data = {
             "actor_id": request.user.id,

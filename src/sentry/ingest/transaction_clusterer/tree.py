@@ -78,9 +78,9 @@ class TreeClusterer(Clusterer):
         self._tree = Node()
         self._rules: Optional[List[ReplacementRule]] = None
 
-    def add_input(self, transaction_names: Iterable[str]) -> None:
-        for tx_name in transaction_names:
-            parts = tx_name.split(SEP)
+    def add_input(self, strings: Iterable[str]) -> None:
+        for string in strings:
+            parts = string.split(SEP)
             node = self._tree
             for part in parts:
                 node = node.setdefault(part, Node())
@@ -96,7 +96,7 @@ class TreeClusterer(Clusterer):
 
     def _extract_rules(self) -> None:
         """Merge high-cardinality nodes in the graph and extract rules"""
-        with sentry_sdk.start_span(op="txcluster_merge"):
+        with sentry_sdk.start_span(op="cluster_merge"):
             self._tree.merge(self._merge_threshold)
 
         # Generate exactly 1 rule for every merge

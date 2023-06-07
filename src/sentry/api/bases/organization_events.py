@@ -30,6 +30,7 @@ from sentry.snuba import (
     metrics_performance,
     profiles,
     spans_indexed,
+    spans_metrics,
 )
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -47,6 +48,7 @@ DATASET_OPTIONS = {
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
     "spansIndexed": spans_indexed,
+    "spansMetrics": spans_metrics,
 }
 
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}

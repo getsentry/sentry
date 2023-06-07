@@ -1,7 +1,6 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
@@ -14,7 +13,7 @@ function ReplaysListContainer() {
   const {slug: orgSlug} = useOrganization();
 
   return (
-    <SentryDocumentTitle title={`Session Replay - ${orgSlug}`}>
+    <SentryDocumentTitle title={`Session Replay — ${orgSlug}`}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -25,7 +24,6 @@ function ReplaysListContainer() {
               )}
               docsUrl="https://docs.sentry.io/product/session-replay/"
             />
-            <ReplaysFeatureBadge />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>

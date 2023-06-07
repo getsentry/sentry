@@ -16,7 +16,7 @@ from sentry.utils import json
 SENTRY_REGION_CONFIG = [
     Region(
         name="region1",
-        id=1,
+        snowflake_id=1,
         address="http://region1.testserver",
         category=RegionCategory.MULTI_TENANT,
     ),

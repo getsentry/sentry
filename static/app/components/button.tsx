@@ -84,10 +84,6 @@ interface BaseButtonProps
    */
   name?: string;
   /**
-   * Callback for when the button is clicked.
-   */
-  onClick?: (e: React.MouseEvent) => void;
-  /**
    * The semantic "priority" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
@@ -243,22 +239,24 @@ const getBoxShadow = ({
   borderless,
   translucentBorder,
   disabled,
+  size,
   theme,
 }: StyledButtonProps) => {
+  if (disabled || borderless || priority === 'link') {
+    return 'box-shadow: none';
+  }
+
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {borderTranslucent} = theme.button[themeName];
   const translucentBorderString = translucentBorder
     ? `0 0 0 1px ${borderTranslucent},`
     : '';
-
-  if (disabled || borderless || priority === 'link') {
-    return 'box-shadow: none';
-  }
+  const dropShadow = size === 'xs' ? theme.dropShadowLight : theme.dropShadowMedium;
 
   return `
-      box-shadow: ${translucentBorderString} ${theme.dropShadowMedium};
+      box-shadow: ${translucentBorderString} ${dropShadow};
       &:active {
-        box-shadow: ${translucentBorderString} inset ${theme.dropShadowMedium};
+        box-shadow: ${translucentBorderString} inset ${dropShadow};
       }
     `;
 };

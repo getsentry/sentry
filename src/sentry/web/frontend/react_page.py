@@ -14,7 +14,7 @@ from sentry.models import Project
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string
-from sentry.web.frontend.base import BaseView, OrganizationView
+from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
 # url names that should only be accessible from a non-customer domain hostname.
@@ -98,7 +98,7 @@ class ReactMixin:
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
 # generic
-class ReactPageView(OrganizationView, ReactMixin):
+class ReactPageView(ControlSiloOrganizationView, ReactMixin):
     def handle_auth_required(self, request: Request, *args, **kwargs) -> Response:
         # If user is a superuser (but not active, because otherwise this method would never be called)
         # Then allow client to handle the route and respond to any API request errors

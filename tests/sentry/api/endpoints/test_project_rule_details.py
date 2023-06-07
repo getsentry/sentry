@@ -18,9 +18,8 @@ from sentry.models import (
     RuleFireHistory,
     RuleSnooze,
     RuleStatus,
-    User,
 )
-from sentry.models.actor import get_actor_for_user
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -37,7 +36,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     owner_id = payload.get("owner")
     if owner_id:
         with exempt_from_silo_limits():
-            assert rule.owner == User.objects.get(id=owner_id).actor
+            assert Actor.objects.get(id=rule.owner_id)
     else:
         assert rule.owner is None
 

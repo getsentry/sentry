@@ -43,7 +43,8 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models.file import File, clear_cached_files
+from sentry.models.files.file import File
+from sentry.models.files.utils import clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip

@@ -35,7 +35,7 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import coerce_id_from, extract_id_from
+from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
@@ -80,10 +80,10 @@ class OrganizationMemberManager(BaseManager):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
-        return self.select_related("user").filter(
+        return self.filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
-            user__isnull=False,
+            user_id__isnull=False,
         )
 
     def delete_expired(self, threshold: int) -> None:
@@ -136,7 +136,7 @@ class OrganizationMemberManager(BaseManager):
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 InviteStatus.REQUESTED_TO_JOIN.value,
             ],
-            user__isnull=True,
+            user_id__isnull=True,
             id=id,
         )
 
@@ -148,20 +148,23 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
-        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
-            "id", flat=True
+        users_by_email = user_service.get_many(
+            filter=dict(
+                emails=[email],
+                is_active=True,
+            )
         )
 
         # may be empty
         team_members = set(
             OrganizationMemberTeam.objects.filter(
                 team_id__org_role=role,
-                organizationmember_id__in=org_members,
+                organizationmember__user_id__in=[u.id for u in users_by_email],
             ).values_list("organizationmember_id", flat=True)
         )
 
         org_members = set(
-            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
                 "id", flat=True
             )
         )
@@ -186,9 +189,7 @@ class OrganizationMember(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
-    )
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     flags = BitField(
@@ -223,10 +224,15 @@ class OrganizationMember(Model):
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
+    user_is_active = models.BooleanField(
+        null=False,
+        default=True,
+    )
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmember"
-        unique_together = (("organization", "user"), ("organization", "email"))
+        unique_together = (("organization", "user_id"), ("organization", "email"))
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
@@ -238,29 +244,24 @@ class OrganizationMember(Model):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
-    @transaction.atomic
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
         ), "Must set either user or email"
-        if self.token and not self.token_expires_at:
-            self.refresh_expires_at()
-        is_new = bool(self.id)
-        super().save(*args, **kwargs)
-        region_outbox = None
-        if is_new:
-            region_outbox = self.save_outbox_for_create()
-        else:
-            region_outbox = self.save_outbox_for_update()
-        self.__org_roles_from_teams = None
-        return region_outbox
+
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            if self.token and not self.token_expires_at:
+                self.refresh_expires_at()
+            super().save(*args, **kwargs)
+            self.save_outbox_for_update()
+            self.__org_roles_from_teams = None
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
         self.__org_roles_from_teams = None
 
-    def set_user(self, user):
-        self.user_id = coerce_id_from(user)
+    def set_user(self, user_id: int):
+        self.user_id = user_id
         self.email = None
         self.token = None
         self.token_expires_at = None
@@ -273,20 +274,6 @@ class OrganizationMember(Model):
     def regenerate_token(self):
         self.token = self.generate_token()
         self.refresh_expires_at()
-
-    def outbox_for_create(self) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=self.organization_id,
-            category=OutboxCategory.ORGANIZATION_MEMBER_CREATE,
-            object_identifier=self.id,
-            payload=dict(user_id=self.user_id),
-        )
-
-    def save_outbox_for_create(self) -> RegionOutbox:
-        outbox = self.outbox_for_create()
-        outbox.save()
-        return outbox
 
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
@@ -343,9 +330,12 @@ class OrganizationMember(Model):
 
     @property
     def legacy_token(self):
+        email = self.get_email()
+        if not email:
+            return ""
         checksum = md5()
         checksum.update(str(self.organization_id).encode("utf-8"))
-        checksum.update(self.get_email().encode("utf-8"))
+        checksum.update(email.encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 
@@ -584,12 +574,9 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
-        region_outbox = None
         with transaction.atomic():
             self.approve_invite()
-            region_outbox = self.save()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            self.save()
 
         if settings.SENTRY_ENABLE_INVITES:
             self.send_invite_email()
@@ -599,6 +586,8 @@ class OrganizationMember(Model):
                 sender=self.approve_member_invitation,
                 referrer=referrer,
             )
+
+        self.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         create_audit_entry_from_user(
             user_to_approve,

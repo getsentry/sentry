@@ -30,6 +30,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
 
   & button[aria-haspopup] {
     height: 100%;
+    width: 100%;
     min-height: auto;
     border-color: transparent !important;
     box-shadow: none;

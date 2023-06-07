@@ -1,6 +1,6 @@
 from typing import Optional
 
-from django.db import transaction
+from django.db import router
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -13,6 +13,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.utils.db import atomic_transaction
 
 
 class InvalidSortByParameter(SentryAPIException):
@@ -96,8 +97,10 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         if bundle_id:
             try:
-                with transaction.atomic():
-                    ArtifactBundle.objects.get(
+                # Since there were cases in which users could have uploaded multiple bundles with the same id, this call
+                # had to be refactored to delete multiple ones at the same time.
+                with atomic_transaction(using=(router.db_for_write(ArtifactBundle))):
+                    ArtifactBundle.objects.filter(
                         organization_id=project.organization_id, bundle_id=bundle_id
                     ).delete()
 
