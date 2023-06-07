@@ -99,7 +99,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         )
 
     @extend_schema(
-        operation_id="Create a new project bound to a team.",
+        operation_id="Create a New Project",
         paramters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.TEAM_SLUG],
         request=ProjectSerializer,
         responses={
