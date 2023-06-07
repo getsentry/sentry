@@ -27,7 +27,15 @@ const SELECT_FIELD_VISIBILITY_OPTIONS = [
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
 
-  const selectFieldSortOptions = DEFAULT_SORT_OPTIONS.map(sortOption => ({
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
+  const sortOptions = [...DEFAULT_SORT_OPTIONS];
+  if (hasBetterPrioritySort) {
+    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+  }
+
+  const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,
     label: getSortLabel(sortOption),
   }));

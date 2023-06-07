@@ -1558,6 +1558,8 @@ SENTRY_FEATURES = {
     "organizations:slack-escape-messages": False,
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
+    # Enables commenting on PRs from the Sentry comment bot.
+    "organizations:pr-comment-bot": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -3171,6 +3173,10 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     "backoff_timer": 5 * 60,
 }
 
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
 # Tunable knobs for automatic LPQ eligibility.
 #
 # LPQ eligibility is based on the average spent budget in a sliding time window
@@ -3232,10 +3238,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
-
-# Whether badly behaving projects will be automatically
-# sent to the low priority queue
-SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 
 PG_VERSION = os.getenv("PG_VERSION") or "14"
 

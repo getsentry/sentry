@@ -23,14 +23,6 @@ export enum GenericPerformanceWidgetDataType {
   LINE_LIST = 'line_list',
   TRENDS = 'trends',
   STACKED_AREA = 'stacked_area',
-
-  // TODO(epurkhiser): Delete
-  Histogram = 'histogram',
-  Area = 'area',
-  Vitals = 'vitals',
-  LineList = 'line_list',
-  Trends = 'trends',
-  StackedArea = 'stacked_area',
 }
 
 export type PerformanceWidgetProps = {
