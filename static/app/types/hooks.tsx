@@ -298,6 +298,7 @@ export type ReactHooks = {
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-experiment': UseExperiment;
+  'react-hook:use-org-strategy': () => {isLatestStrategy: boolean};
 };
 
 /**
