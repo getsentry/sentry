@@ -1116,9 +1116,9 @@ class MetricsDatasetConfig(DatasetConfig):
         )
 
     def _resolve_total_transaction_duration(self, alias: str, scope: str) -> SelectType:
-        """This calculates the app's total time, so other filters that are
-        a part of the original query will not be applies. Only filter conditions
-        that will be applied are snuba params.
+        """This calculates the total time, and based on the scope will return
+        either the apps total time or whatever other local scope/filters are
+        applied.
         This must be cached since it runs another query."""
         self.builder.requires_other_aggregates = True
         if self.total_transaction_duration is not None:
@@ -1132,7 +1132,7 @@ class MetricsDatasetConfig(DatasetConfig):
         )
 
         total_query.columns += self.builder.resolve_groupby()
-        if scope == "app":
+        if scope == "local":
             total_query.where = self.builder.where
 
         total_results = total_query.run_query(
