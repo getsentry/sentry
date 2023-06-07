@@ -131,7 +131,7 @@ class GroupOwner(Model):
     def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
         """
         If `group_id` is provided, clear the autoassigned owner cache for that group, else clear
-        the cache of all groups for a project hat had an event within the READ_CACHE_DURATION
+        the cache of all groups for a project that had an event within the READ_CACHE_DURATION
         window.
         """
         if group_id:
@@ -164,7 +164,7 @@ class GroupOwner(Model):
     def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id, group_id=None):
         """
         If `group_id` is provided, clear the debounce issue owners cache for that group, else clear
-        the cache of all groups for a project hat had an event within the
+        the cache of all groups for a project that had an event within the
         ISSUE_OWNERS_DEBOUNCE_DURATION window.
         """
         if group_id:
