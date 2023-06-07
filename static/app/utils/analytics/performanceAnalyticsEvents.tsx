@@ -38,6 +38,13 @@ export type PerformanceEventParameters = {
   'performance_views.filter_dropdown.selection': {
     action: string;
   };
+  'performance_views.landing.table.seen': {};
+  'performance_views.landing.table.unparameterized': {
+    first_event: 'none' | '14d' | '30d';
+    sent_transaction: boolean;
+    single_project: boolean;
+    stats_period: string;
+  };
   'performance_views.landingv2.display.filter_change': {
     field: string;
     max_value: number;
@@ -304,4 +311,7 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Open vitals in discover',
   'performance_views.vitals.open_all_events':
     'Performance Views: Open vitals in all events',
+  'performance_views.landing.table.unparameterized':
+    'Performance Views: Landing Page - Table Unparameterized',
+  'performance_views.landing.table.seen': 'Performance Views: Landing Page - Table Seen',
 };
