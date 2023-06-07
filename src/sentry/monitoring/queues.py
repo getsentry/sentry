@@ -168,10 +168,6 @@ def _update_queue_stats(redis_cluster, queue_health: List[Tuple[str, bool]]) -> 
 
 
 def _run_queue_stats_updater(redis_cluster: str) -> None:
-    # bonus point if we manage to use asyncio and launch all tasks at once
-    # in case we have many queues to check
-    cluster = redis.redis_clusters.get(redis_cluster)
-
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
         if not options.get("backpressure.monitor_queues.enable"):
@@ -196,7 +192,7 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
             queue_health = [
                 (queue, count >= strike_threshold) for (queue, count) in queue_history.items()
             ]
-            _update_queue_stats(cluster, queue_health)
+            _update_queue_stats(queue_monitoring_cluster, queue_health)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
