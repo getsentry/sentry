@@ -658,11 +658,10 @@ def profiles_consumer(**options):
 @click.argument(
     "consumer_group",
 )
-@click.option("--create-topic/--no-create-topic", default=False)
 @kafka_options("")
 @strict_offset_reset_option()
 @configuration
-def basic_consumer(consumer_group, create_topic, **options):
+def basic_consumer(consumer_group, **options):
     """
     Launch a "new-style" consumer based on its consumer group.
 
@@ -676,8 +675,6 @@ def basic_consumer(consumer_group, create_topic, **options):
     The physical consumer group to use on kafka can be overridden with
     --consumer-group option.
     """
-    from django.conf import settings
-
     from sentry.consumers import KAFKA_CONSUMERS
 
     try:
@@ -699,11 +696,6 @@ def basic_consumer(consumer_group, create_topic, **options):
 
     if options["group_id"] == "":
         options["group_id"] = consumer_group
-
-    if create_topic:
-        from sentry.utils.batching_kafka_consumer import create_topics
-
-        create_topics(settings.KAFKA_TOPICS[topic]["cluster"], [topic])
 
     from sentry.utils.arroyo import run_basic_consumer
 
