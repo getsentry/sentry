@@ -177,7 +177,9 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
                 queue_history[queue] += 1
 
         strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
-        queue_health = [(queue, count >= strike_threshold) for (queue, count) in queue_history]
+        queue_health = [
+            (queue, count >= strike_threshold) for (queue, count) in queue_history.items()
+        ]
         _update_queue_stats(cluster, queue_health)
         sleep(options.get("backpressure.monitor_queues.check_interval"))
 
