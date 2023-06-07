@@ -119,19 +119,14 @@ export default function GettingStartedWithReact({dsn, activeProductSelection}: P
     nextStepDocs = nextStepDocs.filter(step => step.id !== 'session-replay');
   }
 
-  if (integrations.length > 0) {
-    integrations.unshift('integrations: [');
-    integrations.push('],');
-  }
-
-  const sentryInitContent: string[] = [`dsn: "${dsn}"`];
+  let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
   if (integrations.length > 0) {
-    sentryInitContent.push(integrations.join('\n'));
+    sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
   }
 
   if (otherConfigs.length > 0) {
-    sentryInitContent.push(otherConfigs.join('\n'));
+    sentryInitContent = sentryInitContent.concat(otherConfigs);
   }
 
   return (
