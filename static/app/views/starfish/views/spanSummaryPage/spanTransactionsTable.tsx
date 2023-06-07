@@ -7,7 +7,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
-import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -19,13 +18,11 @@ import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   count: number;
-  metricSeries: Record<string, Series>;
   metrics: SpanTransactionMetrics;
   transaction: string;
 };
@@ -52,10 +49,6 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
     span,
     spanTransactions.map(row => row.transaction)
   );
-  const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
 
   const spanTransactionsWithMetrics = spanTransactions.map(row => {
     return {
@@ -65,7 +58,6 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
           applicationMetrics['sum(span.duration)']
       ),
       metrics: spanTransactionMetrics[row.transaction],
-      metricSeries: spanTransactionMetricsSeries[row.transaction],
     };
   });
 
