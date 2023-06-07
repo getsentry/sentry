@@ -13,7 +13,7 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {ReleasePreview} from 'sentry/views/starfish/components/releasePreview';
-import {useSpanById} from 'sentry/views/starfish/queries/useSpanById';
+import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {
   useSpanFirstSeenEvent,
@@ -31,8 +31,8 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction} = location.query;
 
-  const {data: span} = useSpanById(groupId, 'span-summary-page');
-  const {data: spanMetrics} = useSpanMetrics({group_id: groupId});
+  const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
+  const {data: spanMetrics} = useSpanMetrics({group: groupId});
   const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
   const {data: lastSeenSpanEvent} = useSpanLastSeenEvent({group_id: groupId});
 
@@ -52,7 +52,7 @@ function SpanSummaryPage({params, location}: Props) {
                 <DatePageFilter alignDropdown="left" />
               </FilterOptionsContainer>
               <BlockContainer>
-                <Block title={t('Operation')}>{span?.span_operation}</Block>
+                <Block title={t('Operation')}>{span?.op}</Block>
                 <Block
                   title={t('First Seen')}
                   description={t(
@@ -79,8 +79,8 @@ function SpanSummaryPage({params, location}: Props) {
               {span && <SpanBaselineTable span={span} />}
               {span && <SpanTransactionsTable span={span} />}
 
-              {transaction && span?.group_id && (
-                <SampleList groupId={span.group_id} transactionName={transaction} />
+              {transaction && span?.group && (
+                <SampleList groupId={span.group} transactionName={transaction} />
               )}
             </Layout.Main>
           </Layout.Body>

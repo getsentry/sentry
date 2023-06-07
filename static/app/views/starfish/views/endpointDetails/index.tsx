@@ -170,10 +170,10 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
       <pre>{row?.domain}</pre>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{DataTitles.p50}</SubHeader>
+          <SubHeader>{DataTitles.p95}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p50(span.self_time)'] / 1000}
+              seconds={row['p95(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />

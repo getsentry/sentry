@@ -4,13 +4,13 @@ from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.types.activity import ActivityType
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 def convert_to_set_escalating(apps, schema_editor):
     Activity = apps.get_model("sentry", "Activity")
 
-    for activity in RangeQuerySetWrapperWithProgressBar(
+    for activity in RangeQuerySetWrapper(
         Activity.objects.filter(type=ActivityType.SET_UNRESOLVED.value)
     ):
 

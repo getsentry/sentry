@@ -10,7 +10,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 
-type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p50_comparison';
+type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p95_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
@@ -25,15 +25,15 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'p50_comparison',
-    name: 'Compared to P50',
+    key: 'p95_comparison',
+    name: 'Compared to P95',
     width: 200,
   },
 ];
 
 type SpanTableRow = {
   exclusive_time: number;
-  p50Comparison: number;
+  p95Comparison: number;
   'project.name': string;
   spanDuration: number;
   spanOp: string;
@@ -48,14 +48,14 @@ type SpanTableRow = {
 type Props = {
   data: SpanTableRow[];
   isLoading: boolean;
-  p50: number;
+  p95: number;
 };
 
-export function SpanSamplesTable({isLoading, data, p50}: Props) {
+export function SpanSamplesTable({isLoading, data, p95}: Props) {
   const location = useLocation();
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p50_comparison') {
+    if (column.key === 'p95_comparison') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -89,8 +89,8 @@ export function SpanSamplesTable({isLoading, data, p50}: Props) {
       );
     }
 
-    if (column.key === 'p50_comparison') {
-      return <DurationComparisonCell duration={row.spanDuration} p50={p50} />;
+    if (column.key === 'p95_comparison') {
+      return <DurationComparisonCell duration={row.spanDuration} p95={p95} />;
     }
 
     if (column.key === 'timestamp') {

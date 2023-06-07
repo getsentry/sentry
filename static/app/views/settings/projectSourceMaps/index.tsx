@@ -16,7 +16,7 @@ type Props = RouteComponentProps<
   project: Project;
 };
 
-export function ProjectSourceMapsContainer({params, location, ...props}: Props) {
+export default function ProjectSourceMapsContainer({params, location, ...props}: Props) {
   const organization = useOrganization();
   const sourceMapsDebugIds = organization.features.includes('source-maps-debug-ids');
 

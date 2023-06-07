@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
 import GridEditable, {
@@ -11,15 +10,11 @@ import Truncate from 'sentry/components/truncate';
 import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
-import {P50_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
@@ -27,7 +22,6 @@ import {
 import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
 import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {TimeSpentCell} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Row = {
   count: number;
@@ -37,12 +31,16 @@ type Row = {
 };
 
 type Props = {
-  span: Span;
+  span: IndexedSpan;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-export type Keys = 'transaction' | 'epm()' | 'p50(transaction.duration)' | 'timeSpent';
+export type Keys =
+  | 'transaction'
+  | 'p95(transaction.duration)'
+  | 'timeSpent'
+  | 'spans_per_second';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
@@ -83,7 +81,6 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
         row={row}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
-        applicationMetrics={applicationMetrics}
       />
     );
   };
@@ -106,19 +103,12 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: Span;
+  span: IndexedSpan;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-function BodyCell({
-  span,
-  column,
-  row,
-  openSidebar,
-  applicationMetrics,
-  onClickTransactionName,
-}: CellProps & {applicationMetrics: ApplicationMetrics}) {
+function BodyCell({span, column, row, openSidebar, onClickTransactionName}: CellProps) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
@@ -131,19 +121,18 @@ function BodyCell({
     );
   }
 
-  if (column.key === 'p50(transaction.duration)') {
-    return <P50Cell span={span} row={row} column={column} />;
+  if (column.key === 'p95(transaction.duration)') {
+    return <DurationCell milliseconds={row.metrics?.p95} />;
   }
 
-  if (column.key === 'epm()') {
-    return <EPMCell span={span} row={row} column={column} />;
+  if (column.key === 'spans_per_second') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.spans_per_second} />;
   }
 
   if (column.key === 'timeSpent') {
     return (
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
         totalSpanTime={row.metrics?.total_time}
       />
     );
@@ -156,52 +145,12 @@ function TransactionCell({span, column, row}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/span/${encodeURIComponent(span.group)}?${qs.stringify({
           transaction: row.transaction,
         })}`}
       >
         <Truncate value={row[column.key]} maxLength={75} />
       </Link>
-    </Fragment>
-  );
-}
-
-function P50Cell({row}: CellProps) {
-  const theme = useTheme();
-  const p50 = row.metrics?.p50;
-  const p50Series = row.metricSeries?.p50;
-
-  return (
-    <Fragment>
-      {p50Series ? (
-        <Sparkline
-          color={P50_COLOR}
-          series={p50Series}
-          markLine={
-            p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
-          }
-        />
-      ) : null}
-    </Fragment>
-  );
-}
-
-function EPMCell({row}: CellProps) {
-  const theme = useTheme();
-  const epm = row.metrics?.spm;
-  const epmSeries = row.metricSeries?.spm;
-
-  return (
-    <Fragment>
-      {epmSeries ? (
-        <Sparkline
-          color={THROUGHPUT_COLOR}
-          series={epmSeries}
-          markLine={
-            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
-          }
-        />
-      ) : null}
     </Fragment>
   );
 }
@@ -213,13 +162,13 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'epm()',
-    name: 'Throughput (TPM)',
+    key: 'spans_per_second',
+    name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(transaction.duration)',
-    name: DataTitles.p50,
+    key: 'p95(transaction.duration)',
+    name: DataTitles.p95,
     width: COL_WIDTH_UNDEFINED,
   },
   {

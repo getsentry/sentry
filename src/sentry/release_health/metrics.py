@@ -546,12 +546,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 max_date = max_date2
 
         if min_date is not None and max_date is not None:
-            return {  # type: ignore
+            return {
                 "sessions_lower_bound": iso_format_snuba_datetime(min_date),
                 "sessions_upper_bound": iso_format_snuba_datetime(max_date),
             }
         else:
-            return {  # type: ignore
+            return {
                 "sessions_lower_bound": None,
                 "sessions_upper_bound": None,
             }
