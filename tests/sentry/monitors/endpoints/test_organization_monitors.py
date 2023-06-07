@@ -235,12 +235,17 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "name": "My Monitor",
             "type": "cron_job",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {"targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]},
+            "alert_rule": {
+                "environment": self.environment.name,
+                "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+            },
         }
         response = self.get_success_response(self.organization.slug, **data)
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
         alert_rule_id = monitor.config.get("alert_rule_id")
-        assert Rule.objects.filter(
+        rule = Rule.objects.get(
             project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
-        ).exists()
+        )
+        assert rule is not None
+        assert rule.environment_id == self.environment.id

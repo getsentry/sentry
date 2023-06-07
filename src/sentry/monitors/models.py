@@ -488,6 +488,10 @@ class MonitorEnvironment(Model):
         if not affected:
             return False
 
+        # Do not create event if monitor is disabled
+        if self.monitor.status == ObjectStatus.DISABLED:
+            return True
+
         group_type, level = get_group_type_and_level(reason)
         current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 

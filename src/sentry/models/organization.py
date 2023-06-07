@@ -46,6 +46,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 
 
 class OrganizationStatus(IntEnum):
@@ -621,7 +622,10 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             return reverse(Organization.get_url_viewname())
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.id != "member":
+        """
+        Note that scopes for team-roles are filtered through this method too.
+        """
+        if bool(NON_MEMBER_SCOPES & role.scopes):
             return role.scopes
 
         scopes = set(role.scopes)

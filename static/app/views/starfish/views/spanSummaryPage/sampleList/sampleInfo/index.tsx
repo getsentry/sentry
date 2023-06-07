@@ -33,7 +33,7 @@ function SampleInfo(props: Props) {
       </Block>
       <Block title={DataTitles.p95}>{p95?.toFixed(2)} ms</Block>
       <Block title={DataTitles.timeSpent}>
-        <Tooltip title={tooltip}>
+        <Tooltip isHoverable title={tooltip}>
           {formatPercentage(span_total_time / application_total_time)}
         </Tooltip>
       </Block>
