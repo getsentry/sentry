@@ -290,7 +290,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile_percent_change,
-                    default_result_type="duration",
+                    default_result_type="percentage",
                 ),
             ]
         }
@@ -439,7 +439,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             [
                 Function(
                     "divide",
-                    [second_half, first_half],
+                    [
+                        Function(
+                            "minus",
+                            [second_half, first_half],
+                        ),
+                        first_half,
+                    ],
                 ),
                 100,
             ],
