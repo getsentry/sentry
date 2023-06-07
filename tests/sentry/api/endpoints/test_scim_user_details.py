@@ -133,8 +133,9 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         )
 
     @patch("sentry.scim.endpoints.members.metrics")
-    def test_metrics(self, mock_metrics):
+    def test_update_metric_hit_on_role_change(self, mock_metrics):
         # current restricted default role + blank sentryOrgRole -> unrestricted default role
+        # metric should run for same role but different role-restriction
         resp = self.get_success_response(
             self.organization.slug,
             self.restricted_default_role_member.id,
@@ -147,9 +148,23 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert not self.restricted_default_role_member.flags["idp:role-restricted"]
         mock_metrics.incr.assert_called_with(
             "sentry.scim.member.update_role",
-            sample_rate=1.0,
             tags={"organization": self.organization},
         )
+
+        # current restricted custom role + default sentryOrgRole -> restricted default role
+        # metric should run for different role but same role-restriction
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.restricted_custom_role_member.id,
+            method="put",
+            **generate_put_data(
+                self.restricted_custom_role_member, role=self.organization.default_role
+            ),
+        )
+        self.restricted_custom_role_member.refresh_from_db()
+        assert resp.data["sentryOrgRole"] == self.organization.default_role
+        assert self.restricted_custom_role_member.role == self.organization.default_role
+        assert self.restricted_custom_role_member.flags["idp:role-restricted"]
 
     def test_set_to_blank(self):
         # If we're updating a role to blank, then the user is saying that they don't want the IDP to manage role anymore
@@ -377,7 +392,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
         assert response.status_code == 204, response.content
         mock_metrics.incr.assert_called_with(
-            "sentry.scim.member.update", sample_rate=1.0, tags={"organization": self.organization}
+            "sentry.scim.member.delete", tags={"organization": self.organization}
         )
 
         with pytest.raises(OrganizationMember.DoesNotExist):
@@ -531,7 +546,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         response = self.client.delete(url)
         assert response.status_code == 204, response.content
         mock_metrics.incr.assert_called_with(
-            "sentry.scim.member.delete", sample_rate=1.0, tags={"organization": self.organization}
+            "sentry.scim.member.delete", tags={"organization": self.organization}
         )
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)

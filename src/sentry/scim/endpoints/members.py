@@ -274,17 +274,13 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             if self._should_delete_member(operation):
                 self._delete_member(request, organization, member)
                 metrics.incr(
-                    "sentry.scim.member.update",
-                    sample_rate=1.0,
+                    "sentry.scim.member.delete",
                     tags={"organization": organization},
                 )
                 return Response(status=204)
             else:
                 raise SCIMApiError(detail=SCIM_400_INVALID_PATCH)
 
-        metrics.incr(
-            "sentry.scim.member.update", sample_rate=1.0, tags={"organization": organization}
-        )
         context = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
@@ -307,9 +303,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         Delete an organization member with a SCIM User DELETE Request.
         """
         self._delete_member(request, organization, member)
-        metrics.incr(
-            "sentry.scim.member.delete", sample_rate=1.0, tags={"organization": organization}
-        )
+        metrics.incr("sentry.scim.member.delete", tags={"organization": organization})
         return Response(status=204)
 
     @extend_schema(
@@ -381,13 +375,19 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if requested_role not in allowed_roles:
             raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
+        previous_role = member.role
+        previous_restriction = member.flags["idp:role-restricted"]
         member.role = requested_role
         member.flags["idp:role-restricted"] = idp_role_restricted
         member.save()
 
-        metrics.incr(
-            "sentry.scim.member.update_role", sample_rate=1.0, tags={"organization": organization}
-        )
+        # only update metric if the role changed
+        if (
+            previous_role != organization.default_role
+            or previous_restriction != idp_role_restricted
+        ):
+            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+
         context = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
@@ -525,6 +525,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.
         """
+        update_role = False
 
         with sentry_sdk.start_transaction(
             name="scim.provision_member", op="scim", sampled=True
@@ -532,6 +533,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
                 role = request.data["sentryOrgRole"].lower()
                 idp_role_restricted = True
+                update_role = True
             else:
                 role = organization.default_role
                 idp_role_restricted = False
@@ -619,9 +621,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
             metrics.incr(
                 "sentry.scim.member.provision",
-                sample_rate=1.0,
                 tags={"organization": organization},
             )
+            if update_role:
+                metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+
             context = serialize(
                 member,
                 serializer=_scim_member_serializer_with_expansion(organization),

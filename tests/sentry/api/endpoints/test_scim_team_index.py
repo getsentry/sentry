@@ -52,7 +52,6 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert len(Team.objects.get(id=team_id).member_set) == 0
         mock_metrics.incr.assert_called_with(
             "sentry.scim.team.provision",
-            sample_rate=1.0,
             tags={"organization": self.organization},
         )
 

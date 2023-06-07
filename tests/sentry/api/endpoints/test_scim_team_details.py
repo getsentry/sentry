@@ -101,7 +101,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert Team.objects.get(id=team.id).name == "newName"
         assert Team.objects.get(id=team.id).idp_provisioned
         mock_metrics.incr.assert_called_with(
-            "sentry.scim.team.update", sample_rate=1.0, tags={"organization": self.organization}
+            "sentry.scim.team.update", tags={"organization": self.organization}
         )
 
     def test_scim_team_details_patch_add(self):
@@ -326,7 +326,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
         mock_metrics.incr.assert_called_with(
-            "sentry.scim.team.delete", sample_rate=1.0, tags={"organization": self.organization}
+            "sentry.scim.team.delete", tags={"organization": self.organization}
         )
 
     def test_remove_member_azure(self):
