@@ -1,11 +1,10 @@
 from concurrent.futures import Future
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-
-# from arroyo.types import BrokerValue
+from arroyo.types import BrokerValue
 from django.conf import settings
 
 from sentry.sentry_metrics.metrics_interface import GenericMetricsBackend
@@ -49,7 +48,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[Any]]:
+    ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
 
         """
         Used for emitting a counter metric for internal use cases only.
@@ -82,7 +81,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[Any]]:
+    ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
 
         """
         Used for emitting a set metric for internal use cases only. Can support
@@ -115,7 +114,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[Any]]:
+    ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
 
         """
         Used for emitting a distribution metric for internal use cases only. Can
