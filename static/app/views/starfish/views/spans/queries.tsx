@@ -1,4 +1,4 @@
-import moment, {unix} from 'moment';
+import {unix} from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {NewQuery} from 'sentry/types';
@@ -30,36 +30,6 @@ export const getTimeSpentQuery = (
     ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY primary_group
   `;
-};
-
-export const getSpanListQuery = (
-  datetime: DateTimeObject,
-  conditions: string[] = [],
-  orderBy: string,
-  limit: number
-) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  const validConditions = conditions.filter(Boolean);
-
-  return `SELECT
-    group_id, span_operation, description, domain,
-    sum(exclusive_time) as total_exclusive_time,
-    uniq(transaction) as transactions,
-    quantile(0.95)(exclusive_time) as p95,
-    quantile(0.75)(exclusive_time) as p75,
-    quantile(0.50)(exclusive_time) as p50,
-    count() as count,
-    (divide(count, ${
-      moment(end_timestamp ?? undefined).unix() - moment(start_timestamp).unix()
-    }) AS spans_per_second)
-    FROM spans_experimental_starfish
-    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
-    ${validConditions.length > 0 ? 'AND' : ''}
-    ${validConditions.join(' AND ')}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY group_id, span_operation, domain, description
-    ORDER BY ${orderBy ?? 'count'} desc
-    ${limit ? `LIMIT ${limit}` : ''}`;
 };
 
 export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]) => {

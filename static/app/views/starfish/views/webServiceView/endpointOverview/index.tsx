@@ -28,17 +28,11 @@ import Tags from 'sentry/views/discover/tags';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {
-  getSpanListQuery,
-  getSpansTrendsQuery,
-} from 'sentry/views/starfish/views/spans/queries';
-import SpansTable, {
-  SpanDataRow,
-  SpanTrendDataRow,
-} from 'sentry/views/starfish/views/spans/spansTable';
-import {buildQueryConditions} from 'sentry/views/starfish/views/spans/spansView';
+import {getSpansTrendsQuery} from 'sentry/views/starfish/views/spans/queries';
+import SpansTable, {SpanTrendDataRow} from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -278,29 +272,15 @@ function SpanMetricsTable({
   filter: ModuleName;
   transaction: string | undefined;
 }) {
-  const location = useLocation();
   const pageFilter = usePageFilters();
 
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-  const queryConditions = buildQueryConditions(filter || ModuleName.ALL, location);
-  if (transaction) {
-    queryConditions.push(`transaction = '${transaction}'`);
-  }
-
-  const query = getSpanListQuery(
-    pageFilter.selection.datetime,
-    queryConditions,
+  const {isLoading: areSpansLoading, data: spansData} = useSpanList(
+    filter ?? ModuleName.ALL,
+    transaction,
     'count',
     SPANS_TABLE_LIMIT
   );
-
-  const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', query],
-    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-  });
 
   const groupIDs = spansData.map(({group_id}) => group_id);
 
