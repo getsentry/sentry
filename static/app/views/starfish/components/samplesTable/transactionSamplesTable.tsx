@@ -19,12 +19,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'id',
     name: 'Event ID',
-    width: 200,
+    width: 140,
   },
   {
     key: 'profile_id',
     name: 'Profile ID',
-    width: 200,
+    width: 140,
   },
   {
     key: 'timestamp',
@@ -34,12 +34,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction.duration',
     name: 'Duration',
-    width: 200,
+    width: 100,
   },
   {
     key: 'p95_comparison',
     name: 'Compared to P95',
-    width: 200,
+    width: 100,
   },
 ];
 
