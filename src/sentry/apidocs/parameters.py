@@ -70,6 +70,24 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         description="The name of environments to filter by.",
     )
 
+    def NAME(description: str, required: str = False) -> str:
+        return OpenApiParameter(
+            name="name",
+            location="query",
+            required=required,
+            type=str,
+            description=description,
+        )
+
+    def SLUG(description: str, required: str = False) -> str:
+        return OpenApiParameter(
+            name="slug",
+            location="query",
+            required=required,
+            type=str,
+            description=description,
+        )
+
 
 class SCIM_PARAMS:
     MEMBER_ID = OpenApiParameter(
@@ -191,3 +209,22 @@ class EVENT_PARAMS:
         type=int,
         description="Index of the exception that should be used for source map resolution.",
     )
+
+
+class PROJECT_PARAMS:
+    DEFAULT_RULES = OpenApiParameter(
+        name="default_rules",
+        location="query",
+        required=False,
+        type=bool,
+        description="Defaults to true, where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
+    )
+
+    def PLATFORM(description: str) -> str:
+        return OpenApiParameter(
+            name="platform",
+            location="path",
+            required=False,
+            type=str,
+            description=description,
+        )

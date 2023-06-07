@@ -10,7 +10,7 @@ from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GLOBAL_PARAMS, PROJECT_PARAMS
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
@@ -99,11 +99,22 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         )
 
     @extend_schema(
+        # Ensure POST is in the projects tab
+        tags=["Projects"],
         operation_id="Create a New Project",
-        paramters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.TEAM_SLUG],
+        paramters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            GLOBAL_PARAMS.TEAM_SLUG,
+            GLOBAL_PARAMS.NAME("The name of the project.", required=True),
+            GLOBAL_PARAMS.SLUG(
+                "Optional slug for the new project. If not provided a slug is generated from the name."
+            ),
+            PROJECT_PARAMS.PLATFORM("The platform for the project."),
+            PROJECT_PARAMS.DEFAULT_RULES,
+        ],
         request=ProjectSerializer,
         responses={
-            201: "TO_DO",
+            201: ProjectSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
