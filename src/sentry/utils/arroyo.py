@@ -89,8 +89,6 @@ def _initialize_arroyo_subprocess(initializer: Optional[Callable[[], None]], tag
     # Inherit global tags from the parent process
     add_global_tags(_all_threads=True, **tags)
 
-    _initialize_arroyo_main()
-
 
 def _initialize_arroyo_main() -> None:
     from arroyo import configure_metrics
