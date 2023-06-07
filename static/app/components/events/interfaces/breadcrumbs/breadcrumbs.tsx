@@ -96,6 +96,7 @@ function Breadcrumbs({
     ],
     {
       staleTime: Infinity,
+      enabled: sentryTransactionIds.length > 0 && defined(maybeProject),
     }
   );
 
