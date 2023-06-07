@@ -1,10 +1,13 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import responses
+from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.repository import Repository
+from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.integrations.github import pr_comment
 from sentry.tasks.integrations.github.pr_comment import (
     PullRequestIssue,
@@ -316,7 +319,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.user_id = "user_1"
         self.app_id = "app_1"
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.expires_at = "3000-01-01T00:00:00Z"
+        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
