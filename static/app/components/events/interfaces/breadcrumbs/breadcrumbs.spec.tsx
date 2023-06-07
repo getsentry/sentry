@@ -128,6 +128,11 @@ describe('Breadcrumbs', () => {
         ],
       },
     };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/events/`,
+      method: 'GET',
+    });
   });
 
   describe('filterCrumbs', function () {
