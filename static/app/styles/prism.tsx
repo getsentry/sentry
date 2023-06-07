@@ -26,6 +26,8 @@ export const prismStyles = (theme: Theme) => css`
 
   pre[class*='language-'],
   code[class*='language-'] {
+    vertical-align: middle;
+
     color: var(--prism-base);
     background: var(--prism-block-background);
     font-size: ${theme.codeFontSize};
@@ -106,13 +108,11 @@ export const prismStyles = (theme: Theme) => css`
     }
     .line-highlight {
       position: absolute;
-      left: 0;
+      left: -${space(2)};
       right: 0;
-      padding: inherit 0;
-      margin-top: 1em;
       background: var(--prism-highlight-background);
       box-shadow: inset 5px 0 0 var(--prism-highlight-accent);
-      z-index: 0;
+      z-index: -1;
       pointer-events: none;
       line-height: inherit;
       white-space: pre;
@@ -127,6 +127,9 @@ export const prismStyles = (theme: Theme) => css`
 
   pre[data-line] {
     position: relative;
+    code {
+      background: unset;
+    }
   }
 
   pre[class*='language-'] > code[class*='language-'] {
