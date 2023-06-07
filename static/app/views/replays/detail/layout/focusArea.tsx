@@ -18,7 +18,7 @@ function FocusArea({}: Props) {
   const organization = useOrganization();
 
   switch (getActiveTab()) {
-    case TabKey.network:
+    case TabKey.NETWORK:
       return (
         <NetworkList
           isNetworkDetailsSetup={Boolean(replay?.isNetworkDetailsSetup())}
@@ -27,9 +27,9 @@ function FocusArea({}: Props) {
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
-    case TabKey.trace:
+    case TabKey.TRACE:
       return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
-    case TabKey.issues:
+    case TabKey.ISSUES:
       if (!replay) {
         return <Placeholder height="150px" />;
       }
@@ -39,14 +39,14 @@ function FocusArea({}: Props) {
           projectId={replay.getReplay()?.project_id}
         />
       );
-    case TabKey.dom:
+    case TabKey.DOM:
       return (
         <DomMutations
           replay={replay}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
-    case TabKey.memory:
+    case TabKey.MEMORY:
       return (
         <MemoryChart
           currentTime={currentTime}
@@ -57,7 +57,7 @@ function FocusArea({}: Props) {
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
         />
       );
-    case TabKey.console:
+    case TabKey.CONSOLE:
     default:
       return (
         <Console

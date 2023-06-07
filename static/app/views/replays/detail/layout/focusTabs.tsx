@@ -25,12 +25,12 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
   );
 
   return {
-    [TabKey.console]: t('Console'),
-    [TabKey.network]: networkLabel,
-    [TabKey.dom]: t('DOM Events'),
-    [TabKey.issues]: t('Issues'),
-    [TabKey.memory]: t('Memory'),
-    [TabKey.trace]: t('Trace'),
+    [TabKey.CONSOLE]: t('Console'),
+    [TabKey.NETWORK]: networkLabel,
+    [TabKey.DOM]: t('DOM Events'),
+    [TabKey.ISSUES]: t('Issues'),
+    [TabKey.MEMORY]: t('Memory'),
+    [TabKey.TRACE]: t('Trace'),
   };
 }
 
