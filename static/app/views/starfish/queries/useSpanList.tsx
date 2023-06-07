@@ -26,6 +26,7 @@ export type SpanMetrics = {
 
 export const useSpanList = (
   moduleName: ModuleName,
+  transaction?: string,
   orderBy?: string,
   limit?: number,
   _referrer = 'span-metrics'
@@ -41,6 +42,7 @@ export const useSpanList = (
     startTime,
     endTime,
     dateFilters,
+    transaction,
     orderBy,
     limit
   );
@@ -63,6 +65,7 @@ const getQuery = (
   startTime: Moment,
   endTime: Moment,
   dateFilters: string,
+  transaction?: string,
   orderBy?: string,
   limit?: number
 ) => {
@@ -83,6 +86,7 @@ const getQuery = (
     WHERE 1 = 1
     ${conditions.length > 0 ? 'AND' : ''}
     ${conditions.join(' AND ')}
+    ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${dateFilters}
     GROUP BY group_id, span_operation, domain, description
     ORDER BY ${orderBy ?? 'count'} desc

@@ -47,6 +47,7 @@ export default function SpansView(props: Props) {
 
   const {isLoading: areSpansLoading, data: spansData} = useSpanList(
     props.moduleName ?? ModuleName.ALL,
+    undefined,
     orderBy,
     LIMIT
   );
