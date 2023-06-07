@@ -4,7 +4,8 @@ from typing import Any, Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from arroyo.types import BrokerValue
+
+# from arroyo.types import BrokerValue
 from django.conf import settings
 
 from sentry.sentry_metrics.metrics_interface import GenericMetricsBackend
@@ -18,15 +19,15 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
-def set_future(f: Future[BrokerValue[KafkaPayload]]) -> Union[Future[None], Future[Any]]:
-    new_future: Union[Future[None], Future[Any]] = Future()
+# def set_future(f: Future[BrokerValue[KafkaPayload]]) -> Union[Future[None], Future[Any]]:
+#     new_future: Union[Future[None], Future[Any]] = Future()
 
-    if f.exception() is not None:
-        new_future.set_exception(f.exception())
-    else:
-        new_future.set_result(None)
+#     if f.exception() is not None:
+#         new_future.set_exception(f.exception())
+#     else:
+#         new_future.set_result(f.result)
 
-    return new_future
+#     return new_future
 
 
 class KafkaMetricsBackend(GenericMetricsBackend):
@@ -48,7 +49,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[None]]:
+    ) -> Optional[Future[Any]]:
 
         """
         Used for emitting a counter metric for internal use cases only.
@@ -69,9 +70,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
         original_future = self.producer.produce(Topic(self.kafka_topic), payload)
 
-        new_future = set_future(original_future)
-
-        return new_future
+        return original_future
 
     def set(
         self,
@@ -83,7 +82,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[None]]:
+    ) -> Optional[Future[Any]]:
 
         """
         Used for emitting a set metric for internal use cases only. Can support
@@ -104,9 +103,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
         original_future = self.producer.produce(Topic(self.kafka_topic), payload)
 
-        new_future = set_future(original_future)
-
-        return new_future
+        return original_future
 
     def distribution(
         self,
@@ -118,7 +115,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[None]]:
+    ) -> Optional[Future[Any]]:
 
         """
         Used for emitting a distribution metric for internal use cases only. Can
@@ -138,6 +135,4 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
         original_future = self.producer.produce(Topic(self.kafka_topic), payload)
 
-        new_future = set_future(original_future)
-
-        return new_future
+        return original_future

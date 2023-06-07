@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from concurrent.futures import Future
-from typing import Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
@@ -17,7 +17,7 @@ class GenericMetricsBackend(ABC):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[None]]:
+    ) -> Optional[Future[Any]]:
 
         """
         Used for emitting a counter metric for internal use cases only.
@@ -38,7 +38,7 @@ class GenericMetricsBackend(ABC):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[None]]:
+    ) -> Optional[Future[Any]]:
 
         """
         Used for emitting a set metric for internal use cases only. Can support
@@ -58,7 +58,7 @@ class GenericMetricsBackend(ABC):
         tags: Mapping[str, str],
         unit: Optional[str] = None,
         retention_days: Optional[int] = 90,
-    ) -> Optional[Future[None]]:
+    ) -> Optional[Future[Any]]:
 
         """
         Used for emitting a distribution metric for internal use cases only. Can
