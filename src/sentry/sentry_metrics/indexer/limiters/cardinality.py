@@ -93,10 +93,10 @@ class TimeseriesCardinalityLimiter:
         # this works by applying one cardinality limiter rollout option
         # for each metric path. ultimately, this can be moved into the
         # loop below to make rollout options occur on a per use case-basis
-        if metric_path_key == UseCaseKey.PERFORMANCE:
-            rollout_option = "sentry-metrics.cardinality-limiter.orgs-rollout-rate"
-        elif metric_path_key == UseCaseKey.RELEASE_HEALTH:
-            rollout_option = "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate"
+        rollout_option = {
+            UseCaseKey.PERFORMANCE: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
+            UseCaseKey.RELEASE_HEALTH: "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
+        }[metric_path_key]
 
         for key, message in messages.items():
             org_id = message["org_id"]
