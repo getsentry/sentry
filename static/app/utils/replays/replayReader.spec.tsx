@@ -232,34 +232,32 @@ describe('ReplayReader', () => {
 
     it.each([
       {
-        expected: true,
-        resourceData: TestStubs.Replay.NetworkRequestData({
+        data: {
           method: 'GET',
           request: {headers: {accept: 'application/json'}},
-        }),
+        },
+        expected: true,
       },
       {
-        expected: false,
-        resourceData: TestStubs.Replay.NetworkRequestData({
+        data: {
           method: 'GET',
-          request: {},
-        }),
+        },
+        expected: false,
       },
-    ])('should have isNetworkDetailsSetup=$expected', ({expected, resourceData}) => {
+    ])('should have isNetworkDetailsSetup=$expected', ({data, expected}) => {
       const startTimestamp = new Date();
       const endTimestamp = new Date();
-
       const replay = ReplayReader.factory({
         attachments: [
           TestStubs.Replay.SpanFrameEvent({
             timestamp: startTimestamp,
             data: {
-              payload: TestStubs.Replay.SpanFrame({
+              payload: TestStubs.Replay.RequestFrame({
                 op: 'resource.fetch',
                 startTimestamp,
                 endTimestamp,
                 description: '/api/0/issues/',
-                data: resourceData,
+                data,
               }),
             },
           }),
