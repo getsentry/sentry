@@ -2,7 +2,6 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
@@ -15,7 +14,6 @@ import {
   useApplicationMetrics,
 } from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
@@ -24,7 +22,6 @@ type Props = {
 
 type Row = {
   description: string;
-  metricSeries: Record<string, Series>;
   metrics: SpanMetrics;
 };
 
@@ -40,7 +37,6 @@ export function SpanBaselineTable({span}: Props) {
 
   const {data: applicationMetrics} = useApplicationMetrics();
   const {data: spanMetrics} = useSpanMetrics(span);
-  const {data: spanMetricSeries} = useSpanMetricSeries(span);
 
   const renderHeadCell = column => {
     return <span>{column.name}</span>;
@@ -64,7 +60,6 @@ export function SpanBaselineTable({span}: Props) {
         {
           description: span.description ?? '',
           metrics: spanMetrics,
-          metricSeries: spanMetricSeries,
         },
       ]}
       columnOrder={COLUMN_ORDER}
