@@ -4,7 +4,9 @@ from unittest.mock import Mock, patch
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from pytest import raises
 
 from sentry.monitoring.queues import QUEUES as MONITORED_QUEUES
 from sentry.monitoring.queues import _unhealthy_queue_key, queue_monitoring_cluster
@@ -53,8 +55,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
 
         process_profile_task.assert_called_with(payload=payload)
 
-    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
-    def test_backpressure(self, process_profile_task):
+    def test_backpressure_unhealthy(self, process_profile_task):
         queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
 
         # Set the queue as unhealthy so it shouldn't process messages
@@ -66,11 +67,14 @@ class TestProcessProfileConsumerStrategy(TestCase):
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
         ):
-            self.process_one_message()
+            with raises(MessageRejected):
+                self.process_one_message()
 
-        process_profile_task.assert_not_called()
+    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+    def test_backpressure_healthy(self, process_profile_task):
+        queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
 
-        # Set the queue as healthy again
+        # Set the queue as healthy
         queue_monitoring_cluster.delete(queue_name)
         with self.options(
             {
@@ -83,6 +87,8 @@ class TestProcessProfileConsumerStrategy(TestCase):
 
         process_profile_task.assert_called_once()
 
+    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+    def test_backpressure_not_enabled(self, process_profile_task):
         with self.options(
             {
                 "backpressure.monitor_queues.enable": False,
