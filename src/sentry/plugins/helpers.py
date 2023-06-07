@@ -25,7 +25,7 @@ def set_option(key, value, project: Project | RpcProject | None = None, user=Non
         result = UserOption.objects.set_value(user=user, key=key, value=value, project=project)
     elif project:
         if isinstance(project, RpcProject):
-            result = project_service.set_option(project=project, key=key, value=value)
+            result = project_service.update_option(project=project, key=key, value=value)
         else:
             result = ProjectOption.objects.set_value(project, key, value)
     else:
