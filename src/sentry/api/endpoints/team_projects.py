@@ -9,6 +9,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.api.serializers.models.project import ProjectSerializer as sentry_project_serializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.projects import PROJECT_EXAMPLES
 from sentry.apidocs.parameters import GLOBAL_PARAMS, PROJECT_PARAMS
@@ -115,7 +116,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         ],
         request=ProjectSerializer,
         responses={
-            201: ProjectSerializer,
+            201: sentry_project_serializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
