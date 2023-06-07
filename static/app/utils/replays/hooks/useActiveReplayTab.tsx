@@ -15,7 +15,7 @@ export enum TabKey {
 }
 
 function isReplayTab(tab: string): tab is TabKey {
-  return Object.values(TabKey).includes(tab);
+  return Object.values<string>(TabKey).includes(tab);
 }
 
 function useDefaultTab() {
