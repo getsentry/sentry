@@ -55,7 +55,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
 
         process_profile_task.assert_called_with(payload=payload)
 
-    def test_backpressure_unhealthy(self, process_profile_task):
+    def test_backpressure_unhealthy(self):
         queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
 
         # Set the queue as unhealthy so it shouldn't process messages
