@@ -77,7 +77,9 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             order_by=self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added")),
             paginator_cls=OffsetPaginator,
             default_per_page=10,
-            on_results=lambda r: serialize(r, request.user, ArtifactBundlesSerializer()),
+            on_results=lambda r: serialize(
+                r, request.user, ArtifactBundlesSerializer(organization_id=project.organization_id)
+            ),
         )
 
     def delete(self, request: Request, project) -> Response:

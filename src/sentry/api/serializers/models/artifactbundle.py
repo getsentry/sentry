@@ -2,12 +2,15 @@ import base64
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer
-from sentry.models import ReleaseArtifactBundle, SourceFileType
+from sentry.models import ArtifactBundle, SourceFileType
 
 INVALID_SOURCE_FILE_TYPE = 0
 
 
 class ArtifactBundlesSerializer(Serializer):
+    def __init__(self, organization_id):
+        self.organization_id = organization_id
+
     @staticmethod
     def _compute_associations(item, grouped_bundles):
         associations = []
@@ -20,8 +23,8 @@ class ArtifactBundlesSerializer(Serializer):
         return associations
 
     def get_attrs(self, item_list, user):
-        release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-            artifact_bundle_id__in=[r.id for r in item_list]
+        release_artifact_bundles = ArtifactBundle.get_release_artifact_bundles(
+            organization_id=self.organization_id, artifact_bundle_ids=[r.id for r in item_list]
         )
 
         grouped_bundles = defaultdict(set)

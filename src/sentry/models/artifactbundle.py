@@ -20,6 +20,9 @@ from sentry.utils.hashlib import sha1_text
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
 
+# We want to limit the amount of associations that are returned in order to not overwhelm the frontend.
+ASSOCIATIONS_LIMIT = 50
+
 
 class SourceFileType(Enum):
     SOURCE = 1
@@ -62,11 +65,23 @@ class ArtifactBundle(Model):
         db_table = "sentry_artifactbundle"
 
     @classmethod
+    def get_release_artifact_bundles(
+        cls, organization_id: int, artifact_bundle_ids: List[int], limit=ASSOCIATIONS_LIMIT
+    ) -> List["ReleaseArtifactBundle"]:
+        return list(
+            ReleaseArtifactBundle.objects.filter(
+                organization_id=organization_id, artifact_bundle_id__in=artifact_bundle_ids
+            )[:limit]
+        )
+
+    @classmethod
     def get_release_associations(
-        cls, organization_id: int, artifact_bundle: "ArtifactBundle"
-    ) -> List[Mapping[str, str]]:
-        release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-            organization_id=organization_id, artifact_bundle=artifact_bundle
+        cls,
+        organization_id: int,
+        artifact_bundle: "ArtifactBundle",
+    ) -> List[Mapping[str, Optional[str]]]:
+        release_artifact_bundles = ArtifactBundle.get_release_artifact_bundles(
+            organization_id, [artifact_bundle.id]
         )
 
         return [
