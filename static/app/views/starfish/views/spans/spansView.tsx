@@ -8,6 +8,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -15,8 +16,8 @@ import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domain
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
-import {getSpanListQuery, getSpansTrendsQuery} from './queries';
-import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
+import {getSpansTrendsQuery} from './queries';
+import type {SpanTrendDataRow} from './spansTable';
 import SpansTable from './spansTable';
 
 const LIMIT: number = 25;
@@ -44,24 +45,11 @@ export default function SpansView(props: Props) {
 
   const {orderBy} = state;
 
-  const queryConditions = buildQueryConditions(
-    props.moduleName || ModuleName.ALL,
-    location
-  );
-  const query = getSpanListQuery(
-    pageFilter.selection.datetime,
-    queryConditions,
+  const {isLoading: areSpansLoading, data: spansData} = useSpanList(
+    props.moduleName ?? ModuleName.ALL,
     orderBy,
     LIMIT
   );
-
-  const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', query],
-    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-  });
 
   const groupIDs = spansData.map(({group_id}) => group_id);
 
