@@ -8,8 +8,6 @@ import {t} from 'sentry/locale';
 
 // Configuration Start
 
-const language = 'javascript';
-
 const replayIntegration = 'new Sentry.Replay(),';
 
 const replayOtherConfig = `// Session Replay
@@ -26,6 +24,7 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 
 const steps = (sentryInitContent: string): LayoutProps['steps'] => [
   {
+    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
@@ -39,6 +38,7 @@ const steps = (sentryInitContent: string): LayoutProps['steps'] => [
     `,
   },
   {
+    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       "Initialize Sentry as early as possible in your application's lifecycle."
@@ -54,6 +54,7 @@ const steps = (sentryInitContent: string): LayoutProps['steps'] => [
     `,
   },
   {
+    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
@@ -129,11 +130,5 @@ export default function GettingStartedWithReact({dsn, activeProductSelection}: P
     sentryInitContent = sentryInitContent.concat(otherConfigs);
   }
 
-  return (
-    <Layout
-      language={language}
-      steps={steps(sentryInitContent.join('\n'))}
-      nextSteps={nextStepDocs}
-    />
-  );
+  return <Layout steps={steps(sentryInitContent.join('\n'))} nextSteps={nextStepDocs} />;
 }

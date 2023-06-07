@@ -19,27 +19,29 @@ type Steps = [
   {
     code: string;
     description: React.ReactNode;
+    language: string;
     type: StepType.INSTALL;
   },
   {
     code: string;
     description: React.ReactNode;
+    language: string;
     type: StepType.CONFIGURE;
   },
   {
     code: string;
     description: React.ReactNode;
+    language: string;
     type: StepType.VERIFY;
   }
 ];
 
 export type LayoutProps = {
-  language: string;
   steps: Steps;
   nextSteps?: NextStep[];
 };
 
-export function Layout({language, steps, nextSteps}: LayoutProps) {
+export function Layout({steps, nextSteps}: LayoutProps) {
   return (
     <Fragment>
       <ProductSelection
@@ -52,7 +54,7 @@ export function Layout({language, steps, nextSteps}: LayoutProps) {
             type={step.type}
             description={step.description}
             code={step.code}
-            language={language}
+            language={step.language}
           />
         ))}
       </div>

@@ -28,8 +28,8 @@ export function Step({type, description, language, code}: StepProps) {
     <div>
       <h4>{StepTitle[type]}</h4>
       <p>{description}</p>
-      <SyntaxHighlight dark language={type === StepType.INSTALL ? 'bash' : language}>
-        {type !== StepType.INSTALL && language === 'javascript'
+      <SyntaxHighlight dark language={language}>
+        {language === 'javascript'
           ? beautify.js(code, {indent_size: 2, e4x: true})
           : beautify.html(code, {indent_size: 2})}
       </SyntaxHighlight>
