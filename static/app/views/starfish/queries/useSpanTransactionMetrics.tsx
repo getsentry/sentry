@@ -3,7 +3,7 @@ import moment from 'moment';
 
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
@@ -18,7 +18,7 @@ export type SpanTransactionMetrics = {
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Pick<Span, 'group_id'>,
+  span?: Pick<IndexedSpan, 'group'>,
   transactions?: string[],
   referrer = 'span-transaction-metrics'
 ) => {
@@ -39,7 +39,7 @@ export const useSpanTransactionMetrics = (
         moment(endTime ?? undefined).unix() - moment(startTime).unix()
       }) as spans_per_second
     FROM spans_experimental_starfish
-    WHERE group_id = '${span.group_id}'
+    WHERE group_id = '${span.group}'
     ${dateFilters}
     AND transaction IN ('${transactions.join("','")}')
     GROUP BY transaction
@@ -49,7 +49,7 @@ export const useSpanTransactionMetrics = (
   const {isLoading, error, data} = useQuery<SpanTransactionMetrics[]>({
     queryKey: [
       'span-transactions-metrics',
-      span?.group_id,
+      span?.group,
       transactions?.join(',') || '',
       dateFilters,
     ],

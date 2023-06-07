@@ -199,6 +199,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "time_spent_percentage",
+                    optional_args=[
+                        fields.with_default(
+                            "app", fields.SnQLStringArg("scope", allowed_strings=["app", "local"])
+                        )
+                    ],
                     snql_distribution=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
                 ),
@@ -249,6 +254,35 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_http_error_count,
                     default_result_type="integer",
                 ),
+                fields.MetricsFunction(
+                    "percentile_range",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["span.duration"],
+                            allow_custom_measurements=False,
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                        fields.ConditionArg("condition"),
+                        fields.SnQLDateArg("middle"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args,
+                        alias=alias,
+                        fixed_percentile=args["percentile"],
+                        extra_conditions=[
+                            Function(
+                                args["condition"],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.builder.column("timestamp"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    default_result_type="duration",
+                ),
             ]
         }
 
@@ -280,10 +314,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_total_span_duration(self, alias: str) -> SelectType:
-        """This calculates the app's total time, so other filters that are
-        a part of the original query will not be applies. Only filter conditions
-        that will be applied are snuba params.
+    def _resolve_total_span_duration(self, alias: str, scope: str) -> SelectType:
+        """This calculates the total time, and based on the scope will return
+        either the apps total time or whatever other local scope/filters are
+        applied.
         This must be cached since it runs another query."""
         self.builder.requires_other_aggregates = True
         if self.total_span_duration is not None:
@@ -297,6 +331,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
 
         total_query.columns += self.builder.resolve_groupby()
+
+        if scope == "local":
+            total_query.where = self.builder.where
+
         total_results = total_query.run_query(
             Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
         )
@@ -311,7 +349,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     def _resolve_time_spent_percentage(
         self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
     ) -> SelectType:
-        total_time = self._resolve_total_span_duration(constants.TOTAL_SPAN_DURATION_ALIAS)
+        total_time = self._resolve_total_span_duration(
+            constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"]
+        )
         metric_id = self.resolve_metric("span.duration")
 
         return Function(

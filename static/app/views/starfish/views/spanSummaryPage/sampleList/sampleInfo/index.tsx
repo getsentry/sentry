@@ -15,7 +15,7 @@ type Props = {
 function SampleInfo(props: Props) {
   const {groupId, transactionName} = props;
 
-  const {data: spanMetrics} = useSpanTransactionMetrics({group_id: groupId}, [
+  const {data: spanMetrics} = useSpanTransactionMetrics({group: groupId}, [
     transactionName,
   ]);
   const {data: applicationMetrics} = useApplicationMetrics();
@@ -30,7 +30,7 @@ function SampleInfo(props: Props) {
         <ThroughputCell throughputPerSecond={spansPerSecond} />
       </Block>
       <Block title={DataTitles.p95}>
-        <DurationCell seconds={p95} />
+        <DurationCell milliseconds={p95} />
       </Block>
       <Block title={DataTitles.timeSpent}>
         <TimeSpentCell
