@@ -14,7 +14,6 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     SentryAppInstallationForProvider,
-    User,
 )
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
@@ -42,7 +41,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             user=user, organization=self.organization, role="owner", teams=[self.team]
         )
         AuthIdentity.objects.create(user=user, ident="foo2", auth_provider=self.auth_provider)
-        om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
+        om = OrganizationMember.objects.get(user=user, organization=self.organization)
         setattr(om.flags, "sso:linked", True)
         om.save()
         return user
@@ -53,7 +52,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             user=user, organization=self.organization, role="manager", teams=[self.team]
         )
         AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider)
-        om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
+        om = OrganizationMember.objects.get(user=user, organization=self.organization)
         setattr(om.flags, "sso:linked", True)
         om.save()
         return user
@@ -141,7 +140,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
-        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+        member = OrganizationMember.objects.get(organization=organization, user=user)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -158,7 +157,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         return organization, auth_provider
 
     def create_om_and_link_sso(self, organization):
-        om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
+        om = OrganizationMember.objects.get(user=self.user, organization=organization)
         setattr(om.flags, "sso:linked", True)
         om.save()
         return om
@@ -260,7 +259,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         om = OrganizationMember.objects.get(id=om.id)
 
         assert not getattr(om.flags, "sso:linked")
-        assert not User.objects.get(id=om.user_id).is_managed
+        assert not om.user.is_managed
 
         assert email_unlink_notifications.delay.called
 
@@ -288,7 +287,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         om = OrganizationMember.objects.get(id=om.id)
 
         assert not getattr(om.flags, "sso:linked")
-        assert not User.objects.get(id=om.user_id).is_managed
+        assert not om.user.is_managed
 
         assert email_unlink_notifications.delay.called
 
@@ -449,17 +448,15 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         # "add" some scim users
         u1 = self.create_user()
-        not_scim_member = OrganizationMember.objects.create(
-            user_id=u1.id, organization=organization
-        )
+        not_scim_member = OrganizationMember.objects.create(user=u1, organization=organization)
         not_scim_member.save()
         u2 = self.create_user()
-        scim_member = OrganizationMember.objects.create(user_id=u2.id, organization=organization)
+        scim_member = OrganizationMember.objects.create(user=u2, organization=organization)
         scim_member.flags["idp:provisioned"] = True
         scim_member.save()
         u3 = self.create_user()
         scim_role_restricted_user = OrganizationMember.objects.create(
-            user_id=u3.id, organization=organization
+            user=u3, organization=organization
         )
         scim_role_restricted_user.flags["idp:provisioned"] = True
         scim_role_restricted_user.flags["idp:role-restricted"] = True

@@ -171,7 +171,7 @@ class ResolvedInCommitTest(TestCase):
         with exempt_from_silo_limits():
             email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
-        OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
+        OrganizationMember.objects.create(organization=group.project.organization, user=user)
         with exempt_from_silo_limits():
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
 
@@ -211,9 +211,7 @@ class ResolvedInCommitTest(TestCase):
             repo = Repository.objects.create(
                 name="example", organization_id=self.group.organization.id
             )
-            OrganizationMember.objects.create(
-                organization=group.project.organization, user_id=user.id
-            )
+            OrganizationMember.objects.create(organization=group.project.organization, user=user)
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="0")
 
         commit = Commit.objects.create(

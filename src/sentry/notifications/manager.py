@@ -38,12 +38,12 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -402,11 +402,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         dictionary. Finally, we traverse the set of users and return the ones
         that should get a notification.
         """
+        from sentry.models.user import User
 
-        user_ids = project.member_set.values_list("user_id", flat=True)
-        return self.filter_to_accepting_recipients(
-            project, {RpcUser(id=user_id) for user_id in user_ids}
-        )
+        user_ids = project.member_set.values_list("user", flat=True)
+        users = User.objects.filter(id__in=user_ids)
+        return self.filter_to_accepting_recipients(project, users)
 
     def update_settings_bulk(
         self,
@@ -505,6 +505,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     ) -> bool:
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
 
         key_field = None
         if isinstance(recipient, RpcActor):

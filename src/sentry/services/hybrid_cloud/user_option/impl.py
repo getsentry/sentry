@@ -67,25 +67,18 @@ class DatabaseBackedUserOptionService(UserOptionService):
 
         def apply_filters(self, query: QuerySet, filters: UserOptionFilterArgs) -> QuerySet:
             # To maintain expected behaviors, we default these to None and always query for them
-            if "project_ids" in filters:
-                query = query.filter(
-                    user_id__in=filters["user_ids"],
-                    project_id__in=filters["project_ids"],
-                )
-            else:
-                project_id = None
-                if "project_id" in filters:
-                    project_id = filters["project_id"]
+            project_id = None
+            if "project_id" in filters:
+                project_id = filters["project_id"]
+            organization_id = None
+            if "organization_id" in filters:
+                organization_id = filters["organization_id"]
 
-                organization_id = None
-                if "organization_id" in filters:
-                    organization_id = filters["organization_id"]
-
-                query = query.filter(
-                    user_id__in=filters["user_ids"],
-                    project_id=project_id,
-                    organization_id=organization_id,
-                )
+            query = query.filter(
+                user_id__in=filters["user_ids"],
+                project_id=project_id,
+                organization_id=organization_id,
+            )
 
             if "keys" in filters or "key" in filters:
                 keys: List[str] = []

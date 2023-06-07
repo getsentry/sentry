@@ -47,18 +47,14 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_many_ids(self, *, filter: UserFilterArgs) -> List[int]:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_many_by_email(
         self,
         *,
         emails: List[str],
         is_active: bool = True,
         is_verified: bool = True,
-        organization_id: Optional[int] = None,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
     ) -> List[RpcUser]:
         """
         Return a list of users matching the filters
@@ -109,13 +105,6 @@ class UserService(RpcService):
             return users[0]
         else:
             return None
-
-    @rpc_method
-    @abstractmethod
-    def get_user_by_social_auth(
-        self, *, organization_id: int, provider: str, uid: str
-    ) -> Optional[RpcUser]:
-        pass
 
 
 user_service: UserService = cast(UserService, UserService.create_delegation())

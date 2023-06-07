@@ -136,7 +136,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         team = Team.objects.get(id=from_team.id)
         assert team.organization == to_org
 
-        member = OrganizationMember.objects.get(user_id=other_user.id, organization=to_org)
+        member = OrganizationMember.objects.get(user=other_user, organization=to_org)
         self.assert_org_member_mapping(org_member=member)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=from_team
@@ -324,7 +324,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         user = User.objects.get(id=user_id)
         assert not member.is_pending
         assert not member.email
-        assert member.user_id == user.id
+        assert member.user == user
 
     def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
@@ -413,7 +413,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
     def test_handle_2fa_required__pending_member__ok(self):
         member = self.create_member(organization=self.org, email="bob@zombo.com")
-        assert not member.user_id
+        assert not member.user
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.org.handle_2fa_required(self.request)

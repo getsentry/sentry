@@ -97,7 +97,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         user = auth_identity.user
 
         assert user.email == self.email
-        org_member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
+        org_member = OrganizationMember.objects.get(organization=self.organization, user=user)
         self.assert_org_member_mapping(org_member=org_member)
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
@@ -120,7 +120,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         auth_identity = self.handler.handle_new_user()
 
         assigned_member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=auth_identity.user_id
+            organization=self.organization, user=auth_identity.user
         )
 
         assert assigned_member.id == member.id
@@ -136,7 +136,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         org_member = OrganizationMember.objects.get(
             organization=self.organization,
-            user_id=auth_identity.user_id,
+            user=auth_identity.user,
             invite_status=InviteStatus.APPROVED.value,
         )
 
@@ -159,7 +159,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         auth_identity = self.handler.handle_new_user()
 
         assigned_member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=auth_identity.user.id
+            organization=self.organization, user=auth_identity.user
         )
 
         assert assigned_member.id == member.id
@@ -180,9 +180,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
         assert persisted_identity.data == self.identity["data"]
 
-        persisted_om = OrganizationMember.objects.get(
-            user_id=user.id, organization=self.organization
-        )
+        persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(persisted_om.flags, "sso:linked")
         assert not getattr(persisted_om.flags, "member-limit:restricted")
         assert not getattr(persisted_om.flags, "sso:invalid")
@@ -206,9 +204,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
             assert persisted_identity.data == self.identity["data"]
 
-            persisted_om = OrganizationMember.objects.get(
-                user_id=user.id, organization=self.organization
-            )
+            persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "member-limit:restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
@@ -229,13 +225,13 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         self.assert_org_member_mapping(
             org_member=OrganizationMember.objects.get(
-                user_id=request_user.id, organization=self.organization
+                user=request_user, organization=self.organization
             )
         )
 
         org_member = OrganizationMember.objects.get(
             organization=self.organization,
-            user_id=self.user.id,
+            user=self.user,
         )
         self.assert_org_member_mapping(org_member=org_member)
 
@@ -255,7 +251,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         user = self.set_up_user()
         with exempt_from_silo_limits():
             existing_om = OrganizationMember.objects.create(
-                user_id=user.id, organization=self.organization
+                user=user, organization=self.organization
             )
 
         auth_identity = self.handler.handle_attach_identity()
@@ -281,7 +277,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         org_member = OrganizationMember.objects.get(
             organization=self.organization,
-            user_id=user.id,
+            user=user,
         )
         self.assert_org_member_mapping(org_member=org_member)
 
@@ -293,7 +289,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
         )
         with exempt_from_silo_limits():
-            OrganizationMember.objects.create(user_id=other_user.id, organization=self.organization)
+            OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
         returned_identity = self.handler.handle_attach_identity()
         assert returned_identity.user == request_user
@@ -301,12 +297,12 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert returned_identity.data == self.identity["data"]
         self.assert_org_member_mapping(
             org_member=OrganizationMember.objects.get(
-                user_id=request_user.id, organization=self.organization
+                user=request_user, organization=self.organization
             )
         )
 
         persisted_om = OrganizationMember.objects.get(
-            user_id=other_user.id, organization=self.organization
+            user=other_user, organization=self.organization
         )
         assert not getattr(persisted_om.flags, "sso:linked")
         assert getattr(persisted_om.flags, "sso:invalid")
@@ -443,9 +439,7 @@ class AuthHelperTest(TestCase):
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):
     def setUp(self):
         super().setUp()
-        member = OrganizationMember.objects.get(
-            organization=self.organization, user_id=self.user.id
-        )
+        member = OrganizationMember.objects.get(organization=self.organization, user=self.user)
         self.identity_id = self.identity["id"]
         self.verification_value = {
             "user_id": self.user.id,

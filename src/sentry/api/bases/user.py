@@ -35,7 +35,7 @@ class OrganizationUserPermission(UserPermission):
 
         try:
             organization = Organization.objects.get(
-                status=OrganizationStatus.ACTIVE, member_set__user_id=user.id
+                status=OrganizationStatus.ACTIVE, member_set__user=user
             )
 
             self.determine_access(request, organization)

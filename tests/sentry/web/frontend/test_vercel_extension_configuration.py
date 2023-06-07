@@ -19,7 +19,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user_id=self.user.id, organization=self.org, role="admin")
+        OrganizationMember.objects.create(user=self.user, organization=self.org, role="admin")
 
         responses.reset()
         # need oauth mocks
@@ -70,7 +70,7 @@ class VercelExtensionConfigurationTest(TestCase):
 
     def test_logged_in_as_member(self):
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
+            OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
                 role="member"
             )
         self.login_as(self.user)
@@ -91,7 +91,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        OrganizationMember.objects.create(user_id=self.user.id, organization=org)
+        OrganizationMember.objects.create(user=self.user, organization=org)
 
         resp = self.client.get(self.path, self.params)
 
@@ -110,7 +110,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        OrganizationMember.objects.create(user_id=self.user.id, organization=org)
+        OrganizationMember.objects.create(user=self.user, organization=org)
         self.params["orgSlug"] = org.slug
 
         resp = self.client.get(self.path, self.params)

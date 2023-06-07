@@ -256,7 +256,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user_id == user.id
+            assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
@@ -327,7 +327,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user_id == user.id
+            assert om.user == user
 
             om2 = Factories.create_member(
                 email="newuser3@example.com",
@@ -370,7 +370,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user_id == user.id
+            assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")

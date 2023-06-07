@@ -29,9 +29,7 @@ class OrganizationAccessRequest(Model):
         from sentry.utils.email import MessageBuilder
 
         organization = self.team.organization
-        user = user_service.get_user(user_id=self.member.user_id)
-        if user is None:
-            return
+        user = self.member.user
         email = user.email
 
         context = {
@@ -66,16 +64,15 @@ class OrganizationAccessRequest(Model):
         member_list = OrganizationMember.objects.filter(
             Q(role__in=global_roles) | Q(teams=self.team, role__in=team_roles),
             organization=self.team.organization,
-            user_id__isnull=False,
-        ).values_list("user_id", flat=True)
-        member_users = user_service.get_many(filter=dict(user_ids=list(member_list)))
+            user__isnull=False,
+        ).select_related("user")
 
-        msg.send_async([user.email for user in member_users])
+        msg.send_async([m.user.email for m in member_list])
 
     def send_approved_email(self):
         from sentry.utils.email import MessageBuilder
 
-        user = user_service.get_user(user_id=self.member.user_id)
+        user = self.member.user
         email = user.email
         organization = self.team.organization
 

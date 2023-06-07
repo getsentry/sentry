@@ -271,8 +271,7 @@ class DetailedUserSerializer(UserSerializer):
 
         memberships = manytoone_to_dict(
             OrganizationMember.objects.filter(
-                user_id__in={u.id for u in item_list},
-                organization__status=OrganizationStatus.ACTIVE,
+                user__in=item_list, organization__status=OrganizationStatus.ACTIVE
             ),
             "user_id",
         )

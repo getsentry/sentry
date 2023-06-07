@@ -11,13 +11,19 @@ from sentry.models import OrganizationMember
 @region_silo_endpoint
 class ProjectMemberIndexEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
-        queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True) | Q(user_id__isnull=True),
-            organization=project.organization,
-            teams__in=project.teams.all(),
-        ).distinct()
+        queryset = (
+            OrganizationMember.objects.filter(
+                Q(user__is_active=True) | Q(user__isnull=True),
+                organization=project.organization,
+                teams__in=project.teams.all(),
+            )
+            .select_related("user")
+            .distinct()
+        )
 
-        member_list = sorted(queryset, key=lambda x: x.email or x.id)
+        member_list = sorted(
+            queryset, key=lambda x: x.user.get_display_name() if x.user_id else x.email
+        )
 
         context = serialize(member_list, request.user)
 

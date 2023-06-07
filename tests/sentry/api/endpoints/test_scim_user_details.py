@@ -342,7 +342,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -367,7 +367,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -392,7 +392,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -417,7 +417,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -442,7 +442,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -461,7 +461,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -498,7 +498,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     def test_delete_route(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",

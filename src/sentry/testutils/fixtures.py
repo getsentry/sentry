@@ -18,7 +18,6 @@ from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -136,8 +135,7 @@ class Fixtures:
         if organization is None:
             organization = self.organization
 
-        with outbox_runner():
-            return Factories.create_team(organization=organization, **kwargs)
+        return Factories.create_team(organization=organization, **kwargs)
 
     def create_environment(self, project=None, **kwargs):
         if project is None:
