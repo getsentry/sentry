@@ -36,35 +36,12 @@ export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.cli
   };
 }
 
-export function FetchFrame(fields: TestableFrame<'fetch'>): MockFrame<'fetch'> {
-  return {
-    category: 'fetch',
-    data: fields.data ?? {
-      method: 'get',
-      url: '/',
-    },
-    message: fields.message,
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: 'http',
-  };
-}
-
 export function InputFrame(fields: TestableFrame<'ui.input'>): MockFrame<'ui.input'> {
   return {
     category: 'ui.input',
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
     type: BreadcrumbType.DEFAULT,
-  };
-}
-
-export function XhrFrame(fields: TestableFrame<'xhr'>): MockFrame<'xhr'> {
-  return {
-    category: 'xhr',
-    data: fields.data ?? {},
-    message: fields.message,
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: 'http',
   };
 }
 
