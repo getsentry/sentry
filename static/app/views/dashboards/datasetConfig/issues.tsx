@@ -72,8 +72,14 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   };
 }
 
-function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQuery) {
+function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
+  if (hasBetterPrioritySort) {
+    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+  }
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,
