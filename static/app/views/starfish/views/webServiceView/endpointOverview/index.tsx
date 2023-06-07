@@ -220,7 +220,7 @@ export default function EndpointOverview() {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Endpoint Overview')}</Layout.Title>
+            <Layout.Title>{`${method} ${transaction}`}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -232,8 +232,6 @@ export default function EndpointOverview() {
           </SearchContainerWithFilterAndMetrics>
 
           <Layout.Main>
-            <SubHeader>{t('Endpoint URL')}</SubHeader>
-            <pre>{`${method} ${transaction}`}</pre>
             <StyledRow minSize={200}>
               <SpanGroupBreakdownContainer transaction={transaction as string} />
             </StyledRow>
