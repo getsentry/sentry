@@ -38,11 +38,11 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
 
-from ...services.hybrid_cloud.user.service import user_service
 from .constants import (
     SCIM_400_INVALID_ORGROLE,
     SCIM_400_INVALID_PATCH,
