@@ -96,7 +96,7 @@ msgpack==1.0.4
 msgpack-types==0.2.0
 multidict==6.0.4
 mypy==1.3.0
-mypy-extensions==0.4.3
+mypy-extensions==1.0.0
 nodeenv==1.6.0
 oauthlib==3.1.0
 openai==0.27.0
