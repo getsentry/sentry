@@ -16,15 +16,14 @@ const EventsRequest = withApi(_EventsRequest);
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -83,13 +82,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+        yAxis="http_error_count()"
+        dataset={DiscoverDatasets.METRICS}
       >
         {eventData => {
           const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
             series => ({
               data: series.data,
-              seriesName: t('Error Rate'),
+              seriesName: t('Errors (5XXs)'),
               color: CHART_PALETTE[5][3],
               silent: true,
             })
@@ -126,7 +126,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 isLineChart
                 chartColors={theme.charts.getColorPalette(2)}
                 disableXAxis
-                aggregateOutputFormat="percentage"
                 onClick={e => {
                   if (e.componentType === 'markArea') {
                     setSelectedSpike({
@@ -169,13 +168,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
-          const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
-            data: series.data,
-            seriesName: t('Throughput'),
-            color: CHART_PALETTE[0][0],
-          }));
-
-          if (!transformedData) {
+          if (!timeseriesData) {
             return null;
           }
 
@@ -183,7 +176,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <Chart
               statsPeriod={eventView.statsPeriod}
               height={80}
-              data={transformedData}
+              data={timeseriesData}
               start=""
               end=""
               loading={loading}
@@ -205,67 +198,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
     );
   }
 
-  function renderEndpointPercentileChart() {
-    const query = new MutableSearch([
-      'event.type:transaction',
-      'has:http.method',
-      'transaction.op:http.server',
-    ]);
-
-    return (
-      <EventsRequest
-        query={query.formatString()}
-        includePrevious={false}
-        partial
-        interval="1h"
-        includeTransformedData
-        limit={1}
-        environment={eventView.environment}
-        project={eventView.project}
-        period={eventView.statsPeriod}
-        referrer="starfish-homepage-count"
-        start={eventView.start}
-        end={eventView.end}
-        organization={organization}
-        yAxis={['p95(transaction.duration)']}
-        queryExtras={{dataset: 'metrics'}}
-      >
-        {({loading, results}) => {
-          const transformedData: Series[] | undefined = results?.map(series => ({
-            data: series.data,
-            seriesName: series.seriesName,
-          }));
-          if (!transformedData) {
-            return null;
-          }
-
-          return (
-            <Chart
-              statsPeriod={eventView.statsPeriod}
-              height={107}
-              data={transformedData}
-              start=""
-              end=""
-              loading={loading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '16px',
-                bottom: '0',
-              }}
-              definedAxisTicks={2}
-              isLineChart
-              chartColors={[P95_COLOR]}
-              disableXAxis
-              aggregateOutputFormat="duration"
-            />
-          );
-        }}
-      </EventsRequest>
-    );
-  }
-
   useSynchronizeCharts();
 
   return (
@@ -276,14 +208,11 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>
-            <MiniChartPanel title={t('Error Rate')}>
-              {renderFailureRateChart()}
-            </MiniChartPanel>
-            <MiniChartPanel title={DataTitles.p95}>
-              {renderEndpointPercentileChart()}
-            </MiniChartPanel>
-            <MiniChartPanel title={t('Throughput')}>
+            <MiniChartPanel title={t('Throughput Per Second')}>
               {renderThroughputChart()}
+            </MiniChartPanel>
+            <MiniChartPanel title={t('5XX Responses')}>
+              {renderFailureRateChart()}
             </MiniChartPanel>
           </ChartsContainerItem2>
         </ChartsContainer>
