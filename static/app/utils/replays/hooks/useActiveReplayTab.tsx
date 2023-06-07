@@ -6,16 +6,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
-  console = 'console',
-  dom = 'dom',
-  network = 'network',
-  trace = 'trace',
-  issues = 'issues',
-  memory = 'memory',
+  CONSOLE = 'console',
+  DOM = 'dom',
+  NETWORK = 'network',
+  TRACE = 'trace',
+  ISSUES = 'issues',
+  MEMORY = 'memory',
 }
 
 function isReplayTab(tab: string): tab is TabKey {
-  return tab in TabKey;
+  return Object.values(TabKey).includes(tab);
 }
 
 function useDefaultTab() {
@@ -29,26 +29,29 @@ function useDefaultTab() {
   }, [location.query.query]);
 
   if (hasClickSearch) {
-    return TabKey.dom;
+    return TabKey.DOM;
   }
 
-  return TabKey.console;
+  return TabKey.CONSOLE;
 }
 
 function useActiveReplayTab() {
   const defaultTab = useDefaultTab();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
-  const paramValue = getParamValue();
+  const paramValue = (getParamValue() || '').toLowerCase();
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue || '') ? (paramValue as TabKey) : defaultTab),
+      () => (isReplayTab(paramValue) ? (paramValue as TabKey) : defaultTab),
       [paramValue, defaultTab]
     ),
     setActiveTab: useCallback(
-      (value: string) =>
-        isReplayTab(value) ? setParamValue(value) : setParamValue(defaultTab),
+      (value: string) => {
+        setParamValue(
+          isReplayTab(value.toLowerCase()) ? value.toLowerCase() : defaultTab
+        );
+      },
       [setParamValue, defaultTab]
     ),
   };
