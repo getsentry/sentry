@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from sentry import options
@@ -105,9 +107,29 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("list_option") == [1, 2]
         assert options.get("drifted_option") == [1, 2, 3]
 
+    def test_stdin(self):
+        rv = self.invoke(
+            "patch",
+            input=Path(
+                "tests/sentry/runner/commands/valid_patch.yaml",
+            ).read_text(),
+        )
+
+        assert rv.exit_code == 0
+        self._clean_cache()
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+        assert options.get("drifted_option") == [1, 2, 3]
+
     def test_sync(self):
         rv = self.invoke(
-            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "-f",
+            "tests/sentry/runner/commands/valid_patch.yaml",
             "sync",
         )
         assert rv.exit_code == 0, rv.output
