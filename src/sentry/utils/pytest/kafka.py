@@ -130,9 +130,11 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     def ingest_consumer(settings):
         from sentry.ingest.consumer_v2.factory import get_ingest_consumer
         from sentry.ingest.types import ConsumerType
+        from sentry.utils.batching_kafka_consumer import create_topics
 
         # Relay is configured to use this topic for all ingest messages. See
-        # `templates/config.yml`.
+        # `template/config.yml`.
+        cluster_name = "default"
         topic_event_name = "ingest-events"
 
         if scope_consumers[topic_event_name] is not None:
@@ -142,6 +144,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         # first time the consumer is requested, create it using settings
         admin = kafka_admin(settings)
         admin.delete_topic(topic_event_name)
+        create_topics(cluster_name, [topic_event_name])
 
         # simulate the event ingestion task
         group_id = "test-consumer"
@@ -157,7 +160,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
             input_block_size=1,
             output_block_size=1,
             force_topic=topic_event_name,
-            force_cluster="default",
+            force_cluster=cluster_name,
         )
 
         scope_consumers[topic_event_name] = consumer
