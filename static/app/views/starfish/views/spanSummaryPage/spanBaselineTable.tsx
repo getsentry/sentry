@@ -89,18 +89,18 @@ function BodyCell({
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return <DurationCell seconds={row.metrics['p95(span.duration)']} />;
+    return <DurationCell seconds={row.metrics?.['p95(span.duration)']} />;
   }
 
   if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row.metrics['spm()']} />;
+    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()']} />;
   }
 
   if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(row.metrics['time_spent_percentage()'])}
-        totalSpanTime={row.metrics['sum(span.duration)']}
+        formattedTimeSpent={formatPercentage(row.metrics?.['time_spent_percentage()'])}
+        totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );
   }

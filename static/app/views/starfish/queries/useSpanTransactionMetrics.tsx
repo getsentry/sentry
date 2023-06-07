@@ -9,11 +9,11 @@ import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 
 export type SpanTransactionMetrics = {
-  p50: number;
-  p95: number;
-  spans_per_second: number;
+  'p50(span.duration)': number;
+  'p95(span.duration)': number;
+  'spm()': number;
   'sum(span.self_time)': number;
-  total_time: number;
+  'time_spent_percentage()': number;
   transaction: string;
 };
 
@@ -31,13 +31,12 @@ export const useSpanTransactionMetrics = (
       ? `
     SELECT
       transaction,
-      quantile(0.5)(exclusive_time) as p50,
-      quantile(0.5)(exclusive_time) as p95,
-      sum(exclusive_time) as "sum(span.self_time)",
-      sum(exclusive_time) as total_time,
+      quantile(0.5)(exclusive_time) as "p50(span.duration)",
+      quantile(0.5)(exclusive_time) as "p95(span.duration)",
+      sum(exclusive_time) as "sum(span.duration)",
       divide(count(), ${
         moment(endTime ?? undefined).unix() - moment(startTime).unix()
-      }) as spans_per_second
+      }) as "spm()"
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group}'
     ${dateFilters}

@@ -36,8 +36,8 @@ type Props = {
 export type Keys =
   | 'transaction'
   | 'p95(transaction.duration)'
-  | 'timeSpent'
-  | 'spans_per_second';
+  | 'time_spent_percentage()'
+  | 'spm()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
@@ -114,18 +114,18 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   }
 
   if (column.key === 'p95(transaction.duration)') {
-    return <DurationCell seconds={row.metrics?.p95} />;
+    return <DurationCell seconds={row.metrics?.['p95(span.duration)']} />;
   }
 
-  if (column.key === 'spans_per_second') {
-    return <ThroughputCell throughputPerSecond={row.metrics?.spans_per_second} />;
+  if (column.key === 'spm()') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()']} />;
   }
 
-  if (column.key === 'timeSpent') {
+  if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalSpanTime={row.metrics?.total_time}
+        formattedTimeSpent={formatPercentage(row.metrics?.['time_spent_percentage()'])}
+        totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );
   }
@@ -154,7 +154,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'spans_per_second',
+    key: 'spm()',
     name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -164,7 +164,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'timeSpent',
+    key: 'time_spent_percentage()',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
