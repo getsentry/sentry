@@ -286,8 +286,12 @@ class Monitor(Model):
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
-        # Only update keys that were specified in the payload
-        for key in config_payload.keys():
+        keys = set(config_payload.keys())
+
+        # Always update schedule and schedule_type
+        keys.update({"schedule", "schedule_type"})
+        # Otherwise, only update keys that were specified in the payload
+        for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
         self.save()
