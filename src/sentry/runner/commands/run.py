@@ -513,6 +513,7 @@ def query_subscription_consumer(**options):
     help="Listen to all consumer types at once.",
 )
 @kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
+@strict_offset_reset_option()
 @click.option(
     "--concurrency",
     type=int,
@@ -520,16 +521,26 @@ def query_subscription_consumer(**options):
     help="Thread pool size (only utilitized for message types that support concurrent processing)",
 )
 @configuration
-def ingest_consumer(consumer_types, all_consumer_types, **options):
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option(
+    "--v2-consumer",
+    default=False,
+    is_flag=True,
+    help="Use the new arroyo-based `v2` consumer",
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest.ingest_consumer import get_ingest_consumer
-    from sentry.utils import metrics
-
     if all_consumer_types:
         if consumer_types:
             raise click.ClickException(
@@ -540,6 +551,45 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
     if not all_consumer_types and not consumer_types:
         raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
+
+    if v2_consumer:
+        from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+
+        if len(consumer_types) != 1:
+            raise click.ClickException(
+                "Only a single `--consumer-type` allowed when using the `v2` ingest consumer"
+            )
+
+        # Our batcher expects the time in seconds
+        options["max_batch_time"] = int(options["max_batch_time"] / 1000)
+
+        type_ = consumer_types[0]
+        metrics_name = f"ingest_{type_}"
+        from arroyo import configure_metrics
+
+        from sentry.utils import metrics
+        from sentry.utils.arroyo import MetricsWrapper
+
+        configure_metrics(MetricsWrapper(metrics.backend, name=metrics_name))
+
+        # Ignore these arguments which are only relevant for the old ingest consumer
+        options.pop("concurrency", None)
+
+        consumer = get_ingest_consumer(type_=type_, **options)
+        run_processor_with_signals(consumer)
+
+        return
+
+    # else:
+
+    from sentry.ingest.ingest_consumer import get_ingest_consumer
+    from sentry.utils import metrics
+
+    # Ignore these arguments which are only relevant for new ingest consumer
+    options.pop("strict_offset_reset", None)
+    options.pop("processes", None)
+    options.pop("input_block_size", None)
+    options.pop("output_block_size", None)
 
     concurrency = options.pop("concurrency", None)
     if concurrency is not None:
