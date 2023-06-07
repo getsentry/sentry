@@ -1560,6 +1560,8 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
+    # Enables an UI that restricts users from using session replay in the code snippets of the instruction page and more.
+    "organizations:project-creation-restrict-session-replay-usage": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
