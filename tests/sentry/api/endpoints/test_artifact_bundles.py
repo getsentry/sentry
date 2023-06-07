@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from freezegun import freeze_time
@@ -204,30 +205,18 @@ class ArtifactBundlesEndpointTest(APITestCase):
             project_id=project.id,
             artifact_bundle=artifact_bundle,
         )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="1.0",
-            dist_name="android",
-            artifact_bundle=artifact_bundle,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="1.0",
-            dist_name="ios",
-            artifact_bundle=artifact_bundle,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="2.0",
-            dist_name="android",
-            artifact_bundle=artifact_bundle,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="2.0",
-            dist_name="ios",
-            artifact_bundle=artifact_bundle,
-        )
+        for release, dist in (
+            ("1.0", "android"),
+            ("1.0", "ios"),
+            ("2.0", "android"),
+            ("2.0", "ios"),
+        ):
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                release_name=release,
+                dist_name=dist,
+                artifact_bundle=artifact_bundle,
+            )
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
@@ -271,30 +260,81 @@ class ArtifactBundlesEndpointTest(APITestCase):
             project_id=project.id,
             artifact_bundle=artifact_bundle,
         )
-        ReleaseArtifactBundle.objects.create(
+
+        for time_shift, release, dist in (
+            (0, "3.0", "android"),
+            (1, "2.0", "ios"),
+            (2, "2.0", "android"),
+            (3, "1.0", "ios"),
+        ):
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                release_name=release,
+                dist_name=dist,
+                artifact_bundle=artifact_bundle,
+                date_added=datetime.now() + timedelta(hours=time_shift),
+            )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        # We test without search.
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [
+                    {
+                        "release": "1.0",
+                        "dist": ["ios"],
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": ["android", "ios"],
+                    },
+                    {
+                        "release": "3.0",
+                        "dist": ["android"],
+                    },
+                ],
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+            },
+        ]
+
+    @patch("sentry.models.artifactbundle.RELEASES_LIMIT", 2)
+    def test_get_artifact_bundles_with_more_releases_on_the_same_bundle_than_limit(
+        self,
+    ):
+        project = self.create_project(name="foo")
+
+        artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
+        ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
-            release_name="3.0",
-            dist_name="android",
+            project_id=project.id,
             artifact_bundle=artifact_bundle,
         )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="2.0",
-            dist_name="ios",
-            artifact_bundle=artifact_bundle,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="2.0",
-            dist_name="android",
-            artifact_bundle=artifact_bundle,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name="1.0",
-            dist_name="ios",
-            artifact_bundle=artifact_bundle,
-        )
+
+        for time_shift, release, dist in (
+            (0, "2.0", "ios"),
+            (1, "1.0", "android"),
+            (2, "3.0", "windows"),
+        ):
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                release_name=release,
+                dist_name=dist,
+                artifact_bundle=artifact_bundle,
+                date_added=datetime.now() + timedelta(hours=time_shift),
+            )
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
@@ -313,15 +353,11 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "3.0",
-                        "dist": ["android"],
-                    },
-                    {
-                        "release": "2.0",
-                        "dist": ["android", "ios"],
+                        "dist": ["windows"],
                     },
                     {
                         "release": "1.0",
-                        "dist": ["ios"],
+                        "dist": ["android"],
                     },
                 ],
                 "date": "2023-03-15T00:00:00Z",

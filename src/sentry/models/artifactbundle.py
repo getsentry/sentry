@@ -22,7 +22,7 @@ NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
 
 # We want to limit the amount of associations that are returned in order to not overwhelm the frontend.
-ASSOCIATIONS_LIMIT = 50
+RELEASES_LIMIT = 10
 
 
 class SourceFileType(Enum):
@@ -67,17 +67,20 @@ class ArtifactBundle(Model):
 
     @classmethod
     def get_grouped_releases(
-        cls, organization_id: int, artifact_bundle_ids: List[int], limit=ASSOCIATIONS_LIMIT
+        cls, organization_id: int, artifact_bundle_ids: List[int]
     ) -> Mapping[int, Mapping[str, Set[str]]]:
-        # We only want to get the `limit` most recent associations, in order to make the system upper bounded, since
-        # some users might indefinitely bind releases to a specific bundle. This problem can also be mitigated by
-        # upper bounding the number of associations on the upload side.
         release_artifact_bundles = list(
             ReleaseArtifactBundle.objects.filter(
                 organization_id=organization_id, artifact_bundle_id__in=artifact_bundle_ids
-            ).order_by("-date_added")[:limit]
+            ).order_by("-date_added")
         )
 
+        # We now want to group in-memory. This is done since we want to be able to have the (release, dist) pairs sorted
+        # by most recent. In order to preserve ordering, we use an OrderedDict, otherwise normal dictionaries have
+        # arbitrary order.
+        #
+        # This in-memory grouping implementation could possibly lead to performance issues in the future, we need to
+        # keep track of the performance if users start to bound too many release and dist pairs.
         grouped_bundles = defaultdict(OrderedDict)
         for release_artifact_bundle in release_artifact_bundles:
             artifact_bundle_id = release_artifact_bundle.artifact_bundle_id
@@ -87,12 +90,13 @@ class ArtifactBundle(Model):
             bundle_releases = grouped_bundles[artifact_bundle_id]
 
             # In case we didn't initialize a set for this release, we want to do it irrespectively if the release
-            # has dists or not.
-            if release not in bundle_releases:
+            # has dists or not. In addition, we check if we have already reached `limit` number of release in this
+            # dictionary.
+            if len(bundle_releases) < RELEASES_LIMIT and release not in bundle_releases:
                 bundle_releases[release] = set()
 
             # We want to add the dist only if it is a non-empty string.
-            if dist:
+            if dist and release in bundle_releases:
                 bundle_releases[release].add(dist)
 
         return grouped_bundles
