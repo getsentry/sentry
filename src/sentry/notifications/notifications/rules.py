@@ -150,7 +150,7 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
-            "has_issue_states": features.has("organizations:issue-states", self.organization),
+            "has_issue_states": features.has("organizations:escalating-issues", self.organization),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send

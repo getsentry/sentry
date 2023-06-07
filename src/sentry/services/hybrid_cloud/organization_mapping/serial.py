@@ -5,16 +5,20 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
+from sentry.types.region import Region
 
 
 def update_organization_mapping_from_instance(
     organization: Organization,
+    region: Region,
 ) -> RpcOrganizationMappingUpdate:
-    attributes = {
-        attr_name: getattr(organization, attr_name)
-        for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
-    }
-    return RpcOrganizationMappingUpdate(**attributes)  # type: ignore
+    return RpcOrganizationMappingUpdate(
+        name=organization.name,
+        customer_id=organization.customer_id,
+        status=organization.status,
+        slug=organization.slug,
+        region_name=region.name,
+    )
 
 
 def serialize_organization_mapping(org_mapping: OrganizationMapping) -> RpcOrganizationMapping:

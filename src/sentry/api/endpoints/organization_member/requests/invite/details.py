@@ -104,15 +104,13 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
         result = serializer.validated_data
 
-        region_outbox = None
         if result.get("orgRole"):
             member.role = result["orgRole"]
-            region_outbox = member.save()
+            member.save()
         elif result.get("role"):
             member.role = result["role"]
-            region_outbox = member.save()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            member.save()
+        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

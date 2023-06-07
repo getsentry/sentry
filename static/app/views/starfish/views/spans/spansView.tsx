@@ -101,14 +101,15 @@ export default function SpansView(props: Props) {
       </FilterOptionsContainer>
 
       <PaddedContainer>
-        <SpanTimeCharts queryConditions={queryConditions} />
+        <SpanTimeCharts
+          moduleName={props.moduleName || ModuleName.ALL}
+          appliedFilters={appliedFilters}
+        />
       </PaddedContainer>
 
       <PaddedContainer>
         <SpansTable
-          location={location}
           moduleName={props.moduleName || ModuleName.ALL}
-          queryConditions={queryConditions}
           isLoading={areSpansLoading || areSpansTrendsLoading}
           spansData={spansData}
           orderBy={orderBy}

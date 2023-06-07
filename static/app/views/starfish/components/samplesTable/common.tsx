@@ -4,13 +4,13 @@ import {t} from 'sentry/locale';
 
 type Props = {
   duration: number;
-  p50: number;
+  p95: number;
 };
 
-export function DurationComparisonCell({duration, p50}: Props) {
-  const diff = duration - p50;
+export function DurationComparisonCell({duration, p95}: Props) {
+  const diff = duration - p95;
 
-  if (Math.floor(duration) === Math.floor(p50)) {
+  if (Math.floor(duration) === Math.floor(p95)) {
     return <PlaintextLabel>{t('At baseline')}</PlaintextLabel>;
   }
 

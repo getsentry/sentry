@@ -1,3 +1,45 @@
+23.5.2
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#50020), @armenzg (#49907)
+
+### Issue States and Filters (ongoing)
+
+By: @scttcper (#49642, #49626, #49517, #49587, #49582)
+
+### Various fixes & improvements
+
+- feat(replay): Change min version in replay onboarding (#50072) by @billyvg
+- bug(replays): Fix Replay Search box overflow/wrapping (#50074) by @ryan953
+- feat(replays): add replay clicks field to replay index endpoint (#49873) by @JoshFerge
+- fix(analytics): Change actor_id to user_id in slack status analytic (#49966) by @jangjodi
+- dep(relay): Upgrade librelay to 0.8.25 (#50063) by @iker-barriocanal
+- chore(HC): Remove org mapping write paths in preparation of organization mapping updates (#50015) by @GabeVillalobos
+- feat(escalating-issues): Define analytic for escalating feedback (#50000) by @jangjodi
+- chore(profiling): Add referrers to profiling queries frontend (#49923) by @Zylphrex
+- feat(starfish) Hook up span view filter selectors to production data (#49987) by @gggritso
+- fix(hybridcloud) Fix serialization errors in RPC responses (#49922) by @markstory
+- feat(dashboar-widget-description) Added description field to Widget model (#49992) by @Abdkhan14
+- fix(starfish) Small fixes to spans table (#50001) by @gggritso
+- chore(profiling) Add referrers to profiling queries backend (#49924) by @Zylphrex
+- Revert "ref(project_creation): Add project deletion to the go back button (#49844)" (fda9548a) by @getsentry-bot
+- ref(sessionstorage): use wrapper (#50051) by @JonasBa
+- ref(project_creation): Add project deletion to the go back button (#49844) by @priscilawebdev
+- feat: Return how an artifact was resolved (#49959) by @loewenheim
+- fix(clusterer): Fix clusterer datasource in test endpoint (#50040) by @iker-barriocanal
+- ref(spans): Sample all discovered rules (#49970) by @iker-barriocanal
+- ref(js): Remove unnecessary AsyncComponent props (#50034) by @evanpurkhiser
+- ref(js): Remove unnecessary extends AsyncComponentProps (#50031) by @evanpurkhiser
+- fix(dynamic-sampling): Fix logging with missing parameter (#50038) by @iambriccardo
+- fix(js): Avoid anchor nesting in monitor edit page (#50026) by @evanpurkhiser
+- ref(js): Add IGNORED_SPANS_BY_DESCRIPTION in initializeSdk (#50025) by @evanpurkhiser
+
+_Plus 268 more_
+
 23.5.1
 ------
 

@@ -296,6 +296,47 @@ class GitHubAppsClientTest(TestCase):
             files = self.client.get_cached_repo_files(self.repo.name, "master")
             assert files == ["src/foo.py"]
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_update_comment(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/1/comments",
+            status=201,
+            json={
+                "id": 1,
+                "node_id": "MDEyOklzc3VlQ29tbWVudDE=",
+                "url": f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
+                "html_url": f"https://github.com/{self.repo.name}/issues/1#issuecomment-1",
+                "body": "hello",
+                "created_at": "2023-05-23T17:00:00Z",
+                "updated_at": "2023-05-23T17:00:00Z",
+                "issue_url": f"https://api.github.com/repos/{self.repo.name}/issues/1",
+                "author_association": "COLLABORATOR",
+            },
+        )
+        self.client.create_comment(repo=self.repo.name, issue_id="1", data={"body": "hello"})
+
+        responses.add(
+            method=responses.PATCH,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/comments/1/",
+            json={
+                "id": 1,
+                "node_id": "MDEyOklzc3VlQ29tbWVudDE=",
+                "url": f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
+                "html_url": f"https://github.com/{self.repo.name}/issues/1#issuecomment-1",
+                "body": "world",
+                "created_at": "2011-04-14T16:00:49Z",
+                "updated_at": "2011-04-14T16:00:49Z",
+                "issue_url": f"https://api.github.com/repos/{self.repo.name}/issues/1",
+                "author_association": "COLLABORATOR",
+            },
+        )
+
+        self.client.update_comment(repo=self.repo.name, comment_id="1", data={"body": "world"})
+        assert responses.calls[2].response.status_code == 200
+        assert responses.calls[2].request.body == b'{"body": "world"}'
+
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"

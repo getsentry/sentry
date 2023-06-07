@@ -126,7 +126,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=omt.id,
-                    target_user=access_request.member.user,
+                    target_user_id=access_request.member.user_id,
                     event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                     data=omt.get_audit_log_data(),
                 )

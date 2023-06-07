@@ -25,7 +25,6 @@ from sentry.models import (
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
@@ -208,14 +207,6 @@ class OrganizationIndexEndpoint(Endpoint):
 
                 with transaction.atomic():
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
-
-                    organization_mapping_service.create(
-                        organization_id=org.id,
-                        slug=org.slug,
-                        name=org.name,
-                        idempotency_key=result.get("idempotencyKey", ""),
-                        region_name=settings.SENTRY_REGION or "us",
-                    )
                     rpc_org_member = organization_service.add_organization_member(
                         organization_id=org.id,
                         default_org_role=org.default_role,

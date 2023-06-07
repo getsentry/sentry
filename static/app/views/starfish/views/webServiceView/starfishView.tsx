@@ -20,9 +20,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -225,7 +227,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['p95(transaction.duration)', 'p50(transaction.duration)']}
+        yAxis={['p95(transaction.duration)']}
         queryExtras={{dataset: 'metrics'}}
       >
         {({loading, results}) => {
@@ -254,7 +256,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               }}
               definedAxisTicks={2}
               isLineChart
-              chartColors={theme.charts.getColorPalette(2)}
+              chartColors={[P95_COLOR]}
               disableXAxis
               aggregateOutputFormat="duration"
             />
@@ -277,7 +279,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <MiniChartPanel title={t('Error Rate')}>
               {renderFailureRateChart()}
             </MiniChartPanel>
-            <MiniChartPanel title={t('Duration')}>
+            <MiniChartPanel title={DataTitles.p95}>
               {renderEndpointPercentileChart()}
             </MiniChartPanel>
             <MiniChartPanel title={t('Throughput')}>
@@ -290,16 +292,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
         onSelect={onSelect}
-        columnTitles={[
-          'endpoint',
-          'tpm',
-          'p50(duration)',
-          'p50 change',
-          'failure count',
-          'cumulative time',
-        ]}
       />
     </div>
   );

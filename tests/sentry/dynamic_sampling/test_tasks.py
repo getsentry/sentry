@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Callable
 from unittest.mock import patch
 
 import pytest
@@ -9,13 +10,16 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling import generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
+    generate_prioritise_by_project_cache_key,
+)
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
     generate_sliding_window_cache_key,
+    mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks import (
@@ -100,7 +104,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
     @staticmethod
     def add_sample_rate_per_project(org_id: int, project_id: int, sample_rate: float):
         redis_client = get_redis_client_for_ds()
-        redis_client.hset(_generate_cache_key(org_id), project_id, sample_rate)
+        redis_client.hset(generate_prioritise_by_project_cache_key(org_id), project_id, sample_rate)
 
     @staticmethod
     def sampling_tier_side_effect(*args, **kwargs):
@@ -389,9 +393,19 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
         return idx + counts[name]
 
     @staticmethod
+    def flush_redis():
+        get_redis_client_for_ds().flushdb()
+
+    @staticmethod
     def set_sliding_window_cache_entry(org_id: int, project_id: int, value: str):
         redis = get_redis_client_for_ds()
         cache_key = generate_sliding_window_cache_key(org_id=org_id)
+        redis.hset(cache_key, project_id, value)
+
+    @staticmethod
+    def set_prioritise_projects_cache_entry(org_id: int, project_id: int, value: str):
+        redis = get_redis_client_for_ds()
+        cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
         redis.hset(cache_key, project_id, value)
 
     def set_sliding_window_sample_rate(self, org_id: int, project_id: int, sample_rate: float):
@@ -401,23 +415,80 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
         # We want also to test for this case in order to verify the fallback to the `get_blended_sample_rate`.
         self.set_sliding_window_cache_entry(org_id, project_id, SLIDING_WINDOW_CALCULATION_ERROR)
 
-    def set_sliding_window_error_for_all(self):
+    def set_prioritise_by_project_sample_rate(
+        self, org_id: int, project_id: int, sample_rate: float
+    ):
+        self.set_prioritise_projects_cache_entry(org_id, project_id, str(sample_rate))
+
+    def set_prioritise_by_project_invalid(self, org_id: int, project_id: int):
+        # We want also to test for this case in order to verify the fallback to the `get_blended_sample_rate`.
+        self.set_prioritise_projects_cache_entry(org_id, project_id, "invalid")
+
+    def for_all_orgs_and_projects(self, block: Callable[[int, int], None]):
         for org in self.orgs_info:
             org_id = org["org_id"]
             for project_id in org["project_ids"]:
-                self.set_sliding_window_error(org_id, project_id)
+                block(org_id, project_id)
+
+    def set_sliding_window_error_for_all(self):
+        self.for_all_orgs_and_projects(
+            lambda org_id, project_id: self.set_sliding_window_error(org_id, project_id)
+        )
 
     def set_sliding_window_sample_rate_for_all(self, sample_rate: float):
-        for org in self.orgs_info:
-            org_id = org["org_id"]
-            for project_id in org["project_ids"]:
-                self.set_sliding_window_sample_rate(org_id, project_id, sample_rate)
+        self.for_all_orgs_and_projects(
+            lambda org_id, project_id: self.set_sliding_window_sample_rate(
+                org_id, project_id, sample_rate
+            )
+        )
+
+    def set_prioritise_by_project_invalid_for_all(self):
+        self.for_all_orgs_and_projects(
+            lambda org_id, project_id: self.set_prioritise_by_project_invalid(org_id, project_id)
+        )
+
+    def set_prioritise_by_project_sample_rate_for_all(self, sample_rate: float):
+        self.for_all_orgs_and_projects(
+            lambda org_id, project_id: self.set_prioritise_by_project_sample_rate(
+                org_id, project_id, sample_rate
+            )
+        )
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_transactions_simple(self, get_blended_sample_rate):
+    def test_prioritise_transactions_with_blended_sample_rate(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
-        in Redis
+        in Redis.
+        """
+        BLENDED_RATE = 0.25
+        get_blended_sample_rate.return_value = BLENDED_RATE
+
+        with self.options(
+            {
+                "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
+            }
+        ):
+            with self.tasks():
+                prioritise_transactions()
+
+        # now redis should contain rebalancing data for our projects
+        for org in self.orgs_info:
+            org_id = org["org_id"]
+            for proj_id in org["project_ids"]:
+                tran_rate, global_rate = get_transactions_resampling_rates(
+                    org_id=org_id, proj_id=proj_id, default_rate=0.1
+                )
+                for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
+                    assert (
+                        transaction_name in tran_rate
+                    )  # check we have some rate calculated for each transaction
+                assert global_rate == BLENDED_RATE
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    def test_prioritise_transactions_with_sliding_window(self, get_blended_sample_rate):
+        """
+        Create orgs projects & transactions and then check that the task creates rebalancing data
+        in Redis with the sliding window per project enabled.
         """
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
@@ -451,6 +522,60 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                     assert global_rate == used_sample_rate
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    def test_prioritise_transactions_with_sliding_window_org(self, get_blended_sample_rate):
+        """
+        Create orgs projects & transactions and then check that the task creates rebalancing data
+        in Redis with the sliding window per org enabled.
+        """
+        BLENDED_RATE = 0.25
+        get_blended_sample_rate.return_value = BLENDED_RATE
+
+        for (sliding_window_step, used_sample_rate) in ((1, 1.0), (2, BLENDED_RATE), (3, 0.5)):
+            # We flush redis after each run, to make sure no data persists.
+            self.flush_redis()
+
+            # No value in cache and sliding window org executed.
+            if sliding_window_step == 1:
+                mark_sliding_window_org_executed()
+            # Invalid value in cache.
+            elif sliding_window_step == 2:
+                self.set_prioritise_by_project_invalid_for_all()
+            # Value in cache.
+            elif sliding_window_step == 3:
+                self.set_prioritise_by_project_sample_rate_for_all(used_sample_rate)
+
+            with self.options(
+                {
+                    "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
+                }
+            ):
+                with self.feature("organizations:ds-sliding-window-org"):
+                    with self.tasks():
+                        prioritise_transactions()
+
+            # now redis should contain rebalancing data for our projects
+            for org in self.orgs_info:
+                org_id = org["org_id"]
+                for proj_id in org["project_ids"]:
+                    tran_rate, global_rate = get_transactions_resampling_rates(
+                        org_id=org_id, proj_id=proj_id, default_rate=0.1
+                    )
+
+                    if sliding_window_step == 1:
+                        # If the sample rate is 100%, we will not find anything in cache, since we don't
+                        # need to run and store the rebalancing.
+                        assert tran_rate == {}
+                    else:
+                        # If the sample rate is < 100%, we want to check that in cache we have a value with
+                        # the correct global rate.
+                        for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
+                            assert (
+                                transaction_name in tran_rate
+                            )  # check we have some rate calculated for each transaction
+
+                        assert global_rate == used_sample_rate
+
+    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_prioritise_transactions_partial(self, get_blended_sample_rate):
         """
         Test the V2 algorithm is used, only specified projects are balanced and the
@@ -476,9 +601,8 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                     "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
                 }
             ):
-                with self.feature("organizations:ds-sliding-window"):
-                    with self.tasks():
-                        prioritise_transactions()
+                with self.tasks():
+                    prioritise_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:

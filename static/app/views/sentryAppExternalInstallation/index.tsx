@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
+import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -10,12 +11,18 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import AsyncView from 'sentry/views/asyncView';
 
 import {OrganizationContext} from '../organizationContext';
+
+function generateBaseUrl() {
+  const baseUrl = ConfigStore.get('links').sentryUrl || '';
+  return baseUrl + '/api/0';
+}
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
@@ -29,6 +36,7 @@ type State = AsyncView['state'] & {
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
   disableErrorReport = false;
+  controlSiloApi = new Client({baseUrl: generateBaseUrl()});
 
   getDefaultState() {
     const state = super.getDefaultState();
@@ -102,7 +110,11 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
       organization,
     });
 
-    const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    const install = await installSentryApp(
+      this.controlSiloApi,
+      organization.slug,
+      sentryApp
+    );
     // installation is complete if the status is installed
     if (install.status === 'installed') {
       trackIntegrationAnalytics('integrations.installation_complete', {
@@ -132,8 +144,10 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     try {
       const [organization, installations]: [Organization, SentryAppInstallation[]] =
         await Promise.all([
-          this.api.requestPromise(`/organizations/${orgSlug}/`),
-          this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
+          this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
+          this.controlSiloApi.requestPromise(
+            `/organizations/${orgSlug}/sentry-app-installations/`
+          ),
         ]);
       const isInstalled = installations
         .map(install => install.app.slug)

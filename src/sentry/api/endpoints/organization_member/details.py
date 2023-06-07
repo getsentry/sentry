@@ -181,13 +181,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        region_outbox = None
                         with transaction.atomic():
                             member.regenerate_token()
                             member.save()
-                            region_outbox = member.save_outbox_for_update()
-                        if region_outbox:
-                            region_outbox.drain_shard(max_updates_to_drain=10)
+                        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
@@ -262,7 +259,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_EDIT"),
             data=member.get_audit_log_data(),
         )
@@ -284,7 +281,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
-        region_outbox = None
         with transaction.atomic():
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
@@ -296,8 +292,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             ).update(role=None)
 
             member.role = role
-            region_outbox = member.save()
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",
@@ -382,7 +377,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_REMOVE"),
             data=audit_data,
         )

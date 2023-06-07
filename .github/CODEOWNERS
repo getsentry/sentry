@@ -426,6 +426,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/components                                       @getsentry/issues
 /static/app/views/issueList                                  @getsentry/issues
 /static/app/views/organizationGroupDetails                   @getsentry/issues
+/src/sentry/api/endpoints/source_map_debug.py                @getsentry/issues
 ## End of Issues
 
 

@@ -3,9 +3,11 @@ import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -17,11 +19,13 @@ type Props = {
 export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props) {
   // TODO: This only returns the top 25 domains. It should either load them all, or paginate, or allow searching
   //
+  const {selection} = usePageFilters();
+
   const location = useLocation();
   const query = getQuery(moduleName);
-  const eventView = getEventView(moduleName);
+  const eventView = getEventView(moduleName, selection);
 
-  const {data: operations} = useSpansQuery<[{domain: string}]>({
+  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     queryString: query,
     initialData: [],
@@ -30,9 +34,9 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(({domain}) => ({
-      value: domain,
-      label: domain,
+    ...domains.map(datum => ({
+      value: datum['span.domain'],
+      label: datum['span.domain'],
     })),
   ];
 
@@ -64,7 +68,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getQuery(moduleName?: string) {
-  return `SELECT domain, count()
+  return `SELECT domain as "span.domain", count()
     FROM spans_experimental_starfish
     WHERE 1 = 1
     ${moduleName ? `AND module = '${moduleName}'` : ''}
@@ -75,13 +79,16 @@ function getQuery(moduleName?: string) {
   `;
 }
 
-function getEventView(moduleName?: string) {
+function getEventView(moduleName: string, pageFilters: PageFilters) {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['domain', 'count()'],
+    fields: ['span.domain', 'count()'],
     orderby: '-count',
-    query: moduleName ? `module:${moduleName}` : '',
-    dataset: DiscoverDatasets.SPANS_INDEXED,
+    query: moduleName ? `!span.domain:"" span.module:${moduleName}` : '!span.domain:""',
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    start: pageFilters.datetime.start ?? undefined,
+    end: pageFilters.datetime.end ?? undefined,
+    range: pageFilters.datetime.period ?? undefined,
     projects: [1],
     version: 2,
   });

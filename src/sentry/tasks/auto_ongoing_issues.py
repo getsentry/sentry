@@ -37,7 +37,7 @@ def schedule_auto_transition_new() -> None:
     three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:issue-states", org):
+        if features.has("organizations:escalating-issues", org):
             for project_id in Project.objects.filter(organization_id=org.id).values_list(
                 "id", flat=True
             ):
@@ -109,7 +109,7 @@ def schedule_auto_transition_regressed() -> None:
     three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:issue-states", org):
+        if features.has("organizations:escalating-issues", org):
             for project_id in Project.objects.filter(organization_id=org.id).values_list(
                 "id", flat=True
             ):

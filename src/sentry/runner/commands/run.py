@@ -465,7 +465,7 @@ def post_process_forwarder(**options):
     "query-subscription-consumer",
     include_batching_options=True,
     allow_force_cluster=False,
-    default_max_batch_size=1000,
+    default_max_batch_size=100,
 )
 @click.option(
     "--processes",
@@ -491,6 +491,7 @@ def query_subscription_consumer(**options):
         processes=options["processes"],
         input_block_size=options["input_block_size"],
         output_block_size=options["output_block_size"],
+        multi_proc=True,
     )
     run_processor_with_signals(subscriber)
 
@@ -598,6 +599,7 @@ def occurrences_ingest_consumer(**options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
+@click.option("--join-timeout", type=int, help="Join timeout in seconds.", default=10)
 @click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
 @click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)

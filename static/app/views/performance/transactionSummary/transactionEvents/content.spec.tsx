@@ -181,9 +181,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           setError={() => {}}
           projectId="123"
@@ -221,9 +221,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}
@@ -267,9 +267,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}

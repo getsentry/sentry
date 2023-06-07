@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -179,16 +180,31 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust: Mock) -> None:
-        for group, request_data in [
-            (self.create_group(status=GroupStatus.IGNORED), {"status": "unresolved"}),
-            (
-                self.create_group(status=GroupStatus.IGNORED),
-                {"status": "unresolved", "substatus": "ongoing"},
-            ),
+        for data in [
+            {
+                "group": self.create_group(
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                ),
+                "request_data": {"status": "unresolved"},
+                "expected_substatus": GroupSubStatus.ONGOING,
+            },
+            {
+                "group": self.create_group(
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                ),
+                "request_data": {"status": "unresolved", "substatus": "ongoing"},
+                "expected_substatus": GroupSubStatus.ONGOING,
+            },
+            {
+                "group": self.create_group(status=GroupStatus.IGNORED, first_seen=datetime.now()),
+                "request_data": {"status": "unresolved"},
+                "expected_substatus": GroupSubStatus.NEW,
+            },
         ]:
+            group = data["group"]
             request = self.make_request(user=self.user, method="GET")
             request.user = self.user
-            request.data = request_data
+            request.data = data["request_data"]
             request.GET = QueryDict(query_string=f"id={group.id}")
 
             update_groups(
@@ -198,7 +214,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
             group.refresh_from_db()
 
             assert group.status == GroupStatus.UNRESOLVED
-            assert group.substatus is GroupSubStatus.ONGOING
+            assert group.substatus == data["expected_substatus"]
             assert send_robust.called
 
     @patch("sentry.signals.issue_mark_reviewed.send_robust")

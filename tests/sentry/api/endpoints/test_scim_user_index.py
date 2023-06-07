@@ -10,6 +10,8 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -20,6 +22,7 @@ CREATE_USER_POST_DATA = {
 }
 
 
+@control_silo_test
 class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
 
@@ -40,7 +43,8 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
 
     def test_post_users_successful(self):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.post(url, CREATE_USER_POST_DATA)
+        with outbox_runner():
+            response = self.client.post(url, CREATE_USER_POST_DATA)
         assert response.status_code == 201, response.content
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
@@ -76,7 +80,8 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert member.token_expired
 
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
-        response = self.client.post(url, CREATE_USER_POST_DATA)
+        with outbox_runner():
+            response = self.client.post(url, CREATE_USER_POST_DATA)
 
         assert response.status_code == 201, response.content
         member = OrganizationMember.objects.get(
@@ -123,9 +128,10 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
 
     def test_post_users_with_role_valid(self):
         CREATE_USER_POST_DATA["sentryOrgRole"] = "manager"
-        resp = self.get_success_response(
-            self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
-        )
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, method="post", status_code=201, **CREATE_USER_POST_DATA
+            )
         member = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
         )
@@ -298,6 +304,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.data["startIndex"] == 101
 
 
+@control_silo_test
 class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
     def test_user_index_get_no_active(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
@@ -325,6 +332,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
         }
 
 
+@control_silo_test
 class SCIMQueryParameterSerializerTest(unittest.TestCase):
     def test_defaults(self):
         serializer = SCIMQueryParamSerializer(data={})

@@ -140,7 +140,7 @@ describe('analyzeAnrFrames', function () {
     ]);
     const rootCause = analyzeFramesForRootCause(event);
     expect(rootCause?.resources).toEqual(
-      'Switch to SharedPreferences.commit and move commit to a background thread.'
+      'SharedPreferences.apply will save data on background thread only if it happens before the activity/service finishes. Switch to SharedPreferences.commit and move commit to a background thread.'
     );
     expect(rootCause?.culprit).toEqual(
       '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
@@ -170,7 +170,59 @@ describe('analyzeAnrFrames', function () {
       },
     ]);
     const rootCause = analyzeFramesForRootCause(event);
-    expect(rootCause?.resources).toEqual('Move database operations off the main thread.');
+    expect(rootCause?.resources).toEqual(
+      'Database operations, such as querying, inserting, updating, or deleting data, can involve disk I/O, processing, and potentially long-running operations. Move database operations off the main thread to avoid this ANR.'
+    );
     expect(rootCause?.culprit).toEqual('android.database.sqlite.SQLiteConnection');
+  });
+
+  it('picks anr root cause of the topmost frame', function () {
+    const event = makeEventWithFrames([
+      {
+        filename: 'Instrumentation.java',
+        absPath: 'Instrumentation.java',
+        module: 'android.app.Instrumentation',
+        package: null,
+        platform: null,
+        instructionAddr: null,
+        symbolAddr: null,
+        function: 'callApplicationOnCreate',
+        rawFunction: null,
+        symbol: null,
+        context: [],
+        lineNo: 1176,
+        colNo: null,
+        inApp: false,
+        trust: null,
+        errors: null,
+        vars: null,
+      },
+      {
+        filename: 'SharedPreferencesImpl.java',
+        absPath: 'SharedPreferencesImpl.java',
+        module: 'android.app.SharedPreferencesImpl$EditorImpl$1',
+        package: null,
+        platform: null,
+        instructionAddr: null,
+        symbolAddr: null,
+        function: 'run',
+        rawFunction: null,
+        symbol: null,
+        context: [],
+        lineNo: 366,
+        colNo: null,
+        inApp: false,
+        trust: null,
+        errors: null,
+        vars: null,
+      },
+    ]);
+    const rootCause = analyzeFramesForRootCause(event);
+    expect(rootCause?.resources).toEqual(
+      'SharedPreferences.apply will save data on background thread only if it happens before the activity/service finishes. Switch to SharedPreferences.commit and move commit to a background thread.'
+    );
+    expect(rootCause?.culprit).toEqual(
+      '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
+    );
   });
 });

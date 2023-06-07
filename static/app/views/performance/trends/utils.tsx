@@ -22,10 +22,11 @@ import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
-  TrendColumnField,
   TrendFunction,
   TrendFunctionField,
   TrendParameter,
+  TrendParameterColumn,
+  TrendParameterLabel,
   TrendsTransaction,
   TrendView,
 } from './types';
@@ -68,40 +69,40 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 
 export const TRENDS_PARAMETERS: TrendParameter[] = [
   {
-    label: 'Duration',
-    column: TrendColumnField.DURATION,
+    label: TrendParameterLabel.DURATION,
+    column: TrendParameterColumn.DURATION,
   },
   {
-    label: 'LCP',
-    column: TrendColumnField.LCP,
+    label: TrendParameterLabel.LCP,
+    column: TrendParameterColumn.LCP,
   },
   {
-    label: 'FCP',
-    column: TrendColumnField.FCP,
+    label: TrendParameterLabel.FCP,
+    column: TrendParameterColumn.FCP,
   },
   {
-    label: 'FID',
-    column: TrendColumnField.FID,
+    label: TrendParameterLabel.FID,
+    column: TrendParameterColumn.FID,
   },
   {
-    label: 'CLS',
-    column: TrendColumnField.CLS,
+    label: TrendParameterLabel.CLS,
+    column: TrendParameterColumn.CLS,
   },
   {
-    label: 'Spans (http)',
-    column: TrendColumnField.SPANS_HTTP,
+    label: TrendParameterLabel.SPANS_HTTP,
+    column: TrendParameterColumn.SPANS_HTTP,
   },
   {
-    label: 'Spans (db)',
-    column: TrendColumnField.SPANS_DB,
+    label: TrendParameterLabel.SPANS_DB,
+    column: TrendParameterColumn.SPANS_DB,
   },
   {
-    label: 'Spans (browser)',
-    column: TrendColumnField.SPANS_BROWSER,
+    label: TrendParameterLabel.SPANS_BROWSER,
+    column: TrendParameterColumn.SPANS_BROWSER,
   },
   {
-    label: 'Spans (resource)',
-    column: TrendColumnField.SPANS_RESOURCE,
+    label: TrendParameterLabel.SPANS_RESOURCE,
+    column: TrendParameterColumn.SPANS_RESOURCE,
   },
 ];
 
@@ -181,16 +182,16 @@ export function performanceTypeToTrendParameterLabel(
   switch (performanceType) {
     case PROJECT_PERFORMANCE_TYPE.FRONTEND:
       return {
-        label: 'LCP',
-        column: TrendColumnField.LCP,
+        label: TrendParameterLabel.LCP,
+        column: TrendParameterColumn.LCP,
       };
     case PROJECT_PERFORMANCE_TYPE.ANY:
     case PROJECT_PERFORMANCE_TYPE.BACKEND:
     case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
     default:
       return {
-        label: 'Duration',
-        column: TrendColumnField.DURATION,
+        label: TrendParameterLabel.DURATION,
+        column: TrendParameterColumn.DURATION,
       };
   }
 }

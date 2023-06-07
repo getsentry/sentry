@@ -189,6 +189,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.pendingInvitation = getPendingInvite();
   }
 

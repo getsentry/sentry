@@ -100,7 +100,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             "name": user.email,
         },
         "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "environment": None,
+        "environment": alert_rule.get("environment", None),
         "filterMatch": "all",
         "filters": [
             {
@@ -112,7 +112,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             }
         ],
         "frequency": 1440,
-        "name": f"{monitor.name} Monitor Alert (All environments) - All members",
+        "name": f"Monitor Alert: {monitor.name}"[:64],
         "owner": None,
         "projects": [project.slug],
         "snooze": False,

@@ -15,10 +15,11 @@ import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRan
 import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import {
   getAbsoluteSummary,
-  getDefaultRelativePeriods,
+  getArbitraryRelativePeriod,
+  getSortedRelativePeriods,
   timeRangeAutoCompleteFilter,
 } from 'sentry/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -92,9 +93,16 @@ export interface TimeRangeSelectorProps
    */
   relative?: string | null;
   /**
-   * Override defaults from DEFAULT_RELATIVE_PERIODS
+   * Override defaults. Accepts a function where defaultRelativeOptions =
+   * DEFAULT_RELATIVE_PERIODS, and arbitraryRelativeOptions contains the custom
+   * user-created periods (via the search box).
    */
-  relativeOptions?: Record<string, React.ReactNode>;
+  relativeOptions?:
+    | Record<string, React.ReactNode>
+    | ((props: {
+        arbitraryOptions: Record<string, React.ReactNode>;
+        defaultOptions: Record<string, React.ReactNode>;
+      }) => Record<string, React.ReactNode>);
   /**
    * Show absolute date selectors
    */
@@ -249,11 +257,23 @@ export function TimeRangeSelector({
     [defaultAbsolute, defaultPeriod, relative, onChange]
   );
 
+  const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+  const defaultRelativePeriods = {
+    ...DEFAULT_RELATIVE_PERIODS,
+    ...arbitraryRelativePeriods,
+  };
   return (
     <SelectorItemsHook
       shouldShowAbsolute={showAbsolute}
       shouldShowRelative={showRelative}
-      relativePeriods={relativeOptions ?? getDefaultRelativePeriods(relative)}
+      relativePeriods={getSortedRelativePeriods(
+        typeof relativeOptions === 'function'
+          ? relativeOptions({
+              defaultOptions: DEFAULT_RELATIVE_PERIODS,
+              arbitraryOptions: arbitraryRelativePeriods,
+            })
+          : relativeOptions ?? defaultRelativePeriods
+      )}
       handleSelectRelative={value => handleChange({value})}
     >
       {items => (
@@ -285,7 +305,7 @@ export function TimeRangeSelector({
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
           trigger={
             trigger ??
-            (triggerProps => {
+            ((triggerProps, isOpen) => {
               const relativeSummary =
                 items.findIndex(item => item.value === relative) > -1
                   ? relative?.toUpperCase()
@@ -294,7 +314,12 @@ export function TimeRangeSelector({
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
               return (
-                <DropdownButton icon={<IconCalendar />} {...triggerProps}>
+                <DropdownButton
+                  {...triggerProps}
+                  isOpen={isOpen}
+                  size={selectProps.size}
+                  icon={<IconCalendar />}
+                >
                   <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
                 </DropdownButton>
               );
