@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +17,6 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -46,6 +46,10 @@ export function SlowestFunctionsWidget() {
     limit: MAX_FUNCTIONS,
   });
 
+  const hasFunctions = useMemo(() => {
+    return (functionsQuery.data?.data?.length || 0) > 0;
+  }, [functionsQuery.data]);
+
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
     referrer: 'api.profiling.suspect-functions.totals',
@@ -63,7 +67,7 @@ export function SlowestFunctionsWidget() {
           ),
         ]
       : [],
-    enabled: functionsQuery.isFetched && defined(functionsQuery.data?.data),
+    enabled: functionsQuery.isFetched && hasFunctions,
   });
 
   return (
@@ -73,15 +77,20 @@ export function SlowestFunctionsWidget() {
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
+        {(functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading)) && (
+          <StatusContainer height="100%">
+            <LoadingIndicator />
+          </StatusContainer>
+        )}
         {(functionsQuery.isError || totalsQuery.isError) && (
           <StatusContainer height="100%">
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </StatusContainer>
         )}
-        {(functionsQuery.isLoading || totalsQuery.isLoading) && (
-          <StatusContainer height="100%">
-            <LoadingIndicator />
-          </StatusContainer>
+        {functionsQuery.isFetched && !hasFunctions && (
+          <EmptyStateWarning>
+            <p>{t('No functions found')}</p>
+          </EmptyStateWarning>
         )}
         {functionsQuery.isFetched && totalsQuery.isFetched && (
           <Accordion>
@@ -292,6 +301,10 @@ const Subtitle = styled('div')`
 
 const ContentContainer = styled('div')`
   flex: 1 1 auto;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const Accordion = styled('ul')`
