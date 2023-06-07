@@ -12,7 +12,7 @@ class ArtifactBundlesSerializer(Serializer):
     def _compute_associations(item, grouped_bundles):
         associations = []
 
-        grouped_bundle = grouped_bundles.get(item.id, [])
+        grouped_bundle = grouped_bundles.get(item[0], [])
         # We want to sort the set, since we want consistent ordering in the UI.
         for release, dist in sorted(grouped_bundle):
             associations.append({"release": release or None, "dist": dist or None})
@@ -21,7 +21,7 @@ class ArtifactBundlesSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-            artifact_bundle_id__in=[r.id for r in item_list]
+            artifact_bundle_id__in=[r[0] for r in item_list]
         )
 
         grouped_bundles = defaultdict(set)
@@ -32,10 +32,10 @@ class ArtifactBundlesSerializer(Serializer):
 
         return {
             item: {
-                "bundle_id": item.bundle_id,
+                "bundle_id": item[1],
                 "associations": self._compute_associations(item, grouped_bundles),
-                "file_count": item.artifact_count,
-                "date": item.date_uploaded,
+                "file_count": item[2],
+                "date": item[3],
             }
             for item in item_list
         }

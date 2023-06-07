@@ -266,6 +266,38 @@ class ArtifactBundlesEndpointTest(APITestCase):
             },
         ]
 
+        # We test the search with a single release.
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?query=2.0")
+
+        assert response.status_code == 200, response.content
+        # We expect to get back a single entry of the bundle connected to this release.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [
+                    {
+                        "release": "1.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "ios",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "ios",
+                    },
+                ],
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+            },
+        ]
+
     def test_get_artifact_bundles_with_no_bundles(self):
         project = self.create_project(name="foo")
 
