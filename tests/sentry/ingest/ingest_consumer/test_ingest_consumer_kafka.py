@@ -160,6 +160,7 @@ def test_ingest_topic_can_be_overridden(
     admin = kafka_admin(settings)
     admin.delete_topic(default_event_topic)
     admin.delete_topic(new_event_topic)
+    create_topics("default", [new_event_topic])
 
     producer = kafka_producer(settings)
     message, event_id = get_test_message(type="event")
