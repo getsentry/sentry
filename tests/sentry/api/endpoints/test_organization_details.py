@@ -269,6 +269,11 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             response = self.get_success_response(org.slug)
             assert not response.data["isDynamicallySampled"]
 
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
+        assert resp.status_code == 400
+
 
 @region_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):

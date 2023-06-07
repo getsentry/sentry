@@ -141,6 +141,9 @@ SHARED_TAG_STRINGS = {
     "geo.country_code": PREFIX + 251,
     "span.group": PREFIX + 252,
     "transaction.method": PREFIX + 253,
+    "span.category": PREFIX + 254,
+    # More Transactions
+    "has_profile": PREFIX + 260,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }

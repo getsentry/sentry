@@ -934,6 +934,18 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="auth-tokens/" name={t('Auth Tokens')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/organizationAuthTokens'))}
+        />
+        <Route
+          path="new-token/"
+          name={t('Create New Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          )}
+        />
+      </Route>
     </Route>
   );
 
@@ -1281,7 +1293,7 @@ function buildRoutes() {
   const cronsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
     return (
       <Fragment>
-        <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
+        <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
         <Route
           path={
             forCustomerDomain ? '/crons/create/' : '/organizations/:orgId/crons/create/'
@@ -1665,6 +1677,10 @@ function buildRoutes() {
       <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/DBModule'))}
+      />
+      <Route
+        path="definitions/"
+        component={make(() => import('sentry/views/starfish/views/definitionsView'))}
       />
       <Route
         path="api/"

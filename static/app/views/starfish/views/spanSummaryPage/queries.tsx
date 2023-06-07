@@ -38,7 +38,7 @@ export const useQueryGetSpanSamples = (options: {
     enabled: Boolean(groupId && transactionName && p50),
   };
 
-  const commonSamplesQueryOptions = {
+  const commonSamplesQueryOptions: GetSamplesQueryOptions = {
     groupId,
     transactionName,
     user,
@@ -250,25 +250,27 @@ export const useQueryGetSpanSeriesData = (options: {
   });
 };
 
+type GetSamplesQueryOptions = {
+  groupId: string;
+  transactionName: string;
+  datetime?: DateTimeObject;
+  p50?: number;
+  populationType?: SamplePopulationType;
+  user?: string;
+};
+
 const getSpanSamplesQuery = ({
   groupId,
   transactionName,
   user,
   populationType,
   datetime,
-  p95,
-}: {
-  groupId;
-  transactionName;
-  user;
-  datetime?: DateTimeObject;
-  p95?: number;
-  populationType?: SamplePopulationType;
-}) => {
+  p50,
+}: GetSamplesQueryOptions) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
 
   return `
-    SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time, abs(minus(exclusive_time, ${p95})) as diff
+    SELECT transaction_id, transaction, description, user, domain, span_id, sum(exclusive_time) as exclusive_time, abs(minus(exclusive_time, ${p50})) as diff
     FROM spans_experimental_starfish
     WHERE group_id = '${groupId}'
     ${transactionName ? `AND transaction = '${transactionName}'` : ''}
