@@ -61,7 +61,7 @@ updates:
       - dependency-name: 'sprintf-js'
       - dependency-name: 'u2f-api'
   - package-ecosystem: 'docker'
-    directory: 'docker/'
+    directory: 'self-hosted/'
     schedule:
       interval: 'daily'
     reviewers:

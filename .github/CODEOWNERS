@@ -78,7 +78,7 @@ mypy.ini                                                 @getsentry/python-typin
 /.github/workflows/release.yml                           @getsentry/release-approvers
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
-/docker                                                  @getsentry/release-approvers
+/self-hosted                                             @getsentry/release-approvers
 setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build

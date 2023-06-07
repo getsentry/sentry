@@ -40,7 +40,7 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
 
 WORKDIR /workspace
 VOLUME ["/workspace/node_modules", "/workspace/build"]
-COPY docker/builder.sh /builder.sh
+COPY self-hosted/builder.sh /builder.sh
 ENTRYPOINT [ "/builder.sh" ]
 
 ARG SOURCE_COMMIT

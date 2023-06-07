@@ -81,8 +81,8 @@ COPY /dist/*.whl /tmp/dist/
 RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
 RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
-COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
-COPY ./docker/docker-entrypoint.sh /
+COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
+COPY ./self-hosted/docker-entrypoint.sh /
 
 EXPOSE 9000
 VOLUME /data
