@@ -1,6 +1,8 @@
 import {Location} from 'history';
 import moment, {Moment} from 'moment';
 
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -9,6 +11,12 @@ import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
+
+const SPAN_FILTER_KEY_TO_DISCOVER_FIELD = {
+  span_operation: 'span.operation',
+  domain: 'span.domain',
+  action: 'span.action',
+};
 
 export type SpanMetrics = {
   count: number;
@@ -46,7 +54,7 @@ export const useSpanList = (
     orderBy,
     limit
   );
-  const eventView = undefined;
+  const eventView = getEventView(moduleName, location, transaction);
 
   // TODO: Add referrer
   const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
@@ -54,12 +62,13 @@ export const useSpanList = (
     queryString: query,
     initialData: [],
     enabled: Boolean(query),
+    limit,
   });
 
   return {isLoading, data};
 };
 
-const getQuery = (
+function getQuery(
   moduleName: ModuleName,
   location: Location,
   startTime: Moment,
@@ -68,7 +77,7 @@ const getQuery = (
   transaction?: string,
   orderBy?: string,
   limit?: number
-) => {
+) {
   const conditions = buildQueryConditions(moduleName, location).filter(Boolean);
 
   return `SELECT
@@ -91,9 +100,9 @@ const getQuery = (
     GROUP BY group_id, span_operation, domain, description
     ORDER BY ${orderBy ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
-};
+}
 
-const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
+function buildQueryConditions(moduleName: ModuleName, location: Location) {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
@@ -107,4 +116,57 @@ const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
   }
 
   return result;
-};
+}
+
+function getEventView(
+  moduleName: ModuleName,
+  location: Location,
+  transaction?: string,
+  orderBy?: string
+) {
+  const query = buildEventViewQuery(moduleName, location, transaction)
+    .filter(Boolean)
+    .join(' ');
+
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      query,
+      fields: [
+        'spm()',
+        'sum(span.duration)',
+        'p95(span.duration)',
+        'time_spent_percentage()',
+      ],
+      orderby: orderBy,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      projects: [1],
+      version: 2,
+    },
+    location
+  );
+}
+
+function buildEventViewQuery(
+  moduleName: ModuleName,
+  location: Location,
+  transaction?: string
+) {
+  const {query} = location;
+  const result = Object.keys(query)
+    .filter(key => SPAN_FILTER_KEYS.includes(key))
+    .filter(key => Boolean(query[key]))
+    .map(key => {
+      return `${SPAN_FILTER_KEY_TO_DISCOVER_FIELD[key]}:${query[key]}'`;
+    });
+
+  if (moduleName !== ModuleName.ALL) {
+    result.push(`span.module:'${moduleName}'`);
+  }
+
+  if (transaction) {
+    result.push(`transaction:${transaction}`);
+  }
+
+  return result;
+}
