@@ -95,7 +95,7 @@ class PullRequestComment(Model):
     __include_in_export__ = False
 
     external_id = BoundedBigIntegerField()
-    pullrequest = FlexibleForeignKey("sentry.PullRequest")
+    pull_request = FlexibleForeignKey("sentry.PullRequest")
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
     issues = ArrayField()
@@ -103,3 +103,4 @@ class PullRequestComment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_comment"
+        unique_together = (("pull_request", "external_id"),)
