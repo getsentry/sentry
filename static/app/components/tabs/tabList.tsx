@@ -201,6 +201,7 @@ function BaseTabList({
             trigger={triggerProps => (
               <OverflowMenuTrigger
                 {...triggerProps}
+                size="sm"
                 borderless
                 showChevron={false}
                 icon={<IconEllipsis />}

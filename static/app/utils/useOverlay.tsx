@@ -1,16 +1,18 @@
 import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
 import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
-import {useButton} from '@react-aria/button';
+import {useButton as useButtonAria} from '@react-aria/button';
 import {
-  OverlayProps,
+  AriaOverlayProps,
   OverlayTriggerProps,
-  useOverlay as useAriaOverlay,
-  useOverlayTrigger,
+  useOverlay as useOverlayAria,
+  useOverlayTrigger as useOverlayTriggerAria,
 } from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
-import {useOverlayTriggerState} from '@react-stately/overlays';
-import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
+import {
+  OverlayTriggerProps as OverlayTriggerStateProps,
+  useOverlayTriggerState,
+} from '@react-stately/overlays';
 
 type PreventOverflowOptions = NonNullable<(typeof preventOverflow)['options']>;
 
@@ -72,7 +74,7 @@ const applyMaxSize: Modifier<'applyMaxSize', {}> = {
 };
 
 export interface UseOverlayProps
-  extends Partial<OverlayProps>,
+  extends Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
   disableTrigger?: boolean;
@@ -109,7 +111,7 @@ function useOverlay({
   disableTrigger,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
-  const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
 
@@ -196,19 +198,19 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const {buttonProps} = useButton(
-    {onPress: openState.toggle, isDisabled: disableTrigger},
-    triggerRef
-  );
-  const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
+  const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
     {type},
     openState,
+    triggerRef
+  );
+  const {buttonProps: triggerAriaProps} = useButtonAria(
+    {...triggerProps, isDisabled: disableTrigger},
     triggerRef
   );
 
   // Get props for overlay element
   const interactedOutside = useRef(false);
-  const {overlayProps} = useAriaOverlay(
+  const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
         onClose?.();
@@ -247,13 +249,13 @@ function useOverlay({
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
-      ...mergeProps(buttonProps, triggerProps),
+      ...triggerAriaProps,
     },
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,
       style: popperStyles.popper,
-      ...mergeProps(overlayTriggerProps, overlayProps),
+      ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {
       ref: setArrowElement,

@@ -15,15 +15,14 @@ import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -97,13 +96,14 @@ export default function EndpointOverview() {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+        yAxis="http_error_count()"
+        dataset={DiscoverDatasets.METRICS}
       >
         {eventData => {
           const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
             series => ({
               data: series.data,
-              seriesName: t('Error Rate'),
+              seriesName: t('Errors (5XXs)'),
               color: CHART_PALETTE[5][3],
               silent: true,
             })
@@ -131,9 +131,7 @@ export default function EndpointOverview() {
                 }}
                 definedAxisTicks={2}
                 isLineChart
-                chartColors={theme.charts.getColorPalette(2)}
-                disableXAxis
-                aggregateOutputFormat="percentage"
+                chartColors={[CHART_PALETTE[5][3]]}
               />
             </Fragment>
           );
@@ -169,9 +167,6 @@ export default function EndpointOverview() {
                   <SpanGroupBreakdownContainer transaction={transaction as string} />
                 </ChartsContainerItem>
                 <ChartsContainerItem2>
-                  <MiniChartPanel title={t('Error Rate')}>
-                    {renderFailureRateChart()}
-                  </MiniChartPanel>
                   <EventsRequest
                     query={query.formatString()}
                     includePrevious={false}
@@ -186,56 +181,35 @@ export default function EndpointOverview() {
                     start={pageFilter.selection.datetime.start}
                     end={pageFilter.selection.datetime.end}
                     organization={organization}
-                    yAxis={[
-                      'tpm()',
-                      'p95(transaction.duration)',
-                      'p50(transaction.duration)',
-                    ]}
-                    queryExtras={{dataset: 'metrics'}}
+                    yAxis={['tps()']}
+                    dataset={DiscoverDatasets.METRICS}
                   >
-                    {({results, loading}) => {
+                    {({loading, timeseriesData}) => {
+                      if (!timeseriesData) {
+                        return null;
+                      }
                       return (
                         <Fragment>
-                          <MiniChartPanel title={DataTitles.p95}>
-                            <Chart
-                              statsPeriod={(statsPeriod as string) ?? '24h'}
-                              height={110}
-                              data={results?.[2] ? [results?.[2]] : []}
-                              start=""
-                              end=""
-                              loading={loading}
-                              utc={false}
-                              isLineChart
-                              disableXAxis
-                              definedAxisTicks={2}
-                              chartColors={[P95_COLOR]}
-                              grid={{
-                                left: '0',
-                                right: '0',
-                                top: '8px',
-                                bottom: '16px',
-                              }}
-                            />
-                          </MiniChartPanel>
-                          <MiniChartPanel title={t('Throughput')}>
+                          <MiniChartPanel title={t('Throughput Per Second')}>
                             <Chart
                               statsPeriod={(statsPeriod as string) ?? '24h'}
                               height={80}
-                              data={results?.[0] ? [results?.[0]] : []}
+                              data={timeseriesData}
                               start=""
                               end=""
                               loading={loading}
                               utc={false}
                               stacked
-                              isLineChart
-                              disableXAxis
                               definedAxisTicks={2}
                               chartColors={[theme.charts.getColorPalette(0)[0]]}
                               grid={{
                                 left: '0',
                                 right: '0',
                                 top: '8px',
-                                bottom: '16px',
+                                bottom: '0',
+                              }}
+                              tooltipFormatterOptions={{
+                                valueFormatter: value => t('%s/sec', value.toFixed(2)),
                               }}
                             />
                           </MiniChartPanel>
@@ -243,6 +217,9 @@ export default function EndpointOverview() {
                       );
                     }}
                   </EventsRequest>
+                  <MiniChartPanel title={DataTitles.errorCount}>
+                    {renderFailureRateChart()}
+                  </MiniChartPanel>
                 </ChartsContainerItem2>
               </ChartsContainer>
             </StyledRow>
@@ -261,7 +238,6 @@ export default function EndpointOverview() {
               </SegmentedControl>
             </SegmentedControlContainer>
             <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
-            <FacetInsights eventView={eventView} />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>

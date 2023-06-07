@@ -110,7 +110,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     trackAnalytics('profiling_views.onboarding', {
       organization,
     });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {

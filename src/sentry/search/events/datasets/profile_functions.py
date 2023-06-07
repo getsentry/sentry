@@ -74,7 +74,6 @@ COLUMNS = [
     Column(alias="platform.name", column="platform", kind=Kind.STRING),
     Column(alias="environment", column="environment", kind=Kind.STRING),
     Column(alias="release", column="release", kind=Kind.STRING),
-    Column(alias="retention_days", column="retention_days", kind=Kind.INTEGER),
     Column(
         alias="function.duration",
         column="percentiles",
@@ -126,19 +125,13 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {
         "project.id",
         "project_id",
-        "transaction_name",
+        "transaction",
         "timestamp",
-        "depth",
-        "parent_fingerprint",
         "fingerprint",
-        "name",
+        "function",
         "package",
-        "path",
         "is_application",
-        "platform",
-        "os_name",
-        "os_version",
-        "retention_days",
+        "platform.name",
     }
 
     def __init__(self, builder: builder.QueryBuilder):
