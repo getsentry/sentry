@@ -884,6 +884,7 @@ class SystemAccess(OrganizationlessAccess):
             ),
         )
 
+    @property
     def has_global_access(self) -> bool:
         return True
 

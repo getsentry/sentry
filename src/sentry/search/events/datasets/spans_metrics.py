@@ -249,6 +249,35 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_http_error_count,
                     default_result_type="integer",
                 ),
+                fields.MetricsFunction(
+                    "percentile_range",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["span.duration"],
+                            allow_custom_measurements=False,
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                        fields.ConditionArg("condition"),
+                        fields.SnQLDateArg("middle"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args,
+                        alias=alias,
+                        fixed_percentile=args["percentile"],
+                        extra_conditions=[
+                            Function(
+                                args["condition"],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.builder.column("timestamp"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    default_result_type="duration",
+                ),
             ]
         }
 
