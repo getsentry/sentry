@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List
@@ -12,6 +13,8 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.snuba import Dataset, raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -112,6 +115,7 @@ def comment_workflow():
         try:
             organization = Organization.objects.get_from_cache(id=org_id)
         except Organization.DoesNotExist:
+            logger.error("github.pr_comment.org_missing")
             continue
 
         # currently only posts new comments
@@ -122,6 +126,7 @@ def comment_workflow():
         try:
             project = Group.objects.get_from_cache(id=issue_list[0]).project
         except Group.DoesNotExist:
+            logger.error("github.pr_comment.group_missing", extra={"organization_id": org_id})
             continue
 
         top_5_issues = get_top_5_issues_by_count(issue_list, project)
@@ -130,10 +135,12 @@ def comment_workflow():
         try:
             repo = Repository.objects.get(id=gh_repo_id)
         except Repository.DoesNotExist:
+            logger.error("github.pr_comment.repo_missing", extra={"organization_id": org_id})
             continue
 
         integration = integration_service.get_integration(integration_id=repo.integration_id)
         if not integration:
+            logger.error("github.pr_comment.integration_missing", extra={"organization_id": org_id})
             continue
 
         installation = integration_service.get_installation(
