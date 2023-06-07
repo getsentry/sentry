@@ -435,19 +435,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ],
         )
         return Function(
-            "multiply",
+            "divide",
             [
                 Function(
-                    "divide",
-                    [
-                        Function(
-                            "minus",
-                            [second_half, first_half],
-                        ),
-                        first_half,
-                    ],
+                    "minus",
+                    [second_half, first_half],
                 ),
-                100,
+                first_half,
             ],
             alias,
         )
