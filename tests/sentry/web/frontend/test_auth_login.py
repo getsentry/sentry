@@ -166,7 +166,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
         assert signup_record == [
@@ -199,7 +199,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         # User is part of the default org
         default_org = Organization.get_default()
-        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user=user)
+        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user_id=user.id)
         assert org_member.role == default_org.default_role
         self.assert_org_member_mapping(org_member=org_member)
 
@@ -229,7 +229,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         # An organization member should NOT have been created, even though
         # we're in single org mode, accepting the invite will handle that
         # (which we assert next)
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         # Invitation was accepted
         assert len(invite_helper.accept_invite.mock_calls) == 1
@@ -308,7 +308,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         invite.refresh_from_db()
         assert invite.user_id
         assert invite.token is None
-        assert invite.user.username == "member@example.com"
+        assert User.objects.get(id=invite.user_id).username == "member@example.com"
 
     def test_redirects_to_relative_next_url(self):
         next = "/welcome"
@@ -409,7 +409,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         assert newsletter.get_subscriptions(user) == {"subscriptions": []}
 

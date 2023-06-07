@@ -9,7 +9,7 @@ import {SpanDescription} from 'sentry/views/starfish/components/spanDescription'
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   ApplicationMetrics,
   useApplicationMetrics,
@@ -19,7 +19,7 @@ import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSe
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
-  span: Span;
+  span: IndexedSpan;
 };
 
 type Row = {
@@ -85,7 +85,7 @@ export function SpanBaselineTable({span}: Props) {
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: Span;
+  span: IndexedSpan;
 };
 
 function BodyCell({
@@ -98,7 +98,7 @@ function BodyCell({
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return <DurationCell seconds={row.metrics.p95} />;
+    return <DurationCell milliseconds={row.metrics.p95} />;
   }
 
   if (column.key === 'spans_per_second') {

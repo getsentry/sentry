@@ -1,7 +1,5 @@
 import logging
 
-from django.db import IntegrityError
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +13,7 @@ from sentry.notifications.notifications.organization_request import JoinRequestN
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -27,21 +26,22 @@ class JoinRequestSerializer(serializers.Serializer):
 
 def create_organization_join_request(organization, email, ip_address=None):
     if OrganizationMember.objects.filter(
-        Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
-        organization=organization,
+        organization_id=organization.id, email__iexact=email
     ).exists():
         return
 
-    try:
-        rpc_org_member = organization_service.add_organization_member(
-            organization_id=organization.id,
-            default_org_role=organization.default_role,
-            email=email,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
-        return OrganizationMember.objects.get(id=rpc_org_member.id)
-    except IntegrityError:
-        pass
+    if user_service.get_many_by_email(
+        emails=[email], organization_id=organization.id, is_active=True
+    ):
+        return
+
+    rpc_org_member = organization_service.add_organization_member(
+        organization_id=organization.id,
+        default_org_role=organization.default_role,
+        email=email,
+        invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+    )
+    return OrganizationMember.objects.get(id=rpc_org_member.id)
 
 
 @region_silo_endpoint
