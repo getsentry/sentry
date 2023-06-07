@@ -170,12 +170,6 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="sentry.OrganizationMember",
-        related_name="org_memberships",
-        through_fields=("organization", "user"),
-    )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
 
     flags = BitField(
@@ -324,7 +318,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": owners})
+        return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -359,7 +353,13 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             role__in=roles,
         )
         if not include_null_users:
-            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+            user_ids_with_role = members_with_role.filter(user_id__isnull=False).values_list(
+                "user_id", flat=True
+            )
+            user_ids = user_service.get_many_ids(
+                filter=dict(is_active=True, user_ids=list(user_ids_with_role))
+            )
+            members_with_role = members_with_role.filter(user_id__in=user_ids)
 
         members_with_role = set(members_with_role.values_list("id", flat=True))
 
@@ -400,11 +400,11 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
 
         logger = logging.getLogger("sentry.merge")
         for from_member in OrganizationMember.objects.filter(
-            organization=from_org, user__isnull=False
+            organization=from_org, user_id__isnull=False
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user_id=from_member.user.id
+                    organization=to_org, user_id=from_member.user_id
                 )
             except OrganizationMember.DoesNotExist:
                 with transaction.atomic():
