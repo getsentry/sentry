@@ -658,6 +658,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "time_spent_percentage",
+                    optional_args=[
+                        fields.with_default(
+                            "app", fields.SnQLStringArg("scope", allowed_strings=["app", "local"])
+                        )
+                    ],
                     snql_distribution=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
                 ),
@@ -1110,7 +1115,7 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_total_transaction_duration(self, alias: str) -> SelectType:
+    def _resolve_total_transaction_duration(self, alias: str, scope: str) -> SelectType:
         """This calculates the app's total time, so other filters that are
         a part of the original query will not be applies. Only filter conditions
         that will be applied are snuba params.
@@ -1127,6 +1132,9 @@ class MetricsDatasetConfig(DatasetConfig):
         )
 
         total_query.columns += self.builder.resolve_groupby()
+        if scope == "app":
+            total_query.where = self.builder.where
+
         total_results = total_query.run_query(
             Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
         )
@@ -1142,7 +1150,7 @@ class MetricsDatasetConfig(DatasetConfig):
         self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
     ) -> SelectType:
         total_time = self._resolve_total_transaction_duration(
-            constants.TOTAL_TRANSACTION_DURATION_ALIAS
+            constants.TOTAL_TRANSACTION_DURATION_ALIAS, args["scope"]
         )
         metric_id = self.resolve_metric("transaction.duration")
 
