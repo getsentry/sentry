@@ -11,6 +11,7 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
+import {EventType} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -161,7 +162,7 @@ export default class ReplayReader {
 
   sdkConfig = memoize(() => {
     const found = this.rrwebEvents.find(
-      event => event.type === 5 && event.data.tag === 'options'
+      event => event.type === EventType.Custom && event.data.tag === 'options'
     ) as undefined | RecordingOptions;
     return found?.data?.payload;
   });
