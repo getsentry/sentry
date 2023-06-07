@@ -26,6 +26,7 @@ type Props = {
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
+  transaction?: string;
 };
 
 export function SpanGroupBreakdown({
@@ -33,6 +34,7 @@ export function SpanGroupBreakdown({
   totalCumulativeTime: totalValues,
   topSeriesData: data,
   initialShowSeries,
+  transaction,
 }: Props) {
   const {selection} = usePageFilters();
   const theme = useTheme();
@@ -56,7 +58,11 @@ export function SpanGroupBreakdown({
     <FlexRowContainer>
       <ChartPadding>
         <Header>
-          <ChartLabel>{t('App Time Breakdown (P95)')}</ChartLabel>
+          <ChartLabel>
+            {transaction
+              ? t('Endpoint Time Breakdown (P95)')
+              : t('App Time Breakdown (P95)')}
+          </ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
