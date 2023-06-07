@@ -128,10 +128,8 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
 
     def ingest_consumer(settings):
-        from sentry.ingest.ingest_consumer import (
-            IngestConsumerWorker,
-            create_batching_kafka_consumer,
-        )
+        from sentry.ingest.consumer_v2 import get_ingest_consumer
+        from sentry.ingest.types import ConsumerType
 
         # Relay is configured to use this topic for all ingest messages. See
         # `templates/config.yml`.
@@ -148,13 +146,18 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         # simulate the event ingestion task
         group_id = "test-consumer"
 
-        consumer = create_batching_kafka_consumer(
-            topic_names=[topic_event_name],
-            worker=IngestConsumerWorker(),
-            max_batch_size=1,
-            max_batch_time=10,
+        consumer = get_ingest_consumer(
+            consumer_type=ConsumerType.Events,
             group_id=group_id,
             auto_offset_reset="earliest",
+            strict_offset_reset=False,
+            max_batch_size=1,
+            max_batch_time=10,
+            processes=1,
+            input_block_size=1,
+            output_block_size=1,
+            force_topic=topic_event_name,
+            force_cluster="default",
         )
 
         scope_consumers[topic_event_name] = consumer
