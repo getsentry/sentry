@@ -26,14 +26,13 @@ type Row = {
   description: string;
   metricSeries: Record<string, Series>;
   metrics: SpanMetrics;
-  timeSpent: string;
 };
 
 export type Keys =
   | 'description'
-  | 'spans_per_second'
+  | 'spm()'
   | 'p95(span.self_time)'
-  | 'timeSpent';
+  | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanBaselineTable({span}: Props) {
@@ -66,9 +65,6 @@ export function SpanBaselineTable({span}: Props) {
           description: span.description ?? '',
           metrics: spanMetrics,
           metricSeries: spanMetricSeries,
-          timeSpent: formatPercentage(
-            spanMetrics.total_time / applicationMetrics['sum(span.duration)']
-          ),
         },
       ]}
       columnOrder={COLUMN_ORDER}
@@ -98,18 +94,18 @@ function BodyCell({
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return <DurationCell seconds={row.metrics.p95} />;
+    return <DurationCell seconds={row.metrics['p95(span.duration)']} />;
   }
 
-  if (column.key === 'spans_per_second') {
-    return <ThroughputCell throughputPerSecond={row.metrics.spans_per_second} />;
+  if (column.key === 'spm()') {
+    return <ThroughputCell throughputPerSecond={row.metrics['spm()']} />;
   }
 
-  if (column.key === 'timeSpent') {
+  if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalSpanTime={row.metrics.total_time}
+        formattedTimeSpent={formatPercentage(row.metrics['time_spent_percentage()'])}
+        totalSpanTime={row.metrics['sum(span.duration)']}
       />
     );
   }
@@ -128,7 +124,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'spans_per_second',
+    key: 'spm()',
     name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -138,7 +134,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'timeSpent',
+    key: 'time_spent_percentage()',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },

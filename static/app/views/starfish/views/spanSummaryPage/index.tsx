@@ -33,6 +33,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
   const {data: spanMetrics} = useSpanMetrics({group: groupId});
+
   const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
   const {data: lastSeenSpanEvent} = useSpanLastSeenEvent({group_id: groupId});
 
@@ -59,7 +60,7 @@ function SpanSummaryPage({params, location}: Props) {
                     'The first time this span was ever seen in the current retention window'
                   )}
                 >
-                  <TimeSince date={spanMetrics?.first_seen} />
+                  <TimeSince date={spanMetrics?.['first_seen()']} />
                   {firstSeenSpanEvent?.release && (
                     <ReleasePreview release={firstSeenSpanEvent?.release} />
                   )}
@@ -69,7 +70,7 @@ function SpanSummaryPage({params, location}: Props) {
                   title={t('Last Seen')}
                   description={t('The most recent time this span was seen')}
                 >
-                  <TimeSince date={spanMetrics?.last_seen} />
+                  <TimeSince date={spanMetrics?.['last_seen()']} />
                   {lastSeenSpanEvent?.release && (
                     <ReleasePreview release={lastSeenSpanEvent?.release} />
                   )}
