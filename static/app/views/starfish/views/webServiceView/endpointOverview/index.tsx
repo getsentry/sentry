@@ -181,7 +181,7 @@ export default function EndpointOverview() {
                     start={pageFilter.selection.datetime.start}
                     end={pageFilter.selection.datetime.end}
                     organization={organization}
-                    yAxis={['tpm()']}
+                    yAxis={['tps()']}
                     dataset={DiscoverDatasets.METRICS}
                   >
                     {({loading, timeseriesData}) => {
@@ -206,7 +206,7 @@ export default function EndpointOverview() {
                                 left: '0',
                                 right: '0',
                                 top: '8px',
-                                bottom: '16px',
+                                bottom: '0',
                               }}
                               tooltipFormatterOptions={{
                                 valueFormatter: value => t('%s/sec', value.toFixed(2)),
