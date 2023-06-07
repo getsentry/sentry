@@ -1,6 +1,7 @@
 import zipfile
+from collections import defaultdict
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, OrderedDict, Set, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -65,14 +66,36 @@ class ArtifactBundle(Model):
         db_table = "sentry_artifactbundle"
 
     @classmethod
-    def get_release_artifact_bundles(
+    def get_grouped_releases(
         cls, organization_id: int, artifact_bundle_ids: List[int], limit=ASSOCIATIONS_LIMIT
-    ) -> List["ReleaseArtifactBundle"]:
-        return list(
+    ) -> Mapping[int, Mapping[str, Set[str]]]:
+        # We only want to get the `limit` most recent associations, in order to make the system upper bounded, since
+        # some users might indefinitely bind releases to a specific bundle. This problem can also be mitigated by
+        # upper bounding the number of associations on the upload side.
+        release_artifact_bundles = list(
             ReleaseArtifactBundle.objects.filter(
                 organization_id=organization_id, artifact_bundle_id__in=artifact_bundle_ids
-            )[:limit]
+            ).order_by("-date_added")[:limit]
         )
+
+        grouped_bundles = defaultdict(OrderedDict)
+        for release_artifact_bundle in release_artifact_bundles:
+            artifact_bundle_id = release_artifact_bundle.artifact_bundle_id
+            release = release_artifact_bundle.release_name
+            dist = release_artifact_bundle.dist_name
+
+            bundle_releases = grouped_bundles[artifact_bundle_id]
+
+            # In case we didn't initialize a set for this release, we want to do it irrespectively if the release
+            # has dists or not.
+            if release not in bundle_releases:
+                bundle_releases[release] = set()
+
+            # We want to add the dist only if it is a non-empty string.
+            if dist:
+                bundle_releases[release].add(dist)
+
+        return grouped_bundles
 
     @classmethod
     def get_release_associations(
@@ -80,25 +103,11 @@ class ArtifactBundle(Model):
         organization_id: int,
         artifact_bundle: "ArtifactBundle",
     ) -> List[Mapping[str, List[str]]]:
-        release_artifact_bundles = ArtifactBundle.get_release_artifact_bundles(
+        grouped_releases = ArtifactBundle.get_grouped_releases(
             organization_id, [artifact_bundle.id]
         )
 
-        grouped_releases = {}
-        for release_artifact_bundle in release_artifact_bundles:
-            release = release_artifact_bundle.release_name
-            dist = release_artifact_bundle.dist_name
-
-            # We want to add each release to the dictionary, even if they have an empty set, which signals no dists
-            # bound.
-            if release not in grouped_releases:
-                grouped_releases[release] = set()
-
-            # We only add to the set if the distribution is set as non-empty string.
-            if dist:
-                grouped_releases[release_artifact_bundle.release_name].add(dist)
-
-        return format_grouped_releases(grouped_releases)
+        return format_grouped_releases(grouped_releases.get(artifact_bundle.id, {}))
 
     @classmethod
     def get_ident(cls, url, dist=None):
@@ -108,12 +117,12 @@ class ArtifactBundle(Model):
 
 
 def format_grouped_releases(
-    grouped_releases: Mapping[str, Set[str]]
+    grouped_releases: OrderedDict[str, Set[str]]
 ) -> List[Mapping[str, List[str]]]:
     # We sort both releases and dists since we want to keep ordering consistent in the UI.
     return [
         {"release": release, "dist": sorted(dists) or []}
-        for release, dists in sorted(grouped_releases.items())
+        for release, dists in grouped_releases.items()
     ]
 
 
