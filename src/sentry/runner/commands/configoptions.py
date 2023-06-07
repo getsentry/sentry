@@ -26,6 +26,10 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
         return
 
     if options.get(key) == value:
+        # This script is making changes with UpdateChannel.AUTOMATOR
+        # channel. Thus, if the laast update channel was already
+        # UpdateChannel.AUTOMATOR, and the value we are trying to set
+        # is the same as the value already stored we do nothing.
         if options.get_last_update_channel(key) != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
@@ -70,7 +74,10 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     is updated to Automator.
 
     All other options are considered valid and updated to the value
-    present in the file
+    present in the file.
+
+    This script is the Options Automator. The UpdateChannel it uses
+    to apply changes is UpdateChannel.AUTOMATOR.
     """
 
     from sentry import options
