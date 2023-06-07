@@ -14,10 +14,7 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
@@ -84,7 +81,6 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
         row={row}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
-        applicationMetrics={applicationMetrics}
       />
     );
   };
@@ -112,14 +108,7 @@ type CellProps = {
   openSidebar?: boolean;
 };
 
-function BodyCell({
-  span,
-  column,
-  row,
-  openSidebar,
-  applicationMetrics,
-  onClickTransactionName,
-}: CellProps & {applicationMetrics: ApplicationMetrics}) {
+function BodyCell({span, column, row, openSidebar, onClickTransactionName}: CellProps) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
@@ -144,7 +133,6 @@ function BodyCell({
     return (
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
         totalSpanTime={row.metrics?.total_time}
       />
     );

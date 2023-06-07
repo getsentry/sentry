@@ -1,10 +1,10 @@
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/formatters';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {DataTitles, getTooltip} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
 
 type Props = {
@@ -24,18 +24,19 @@ function SampleInfo(props: Props) {
   const span_total_time = spanMetrics[transactionName]?.total_time;
   const application_total_time = applicationMetrics['sum(span.duration)'];
 
-  const tooltip = getTooltip('timeSpent', span_total_time, application_total_time);
-
   return (
     <BlockContainer>
-      <Block title={t('Throughput')}>
+      <Block title={DataTitles.throughput}>
         <ThroughputCell throughputPerSecond={spansPerSecond} />
       </Block>
-      <Block title={DataTitles.p95}>{p95?.toFixed(2)} ms</Block>
+      <Block title={DataTitles.p95}>
+        <DurationCell seconds={p95} />
+      </Block>
       <Block title={DataTitles.timeSpent}>
-        <Tooltip title={tooltip}>
-          {formatPercentage(span_total_time / application_total_time)}
-        </Tooltip>
+        <TimeSpentCell
+          formattedTimeSpent={formatPercentage(span_total_time / application_total_time)}
+          totalSpanTime={span_total_time}
+        />
       </Block>
     </BlockContainer>
   );
