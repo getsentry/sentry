@@ -99,7 +99,7 @@ const useQueryTransactionData = (data: {transaction_id: string}[]) => {
   const {slug} = useOrganization();
   const eventView = EventView.fromNewQueryWithLocation(
     {
-      fields: ['id', 'timestamp', 'project.name'],
+      fields: ['id', 'timestamp', 'project.name', 'transaction.duration'],
       name: 'Starfish - Sample List - transaction data',
       projects: [1],
       version: 2,

@@ -99,7 +99,8 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayEndPreview,
   .rdrDayInPreview {
     border: 0;
-    background: rgba(200, 200, 200, 0.3);
+    background: ${p => p.theme.headingColor};
+    opacity: 0.08;
     z-index: -1;
   }
 
@@ -200,6 +201,28 @@ const CalendarStylesWrapper = styled('div')`
     height: auto;
     background-color: transparent;
     border: none;
+  }
+
+  .rdrNextPrevButton:hover,
+  .rdrMonthPicker:hover,
+  .rdrYearPicker:hover {
+    position: relative;
+    background-color: transparent;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: ${p => p.theme.borderRadius};
+      background: ${p => p.theme.headingColor};
+      opacity: 0.08;
+      z-index: -1;
+    }
+  }
+
+  .rdrMonthPicker select:hover,
+  .rdrYearPicker select:hover {
+    background-color: transparent;
   }
 
   .rdrPprevButton {

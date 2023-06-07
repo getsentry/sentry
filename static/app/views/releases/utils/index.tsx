@@ -127,7 +127,7 @@ export const getReleaseHandledIssuesUrl = (
 };
 
 export const isReleaseArchived = (release: Release) =>
-  release.status === ReleaseStatus.Archived;
+  release.status === ReleaseStatus.ARCHIVED;
 
 export type ReleaseBounds = {
   type: 'normal' | 'clamped' | 'ancient';
