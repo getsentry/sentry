@@ -20,7 +20,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -34,6 +33,8 @@ import {
   datasetOmittedTags,
   datasetSupportedTags,
 } from 'sentry/views/alerts/wizard/options';
+
+import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -237,18 +238,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     );
   }
 
-  renderIdBadge(project: Project) {
-    return (
-      <IdBadge
-        project={project}
-        avatarProps={{consistentWidth: true}}
-        avatarSize={18}
-        disableLink
-        hideName
-      />
-    );
-  }
-
   renderProjectSelector() {
     const {
       project: _selectedProject,
@@ -260,39 +249,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
     const hasOpenMembership = organization.features.includes('open-membership');
 
-    // If form is enabled, we want to limit to the subset of projects which the
-    // user can create/edit alerts.
-    const targetProjects = disabled
-      ? projects
-      : projects.filter(project => project.access.includes('alerts:write'));
-    const myProjects = targetProjects.filter(project => project.isMember);
-    const allProjects = targetProjects.filter(project => !project.isMember);
-
-    const myProjectOptions = myProjects.map(myProject => ({
-      value: myProject.id,
-      label: myProject.slug,
-      leadingItems: this.renderIdBadge(myProject),
-    }));
-
-    const openMembershipProjects = [
-      {
-        label: t('My Projects'),
-        options: myProjectOptions,
-      },
-      {
-        label: t('All Projects'),
-        options: allProjects.map(allProject => ({
-          value: allProject.id,
-          label: allProject.slug,
-          leadingItems: this.renderIdBadge(allProject),
-        })),
-      },
-    ];
-
-    const projectOptions =
-      hasOpenMembership || hasOrgWrite || isActiveSuperuser()
-        ? openMembershipProjects
-        : myProjectOptions;
+    const projectOptions = getProjectOptions({
+      projects,
+      isFormDisabled: disabled,
+      hasOpenMembership,
+      hasOrgWrite,
+    });
 
     return (
       <FormField

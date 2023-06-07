@@ -71,6 +71,9 @@ import {
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
 import AsyncView from 'sentry/views/asyncView';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+
+import {getProjectOptions} from '../utils';
 
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
@@ -1020,38 +1023,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const hasOpenMembership = organization.features.includes('open-membership');
     const hasOrgWrite = organization.access.includes('org:write');
 
-    const myProjects = projects.filter(
-      project => project.isMember && project.access.includes('alerts:write')
-    );
-    const allProjects = projects.filter(
-      project => !project.isMember && project.access.includes('alerts:write')
-    );
-
-    const myProjectOptions = myProjects.map(myProject => ({
-      value: myProject.id,
-      label: myProject.slug,
-      leadingItems: this.renderIdBadge(myProject),
-    }));
-
-    const openMembershipProjects = [
-      {
-        label: t('My Projects'),
-        options: myProjectOptions,
-      },
-      {
-        label: t('All Projects'),
-        options: allProjects.map(allProject => ({
-          value: allProject.id,
-          label: allProject.slug,
-          leadingItems: this.renderIdBadge(allProject),
-        })),
-      },
-    ];
-
-    const projectOptions =
-      hasOpenMembership || hasOrgWrite || isActiveSuperuser()
-        ? openMembershipProjects
-        : myProjectOptions;
+    const projectOptions = getProjectOptions({
+      projects,
+      isFormDisabled: disabled,
+      hasOpenMembership,
+      hasOrgWrite,
+    });
 
     return (
       <FormField
@@ -1174,6 +1151,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
       <Main fullWidth>
+        <PermissionAlert access={['alerts:write']} project={project} />
+
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}

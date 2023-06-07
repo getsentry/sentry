@@ -151,6 +151,45 @@ describe('IssueRuleEditor', function () {
     ProjectsStore.reset();
   });
 
+  describe('Viewing the rule', () => {
+    const rule = TestStubs.MetricRule();
+    const permissionAlertText =
+      'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.';
+
+    it('is visible without org-level alerts:write', () => {
+      createWrapper({
+        organization: {access: []},
+        project: {access: []},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
+    });
+
+    it('is enabled with org-level alerts:write', () => {
+      createWrapper({
+        organization: {access: ['alerts:write']},
+        project: {access: []},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
+
+    it('is enabled with project-level alerts:write', () => {
+      createWrapper({
+        organization: {access: []},
+        project: {access: ['alerts:write']},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
+  });
+
   describe('Edit Rule', function () {
     let mock;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
