@@ -140,7 +140,8 @@ def is_queue_healthy(queue_name: str) -> bool:
         healthy = not queue_monitoring_cluster.exists(_unhealthy_queue_key(queue_name))
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        healthy = False
+        # By default it's considered healthy
+        healthy = True
     return healthy
 
 
