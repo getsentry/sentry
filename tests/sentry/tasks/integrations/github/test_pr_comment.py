@@ -322,7 +322,6 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow(self, get_jwt, mock_issues):
-        # this test will fail if you run it on its own due to self.fingerprint
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         self.add_pr_to_commit(commit_1)
         self.add_groupowner_to_commit(commit_1, self.project, self.user)
