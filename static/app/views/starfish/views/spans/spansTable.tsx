@@ -14,10 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -143,7 +140,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, applicationMetrics),
+        renderBodyCell: (column, row) => renderBodyCell(column, row),
       }}
       location={location}
     />
@@ -173,11 +170,7 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(
-  column: TableColumnHeader,
-  row: SpanDataRow,
-  applicationMetrics: ApplicationMetrics
-): React.ReactNode {
+function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.ReactNode {
   if (column.key === 'description') {
     const description = row.description;
     return (
@@ -195,7 +188,6 @@ function renderBodyCell(
     return (
       <TimeSpentCell
         formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
         totalSpanTime={row.total_exclusive_time}
       />
     );
