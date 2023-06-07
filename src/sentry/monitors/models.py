@@ -377,6 +377,8 @@ class MonitorCheckIn(Model):
     attachment_id = BoundedBigIntegerField(null=True)
     # Holds the time we expected to receive this check-in without factoring in margin
     expected_time = models.DateTimeField(null=True)
+    # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
+    timeout_at = models.DateTimeField(null=True)
     monitor_config = JSONField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
