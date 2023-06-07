@@ -177,7 +177,7 @@ describe('SlowestFunctionsWidget', function () {
     await userEvent.click(toggles[1]);
 
     // first row
-    const transaction3 = screen.getByText('transaction-3');
+    const transaction3 = await screen.findByText('transaction-3');
     expect(transaction3).toBeInTheDocument();
     expect(transaction3).toHaveAttribute(
       'href',

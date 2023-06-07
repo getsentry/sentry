@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Span} from 'sentry/views/starfish/queries/types';
@@ -5,15 +7,13 @@ import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 
-const INTERVAL = 12;
-
 export type SpanMetrics = {
   count: number;
   first_seen: string;
   last_seen: string;
   p50: number;
   p95: number;
-  spm: number;
+  spans_per_second: number;
   total_time: number;
 };
 
@@ -39,7 +39,9 @@ export const useSpanMetrics = (
   sum(exclusive_time) as total_time,
   quantile(0.5)(exclusive_time) as p50,
   quantile(0.5)(exclusive_time) as p95,
-  divide(count, multiply(${INTERVAL}, 60)) as spm
+  divide(count(), ${
+    moment(endTime ?? undefined).unix() - moment(startTime).unix()
+  }) as spans_per_second
   FROM spans_experimental_starfish
   WHERE group_id = '${span.group_id}'
   ${dateFilters}

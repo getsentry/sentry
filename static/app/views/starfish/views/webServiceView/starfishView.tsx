@@ -292,16 +292,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
         onSelect={onSelect}
-        columnTitles={[
-          'endpoint',
-          'tpm',
-          DataTitles.p95,
-          'p95 change',
-          'failure count',
-          'cumulative time',
-        ]}
       />
     </div>
   );
