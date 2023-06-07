@@ -357,11 +357,12 @@ class WritesLimiterFactory:
         ] = {}
 
     def get_ratelimiter(
-        self, config: MetricsIngestConfiguration, use_case_awareness=True
+        self, config: MetricsIngestConfiguration
     ) -> Union[UcaWritesLimiter, WritesLimiter]:
+        use_case_awareness = options.get("sentry-metrics.writes-limiter.apply-uca-limiting")
         namespace = config.writes_limiter_namespace
         if (namespace, use_case_awareness) not in self.rate_limiters:
-            writes_rate_limiter = (
+            writes_rate_limiter: Union[UcaWritesLimiter, WritesLimiter] = (
                 UcaWritesLimiter(namespace, **config.writes_limiter_cluster_options)
                 if use_case_awareness
                 else WritesLimiter(namespace, **config.writes_limiter_cluster_options)
