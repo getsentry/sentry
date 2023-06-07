@@ -122,7 +122,7 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   }
 
   if (column.key === 'p95(transaction.duration)') {
-    return <DurationCell seconds={row.metrics?.p95} />;
+    return <DurationCell milliseconds={row.metrics?.p95} />;
   }
 
   if (column.key === 'spans_per_second') {
