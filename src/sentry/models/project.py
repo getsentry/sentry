@@ -407,7 +407,9 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
         # Manually move over external issues to the new org
-        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list("id", flat=True)
+        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
+            "linked_id", flat=True
+        )
         ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups).update(
             organization_id=organization.id
         )
