@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -24,27 +24,23 @@ type Props = {
 };
 
 export type SpanDataRow = {
-  count: number;
-  description: string;
-  domain: string;
-  epm: number;
-  formatted_desc: string;
-  group_id: string;
-  p50: number;
-  p95: number;
-  span_operation: string;
-  spans_per_second: number;
-  total_exclusive_time: number;
+  'p95(span.duration)': number;
+  'span.description': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  'spm()': number;
+  'time_spent_percentage()': number;
 };
 
 export type Keys =
-  | 'description'
-  | 'span_operation'
-  | 'domain'
-  | 'spans_per_second'
-  | 'p95'
-  | 'timeSpent'
-  | 'total_exclusive_time';
+  | 'span.description'
+  | 'span.op'
+  | 'span.domain'
+  | 'spm()'
+  | 'p95(span.duration)'
+  | 'sum(span.duration)'
+  | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
@@ -98,57 +94,35 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 }
 
 function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.ReactNode {
-  if (column.key === 'description') {
-    const description = row.description;
+  if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span/${row.group_id}`}>{description || '<null>'}</Link>
+        {row['span.group'] ? (
+          <Link to={`/starfish/span/${row['span.group']}`}>
+            {row['span.description'] || '<null>'}
+          </Link>
+        ) : (
+          row['span.description'] || '<null>'
+        )}
       </OverflowEllipsisTextContainer>
     );
   }
 
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
-  }
-
-  if (column.key === 'timeSpent') {
+  if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalSpanTime={row.total_exclusive_time}
+        formattedTimeSpent={formatPercentage(row['time_spent_percentage()'])}
+        totalSpanTime={row['sum(span.duration)']}
       />
     );
   }
 
-  if (column.key === 'spans_per_second') {
+  if (column.key === 'spm()') {
     return <ThroughputCell throughputPerSecond={row[column.key]} />;
   }
 
   return row[column.key];
 }
-
-// We use different named column keys for the same columns in db and api module
-// So we need to map them to the appropriate keys for the module details drawer
-// Not ideal, but this is a temporary fix until we match the column keys.
-// Also the type for this is not very consistent. We should fix that too.
-export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
-  switch (spanOperation) {
-    case 'http.client':
-      return {
-        ...row,
-        'p50(span.self_time)': row.p50,
-        'p95(span.self_time)': row.p95,
-      };
-    case 'db':
-      return {
-        ...row,
-        total_time: row.total_exclusive_time,
-      };
-
-    default:
-      return row;
-  }
-};
 
 function getDomainHeader(moduleName: ModuleName) {
   if (moduleName === ModuleName.HTTP) {
@@ -176,36 +150,36 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
 
   const order: TableColumnHeader[] = [
     {
-      key: 'span_operation',
+      key: 'span.op',
       name: 'Operation',
       width: 120,
     },
     {
-      key: 'description',
+      key: 'span.description',
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName !== ModuleName.ALL
       ? [
           {
-            key: 'domain',
+            key: 'span.domain',
             name: domain,
             width: COL_WIDTH_UNDEFINED,
           } as TableColumnHeader,
         ]
       : []),
     {
-      key: 'spans_per_second',
+      key: 'spm()',
       name: 'Throughput',
       width: 175,
     },
     {
-      key: 'p95',
+      key: 'p95(span.duration)',
       name: DataTitles.p95,
       width: 175,
     },
     {
-      key: 'timeSpent',
+      key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
     },

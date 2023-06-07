@@ -10,26 +10,22 @@ import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
-
-const SPAN_FILTER_KEY_TO_DISCOVER_FIELD = {
-  span_operation: 'span.operation',
-  domain: 'span.domain',
-  action: 'span.action',
+const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
+const SPAN_FILTER_KEY_TO_LOCAL_FIELD = {
+  'span.op': 'span_operation',
+  'span.domain': 'domain',
+  'span.action': 'action',
 };
 
 export type SpanMetrics = {
-  count: number;
-  description: string;
-  domain: string;
-  epm: number;
-  formatted_desc: string;
-  group_id: string;
-  p50: number;
-  p95: number;
-  span_operation: string;
-  spans_per_second: number;
-  total_exclusive_time: number;
+  'p95(span.duration)': number;
+  'span.description': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  'spm()': number;
+  'sum(span.duration)': number;
+  'time_spent_percentage()': number;
 };
 
 export const useSpanList = (
@@ -54,7 +50,7 @@ export const useSpanList = (
     orderBy,
     limit
   );
-  const eventView = getEventView(moduleName, location, transaction);
+  const eventView = getEventView(moduleName, location, transaction, orderBy);
 
   // TODO: Add referrer
   const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
@@ -81,16 +77,15 @@ function getQuery(
   const conditions = buildQueryConditions(moduleName, location).filter(Boolean);
 
   return `SELECT
-    group_id, span_operation, description, domain,
-    sum(exclusive_time) as total_exclusive_time,
-    uniq(transaction) as transactions,
-    quantile(0.95)(exclusive_time) as p95,
-    quantile(0.75)(exclusive_time) as p75,
-    quantile(0.50)(exclusive_time) as p50,
-    count() as count,
+    group_id as "span.group",
+    span_operation as "span.operation",
+    description as "span.description",
+    domain as "span.domain",
+    sum(exclusive_time) as "sum(span.duration)"
+    quantile(0.95)(exclusive_time) as "p95(span.duration)",
     divide(count(), ${
       moment(endTime ?? undefined).unix() - moment(startTime).unix()
-    }) as spans_per_second
+    }) as "spm()"
     FROM spans_experimental_starfish
     WHERE 1 = 1
     ${conditions.length > 0 ? 'AND' : ''}
@@ -108,7 +103,7 @@ function buildQueryConditions(moduleName: ModuleName, location: Location) {
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(query[key]))
     .map(key => {
-      return `${key} = '${query[key]}'`;
+      return `${SPAN_FILTER_KEY_TO_LOCAL_FIELD[key]} = '${query[key]}'`;
     });
 
   if (moduleName !== ModuleName.ALL) {
@@ -133,6 +128,10 @@ function getEventView(
       name: '',
       query,
       fields: [
+        'span.op',
+        'span.group',
+        'span.description',
+        'span.domain',
         'spm()',
         'sum(span.duration)',
         'p95(span.duration)',
@@ -157,11 +156,11 @@ function buildEventViewQuery(
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(query[key]))
     .map(key => {
-      return `${SPAN_FILTER_KEY_TO_DISCOVER_FIELD[key]}:${query[key]}'`;
+      return `${key}:${query[key]}`;
     });
 
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:'${moduleName}'`);
+    result.push(`span.module:${moduleName}`);
   }
 
   if (transaction) {

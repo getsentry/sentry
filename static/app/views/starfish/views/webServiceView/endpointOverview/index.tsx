@@ -282,7 +282,7 @@ function SpanMetricsTable({
       moduleName={ModuleName.ALL}
       isLoading={areSpansLoading}
       spansData={spansData}
-      orderBy="count"
+      orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
     />
   );

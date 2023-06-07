@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
@@ -25,16 +24,16 @@ type State = {
 };
 
 type Query = {
-  action: string;
-  domain: string;
-  group_id: string;
-  span_operation: string;
+  'span.action': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
 };
 
 export default function SpansView(props: Props) {
   const location = useLocation<Query>();
   const appliedFilters = location.query;
-  const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
+  const [state, setState] = useState<State>({orderBy: '-time_spent_percentage'});
 
   const {orderBy} = state;
 
@@ -52,17 +51,17 @@ export default function SpansView(props: Props) {
 
         <SpanOperationSelector
           moduleName={props.moduleName}
-          value={appliedFilters.span_operation || ''}
+          value={appliedFilters['span.op'] || ''}
         />
 
         <DomainSelector
           moduleName={props.moduleName}
-          value={appliedFilters.domain || ''}
+          value={appliedFilters['span.domain'] || ''}
         />
 
         <ActionSelector
           moduleName={props.moduleName}
-          value={appliedFilters.action || ''}
+          value={appliedFilters['span.action'] || ''}
         />
       </FilterOptionsContainer>
 
@@ -96,21 +95,3 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
-
-const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
-
-export const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
-  const {query} = location;
-  const result = Object.keys(query)
-    .filter(key => SPAN_FILTER_KEYS.includes(key))
-    .filter(key => Boolean(query[key]))
-    .map(key => {
-      return `${key} = '${query[key]}'`;
-    });
-
-  if (moduleName !== ModuleName.ALL) {
-    result.push(`module = '${moduleName}'`);
-  }
-
-  return result;
-};
