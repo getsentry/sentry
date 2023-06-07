@@ -44,7 +44,9 @@ function AssociationsBody({associations}: {associations: DebugIdBundleAssociatio
                 {t('No dists associated with this release')}
               </NoAssociations>
             ) : (
-              tct('Dist: [dist]', {dist: dist.join(', ')})
+              tct('Dist: [dist]', {
+                dist: typeof dist === 'string' ? dist : dist.join(', '),
+              })
             )}
           </li>
         ))}

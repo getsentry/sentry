@@ -1,5 +1,5 @@
 export type DebugIdBundleAssociation = {
-  dist: string[] | null;
+  dist: string[] | string | null;
   release: string;
 };
 
