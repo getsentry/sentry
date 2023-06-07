@@ -8,6 +8,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import {Monitor} from '../../types';
@@ -21,7 +22,7 @@ interface Props {
 export function OverviewTimeline({monitorList}: Props) {
   const {replace, location} = useRouter();
 
-  const resolution = location.query?.resolution ?? '24hr';
+  const resolution = location.query?.resolution ?? '24h';
 
   const handleResolutionChange = useCallback(
     (value: string) => {
@@ -40,8 +41,8 @@ export function OverviewTimeline({monitorList}: Props) {
           size="xs"
           aria-label={t('Time Scale')}
         >
-          <SegmentedControl.Item key="1hr">{t('Hour')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="24hr">{t('Day')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
           <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
           <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
         </SegmentedControl>
@@ -59,10 +60,13 @@ export function OverviewTimeline({monitorList}: Props) {
 }
 
 function MonitorDetails({monitor}: {monitor: Monitor}) {
+  const organization = useOrganization();
   const schedule = scheduleAsText(monitor.config);
 
+  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
+
   return (
-    <DetailsContainer to="/crons/">
+    <DetailsContainer to={monitorDetailUrl}>
       <Name>{monitor.name}</Name>
       <Schedule>{schedule}</Schedule>
     </DetailsContainer>
@@ -74,15 +78,13 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 1fr;
 `;
 
-const TimelineContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
+const TimelineContainer = styled('div')``;
 
 const DetailsContainer = styled(Link)`
   color: ${p => p.theme.textColor};
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-radius: 0;
 
   &:hover {
     color: unset;
@@ -103,7 +105,9 @@ const ListFilters = styled('div')`
   display: flex;
   gap: ${space(1)};
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const TimelineScrubber = styled('div')``;
+const TimelineScrubber = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
