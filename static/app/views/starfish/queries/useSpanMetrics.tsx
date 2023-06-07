@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
@@ -18,7 +18,7 @@ export type SpanMetrics = {
 };
 
 export const useSpanMetrics = (
-  span?: Pick<Span, 'group_id'>,
+  span?: Pick<IndexedSpan, 'group'>,
   queryFilters: {transactionName?: string} = {},
   referrer = 'span-metrics'
 ) => {
@@ -43,13 +43,13 @@ export const useSpanMetrics = (
     moment(endTime ?? undefined).unix() - moment(startTime).unix()
   }) as spans_per_second
   FROM spans_experimental_starfish
-  WHERE group_id = '${span.group_id}'
+  WHERE group_id = '${span.group}'
   ${dateFilters}
   ${filters.join(' AND ')}`
     : '';
 
   const {isLoading, error, data} = useQuery<SpanMetrics[]>({
-    queryKey: ['span-metrics', span?.group_id, dateFilters],
+    queryKey: ['span-metrics', span?.group, dateFilters],
     queryFn: () =>
       fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
     retry: false,

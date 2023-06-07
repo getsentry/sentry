@@ -15,7 +15,7 @@ type Props = {
 function SampleInfo(props: Props) {
   const {groupId, transactionName} = props;
 
-  const {data: spanMetrics} = useSpanTransactionMetrics({group_id: groupId}, [
+  const {data: spanMetrics} = useSpanTransactionMetrics({group: groupId}, [
     transactionName,
   ]);
   const {data: applicationMetrics} = useApplicationMetrics();

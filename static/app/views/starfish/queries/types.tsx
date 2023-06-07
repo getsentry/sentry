@@ -7,3 +7,13 @@ export type Span = {
   formatted_desc?: string;
   span_id?: string;
 };
+
+export type IndexedSpan = {
+  action: string;
+  description: string;
+  domain: string;
+  group: string;
+  module: string;
+  op: string;
+  span_id: string;
+};

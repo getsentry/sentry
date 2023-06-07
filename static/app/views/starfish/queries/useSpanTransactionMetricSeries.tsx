@@ -5,7 +5,7 @@ import moment from 'moment';
 import {Series} from 'sentry/types/echarts';
 import {useQuery} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
@@ -21,7 +21,7 @@ type Metric = {
 };
 
 export const useSpanTransactionMetricSeries = (
-  span?: Span,
+  span?: IndexedSpan,
   transactions?: string[],
   referrer: string = 'span-transaction-metrics-series'
 ) => {
@@ -39,7 +39,7 @@ export const useSpanTransactionMetricSeries = (
    FROM spans_experimental_starfish
    WHERE
      transaction IN ('${transactions.join("','")}')
-     AND group_id = '${span.group_id}'
+     AND group_id = '${span.group}'
      ${dateFilters}
    GROUP BY transaction, interval
    ORDER BY transaction, interval
@@ -47,7 +47,7 @@ export const useSpanTransactionMetricSeries = (
       : '';
 
   const {isLoading, error, data} = useQuery<Metric[]>({
-    queryKey: ['span-metrics-series', span?.group_id, transactions?.join(',') || ''],
+    queryKey: ['span-metrics-series', span?.group, transactions?.join(',') || ''],
     queryFn: () =>
       fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
     retry: false,
