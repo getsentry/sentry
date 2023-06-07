@@ -8,10 +8,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.models import ApiKey, ProjectOption, Repository, User
+from sentry.models import ApiKey, ProjectOption, Repository
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -56,12 +57,11 @@ class HerokuReleaseHook(ReleaseHook):
         data = body.get("data")
         email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
 
-        try:
-            user = User.objects.get(
-                email__iexact=email, sentry_orgmember_set__organization__project=self.project
-            )
-        except (User.DoesNotExist, User.MultipleObjectsReturned):
-            user = None
+        users = user_service.get_many_by_email(
+            emails=[email], organization_id=self.project.organization_id
+        )
+        user = users[0] if users else None
+        if user is None:
             logger.info(
                 "owner.missing",
                 extra={

@@ -585,14 +585,18 @@ class PostSentryAppsTest(SentryAppsTest):
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
 
     def test_members_cant_create(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member_om = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         member_om.role = "member"
         member_om.save()
 
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member_om = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         member_om.role = "manager"
         member_om.save()
 

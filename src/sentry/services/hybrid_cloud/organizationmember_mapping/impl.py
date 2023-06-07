@@ -16,6 +16,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -26,24 +27,38 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
-        with transaction.atomic():
-            existing = self._find_organization_member(
-                organization_id=organization_id,
-                organizationmember_id=organizationmember_id,
-            )
-
-            if not existing:
-                existing = OrganizationMemberMapping.objects.create(organization_id=organization_id)
-
+        def apply_update(existing: OrganizationMemberMapping) -> None:
             existing.role = mapping.role
             existing.user_id = mapping.user_id
             existing.email = mapping.email
             existing.inviter_id = mapping.inviter_id
             existing.invite_status = mapping.invite_status
             existing.organizationmember_id = organizationmember_id
-
             existing.save()
-            return serialize_org_member_mapping(existing)
+
+        try:
+            with transaction.atomic():
+                existing = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
+                )
+
+                if not existing:
+                    existing = OrganizationMemberMapping.objects.create(
+                        organization_id=organization_id
+                    )
+
+                assert existing
+                apply_update(existing)
+                return serialize_org_member_mapping(existing)
+        except IntegrationError:
+            existing = self._find_organization_member(
+                organization_id=organization_id,
+                organizationmember_id=organizationmember_id,
+            )
+            apply_update(existing)
+
+        return serialize_org_member_mapping(existing)
 
     def _find_organization_member(
         self,

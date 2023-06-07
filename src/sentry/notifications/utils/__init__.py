@@ -52,9 +52,9 @@ from sentry.models import (
     ReleaseCommit,
     Repository,
     Rule,
-    User,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -108,9 +108,9 @@ def get_group_counts_by_project(
 
 def get_repos(
     commits: Iterable[Commit],
-    users_by_email: Mapping[str, User],
+    users_by_email: Mapping[str, RpcUser],
     organization: Organization,
-) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, User | None]]]]:
+) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, RpcUser | None]]]]:
     repositories_by_id = {
         repository_id: {"name": repository_name, "commits": []}
         for repository_id, repository_name in Repository.objects.filter(

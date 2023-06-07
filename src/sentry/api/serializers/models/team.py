@@ -349,7 +349,6 @@ def get_scim_teams_members(
     # TODO(hybridcloud) Another cross silo join
     members = RangeQuerySetWrapper(
         OrganizationMember.objects.filter(teams__in=team_list)
-        .select_related("user")
         .prefetch_related("teams")
         .distinct("id"),
         limit=10000,

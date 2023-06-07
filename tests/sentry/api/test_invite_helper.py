@@ -44,7 +44,7 @@ class ApiInviteHelperTest(TestCase):
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
@@ -67,7 +67,7 @@ class ApiInviteHelperTest(TestCase):
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
@@ -91,7 +91,7 @@ class ApiInviteHelperTest(TestCase):
         # Invite cannot be accepted without AuthIdentity if SSO is required
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is not None
-        assert om.user is None
+        assert om.user_id is None
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
@@ -118,4 +118,4 @@ class ApiInviteHelperTest(TestCase):
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
