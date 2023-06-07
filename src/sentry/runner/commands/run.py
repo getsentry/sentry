@@ -86,7 +86,7 @@ def kafka_options(
             "--consumer-group",
             "group_id",
             default=consumer_group,
-            help="Kafka consumer group for the consumer.",
+            help="(physical) Kafka consumer group for the consumer.",
         )(f)
 
         f = click.option(
@@ -655,34 +655,55 @@ def profiles_consumer(**options):
 
 @run.command("consumer")
 @log_options()
-@click.option(
-    "--topic",
-    required=True,
-    help="Logical topic to run consumer for. This corresponds to a key in KAFKA_TOPICS and determines which consumer logic to run internally",
+@click.argument(
+    "consumer_group",
 )
+@click.option("--create-topic/--no-create-topic", default=False)
 @kafka_options("")
 @strict_offset_reset_option()
 @configuration
-def basic_consumer(topic, **options):
+def basic_consumer(consumer_group, create_topic, **options):
+    """
+    Launch a "new-style" consumer based on its consumer group.
+
+    Example:
+
+        sentry run consumer ingest-profiles
+
+    runs the ingest-profiles consumer, which has the default consumer group
+    "ingest-profiles".
+
+    The physical consumer group to use on kafka can be overridden with
+    --consumer-group option.
+    """
     from django.conf import settings
 
+    from sentry.consumers import KAFKA_CONSUMERS
+
     try:
-        consumer_definition = settings.KAFKA_TOPICS[topic]
+        consumer_definition = KAFKA_CONSUMERS[consumer_group]
     except KeyError:
-        raise click.ClickException(f"No logical topic named {topic} in settings.KAFKA_TOPICS")
+        raise click.ClickException(
+            f"No consumer group named {consumer_group} in sentry.consumers.KAFKA_CONSUMERS"
+        )
 
     try:
         strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-        default_group_id = consumer_definition["group_id"]
+        topic = consumer_definition["topic"]
     except KeyError:
         raise click.ClickException(
-            f"The logical topic {topic} does not have a strategy factory or group_id "
+            f"The consumer group {consumer_group} does not have a strategy factory"
             f"registered. Most likely there is another subcommand in 'sentry run' "
-            f"responsible for this topic"
+            f"responsible for this consumer"
         )
 
     if options["group_id"] == "":
-        options["group_id"] = default_group_id
+        options["group_id"] = consumer_group
+
+    if create_topic:
+        from sentry.utils.batching_kafka_consumer import create_topics
+
+        create_topics(settings.KAFKA_TOPICS[topic]["cluster"], [topic])
 
     from sentry.utils.arroyo import run_basic_consumer
 

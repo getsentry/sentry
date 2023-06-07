@@ -23,8 +23,6 @@ from typing import (
 )
 from urllib.parse import urlparse
 
-from typing_extensions import NotRequired
-
 import sentry
 from sentry.types.region import Region
 from sentry.utils import json
@@ -2945,8 +2943,6 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 class TopicDefinition(TypedDict):
     cluster: str
-    group_id: NotRequired[str]
-    strategy_factory: NotRequired[str]
 
 
 # Cluster configuration for each Kafka topic by name.
@@ -2975,11 +2971,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {
-        "cluster": "default",
-        "group_id": "ingest-profiles",
-        "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
-    },
+    KAFKA_PROFILES: {"cluster": "default"},
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
