@@ -1240,6 +1240,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Use issue platform for crons issues
     "organizations:crons-issue-platform": False,
+    # Use new listing page for crons
+    "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1556,6 +1558,8 @@ SENTRY_FEATURES = {
     "organizations:slack-escape-messages": False,
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
+    # Enables commenting on PRs from the Sentry comment bot.
+    "organizations:pr-comment-bot": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

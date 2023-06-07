@@ -144,7 +144,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...filterEventsDisplayToLocationQuery(newFilterName, spanOperationBreakdownFilter),
     };
 
-    if (newFilterName === EventsDisplayFilterName.p100) {
+    if (newFilterName === EventsDisplayFilterName.P100) {
       delete nextQuery.showTransaction;
     }
 

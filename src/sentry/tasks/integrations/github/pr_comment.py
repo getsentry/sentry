@@ -1,9 +1,13 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import List
 
 from django.db import connection
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import Request as SnubaRequest
 
-from sentry.models import GroupOwnerType
+from sentry.models import Group, GroupOwnerType, Project
+from sentry.utils.snuba import Dataset, raw_snql_query
 
 
 @dataclass
@@ -13,14 +17,14 @@ class PullRequestIssue:
     url: str
 
 
-body = """## Suspect Issues
+COMMENT_BODY_TEMPLATE = """## Suspect Issues
 This pull request has been deployed and Sentry has observed the following issues:
 
 {issue_list}
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
-single_issue_template = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
 
 def format_comment(issues: List[PullRequestIssue]):
@@ -29,14 +33,14 @@ def format_comment(issues: List[PullRequestIssue]):
 
     issue_list = "\n".join(
         [
-            single_issue_template.format(
+            SINGLE_ISSUE_TEMPLATE.format(
                 title=issue.title, subtitle=format_subtitle(issue.subtitle), url=issue.url
             )
             for issue in issues
         ]
     )
 
-    return body.format(issue_list=issue_list)
+    return COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
 
 
 def pr_to_issue_query():
@@ -47,7 +51,7 @@ def pr_to_issue_query():
             SELECT pr.repository_id repo_id,
                    pr.key pr_key,
                    pr.organization_id org_id,
-                   array_agg(go.id) issues
+                   array_agg(go.group_id) issues
             FROM sentry_groupowner go
             JOIN sentry_commit c ON c.id = (go.context::jsonb->>'commitId')::int
             JOIN sentry_pull_request pr ON c.key = pr.merge_commit_sha
@@ -62,3 +66,37 @@ def pr_to_issue_query():
             [GroupOwnerType.SUSPECT_COMMIT.value],
         )
         return cursor.fetchall()
+
+
+def get_top_5_issues_by_count(issue_list: List[int], project: Project) -> List[int]:
+    """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+    request = SnubaRequest(
+        dataset=Dataset.Events.value,
+        app_id="default",
+        tenant_ids={"organization_id": project.organization_id},
+        query=(
+            Query(Entity("events"))
+            .set_select([Column("group_id"), Function("count", [], "event_count")])
+            .set_groupby([Column("group_id")])
+            .set_where(
+                [
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("group_id"), Op.IN, issue_list),
+                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
+                    Condition(Column("timestamp"), Op.LT, datetime.now()),
+                ]
+            )
+            .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+            .set_limit(5)
+        ),
+    )
+    return raw_snql_query(request, referrer="tasks.github_comment")["data"]
+
+
+def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
+    """Retrieve the issue information that will be used for comment contents"""
+    issues = Group.objects.filter(id__in=issue_list).all()
+    return [
+        PullRequestIssue(title=issue.title, subtitle=issue.message, url=issue.get_absolute_url())
+        for issue in issues
+    ]
