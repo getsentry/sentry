@@ -45,7 +45,7 @@ class RuleHistoryBackend(Service):
         Fetches groups that triggered a rule within a given timeframe, ordered by number of
         times each group fired.
         """
-        pass
+        raise NotImplementedError
 
     def fetch_rule_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
@@ -54,4 +54,4 @@ class RuleHistoryBackend(Service):
         Fetches counts of how often a rule has fired withing a given datetime range, bucketed by
         hour.
         """
-        pass
+        raise NotImplementedError
