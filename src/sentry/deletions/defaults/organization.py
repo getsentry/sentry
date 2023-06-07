@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from sentry.models import OrganizationStatus
 
 from ..base import ModelDeletionTask, ModelRelation
@@ -68,4 +70,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
 
         for instance in instance_list:
             if instance.status != OrganizationStatus.DELETION_IN_PROGRESS:
-                instance.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+                # Open a transaction to ensure that the outbox and model save are in sync
+                with transaction.atomic():
+                    instance.status = OrganizationStatus.DELETION_IN_PROGRESS
+                    instance.save()
