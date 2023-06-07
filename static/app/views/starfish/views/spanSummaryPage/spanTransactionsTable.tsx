@@ -13,16 +13,13 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
-  count: number;
   metrics: SpanTransactionMetrics;
   transaction: string;
 };
@@ -42,22 +39,13 @@ export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
   const location = useLocation();
-  const {data: applicationMetrics} = useApplicationMetrics();
 
-  const {data: spanTransactions, isLoading} = useSpanTransactions(span);
-  const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
+  const {data: spanTransactionMetrics, isLoading} = useSpanTransactionMetrics(span);
 
-  const spanTransactionsWithMetrics = spanTransactions.map(row => {
+  const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
-      ...row,
-      timeSpent: formatPercentage(
-        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics['sum(span.duration)']
-      ),
-      metrics: spanTransactionMetrics[row.transaction],
+      transaction: row.transaction,
+      metrics: row,
     };
   });
 

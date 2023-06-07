@@ -1,12 +1,17 @@
-import keyBy from 'lodash/keyBy';
-import moment from 'moment';
+import {Location} from 'history';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+useSpansQuery;
+
+const INTERVAL = 12;
 
 export type SpanTransactionMetrics = {
   'p50(span.duration)': number;
@@ -20,46 +25,63 @@ export type SpanTransactionMetrics = {
 export const useSpanTransactionMetrics = (
   span?: Pick<IndexedSpan, 'group'>,
   transactions?: string[],
-  referrer = 'span-transaction-metrics'
+  _referrer = 'span-transaction-metrics'
 ) => {
+  const location = useLocation();
   const pageFilters = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilters);
   const dateFilters = getDateQueryFilter(startTime, endTime);
 
-  const query =
-    span && transactions && transactions.length > 0
-      ? `
+  const query = span ? getQuery(span, dateFilters, transactions ?? []) : '';
+  const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
+
+  const {isLoading, data} = useSpansQuery<SpanTransactionMetrics[]>({
+    eventView,
+    queryString: query,
+    initialData: [],
+    enabled: Boolean(query),
+  });
+
+  return {isLoading, data};
+};
+
+function getQuery(span: {group: string}, dateFilters: string, transactions: string[]) {
+  return `
     SELECT
       transaction,
       quantile(0.5)(exclusive_time) as "p50(span.duration)",
       quantile(0.5)(exclusive_time) as "p95(span.duration)",
       sum(exclusive_time) as "sum(span.duration)",
-      divide(count(), ${
-        moment(endTime ?? undefined).unix() - moment(startTime).unix()
-      }) as "spm()"
+      divide(count, multiply(${INTERVAL}, 60)) as "spm()"
     FROM spans_experimental_starfish
     WHERE group_id = '${span.group}'
     ${dateFilters}
     AND transaction IN ('${transactions.join("','")}')
     GROUP BY transaction
- `
-      : '';
+  `;
+}
 
-  const {isLoading, error, data} = useQuery<SpanTransactionMetrics[]>({
-    queryKey: [
-      'span-transactions-metrics',
-      span?.group,
-      transactions?.join(',') || '',
-      dateFilters,
-    ],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-    enabled: Boolean(query),
-  });
+function getEventView(span: {group: string}, location: Location, transactions: string[]) {
+  const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
-  const parsedData = keyBy(data, 'transaction');
-
-  return {isLoading, error, data: parsedData};
-};
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      query: `span.group:${cleanGroupId}${
+        transactions.length > 0 ? ` transaction:[${transactions.join(',')}]` : ''
+      }`,
+      fields: [
+        'transaction',
+        'spm()',
+        'sum(span.duration)',
+        'p95(span.duration)',
+        'time_spent_percentage()',
+      ],
+      orderby: '-time_spent_percentage()',
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      projects: [1],
+      version: 2,
+    },
+    location
+  );
+}
