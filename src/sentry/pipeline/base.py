@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from types import LambdaType
-from typing import TYPE_CHECKING, Any, Mapping, Sequence, Type
+from typing import Any, Mapping, Sequence, Type
 
 from django.http.response import HttpResponseBase
 from django.views import View
@@ -20,9 +20,6 @@ from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 from .views.nested import NestedPipelineView
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationProvider
 
 
 class Pipeline(abc.ABC):
@@ -105,7 +102,7 @@ class Pipeline(abc.ABC):
         self.organization = organization
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider: Type[IntegrationProvider] = self.get_provider(provider_key)
+        self.provider = self.get_provider(provider_key)
 
         self.config = config or {}
         self.provider.set_pipeline(self)

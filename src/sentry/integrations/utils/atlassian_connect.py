@@ -47,7 +47,8 @@ def get_query_hash(
 def get_token(request: HttpRequest) -> str:
     try:
         # request.headers = {"Authorization": "JWT abc123def456"}
-        return request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
+        auth_header: str = request.META["HTTP_AUTHORIZATION"]
+        return auth_header.split(" ", 1)[1]
     except (KeyError, IndexError):
         raise AtlassianConnectValidationError("Missing/Invalid authorization header")
 
