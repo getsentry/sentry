@@ -1,7 +1,8 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Replayer} from '@sentry-internal/rrweb';
-import {EventType, eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import {EventType} from '@sentry-internal/rrweb/typings/types';
 import first from 'lodash/first';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
