@@ -120,7 +120,10 @@ PREVIOUS_STATUSES = {
     GroupHistoryStatus.ASSIGNED: (GroupHistoryStatus.UNASSIGNED,),
     GroupHistoryStatus.UNASSIGNED: (GroupHistoryStatus.ASSIGNED,),
     GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
-    GroupHistoryStatus.ESCALATING: (GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,),
+    GroupHistoryStatus.ESCALATING: (
+        GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
+        GroupHistoryStatus.IGNORED,
+    ),
 }
 
 ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
