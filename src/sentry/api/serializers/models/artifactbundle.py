@@ -2,7 +2,7 @@ import base64
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer
-from sentry.models import ArtifactBundle, SourceFileType
+from sentry.models import ArtifactBundle, SourceFileType, format_grouped_releases
 
 INVALID_SOURCE_FILE_TYPE = 0
 
@@ -13,14 +13,20 @@ class ArtifactBundlesSerializer(Serializer):
 
     @staticmethod
     def _compute_associations(item, grouped_bundles):
-        associations = []
-
         grouped_bundle = grouped_bundles.get(item.id, [])
-        # We want to sort the set, since we want consistent ordering in the UI.
-        for release, dist in sorted(grouped_bundle):
-            associations.append({"release": release or None, "dist": dist or None})
 
-        return associations
+        grouped_releases = {}
+        for release, dist in grouped_bundle:
+            # We want to add each release to the dictionary, even if they have an empty set, which signals no dists
+            # bound.
+            if release not in grouped_releases:
+                grouped_releases[release] = set()
+
+            # We only add to the set if the distribution is set as non-empty string.
+            if dist:
+                grouped_releases[release].add(dist)
+
+        return format_grouped_releases(grouped_releases)
 
     def get_attrs(self, item_list, user):
         release_artifact_bundles = ArtifactBundle.get_release_artifact_bundles(

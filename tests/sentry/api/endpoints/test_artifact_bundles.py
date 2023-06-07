@@ -76,7 +76,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "v2.0",
-                        "dist": None,
+                        "dist": [],
                     }
                 ],
                 "date": "2023-03-15T02:00:00Z",
@@ -87,7 +87,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "v1.0",
-                        "dist": "android",
+                        "dist": ["android"],
                     }
                 ],
                 "date": "2023-03-15T01:00:00Z",
@@ -113,7 +113,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "v1.0",
-                        "dist": "android",
+                        "dist": ["android"],
                     }
                 ],
                 "date": "2023-03-15T01:00:00Z",
@@ -133,7 +133,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "v2.0",
-                        "dist": None,
+                        "dist": [],
                     }
                 ],
                 "date": "2023-03-15T02:00:00Z",
@@ -153,7 +153,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "v1.0",
-                        "dist": "android",
+                        "dist": ["android"],
                     }
                 ],
                 "date": "2023-03-15T01:00:00Z",
@@ -246,19 +246,11 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "associations": [
                     {
                         "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
-                        "dist": "ios",
+                        "dist": ["android", "ios"],
                     },
                     {
                         "release": "2.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "2.0",
-                        "dist": "ios",
+                        "dist": ["android", "ios"],
                     },
                 ],
                 "date": "2023-03-15T00:00:00Z",

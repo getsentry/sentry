@@ -1,6 +1,6 @@
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -79,24 +79,42 @@ class ArtifactBundle(Model):
         cls,
         organization_id: int,
         artifact_bundle: "ArtifactBundle",
-    ) -> List[Mapping[str, Optional[str]]]:
+    ) -> List[Mapping[str, List[str]]]:
         release_artifact_bundles = ArtifactBundle.get_release_artifact_bundles(
             organization_id, [artifact_bundle.id]
         )
 
-        return [
-            {
-                "release": release_artifact_bundle.release_name,
-                "dist": release_artifact_bundle.dist_name or None,
-            }
-            for release_artifact_bundle in release_artifact_bundles
-        ]
+        grouped_releases = {}
+        for release_artifact_bundle in release_artifact_bundles:
+            release = release_artifact_bundle.release_name
+            dist = release_artifact_bundle.dist_name
+
+            # We want to add each release to the dictionary, even if they have an empty set, which signals no dists
+            # bound.
+            if release not in grouped_releases:
+                grouped_releases[release] = set()
+
+            # We only add to the set if the distribution is set as non-empty string.
+            if dist:
+                grouped_releases[release_artifact_bundle.release_name].add(dist)
+
+        return format_grouped_releases(grouped_releases)
 
     @classmethod
     def get_ident(cls, url, dist=None):
         if dist is not None:
             return sha1_text(url + "\x00\x00" + dist).hexdigest()
         return sha1_text(url).hexdigest()
+
+
+def format_grouped_releases(
+    grouped_releases: Mapping[str, Set[str]]
+) -> List[Mapping[str, List[str]]]:
+    # We sort both releases and dists since we want to keep ordering consistent in the UI.
+    return [
+        {"release": release, "dist": sorted(dists) or []}
+        for release, dists in sorted(grouped_releases.items())
+    ]
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):

@@ -50,8 +50,8 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
             "associations": [
-                {"release": "1.0", "dist": "android"},
-                {"release": "2.0", "dist": "android"},
+                {"release": "1.0", "dist": ["android"]},
+                {"release": "2.0", "dist": ["android"]},
             ],
             "files": [
                 {
@@ -128,7 +128,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         expected = [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
-                "associations": [{"release": "1.0", "dist": None}],
+                "associations": [{"release": "1.0", "dist": []}],
                 "files": [
                     {
                         "debugId": None,
@@ -148,7 +148,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             },
             {
                 "bundleId": str(artifact_bundle.bundle_id),
-                "associations": [{"release": "1.0", "dist": None}],
+                "associations": [{"release": "1.0", "dist": []}],
                 "files": [
                     {
                         "debugId": None,
@@ -168,7 +168,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             },
             {
                 "bundleId": str(artifact_bundle.bundle_id),
-                "associations": [{"release": "1.0", "dist": None}],
+                "associations": [{"release": "1.0", "dist": []}],
                 "files": [
                     {
                         "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
