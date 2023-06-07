@@ -1,15 +1,11 @@
 import {unix} from 'moment';
 
-import {DateTimeObject} from 'sentry/components/charts/utils';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  datetimeToClickhouseFilterTimestamps,
-  getDateFilters,
-} from 'sentry/views/starfish/utils/dates';
+import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -29,25 +25,6 @@ export const getTimeSpentQuery = (
     ${validConditions.join(' AND ')}
     ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
     GROUP BY primary_group
-  `;
-};
-
-export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-
-  return `
-    SELECT
-    group_id, span_operation,
-    toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval,
-    quantile(0.50)(exclusive_time) as p50_trend,
-    quantile(0.95)(exclusive_time) as p95_trend,
-    divide(count(), multiply(24, 60)) as throughput
-    FROM spans_experimental_starfish
-    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    AND group_id IN (${groupIDs.map(id => `'${id}'`).join(',')})
-    GROUP BY group_id, span_operation, interval
-    ORDER BY interval asc
   `;
 };
 

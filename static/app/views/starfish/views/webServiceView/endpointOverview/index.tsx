@@ -18,7 +18,6 @@ import {generateQueryWithTag} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,9 +29,7 @@ import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getSpansTrendsQuery} from 'sentry/views/starfish/views/spans/queries';
-import SpansTable, {SpanTrendDataRow} from 'sentry/views/starfish/views/spans/spansTable';
+import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -272,8 +269,6 @@ function SpanMetricsTable({
   filter: ModuleName;
   transaction: string | undefined;
 }) {
-  const pageFilter = usePageFilters();
-
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
   const {isLoading: areSpansLoading, data: spansData} = useSpanList(
     filter ?? ModuleName.ALL,
@@ -282,30 +277,13 @@ function SpanMetricsTable({
     SPANS_TABLE_LIMIT
   );
 
-  const groupIDs = spansData.map(({group_id}) => group_id);
-
-  const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
-    SpanTrendDataRow[]
-  >({
-    queryKey: ['spansTrends'],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
-      ).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-    enabled: groupIDs.length > 0,
-  });
-
   return (
     <SpansTable
       moduleName={ModuleName.ALL}
-      isLoading={areSpansLoading || areSpansTrendsLoading}
+      isLoading={areSpansLoading}
       spansData={spansData}
       orderBy="count"
       onSetOrderBy={() => undefined}
-      spansTrendsData={spansTrendsData}
     />
   );
 }

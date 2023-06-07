@@ -1,23 +1,17 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
-import _orderBy from 'lodash/orderBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
-import {getSpansTrendsQuery} from './queries';
-import type {SpanTrendDataRow} from './spansTable';
 import SpansTable from './spansTable';
 
 const LIMIT: number = 25;
@@ -40,7 +34,6 @@ type Query = {
 export default function SpansView(props: Props) {
   const location = useLocation<Query>();
   const appliedFilters = location.query;
-  const pageFilter = usePageFilters();
   const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
 
   const {orderBy} = state;
@@ -51,22 +44,6 @@ export default function SpansView(props: Props) {
     orderBy,
     LIMIT
   );
-
-  const groupIDs = spansData.map(({group_id}) => group_id);
-
-  const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
-    SpanTrendDataRow[]
-  >({
-    queryKey: ['spansTrends'],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
-      ).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-    enabled: groupIDs.length > 0,
-  });
 
   return (
     <Fragment>
@@ -99,11 +76,10 @@ export default function SpansView(props: Props) {
       <PaddedContainer>
         <SpansTable
           moduleName={props.moduleName || ModuleName.ALL}
-          isLoading={areSpansLoading || areSpansTrendsLoading}
+          isLoading={areSpansLoading}
           spansData={spansData}
           orderBy={orderBy}
           onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
-          spansTrendsData={spansTrendsData}
         />
       </PaddedContainer>
     </Fragment>

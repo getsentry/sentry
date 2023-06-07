@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import Duration from 'sentry/components/duration';
 import GridEditable, {
@@ -8,15 +7,11 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
@@ -25,7 +20,6 @@ type Props = {
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   spansData: SpanDataRow[];
-  spansTrendsData: SpanTrendDataRow[];
   columnOrder?: TableColumnHeader[];
 };
 
@@ -43,17 +37,8 @@ export type SpanDataRow = {
   total_exclusive_time: number;
 };
 
-export type SpanTrendDataRow = {
-  group_id: string;
-  interval: string;
-  percentile_value: string;
-  span_operation: string;
-};
-
 export type Keys =
   | 'description'
-  | 'p50_trend'
-  | 'p95_trend'
   | 'span_operation'
   | 'domain'
   | 'spans_per_second'
@@ -67,73 +52,15 @@ export default function SpansTable({
   spansData,
   orderBy,
   onSetOrderBy,
-  spansTrendsData,
   isLoading,
   columnOrder,
 }: Props) {
   const location = useLocation();
-  const {data: applicationMetrics} = useApplicationMetrics();
-
-  const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
-
-  spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
-    ['p50_trend', 'p95_trend', 'throughput'].forEach(trend => {
-      if (span_operation in spansTrendsGrouped[trend]) {
-        if (group_id in spansTrendsGrouped[trend][span_operation]) {
-          return spansTrendsGrouped[trend][span_operation][group_id].push({
-            name: interval,
-            value: rest[trend],
-          });
-        }
-        return (spansTrendsGrouped[trend][span_operation][group_id] = [
-          {name: interval, value: rest[trend]},
-        ]);
-      }
-      return (spansTrendsGrouped[trend][span_operation] = {
-        [group_id]: [{name: interval, value: rest[trend]}],
-      });
-    });
-  });
-
-  const combinedSpansData = spansData?.map(spanData => {
-    const {group_id, span_operation} = spanData;
-    if (spansTrendsGrouped.p50_trend?.[span_operation] === undefined) {
-      return spanData;
-    }
-    const p50_trend: Series = {
-      seriesName: 'p50_trend',
-      data: spansTrendsGrouped.p50_trend[span_operation][group_id],
-    };
-    const p95_trend: Series = {
-      seriesName: 'p95_trend',
-      data: spansTrendsGrouped.p95_trend[span_operation][group_id],
-    };
-    const throughput_trend: Series = {
-      seriesName: 'throughput_trend',
-      data: spansTrendsGrouped.throughput[span_operation][group_id],
-    };
-
-    const zeroFilledP50 = zeroFillSeries(p50_trend, moment.duration(1, 'day'));
-    const zeroFilledP95 = zeroFillSeries(p95_trend, moment.duration(1, 'day'));
-    const zeroFilledThroughput = zeroFillSeries(
-      throughput_trend,
-      moment.duration(1, 'day')
-    );
-    return {
-      ...spanData,
-      timeSpent: formatPercentage(
-        spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
-      ),
-      p50_trend: zeroFilledP50,
-      p95_trend: zeroFilledP95,
-      throughput_trend: zeroFilledThroughput,
-    };
-  });
 
   return (
     <GridEditable
       isLoading={isLoading}
-      data={combinedSpansData}
+      data={spansData}
       columnOrder={columnOrder ?? getColumns(moduleName)}
       columnSortBy={
         orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
