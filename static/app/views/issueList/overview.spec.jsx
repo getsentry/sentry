@@ -519,7 +519,7 @@ describe('IssueList', function () {
         query: 'assigned:me level:fatal',
         sort: 'date',
         isPinned: true,
-        visibility: SavedSearchVisibility.Organization,
+        visibility: SavedSearchVisibility.ORGANIZATION,
       };
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -591,7 +591,7 @@ describe('IssueList', function () {
         query: 'assigned:me level:fatal',
         sort: 'date',
         isPinned: true,
-        visibility: SavedSearchVisibility.Organization,
+        visibility: SavedSearchVisibility.ORGANIZATION,
       });
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',

@@ -11,6 +11,7 @@ class SlackIntegrationStatus(analytics.Event):
     type = "integrations.slack.status"
 
     attributes = (
+        analytics.Attribute("organization_id"),
         analytics.Attribute("status"),
         analytics.Attribute("resolve_type", required=False),
         analytics.Attribute("user_id", required=False),
