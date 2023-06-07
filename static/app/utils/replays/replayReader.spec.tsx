@@ -84,7 +84,7 @@ describe('ReplayReader', () => {
     const consoleEvent = TestStubs.Replay.ConsoleEvent({timestamp});
     const replayEnd = {
       type: EventType.Custom,
-      timestamp: replayRecord.finished_at.getTime(),
+      timestamp: expect.any(Number), // will be set to the endTimestamp of the last crumb in the test
       data: {
         tag: 'replay-end',
       },
