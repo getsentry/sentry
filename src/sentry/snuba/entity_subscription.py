@@ -153,7 +153,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
     ) -> QueryBuilder:
-        pass
+        raise NotImplementedError
 
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):

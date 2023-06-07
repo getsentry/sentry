@@ -318,7 +318,7 @@ export function getValidOps(
 export const shortcuts: Shortcut[] = [
   {
     text: 'Delete',
-    shortcutType: ShortcutType.Delete,
+    shortcutType: ShortcutType.DELETE,
     hotkeys: {
       actual: 'ctrl+option+backspace',
     },
@@ -329,7 +329,7 @@ export const shortcuts: Shortcut[] = [
   },
   {
     text: 'Exclude',
-    shortcutType: ShortcutType.Negate,
+    shortcutType: ShortcutType.NEGATE,
     hotkeys: {
       actual: 'ctrl+option+1',
     },
@@ -340,7 +340,7 @@ export const shortcuts: Shortcut[] = [
   },
   {
     text: 'Include',
-    shortcutType: ShortcutType.Negate,
+    shortcutType: ShortcutType.NEGATE,
     hotkeys: {
       actual: 'ctrl+option+1',
     },
@@ -352,7 +352,7 @@ export const shortcuts: Shortcut[] = [
 
   {
     text: 'Previous',
-    shortcutType: ShortcutType.Previous,
+    shortcutType: ShortcutType.PREVIOUS,
     hotkeys: {
       actual: 'ctrl+option+left',
     },
@@ -363,7 +363,7 @@ export const shortcuts: Shortcut[] = [
   },
   {
     text: 'Next',
-    shortcutType: ShortcutType.Next,
+    shortcutType: ShortcutType.NEXT,
     hotkeys: {
       actual: 'ctrl+option+right',
     },

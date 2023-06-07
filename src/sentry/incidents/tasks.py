@@ -10,7 +10,6 @@ from sentry.auth.access import from_user
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleStatus,
-    AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
@@ -176,11 +175,10 @@ def handle_trigger_action(
     incident_id: int,
     project_id: int,
     method: str,
+    new_status: int,
     metric_value: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-
     try:
         action = AlertRuleTriggerAction.objects.select_related(
             "alert_rule_trigger", "alert_rule_trigger__alert_rule"
@@ -206,27 +204,9 @@ def handle_trigger_action(
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
-    if method == "resolve":
-        if (
-            action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
-            and AlertRuleTrigger.objects.filter(
-                alert_rule=action.alert_rule_trigger.alert_rule,
-                label=WARNING_TRIGGER_LABEL,
-            ).exists()
-        ):
-            # If we're resolving a critical trigger and a warning exists then we want to treat this
-            # as if firing a warning, rather than resolving this trigger
-            new_status = IncidentStatus.WARNING
-        else:
-            new_status = IncidentStatus.CLOSED
-    else:
-        if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL:
-            new_status = IncidentStatus.CRITICAL
-        else:
-            new_status = IncidentStatus.WARNING
 
     getattr(action, method)(
-        action, incident, project, metric_value=metric_value, new_status=new_status
+        action, incident, project, metric_value=metric_value, new_status=IncidentStatus(new_status)
     )
 
 

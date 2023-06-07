@@ -241,6 +241,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         analytics.record(
             "integrations.slack.status",
+            organization_id=group.project.organization.id,
             status=status["status"],
             resolve_type=resolve_type,
             user_id=user.id,

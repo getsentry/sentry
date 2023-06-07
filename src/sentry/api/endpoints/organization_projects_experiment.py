@@ -4,6 +4,7 @@ import string
 from email.headerregistry import Address
 
 from django.db import IntegrityError, transaction
+from django.utils.text import slugify
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,8 +34,8 @@ def _generate_suffix() -> str:
     return "".join(random.choice(letters) for _ in range(3))
 
 
-def fetch_email_username(email: str) -> str:
-    return Address(addr_spec=email).username
+def fetch_slugifed_email_username(email: str) -> str:
+    return slugify(Address(addr_spec=email).username)
 
 
 # This endpoint is intended to be available to all members of an
@@ -92,7 +93,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"
-        parsed_email = fetch_email_username(request.user.email)
+        parsed_email = fetch_slugifed_email_username(request.user.email)
 
         project_name = result["name"]
         default_team_slug = f"team-{parsed_email}"

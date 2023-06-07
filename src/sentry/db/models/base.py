@@ -43,7 +43,7 @@ class BaseModel(models.Model):  # type: ignore
     class Meta:
         abstract = True
 
-    objects = BaseManager[M]()
+    objects = BaseManager[M]()  # type: ignore
 
     update = update
 
