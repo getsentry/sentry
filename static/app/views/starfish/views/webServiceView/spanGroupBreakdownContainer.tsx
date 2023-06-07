@@ -48,7 +48,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     eventView: getEventView(
       selection,
       // TODO: Fix has:span.category in the backend
-      `has:span.category ${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server has:span.category ${
+        transaction ? `transaction:${transaction}` : ''
+      }`,
       ['span.category']
     ),
     orgSlug: organization.slug,
@@ -59,7 +61,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   const {data: cumulativeTime} = useDiscoverQuery({
     eventView: getEventView(
       selection,
-      `${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''}`,
       []
     ),
     orgSlug: organization.slug,
@@ -69,7 +71,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   const {isLoading: isTopDataLoading, data: topData} = useWrappedDiscoverTimeseriesQuery({
     eventView: getEventView(
       selection,
-      `has:span.category  ${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server has:span.category ${
+        transaction ? `transaction:${transaction}` : ''
+      }`,
       ['span.category'],
       true
     ),
