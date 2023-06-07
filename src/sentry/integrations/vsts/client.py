@@ -26,7 +26,6 @@ INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not vali
 class VstsApiPath:
     """
     Endpoints used by the Azure Devops (Formerly 'Visual Studios Team Services') integration client.
-    Each entry has a docs linked and scope map attached for debugging.
     Last Updated: 06/2023
     """
 
