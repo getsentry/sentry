@@ -132,7 +132,6 @@ export default function EndpointOverview() {
                 definedAxisTicks={2}
                 isLineChart
                 chartColors={[CHART_PALETTE[5][3]]}
-                disableXAxis
               />
             </Fragment>
           );
@@ -201,7 +200,6 @@ export default function EndpointOverview() {
                               loading={loading}
                               utc={false}
                               stacked
-                              disableXAxis
                               definedAxisTicks={2}
                               chartColors={[theme.charts.getColorPalette(0)[0]]}
                               grid={{

@@ -126,7 +126,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 definedAxisTicks={2}
                 isLineChart
                 chartColors={theme.charts.getColorPalette(2)}
-                disableXAxis
                 onClick={e => {
                   if (e.componentType === 'markArea') {
                     setSelectedSpike({
@@ -191,7 +190,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
               definedAxisTicks={2}
               stacked
               chartColors={theme.charts.getColorPalette(2)}
-              disableXAxis
               tooltipFormatterOptions={{
                 valueFormatter: value => t('%s/sec', value.toFixed(2)),
               }}
