@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models import OrganizationMemberTeam, Team, TeamStatus
@@ -73,7 +75,8 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_scim_team_details_patch_replace_rename_team(self):
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_scim_team_details_patch_replace_rename_team(self, mock_metrics):
         team = self.create_team(organization=self.organization)
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
@@ -97,6 +100,9 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert Team.objects.get(id=team.id).slug == "newname"
         assert Team.objects.get(id=team.id).name == "newName"
         assert Team.objects.get(id=team.id).idp_provisioned
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.update", tags={"organization": self.organization}
+        )
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -309,7 +315,8 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_delete_team(self):
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_delete_team(self, mock_metrics):
         team = self.create_team(organization=self.organization)
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
@@ -318,6 +325,9 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.delete", tags={"organization": self.organization}
+        )
 
     def test_remove_member_azure(self):
         member1 = self.create_member(
