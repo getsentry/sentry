@@ -209,7 +209,7 @@ class RpcUserInviteContext(RpcUserOrganizationContext):
     member state of the invite if none such exists.
     """
 
-    invite_organization_member_id: int = 0
+    invite_organization_member_id: Optional[int] = 0
 
 
 class RpcRegionUser(RpcModel):
