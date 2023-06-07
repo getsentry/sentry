@@ -7,6 +7,8 @@ from typing import Any, List, Mapping, Optional, TypedDict
 
 from pydantic import Field
 
+from sentry.db.models import ValidateFunction, Value
+from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
@@ -144,7 +146,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -157,6 +159,23 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
         # serializers, as this organization summary object is often used for that.
         return hash((self.id, self.slug))
+
+    def get_option(
+        self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None
+    ) -> Value:
+        from sentry.services.hybrid_cloud.organization import organization_service
+
+        return organization_service.get_option(self.id, key)
+
+    def update_option(self, key: str, value: Value) -> bool:
+        from sentry.services.hybrid_cloud.organization import organization_service
+
+        return organization_service.update_option(self.id, key, value)
+
+    def delete_option(self, key: str) -> None:
+        from sentry.services.hybrid_cloud.organization import organization_service
+
+        organization_service.delete_option(self.id, key)
 
 
 class RpcOrganization(RpcOrganizationSummary):

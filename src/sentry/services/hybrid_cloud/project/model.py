@@ -2,9 +2,14 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+
+from typing import Optional
+
 from pydantic.fields import Field
 
 from sentry.constants import ObjectStatus
+from sentry.db.models import ValidateFunction, Value
+from sentry.models.options.option import HasOption
 from sentry.services.hybrid_cloud import RpcModel
 
 
@@ -12,9 +17,31 @@ def _project_status_visible() -> int:
     return int(ObjectStatus.ACTIVE)
 
 
-class RpcProject(RpcModel):
+class RpcProject(RpcModel, HasOption):
     id: int = -1
     slug: str = ""
     name: str = ""
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
+
+    def get_option(
+        self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None
+    ) -> Value:
+        from sentry.services.hybrid_cloud.project import project_service
+
+        keyed_result, well_known_result = project_service.get_option(project=self, key=key)
+        if validate is None or validate(keyed_result):
+            return keyed_result
+        if default is not None:
+            return default
+        return well_known_result
+
+    def update_option(self, key: str, value: Value) -> bool:
+        from sentry.services.hybrid_cloud.project import project_service
+
+        return project_service.update_option(self, key, value)
+
+    def delete_option(self, key: str) -> None:
+        from sentry.services.hybrid_cloud.project import project_service
+
+        project_service.delete_option(self, key)

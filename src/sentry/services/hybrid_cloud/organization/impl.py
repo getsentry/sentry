@@ -20,7 +20,7 @@ from sentry.models import (
     Team,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.services.hybrid_cloud import logger
+from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationFlagsUpdate,
@@ -459,3 +459,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # the attribute we are changing never needs to produce an outbox.
         with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=user.id).update(user_is_active=user.is_active)
+
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        orm_organization = Organization.objects.get(id=organization_id)
+        value = orm_organization.get_option(key)
+        if not isinstance(value, (str, int, bool)):
+            raise TypeError
+        return value
+
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        orm_organization = Organization.objects.get(id=organization_id)
+        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+
+    def delete_option(self, *, organization_id: int, key: str) -> None:
+        orm_organization = Organization.objects.get(id=organization_id)
+        orm_organization.delete_option(key)

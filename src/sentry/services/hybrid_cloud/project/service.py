@@ -4,8 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Union, cast
+from typing import Optional, Tuple, cast
 
+from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.region import ByOrganizationIdAttribute
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -24,12 +25,19 @@ class ProjectService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
-    def get_option(self, *, project: RpcProject, key: str) -> Union[str, int, bool]:
+    def get_option(
+        self, *, project: RpcProject, key: str
+    ) -> Tuple[Optional[OptionValue], Optional[OptionValue]]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
-    def set_option(self, *, project: RpcProject, key: str, value: Union[str, int, bool]) -> None:
+    def update_option(self, *, project: RpcProject, key: str, value: OptionValue) -> bool:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
+    @abstractmethod
+    def delete_option(self, *, project: RpcProject, key: str) -> None:
         pass
 
 

@@ -6,6 +6,7 @@
 from abc import abstractmethod
 from typing import Iterable, List, Optional, cast
 
+from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
@@ -251,6 +252,21 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def reset_idp_flags(self, *, organization_id: int) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def delete_option(self, *, organization_id: int, key: str) -> None:
         pass
 
 
