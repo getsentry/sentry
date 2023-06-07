@@ -64,7 +64,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def get_ingest_consumer(
-    type_: str,
+    consumer_type: str,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
@@ -76,7 +76,7 @@ def get_ingest_consumer(
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or ConsumerType.get_topic_name(type_)
+    topic = force_topic or ConsumerType.get_topic_name(consumer_type)
     consumer_config = get_config(
         topic,
         group_id,
