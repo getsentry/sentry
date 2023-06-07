@@ -3,7 +3,7 @@ from unittest.mock import patch
 import responses
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
+from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.repository import Repository
 from sentry.tasks.integrations.github import pr_comment
 from sentry.tasks.integrations.github.pr_comment import (
@@ -317,10 +317,7 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = "3000-01-01T00:00:00Z"
 
-    @patch(
-        "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
-        return_value=[23, 24],
-    )
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
@@ -330,6 +327,9 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
         self.add_pr_to_commit(commit_1)
         self.add_groupowner_to_commit(commit_1, self.project, self.user)
         self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+
+        groups = [g.id for g in Group.objects.all()]
+        mock_issues.return_value = [g.id for g in Group.objects.all()]
 
         responses.add(
             responses.POST,
@@ -346,7 +346,7 @@ class TestCommentWorkflow(GithubCommentTestCase, IntegrationTestCase):
 
         assert (
             responses.calls[1].request.body
-            == b'{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/23/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/24/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}'
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
 
     @patch(
