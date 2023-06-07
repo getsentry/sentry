@@ -11,7 +11,9 @@ export function TimeSpentCell({
   const toolTip = getTooltip('timeSpent', totalSpanTime);
   return (
     <span>
-      <Tooltip title={toolTip}>{formattedTimeSpent}</Tooltip>
+      <Tooltip isHoverable title={toolTip}>
+        {formattedTimeSpent}
+      </Tooltip>
     </span>
   );
 }

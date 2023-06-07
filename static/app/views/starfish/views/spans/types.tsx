@@ -29,7 +29,7 @@ export const getTooltip = (
     return (
       <Fragment>
         <div>{spanTime}</div>
-        <Link to="/starfish/definitions">How was this calculated?</Link>
+        <Link to="/starfish/definitions/">How was this calculated?</Link>
       </Fragment>
     );
   }
