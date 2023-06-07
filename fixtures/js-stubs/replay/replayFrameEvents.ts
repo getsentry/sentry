@@ -1,14 +1,6 @@
 import type {
   BreadcrumbFrameEvent as TBreadcrumbFrameEvent,
-  HistoryData as THistoryData,
-  LargestContentfulPaintData as TLargestContentfulPaintData,
-  MemoryData as TMemoryData,
-  NavigationData as TNavigationData,
-  NetworkRequestData as TNetworkRequestData,
   OptionFrameEvent as TOptionFrameEvent,
-  PaintData as TPaintData,
-  ResourceData as TResourceData,
-  SpanFrame as TSpanFrame,
   SpanFrameEvent as TSpanFrameEvent,
 } from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
@@ -76,47 +68,6 @@ export function SpanFrameEvent(
       tag: 'performanceSpan',
       payload: fields.data.payload,
     },
-  };
-}
-
-type SpanPayloadPerOp =
-  | {data: TPaintData; op: 'paint'}
-  | {
-      data: TNavigationData;
-      op: 'navigation.navigate' | 'navigation.reload';
-    }
-  | {
-      data: TResourceData;
-      op:
-        | 'resource.css'
-        | 'resource.iframe'
-        | 'resource.img'
-        | 'resource.link'
-        | 'resource.other'
-        | 'resource.script'
-        | 'resource.xhr';
-    }
-  | {data: TLargestContentfulPaintData; op: 'largest-contentful-paint'}
-  | {data: TMemoryData; op: 'memory'}
-  | {data: TNetworkRequestData; op: 'resource.fetch'}
-  | {data: THistoryData; op: 'navigation.push'};
-
-export function SpanFrame(
-  fields: Overwrite<
-    Omit<TSpanFrame, 'startTimestamp' | 'endTimestamp'> & {
-      endTimestamp: Date;
-      startTimestamp: Date;
-    },
-    SpanPayloadPerOp
-  >
-): TSpanFrame {
-  return {
-    ...fields,
-    data: fields.data,
-    description: fields.description,
-    op: fields.op,
-    endTimestamp: fields.endTimestamp.getTime() / 1000, // data inside events are in seconds
-    startTimestamp: fields.startTimestamp.getTime() / 1000, // data inside events are in seconds
   };
 }
 

@@ -1,3 +1,5 @@
+import type {ReplayNetworkRequestOrResponse} from './request';
+
 export type AllPerformanceEntry =
   | PerformancePaintTiming
   | PerformanceResourceTiming
@@ -131,19 +133,9 @@ export interface MemoryData {
 
 export interface NetworkRequestData {
   method?: string;
-  request?: {
-    _meta?: string[];
-    body?: unknown;
-    headers?: Record<string, string>;
-    size?: number;
-  };
+  request?: ReplayNetworkRequestOrResponse;
   requestBodySize?: number;
-  response?: {
-    _meta?: string[];
-    body?: unknown;
-    headers?: Record<string, string>;
-    size?: number;
-  };
+  response?: ReplayNetworkRequestOrResponse;
   responseBodySize?: number;
   statusCode?: number;
 }
