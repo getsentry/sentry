@@ -43,6 +43,7 @@ import {
   MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {addOrUpdateRule} from './actions';
@@ -866,6 +867,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     return (
       <Main fullWidth>
+        <PermissionAlert access={['alerts:write']} project={project} />
+
         {eventView && (
           <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
         )}
