@@ -88,14 +88,13 @@ from sentry.utils.snuba import parse_snuba_datetime
 def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
 
-    if mri_matches:
+    if allow_mri and mri_matches:
         return parse_mri_field(field)
 
     return parse_public_field(field)
 
 
 def parse_mri_field(field: str) -> MetricField:
-
     matches = MRI_EXPRESSION_REGEX.match(field)
 
     try:
