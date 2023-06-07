@@ -185,7 +185,8 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
                     queue_history[queue] = 0
                 else:
                     queue_history[queue] += 1
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             # If there was an error getting queue sizes from RabbitMQ, assume
             # all queues are unhealthy
             for queue in QUEUES:
