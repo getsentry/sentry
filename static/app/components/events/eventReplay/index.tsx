@@ -6,7 +6,7 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useProjects from 'sentry/utils/useProjects';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 type Props = {
   event: Event;
@@ -14,20 +14,6 @@ type Props = {
   projectSlug: string;
   replayId: undefined | string;
 };
-
-function useProjectFromSlug({
-  organization,
-  projectSlug,
-}: {
-  organization: Organization;
-  projectSlug: string;
-}) {
-  const {fetching, projects} = useProjects({
-    slugs: [projectSlug],
-    orgId: organization.slug,
-  });
-  return fetching ? undefined : projects[0];
-}
 
 export default function EventReplay({replayId, organization, projectSlug, event}: Props) {
   const hasReplaysFeature = organization.features.includes('session-replay');

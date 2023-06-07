@@ -90,6 +90,8 @@ export default class ReplayReader {
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
+    this.rawErrors = errors;
+
     this.sortedSpans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
       replayRecord,
@@ -105,6 +107,7 @@ export default class ReplayReader {
     this.replayRecord = replayRecord;
   }
 
+  private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
@@ -145,6 +148,8 @@ export default class ReplayReader {
   getConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => ['console', 'issue'].includes(crumb.category || ''))
   );
+
+  getRawErrors = memoize(() => this.rawErrors);
 
   getNonConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category !== 'console')
