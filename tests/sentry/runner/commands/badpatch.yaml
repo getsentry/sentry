@@ -1,2 +1,2 @@
-slack.client-secret: asdasd
-sourcemaps.enable-artifact-bundles: 0.1
+int_option: 10
+readonly_option: 30

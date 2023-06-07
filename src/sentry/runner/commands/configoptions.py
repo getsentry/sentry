@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Mapping, Optional, Set
+from typing import Any, Optional, Set
 
 import click
 import yaml
@@ -41,7 +41,6 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
 @click.option(
     "--dry-run",
     is_flag=True,
-    required=False,
     help="Prints the updates without applying them.",
 )
 @click.option("--file", help="File name to load. If not provided assume stdin.")
@@ -78,21 +77,11 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     ctx.obj["dry_run"] = dry_run
 
     with open(file) if file is not None else sys.stdin as stream:
-        data = yaml.safe_load(stream)
-
-    # This is to support the legacy structure of the options file that
-    # contained multiple sections.
-    # Those sections are not needed anymore as the list of options that
-    # must be provided by the file are all the options flagged as
-    # FLAG_AUTOMATOR_MODIFIABLE.
-    options_to_update: Mapping[str, Any] = data.get("update", {})
-    if not options_to_update:
-        options_to_update = data
+        options_to_update = yaml.safe_load(stream)
 
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
-
     for key, value in options_to_update.items():
         not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
@@ -111,7 +100,6 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
 def patch(ctx) -> None:
     """
     Applies to the DB the option values found in the config file.
-
     Only the options present in the file are updated. No deletions
     are performed.
     """

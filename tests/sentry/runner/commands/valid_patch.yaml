@@ -1,7 +1,16 @@
-hybrid_cloud.outbox_rate: 1.0
-sourcemaps.enable-artifact-bundles: 0.1
-dynamic-sampling:boost-latest-release: true
-sentry-metrics.cardinality-limiter.limits.releasehealth.per-org:
-- a
-- b
-backpressure.monitor_queues.enable: true
+int_option: 40
+str_option: "new value"
+map_option:
+  a: 1
+  b: 2
+list_option:
+- 1
+- 2
+drifted_option:
+- 4
+- 5
+- 6
+change_channel_option:
+- 5
+- 6
+- 7

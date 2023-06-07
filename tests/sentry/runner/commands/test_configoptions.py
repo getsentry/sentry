@@ -1,5 +1,7 @@
+import pytest
+
 from sentry import options
-from sentry.options.manager import UpdateChannel
+from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
 from sentry.runner.commands.configoptions import (
     CHANNEL_UPDATE_MSG,
     DRIFT_MSG,
@@ -13,58 +15,69 @@ from sentry.testutils import CliTestCase
 class ConfigOptionsTest(CliTestCase):
     command = configoptions
 
+    @pytest.fixture(autouse=True, scope="class")
+    def register_options(self) -> None:
+        options.register("readonly_option", default=10, flags=FLAG_IMMUTABLE)
+        options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("map_option", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("list_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("drifted_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+    @pytest.fixture(autouse=True)
+    def set_options(self) -> None:
+        options.delete("int_option")
+        options.delete("str_option")
+        options.delete("map_option")
+        options.delete("list_option")
+        # This option will test the drift scenario. We set it to a different
+        # value with respect to the file.
+        options.set("drifted_option", [1, 2, 3], channel=UpdateChannel.CLI)
+        # This tests the scenario were we update the channel. The value
+        # is the same we have in the file.
+        options.set("change_channel_option", [5, 6, 7], channel=UpdateChannel.CLI)
+        # This test the scenario where options are unset.
+        options.set("to_unset_option", [7, 8, 9], channel=UpdateChannel.AUTOMATOR)
+
+    def _clean_cache(self) -> None:
+        """
+        The isset method returns true even if the option is not set
+        in the DB but still present in cache after a call to `get`.
+        Till we fix that behavior, we need to clean up the cache
+        when we run this test.
+        """
+        options.default_store.flush_local_cache()
+
+        options.default_store.delete_cache(options.lookup_key("int_option"))
+        options.default_store.delete_cache(options.lookup_key("str_option"))
+        options.default_store.delete_cache(options.lookup_key("map_option"))
+        options.default_store.delete_cache(options.lookup_key("list_option"))
+        options.default_store.delete_cache(options.lookup_key("drifted_option"))
+        options.default_store.delete_cache(options.lookup_key("change_channel_option"))
+
     def test_patch(self):
-        def clean_cache() -> None:
-            """
-            The isset method returns true even if the option is not set
-            in the DB but still present in cache after a call to `get`.
-            Till we fix that behavior, we need to clean up the cache
-            when we run this test.
-            """
-            options.default_store.flush_local_cache()
-
-            options.default_store.delete_cache(
-                options.lookup_key("sourcemaps.enable-artifact-bundles")
-            )
-            options.default_store.delete_cache(
-                options.lookup_key("dynamic-sampling:boost-latest-release")
-            )
-            options.default_store.delete_cache(
-                options.lookup_key(
-                    "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org"
-                )
-            )
-            options.default_store.delete_cache(
-                options.lookup_key("backpressure.monitor_queues.enable")
-            )
-
         def assert_not_set() -> None:
-            clean_cache()
-            assert not options.isset("sourcemaps.enable-artifact-bundles")
-            assert not options.isset("dynamic-sampling:boost-latest-release")
-            assert not options.isset(
-                "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org"
-            )
+            self._clean_cache()
+            assert not options.isset("int_option")
+            assert not options.isset("str_option")
+            assert not options.isset("map_option")
+            assert not options.isset("list_option")
 
         def assert_output(rv):
             assert rv.exit_code == 0, rv.output
             output = "\n".join(
                 [
-                    DRIFT_MSG % "hybrid_cloud.outbox_rate",
-                    UPDATE_MSG % "sourcemaps.enable-artifact-bundles",
-                    UPDATE_MSG % "dynamic-sampling:boost-latest-release",
-                    UPDATE_MSG % "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-                    CHANNEL_UPDATE_MSG % "backpressure.monitor_queues.enable",
+                    UPDATE_MSG % "int_option",
+                    UPDATE_MSG % "str_option",
+                    UPDATE_MSG % "map_option",
+                    UPDATE_MSG % "list_option",
+                    DRIFT_MSG % "drifted_option",
+                    CHANNEL_UPDATE_MSG % "change_channel_option",
                 ]
             )
             assert output in rv.output
-
-        # This option will test the drift scenario. We set it to a different
-        # value with respect to the file.
-        options.set("hybrid_cloud.outbox_rate", 0.5, channel=UpdateChannel.CLI)
-        # This tests the scenario were we update the channel. The value
-        # is the same we have in the file.
-        options.set("backpressure.monitor_queues.enable", True, channel=UpdateChannel.CLI)
 
         assert_not_set()
         rv = self.invoke(
@@ -82,29 +95,17 @@ class ConfigOptionsTest(CliTestCase):
         )
         assert_output(rv)
 
-        clean_cache()
-        assert options.isset("sourcemaps.enable-artifact-bundles")
-        assert options.get("sourcemaps.enable-artifact-bundles") == 0.1
-        assert options.isset("dynamic-sampling:boost-latest-release")
-        assert options.get("dynamic-sampling:boost-latest-release") is True
-        assert options.isset("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org")
-        assert options.get("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org") == [
-            "a",
-            "b",
-        ]
-        assert options.get("hybrid_cloud.outbox_rate") == 0.5
-        assert options.get("backpressure.monitor_queues.enable") is True
+        self._clean_cache()
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+        assert options.get("drifted_option") == [1, 2, 3]
 
     def test_sync(self):
-        options.delete("sourcemaps.enable-artifact-bundles")
-        options.delete("dynamic-sampling:boost-latest-release")
-        options.delete("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org")
-
-        # Drifted option
-        options.set("hybrid_cloud.outbox_rate", 0.5, channel=UpdateChannel.CLI)
-        # This option will be unset as it is not in the file.
-        options.set("dynamic-sampling:sliding_window.size", 12, channel=UpdateChannel.AUTOMATOR)
-
         rv = self.invoke(
             "--file=tests/sentry/runner/commands/valid_patch.yaml",
             "sync",
@@ -112,26 +113,29 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         output = "\n".join(
             [
-                UPDATE_MSG % "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-                UPDATE_MSG % "dynamic-sampling:boost-latest-release",
-                UNSET_MSG % "dynamic-sampling:sliding_window.size",
-                DRIFT_MSG % "hybrid_cloud.outbox_rate",
-                UPDATE_MSG % "sourcemaps.enable-artifact-bundles",
-                CHANNEL_UPDATE_MSG % "backpressure.monitor_queues.enable",
+                UPDATE_MSG % "int_option",
+                UPDATE_MSG % "str_option",
+                UPDATE_MSG % "map_option",
+                UPDATE_MSG % "list_option",
+                DRIFT_MSG % "drifted_option",
+                CHANNEL_UPDATE_MSG % "change_channel_option",
+                UNSET_MSG % "to_unset_option",
             ]
         )
 
         assert output in rv.output
 
-        assert options.get("sourcemaps.enable-artifact-bundles") == 0.1
-        assert options.get("dynamic-sampling:boost-latest-release") is True
-        assert options.get("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org") == [
-            "a",
-            "b",
-        ]
-        assert options.get("hybrid_cloud.outbox_rate") == 0.5
+        self._clean_cache()
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+        assert options.get("drifted_option") == [1, 2, 3]
 
-        assert not options.isset("dynamic-sampling:sliding_window.size")
+        assert not options.isset("to_unset_option")
 
     def test_bad_patch(self):
         rv = self.invoke("patch", "tests/sentry/runner/commands/badpatch.yaml")
