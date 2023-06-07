@@ -260,12 +260,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
     const hasOpenMembership = organization.features.includes('open-membership');
 
-    const myProjects = projects.filter(
-      project => project.isMember && project.access.includes('alerts:write')
-    );
-    const allProjects = projects.filter(
-      project => !project.isMember && project.access.includes('alerts:write')
-    );
+    // If form is enabled, we want to limit to the subset of projects which the
+    // user can create/edit alerts.
+    const targetProjects = disabled
+      ? projects
+      : projects.filter(project => project.access.includes('alerts:write'));
+    const myProjects = targetProjects.filter(project => project.isMember);
+    const allProjects = targetProjects.filter(project => !project.isMember);
 
     const myProjectOptions = myProjects.map(myProject => ({
       value: myProject.id,
