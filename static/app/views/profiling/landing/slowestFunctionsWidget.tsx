@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,9 +12,10 @@ import {Panel} from 'sentry/components/panels';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
@@ -21,6 +23,8 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+
+const MAX_FUNCTIONS = 3;
 
 export function SlowestFunctionsWidget() {
   const [expandedIndex, setExpandedIndex] = useState(0);
@@ -39,8 +43,12 @@ export function SlowestFunctionsWidget() {
       order: 'desc',
     },
     query,
-    limit: 3,
+    limit: MAX_FUNCTIONS,
   });
+
+  const hasFunctions = useMemo(() => {
+    return (functionsQuery.data?.data?.length || 0) > 0;
+  }, [functionsQuery.data]);
 
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
@@ -50,7 +58,16 @@ export function SlowestFunctionsWidget() {
       order: 'desc',
     },
     query,
-    limit: 1,
+    limit: MAX_FUNCTIONS,
+    // make sure to query for the projects from the top functions
+    projects: functionsQuery.isFetched
+      ? [
+          ...new Set(
+            (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
+          ),
+        ]
+      : [],
+    enabled: functionsQuery.isFetched && hasFunctions,
   });
 
   return (
@@ -60,15 +77,20 @@ export function SlowestFunctionsWidget() {
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
+        {(functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading)) && (
+          <StatusContainer height="100%">
+            <LoadingIndicator />
+          </StatusContainer>
+        )}
         {(functionsQuery.isError || totalsQuery.isError) && (
           <StatusContainer height="100%">
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </StatusContainer>
         )}
-        {(functionsQuery.isLoading || totalsQuery.isLoading) && (
-          <StatusContainer height="100%">
-            <LoadingIndicator />
-          </StatusContainer>
+        {functionsQuery.isFetched && !hasFunctions && (
+          <EmptyStateWarning>
+            <p>{t('No functions found')}</p>
+          </EmptyStateWarning>
         )}
         {functionsQuery.isFetched && totalsQuery.isFetched && (
           <Accordion>
@@ -146,7 +168,16 @@ function SlowestFunctionEntry({
       <AccordionItem>
         {project && <IdBadge project={project} avatarSize={16} hideName />}
         <FunctionName>{func.function}</FunctionName>
-        <ScoreBar score={score} palette={palette} size={20} radius={0} />
+        <Tooltip
+          title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
+            count: <Count value={func['count()'] as number} />,
+            totalSelfTime: (
+              <PerformanceDuration nanoseconds={func['sum()'] as number} abbreviation />
+            ),
+          })}
+        >
+          <ScoreBar score={score} palette={palette} size={20} radius={0} />
+        </Tooltip>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
@@ -221,7 +252,13 @@ function SlowestFunctionEntry({
   );
 }
 
-const functionsFields = ['project.id', 'package', 'function', 'sum()'] as const;
+const functionsFields = [
+  'project.id',
+  'package',
+  'function',
+  'count()',
+  'sum()',
+] as const;
 
 type FunctionsField = (typeof functionsFields)[number];
 
@@ -264,6 +301,10 @@ const Subtitle = styled('div')`
 
 const ContentContainer = styled('div')`
   flex: 1 1 auto;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const Accordion = styled('ul')`
@@ -286,7 +327,7 @@ const AccordionItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const FunctionName = styled('div')`
+const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
 

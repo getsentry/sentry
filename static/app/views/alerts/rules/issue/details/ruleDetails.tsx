@@ -77,12 +77,12 @@ function getRuleActionCategory(rule: IssueAlertRule) {
   switch (numDefaultActions) {
     // Are all actions default actions?
     case rule.actions.length:
-      return RuleActionsCategories.AllDefault;
+      return RuleActionsCategories.ALL_DEFAULT;
     // Are none of the actions default actions?
     case 0:
-      return RuleActionsCategories.NoDefault;
+      return RuleActionsCategories.NO_DEFAULT;
     default:
-      return RuleActionsCategories.SomeDefault;
+      return RuleActionsCategories.SOME_DEFAULT;
   }
 }
 
@@ -246,10 +246,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   };
   function renderIncompatibleAlert() {
     const incompatibleRule = findIncompatibleRules(rule);
-    if (
-      (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) &&
-      organization.features.includes('issue-alert-incompatible-rules')
-    ) {
+    if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert type="error" showIcon>
           {tct(
@@ -347,7 +344,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {renderIncompatibleAlert()}
           {hasSnoozeFeature && isSnoozed && (
             <Alert showIcon>
-              {ruleActionCategory === RuleActionsCategories.NoDefault
+              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                 ? tct(
                     "[creator] muted this alert so these notifications won't be sent in the future.",
                     {creator: rule.snoozeCreatedBy}

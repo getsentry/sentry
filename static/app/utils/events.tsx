@@ -178,19 +178,11 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
-      const isPerfIssue =
-        !isTombstone(event) && event.issueCategory === IssueCategory.PERFORMANCE;
-      return {
-        title: isPerfIssue ? metadata.title : customTitle ?? title,
-        subtitle: isPerfIssue ? culprit : '',
-        treeLabel: undefined,
-      };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue =
-        !isTombstone(event) && event.issueCategory === IssueCategory.PROFILE;
+      const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
-        title: isProfilingIssue ? metadata.title : customTitle ?? title,
-        subtitle: isProfilingIssue ? culprit : '',
+        title: customTitle ?? title,
+        subtitle: isIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:
@@ -315,6 +307,13 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
+export function eventHasExceptionGroup(event: Event) {
+  const exceptionEntries = getExceptionEntries(event);
+  return exceptionEntries.some(entry =>
+    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  );
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -343,6 +342,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_platform: event?.platform,
     event_type: event?.type,
     has_release: !!event?.release,
+    has_exception_group: event ? eventHasExceptionGroup(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,

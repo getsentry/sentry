@@ -38,6 +38,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
@@ -168,7 +169,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization_id=organization.id
+                user_id=member.user_id, auth_provider__organization_id=organization.id
             ).delete()
             member.delete()
             self.create_audit_entry(
@@ -434,19 +435,18 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         query_params = self.get_query_parameters(request)
 
-        queryset = (
-            OrganizationMember.objects.filter(
-                Q(invite_status=InviteStatus.APPROVED.value),
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-            )
-            .select_related("user")
-            .order_by("email", "user__email")
-        )
+        queryset = OrganizationMember.objects.filter(
+            Q(invite_status=InviteStatus.APPROVED.value),
+            Q(user_is_active=True) | Q(user_id__isnull=True),
+            organization=organization,
+        ).order_by("email", "id")
         if query_params["filter"]:
+            filtered_users = user_service.get_many_by_email(
+                emails=query_params["filter"], organization_id=organization.id
+            )
             queryset = queryset.filter(
                 Q(email__iexact=query_params["filter"])
-                | Q(user__email__iexact=query_params["filter"])
+                | Q(user_id__in=[u.id for u in filtered_users])
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
@@ -565,12 +565,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization, email=result["email"], role=result["role"]
                 )
 
-                region_outbox = None
                 if member_query.exists():
                     member = member_query.first()
                     if member.token_expired:
                         member.regenerate_token()
-                        region_outbox = member.save()
+                        member.save()
                 else:
                     member = OrganizationMember(
                         organization=organization,
@@ -584,9 +583,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     member.flags["idp:role-restricted"] = idp_role_restricted
                     if settings.SENTRY_ENABLE_INVITES:
                         member.token = member.generate_token()
-                    region_outbox = member.save()
-                if region_outbox:
-                    region_outbox.drain_shard(max_updates_to_drain=10)
+                    member.save()
 
             self.create_audit_entry(
                 request=request,

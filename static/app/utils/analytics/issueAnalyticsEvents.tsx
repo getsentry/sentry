@@ -45,7 +45,10 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
-  'issue_details.escalating_feedback_received': {isHighPriority: boolean};
+  'issue_details.escalating_feedback_received': {
+    group_id: string;
+    is_high_priority: boolean;
+  };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
@@ -138,7 +141,10 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
-  'issues_stream.archived': {status_details?: string; substatus?: string};
+  'issues_stream.archived': {
+    action_status_details?: string;
+    action_substatus?: string;
+  };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
     did_assign_suggestion: boolean;

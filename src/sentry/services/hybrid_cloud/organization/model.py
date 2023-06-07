@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
 class _DefaultEnumHelpers:
@@ -151,7 +152,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -208,7 +209,7 @@ class RpcUserInviteContext(RpcUserOrganizationContext):
     member state of the invite if none such exists.
     """
 
-    invite_organization_member_id: int = 0
+    invite_organization_member_id: Optional[int] = 0
 
 
 class RpcRegionUser(RpcModel):

@@ -33,6 +33,31 @@ describe('SlowestFunctionsWidget', function () {
     expect(await screen.findByTestId('error-indicator')).toBeInTheDocument();
   });
 
+  it('renders no functions', async function () {
+    // for the slowest functions query
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'profileFunctions',
+          query: 'is_application:1',
+          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
+        }),
+      ],
+    });
+
+    render(<SlowestFunctionsWidget />);
+
+    // starts by rendering loading
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    // switches to the no functions view
+    expect(await screen.findByText('No functions found')).toBeInTheDocument();
+  });
+
   it('renders example transactions', async function () {
     // for the slowest functions query
     MockApiClient.addMockResponse({
@@ -57,7 +82,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'is_application:1',
-          field: ['project.id', 'package', 'function', 'sum()'],
+          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
         }),
       ],
     });
@@ -71,6 +96,7 @@ describe('SlowestFunctionsWidget', function () {
           dataset: 'profileFunctions',
           query: 'is_application:1',
           field: ['project.id', 'sum()'],
+          project: [1],
         }),
       ],
     });
@@ -176,7 +202,7 @@ describe('SlowestFunctionsWidget', function () {
     await userEvent.click(toggles[1]);
 
     // first row
-    const transaction3 = screen.getByText('transaction-3');
+    const transaction3 = await screen.findByText('transaction-3');
     expect(transaction3).toBeInTheDocument();
     expect(transaction3).toHaveAttribute(
       'href',

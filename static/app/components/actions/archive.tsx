@@ -116,13 +116,14 @@ function ArchiveActions({
       <ArchiveButton
         size={size}
         tooltipProps={{delay: 1000, disabled}}
-        title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
+        title={t('Archive issue until a high number of events are seen.')}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
         {t('Archive')}
       </ArchiveButton>
       <DropdownMenu
+        minMenuWidth={270}
         size="sm"
         trigger={triggerProps => (
           <DropdownTrigger

@@ -26,9 +26,9 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    UserOption,
 )
 from sentry.roles import organization_roles, team_roles
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
@@ -181,13 +181,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        region_outbox = None
                         with transaction.atomic():
                             member.regenerate_token()
                             member.save()
-                            region_outbox = member.save_outbox_for_update()
-                        if region_outbox:
-                            region_outbox.drain_shard(max_updates_to_drain=10)
+                        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
@@ -243,7 +240,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (assigned_org_role != member.role):
+            if member.user_id == request.user.id and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -284,7 +281,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
-        region_outbox = None
         with transaction.atomic():
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
@@ -296,8 +292,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             ).update(role=None)
 
             member.role = role
-            region_outbox = member.save()
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",
@@ -367,15 +362,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         with transaction.atomic():
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
-            proj_list = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
+            proj_list = list(
+                Project.objects.filter(organization=organization).values_list("id", flat=True)
             )
-            uo_list = UserOption.objects.filter(
-                user=member.user, project_id__in=proj_list, key="mail:email"
-            )
-            for uo in uo_list:
-                uo.delete()
-
+            uos = [
+                uo
+                for uo in user_option_service.get_many(
+                    filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
+                )
+            ]
+            user_option_service.delete_options(option_ids=[uo.id for uo in uos])
             member.delete()
 
         self.create_audit_entry(

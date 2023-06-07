@@ -21,6 +21,7 @@ export function useSpansQuery<T = any[]>({
   eventView,
   queryString,
   initialData,
+  limit,
   forceUseDiscover,
   enabled,
 }: {
@@ -28,6 +29,7 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   forceUseDiscover?: boolean;
   initialData?: any;
+  limit?: number;
   queryString?: string;
 }): UseSpansQueryReturnType<T> {
   const {options} = useStarfishOptions();
@@ -38,7 +40,7 @@ export function useSpansQuery<T = any[]>({
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
     if (eventView) {
-      return queryFunction({eventView, initialData, enabled});
+      return queryFunction({eventView, initialData, limit, enabled});
     }
     throw new Error(
       'eventView argument must be defined when Starfish useDiscover is true'
@@ -112,7 +114,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
-      excludeOther: 1,
+      excludeOther: 0,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
@@ -136,9 +138,11 @@ export function useWrappedDiscoverQuery({
   eventView,
   initialData,
   referrer,
+  limit,
 }: {
   eventView: EventView;
   initialData?: any;
+  limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -148,6 +152,7 @@ export function useWrappedDiscoverQuery({
     orgSlug: organization.slug,
     location,
     referrer,
+    limit,
   });
   return {isLoading, data: isLoading && initialData ? initialData : data?.data};
 }
