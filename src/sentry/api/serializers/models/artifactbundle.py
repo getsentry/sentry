@@ -12,15 +12,15 @@ class ArtifactBundlesSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
         grouped_releases = ArtifactBundle.get_grouped_releases(
-            organization_id=self.organization_id, artifact_bundle_ids=[r.id for r in item_list]
+            organization_id=self.organization_id, artifact_bundle_ids=[r[0] for r in item_list]
         )
 
         return {
             item: {
-                "bundle_id": item.bundle_id,
-                "associations": format_grouped_releases(grouped_releases.get(item.id, {})),
-                "file_count": item.artifact_count,
-                "date": item.date_uploaded,
+                "bundle_id": item[1],
+                "associations": format_grouped_releases(grouped_releases.get(item[0], {})),
+                "file_count": item[2],
+                "date": item[3],
             }
             for item in item_list
         }

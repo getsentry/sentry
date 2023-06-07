@@ -56,9 +56,13 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         query = request.GET.get("query")
 
         try:
-            queryset = ArtifactBundle.objects.filter(
-                organization_id=project.organization_id,
-                projectartifactbundle__project_id=project.id,
+            queryset = (
+                ArtifactBundle.objects.filter(
+                    organization_id=project.organization_id,
+                    projectartifactbundle__project_id=project.id,
+                )
+                .values_list("id", "bundle_id", "artifact_count", "date_uploaded")
+                .distinct()
             )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
