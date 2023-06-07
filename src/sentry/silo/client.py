@@ -54,8 +54,8 @@ class BaseSiloClient(BaseApiClient):
         raw_response: Response = super()._request(  # type: ignore
             incoming_request.method,
             incoming_request.get_full_path(),
-            allow_text=True,
             prepared_request=prepared_request,
+            raw_response=True,
         )
         self.logger.info(
             "proxy_request",
