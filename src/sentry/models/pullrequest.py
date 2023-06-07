@@ -7,6 +7,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.db.models import (
+    ArrayField,
     BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -87,3 +88,18 @@ class PullRequestCommit(Model):
         app_label = "sentry"
         db_table = "sentry_pullrequest_commit"
         unique_together = (("pull_request", "commit"),)
+
+
+@region_silo_only_model
+class PullRequestComment(Model):
+    __include_in_export__ = False
+
+    external_id = BoundedBigIntegerField()
+    pullrequest = FlexibleForeignKey("sentry.PullRequest")
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+    issues = ArrayField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_comment"
