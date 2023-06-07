@@ -78,6 +78,33 @@ describe('Incident Rules Form', () => {
     jest.clearAllMocks();
   });
 
+  describe('Viewing the rule', () => {
+    const rule = TestStubs.MetricRule();
+    it('is enabled without org-level alerts:write', () => {
+      organization.access = [];
+      project.access = [];
+      createWrapper({rule});
+
+      expect(screen.getByLabelText('Save Rule')).toBeDisabled();
+    });
+
+    it('is enabled with org-level alerts:write', () => {
+      organization.access = ['alerts:write'];
+      project.access = [];
+      createWrapper({rule});
+
+      expect(screen.getByLabelText('Save Rule')).toBeEnabled();
+    });
+
+    it('is enabled with project-level alerts:write', () => {
+      organization.access = [];
+      project.access = ['alerts:write'];
+      createWrapper({rule});
+
+      expect(screen.getByLabelText('Save Rule')).toBeEnabled();
+    });
+  });
+
   describe('Creating a new rule', () => {
     let createRule;
     beforeEach(() => {
