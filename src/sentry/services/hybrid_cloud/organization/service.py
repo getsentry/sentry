@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Iterable, List, Optional, cast
+from typing import Dict, Iterable, List, Optional, cast
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
@@ -243,9 +243,13 @@ class OrganizationService(RpcService):
     def reset_idp_flags(self, *, organization_id: int) -> None:
         pass
 
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        result = self.get_options(organization_id, [key])
+        return result[key]
+
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+    def get_options(self, *, organization_id: int, keys: List[str]) -> Dict[str, OptionValue]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Set, cast
+from typing import Dict, Iterable, List, Optional, Set, cast
 
 from django.db import IntegrityError, models, transaction
 
@@ -465,12 +465,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=user.id).update(user_is_active=user.is_active)
 
-    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+    def get_options(self, *, organization_id: int, keys: List[str]) -> Dict[str, OptionValue]:
         orm_organization = Organization.objects.get(id=organization_id)
-        value = orm_organization.get_option(key)
-        if not isinstance(value, (str, int, bool)):
-            raise TypeError
-        return value
+        values: Dict[str, OptionValue] = {}
+        for key in keys:
+            value = orm_organization.get_option(key)
+            if value is not None and not isinstance(value, (str, int, bool)):
+                raise TypeError
+            values[key] = value
+        return values
 
     def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
         orm_organization = Organization.objects.get(id=organization_id)

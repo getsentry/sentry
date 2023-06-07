@@ -166,17 +166,17 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
     ) -> Value:
         from sentry.services.hybrid_cloud.organization import organization_service
 
-        return organization_service.get_option(self.id, key)
+        return organization_service.get_option(organization_id=self.id, key=key)
 
     def update_option(self, key: str, value: Value) -> bool:
         from sentry.services.hybrid_cloud.organization import organization_service
 
-        return organization_service.update_option(self.id, key, value)
+        return organization_service.update_option(organization_id=self.id, key=key, value=value)
 
     def delete_option(self, key: str) -> None:
         from sentry.services.hybrid_cloud.organization import organization_service
 
-        organization_service.delete_option(self.id, key)
+        organization_service.delete_option(organization_id=self.id, key=key)
 
 
 class RpcOrganization(RpcOrganizationSummary):

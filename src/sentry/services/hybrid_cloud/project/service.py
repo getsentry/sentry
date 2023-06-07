@@ -4,10 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Optional, Tuple, cast
+from typing import Dict, List, cast
 
 from sentry.services.hybrid_cloud import OptionValue
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.services.hybrid_cloud.project import RpcProject, RpcProjectOptionValue
 from sentry.services.hybrid_cloud.region import ByOrganizationIdAttribute
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
@@ -23,11 +23,15 @@ class ProjectService(RpcService):
 
         return DatabaseBackedProjectService()
 
+    def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:
+        result = self.get_options(project, [key])
+        return result[key]
+
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
-    def get_option(
-        self, *, project: RpcProject, key: str
-    ) -> Tuple[Optional[OptionValue], Optional[OptionValue]]:
+    def get_options(
+        self, *, project: RpcProject, keys: List[str]
+    ) -> Dict[str, RpcProjectOptionValue]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
