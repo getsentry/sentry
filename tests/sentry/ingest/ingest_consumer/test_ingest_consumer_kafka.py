@@ -11,7 +11,7 @@ from django.conf import settings
 from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer_v2.factory import get_ingest_consumer
-from sentry.ingest.ingest_consumer import ConsumerType
+from sentry.ingest.types import ConsumerType
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
 

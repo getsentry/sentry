@@ -128,7 +128,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
 
     def ingest_consumer(settings):
-        from sentry.ingest.consumer_v2 import get_ingest_consumer
+        from sentry.ingest.consumer_v2.factory import get_ingest_consumer
         from sentry.ingest.types import ConsumerType
 
         # Relay is configured to use this topic for all ingest messages. See
