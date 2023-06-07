@@ -87,7 +87,9 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
         not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-            click.echo(f"Invalid option. {key} cannot be updated. Reason {not_writable_reason}")
+            click.echo(
+                f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
+            )
             exit(-1)
         elif not_writable_reason == options.NotWritableReason.DRIFTED:
             drifted_options.add(key)

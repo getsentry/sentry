@@ -138,5 +138,11 @@ class ConfigOptionsTest(CliTestCase):
         assert not options.isset("to_unset_option")
 
     def test_bad_patch(self):
-        rv = self.invoke("patch", "tests/sentry/runner/commands/badpatch.yaml")
-        assert rv.exit_code != 0, rv.output
+        rv = self.invoke(
+            "--file=tests/sentry/runner/commands/badpatch.yaml",
+            "patch",
+        )
+        assert rv.exit_code == -1
+        assert "Invalid option. readonly_option cannot be updated. Reason readonly" in rv.output
+        # Verify this was not updated
+        assert options.get("int_option") == 20
