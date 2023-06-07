@@ -31,7 +31,7 @@ def _run_backpressure_updater() -> None:
         sleep(5)
 
 
-def check_for_backpressure():
+def check_for_backpressure() -> None:
     Thread(
         target=_run_backpressure_updater,
     ).start()
