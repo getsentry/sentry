@@ -233,7 +233,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     def update_option(self, key: str, value: Value) -> None:
         projectoptions.update_rev_for_option(self)
-        super().update_option(key, value)
+        return super().update_option(key, value)
 
     def delete_option(self, key: str) -> None:
         projectoptions.update_rev_for_option(self)

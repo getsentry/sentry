@@ -36,10 +36,10 @@ class RpcProject(RpcModel, HasOption):
             return default
         return well_known_result
 
-    def update_option(self, key: str, value: Value) -> None:
+    def update_option(self, key: str, value: Value) -> bool:
         from sentry.services.hybrid_cloud.project import project_service
 
-        project_service.update_option(self, key, value)
+        return project_service.update_option(self, key, value)
 
     def delete_option(self, key: str) -> None:
         from sentry.services.hybrid_cloud.project import project_service

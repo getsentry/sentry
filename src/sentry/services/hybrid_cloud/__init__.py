@@ -35,7 +35,7 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
-OptionValue = Union[str, int, bool]
+OptionValue = Union[str, int, bool, None]
 
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48

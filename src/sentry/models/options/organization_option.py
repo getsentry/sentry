@@ -42,9 +42,12 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         inst.delete()
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
-    def set_value(self, organization: Organization, key: str, value: Value) -> None:
-        self.create_or_update(organization=organization, key=key, values={"value": value})
+    def set_value(self, organization: Organization, key: str, value: Value) -> bool:
+        inst, created = self.create_or_update(
+            organization=organization, key=key, values={"value": value}
+        )
         self.reload_cache(organization.id, "organizationoption.set_value")
+        return bool(created) or inst > 0
 
     def get_all_values(self, organization: Organization) -> Mapping[str, Value]:
         if isinstance(organization, models.Model):
