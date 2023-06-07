@@ -541,8 +541,10 @@ class MonitorEnvironmentTestCase(TestCase):
         )
 
         new_config = {
-            "schedule": [2, "month"],
-            "schedule_type": "interval",
+            "schedule": {
+                "type": "crontab",
+                "value": "0 0 1 2 *",
+            },
             "max_runtime": 10,
             "garbage": "data",
         }
@@ -552,8 +554,8 @@ class MonitorEnvironmentTestCase(TestCase):
         monitor.update_config(new_config, validated_config)
 
         assert monitor.config == {
-            "schedule": [2, "month"],
-            "schedule_type": ScheduleType.INTERVAL,
+            "schedule": "0 0 1 2 *",
+            "schedule_type": ScheduleType.CRONTAB,
             "max_runtime": 10,
             "alert_rule_id": 1,
         }
