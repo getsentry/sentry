@@ -3,6 +3,7 @@ import {IssueCategory, IssueType} from 'sentry/types';
 import errorConfig from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import profileConfig from 'sentry/utils/issueTypeConfig/profileConfig';
+import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -40,6 +41,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
   [IssueCategory.PROFILE]: profileConfig,
+  [IssueCategory.REPLAY]: replayConfig,
 };
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {

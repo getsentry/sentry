@@ -311,7 +311,15 @@ function BaseGroupRow({
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
     [IssueCategory.PROFILE]: t('Profile Events'),
+    [IssueCategory.REPLAY]: t('Replay Events'),
   };
+  const hasIssueDetailsReplayEvent = organization.features?.includes(
+    'issue-details-replay-event'
+  );
+  if (!hasIssueDetailsReplayEvent) {
+    // @ts-expect-error: It's expected that the IssueCategory.REPLAY key exists. Delete it anyway
+    delete groupCategoryCountTitles[IssueCategory.REPLAY];
+  }
 
   const groupCount = !defined(primaryCount) ? (
     <Placeholder height="18px" />
