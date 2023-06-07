@@ -117,7 +117,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       [true as any, t('On')],
       [false as any, t('Off')],
     ],
-    help: t('You’ll receive notifications about any changes that happen afterwards.'),
+    help: t('You’ll be assigned unassigned issues you resolve.'),
   },
 };
 
