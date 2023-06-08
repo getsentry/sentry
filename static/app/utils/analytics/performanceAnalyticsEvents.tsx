@@ -40,7 +40,8 @@ export type PerformanceEventParameters = {
   };
   'performance_views.landing.table.seen': {};
   'performance_views.landing.table.unparameterized': {
-    first_event: 'none' | '14d' | '30d';
+    first_event: 'none' | '14d' | '30d' | '>30d';
+    hit_multi_project_cap: boolean;
     sent_transaction: boolean;
     single_project: boolean;
     stats_period: string;
