@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {StackView, StacktraceType} from 'sentry/types/stacktrace';
+import {StacktraceType, StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
