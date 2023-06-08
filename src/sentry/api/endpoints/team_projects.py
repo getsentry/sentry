@@ -109,7 +109,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             GLOBAL_PARAMS.TEAM_SLUG,
             GLOBAL_PARAMS.NAME("The name of the project.", required=True),
             GLOBAL_PARAMS.SLUG(
-                "Optional slug for the new project. If not provided a slug is generated from the name."
+                "Optional slug for the project. If not provided a slug is generated from the name."
             ),
             PROJECT_PARAMS.PLATFORM("The platform for the project."),
             PROJECT_PARAMS.DEFAULT_RULES,
@@ -120,26 +120,13 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
-            409: OpenApiResponse(description="A project with the given slug already exists."),
+            409: OpenApiResponse(description="A project with this slug already exists."),
         },
         examples=PROJECT_EXAMPLES.CREATE_NEW_PROJECT,
     )
     def post(self, request: Request, team) -> Response:
         """
-        Create a New Project
-        ````````````````````
-
         Create a new project bound to a team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to create a new project
-                                  for.
-        :param string name: the name for the new project.
-        :param string slug: optionally a slug for the new project.  If it's
-                            not provided a slug is generated from the name.
-        :param bool default_rules: create default rules (defaults to True)
-        :auth: required
         """
         serializer = ProjectPostSerializer(data=request.data)
 

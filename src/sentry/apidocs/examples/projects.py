@@ -7,8 +7,8 @@ class PROJECT_EXAMPLES:
             "Project successfully created",
             {
                 "id": "4505321021243392",
-                "slug": "fir",
-                "name": "fir",
+                "slug": "the-spoiled-yoghurt",
+                "name": "The Spoiled Yoghurt",
                 "platform": "python",
                 "dateCreated": "2023-06-08T00:13:06.004534Z",
                 "isBookmarked": False,
