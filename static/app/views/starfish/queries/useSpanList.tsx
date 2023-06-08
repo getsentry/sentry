@@ -93,7 +93,9 @@ function getQuery(
     ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${dateFilters}
     GROUP BY group_id, span_operation, domain, description
-    ORDER BY ${(orderBy && !orderBy.includes('time_spent_percentage')) ?? 'count'} desc
+    ORDER BY ${
+      orderBy && !orderBy.includes('time_spent_percentage') ? orderBy : 'count'
+    } desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 }
 
