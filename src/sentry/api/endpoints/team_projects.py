@@ -21,7 +21,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-class ProjectSerializer(serializers.Serializer):
+class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=50, required=True)
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -53,7 +53,7 @@ class TeamProjectPermission(TeamPermission):
 @region_silo_endpoint
 @extend_schema(tags=["Teams"])
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
-    public = {"GET", "POST"}
+    public = {"POST"}
     permission_classes = (TeamProjectPermission,)
 
     def get(self, request: Request, team) -> Response:
@@ -114,7 +114,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             PROJECT_PARAMS.PLATFORM("The platform for the project."),
             PROJECT_PARAMS.DEFAULT_RULES,
         ],
-        request=ProjectSerializer,
+        request=ProjectPostSerializer,
         responses={
             201: sentry_project_serializer,
             400: RESPONSE_BAD_REQUEST,
@@ -141,7 +141,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
-        serializer = ProjectSerializer(data=request.data)
+        serializer = ProjectPostSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
