@@ -50,10 +50,10 @@ class IntegrationIssueSerializer(IntegrationSerializer):
                     {
                         "id": str(ei.id),
                         "key": ei.key,
-                        "url": installation.get_issue_url(ei.key),  # type: ignore
+                        "url": installation.get_issue_url(ei.key),
                         "title": ei.title,
                         "description": ei.description,
-                        "displayName": installation.get_issue_display_name(ei),  # type: ignore
+                        "displayName": installation.get_issue_display_name(ei),
                     }
                 )
 
