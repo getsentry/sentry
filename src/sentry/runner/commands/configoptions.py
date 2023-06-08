@@ -56,7 +56,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     Contrarily to the `config` command, this is meant to perform
     bulk updates only.
 
-    The input must be in yaml or json format.
+    The input must be in yaml format.
     A dry run option is provided to test the update before performing it.
 
     A single invalid option would make the command fail and return -1,
@@ -72,6 +72,10 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     If an option updated by another channel is found but the value in
     the store is the same as the one in the file, the update channel
     is updated to Automator.
+    This allows us to fix drift by fixing the file to match the drifted
+    value. Once the file is fixed the and re-applied, the
+    `last_updated_by` field will be set to Automator, and this script
+    will be able to apply further changes.
 
     All other options are considered valid and updated to the value
     present in the file.
