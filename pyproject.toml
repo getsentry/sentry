@@ -981,7 +981,6 @@ module = [
     "sentry.models.userpermission",
     "sentry.models.userreport",
     "sentry.models.userrole",
-    "sentry.monitoring.queues",
     "sentry.monitors.consumers",
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
