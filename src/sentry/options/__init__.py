@@ -24,16 +24,19 @@ from .manager import (  # NOQA
 from .store import OptionsStore
 
 __all__ = (
+    "FLAG_AUTOMATOR_MODIFIABLE",
+    "NotWritableReason",
+    "UnknownOption",
+    "UpdateChannel",
     "can_update",
-    "get",
-    "set",
+    "default_store",
     "delete",
-    "register",
+    "get",
+    "get_last_update_channel",
     "isset",
     "lookup_key",
-    "UnknownOption",
-    "default_store",
-    "get_last_update_channel",
+    "register",
+    "set",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
