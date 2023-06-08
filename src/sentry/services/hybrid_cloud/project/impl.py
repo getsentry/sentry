@@ -9,7 +9,7 @@ class DatabaseBackedProjectService(ProjectService):
     def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:
         from sentry import projectoptions
 
-        orm_project = Project.objects.get(id=project.id)
+        orm_project = Project.objects.get_from_cache(id=project.id)
         result = ProjectOption.objects.get_all_values(orm_project)
         keyed_result = result.get(key)
 
