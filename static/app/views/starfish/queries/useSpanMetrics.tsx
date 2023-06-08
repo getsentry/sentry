@@ -66,7 +66,7 @@ function getQuery(
     count() as count,
     min(timestamp) as "first_seen()",
     max(timestamp) as "last_seen()",
-    quantile(0.5)(exclusive_time) as "p95(span.duration)",
+    quantile(0.95)(exclusive_time) as "p95(span.duration)",
     sum(exclusive_time) as "sum(span.duration)",
     divide(count(), ${
       moment(endTime ?? undefined).unix() - moment(startTime).unix()
