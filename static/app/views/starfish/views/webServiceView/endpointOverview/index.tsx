@@ -7,11 +7,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQuery} from 'sentry/utils/queryClient';
@@ -74,11 +77,21 @@ export default function EndpointOverview() {
     name: t('Endpoint Overview'),
     query: query.formatString(),
     projects: [1],
-    fields: [],
+    fields: ['tps()', 'p95(transaction.duration)', 'http_error_count()'],
+    dataset: DiscoverDatasets.METRICS,
+    start: pageFilter.selection.datetime.start ?? undefined,
+    end: pageFilter.selection.datetime.end ?? undefined,
+    range: pageFilter.selection.datetime.period ?? undefined,
     version: 2,
   };
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  const {data: totals, isLoading: isTotalsLoading} = useDiscoverQuery({
+    eventView,
+    orgSlug: organization.slug,
+    location,
+  });
 
   function renderSidebarCharts() {
     return (
@@ -91,12 +104,12 @@ export default function EndpointOverview() {
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}
-        period={pageFilter.selection.datetime.period}
+        period={eventView.statsPeriod}
         referrer="starfish-endpoint-overview"
-        start={pageFilter.selection.datetime.start}
-        end={pageFilter.selection.datetime.end}
+        start={eventView.start}
+        end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'p95()', 'http_error_count()']}
+        yAxis={['tps()', 'p95(transaction.duration)', 'http_error_count()']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -108,6 +121,14 @@ export default function EndpointOverview() {
               <Header>
                 <ChartLabel>{t('Throughput Per Second')}</ChartLabel>
               </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? t('%s/s', (totals.data[0]['tps()'] as number).toFixed(2))
+                    : undefined
+                }
+              />
               <Chart
                 statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
@@ -134,6 +155,17 @@ export default function EndpointOverview() {
               <Header>
                 <ChartLabel>{DataTitles.p95}</ChartLabel>
               </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? tooltipFormatterUsingAggregateOutputType(
+                        totals.data[0]['p95(transaction.duration)'] as number,
+                        'duration'
+                      )
+                    : undefined
+                }
+              />
               <Chart
                 statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
@@ -161,6 +193,17 @@ export default function EndpointOverview() {
               <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
               </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? tooltipFormatterUsingAggregateOutputType(
+                        totals.data[0]['http_error_count()'] as number,
+                        'integer'
+                      )
+                    : undefined
+                }
+              />
               <Chart
                 statsPeriod={eventView.statsPeriod}
                 height={80}
@@ -292,6 +335,23 @@ function SpanMetricsTable({
   );
 }
 
+type ChartValueProps = {
+  isLoading: boolean;
+  value: React.ReactNode;
+};
+
+function ChartSummaryValue({isLoading, value}: ChartValueProps) {
+  if (isLoading) {
+    return <Placeholder height="24px" />;
+  }
+
+  return <ChartValue>{value}</ChartValue>;
+}
+
+const ChartValue = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
 const SubHeader = styled('h3')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeLarge};
@@ -319,7 +379,7 @@ const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const ChartLabel = styled('p')`
+const ChartLabel = styled('div')`
   ${p => p.theme.text.cardTitle}
 `;
 

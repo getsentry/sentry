@@ -1,8 +1,11 @@
+import cloneDeep from 'lodash/cloneDeep';
+
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
@@ -54,8 +57,10 @@ type DataRow = {
   'transaction.duration': number;
 };
 
-export function TransactionSamplesTable({eventView}: Props) {
+export function TransactionSamplesTable({eventView: metricEventView}: Props) {
   const location = useLocation();
+  const eventView = cloneDeep(metricEventView);
+  eventView.dataset = DiscoverDatasets.DISCOVER;
   const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
