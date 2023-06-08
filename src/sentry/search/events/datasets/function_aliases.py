@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, Optional, Sequence, Union
+from typing import Callable, List, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
 
@@ -175,19 +175,33 @@ def resolve_project_threshold_config(
 
 def resolve_metrics_percentile(
     args: Mapping[str, Union[str, Column, SelectType, int, float]],
-    alias: str,
+    alias: Optional[str],
     fixed_percentile: Optional[float] = None,
+    extra_conditions: Optional[List[Function]] = None,
 ) -> SelectType:
     if fixed_percentile is None:
         fixed_percentile = args["percentile"]
     if fixed_percentile not in constants.METRIC_PERCENTILES:
         raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+
+    conditions = [Function("equals", [Column("metric_id"), args["metric_id"]])]
+    if extra_conditions is not None:
+        conditions.extend(extra_conditions)
+
+    if len(conditions) == 2:
+        condition = Function("and", conditions)
+    elif len(conditions) != 1:
+        # Need to chain multiple and functions here to allow more than 2 conditions (ie. and(and(a, b), c))
+        raise InvalidSearchQuery("Only 1 additional condition is currently available")
+    else:
+        condition = conditions[0]
+
     return (
         Function(
             "maxIf",
             [
                 Column("value"),
-                Function("equals", [Column("metric_id"), args["metric_id"]]),
+                condition,
             ],
             alias,
         )
@@ -197,10 +211,7 @@ def resolve_metrics_percentile(
             [
                 Function(
                     f"quantilesIf({fixed_percentile})",
-                    [
-                        Column("value"),
-                        Function("equals", [Column("metric_id"), args["metric_id"]]),
-                    ],
+                    [Column("value"), condition],
                 ),
                 1,
             ],

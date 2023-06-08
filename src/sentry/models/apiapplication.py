@@ -41,7 +41,7 @@ class ApiApplication(Model):
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)
     client_secret = models.TextField(default=generate_token)
-    owner = FlexibleForeignKey("sentry.User")
+    owner = FlexibleForeignKey("sentry.User", null=True)
     name = models.CharField(max_length=64, blank=True, default=generate_name)
     status = BoundedPositiveIntegerField(
         default=0,

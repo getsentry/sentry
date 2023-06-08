@@ -39,11 +39,11 @@ def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
     return _repr
 
 
-class BaseModel(models.Model):  # type: ignore
+class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    objects = BaseManager[M]()
+    objects = BaseManager[M]()  # type: ignore
 
     update = update
 
@@ -153,7 +153,7 @@ def get_model_if_available(app_config: AppConfig, model_name: str) -> Type[model
         return None
     assert isinstance(model, type) and issubclass(model, models.Model)
 
-    silo_limit = getattr(model._meta, "silo_limit", None)  # type: ignore
+    silo_limit = getattr(model._meta, "silo_limit", None)
     if silo_limit is not None:
         assert isinstance(silo_limit, ModelSiloLimit)
         if not silo_limit.is_available():

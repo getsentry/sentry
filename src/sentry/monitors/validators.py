@@ -50,6 +50,9 @@ class MonitorAlertRuleTargetValidator(serializers.Serializer):
 
 
 class MonitorAlertRuleValidator(serializers.Serializer):
+    environment = serializers.CharField(
+        max_length=64, required=False, allow_null=True, help_text="Name of the environment"
+    )
     targets = MonitorAlertRuleTargetValidator(
         many=True,
         help_text="Array of dictionaries with information of the user or team to be notified",

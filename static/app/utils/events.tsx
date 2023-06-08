@@ -178,19 +178,11 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
-      const isPerfIssue =
-        !isTombstone(event) && event.issueCategory === IssueCategory.PERFORMANCE;
-      return {
-        title: isPerfIssue ? metadata.title : customTitle ?? title,
-        subtitle: isPerfIssue ? culprit : '',
-        treeLabel: undefined,
-      };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue =
-        !isTombstone(event) && event.issueCategory === IssueCategory.PROFILE;
+      const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
-        title: isProfilingIssue ? metadata.title : customTitle ?? title,
-        subtitle: isProfilingIssue ? culprit : '',
+        title: customTitle ?? title,
+        subtitle: isIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:

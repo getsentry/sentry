@@ -978,7 +978,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         return flattened
 
-    @cached_property  # type: ignore
+    @cached_property
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
         if self.organization_id is None or not self.has_metrics:
@@ -1331,7 +1331,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_context:
+            if is_tag or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
@@ -1443,7 +1443,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         ie. any_user_display -> any(user_display)
         """
-        return self.function_alias_map[function.alias].field  # type: ignore
+        return self.function_alias_map[function.alias].field
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
@@ -1566,8 +1566,6 @@ class UnresolvedQuery(QueryBuilder):
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
-    time_column = Column("time")
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1594,12 +1592,17 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             skip_tag_resolution=skip_tag_resolution,
         )
 
+        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    @property
+    def time_column(self) -> SelectType:
+        return Column("time")
 
     def resolve_query(
         self,

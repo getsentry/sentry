@@ -1,3 +1,5 @@
+import logging
+
 from django.core.signing import SignatureExpired
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -10,6 +12,8 @@ from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models import Organization, OrganizationMember
 from sentry.web.frontend.base import BaseView
+
+logger = logging.getLogger(__name__)
 
 
 class ExternalIntegrationPipeline(IntegrationPipeline):
@@ -54,7 +58,13 @@ class IntegrationExtensionConfigurationView(BaseView):
         elif "orgSlug" in request.GET:
             organization = Organization.objects.get(slug=request.GET["orgSlug"])
 
+        org_id = organization.id if organization else None
+        log_params = {"organization_id": org_id, "provider": self.provider}
         if organization:
+            logger.info(
+                "integration-extension-config.view",
+                extra=log_params,
+            )
             # if org does not have the feature flag to show the integration, redirect
             if not self.is_enabled_for_org(organization, request.user):
                 return self.redirect("/")
@@ -74,7 +84,18 @@ class IntegrationExtensionConfigurationView(BaseView):
                             "sentry/pipeline-error.html",
                             {"error": "Installation link expired"},
                         )
+                else:
+                    logger.info(
+                        "integration-extension-config.no-permission",
+                        extra=log_params,
+                    )
+            else:
+                logger.info(
+                    "integration-extension-config.no-features",
+                    extra=log_params,
+                )
 
+        logger.info("integration-extension-config.redirect", extra=log_params)
         # if anything before fails, we give up and send them to the link page where we can display errors
         return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
 
@@ -98,8 +119,22 @@ class IntegrationExtensionConfigurationView(BaseView):
         provider = integrations.get(self.provider)
         integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
+            log_params = {
+                "flag_name": flag_name,
+                "organization_id": org.id,
+                "provider": self.provider,
+            }
+            logger.info(
+                "integration-extension-config.check-feature",
+                extra=log_params,
+            )
             try:
-                if features.has(flag_name, org, actor=user):
+                result = features.has(flag_name, org, actor=user)
+                logger.info(
+                    "integration-extension-config.feature-result",
+                    extra={"result": result, **log_params},
+                )
+                if result:
                     return True
             # we have some integration features that are not actually
             # registered. Those features are unrestricted.
