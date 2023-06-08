@@ -70,6 +70,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         description="The name of environments to filter by.",
     )
 
+    @staticmethod
     def NAME(description: str, required: bool = False) -> OpenApiParameter:
         return OpenApiParameter(
             name="name",
@@ -79,6 +80,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
             description=description,
         )
 
+    @staticmethod
     def SLUG(description: str, required: bool = False) -> OpenApiParameter:
         return OpenApiParameter(
             name="slug",
@@ -220,6 +222,7 @@ class PROJECT_PARAMS:
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
     )
 
+    @staticmethod
     def PLATFORM(description: str) -> OpenApiParameter:
         return OpenApiParameter(
             name="platform",
