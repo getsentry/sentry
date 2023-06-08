@@ -20,7 +20,7 @@ import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
-import TeamStability from './teamStability';
+import {TeamStability} from './teamStability';
 import {dataDatetime} from './utils';
 
 type Props = RouteComponentProps<{}, {}>;
