@@ -149,15 +149,18 @@ def _is_healthy(queue_size) -> bool:
     return queue_size < options.get("backpressure.monitor_queues.unhealthy_threshold")
 
 
-def _update_queue_stats(redis_cluster, queue_health: List[Tuple[str, bool]]) -> None:
-    unhealthy = [queue for (queue, unhealthy) in queue_health if unhealthy]
-    if unhealthy:
+def _update_queue_stats(redis_cluster, queue_history: Dict[str, int]) -> None:
+    strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
+    queue_health = _list_queues_over_threshold(strike_threshold, queue_history)
+    unhealthy_queues = [queue for (queue, is_unhealthy) in queue_health if is_unhealthy]
+    if unhealthy_queues:
         # Report list of unhealthy queues to sentry
         with sentry_sdk.push_scope() as scope:
-            scope.set_extra("unhealthy_queues", unhealthy)
+            scope.set_extra("unhealthy_queues", unhealthy_queues)
             sentry_sdk.capture_message("RabbitMQ queues are exceeding size threshold")
 
-    with redis_cluster.pipeline() as pipeline:
+    with queue_monitoring_cluster.pipeline() as pipeline:
+        pipeline.hmset(_prefix_key("queue-history"), queue_history)
         for (queue, unhealthy) in queue_health:
             pipeline.set(_debug_queue_key(queue), datetime.utcnow().isoformat(), ex=300)
             if unhealthy:
@@ -168,10 +171,6 @@ def _update_queue_stats(redis_cluster, queue_health: List[Tuple[str, bool]]) -> 
 
 
 def _run_queue_stats_updater(redis_cluster: str) -> None:
-    # bonus point if we manage to use asyncio and launch all tasks at once
-    # in case we have many queues to check
-    cluster = redis.redis_clusters.get(redis_cluster)
-
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
         if not options.get("backpressure.monitor_queues.enable"):
@@ -193,9 +192,7 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
                 queue_history[queue] += 1
 
         try:
-            strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
-            queue_health = _list_queues_over_threshold(strike_threshold, queue_history)
-            _update_queue_stats(cluster, queue_health)
+            _update_queue_stats(queue_history)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
@@ -215,4 +212,5 @@ def monitor_queues():
         target=_run_queue_stats_updater,
         args=(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER,),
     )
+    queue_stats_updater_process.start()
     queue_stats_updater_process.start()
