@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import ProjectSerializer as sentry_project_serializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
-from sentry.apidocs.examples.projects import PROJECT_EXAMPLES
+from sentry.apidocs.examples.projects import ProjectExamples
 from sentry.apidocs.parameters import GLOBAL_PARAMS, PROJECT_PARAMS
 from sentry.constants import ObjectStatus
 from sentry.models import Project
@@ -122,7 +122,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             404: OpenApiResponse(description="Team not found."),
             409: OpenApiResponse(description="A project with this slug already exists."),
         },
-        examples=PROJECT_EXAMPLES.CREATE_NEW_PROJECT,
+        examples=ProjectExamples.CREATE_PROJECT,
     )
     def post(self, request: Request, team) -> Response:
         """

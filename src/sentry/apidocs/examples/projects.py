@@ -1,8 +1,8 @@
 from drf_spectacular.utils import OpenApiExample
 
 
-class PROJECT_EXAMPLES:
-    CREATE_NEW_PROJECT = [
+class ProjectExamples:
+    CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
             {
