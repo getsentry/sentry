@@ -14,7 +14,6 @@ from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -33,13 +32,12 @@ def create_organization_join_request(organization, email, ip_address=None):
         return
 
     try:
-        rpc_org_member = organization_service.add_organization_member(
+        return OrganizationMember.objects.create(
             organization_id=organization.id,
-            default_org_role=organization.default_role,
+            role=organization.default_role,
             email=email,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            invite_state=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        return OrganizationMember.objects.get(id=rpc_org_member.id)
     except IntegrityError:
         pass
 

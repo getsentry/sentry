@@ -12,7 +12,6 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.services.hybrid_cloud.organization import organization_service
 
 from ... import save_team_assignments
 from ...index import OrganizationMemberSerializer
@@ -75,16 +74,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        rpc_org_member = organization_service.add_organization_member(
-            organization_id=organization.id,
-            default_org_role=organization.default_role,
-            email=result["email"],
-            role=result["role"],
-            inviter_id=request.user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
         with transaction.atomic():
-            om = OrganizationMember.objects.get(id=rpc_org_member.id)
+            om = OrganizationMember.objects.create(
+                organization_id=organization.id,
+                role=result["role"] or organization.default_role,
+                email=result["email"],
+                invite_id=request.user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
 
             # Do not set team-roles when inviting a member
             if "teams" in result or "teamRoles" in result:
