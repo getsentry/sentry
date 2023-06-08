@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
+from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
@@ -35,11 +36,15 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         kafka_topic_name = settings.KAFKA_INGEST_PERFORMANCE_METRICS
         self.kafka_topic = Topic(kafka_topic_name)
 
-        cluster_name = settings.KAFKA_TOPICS[kafka_topic_name]["cluster"]
+        kafka_topic_dict = settings.KAFKA_TOPICS[kafka_topic_name]
+        assert kafka_topic_dict is not None
+        cluster_name = kafka_topic_dict["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         producer_config.pop("compression.type", None)
         producer_config.pop("message.max.bytes", None)
-        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+        self.producer: Producer = KafkaProducer(
+            build_kafka_configuration(default_config=producer_config)
+        )
 
     def counter(
         self,
@@ -70,9 +75,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
-        original_future = self.producer.produce(self.kafka_topic, payload)
-
-        return original_future
+        self.producer.produce(self.kafka_topic, payload)
 
     def set(
         self,
@@ -103,9 +106,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
-        original_future = self.producer.produce(self.kafka_topic, payload)
-
-        return original_future
+        self.producer.produce(self.kafka_topic, payload)
 
     def distribution(
         self,
@@ -135,9 +136,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
-        original_future = self.producer.produce(self.kafka_topic, payload)
-
-        return original_future
+        self.producer.produce(self.kafka_topic, payload)
 
     def close(self):
         self.producer.close()
