@@ -2,7 +2,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -13,6 +12,9 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import SampleList from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -51,14 +53,10 @@ function SpanSummaryPage({params, location}: Props) {
                   title={t('Throughput')}
                   description={t('Throughput of this span per second')}
                 >
-                  {spanMetrics?.['spm()']?.toFixed(2)}/sec
+                  <ThroughputCell throughputPerSecond={spanMetrics?.['spm()'] / 60} />
                 </Block>
                 <Block title={t('Duration')} description={t('Time spent in this span')}>
-                  <Duration
-                    seconds={spanMetrics?.['p95(span.duration)'] / 1000}
-                    fixedDigits={2}
-                    abbreviation
-                  />
+                  <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
                 </Block>
                 <Block
                   title={t('Time Spent')}
@@ -66,7 +64,12 @@ function SpanSummaryPage({params, location}: Props) {
                     'Time spent in this span as a proportion of total application time'
                   )}
                 >
-                  {formatPercentage(spanMetrics?.['time_spent_percentage()'])}
+                  <TimeSpentCell
+                    formattedTimeSpent={formatPercentage(
+                      spanMetrics?.['time_spent_percentage()']
+                    )}
+                    totalSpanTime={spanMetrics?.['sum(span.duration)']}
+                  />
                 </Block>
               </BlockContainer>
 
