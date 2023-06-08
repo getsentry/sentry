@@ -47,7 +47,6 @@ export const useSpanList = (
     endTime,
     dateFilters,
     transaction,
-    orderBy,
     limit
   );
   const eventView = getEventView(moduleName, location, transaction, orderBy);
@@ -71,7 +70,6 @@ function getQuery(
   endTime: Moment,
   dateFilters: string,
   transaction?: string,
-  orderBy?: string,
   limit?: number
 ) {
   const conditions = buildQueryConditions(moduleName, location).filter(Boolean);
@@ -93,9 +91,7 @@ function getQuery(
     ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${dateFilters}
     GROUP BY group_id, span_operation, domain, description
-    ORDER BY ${
-      orderBy && !orderBy.includes('time_spent_percentage') ? orderBy : 'count'
-    } desc
+    ORDER BY count() desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 }
 
