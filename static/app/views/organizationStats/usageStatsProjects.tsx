@@ -120,6 +120,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   get tableData() {
     const {projectStats} = this.state;
+
     return {
       headers: this.tableHeader,
       ...this.mapSeriesToTable(projectStats),
@@ -218,7 +219,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       return direction > 0 ? 'desc' : 'asc';
     };
 
-    const columnHeaders = [
+    return [
       {
         key: SortBy.PROJECT,
         title: t('Project'),
@@ -254,24 +255,23 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         direction: getArrowDirection(SortBy.DROPPED),
         onClick: () => this.handleChangeSort(SortBy.DROPPED),
       },
-    ].map(h => {
-      const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
+    ]
+      .map(h => {
+        const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
 
-      return (
-        <Cell key={h.key}>
-          <SortLink
-            canSort
-            title={h.title}
-            align={h.align as Alignments}
-            direction={h.direction}
-            generateSortLink={h.onClick}
-          />
-        </Cell>
-      );
-    });
-    const emptyColumn = <CellStat key="extra" />; // For displaying extra buttons
-    columnHeaders.push(emptyColumn);
-    return columnHeaders;
+        return (
+          <Cell key={h.key}>
+            <SortLink
+              canSort
+              title={h.title}
+              align={h.align as Alignments}
+              direction={h.direction}
+              generateSortLink={h.onClick}
+            />
+          </Cell>
+        );
+      })
+      .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
   }
 
   getProjectLink(project: Project) {
