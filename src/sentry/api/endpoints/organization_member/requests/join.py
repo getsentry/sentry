@@ -36,7 +36,7 @@ def create_organization_join_request(organization, email, ip_address=None):
             organization_id=organization.id,
             role=organization.default_role,
             email=email,
-            invite_state=InviteStatus.REQUESTED_TO_JOIN.value,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
     except IntegrityError:
         pass
