@@ -2,23 +2,19 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
+import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {ReleasePreview} from 'sentry/views/starfish/components/releasePreview';
 import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {
-  useSpanFirstSeenEvent,
-  useSpanLastSeenEvent,
-} from 'sentry/views/starfish/queries/useSpanSeenEvent';
 import SampleList from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanBaselineTable} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -33,8 +29,6 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
   const {data: spanMetrics} = useSpanMetrics({group: groupId});
-  const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
-  const {data: lastSeenSpanEvent} = useSpanLastSeenEvent({group_id: groupId});
 
   return (
     <Layout.Page>
@@ -54,25 +48,25 @@ function SpanSummaryPage({params, location}: Props) {
               <BlockContainer>
                 <Block title={t('Operation')}>{span?.op}</Block>
                 <Block
-                  title={t('First Seen')}
-                  description={t(
-                    'The first time this span was ever seen in the current retention window'
-                  )}
+                  title={t('Throughput')}
+                  description={t('Throughput of this span per second')}
                 >
-                  <TimeSince date={spanMetrics?.['first_seen()']} />
-                  {firstSeenSpanEvent?.release && (
-                    <ReleasePreview release={firstSeenSpanEvent?.release} />
-                  )}
+                  {spanMetrics?.['spm()']?.toFixed(2)}/sec
                 </Block>
-
+                <Block title={t('Duration')} description={t('Time spent in this span')}>
+                  <Duration
+                    seconds={spanMetrics?.['p95(span.duration)'] / 1000}
+                    fixedDigits={2}
+                    abbreviation
+                  />
+                </Block>
                 <Block
-                  title={t('Last Seen')}
-                  description={t('The most recent time this span was seen')}
-                >
-                  <TimeSince date={spanMetrics?.['last_seen()']} />
-                  {lastSeenSpanEvent?.release && (
-                    <ReleasePreview release={lastSeenSpanEvent?.release} />
+                  title={t('Time Spent')}
+                  description={t(
+                    'Time spent in this span as a proportion of total application time'
                   )}
+                >
+                  {formatPercentage(spanMetrics?.['time_spent_percentage()'])}
                 </Block>
               </BlockContainer>
 
