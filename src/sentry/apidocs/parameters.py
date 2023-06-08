@@ -18,6 +18,13 @@ class GLOBAL_PARAMS:
         type=str,
         location="path",
     )
+    TEAM_SLUG = OpenApiParameter(
+        name="team_slug",
+        description="The slug of the team the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     STATS_PERIOD = OpenApiParameter(
         name="statsPeriod",
         location="query",
@@ -136,7 +143,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
     )
 
 
-class CURSOR_QUERY_PARAM(serializers.Serializer):  # type: ignore
+class CURSOR_QUERY_PARAM(serializers.Serializer):
     cursor = serializers.CharField(
         help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
         required=False,

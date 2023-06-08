@@ -106,7 +106,7 @@ def calculate_unresolved_counts(team, project_list, start, end, environment_id):
 
 
 @region_silo_endpoint
-class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):
     def get(self, request: Request, team: Team) -> Response:
         """
         Returns cumulative counts of unresolved groups per day within the stats period time range.

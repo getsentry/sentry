@@ -15,7 +15,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class ListOrganizationMonitorsTest(MonitorTestCase):
-    endpoint = "sentry-api-0-organization-monitors"
+    endpoint = "sentry-api-0-organization-monitor-index"
 
     def setUp(self):
         super().setUp()
@@ -155,7 +155,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(MonitorTestCase):
-    endpoint = "sentry-api-0-organization-monitors"
+    endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
 
     def setUp(self):
@@ -235,12 +235,17 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "name": "My Monitor",
             "type": "cron_job",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {"targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]},
+            "alert_rule": {
+                "environment": self.environment.name,
+                "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+            },
         }
         response = self.get_success_response(self.organization.slug, **data)
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
         alert_rule_id = monitor.config.get("alert_rule_id")
-        assert Rule.objects.filter(
+        rule = Rule.objects.get(
             project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
-        ).exists()
+        )
+        assert rule is not None
+        assert rule.environment_id == self.environment.id
