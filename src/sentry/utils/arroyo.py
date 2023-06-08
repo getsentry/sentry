@@ -129,7 +129,6 @@ def run_basic_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    force_cluster: str | None,
     strategy_factory_cls: Type[ProcessingStrategyFactory[Any]],
 ) -> None:
     from django.conf import settings
@@ -138,7 +137,7 @@ def run_basic_consumer(
 
     add_global_tags(kafka_topic=topic, group_id=group_id)
 
-    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
     consumer_config = build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,

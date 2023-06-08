@@ -86,7 +86,7 @@ def kafka_options(
             "--consumer-group",
             "group_id",
             default=consumer_group,
-            help="(physical) Kafka consumer group for the consumer.",
+            help="Kafka consumer group for the consumer.",
         )(f)
 
         f = click.option(
@@ -658,22 +658,35 @@ def profiles_consumer(**options):
 @click.argument(
     "consumer_name",
 )
-@kafka_options("")
+@click.option(
+    "--topic",
+    type=str,
+    help="Main topic with messages for processing",
+)
+@click.option(
+    "--consumer-group",
+    "group_id",
+    required=True,
+    help="Kafka consumer group for the consumer.",
+)
+@click.option(
+    "--auto-offset-reset",
+    "auto_offset_reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
 @strict_offset_reset_option()
 @configuration
-def basic_consumer(consumer_name, force_topic, **options):
+def basic_consumer(consumer_name, topic, **options):
     """
     Launch a "new-style" consumer based on its "consumer name".
 
     Example:
 
-        sentry run consumer ingest-profiles
+        sentry run consumer ingest-profiles --consumer-group ingest-profiles
 
-    runs the ingest-profiles consumer, which has the default consumer group
-    "ingest-profiles".
-
-    The physical consumer group to use on kafka can be overridden with
-    --consumer-group option.
+    runs the ingest-profiles consumer with the consumer group ingest-profiles.
     """
     from sentry.consumers import KAFKA_CONSUMERS
 
@@ -681,12 +694,12 @@ def basic_consumer(consumer_name, force_topic, **options):
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
     except KeyError:
         raise click.ClickException(
-            f"No consumer group named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
+            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
         )
 
     try:
         strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-        topic = consumer_definition["topic"]
+        default_topic = consumer_definition["topic"]
     except KeyError:
         raise click.ClickException(
             f"The consumer group {consumer_name} does not have a strategy factory"
@@ -694,15 +707,11 @@ def basic_consumer(consumer_name, force_topic, **options):
             f"responsible for this consumer"
         )
 
-    if options["group_id"] == "":
-        options["group_id"] = consumer_name
-
     from sentry.utils.arroyo import run_basic_consumer
 
-    if force_topic:
-        topic = force_topic
-
-    run_basic_consumer(topic=topic, **options, strategy_factory_cls=strategy_factory_cls)
+    run_basic_consumer(
+        topic=topic or default_topic, **options, strategy_factory_cls=strategy_factory_cls
+    )
 
 
 @run.command("ingest-replay-recordings")
