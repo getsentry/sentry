@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {TOP_N} from 'sentry/utils/discover/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -206,7 +207,14 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
 ];
 
 export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  const organization = useOrganization();
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
   return DEFAULT_WIDGETS.map(widget => {
+    if (hasBetterPrioritySort && widget.id === 'issue-for-review') {
+      widget.queries.orderby = 'betterPriority';
+    } // this also does nothing
     if (widget.displayType === DisplayType.TOP_N) {
       return {
         ...widget,

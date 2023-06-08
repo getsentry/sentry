@@ -37,6 +37,13 @@ export function WidgetLibrary({
       widget => !(widget.widgetType === WidgetType.RELEASE)
     );
   }
+  if (organization.features.includes('issue-list-better-priority-sort')) {
+    for (const [key, value] of Object.entries(defaultWidgets)) {
+      if (value.id === 'issue-for-review') {
+        defaultWidgets[key].queries.orderby = 'betterPriority';
+      }
+    }
+  } // this does nothing
 
   function getLibrarySelectionHandler(
     widget: OverwriteWidgetModalProps['widget'],
