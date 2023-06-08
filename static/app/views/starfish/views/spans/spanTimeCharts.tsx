@@ -73,7 +73,10 @@ export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
     [ModuleName.NONE]: [],
   };
 
-  const charts = [...moduleCharts[ModuleName.ALL], ...moduleCharts[moduleName]];
+  const charts = [...moduleCharts[ModuleName.ALL]];
+  if (moduleName !== ModuleName.ALL) {
+    charts.push(...moduleCharts[moduleName]);
+  }
 
   return (
     <ChartsContainer>

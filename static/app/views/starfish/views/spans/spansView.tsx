@@ -17,6 +17,7 @@ const LIMIT: number = 25;
 
 type Props = {
   moduleName?: ModuleName;
+  spanCategory?: string;
 };
 
 type State = {
@@ -40,6 +41,7 @@ export default function SpansView(props: Props) {
   const {isLoading: areSpansLoading, data: spansData} = useSpanList(
     props.moduleName ?? ModuleName.ALL,
     undefined,
+    props.spanCategory,
     orderBy,
     LIMIT
   );
