@@ -337,6 +337,5 @@ export function escapeDoubleQuotes(str: string) {
 }
 
 export function generateBaseControlSiloUrl() {
-  const baseUrl = ConfigStore.get('links').sentryUrl || '';
-  return baseUrl + '/api/0';
+  return ConfigStore.get('links').sentryUrl || '';
 }

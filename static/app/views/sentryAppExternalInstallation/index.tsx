@@ -31,7 +31,7 @@ type State = AsyncView['state'] & {
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl()});
+  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getDefaultState() {
     const state = super.getDefaultState();
