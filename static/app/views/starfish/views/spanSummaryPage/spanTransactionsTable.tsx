@@ -33,7 +33,7 @@ type Props = {
 export type Keys =
   | 'transaction'
   | 'p95(transaction.duration)'
-  | 'time_spent_percentage()'
+  | 'time_spent_percentage(local)'
   | 'spm()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -109,10 +109,12 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
     return <ThroughputCell throughputPerSecond={row.metrics?.['spm()']} />;
   }
 
-  if (column.key === 'time_spent_percentage()') {
+  if (column.key === 'time_spent_percentage(local)') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(row.metrics?.['time_spent_percentage()'])}
+        formattedTimeSpent={formatPercentage(
+          row.metrics?.['time_spent_percentage(local)']
+        )}
         totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );
@@ -152,7 +154,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'time_spent_percentage(local)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
