@@ -43,8 +43,10 @@ const CalendarStylesWrapper = styled('div')`
     background: none;
   }
 
-  .rdrDayDisabled span {
+  .rdrDayDisabled .rdrDayNumber span,
+  .rdrDayPassive .rdrDayNumber span {
     color: ${p => p.theme.subText};
+    opacity: 0.5;
   }
 
   .rdrDayToday .rdrDayNumber span {
