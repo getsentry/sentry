@@ -195,6 +195,7 @@ class Team(Model, SnowflakeIdMixin):
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
+            user_id__isnull=False,
             user_is_active=True,
         ).distinct()
 
