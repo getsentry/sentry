@@ -27,7 +27,6 @@ from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
     InvalidField,
-    IPAddress,
     ListField,
     Number,
     QueryConfig,
@@ -609,11 +608,6 @@ class ReplaySubqueryConfig(QueryConfig):
     sdk_name = String(field_alias="sdk.name")
     sdk_version = String(field_alias="sdk.version")
     started_at = String(is_filterable=False)
-    user = String(field_alias="user", query_alias="user_name")
-    user_email = String(field_alias="user.email")
-    user_id = String(field_alias="user.id")
-    user_ip_address = IPAddress(field_alias="user.ip", query_alias="ip_address_v4")
-    user_name = String(field_alias="user.username")
 
     tags = Tag(field_alias="*", tag_key_alias="tags.key", tag_value_alias="tags.value")
 
@@ -643,6 +637,13 @@ class ReplaySubqueryConfig(QueryConfig):
     trace = InvalidField(query_alias="traceIds")
     urls = InvalidField(query_alias="urls_sorted")
     url = InvalidField(query_alias="urls_sorted")
+
+    # User fields, removing from subquery eligibility for now.
+    user = InvalidField(field_alias="user", query_alias="user_name")
+    user_email = InvalidField(field_alias="user.email")
+    user_id = InvalidField(field_alias="user.id")
+    user_name = InvalidField(field_alias="user.username")
+    user_ip_address = InvalidField(field_alias="user.ip", query_alias="ip_address_v4")
 
 
 # Pagination.
