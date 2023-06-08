@@ -226,6 +226,11 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
+SPAN_FUNCTION_ALIASES = {
+    "sps": "eps",
+    "spm": "epm",
+}
+
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
     "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
