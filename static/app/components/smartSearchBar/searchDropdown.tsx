@@ -169,10 +169,9 @@ function HighlightedRestOfWords({
   isFirstWordHidden,
   hasSplit,
 }: HighlightedRestOfWordsProps) {
-  const remainingSubstr =
-    searchSubstring.indexOf(firstWord) === -1
-      ? searchSubstring
-      : searchSubstring.slice(firstWord.length + 1);
+  const remainingSubstr = !searchSubstring.includes(firstWord)
+    ? searchSubstring
+    : searchSubstring.slice(firstWord.length + 1);
   const descIdx = combinedRestWords.indexOf(remainingSubstr);
 
   if (descIdx > -1) {

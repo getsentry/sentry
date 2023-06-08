@@ -1208,7 +1208,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    */
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
-      .filter(value => value.indexOf(query) > -1)
+      .filter(value => value.includes(query))
       .map((value, i) => {
         const escapedValue = escapeValue(value);
         return {
@@ -1352,7 +1352,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const filteredSearchGroups = !preparedQuery
       ? this.state.searchGroups
       : this.state.searchGroups.filter(
-          item => item.value && item.value.indexOf(preparedQuery) !== -1
+          item => item.value && item.value.includes(preparedQuery)
         );
 
     this.setState({
