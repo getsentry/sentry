@@ -6,7 +6,7 @@ import {
   getCurrentTrendParameter,
   performanceTypeToTrendParameterLabel,
 } from 'sentry/views/performance/trends/utils';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 describe('Trend parameter utils', function () {
   describe('performanceTypeToTrendParameterLabel', function () {
@@ -22,27 +22,27 @@ describe('Trend parameter utils', function () {
       };
 
       const frontendProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.FRONTEND
+        ProjectPerformanceType.FRONTEND
       );
       expect(frontendProjectOutput).toEqual(lcp);
 
       const anyProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.ANY
+        ProjectPerformanceType.ANY
       );
       expect(anyProjectOutput).toEqual(duration);
 
       const backendProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.BACKEND
+        ProjectPerformanceType.BACKEND
       );
       expect(backendProjectOutput).toEqual(duration);
 
       const frontendOtherProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+        ProjectPerformanceType.FRONTEND_OTHER
       );
       expect(frontendOtherProjectOutput).toEqual(duration);
 
       const mobileProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.MOBILE
+        ProjectPerformanceType.MOBILE
       );
       expect(mobileProjectOutput).toEqual(duration);
     });

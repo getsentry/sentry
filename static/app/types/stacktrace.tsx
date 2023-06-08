@@ -1,12 +1,12 @@
 import type {Frame} from './event';
 
-export enum STACK_VIEW {
+export enum StackView {
   RAW = 'raw',
   FULL = 'full',
   APP = 'app',
 }
 
-export enum STACK_TYPE {
+export enum StackType {
   ORIGINAL = 'original',
   MINIFIED = 'minified',
 }

@@ -33,7 +33,7 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {
   platformAndConditionsToPerformanceType,
-  PROJECT_PERFORMANCE_TYPE,
+  ProjectPerformanceType,
 } from '../../utils';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
@@ -130,7 +130,7 @@ export const getTransactionField = (
   }
 
   const performanceType = platformAndConditionsToPerformanceType(projects, eventView);
-  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+  if (performanceType === ProjectPerformanceType.FRONTEND) {
     return 'measurements.lcp';
   }
 
@@ -156,7 +156,7 @@ const getColumnsWithReplacedDuration = (
   }
 
   const performanceType = platformAndConditionsToPerformanceType(projects, eventView);
-  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+  if (performanceType === ProjectPerformanceType.FRONTEND) {
     durationColumn.name = 'Avg LCP';
     return columns;
   }

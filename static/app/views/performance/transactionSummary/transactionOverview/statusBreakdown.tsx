@@ -16,7 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 type Props = {
   eventView: EventView;
@@ -38,7 +38,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
         {t('Status Breakdown')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.STATUS_BREAKDOWN)}
+          title={getTermHelp(organization, PerformanceTerm.STATUS_BREAKDOWN)}
           size="sm"
         />
       </SectionHeading>

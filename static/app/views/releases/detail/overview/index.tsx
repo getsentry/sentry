@@ -46,7 +46,7 @@ import {
 import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,
-  PROJECT_PERFORMANCE_TYPE,
+  ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
 import {
@@ -201,7 +201,7 @@ class ReleaseOverview extends AsyncView<Props> {
     baseQuery: NewQuery
   ): EventView {
     const eventView =
-      performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND
+      performanceType === ProjectPerformanceType.FRONTEND
         ? (EventView.fromSavedQuery({
             ...baseQuery,
             fields: [
@@ -215,12 +215,12 @@ class ReleaseOverview extends AsyncView<Props> {
               `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
           }) as EventView)
-        : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
+        : performanceType === ProjectPerformanceType.BACKEND
         ? (EventView.fromSavedQuery({
             ...baseQuery,
             fields: [...baseQuery.fields, 'apdex()', 'p75(spans.http)', 'p75(spans.db)'],
           }) as EventView)
-        : performanceType === PROJECT_PERFORMANCE_TYPE.MOBILE
+        : performanceType === ProjectPerformanceType.MOBILE
         ? (EventView.fromSavedQuery({
             ...baseQuery,
             fields: [

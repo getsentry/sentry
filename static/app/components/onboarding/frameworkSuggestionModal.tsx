@@ -24,7 +24,7 @@ import {OnboardingSelectedSDK, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export enum SUPPORTED_LANGUAGES {
+export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',
   PYTHON = 'python',
   NODE = 'node',
@@ -57,19 +57,19 @@ const topNodeFrameworks = [
 ];
 
 export const languageDetails = {
-  [SUPPORTED_LANGUAGES.JAVASCRIPT]: {
+  [SupportedLanguages.JAVASCRIPT]: {
     description: t(
       'Our JavaScript framework SDK’s include all the features of our Browser Javascript SDK with additional features specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionJavascript,
   },
-  [SUPPORTED_LANGUAGES.NODE]: {
+  [SupportedLanguages.NODE]: {
     description: t(
       'Our Node framework SDK’s include all the features of our Node SDK with instructions specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionNode,
   },
-  [SUPPORTED_LANGUAGES.PYTHON]: {
+  [SupportedLanguages.PYTHON]: {
     description: t(
       'Our Python framework SDK’s include all the features of our Python SDK with instructions specific to that framework'
     ),
@@ -106,10 +106,10 @@ export function FrameworkSuggestionModal({
   );
 
   const [topFrameworks, otherFrameworks] = partition(frameworks, framework => {
-    if (selectedPlatform.key === SUPPORTED_LANGUAGES.NODE) {
+    if (selectedPlatform.key === SupportedLanguages.NODE) {
       return topNodeFrameworks.includes(framework.id);
     }
-    if (selectedPlatform.key === SUPPORTED_LANGUAGES.PYTHON) {
+    if (selectedPlatform.key === SupportedLanguages.PYTHON) {
       return topPythonFrameworks.includes(framework.id);
     }
     return topJavascriptFrameworks.includes(framework.id);
@@ -117,10 +117,10 @@ export function FrameworkSuggestionModal({
 
   const otherFrameworksSortedAlphabetically = sortBy(otherFrameworks);
   const topFrameworksOrdered = sortBy(topFrameworks, framework => {
-    if (selectedPlatform.key === SUPPORTED_LANGUAGES.NODE) {
+    if (selectedPlatform.key === SupportedLanguages.NODE) {
       return topNodeFrameworks.indexOf(framework.id);
     }
-    if (selectedPlatform.key === SUPPORTED_LANGUAGES.PYTHON) {
+    if (selectedPlatform.key === SupportedLanguages.PYTHON) {
       return topPythonFrameworks.indexOf(framework.id);
     }
     return topJavascriptFrameworks.indexOf(framework.id);

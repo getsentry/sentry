@@ -9,7 +9,7 @@ import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ExceptionType, Project} from 'sentry/types';
 import {Event, ExceptionValue} from 'sentry/types/event';
-import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,7 +25,7 @@ type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
   projectSlug: Project['slug'];
-  type: STACK_TYPE;
+  type: StackType;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
@@ -201,7 +201,7 @@ export function Content({
         </ErrorBoundary>
         <StackTrace
           data={
-            type === STACK_TYPE.ORIGINAL
+            type === StackType.ORIGINAL
               ? exc.stacktrace
               : exc.rawStacktrace || exc.stacktrace
           }
