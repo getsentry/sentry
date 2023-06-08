@@ -50,7 +50,7 @@ class TestMonitoringQueues(TestCase):
         queue_monitoring_cluster.set(queue_name, "1")
         with self.options(
             {
-                "backpressure.monitor_queues.enable": True,
+                "backpressure.monitor_queues.enable_check": True,
                 "backpressure.monitor_queues.unhealthy_threshold": 0,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -66,7 +66,7 @@ class TestMonitoringQueues(TestCase):
         queue_monitoring_cluster.delete(queue_name)
         with self.options(
             {
-                "backpressure.monitor_queues.enable": True,
+                "backpressure.monitor_queues.enable_check": True,
                 "backpressure.monitor_queues.unhealthy_threshold": 1000,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -79,7 +79,7 @@ class TestMonitoringQueues(TestCase):
     def test_backpressure_not_enabled(self, process_profile_task):
         with self.options(
             {
-                "backpressure.monitor_queues.enable": False,
+                "backpressure.monitor_queues.enable_check": False,
             }
         ):
             self.process_one_message()
