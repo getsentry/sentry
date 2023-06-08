@@ -14,7 +14,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
     def hit_configure(self, params):
         self.login_as(self.user)
         org = self.create_organization()
-        OrganizationMember.objects.create(user=self.user, organization=org, role="admin")
+        OrganizationMember.objects.create(user_id=self.user.id, organization=org, role="admin")
         path = "/extensions/msteams/configure/"
         return self.client.get(path, params)
 
