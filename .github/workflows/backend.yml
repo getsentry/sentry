@@ -461,6 +461,11 @@ jobs:
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: pip install -r requirements-dev-frozen.txt
 
+      - name: setup sentry (lite)
+        run: |
+          SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+          sentry init
+
       - run: make backend-typing
         id: run
 

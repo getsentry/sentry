@@ -105,7 +105,7 @@ def make_django_command(name, django_command=None, help=None):
 cli.add_command(make_django_command("shell", help="Run a Python interactive interpreter."))
 
 
-def configure():
+def configure(*, skip_service_validation: bool = False):
     """
     Kick things off and configure all the things.
 
@@ -122,7 +122,7 @@ def configure():
     _, py, yaml = discover_configs()
 
     # TODO(mattrobenolt): Surface this also as a CLI option?
-    skip_service_validation = (
+    skip_service_validation = skip_service_validation or (
         "SENTRY_SKIP_BACKEND_VALIDATION" in os.environ
         or "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
     )
