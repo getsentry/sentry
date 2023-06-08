@@ -88,13 +88,13 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         # This is safe -- we're not syncing flags to the org member mapping table.
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(organization=organization).update(
+            OrganizationMember.objects.filter(organization_id=organization.id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])
                 .bitand(~OrganizationMember.flags["sso:invalid"])
             )
 
-        user_ids = OrganizationMember.objects.filter(organization=organization).values("user")
+        user_ids = OrganizationMember.objects.filter(organization_id=organization.id).values("user")
         User.objects.filter(id__in=user_ids).update(is_managed=False)
 
         email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
