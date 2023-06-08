@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
@@ -30,7 +30,7 @@ type Row = {
 };
 
 type Props = {
-  span: Span;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -105,7 +105,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: Span;
+  span: IndexedSpan;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -124,7 +124,7 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   }
 
   if (column.key === 'p95(transaction.duration)') {
-    return <DurationCell seconds={row.metrics?.p95} />;
+    return <DurationCell milliseconds={row.metrics?.p95} />;
   }
 
   if (column.key === 'spans_per_second') {
@@ -147,7 +147,7 @@ function TransactionCell({span, column, row}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/span/${encodeURIComponent(span.group)}?${qs.stringify({
           transaction: row.transaction,
         })}`}
       >
