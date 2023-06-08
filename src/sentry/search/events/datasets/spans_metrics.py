@@ -5,7 +5,7 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -283,6 +283,20 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "percentile_percent_change",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["span.duration"],
+                            allow_custom_measurements=False,
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_percentile_percent_change,
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -392,6 +406,54 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     list(status for status in statuses if status is not None),
                 ],
             ),
+            alias,
+        )
+
+    def _resolve_percentile_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        if self.builder.start is None or self.builder.end is None:
+            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
+        middle = self.builder.start + (self.builder.end - self.builder.start) / 2
+        first_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[
+                Function(
+                    "less",
+                    [
+                        Function("toDateTime", [middle]),
+                        self.builder.column("timestamp"),
+                    ],
+                ),
+            ],
+        )
+        second_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[
+                Function(
+                    "greaterOrEquals",
+                    [
+                        Function("toDateTime", [middle]),
+                        self.builder.column("timestamp"),
+                    ],
+                ),
+            ],
+        )
+        return Function(
+            "divide",
+            [
+                Function(
+                    "minus",
+                    [second_half, first_half],
+                ),
+                first_half,
+            ],
             alias,
         )
 

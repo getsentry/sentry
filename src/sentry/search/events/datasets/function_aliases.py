@@ -175,7 +175,7 @@ def resolve_project_threshold_config(
 
 def resolve_metrics_percentile(
     args: Mapping[str, Union[str, Column, SelectType, int, float]],
-    alias: str,
+    alias: Optional[str],
     fixed_percentile: Optional[float] = None,
     extra_conditions: Optional[List[Function]] = None,
 ) -> SelectType:
