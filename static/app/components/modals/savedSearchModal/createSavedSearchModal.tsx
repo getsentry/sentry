@@ -18,14 +18,6 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
 function validateSortOption({
   sort,
   organization,
@@ -36,12 +28,14 @@ function validateSortOption({
   const hasBetterPrioritySort = organization.features.includes(
     'issue-list-better-priority-sort'
   );
-  const sortOptions = [...DEFAULT_SORT_OPTIONS];
-  if (hasBetterPrioritySort) {
-    sortOptions.unshift(IssueSortOptions.BETTER_PRIORITY);
-    const index = sortOptions.indexOf(IssueSortOptions.PRIORITY);
-    sortOptions.splice(index, 1);
-  }
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
   if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
