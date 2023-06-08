@@ -78,7 +78,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
-                    "spm",
+                    "epm",
                     snql_distribution=lambda args, alias: Function(
                         "divide",
                         [
@@ -96,6 +96,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                 ],
                             ),
                             Function("divide", [args["interval"], 60]),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "eps",
+                    snql_distribution=lambda args, alias: Function(
+                        "divide",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("span.duration"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            args["interval"],
                         ],
                         alias,
                     ),
@@ -300,7 +325,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ]
         }
 
-        for alias, name in constants.FUNCTION_ALIASES.items():
+        for alias, name in constants.SPAN_FUNCTION_ALIASES.items():
             if name in function_converter:
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
