@@ -15,13 +15,13 @@ function IssuesTable(props: Props) {
   const {transactionName, issueCategory} = props;
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const location = useLocation();
+  const {query} = useLocation();
   const {startTime, endTime} = getDateFilters(pageFilters);
 
   const {start, end} = normalizeDateTimeParams({
-    start: startTime.toDate(),
-    end: endTime.toDate(),
-    ...location.query,
+    ...query,
+    start: query.start ?? startTime.toDate(),
+    end: query.end ?? endTime.toDate(),
   });
 
   const queryConditions: string[] = [
