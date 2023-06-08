@@ -86,7 +86,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         project: Project,
         monitor_slug: str,
         monitor: Monitor | None,
-        organization_slug: str | None = None,
     ) -> Response:
         """
         Creates a new check-in for a monitor.
