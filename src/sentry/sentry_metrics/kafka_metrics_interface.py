@@ -56,7 +56,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
     ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
 
         """
-        Used for emitting a counter metric for internal use cases only.
+        Emit a counter metric for internal use cases only.
         Ensure that the use_case_id passed in has been registered
         in the UseCaseID enum.
         """
@@ -89,7 +89,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
     ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
 
         """
-        Used for emitting a set metric for internal use cases only. Can support
+        Emit a set metric for internal use cases only. Can support
         a sequence of values. Ensure that the use_case_id passed in has
         been registered in the UseCaseID enum.
         """
@@ -122,7 +122,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
     ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
 
         """
-        Used for emitting a distribution metric for internal use cases only. Can
+        Emit a distribution metric for internal use cases only. Can
         support a sequence of values. Ensure that the use_case_id passed in
         has been registered in the UseCaseID enum.
         """
