@@ -1,13 +1,13 @@
 import logging
 import sys
-from typing import List
+from typing import List, Optional
 
 from django.apps import apps
 from django.db import connections
 from django.db.utils import ConnectionDoesNotExist
 
 from sentry.db.models.base import Model
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +78,27 @@ class SiloRouter:
                 f"Application silo mode is {active_mode} and simulated silos are not enabled."
             )
 
-    def _db_for_model(self, model: Model):
+    def _find_model(self, table: str, app_label: str) -> Optional[Model]:
+        # Use django's model inventory to find our table and what silo it is on.
+        for model in apps.get_models(app_label):
+            if model._meta.db_table == table:
+                return model
+        return None
+
+    def _silo_limit(self, model: Model) -> Optional[SiloLimit]:
         silo_limit = getattr(model._meta, "silo_limit", None)  # type: ignore
+        if silo_limit:
+            return silo_limit
+
+        # If we didn't find a silo_limit we could be working with __fake__ model
+        # from django, so we need to locate the real class by table.
+        real_model = self._find_model(model._meta.db_table, model._meta.app_label)
+        if real_model:
+            return getattr(real_model._meta, "silo_limit", None)
+        return None
+
+    def _db_for_model(self, model: Model):
+        silo_limit = self._silo_limit(model)
         if not silo_limit:
             return "default"
 
@@ -89,12 +108,11 @@ class SiloRouter:
         if table in self.__table_to_silo:
             return self.__table_to_silo[table]
 
-        # Use django's model inventory to find our table and what silo it is on.
-        for model in apps.get_models(app_label):
-            if model._meta.db_table == table:
-                # Incrementally build up our result cache so we don't
-                # have to scan through models more than once.
-                self.__table_to_silo[table] = self._db_for_model(model)
+        model = self._find_model(table, app_label)
+        if model:
+            # Incrementally build up our result cache so we don't
+            # have to scan through models more than once.
+            self.__table_to_silo[table] = self._db_for_model(model)
 
         # All actively used tables should be in this map, but we also
         # need to handle tables in migrations that no longer exist.
@@ -116,7 +134,7 @@ class SiloRouter:
 
     def allow_migrate(self, db, app_label, model=None, **hints):
         if model:
-            return self._db_for_model(model) == db
+            return self._db_for_table(model._meta.db_table, app_label) == db
 
         # We use this hint in our RunSql/RunPython migrations to help resolve databases.
         if "tables" in hints:

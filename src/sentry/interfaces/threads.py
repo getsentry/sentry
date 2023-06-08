@@ -55,8 +55,8 @@ class Threads(Interface):
                 "current": data["current"],
                 "crashed": data["crashed"],
                 "name": data["name"],
-                "state": data["state"],
-                "held_locks": data["held_locks"],
+                "state": data.get("state"),
+                "held_locks": data.get("held_locks"),
                 "stacktrace": None,
             }
             if data["stacktrace"]:
@@ -74,8 +74,8 @@ class Threads(Interface):
                 "current": data["current"],
                 "crashed": data["crashed"],
                 "name": data["name"],
-                "state": data["state"],
-                "heldLocks": data["held_locks"],
+                "state": data.get("state"),
+                "heldLocks": data.get("held_locks"),
                 "stacktrace": None,
                 "rawStacktrace": None,
             }

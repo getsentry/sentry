@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -15,15 +13,13 @@ import OnboardingPanel from 'sentry/components/onboardingPanel';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -32,8 +28,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {MonitorRow} from './components/row';
-import {Monitor, MonitorEnvironment} from './types';
+import {OverviewTable} from './components/overviewTable';
+import {OverviewTimeline} from './components/overviewTimeline';
+import {Monitor} from './types';
+import {makeMonitorListQueryKey} from './utils';
 
 function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
@@ -53,20 +51,17 @@ function NewMonitorButton(props: ButtonProps) {
   );
 }
 
-export default function Monitors({location}: RouteComponentProps<{}, {}>) {
+export default function Monitors() {
   const organization = useOrganization();
   const router = useRouter();
-  const queryClient = useQueryClient();
 
-  const monitorListQueryKey = [
-    `/organizations/${organization.slug}/monitors/`,
-    {query: {...location.query, includeNew: true}},
-  ] as const;
+  const queryKey = makeMonitorListQueryKey(organization, router.location);
+
   const {
     data: monitorList,
     getResponseHeader: monitorListHeaders,
     isLoading,
-  } = useApiQuery<Monitor[]>(monitorListQueryKey, {
+  } = useApiQuery<Monitor[]>(queryKey, {
     staleTime: 0,
   });
 
@@ -76,43 +71,15 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
+    const currentQuery = router.location.query ?? {};
     router.push({
       pathname: location.pathname,
-      query: normalizeDateTimeParams({
-        ...(location.query || {}),
-        query,
-      }),
+      query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
 
-  const renderMonitorRow = (monitor: Monitor, monitorEnv?: MonitorEnvironment) => (
-    <MonitorRow
-      key={`${monitor.slug}-${monitorEnv?.name ?? 'no-env'}`}
-      monitor={monitor}
-      monitorEnv={monitorEnv}
-      onDelete={deletedEnv => {
-        if (deletedEnv) {
-          if (!monitorList) {
-            return;
-          }
-          const deletedEnvMonitor = monitorList.find(m => m.slug === monitor.slug);
-          if (!deletedEnvMonitor) {
-            return;
-          }
-          deletedEnvMonitor.environments = deletedEnvMonitor.environments.filter(
-            e => e.name !== deletedEnv.name
-          );
-          setApiQueryData(queryClient, monitorListQueryKey, monitorList);
-        } else {
-          setApiQueryData(
-            queryClient,
-            monitorListQueryKey,
-            monitorList?.filter(m => m.slug !== monitor.slug)
-          );
-        }
-      }}
-      organization={organization}
-    />
+  const monitorsTimelineView = organization.features.includes(
+    'crons-timeline-listing-page'
   );
 
   return (
@@ -156,30 +123,17 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
             {isLoading ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (
-              <Fragment>
-                <StyledPanelTable
-                  headers={[
-                    t('Monitor Name'),
-                    t('Status'),
-                    t('Schedule'),
-                    t('Next Checkin'),
-                    t('Project'),
-                    t('Environment'),
-                    t('Actions'),
-                  ]}
-                >
-                  {monitorList
-                    ?.map(monitor =>
-                      monitor.environments.length > 0
-                        ? monitor.environments.map(monitorEnv =>
-                            renderMonitorRow(monitor, monitorEnv)
-                          )
-                        : renderMonitorRow(monitor)
-                    )
-                    .flat()}
-                </StyledPanelTable>
-                {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
-              </Fragment>
+              monitorsTimelineView ? (
+                <OverviewTimeline
+                  monitorList={monitorList}
+                  monitorListPageLinks={monitorListPageLinks}
+                />
+              ) : (
+                <OverviewTable
+                  monitorList={monitorList}
+                  monitorListPageLinks={monitorListPageLinks}
+                />
+              )
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
                 <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
@@ -188,12 +142,12 @@ export default function Monitors({location}: RouteComponentProps<{}, {}>) {
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
-                <ButtonList gap={1}>
+                <OnboardingActions gap={1}>
                   <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
                   <Button href="https://docs.sentry.io/product/crons" external>
                     {t('Read docs')}
                   </Button>
-                </ButtonList>
+                </OnboardingActions>
               </OnboardingPanel>
             )}
           </Layout.Main>
@@ -210,10 +164,6 @@ const Filters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content 1fr max-content max-content max-content max-content;
-`;
-
-const ButtonList = styled(ButtonBar)`
+const OnboardingActions = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;

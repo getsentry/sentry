@@ -61,7 +61,7 @@ export function MetricsDataSwitcherAlert(
   );
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.BROADCASTS);
   }, []);
 
   const docsLink = useMemo(() => {
