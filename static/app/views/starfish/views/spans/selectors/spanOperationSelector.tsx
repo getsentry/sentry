@@ -49,7 +49,7 @@ export function SpanOperationSelector({value = '', moduleName = ModuleName.ALL}:
           ...location,
           query: {
             ...location.query,
-            span_operation: newValue.value,
+            'span.op': newValue.value,
           },
         });
       }}
