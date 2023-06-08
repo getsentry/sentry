@@ -15,7 +15,7 @@ export type SpanTransactionMetrics = {
   'p95(span.duration)': number;
   'spm()': number;
   'sum(span.self_time)': number;
-  'time_spent_percentage()': number;
+  'time_spent_percentage(local)': number;
   transaction: string;
 };
 
@@ -82,9 +82,9 @@ function getEventView(span: {group: string}, location: Location, transactions: s
         'spm()',
         'sum(span.duration)',
         'p95(span.duration)',
-        'time_spent_percentage()',
+        'time_spent_percentage(local)',
       ],
-      orderby: '-time_spent_percentage()',
+      orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
       version: 2,
