@@ -297,6 +297,36 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_percentile_percent_change,
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "last_seen",
+                    snql_distribution=lambda args, alias: Function(
+                        "maxIf",
+                        [
+                            self.builder.column("timestamp"),
+                            Function(
+                                "equals",
+                                [Column("metric_id"), self.resolve_metric("span.duration")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="date",
+                ),
+                fields.MetricsFunction(
+                    "first_seen",
+                    snql_distribution=lambda args, alias: Function(
+                        "minIf",
+                        [
+                            self.builder.column("timestamp"),
+                            Function(
+                                "equals",
+                                [Column("metric_id"), self.resolve_metric("span.duration")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="date",
+                ),
             ]
         }
 
