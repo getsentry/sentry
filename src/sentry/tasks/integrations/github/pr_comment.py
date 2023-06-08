@@ -161,15 +161,18 @@ def comment_workflow(pr_id):
     # client raises ApiError if the request is not successful
     if pr_comment is None:
         resp = client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+
+        current_time = timezone.now()
         PullRequestComment.objects.create(
             external_id=resp.body["id"],
             pull_request_id=pr_id,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
+            created_at=current_time,
+            updated_at=current_time,
             group_ids=top_5_issue_ids,
         )
     else:
         client.update_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+
         pr_comment.updated_at = timezone.now()
         pr_comment.group_ids = top_5_issue_ids
         pr_comment.save()
