@@ -98,7 +98,7 @@ class PullRequestComment(Model):
     pull_request = FlexibleForeignKey("sentry.PullRequest", unique=True)
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
-    issues = ArrayField()
+    group_ids = ArrayField()
 
     class Meta:
         app_label = "sentry"
