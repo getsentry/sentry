@@ -162,8 +162,8 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
-@log_options()  # type: ignore[misc]  # needs this decorator to be typed
-@configuration  # type: ignore[misc]  # needs this decorator to be typed
+@log_options()  # needs this decorator to be typed
+@configuration  # needs this decorator to be typed
 def devserver(
     reload: bool,
     watchers: bool,

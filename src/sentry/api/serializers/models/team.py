@@ -179,7 +179,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
 
 
 @register(Team)
-class TeamSerializer(Serializer):  # type: ignore
+class TeamSerializer(Serializer):
     expand: Sequence[str] | None
     collapse: Sequence[str] | None
     access: Access | None
@@ -377,7 +377,7 @@ class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequi
     members: List[SCIMTeamMemberListItem]
 
 
-class TeamSCIMSerializer(Serializer):  # type: ignore
+class TeamSCIMSerializer(Serializer):
     def __init__(
         self,
         expand: Optional[Sequence[str]] = None,

@@ -98,11 +98,7 @@ export function SuspectFunctionsTable({
           onChange={({value}) => setFunctionType(value)}
         />
         <StyledPagination
-          pageLinks={
-            functionsQuery.isFetched
-              ? functionsQuery.data?.[2]?.getResponseHeader('Link') ?? null
-              : null
-          }
+          pageLinks={functionsQuery.getResponseHeader?.('Link')}
           onCursor={handleFunctionsCursor}
           size="xs"
         />

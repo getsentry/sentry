@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.db.models import BaseManager, Model
 
 
-class ParanoidQuerySet(QuerySet):  # type: ignore
+class ParanoidQuerySet(QuerySet):
     """
     Prevents objects from being hard-deleted. Instead, sets the
     ``date_deleted``, effectively soft-deleting the object.
@@ -17,7 +17,7 @@ class ParanoidQuerySet(QuerySet):  # type: ignore
         self.update(date_deleted=timezone.now())
 
 
-class ParanoidManager(BaseManager):  # type: ignore
+class ParanoidManager(BaseManager):
     """
     Only exposes objects that have NOT been soft-deleted.
     """
@@ -29,7 +29,7 @@ class ParanoidManager(BaseManager):  # type: ignore
         )
 
 
-class ParanoidModel(Model):  # type: ignore
+class ParanoidModel(Model):
     class Meta:
         abstract = True
 

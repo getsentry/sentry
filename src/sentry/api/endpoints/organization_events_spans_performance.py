@@ -81,7 +81,7 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
 }
 
 
-class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
     ) -> Dict[str, Any]:
@@ -111,7 +111,7 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):  # 
         return direction, orderby
 
 
-class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
+class SpansPerformanceSerializer(serializers.Serializer):
     field = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
     spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=4)
@@ -188,7 +188,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
             )
 
 
-class SpanSerializer(serializers.Serializer):  # type: ignore
+class SpanSerializer(serializers.Serializer):
     query = serializers.CharField(required=False, allow_null=True)
     span = serializers.CharField(required=True, allow_null=False)
     min_exclusive_time = serializers.FloatField(required=False)
@@ -573,7 +573,7 @@ def query_suspect_span_groups(
     ]
 
 
-class SpanQueryBuilder(QueryBuilder):  # type: ignore
+class SpanQueryBuilder(QueryBuilder):
     def resolve_span_function(
         self,
         function: str,

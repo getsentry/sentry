@@ -56,7 +56,7 @@ export function ActionSelector({value = '', moduleName = ModuleName.ALL}: Props)
           ...location,
           query: {
             ...location.query,
-            action: newValue.value,
+            'span.action': newValue.value,
           },
         });
       }}
