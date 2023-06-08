@@ -144,7 +144,8 @@ def run_basic_consumer(
             cluster_name,
         ),
         group_id=group_id,
-        auto_offset_reset="latest",
+        auto_offset_reset=auto_offset_reset,
+        strict_offset_reset=strict_offset_reset,
     )
 
     consumer = KafkaConsumer(consumer_config)
