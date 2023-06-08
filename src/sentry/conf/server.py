@@ -1,6 +1,8 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
+from __future__ import annotations
+
 import os
 import os.path
 import platform
@@ -9,7 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union, overload
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -18,8 +20,10 @@ from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
+T = TypeVar("T")
 
-def gettext_noop(s):
+
+def gettext_noop(s: str) -> str:
     return s
 
 
@@ -27,30 +31,20 @@ socket.setdefaulttimeout(5)
 
 
 @overload
-def env(key: str, default: int, type: Optional[Callable[[Any], int]] = None) -> int:
+def env(key: str) -> str:
     ...
 
 
 @overload
-def env(key: str, default: float, type: Optional[Callable[[Any], float]] = None) -> float:
-    ...
-
-
-@overload
-def env(key: str, default: bool, type: Optional[Callable[[Any], bool]] = None) -> bool:
-    ...
-
-
-@overload
-def env(key: str, default: str, type: Optional[Callable[[Any], str]] = None) -> str:
+def env(key: str, default: T, type: Callable[[Any], T] | None = None) -> T:
     ...
 
 
 def env(
     key: str,
-    default: Union[str, int, float, bool, None] = "",
-    type: Optional[Callable[[Any], Any]] = None,
-) -> Any:
+    default: str | T = "",
+    type: Optional[Callable[[Any], T]] = None,
+) -> T:
     """
     Extract an environment variable for use in configuration
 
@@ -63,19 +57,19 @@ def env(
     # First check an internal cache, so we can `pop` multiple times
     # without actually losing the value.
     try:
-        rv = env._cache[key]
+        rv = _env_cache[key]
     except KeyError:
         if "SENTRY_RUNNING_UWSGI" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
-            fn = os.environ.pop
+            fn: Callable[[str], str] = os.environ.pop
         else:
             fn = os.environ.__getitem__
 
         try:
             rv = fn(key)
-            env._cache[key] = rv
+            _env_cache[key] = rv
         except KeyError:
             rv = default
 
@@ -85,7 +79,7 @@ def env(
     return type(rv)
 
 
-env._cache = {}
+_env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
@@ -210,7 +204,7 @@ TIME_ZONE = "UTC"
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = "en-us"
 
-LANGUAGES = (
+LANGUAGES: tuple[tuple[str, str], ...] = (
     ("af", gettext_noop("Afrikaans")),
     ("ar", gettext_noop("Arabic")),
     ("az", gettext_noop("Azerbaijani")),
@@ -309,7 +303,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-MIDDLEWARE = (
+MIDDLEWARE: tuple[str, ...] = (
     # Uncomment to enable Content Security Policy on this Sentry installation (experimental)
     # "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
@@ -610,7 +604,7 @@ AUTH_PROVIDER_LABELS = {
 import random
 
 
-def SOCIAL_AUTH_DEFAULT_USERNAME():
+def SOCIAL_AUTH_DEFAULT_USERNAME() -> str:
     return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
 
 
@@ -621,7 +615,7 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 from kombu import Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
-BROKER_TRANSPORT_OPTIONS = {}
+BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -1684,7 +1678,7 @@ SENTRY_MONITOR_API_ROOT = None
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
 SENTRY_WEB_PORT = 9000
-SENTRY_WEB_OPTIONS = {}
+SENTRY_WEB_OPTIONS: dict[str, Any] = {}
 
 # SMTP Service
 SENTRY_SMTP_HOST = "127.0.0.1"
@@ -1756,7 +1750,7 @@ SENTRY_ALLOW_ORIGIN = None
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
-SENTRY_BUFFER_OPTIONS = {}
+SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
@@ -1766,7 +1760,7 @@ SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
-SENTRY_ATTACHMENTS_OPTIONS = {}
+SENTRY_ATTACHMENTS_OPTIONS: dict[str, str] = {}
 
 # Replays blob cache backend.
 #
@@ -1788,7 +1782,7 @@ SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
-SENTRY_EVENT_PROCESSING_STORE_OPTIONS = {}
+SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
@@ -1801,26 +1795,26 @@ CACHE_VERSION = 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"
-SENTRY_DIGESTS_OPTIONS = {}
+SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 
 # Quota backend
 SENTRY_QUOTAS = "sentry.quotas.Quota"
-SENTRY_QUOTA_OPTIONS = {}
+SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
-SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
+SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
     "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
 )
-SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS: dict[str, str] = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_ENABLED = False
-SENTRY_RATELIMITER_OPTIONS = {}
+SENTRY_RATELIMITER_OPTIONS: dict[str, Any] = {}
 SENTRY_RATELIMITER_DEFAULT = 999
 SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 999
 ENFORCE_CONCURRENT_RATE_LIMITS = False
@@ -1839,17 +1833,17 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
-SENTRY_NODESTORE_OPTIONS = {}
+SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
-SENTRY_TAGSTORE_OPTIONS = {}
+SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
 )
-SENTRY_SEARCH_OPTIONS = {}
+SENTRY_SEARCH_OPTIONS: dict[str, Any] = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://127.0.0.1:9200/'],
 #     'timeout': 5,
@@ -1857,13 +1851,13 @@ SENTRY_SEARCH_OPTIONS = {}
 
 # Time-series storage backend
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
-SENTRY_TSDB_OPTIONS = {}
+SENTRY_TSDB_OPTIONS: dict[str, Any] = {}
 
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
-SENTRY_NEWSLETTER_OPTIONS = {}
+SENTRY_NEWSLETTER_OPTIONS: dict[str, Any] = {}
 
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
-SENTRY_EVENTSTREAM_OPTIONS = {}
+SENTRY_EVENTSTREAM_OPTIONS: dict[str, Any] = {}
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -1875,24 +1869,24 @@ SENTRY_TSDB_ROLLUPS = (
 
 # Internal metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
-SENTRY_METRICS_OPTIONS = {}
+SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
-SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
 SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
-SENTRY_METRICS_INDEXER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
 
-SENTRY_METRICS_INDEXER_SPANNER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
-SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
     SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
 )
@@ -1903,23 +1897,23 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Cardinality limits during metric bucket ingestion.
 # Which cluster to use. Example: {"cluster": "default"}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
-SENTRY_RELEASE_HEALTH_OPTIONS = {}
+SENTRY_RELEASE_HEALTH_OPTIONS: dict[str, Any] = {}
 
 # Release Monitor
 SENTRY_RELEASE_MONITOR = (
     "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
 )
-SENTRY_RELEASE_MONITOR_OPTIONS = {}
+SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
-SENTRY_CHART_RENDERER_OPTIONS = {}
+SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -2199,8 +2193,8 @@ SENTRY_TEAM_ROLES = (
 )
 
 # See sentry/options/__init__.py for more information
-SENTRY_OPTIONS = {}
-SENTRY_DEFAULT_OPTIONS = {}
+SENTRY_OPTIONS: dict[str, Any] = {}
+SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
@@ -2294,7 +2288,7 @@ SENTRY_USE_CUSTOMER_DOMAINS = False
 # }
 
 
-def build_cdc_postgres_init_db_volume(settings):
+def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]]:
     return (
         {
             os.path.join(settings.CDC_CONFIG_DIR, "init_hba.sh"): {
@@ -2311,7 +2305,7 @@ def build_cdc_postgres_init_db_volume(settings):
 # 12.3.1: arm64
 APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
-SENTRY_DEVSERVICES = {
+SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
@@ -3070,7 +3064,7 @@ SYMBOLICATOR_MAX_RETRY_AFTER = 2
 # `symbolicator.options`.
 # The settings here are intentionally empty and will fall back to
 # `symbolicator.options` for backwards compatibility.
-SYMBOLICATOR_POOL_URLS = {
+SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "js": "...",
     # "default": "...",
     # "lpq": "...",
@@ -3218,10 +3212,10 @@ SENTRY_EXTRA_WORKERS = None
 SAMPLED_DEFAULT_RATE = 1.0
 
 # A set of extra URLs to sample
-ADDITIONAL_SAMPLED_URLS = {}
+ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
 # A set of extra tasks to sample
-ADDITIONAL_SAMPLED_TASKS = {}
+ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
@@ -3230,16 +3224,10 @@ DEMO_MODE = False
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL = None
 
-# parameters that determine how demo events are generated
-DEMO_DATA_GEN_PARAMS = {}
-
-# parameters for an org when quickly generating them synchronously
-DEMO_DATA_QUICK_GEN_PARAMS = {}
-
 # adds an extra JS to HTML template
-INJECTED_SCRIPT_ASSETS = []
+INJECTED_SCRIPT_ASSETS: list[str] = []
 
-PG_VERSION = os.getenv("PG_VERSION") or "14"
+PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
@@ -3265,7 +3253,7 @@ SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
-SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
+SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}
 
 # This is useful for testing SSO expiry flows
 SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
@@ -3320,9 +3308,9 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
-DISALLOWED_CUSTOMER_DOMAINS = []
+DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 
-SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
+SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
@@ -3412,8 +3400,8 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 
 # Temporary allowlist for specially configured organizations to use the direct-storage
 # driver.
-SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
-SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST = []
+SENTRY_REPLAYS_STORAGE_ALLOWLIST: list[int] = []
+SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST: list[int] = []
 
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",

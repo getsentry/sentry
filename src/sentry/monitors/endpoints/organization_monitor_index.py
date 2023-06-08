@@ -64,7 +64,7 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationMonitorsEndpoint(OrganizationEndpoint):
+class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     public = {"GET", "POST"}
     permission_classes = (OrganizationMonitorPermission,)
 
