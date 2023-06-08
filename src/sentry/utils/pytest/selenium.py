@@ -5,6 +5,7 @@ import os
 import sys
 from contextlib import contextmanager
 from datetime import datetime
+from typing import MutableSequence
 from urllib.parse import urlparse
 
 import pytest
@@ -18,7 +19,7 @@ from selenium.common.exceptions import (
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 
 from sentry.silo import SiloMode
 from sentry.utils.retries import TimedRetryPolicy
@@ -449,7 +450,7 @@ def start_chrome(**chrome_args):
     try:
         return webdriver.Chrome(**chrome_args)
     except SessionNotCreatedException as e:
-        if "This version of ChromeDriver only supports Chrome version" in e.msg:
+        if "This version of ChromeDriver only supports Chrome version" in (e.msg or ""):
             raise Exception(
                 """ChromeDriver version does not match Chrome version, update ChromeDriver (e.g. if you use `homebrew`):
 
@@ -495,7 +496,7 @@ def browser(request, live_server):
         phantomjs_path = request.config.getoption("phantomjs_path")
         if not phantomjs_path:
             phantomjs_path = os.path.join("node_modules", "phantomjs-prebuilt", "bin", "phantomjs")
-        driver = webdriver.PhantomJS(executable_path=phantomjs_path)
+        driver = webdriver.PhantomJS(executable_path=phantomjs_path)  # type: ignore[attr-defined]
     else:
         raise pytest.UsageError("--driver must be specified")
 
@@ -538,7 +539,7 @@ def browser(request, live_server):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    summary = []
+    summary: MutableSequence[str] = []
     extra = getattr(report, "extra", [])
     driver = getattr(item, "_driver", None)
     if driver is not None:
