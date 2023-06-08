@@ -54,6 +54,7 @@ const config: TransformOptions = {
       ],
     },
     test: {
+      sourceMaps: false,
       plugins: [
         // Required, see https://github.com/facebook/jest/issues/9430
         'dynamic-import-node',
