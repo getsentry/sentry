@@ -7,7 +7,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Rule, RuleStatus
 
 
-class RuleEndpoint(ProjectEndpoint):  # type: ignore
+class RuleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(

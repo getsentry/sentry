@@ -5,7 +5,7 @@ from django.conf import settings
 from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError, ReadTimeoutError
 
-from sentry.profiles.utils import RetrySkipTimeout  # type: ignore
+from sentry.profiles.utils import RetrySkipTimeout
 
 DUMMY_POOL = ConnectionPool("dummy")
 

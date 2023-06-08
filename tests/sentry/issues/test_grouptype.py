@@ -20,7 +20,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-class BaseGroupTypeTest(TestCase):  # type: ignore
+class BaseGroupTypeTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())

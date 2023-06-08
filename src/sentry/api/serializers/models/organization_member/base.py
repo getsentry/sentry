@@ -18,7 +18,7 @@ from .utils import get_organization_id
 
 
 @register(OrganizationMember)
-class OrganizationMemberSerializer(Serializer):  # type: ignore
+class OrganizationMemberSerializer(Serializer):
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
@@ -29,7 +29,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
         sorted_org_roles = sorted(
             org_roles,
-            key=lambda r: r[1].priority,  # type: ignore[no-any-return]
+            key=lambda r: r[1].priority,
             reverse=True,
         )
 

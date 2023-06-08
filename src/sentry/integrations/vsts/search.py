@@ -8,7 +8,7 @@ from sentry.services.hybrid_cloud import coerce_id_from
 
 
 @control_silo_endpoint
-class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
+class VstsSearchEndpoint(IntegrationEndpoint):
     def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(

@@ -69,7 +69,7 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()

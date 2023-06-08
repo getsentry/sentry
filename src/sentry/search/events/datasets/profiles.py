@@ -106,7 +106,7 @@ COLUMNS = [
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
-class ProfileColumnArg(ColumnArg):  # type: ignore
+class ProfileColumnArg(ColumnArg):
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -119,7 +119,7 @@ class ProfileColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class ProfileNumericColumn(NumericColumn):  # type: ignore
+class ProfileNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 

@@ -361,7 +361,7 @@ def submit_symbolicate(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -395,7 +395,7 @@ def symbolicate_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -429,7 +429,7 @@ def symbolicate_js_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event_low_priority",
     queue="events.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -466,7 +466,7 @@ def symbolicate_event_low_priority(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.symbolicate_js_event_low_priority",
     queue="events.symbolicate_js_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -503,7 +503,7 @@ def symbolicate_js_event_low_priority(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -530,7 +530,7 @@ def symbolicate_event_from_reprocessing(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
     queue="events.reprocessing.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,

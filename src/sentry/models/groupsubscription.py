@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.notifications.utils.participants import ParticipantMap
 
 
-class GroupSubscriptionManager(BaseManager):  # type: ignore
+class GroupSubscriptionManager(BaseManager):
     def subscribe(
         self,
         group: "Group",
@@ -166,7 +166,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
 
 
 @region_silo_only_model
-class GroupSubscription(Model):  # type: ignore
+class GroupSubscription(Model):
     """
     Identifies a subscription relationship between a user and an issue.
     """

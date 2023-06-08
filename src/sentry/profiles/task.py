@@ -9,7 +9,7 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 from pytz import UTC
-from symbolic import ProguardMapper  # type: ignore
+from symbolic import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -32,7 +32,7 @@ class VroomTimeout(Exception):
     pass
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.profiles.task.process_profile",
     queue="profiles.process",
     autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout

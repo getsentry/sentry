@@ -12,7 +12,7 @@ from sentry.utils.iterators import chunked
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.tasks.update_user_reports", queue="update")  # type: ignore
+@instrumented_task(name="sentry.tasks.update_user_reports", queue="update")
 def update_user_reports(**kwargs: Any) -> None:
     now = timezone.now()
     user_reports = UserReport.objects.filter(

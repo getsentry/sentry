@@ -32,7 +32,9 @@ logger = logging.getLogger(__name__)
 # typing annotations.  So we do all the work outside of the decorated task function to work
 # around this.
 # Since all these args must be pickled we keep them to built-in types as well.
-@instrumented_task(name="sentry.tasks.app_store_connect.dsym_download", queue="appstoreconnect", ignore_result=True)  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.app_store_connect.dsym_download", queue="appstoreconnect", ignore_result=True
+)
 def dsym_download(project_id: int, config_id: str) -> None:
     inner_dsym_download(project_id=project_id, config_id=config_id)
 
@@ -176,7 +178,7 @@ def process_builds(
 
 # Untyped decorator would stop type-checking of entire function, split into an inner
 # function instead which can be type checked.
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.app_store_connect.refresh_all_builds",
     queue="appstoreconnect",
     ignore_result=True,

@@ -92,7 +92,7 @@ class SentryAppInstallationTokenCreator:
 
     @cached_property
     def organization_id(self) -> int:
-        return self.sentry_app_installation.organization_id  # type: ignore
+        return self.sentry_app_installation.organization_id
 
 
 @dataclasses.dataclass

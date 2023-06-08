@@ -21,7 +21,7 @@ from sentry.models.grouphistory import (
 
 
 @region_silo_endpoint
-class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):
     def get(self, request: Request, team: Team) -> Response:
         """
         Returns a dict of team projects, and a time-series dict of issue stat breakdowns for each.

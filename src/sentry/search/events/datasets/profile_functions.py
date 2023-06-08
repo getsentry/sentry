@@ -85,7 +85,7 @@ COLUMNS = [
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
-class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
+class ProfileFunctionColumnArg(ColumnArg):
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -98,7 +98,7 @@ class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class ProfileFunctionNumericColumn(NumericColumn):  # type: ignore
+class ProfileFunctionNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 

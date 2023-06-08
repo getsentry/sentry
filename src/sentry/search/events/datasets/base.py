@@ -50,7 +50,7 @@ class DatasetConfig(abc.ABC):
             argument = function_arguments[index]
             value = parameter_values[argument.name]
             if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore
-                return field_type  # type: ignore
+                return field_type
             else:
                 return cast(str, argument.get_type(value))
 

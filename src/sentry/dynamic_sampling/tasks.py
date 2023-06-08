@@ -87,7 +87,7 @@ logger = logging.getLogger(__name__)
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def recalibrate_orgs() -> None:
     query_interval = timedelta(minutes=5)
     metrics.incr("sentry.tasks.dynamic_sampling.recalibrate_orgs.start", sample_rate=1.0)
@@ -157,7 +157,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def prioritise_transactions() -> None:
     """
     A task that retrieves all relative transaction counts from all projects in all orgs
@@ -198,7 +198,7 @@ def prioritise_transactions() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,  # 25 mins
     time_limit=2 * 60 + 5,
-)  # type: ignore
+)
 def process_transaction_biases(project_transactions: ProjectTransactions) -> None:
     """
     A task that given a project relative transaction counts calculates rebalancing
@@ -285,7 +285,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def prioritise_projects() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
@@ -305,7 +305,7 @@ def prioritise_projects() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,  # 25 mins
     time_limit=2 * 60 + 5,
-)  # type: ignore
+)
 def process_projects_sample_rates(
     org_id: OrganizationId,
     projects_with_tx_count_and_rates: Sequence[
@@ -448,7 +448,7 @@ def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def sliding_window() -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.
@@ -548,7 +548,7 @@ def adjust_base_sample_rate_per_project(
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def sliding_window_org() -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.

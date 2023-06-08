@@ -1,7 +1,7 @@
 from typing import Any, Generator, Mapping, Sequence, Union
 
 from redis import Redis
-from rediscluster import RedisCluster  # type: ignore
+from rediscluster import RedisCluster
 
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)

@@ -31,7 +31,7 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     with metrics.timer(
@@ -46,7 +46,7 @@ def monitor_release_adoption(**kwargs) -> None:
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 

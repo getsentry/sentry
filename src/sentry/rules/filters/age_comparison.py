@@ -40,7 +40,7 @@ def get_timerange_choices() -> Sequence[Tuple[str, str]]:
     ]
 
 
-class AgeComparisonForm(forms.Form):  # type: ignore
+class AgeComparisonForm(forms.Form):
     comparison_type = forms.ChoiceField(choices=age_comparison_choices)
     value = forms.IntegerField()
     time = forms.ChoiceField(choices=get_timerange_choices)

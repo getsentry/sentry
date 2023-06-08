@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
-from PIL import Image  # type: ignore
+from PIL import Image
 
 from sentry.http import safe_urlopen
 from sentry.utils.hashlib import md5_text

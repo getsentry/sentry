@@ -5,7 +5,7 @@ from django.db import router
 from django.db.models import QuerySet
 
 
-class BaseQuerySet(QuerySet, abc.ABC):  # type: ignore
+class BaseQuerySet(QuerySet, abc.ABC):
     # XXX(dcramer): we prefer values_list, but we can't disable values as Django uses it
     # internally
     # def values(self, *args, **kwargs):

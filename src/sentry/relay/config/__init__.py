@@ -501,7 +501,7 @@ class _ConfigBase:
         return None  # property not set or path goes beyond the Config defined valid path
 
     def __get_data(self) -> Mapping[str, Any]:
-        return object.__getattribute__(self, "data")  # type: ignore
+        return object.__getattribute__(self, "data")
 
     def __str__(self) -> str:
         try:

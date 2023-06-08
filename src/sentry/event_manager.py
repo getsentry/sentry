@@ -231,7 +231,7 @@ def get_max_crashreports(
     model: Union[Project, Organization], allow_none: bool = False
 ) -> Optional[int]:
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value, allow_none=allow_none)  # type: ignore
+    return convert_crashreport_count(value, allow_none=allow_none)
 
 
 def crashreports_exceeded(current_count: int, max_count: int) -> bool:
@@ -249,13 +249,13 @@ def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashrep
 
     cached_reports = cache.get(cache_key, None)
     if cached_reports is not None and cached_reports >= max_crashreports:
-        return cached_reports  # type: ignore
+        return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
     # We don't need the actual number, but just whether it's more or equal to
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
-    return query[:max_crashreports].count()  # type: ignore
+    return query[:max_crashreports].count()
 
 
 class HashDiscarded(Exception):
@@ -267,8 +267,8 @@ class HashDiscarded(Exception):
         self.tombstone_id = tombstone_id
 
 
-class ScoreClause(Func):  # type: ignore
-    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):  # type: ignore
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
         self.group = group
         self.last_seen = last_seen
         self.times_seen = times_seen
@@ -277,12 +277,12 @@ class ScoreClause(Func):  # type: ignore
             self.times_seen = self.times_seen.rhs.value
         super().__init__(*args, **kwargs)
 
-    def __int__(self):  # type: ignore
+    def __int__(self):
         # Calculate the score manually when coercing to an int.
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(self, compiler, connection, function=None, template=None):  # type: ignore
+    def as_sql(self, compiler, connection, function=None, template=None):
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
@@ -960,7 +960,7 @@ def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
     if environment == "":
         environment = None
 
-    return environment  # type:ignore
+    return environment
 
 
 @metrics.wraps("save_event.get_event_user_many")

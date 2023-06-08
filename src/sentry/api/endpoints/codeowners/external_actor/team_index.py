@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
+class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     def post(self, request: Request, team: Team) -> Response:
         """
         Create an External Team

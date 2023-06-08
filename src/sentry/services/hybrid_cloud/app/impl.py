@@ -121,7 +121,7 @@ class DatabaseBackedAppService(AppService):
         type: str,
         group_by: str = "sentry_app_id",
     ) -> Mapping[str, Any]:
-        return SentryAppInstallation.objects.get_related_sentry_app_components(  # type: ignore
+        return SentryAppInstallation.objects.get_related_sentry_app_components(
             organization_ids=organization_ids,
             sentry_app_ids=sentry_app_ids,
             type=type,

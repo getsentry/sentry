@@ -261,7 +261,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             }
 
 
-class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
+class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata

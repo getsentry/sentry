@@ -16,7 +16,7 @@ from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 
-class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):  # type: ignore
+class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
     def create_archived_until_escalating_groups(self, num_groups: int) -> List[Group]:
         group_list = []
         project_1 = Project.objects.get(id=1)

@@ -27,7 +27,7 @@ class RuleGroupHistoryResponse(TypedDict):
     eventId: str | None
 
 
-class RuleGroupHistorySerializer(Serializer):  # type: ignore
+class RuleGroupHistorySerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[RuleGroupHistory], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:

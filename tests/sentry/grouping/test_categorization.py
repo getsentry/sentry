@@ -205,7 +205,7 @@ def track_enhancers_coverage():
         if input.filename in delete_filenames:
             continue
 
-        data = dict(input.data)  # type: ignore
+        data = dict(input.data)
 
         modified = False
         modified |= _strip_sensitive_keys(data, ["exception", "platform", "event_id"])

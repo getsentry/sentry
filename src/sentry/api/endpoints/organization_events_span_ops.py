@@ -17,7 +17,7 @@ class SpanOp(TypedDict):
 
 
 @region_silo_endpoint
-class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type: ignore
+class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:

@@ -948,7 +948,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
         groups = raw_result["groups"]
         ret_val: Dict[ProjectRelease, List[List[int]]] = defaultdict(
-            lambda: _make_stats(start, granularity, buckets)  # type: ignore
+            lambda: _make_stats(start, granularity, buckets)
         )
 
         timestamps = [int(dt.timestamp()) for dt in raw_result["intervals"]]
@@ -1587,7 +1587,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         groups = raw_result["groups"]
         if len(groups) > 0:
-            return get_path(groups[0], "totals", "value", default=0)  # type: ignore
+            return get_path(groups[0], "totals", "value", default=0)
         else:
             return 0
 

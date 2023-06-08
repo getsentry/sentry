@@ -234,7 +234,7 @@ class Owner(namedtuple("Owner", "type identifier")):
         return cls(data["type"], data["identifier"])
 
 
-class OwnershipVisitor(NodeVisitor):  # type: ignore
+class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
     def visit_ownership(self, node: Node, children: Sequence[Optional[Rule]]) -> Sequence[Rule]:

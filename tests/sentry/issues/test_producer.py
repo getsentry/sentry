@@ -8,7 +8,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):  # type: ignore
+class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     def test_event_id_mismatch(self) -> None:
         with self.assertRaisesMessage(
             ValueError, "Event id on occurrence and event_data must be the same"

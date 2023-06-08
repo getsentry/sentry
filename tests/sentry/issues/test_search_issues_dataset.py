@@ -8,7 +8,7 @@ from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
-class DatasetTest(SnubaTestCase, TestCase):  # type: ignore[misc]
+class DatasetTest(SnubaTestCase, TestCase):
     def test_query_dataset_returns_empty(self) -> None:
         # make a random query just to verify the table exists
         now = datetime.now()

@@ -82,7 +82,7 @@ class TestAppStoreUpdateCredentialsSerializer:
 
 
 class TestAppStoreConnectRefreshEndpoint:
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def config_id(self, default_project):
         """A valid App Store Connect symbol server config ID."""
         cfg_id = "abc123"

@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.rpc import (
 
 
 @all_silo_endpoint
-class RpcServiceEndpoint(Endpoint):  # type: ignore
+class RpcServiceEndpoint(Endpoint):
     permission_classes = ()
 
     def _is_authorized(self, request: Request) -> bool:

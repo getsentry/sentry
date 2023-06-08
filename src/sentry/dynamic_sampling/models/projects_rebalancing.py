@@ -39,4 +39,4 @@ class ProjectsRebalancingModel(Model[ProjectsRebalancingInput, List[RebalancedIt
             )
         )
 
-        return result  # type:ignore
+        return result

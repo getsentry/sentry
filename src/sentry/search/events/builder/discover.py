@@ -978,7 +978,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         return flattened
 
-    @cached_property  # type: ignore
+    @cached_property
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
         if self.organization_id is None or not self.has_metrics:
@@ -1443,7 +1443,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         ie. any_user_display -> any(user_display)
         """
-        return self.function_alias_map[function.alias].field  # type: ignore
+        return self.function_alias_map[function.alias].field
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()

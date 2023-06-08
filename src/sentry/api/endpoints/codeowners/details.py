@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore
+class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     def convert_args(
         self,
         request: Request,

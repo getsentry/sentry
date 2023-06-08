@@ -45,7 +45,7 @@ class OrganizationIntegration(DefaultFieldsModel):
                 category=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
                 region_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])  # type: ignore
+            for region_name in find_regions_for_orgs([self.organization_id])
         ]
 
     def delete(self, *args, **kwds):

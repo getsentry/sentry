@@ -29,8 +29,8 @@ TRANSITION_AFTER_DAYS = 3
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
-)  # type: ignore
-@retry(on=(OperationalError,))  # type: ignore
+)
+@retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_new")
 def schedule_auto_transition_new() -> None:
     now = datetime.now(tz=pytz.UTC)
@@ -56,8 +56,8 @@ def schedule_auto_transition_new() -> None:
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
-)  # type: ignore
-@retry(on=(OperationalError,))  # type: ignore
+)
+@retry(on=(OperationalError,))
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
     first_seen_lte: int,
@@ -101,8 +101,8 @@ def auto_transition_issues_new_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
-)  # type: ignore
-@retry(on=(OperationalError,))  # type: ignore
+)
+@retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 def schedule_auto_transition_regressed() -> None:
     now = datetime.now(tz=pytz.UTC)
@@ -128,8 +128,8 @@ def schedule_auto_transition_regressed() -> None:
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
-)  # type: ignore
-@retry(on=(OperationalError,))  # type: ignore
+)
+@retry(on=(OperationalError,))
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
     date_added_lte: int,
