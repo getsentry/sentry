@@ -32,12 +32,13 @@ def get_installation_metadata(event, host):
     if not host:
         return
 
+    external_id = "{}:{}".format(host, event["installation"]["id"])
     integration = integration_service.get_integration(
-        external_id="{}:{}".format(host, event["installation"]["id"]),
+        external_id=external_id,
         provider="github_enterprise",
     )
     if integration is None:
-        logger.exception("Integration does not exist.")
+        logger.info("Integration does not exist.", extra={"external_id": external_id})
         return
     return integration.metadata["installation"]
 

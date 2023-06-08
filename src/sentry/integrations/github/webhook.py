@@ -76,7 +76,6 @@ class Webhook:
                     "external_id": str(external_id),
                 },
             )
-            logger.exception("Integration does not exist.")
             return
 
         if "repository" in event:
