@@ -84,6 +84,16 @@ class IntegrationExtensionConfigurationView(BaseView):
                             "sentry/pipeline-error.html",
                             {"error": "Installation link expired"},
                         )
+                else:
+                    logger.info(
+                        "integration-extension-config.no-permission",
+                        extra=log_params,
+                    )
+            else:
+                logger.info(
+                    "integration-extension-config.no-features",
+                    extra=log_params,
+                )
 
         logger.info("integration-extension-config.redirect", extra=log_params)
         # if anything before fails, we give up and send them to the link page where we can display errors
@@ -109,8 +119,22 @@ class IntegrationExtensionConfigurationView(BaseView):
         provider = integrations.get(self.provider)
         integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
+            log_params = {
+                "flag_name": flag_name,
+                "organization_id": org.id,
+                "provider": self.provider,
+            }
+            logger.info(
+                "integration-extension-config.check-feature",
+                extra=log_params,
+            )
             try:
-                if features.has(flag_name, org, actor=user):
+                result = features.has(flag_name, org, actor=user)
+                logger.info(
+                    "integration-extension-config.feature-result",
+                    extra={"result": result, **log_params},
+                )
+                if result:
                     return True
             # we have some integration features that are not actually
             # registered. Those features are unrestricted.
