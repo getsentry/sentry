@@ -49,6 +49,6 @@ def test_produce() -> None:
     value = json.dumps(set_metric).encode("utf-8")
 
     produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
-    assert produced_message.payload is not None
+    assert produced_message is not None
     assert produced_message.payload.value == value
     assert broker_storage.consume(Partition(my_topic, 0), 1) is None
