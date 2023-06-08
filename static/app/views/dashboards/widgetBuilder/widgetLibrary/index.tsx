@@ -31,19 +31,12 @@ export function WidgetLibrary({
   organization,
 }: Props) {
   const theme = useTheme();
-  let defaultWidgets = getTopNConvertedDefaultWidgets();
+  let defaultWidgets = getTopNConvertedDefaultWidgets(organization);
   if (!organization.features.includes('dashboards-rh-widget')) {
     defaultWidgets = defaultWidgets.filter(
       widget => !(widget.widgetType === WidgetType.RELEASE)
     );
   }
-  if (organization.features.includes('issue-list-better-priority-sort')) {
-    for (const [key, value] of Object.entries(defaultWidgets)) {
-      if (value.id === 'issue-for-review') {
-        defaultWidgets[key].queries.orderby = 'betterPriority';
-      }
-    }
-  } // this does nothing
 
   function getLibrarySelectionHandler(
     widget: OverwriteWidgetModalProps['widget'],
