@@ -118,9 +118,10 @@ class GroupAssigneeManager(BaseManager):
             if not ownership:
                 ownership = ProjectOwnership(project_id=group.project.id)
             autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-            GroupOwner.invalidate_autoassigned_owner_cache(
-                group.project.id, autoassignment_types, group.id
-            )
+            if autoassignment_types:
+                GroupOwner.invalidate_autoassigned_owner_cache(
+                    group.project.id, autoassignment_types, group.id
+                )
             GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
             GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
