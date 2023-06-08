@@ -302,7 +302,12 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    return DEFAULT_ISSUE_STREAM_SORT;
+    const hasBetterPrioritySort = this.props.organization.features.includes(
+      'issue-list-better-priority-sort'
+    );
+    return hasBetterPrioritySort
+      ? IssueSortOptions.BETTER_PRIORITY
+      : DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getQuery(): string {

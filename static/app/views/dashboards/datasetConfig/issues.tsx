@@ -78,7 +78,9 @@ function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQue
   );
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
   if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+    sortOptions.unshift(IssueSortOptions.BETTER_PRIORITY);
+    const index = sortOptions.indexOf(IssueSortOptions.PRIORITY);
+    sortOptions.splice(index, 1);
   }
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),

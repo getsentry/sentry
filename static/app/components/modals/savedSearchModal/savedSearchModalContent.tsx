@@ -32,7 +32,9 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
   );
   const sortOptions = [...DEFAULT_SORT_OPTIONS];
   if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+    sortOptions.unshift(IssueSortOptions.BETTER_PRIORITY);
+    const index = sortOptions.indexOf(IssueSortOptions.PRIORITY);
+    sortOptions.splice(index, 1);
   }
 
   const selectFieldSortOptions = sortOptions.map(sortOption => ({
