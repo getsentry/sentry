@@ -261,7 +261,7 @@ export default function EndpointOverview() {
             <SegmentedControlContainer>
               <SegmentedControl
                 size="xs"
-                aria-label={t('Filter Spans')}
+                aria-label={t('Filter issue types')}
                 value={issueFilter}
                 onChange={key => setIssueFilter(key)}
               >
