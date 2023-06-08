@@ -30,9 +30,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
-        <PerformanceDisplayProvider
-          value={{performanceType: ProjectPerformanceType.ANY}}
-        >
+        <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
             allowedCharts={[
               PerformanceWidgetSetting.TPM_AREA,
