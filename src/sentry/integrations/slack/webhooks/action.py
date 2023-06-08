@@ -130,7 +130,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 
 @region_silo_endpoint
-class SlackActionEndpoint(Endpoint):  # type: ignore
+class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackActionRequest

@@ -5,7 +5,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
         self.assert_occurrences_identical(
@@ -20,7 +20,7 @@ class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):  # type: ignor
 
 
 @region_silo_test
-class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
         occurrence.save()
@@ -30,7 +30,7 @@ class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):  # type: ig
 
 
 @region_silo_test
-class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)
         occurrence = self.build_occurrence(evidence_display=[important_evidence])

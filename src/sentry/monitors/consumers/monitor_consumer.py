@@ -107,7 +107,7 @@ def _process_message(wrapper: Dict) -> None:
     environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
 
-    ratelimit_key = f"{params['monitor_slug']}:{environment}"
+    ratelimit_key = f"{project.organization_id}:{params['monitor_slug']}:{environment}"
 
     metric_kwargs = {
         "source": "consumer",

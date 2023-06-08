@@ -34,7 +34,7 @@ class GroupEventsError(Exception):
 
 
 @region_silo_endpoint
-class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
+class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Events

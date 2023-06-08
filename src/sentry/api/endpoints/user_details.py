@@ -229,7 +229,7 @@ class UserDetailsEndpoint(UserEndpoint):
         # from `frontend/remove_account.py`
         org_list = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
-            member_set__user_id=user.id,
+            member_set__user=user,
             status=OrganizationStatus.ACTIVE,
         )
 

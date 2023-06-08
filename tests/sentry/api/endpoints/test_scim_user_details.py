@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -130,6 +131,40 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
             status_code=400,
             **generate_put_data(self.restricted_custom_role_member, role="owner"),
         )
+
+    @patch("sentry.scim.endpoints.members.metrics")
+    def test_update_metric_hit_on_role_change(self, mock_metrics):
+        # current restricted default role + blank sentryOrgRole -> unrestricted default role
+        # metric should run for same role but different role-restriction
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.restricted_default_role_member.id,
+            method="put",
+            **generate_put_data(self.restricted_default_role_member),
+        )
+        self.restricted_default_role_member.refresh_from_db()
+        assert resp.data["sentryOrgRole"] == self.organization.default_role
+        assert self.restricted_default_role_member.role == self.organization.default_role
+        assert not self.restricted_default_role_member.flags["idp:role-restricted"]
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.member.update_role",
+            tags={"organization": self.organization},
+        )
+
+        # current restricted custom role + default sentryOrgRole -> restricted default role
+        # metric should run for different role but same role-restriction
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.restricted_custom_role_member.id,
+            method="put",
+            **generate_put_data(
+                self.restricted_custom_role_member, role=self.organization.default_role
+            ),
+        )
+        self.restricted_custom_role_member.refresh_from_db()
+        assert resp.data["sentryOrgRole"] == self.organization.default_role
+        assert self.restricted_custom_role_member.role == self.organization.default_role
+        assert self.restricted_custom_role_member.flags["idp:role-restricted"]
 
     def test_set_to_blank(self):
         # If we're updating a role to blank, then the user is saying that they don't want the IDP to manage role anymore
@@ -337,12 +372,13 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             "sentryOrgRole": self.organization.default_role,
         }
 
-    def test_user_details_set_inactive(self):
+    @patch("sentry.scim.endpoints.members.metrics")
+    def test_user_details_set_inactive(self, mock_metrics):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -355,6 +391,9 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         response = self.client.patch(url, patch_req)
 
         assert response.status_code == 204, response.content
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.member.delete", tags={"organization": self.organization}
+        )
 
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
@@ -367,7 +406,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -380,7 +419,6 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         response = self.client.patch(url, patch_req)
 
         assert response.status_code == 204, response.content
-
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
@@ -392,7 +430,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -417,7 +455,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -442,7 +480,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -461,7 +499,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -495,10 +533,11 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         response = self.client.patch(url, patch_req)
         assert response.status_code == 404, response.content
 
-    def test_delete_route(self):
+    @patch("sentry.scim.endpoints.members.metrics")
+    def test_delete_route(self, mock_metrics):
         member = self.create_member(user=self.create_user(), organization=self.organization)
         AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            user=member.user, auth_provider=self.auth_provider, ident="test_ident"
         )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -506,6 +545,9 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         response = self.client.delete(url)
         assert response.status_code == 204, response.content
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.member.delete", tags={"organization": self.organization}
+        )
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
         with pytest.raises(AuthIdentity.DoesNotExist):

@@ -86,7 +86,7 @@ class SiloRouter:
         return None
 
     def _silo_limit(self, model: Model) -> Optional[SiloLimit]:
-        silo_limit = getattr(model._meta, "silo_limit", None)  # type: ignore
+        silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit:
             return silo_limit
 

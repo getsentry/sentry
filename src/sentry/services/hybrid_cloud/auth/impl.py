@@ -98,7 +98,7 @@ def query_sso_state(
                         OrganizationMember.objects.filter(
                             Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
                             organization_id=org_id,
-                            user_is_active=True,
+                            user__is_active=True,
                         )
                         .exclude(id=mem_id)
                         .values_list("user_id")
@@ -171,7 +171,7 @@ class DatabaseBackedAuthService(AuthService):
         )
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
-        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)  # type: ignore
+        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)

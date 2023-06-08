@@ -339,7 +339,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
+            OrganizationMember.objects.filter(user=self.user).update(role="member")
 
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
