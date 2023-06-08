@@ -263,9 +263,12 @@ describe('Breadcrumbs', () => {
       );
 
       // Transaction in response should show as clickable title
-      expect(await screen.findByText('/settings/')).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: '/settings/'})).toBeInTheDocument();
 
-      expect(screen.getByText('/settings/')).toHaveAttribute('href');
+      expect(screen.getByText('/settings/')).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
+      );
     });
   });
 
