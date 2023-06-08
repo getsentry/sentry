@@ -198,12 +198,12 @@ function CreateAlertButton({
   const canCreateAlert =
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
-  const isOrgAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
 
   return showGuide ? (
     <GuideAnchor
-      target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
-      onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
+      target={hasOrgWrite ? 'alerts_write_owner' : 'alerts_write_member'}
+      onFinish={hasOrgWrite ? enableAlertsMemberWrite : undefined}
     >
       {renderButton(canCreateAlert)}
     </GuideAnchor>

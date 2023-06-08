@@ -41,7 +41,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(onClickMock).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the create alert button for members', () => {
+  it('disables the create alert button for org-members', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
@@ -49,13 +49,17 @@ describe('CreateAlertFromViewButton', () => {
       ...organization,
       access: [],
     };
+    const noAccessProj = {
+      ...TestStubs.Project(),
+      access: [],
+    };
 
     render(
       <CreateAlertFromViewButton
         location={location}
-        organization={organization}
+        organization={noAccessOrg}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={[noAccessProj]}
         onClick={onClickMock}
       />,
       {
@@ -65,6 +69,46 @@ describe('CreateAlertFromViewButton', () => {
     );
 
     expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
+  });
+
+  it('enables the create alert button for team-admins', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+    });
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+    const projects = [
+      {
+        ...TestStubs.Project(),
+        id: 1,
+        slug: 'admin-team',
+        access: ['alerts:write'],
+      },
+      {
+        ...TestStubs.Project(),
+        id: 2,
+        slug: 'contributor-team',
+        access: ['alerts:read'],
+      },
+    ];
+
+    render(
+      <CreateAlertFromViewButton
+        location={location}
+        organization={noAccessOrg}
+        eventView={eventView}
+        projects={projects}
+        onClick={onClickMock}
+      />,
+      {
+        context: TestStubs.routerContext([{organization: noAccessOrg}]),
+        organization: noAccessOrg,
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeEnabled();
   });
 
   it('shows a guide for members', () => {
@@ -80,7 +124,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_member']));
   });
 
-  it('shows a guide for owners/admins', () => {
+  it('shows a guide for owners/managers', () => {
     const adminAccessOrg = {
       ...organization,
       access: ['org:write'],
