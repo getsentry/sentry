@@ -66,9 +66,7 @@ export function SpanBaselineTable({span}: Props) {
           description: span.description ?? '',
           metrics: spanMetrics,
           metricSeries: spanMetricSeries,
-          timeSpent: formatPercentage(
-            spanMetrics.total_time / applicationMetrics['sum(span.duration)']
-          ),
+          timeSpent: formatPercentage(1),
         },
       ]}
       columnOrder={COLUMN_ORDER}

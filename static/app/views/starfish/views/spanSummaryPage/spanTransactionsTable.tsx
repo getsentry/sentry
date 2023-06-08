@@ -14,7 +14,6 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
@@ -31,7 +30,7 @@ type Row = {
 };
 
 type Props = {
-  span: IndexedSpan;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -45,7 +44,6 @@ export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
   const location = useLocation();
-  const {data: applicationMetrics} = useApplicationMetrics();
 
   const {data: spanTransactions, isLoading} = useSpanTransactions(span);
   const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
@@ -57,12 +55,16 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
     spanTransactions.map(row => row.transaction)
   );
 
+  const totalTimeSpent = spanTransactions.reduce(
+    (acc, row) => acc + spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'],
+    0
+  );
+
   const spanTransactionsWithMetrics = spanTransactions.map(row => {
     return {
       ...row,
       timeSpent: formatPercentage(
-        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics['sum(span.duration)']
+        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] / totalTimeSpent
       ),
       metrics: spanTransactionMetrics[row.transaction],
       metricSeries: spanTransactionMetricsSeries[row.transaction],
@@ -103,7 +105,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: IndexedSpan;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
