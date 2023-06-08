@@ -109,7 +109,7 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
-@instrumented_task(name="sentry.tasks.integrations.github_pr_comments", queue="githubcomments")
+@instrumented_task(name="sentry.tasks.integrations.github_pr_comments")
 def comment_workflow(pr_id):
     gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pr_id)[0]
 
