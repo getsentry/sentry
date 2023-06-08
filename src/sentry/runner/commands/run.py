@@ -656,14 +656,14 @@ def profiles_consumer(**options):
 @run.command("consumer")
 @log_options()
 @click.argument(
-    "consumer_group",
+    "consumer_name",
 )
 @kafka_options("")
 @strict_offset_reset_option()
 @configuration
-def basic_consumer(consumer_group, **options):
+def basic_consumer(consumer_name, **options):
     """
-    Launch a "new-style" consumer based on its consumer group.
+    Launch a "new-style" consumer based on its "consumer name".
 
     Example:
 
@@ -678,10 +678,10 @@ def basic_consumer(consumer_group, **options):
     from sentry.consumers import KAFKA_CONSUMERS
 
     try:
-        consumer_definition = KAFKA_CONSUMERS[consumer_group]
+        consumer_definition = KAFKA_CONSUMERS[consumer_name]
     except KeyError:
         raise click.ClickException(
-            f"No consumer group named {consumer_group} in sentry.consumers.KAFKA_CONSUMERS"
+            f"No consumer group named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
         )
 
     try:
@@ -689,13 +689,13 @@ def basic_consumer(consumer_group, **options):
         topic = consumer_definition["topic"]
     except KeyError:
         raise click.ClickException(
-            f"The consumer group {consumer_group} does not have a strategy factory"
+            f"The consumer group {consumer_name} does not have a strategy factory"
             f"registered. Most likely there is another subcommand in 'sentry run' "
             f"responsible for this consumer"
         )
 
     if options["group_id"] == "":
-        options["group_id"] = consumer_group
+        options["group_id"] = consumer_name
 
     from sentry.utils.arroyo import run_basic_consumer
 

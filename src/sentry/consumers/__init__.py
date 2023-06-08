@@ -8,7 +8,7 @@ class ConsumerDefinition(TypedDict):
     strategy_factory: str
 
 
-# consumer group -> consumer definition
+# consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
         "topic": settings.KAFKA_PROFILES,
