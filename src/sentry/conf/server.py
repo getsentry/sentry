@@ -3428,7 +3428,7 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.01
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.1
 
 # The Redis cluster to use for monitoring the health of
 # Celery queues.
