@@ -4,16 +4,18 @@ from datetime import datetime, timedelta
 from typing import List
 
 from django.db import connection
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
 from sentry.models import Group, GroupOwnerType, Project
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import raw_snql_query
+from sentry.tasks.base import instrumented_task
+from sentry.utils.snuba import Dataset, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -51,25 +53,22 @@ def format_comment(issues: List[PullRequestIssue]):
     return COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
 
 
-def pr_to_issue_query():
-
+def pr_to_issue_query(pr_id):
     with connection.cursor() as cursor:
         cursor.execute(
-            """
+            f"""
             SELECT pr.repository_id repo_id,
-                   pr.key pr_key,
-                   pr.organization_id org_id,
-                   array_agg(go.group_id) issues
+                pr.key pr_key,
+                pr.organization_id org_id,
+                array_agg(go.id ORDER BY go.date_added) issues
             FROM sentry_groupowner go
             JOIN sentry_commit c ON c.id = (go.context::jsonb->>'commitId')::int
             JOIN sentry_pull_request pr ON c.key = pr.merge_commit_sha
-            JOIN sentry_repository repo on pr.repository_id = repo.id
-            WHERE go.type=%s
-              AND pr.date_added > now() - interval '30 days'
-              AND repo.provider = 'integrations:github'
+            WHERE go.type=0
+            AND pr.id={pr_id}
             GROUP BY repo_id,
-                     pr_key,
-                     org_id
+                pr_key,
+                org_id
             """,
             [GroupOwnerType.SUSPECT_COMMIT.value],
         )
@@ -110,47 +109,67 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
-def comment_workflow():
-    pr_list = pr_to_issue_query()
-    for (gh_repo_id, pr_key, org_id, issue_list) in pr_list:
-        try:
-            organization = Organization.objects.get_from_cache(id=org_id)
-        except Organization.DoesNotExist:
-            logger.error("github.pr_comment.org_missing")
-            continue
+@instrumented_task(name="sentry.tasks.integrations.github_pr_comments", queue="githubcomments")
+def comment_workflow(pr_id):
+    gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pr_id)[0]
 
-        # currently only posts new comments
-        if not features.has("organizations:pr-comment-bot", organization):
-            # or pr.summary_comment_meta is None:
-            continue
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        logger.error("github.pr_comment.org_missing")
+        return
 
-        try:
-            project = Group.objects.get_from_cache(id=issue_list[0]).project
-        except Group.DoesNotExist:
-            logger.error("github.pr_comment.group_missing", extra={"organization_id": org_id})
-            continue
+    # TODO(cathy): add check for OrganizationOption for comment bot
+    if not features.has("organizations:pr-comment-bot", organization):
+        return
 
-        top_5_issues = get_top_5_issues_by_count(issue_list, project)
-        issue_comment_contents = get_comment_contents([issue["group_id"] for issue in top_5_issues])
+    pr_comment = None
+    pr_comment_query = PullRequestComment.objects.filter(pull_request__id=pr_id)
+    if pr_comment_query.exists():
+        pr_comment = pr_comment_query[0]
 
-        try:
-            repo = Repository.objects.get(id=gh_repo_id)
-        except Repository.DoesNotExist:
-            logger.error("github.pr_comment.repo_missing", extra={"organization_id": org_id})
-            continue
+    try:
+        project = Group.objects.get_from_cache(id=issue_list[0]).project
+    except Group.DoesNotExist:
+        logger.error("github.pr_comment.group_missing", extra={"organization_id": org_id})
+        return
 
-        integration = integration_service.get_integration(integration_id=repo.integration_id)
-        if not integration:
-            logger.error("github.pr_comment.integration_missing", extra={"organization_id": org_id})
-            continue
+    top_5_issues = get_top_5_issues_by_count(issue_list, project)
+    top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+    issue_comment_contents = get_comment_contents(top_5_issue_ids)
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=org_id
+    try:
+        repo = Repository.objects.get(id=gh_repo_id)
+    except Repository.DoesNotExist:
+        logger.error("github.pr_comment.repo_missing", extra={"organization_id": org_id})
+        return
+
+    integration = integration_service.get_integration(integration_id=repo.integration_id)
+    if not integration:
+        logger.error("github.pr_comment.integration_missing", extra={"organization_id": org_id})
+        return
+
+    installation = integration_service.get_installation(
+        integration=integration, organization_id=org_id
+    )
+
+    # GitHubAppsClient (GithubClientMixin)
+    client = installation.get_client()
+
+    comment_body = format_comment(issue_comment_contents)
+
+    # client raises ApiError if the request is not successful
+    if pr_comment is None:
+        resp = client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+        PullRequestComment.objects.create(
+            external_id=resp.body["id"],
+            pull_request_id=pr_id,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+            group_ids=top_5_issue_ids,
         )
-
-        # GitHubAppsClient (GithubClientMixin)
-        client = installation.get_client()
-
-        comment_body = format_comment(issue_comment_contents)
-
-        client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+    else:
+        client.update_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+        pr_comment.updated_at = timezone.now()
+        pr_comment.group_ids = top_5_issue_ids
+        pr_comment.save()

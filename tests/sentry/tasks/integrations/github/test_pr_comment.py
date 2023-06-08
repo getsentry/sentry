@@ -1,12 +1,14 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.integrations.github import pr_comment
 from sentry.tasks.integrations.github.pr_comment import (
@@ -127,7 +129,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         pr = self.add_pr_to_commit(commit)
         groupowner = self.add_groupowner_to_commit(commit, self.project, self.user)
 
-        results = pr_comment.pr_to_issue_query()
+        results = pr_comment.pr_to_issue_query(pr.id)
 
         assert results[0] == (self.gh_repo.id, pr.key, self.organization.id, [groupowner.group_id])
 
@@ -139,7 +141,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         groupowner_2 = self.add_groupowner_to_commit(commit, self.project, self.user)
         groupowner_3 = self.add_groupowner_to_commit(commit, self.project, self.user)
 
-        results = pr_comment.pr_to_issue_query()
+        results = pr_comment.pr_to_issue_query(pr.id)
 
         assert results[0][0:3] == (self.gh_repo.id, pr.key, self.organization.id)
         assert (
@@ -157,42 +159,21 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         groupowner_1 = self.add_groupowner_to_commit(commit_1, self.project, self.user)
         groupowner_2 = self.add_groupowner_to_commit(commit_2, self.project, self.user)
 
-        results = pr_comment.pr_to_issue_query()
-
+        results = pr_comment.pr_to_issue_query(pr_1.id)
         assert results[0] == (
             self.gh_repo.id,
             pr_1.key,
             self.organization.id,
             [groupowner_1.group_id],
         )
-        assert results[1] == (
+
+        results = pr_comment.pr_to_issue_query(pr_2.id)
+        assert results[0] == (
             self.gh_repo.id,
             pr_2.key,
             self.organization.id,
             [groupowner_2.group_id],
         )
-
-    def test_non_gh_repo(self):
-        """Repos that aren't GH should be omitted"""
-
-        commit = self.add_commit_to_repo(self.not_gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit)
-        self.add_groupowner_to_commit(commit, self.project, self.user)
-
-        results = pr_comment.pr_to_issue_query()
-
-        assert len(results) == 0
-
-    def test_pr_too_old(self):
-        """PRs that are too old should be omitted"""
-
-        commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit, date_added=iso_format(before_now(days=31)))
-        self.add_groupowner_to_commit(commit, self.project, self.user)
-
-        results = pr_comment.pr_to_issue_query()
-
-        assert len(results) == 0
 
     def test_multiple_orgs(self):
         """Results should be across multiple orgs"""
@@ -207,15 +188,15 @@ class TestPrToIssueQuery(GithubCommentTestCase):
             commit_2, self.another_org_project, self.another_org_user
         )
 
-        results = pr_comment.pr_to_issue_query()
-
+        results = pr_comment.pr_to_issue_query(pr_1.id)
         assert results[0] == (
             self.gh_repo.id,
             pr_1.key,
             self.organization.id,
             [groupowner_1.group_id],
         )
-        assert results[1] == (
+        results = pr_comment.pr_to_issue_query(pr_2.id)
+        assert results[0] == (
             self.another_org_repo.id,
             pr_2.key,
             self.another_organization.id,
@@ -323,21 +304,21 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     def create_pr_issues(self):
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit_1)
+        pr = self.add_pr_to_commit(commit_1)
         self.add_groupowner_to_commit(commit_1, self.project, self.user)
         self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+
+        return pr
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow(self, get_jwt, mock_issues):
-        self.create_pr_issues()
+        pr = self.create_pr_issues()
 
         groups = [g.id for g in Group.objects.all()]
-        mock_issues.return_value = [
-            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
-        ]
+        mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
             responses.POST,
@@ -347,15 +328,40 @@ class TestCommentWorkflow(GithubCommentTestCase):
         responses.add(
             responses.POST,
             self.base_url + "/repos/getsentry/sentry/issues/1/comments",
-            json={},
+            json={"id": 1},
         )
 
-        pr_comment.comment_workflow()
+        pr_comment.comment_workflow(pr_id=pr.id)
 
         assert (
             responses.calls[1].request.body
             == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @with_feature("organizations:pr-comment-bot")
+    @responses.activate
+    def test_comment_workflow_raises_error(self, get_jwt, mock_issues):
+        pr = self.create_pr_issues()
+
+        groups = [g.id for g in Group.objects.all()]
+        mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            status=400,
+            json={"id": 1},
+        )
+
+        with pytest.raises(ApiError):
+            pr_comment.comment_workflow(pr_id=pr.id)
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
@@ -363,15 +369,16 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_org(self, mock_issues, mock_issue_query):
-        pr_comment.comment_workflow()
+        pr = self.create_pr_issues()
+        pr_comment.comment_workflow(pr_id=pr.id)
 
         assert not mock_issues.called
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_feature_flag(self, mock_issues):
-        self.create_pr_issues()
+        pr = self.create_pr_issues()
 
-        pr_comment.comment_workflow()
+        pr_comment.comment_workflow(pr_id=pr.id)
 
         assert not mock_issues.called
 
@@ -379,11 +386,11 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.models.Group.objects.get_from_cache")
     @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_group(self, mock_group, mock_issues):
-        self.create_pr_issues()
+        pr = self.create_pr_issues()
 
         mock_group.side_effect = Group.DoesNotExist
 
-        pr_comment.comment_workflow()
+        pr_comment.comment_workflow(pr_id=pr.id)
 
         assert not mock_issues.called
 
@@ -394,10 +401,10 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_repo(self, mock_format_comment, mock_repository, mock_issues):
-        self.create_pr_issues()
+        pr = self.create_pr_issues()
 
         mock_repository.get.side_effect = Repository.DoesNotExist
-        pr_comment.comment_workflow()
+        pr_comment.comment_workflow(pr_id=pr.id)
 
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -412,7 +419,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_integration(self, mock_format_comment, mock_issues):
-        self.create_pr_issues()
+        pr = self.create_pr_issues()
 
         # invalid integration id
         self.gh_repo.integration_id = 0
@@ -422,7 +429,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
         ]
 
-        pr_comment.comment_workflow()
+        pr_comment.comment_workflow(pr_id=pr.id)
 
         assert mock_issues.called
         assert not mock_format_comment.called
