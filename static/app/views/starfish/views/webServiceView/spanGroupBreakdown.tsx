@@ -100,13 +100,11 @@ export function SpanGroupBreakdown({
           if (['db', 'http'].includes(group['span.category'])) {
             spansLinkQueryParams['span.module'] = group['span.category'];
           } else {
-            spansLinkQueryParams['span.category'] = group['span.category'];
+            spansLinkQueryParams['span.module'] = 'Other';
           }
+          spansLinkQueryParams['span.category'] = group['span.category'];
 
-          const spansLink =
-            group['span.category'] === 'Other'
-              ? `/starfish/spans/`
-              : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
             <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
