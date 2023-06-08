@@ -105,7 +105,7 @@ class OrganizationMixin:
             organization_slug, request
         )
         backup_organization: RpcOrganizationSummary | None = None
-        if active_organization is None:
+        if active_organization is None and request.user.id is not None:
             organizations = user_service.get_organizations(
                 user_id=request.user.id, only_visible=True
             )

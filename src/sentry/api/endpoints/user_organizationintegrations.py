@@ -20,11 +20,13 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         :qparam string provider: optional provider to filter by
         :auth: required
         """
-        org_ids = [
-            o.id for o in user_service.get_organizations(user_id=request.user.id, only_visible=True)
-        ]
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id, only_visible=True)
+            if request.user.id is not None
+            else ()
+        )
         queryset = OrganizationIntegration.objects.filter(
-            organization_id__in=org_ids,
+            organization_id__in=[o.id for o in organizations],
             status=ObjectStatus.ACTIVE,
             integration__status=ObjectStatus.ACTIVE,
         )

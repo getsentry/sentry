@@ -190,10 +190,14 @@ class SentryAppPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        org_ids = [org.id for org in user_service.get_organizations(user_id=request.user.id)]
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id)
+            if request.user.id is not None
+            else ()
+        )
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
-            if sentry_app.owner_id not in {id for id in org_ids}:
+            if not any(sentry_app.owner_id == org.id for org in organizations):
                 raise Http404
 
         # TODO(meredith): make a better way to allow for public
@@ -251,8 +255,12 @@ class SentryAppInstallationsPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        org_ids = [org.id for org in user_service.get_organizations(user_id=request.user.id)]
-        if organization.id not in org_ids:
+        organizations = (
+            [org.id for org in user_service.get_organizations(user_id=request.user.id)]
+            if request.user.id is not None
+            else ()
+        )
+        if not any(organization.id == org.id for org in organizations):
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))

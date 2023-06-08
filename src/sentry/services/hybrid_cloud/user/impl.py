@@ -97,6 +97,15 @@ class DatabaseBackedUserService(UserService):
         user_id: int,
         only_visible: bool = False,
     ) -> List[RpcOrganizationSummary]:
+        if user_id is None:
+            # This is impossible if type hints are followed or Pydantic enforces
+            # type-checking on serialization, but is still possible if we make a call
+            # from non-Mypy-checked code on the same silo. It can occur easily if
+            # `request.user.id` is passed as an argument where the user is an
+            # AnonymousUser. Check explicitly to guard against returning mappings
+            # representing invitations.
+            return []  # type: ignore[unreachable]
+
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
