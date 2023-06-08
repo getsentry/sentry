@@ -135,9 +135,13 @@ def is_queue_healthy(queue_name: str) -> bool:
         return True
     # check if queue is healthy by pinging Redis
     try:
-        healthy = queue_monitoring_cluster.exists(_unhealthy_queue_key(queue_name))
-    except Exception:
-        healthy = False
+        # We set the key if the queue is unhealthy. If the key exists,
+        # the queue is unhealthy and we need to return False.
+        healthy = not queue_monitoring_cluster.exists(_unhealthy_queue_key(queue_name))
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        # By default it's considered healthy
+        healthy = True
     return healthy
 
 

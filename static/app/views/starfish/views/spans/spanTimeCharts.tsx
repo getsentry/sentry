@@ -31,10 +31,10 @@ type Props = {
 };
 
 type AppliedFilters = {
-  action: string;
-  domain: string;
-  group_id: string;
-  span_operation: string;
+  'span.action': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
 };
 
 type ChartProps = {
@@ -94,9 +94,12 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const query = getQuery(moduleName, pageFilters.selection, filters);
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
   const {startTime, endTime} = getDateFilters(pageFilters);
-  const {span_operation, action, domain} = location.query;
 
-  const label = getSegmentLabel(span_operation, action, domain);
+  const label = getSegmentLabel(
+    location.query['span.op'],
+    location.query['span.action'],
+    location.query['span.domain']
+  );
   const {isLoading, data} = useSpansQuery({
     eventView,
     queryString: `${query}&referrer=span-time-charts`,
@@ -153,9 +156,12 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const query = getQuery(moduleName, pageFilters.selection, filters);
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
   const {startTime, endTime} = getDateFilters(pageFilters);
-  const {span_operation, action, domain} = location.query;
 
-  const label = getSegmentLabel(span_operation, action, domain);
+  const label = getSegmentLabel(
+    location.query['span.op'],
+    location.query['span.action'],
+    location.query['span.domain']
+  );
 
   const {isLoading, data} = useSpansQuery({
     eventView,
