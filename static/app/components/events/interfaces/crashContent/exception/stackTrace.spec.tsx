@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ExceptionStacktraceContent from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 
 const frames = [
   {
@@ -109,7 +109,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
-        stackView={STACK_VIEW.APP}
+        stackView={StackView.APP}
         chainedException={false}
         stacktrace={{...stacktrace, frames: []}}
       />
@@ -136,7 +136,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
-        stackView={STACK_VIEW.APP}
+        stackView={StackView.APP}
         chainedException
       />
     );
