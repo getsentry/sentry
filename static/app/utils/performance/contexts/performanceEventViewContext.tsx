@@ -16,8 +16,9 @@ const [
 
 export {PerformanceEventViewProvider, PerformanceEventViewContext};
 
-// Provides a readonly event view. Also omits anything that isn't currently read-only, although in the future we should switch the code in EventView instead.
-// If you need mutability, use the mutable version.
+// Provides a readonly event view. Also omits anything that isn't currently
+// read-only, although in the future we should switch the code in EventView
+// instead. If you need mutability, use the mutable version.
 export function usePerformanceEventView(): ImmutableEventView {
   return _usePerformanceEventView().eventView;
 }
