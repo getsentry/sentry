@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
-from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaPayload, build_kafka_configuration
 from arroyo.types import BrokerValue
+from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics.metrics_interface import GenericMetricsBackend
@@ -42,9 +42,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         producer_config.pop("compression.type", None)
         producer_config.pop("message.max.bytes", None)
-        self.producer: Producer = KafkaProducer(
-            build_kafka_configuration(default_config=producer_config)
-        )
+        self.producer = Producer(build_kafka_configuration(default_config=producer_config))
 
     def counter(
         self,
@@ -143,3 +141,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         original_future = self.producer.produce(self.kafka_topic, payload)
 
         return original_future
+
+    def flush_producer(self):
+        self.producer.flush()

@@ -47,4 +47,3 @@ def test_produce() -> None:
     assert produced_message is not None
     assert produced_message.payload.value == value
     assert broker_storage.consume(Partition(my_topic, 0), 1) is None
-    metrics_backend.producer.close()
