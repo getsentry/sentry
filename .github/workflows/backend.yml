@@ -275,6 +275,7 @@ jobs:
         uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38  # main
         with:
           github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: apply pre-commit fixes'
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
