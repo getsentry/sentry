@@ -129,7 +129,6 @@ def run_basic_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    force_topic: str | None,
     force_cluster: str | None,
     strategy_factory_cls: Type[ProcessingStrategyFactory[Any]],
 ) -> None:
@@ -138,8 +137,6 @@ def run_basic_consumer(
     from sentry.metrics.middleware import add_global_tags
 
     add_global_tags(kafka_topic=topic, group_id=group_id)
-
-    topic = force_topic or topic
 
     cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
     consumer_config = build_kafka_consumer_configuration(

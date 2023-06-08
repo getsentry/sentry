@@ -661,7 +661,7 @@ def profiles_consumer(**options):
 @kafka_options("")
 @strict_offset_reset_option()
 @configuration
-def basic_consumer(consumer_name, **options):
+def basic_consumer(consumer_name, force_topic, **options):
     """
     Launch a "new-style" consumer based on its "consumer name".
 
@@ -698,6 +698,9 @@ def basic_consumer(consumer_name, **options):
         options["group_id"] = consumer_name
 
     from sentry.utils.arroyo import run_basic_consumer
+
+    if force_topic:
+        topic = force_topic
 
     run_basic_consumer(topic=topic, **options, strategy_factory_cls=strategy_factory_cls)
 
