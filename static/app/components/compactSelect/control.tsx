@@ -76,7 +76,19 @@ export interface ControlProps
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
-    UseOverlayProps {
+    Pick<
+      UseOverlayProps,
+      | 'isOpen'
+      | 'onClose'
+      | 'offset'
+      | 'position'
+      | 'isDismissable'
+      | 'shouldCloseOnBlur'
+      | 'shouldCloseOnInteractOutside'
+      | 'onInteractOutside'
+      | 'preventOverflowOptions'
+      | 'flipOptions'
+    > {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -182,8 +194,12 @@ export function Control({
   triggerProps,
   isOpen,
   onClose,
+  isDismissable,
   onInteractOutside,
   shouldCloseOnInteractOutside,
+  shouldCloseOnBlur,
+  preventOverflowOptions,
+  flipOptions,
   disabled,
   position = 'bottom-start',
   offset,
@@ -280,8 +296,12 @@ export function Control({
     position,
     offset,
     isOpen,
+    isDismissable,
     onInteractOutside,
     shouldCloseOnInteractOutside,
+    shouldCloseOnBlur,
+    preventOverflowOptions,
+    flipOptions,
     onOpenChange: async open => {
       // On open
       if (open) {

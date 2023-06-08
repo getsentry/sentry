@@ -1,6 +1,9 @@
 import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
-import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
+import {detectOverflow, Modifier} from '@popperjs/core';
+import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';
+import type {FlipModifier} from '@popperjs/core/lib/modifiers/flip';
+import type {PreventOverflowModifier} from '@popperjs/core/lib/modifiers/preventOverflow';
 import {useButton as useButtonAria} from '@react-aria/button';
 import {
   AriaOverlayProps,
@@ -14,14 +17,12 @@ import {
   useOverlayTriggerState,
 } from '@react-stately/overlays';
 
-type PreventOverflowOptions = NonNullable<(typeof preventOverflow)['options']>;
-
 /**
  * PopperJS modifier to change the popper element's width/height to prevent
  * overflowing. Based on
  * https://github.com/atomiks/popper.js/blob/master/src/modifiers/maxSize.js
  */
-const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
+const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options']>> = {
   name: 'maxSize',
   phase: 'main',
   requiresIfExists: ['offset', 'preventOverflow', 'flip'],
@@ -77,11 +78,21 @@ export interface UseOverlayProps
   extends Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
+  /**
+   * Options to pass to the `arrow` modifier.
+   */
+  arrowOptions?: ArrowModifier['options'];
   disableTrigger?: boolean;
   /**
-   * Offset along the main axis.
+   * Options to pass to the `flip` modifier.
    */
-  offset?: number;
+  flipOptions?: FlipModifier['options'];
+  /**
+   * Offset value. If a single number, determines the _distance_ along the main axis. If
+   * an array of two numbers, the first number determines the _skidding_ along the alt
+   * axis, and the second determines the _distance_ along the main axis.
+   */
+  offset?: number | [number, number];
   /**
    * To be called when the overlay closes because of a user interaction (click) outside
    * the overlay. Note: this won't be called when the user presses Escape to dismiss.
@@ -91,7 +102,10 @@ export interface UseOverlayProps
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
-  preventOverflowOptions?: PreventOverflowOptions;
+  /**
+   * Options to pass to the `preventOverflow` modifier.
+   */
+  preventOverflowOptions?: PreventOverflowModifier['options'];
 }
 
 function useOverlay({
@@ -102,6 +116,8 @@ function useOverlay({
   type = 'dialog',
   offset = 8,
   position = 'top',
+  arrowOptions = {},
+  flipOptions = {},
   preventOverflowOptions = {},
   isDismissable = true,
   shouldCloseOnBlur = false,
@@ -153,6 +169,7 @@ function useOverlay({
           // Set padding to avoid the arrow reaching the side of the tooltip
           // and overflowing out of the rounded border
           padding: 4,
+          ...arrowOptions,
         },
       },
       {
@@ -160,12 +177,13 @@ function useOverlay({
         options: {
           // Only flip on main axis
           flipVariations: false,
+          ...flipOptions,
         },
       },
       {
         name: 'offset',
         options: {
-          offset: [0, offset],
+          offset: Array.isArray(offset) ? offset : [0, offset],
         },
       },
       {
@@ -189,7 +207,7 @@ function useOverlay({
         enabled: openState.isOpen,
       },
     ],
-    [arrowElement, offset, preventOverflowOptions, openState]
+    [arrowElement, offset, arrowOptions, flipOptions, preventOverflowOptions, openState]
   );
   const {
     styles: popperStyles,

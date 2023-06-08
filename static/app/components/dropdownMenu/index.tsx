@@ -60,6 +60,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
       | 'preventOverflowOptions'
+      | 'flipOptions'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -145,6 +146,7 @@ function DropdownMenu({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   preventOverflowOptions,
+  flipOptions,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -166,6 +168,7 @@ function DropdownMenu({
     shouldCloseOnInteractOutside,
     onInteractOutside,
     preventOverflowOptions,
+    flipOptions,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
