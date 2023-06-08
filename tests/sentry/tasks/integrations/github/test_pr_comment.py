@@ -1,15 +1,27 @@
-from sentry.models import Commit, GroupOwner, GroupOwnerType, PullRequest
+from datetime import timedelta
+from unittest.mock import patch
+
+import responses
+from django.utils import timezone
+
+from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
+from sentry.models.repository import Repository
+from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.integrations.github import pr_comment
 from sentry.tasks.integrations.github.pr_comment import (
     PullRequestIssue,
     get_comment_contents,
     get_top_5_issues_by_count,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import IntegrationTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class GithubCommentTestCase(TestCase):
+class GithubCommentTestCase(IntegrationTestCase):
+    provider = GitHubIntegrationProvider
+
     def setUp(self):
         super().setUp()
         self.another_integration = self.create_integration(
@@ -90,7 +102,11 @@ class GithubCommentTestCase(TestCase):
 
     def add_groupowner_to_commit(self, commit: Commit, project, user):
         event = self.store_event(
-            data={"fingerprint": [f"issue{self.fingerprint}"]}, project_id=project.id
+            data={
+                "message": f"issue{self.fingerprint}",
+                "fingerprint": [f"issue{self.fingerprint}"],
+            },
+            project_id=project.id,
         )
         self.fingerprint += 1
         groupowner = GroupOwner.objects.create(
@@ -292,3 +308,121 @@ class TestFormatComment(TestCase):
         formatted_comment = pr_comment.format_comment(issues)
         expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         assert formatted_comment == expected_comment
+
+
+class TestCommentWorkflow(GithubCommentTestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        super().setUp()
+        self.installation_id = "github:1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
+
+    def create_pr_issues(self):
+        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
+        self.add_pr_to_commit(commit_1)
+        self.add_groupowner_to_commit(commit_1, self.project, self.user)
+        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @with_feature("organizations:pr-comment-bot")
+    @responses.activate
+    def test_comment_workflow(self, get_jwt, mock_issues):
+        self.create_pr_issues()
+
+        groups = [g.id for g in Group.objects.all()]
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            json={},
+        )
+
+        pr_comment.comment_workflow()
+
+        assert (
+            responses.calls[1].request.body
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+        )
+
+    @patch(
+        "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
+        return_value=[(0, 0, 0, [])],
+    )
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    def test_comment_workflow_missing_org(self, mock_issues, mock_issue_query):
+        pr_comment.comment_workflow()
+
+        assert not mock_issues.called
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    def test_comment_workflow_missing_feature_flag(self, mock_issues):
+        self.create_pr_issues()
+
+        pr_comment.comment_workflow()
+
+        assert not mock_issues.called
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.models.Group.objects.get_from_cache")
+    @with_feature("organizations:pr-comment-bot")
+    def test_comment_workflow_missing_group(self, mock_group, mock_issues):
+        self.create_pr_issues()
+
+        mock_group.side_effect = Group.DoesNotExist
+
+        pr_comment.comment_workflow()
+
+        assert not mock_issues.called
+
+    @patch(
+        "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
+    )
+    @patch("sentry.models.Repository.objects")
+    @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @with_feature("organizations:pr-comment-bot")
+    def test_comment_workflow_missing_repo(self, mock_format_comment, mock_repository, mock_issues):
+        self.create_pr_issues()
+
+        mock_repository.get.side_effect = Repository.DoesNotExist
+        pr_comment.comment_workflow()
+
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
+
+        assert mock_issues.called
+        assert not mock_format_comment.called
+
+    @patch(
+        "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
+    )
+    @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @with_feature("organizations:pr-comment-bot")
+    def test_comment_workflow_missing_integration(self, mock_format_comment, mock_issues):
+        self.create_pr_issues()
+
+        # invalid integration id
+        self.gh_repo.integration_id = 0
+        self.gh_repo.save()
+
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
+
+        pr_comment.comment_workflow()
+
+        assert mock_issues.called
+        assert not mock_format_comment.called

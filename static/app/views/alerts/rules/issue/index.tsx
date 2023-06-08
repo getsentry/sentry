@@ -182,7 +182,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchPreview();
   }
 

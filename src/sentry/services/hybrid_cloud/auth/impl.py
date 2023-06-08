@@ -171,7 +171,7 @@ class DatabaseBackedAuthService(AuthService):
         )
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
-        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)  # type: ignore
+        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)

@@ -29,14 +29,15 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 const COLUMN_TITLES = [
   'Endpoint',
-  'Throughput',
-  'Duration (P95)',
-  '5XX Responses',
-  'Time Spent',
+  DataTitles.throughput,
+  DataTitles.p95,
+  DataTitles.errorCount,
+  DataTitles.timeSpent,
 ];
 
 type Props = {
@@ -121,8 +122,12 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       );
     }
 
-    if (field === 'tpm()') {
-      return <ThroughputCell throughputPerSecond={(dataRow[field] as number) / 60} />;
+    if (field === 'tps()') {
+      return (
+        <NumberContainer>
+          <ThroughputCell throughputPerSecond={dataRow[field] as number} />
+        </NumberContainer>
+      );
     }
 
     if (

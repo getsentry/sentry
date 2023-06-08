@@ -275,6 +275,7 @@ jobs:
         uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38  # main
         with:
           github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: apply pre-commit fixes'
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
@@ -461,8 +462,33 @@ jobs:
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: pip install -r requirements-dev-frozen.txt
 
-      - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        run: make backend-typing
+      - name: setup sentry (lite)
+        run: |
+          SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+          sentry init
+
+      - run: make backend-typing
+        id: run
+
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
+        id: token
+        continue-on-error: true
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      # only if `backend-typing` succeeds should we try and trim the blocklist
+      - run: |
+          python3 -m tools.mypy_helpers.make_module_ignores
+          git diff --exit-code
+
+      - name: apply blocklist changes
+        if: steps.token.outcome == 'success' && steps.run.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38  # main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':knife: regenerate mypy module blocklist'
+
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)

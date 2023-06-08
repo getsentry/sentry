@@ -2,7 +2,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {MOBILE_COLUMN_TITLES, REACT_NATIVE_COLUMN_TITLES} from '../data';
 import {checkIsReactNative} from '../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
@@ -33,7 +33,7 @@ export function MobileView(props: BasePerformanceViewProps) {
     );
   }
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+    <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div>
         <DoubleChartRow
           {...props}

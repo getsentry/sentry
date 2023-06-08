@@ -10,6 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {NumberContainer} from 'sentry/utils/discover/styles';
@@ -26,6 +27,7 @@ type Props = {
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
+  transaction?: string;
 };
 
 export function SpanGroupBreakdown({
@@ -33,6 +35,7 @@ export function SpanGroupBreakdown({
   totalCumulativeTime: totalValues,
   topSeriesData: data,
   initialShowSeries,
+  transaction,
 }: Props) {
   const {selection} = usePageFilters();
   const theme = useTheme();
@@ -56,7 +59,11 @@ export function SpanGroupBreakdown({
     <FlexRowContainer>
       <ChartPadding>
         <Header>
-          <ChartLabel>{t('App Time Breakdown (P95)')}</ChartLabel>
+          <ChartLabel>
+            {transaction
+              ? t('Endpoint Time Breakdown (P95)')
+              : t('App Time Breakdown (P95)')}
+          </ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
@@ -92,12 +99,12 @@ export function SpanGroupBreakdown({
               : {statsPeriod: period};
           if (['db', 'http'].includes(group['span.category'])) {
             spansLinkQueryParams['span.module'] = group['span.category'];
+          } else {
+            spansLinkQueryParams['span.module'] = 'Other';
           }
+          spansLinkQueryParams['span.category'] = group['span.category'];
 
-          const spansLink =
-            group['span.category'] === 'Other'
-              ? `/starfish/spans/`
-              : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
             <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
@@ -113,9 +120,13 @@ export function SpanGroupBreakdown({
                   }}
                 />
                 <TextAlignLeft>
-                  <Link to={spansLink}>
+                  {defined(transaction) ? (
                     <TextOverflow>{group['span.category']}</TextOverflow>
-                  </Link>
+                  ) : (
+                    <Link to={spansLink}>
+                      <TextOverflow>{group['span.category']}</TextOverflow>
+                    </Link>
+                  )}
                 </TextAlignLeft>
                 <RightAlignedCell>
                   <Tooltip

@@ -15,7 +15,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-class TransitionNewToOngoingTest(TestCase):  # type: ignore
+class TransitionNewToOngoingTest(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_new_to_ongoing(self, inbox_in: Any) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)

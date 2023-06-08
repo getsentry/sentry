@@ -18,7 +18,7 @@ from sentry.shared_integrations.exceptions import ApiRateLimitedError, Duplicate
 logger = logging.getLogger("sentry.rules")
 
 
-class SlackNotifyServiceForm(forms.Form):  # type: ignore
+class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.CharField(required=False, widget=forms.TextInput())
