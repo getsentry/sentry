@@ -62,7 +62,6 @@ class PullRequest(Model):
     message = models.TextField(null=True)
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
-    comment = FlexibleForeignKey("sentry.PullRequestComment", null=True)
 
     objects = PullRequestManager()
 
