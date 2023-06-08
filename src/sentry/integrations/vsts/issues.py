@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sentry.models import ExternalIssue, Group
 
 
-class VstsIssueSync(IssueSyncMixin):  # type: ignore
+class VstsIssueSync(IssueSyncMixin):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug

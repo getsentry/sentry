@@ -24,19 +24,19 @@ class _DefaultEnumHelpers:
     def get_default_team_status_value() -> int:
         from sentry.models import TeamStatus
 
-        return TeamStatus.ACTIVE.value  # type: ignore[no-any-return]
+        return TeamStatus.ACTIVE.value
 
     @staticmethod
     def get_default_invite_status_value() -> int:
         from sentry.models import InviteStatus
 
-        return InviteStatus.APPROVED.value  # type: ignore[no-any-return]
+        return InviteStatus.APPROVED.value
 
     @staticmethod
     def get_default_organization_status_value() -> int:
         from sentry.models import OrganizationStatus
 
-        return OrganizationStatus.ACTIVE.value  # type: ignore[no-any-return]
+        return OrganizationStatus.ACTIVE.value
 
 
 class RpcTeam(RpcModel):

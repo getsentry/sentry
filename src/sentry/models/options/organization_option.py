@@ -89,7 +89,7 @@ class OrganizationOptionManager(OptionManager["Organization"]):
 
 
 @region_silo_only_model
-class OrganizationOption(Model):  # type: ignore
+class OrganizationOption(Model):
     """
     Organization options apply only to an instance of a organization.
 

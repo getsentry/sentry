@@ -1032,7 +1032,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             HTTP_STATUS_CODE_ALIAS,
         )
 
-    @cached_property  # type: ignore
+    @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
         org_id = (
             self.builder.params.organization.id

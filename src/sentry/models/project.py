@@ -58,9 +58,7 @@ class ProjectManager(BaseManager):
             projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
                 lambda u: u.id, users
             ),
-        ).values_list(
-            "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
-        )
+        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
@@ -260,7 +258,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
                 organizationmemberteam__is_active=True,
                 organizationmemberteam__team__in=self.teams.all(),
             ).values("id"),
-            user_is_active=True,
+            user__is_active=True,
         ).distinct()
 
     def get_members_as_rpc_users(self) -> Iterable[RpcUser]:

@@ -18,7 +18,7 @@ from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.options.manager import UpdateChannel
 
 
-class BaseOption(Model):  # type: ignore
+class BaseOption(Model):
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.

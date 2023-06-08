@@ -138,7 +138,7 @@ class ProjectOptionManager(OptionManager["Project"]):
 
 
 @region_silo_only_model
-class ProjectOption(Model):  # type: ignore
+class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.
 

@@ -80,10 +80,10 @@ class OrganizationMemberManager(BaseManager):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
-        return self.filter(
+        return self.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
-            user_id__isnull=False,
+            user__isnull=False,
         )
 
     def delete_expired(self, threshold: int) -> None:
@@ -136,7 +136,7 @@ class OrganizationMemberManager(BaseManager):
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 InviteStatus.REQUESTED_TO_JOIN.value,
             ],
-            user_id__isnull=True,
+            user__isnull=True,
             id=id,
         )
 
@@ -148,23 +148,20 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
-        users_by_email = user_service.get_many(
-            filter=dict(
-                emails=[email],
-                is_active=True,
-            )
+        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
+            "id", flat=True
         )
 
         # may be empty
         team_members = set(
             OrganizationMemberTeam.objects.filter(
                 team_id__org_role=role,
-                organizationmember__user_id__in=[u.id for u in users_by_email],
+                organizationmember_id__in=org_members,
             ).values_list("organizationmember_id", flat=True)
         )
 
         org_members = set(
-            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
+            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
                 "id", flat=True
             )
         )
@@ -189,7 +186,9 @@ class OrganizationMember(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
+    user = FlexibleForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
+    )
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     flags = BitField(
@@ -232,7 +231,7 @@ class OrganizationMember(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmember"
-        unique_together = (("organization", "user_id"), ("organization", "email"))
+        unique_together = (("organization", "user"), ("organization", "email"))
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
