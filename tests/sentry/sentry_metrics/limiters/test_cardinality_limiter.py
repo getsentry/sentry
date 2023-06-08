@@ -1,6 +1,6 @@
 import time
 from enum import Enum
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, no_type_check
 from unittest.mock import patch
 
 import pytest
@@ -94,6 +94,7 @@ class MockCardinalityLimiter(CardinalityLimiter):
         pass
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
@@ -143,6 +144,7 @@ def test_reject_all():
         assert result.keys_to_remove == [PartitionIdxOffset(0, 0), PartitionIdxOffset(0, 1)]
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
@@ -207,6 +209,7 @@ def test_reject_all_with_default():
         ]
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
@@ -261,6 +264,7 @@ def test_reject_partial():
         assert result.keys_to_remove == [PartitionIdxOffset(0, 2)]
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
@@ -327,6 +331,7 @@ def test_reject_partial_again():
         assert result.keys_to_remove == [PartitionIdxOffset(0, 3)]
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
@@ -397,6 +402,7 @@ def test_accept_all():
         assert not result.keys_to_remove
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
@@ -458,6 +464,7 @@ def test_sample_rate_zero(set_sentry_option):
         assert result._grants is None
 
 
+@no_type_check
 @patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
