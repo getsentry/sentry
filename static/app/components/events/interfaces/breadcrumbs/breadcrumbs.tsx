@@ -9,15 +9,22 @@ import {
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import {
+  BreadcrumbTransactionEvent,
+  BreadcrumbWithMeta,
+} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {PanelTable} from 'sentry/components/panels';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useProjects from 'sentry/utils/useProjects';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
+import {isEventId} from './breadcrumb/data/default';
 import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
@@ -51,9 +58,47 @@ function Breadcrumbs({
   emptyMessage,
 }: Props) {
   const [scrollbarSize, setScrollbarSize] = useState(0);
+  const {projects, fetching: loadingProjects} = useProjects();
+
+  const maybeProject = !loadingProjects
+    ? projects.find(project => {
+        return event && project.id === event.projectID;
+      })
+    : null;
 
   const listRef = useRef<List>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const sentryTransaction = breadcrumbs.filter(
+    crumb =>
+      crumb.breadcrumb.category === 'sentry.transaction' &&
+      defined(crumb.breadcrumb.message) &&
+      isEventId(crumb.breadcrumb.message)
+  );
+
+  const sentryTransactionIds = sentryTransaction
+    .map(crumb => crumb.breadcrumb.message)
+    .filter(defined);
+
+  const {data: transactionEvents} = useApiQuery<{
+    data: BreadcrumbTransactionEvent[];
+    meta: any;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          query: `id:[${sentryTransactionIds}]`,
+          field: ['title'],
+          project: [maybeProject?.id],
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: sentryTransactionIds.length > 0 && defined(maybeProject),
+    }
+  );
 
   const updateGrid = useCallback(() => {
     if (listRef.current) {
@@ -110,6 +155,7 @@ function Breadcrumbs({
                   ? scrollbarSize
                   : 0
               }
+              transactionEvents={transactionEvents?.data}
             />
           </BreadcrumbRow>
         )}
