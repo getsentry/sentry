@@ -81,7 +81,7 @@ function getQuery(
     span_operation as "span.operation",
     description as "span.description",
     domain as "span.domain",
-    sum(exclusive_time) as "sum(span.duration)"
+    sum(exclusive_time) as "sum(span.duration)",
     quantile(0.95)(exclusive_time) as "p95(span.duration)",
     divide(count(), ${
       moment(endTime ?? undefined).unix() - moment(startTime).unix()
@@ -93,7 +93,7 @@ function getQuery(
     ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${dateFilters}
     GROUP BY group_id, span_operation, domain, description
-    ORDER BY ${orderBy ?? 'count'} desc
+    ORDER BY ${(orderBy && orderBy !== '-time_spent_percentage') ?? 'count'} desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 }
 
