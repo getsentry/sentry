@@ -321,15 +321,18 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
+    def create_pr_issues(self):
+        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
+        self.add_pr_to_commit(commit_1)
+        self.add_groupowner_to_commit(commit_1, self.project, self.user)
+        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow(self, get_jwt, mock_issues):
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit_1)
-        self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+        self.create_pr_issues()
 
         groups = [g.id for g in Group.objects.all()]
         mock_issues.return_value = [
@@ -366,6 +369,20 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_feature_flag(self, mock_issues):
+        self.create_pr_issues()
+
+        pr_comment.comment_workflow()
+
+        assert not mock_issues.called
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.models.Group.objects.get_from_cache")
+    @with_feature("organizations:pr-comment-bot")
+    def test_comment_workflow_missing_group(self, mock_group, mock_issues):
+        self.create_pr_issues()
+
+        mock_group.side_effect = Group.DoesNotExist
+
         pr_comment.comment_workflow()
 
         assert not mock_issues.called
@@ -377,10 +394,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_repo(self, mock_format_comment, mock_repository, mock_issues):
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit_1)
-        self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+        self.create_pr_issues()
 
         mock_repository.get.side_effect = Repository.DoesNotExist
         pr_comment.comment_workflow()
@@ -398,10 +412,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_integration(self, mock_format_comment, mock_issues):
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        self.add_pr_to_commit(commit_1)
-        self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
+        self.create_pr_issues()
 
         # invalid integration id
         self.gh_repo.integration_id = 0
