@@ -34,7 +34,6 @@ def test_produce() -> None:
     }
 
     value = json.dumps(set_metric).encode("utf-8")
-    # data = KafkaPayload(None, value, [])
 
     produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
     assert produced_message is not None
