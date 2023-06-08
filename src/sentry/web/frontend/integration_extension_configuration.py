@@ -84,6 +84,16 @@ class IntegrationExtensionConfigurationView(BaseView):
                             "sentry/pipeline-error.html",
                             {"error": "Installation link expired"},
                         )
+                else:
+                    logger.info(
+                        "integration-extension-config.no-permission",
+                        extra=log_params,
+                    )
+            else:
+                logger.info(
+                    "integration-extension-config.no-features",
+                    extra=log_params,
+                )
 
         logger.info("integration-extension-config.redirect", extra=log_params)
         # if anything before fails, we give up and send them to the link page where we can display errors
