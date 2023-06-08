@@ -184,8 +184,17 @@ describe('projectGeneralSettings', function () {
     );
   });
 
-  it('displays transfer/remove message for non-admins', function () {
-    routerContext.context.organization.access = ['org:read'];
+  it('displays transfer/remove message for org-members', function () {
+    routerContext.context.organization.access = [];
+    const noAccessProject = {
+      ...TestStubs.ProjectDetails(),
+      access: [],
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: noAccessProject,
+    });
 
     const {container} = render(
       <ProjectGeneralSettings params={{projectId: project.slug}} />,
@@ -200,9 +209,19 @@ describe('projectGeneralSettings', function () {
     );
   });
 
-  it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+  it('disables the form for org-members', function () {
+    const readOnlyOrg = TestStubs.Organization({access: []});
     routerContext.context.organization = readOnlyOrg;
+
+    const noAccessProject = {
+      ...TestStubs.ProjectDetails(),
+      access: [],
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: noAccessProject,
+    });
 
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
       context: routerContext,
@@ -211,8 +230,57 @@ describe('projectGeneralSettings', function () {
 
     // no textboxes are enabled
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
-
     expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
+  });
+
+  it('enables the form for org-owners and org-managers', function () {
+    const allAccessOrg = TestStubs.Organization({
+      access: ['project:read', 'project:write', 'project:admin'],
+    });
+    routerContext.context.organization = allAccessOrg;
+
+    const noAccessProject = {
+      ...TestStubs.ProjectDetails(),
+      access: [],
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: noAccessProject,
+    });
+
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
+      context: routerContext,
+      organization: allAccessOrg,
+    });
+
+    // no textboxes are enabled
+    screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeEnabled());
+    expect(screen.getByTestId('project-permission-alert')).not.toBeInTheDocument();
+  });
+
+  it('enables the form for team-admins', function () {
+    const readOnlyOrg = TestStubs.Organization({access: []});
+    routerContext.context.organization = readOnlyOrg;
+
+    const noAccessProject = {
+      ...TestStubs.ProjectDetails(),
+      access: ['project:read', 'project:write', 'project:admin'],
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: noAccessProject,
+    });
+
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
+      context: routerContext,
+      organization: readOnlyOrg,
+    });
+
+    // no textboxes are enabled
+    screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeEnabled());
+    expect(screen.getByTestId('project-permission-alert')).not.toBeInTheDocument();
   });
 
   it('changing project platform updates ProjectsStore', async function () {

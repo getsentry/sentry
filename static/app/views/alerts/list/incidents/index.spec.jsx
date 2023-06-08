@@ -199,6 +199,14 @@ describe('IncidentsList', () => {
       access: [],
     };
 
+    ProjectsStore.reset();
+    ProjectsStore.loadInitialData([
+      {
+        ...TestStubs.Project(),
+        access: [],
+      },
+    ]);
+
     renderComponent({organization: noAccessOrg});
     expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
