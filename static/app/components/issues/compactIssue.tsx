@@ -95,7 +95,7 @@ class CompactIssue extends Component<Props, State> {
     issue: this.props.data || GroupStore.get(this.props.id),
   };
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.id !== this.props.id) {
       this.setState({
         issue: GroupStore.get(this.props.id),
