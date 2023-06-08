@@ -1,4 +1,4 @@
-from fixtures.integrations import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.shared_integrations.exceptions import ApiError
 
 
