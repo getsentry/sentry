@@ -148,6 +148,6 @@ def parse_integration_from_request(request: HttpRequest, provider: str) -> Integ
         path=request.path,
         provider=provider,
         query_params=request.GET,
-        method=request.method,
+        method=request.method if request.method else "POST",
     )
     return Integration.objects.filter(id=rpc_integration.id).first()

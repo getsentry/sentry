@@ -45,9 +45,10 @@ class JiraRequestParser(BaseRequestParser):
             return parse_integration_from_request(request=self.request, provider=self.provider)
         except AtlassianConnectValidationError as e:
             logger.error("auth_invalid", extra={"error": e, "path": self.request.path})
+        return None
 
     def get_response(self):
-        view_class = self.match.func.view_class
+        view_class = self.match.func.view_class  # type: ignore
         if view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
