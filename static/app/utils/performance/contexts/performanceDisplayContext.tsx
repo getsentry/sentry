@@ -1,9 +1,9 @@
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {createDefinedContext} from './utils';
 
 type useCurrentPerformanceView = {
-  performanceType: PROJECT_PERFORMANCE_TYPE;
+  performanceType: ProjectPerformanceType;
 };
 
 const [PerformanceDisplayProvider, _usePerformanceDisplayType] =
@@ -13,6 +13,6 @@ const [PerformanceDisplayProvider, _usePerformanceDisplayType] =
 
 export {PerformanceDisplayProvider};
 
-export function usePerformanceDisplayType(): PROJECT_PERFORMANCE_TYPE {
+export function usePerformanceDisplayType(): ProjectPerformanceType {
   return _usePerformanceDisplayType().performanceType;
 }
