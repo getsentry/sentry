@@ -273,7 +273,7 @@ function SpanMetricsTable({
   const {isLoading: areSpansLoading, data: spansData} = useSpanList(
     filter ?? ModuleName.ALL,
     transaction,
-    'count',
+    '-time_spent_percentage',
     SPANS_TABLE_LIMIT
   );
 
