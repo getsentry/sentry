@@ -25,7 +25,7 @@ type Row = {
 };
 
 type Props = {
-  span: IndexedSpan;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -83,7 +83,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: IndexedSpan;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
