@@ -122,6 +122,7 @@ PREVIOUS_STATUSES = {
     GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
     GroupHistoryStatus.ESCALATING: (
         GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
+        GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET,
         GroupHistoryStatus.IGNORED,
     ),
 }
