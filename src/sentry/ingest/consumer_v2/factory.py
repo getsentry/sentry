@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping, NamedTuple, Optional
 
-from arroyo import Topic
+from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -20,7 +20,8 @@ from django.conf import settings
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
 from sentry.snuba.utils import initialize_consumer_state
-from sentry.utils import kafka_config
+from sentry.utils import kafka_config, metrics
+from sentry.utils.arroyo import MetricsWrapper
 
 
 class MultiProcessConfig(NamedTuple):
@@ -74,6 +75,8 @@ def get_ingest_consumer(
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
+    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
+
     topic = force_topic or ConsumerType.get_topic_name(consumer_type)
     consumer_config = get_config(
         topic,
@@ -84,14 +87,12 @@ def get_ingest_consumer(
     )
     consumer = KafkaConsumer(consumer_config)
 
-    # The `attachments` topic that is used for "complex" events needs ordering
-    # guarantees: Attachments have to be written before the event using them
-    # is being processed. We will use a simple serial `RunTask` for those
+    # The attachments consumer that is used for multiple message types needs
+    # ordering guarantees: Attachments have to be written before the event using
+    # them is being processed. We will use a simple serial `RunTask` for those
     # for now.
-    # For all other topics, we can use multi processing.
-    allow_multi_processing = topic != settings.KAFKA_INGEST_ATTACHMENTS
     multi_process = None
-    if processes > 1 and allow_multi_processing:
+    if processes > 1 and consumer_type != ConsumerType.Attachments:
         multi_process = MultiProcessConfig(
             num_processes=processes,
             max_batch_size=max_batch_size,
