@@ -6,5 +6,5 @@ type Props = {
 
 export default function ThroughputCell({throughputPerSecond}: Props) {
   const throughput = throughputPerSecond ? throughputPerSecond.toFixed(2) : '--';
-  return <span>{`${throughput}/${t('sec')}`}</span>;
+  return <span>{`${throughput}/${t('s')}`}</span>;
 }
