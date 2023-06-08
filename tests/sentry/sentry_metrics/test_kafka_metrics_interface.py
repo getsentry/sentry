@@ -19,6 +19,8 @@ def test_produce() -> None:
     broker.create_topic(my_topic, partitions=1)
 
     metrics_backend = KafkaMetricsBackend()
+    # add comment for explanation
+    metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 
@@ -28,8 +30,11 @@ def test_produce() -> None:
     metric_name = "my_metric"
     values = [2, 3]
     tags = {"a": "b"}
+    retention = 90
 
-    metrics_backend.set(use_case_id, org_id, project_id, metric_name, values, tags)
+    metrics_backend.set(
+        use_case_id, org_id, project_id, metric_name, values, tags, retention_days=retention
+    )
 
     set_metric = {
         "org_id": org_id,
@@ -44,6 +49,5 @@ def test_produce() -> None:
     value = json.dumps(set_metric).encode("utf-8")
 
     produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
-    assert produced_message is not None
     assert produced_message.payload.value == value
     assert broker_storage.consume(Partition(my_topic, 0), 1) is None

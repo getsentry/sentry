@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from concurrent.futures import Future
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
-from arroyo.backends.kafka import KafkaPayload, build_kafka_configuration
-from arroyo.types import BrokerValue
-from confluent_kafka import Producer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
 from sentry.sentry_metrics.metrics_interface import GenericMetricsBackend
@@ -21,13 +18,13 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
-# def set_future(f: Future[BrokerValue[KafkaPayload]]) -> Union[Future[None], Future[Any]]:
-#     new_future: Union[Future[None], Future[Any]] = Future()
+# def set_future(f: Future[BrokerValue[KafkaPayload]]) -> Future[None]:
+#     new_future: Future[None] = Future()
 
 #     if f.exception() is not None:
 #         new_future.set_exception(f.exception())
 #     else:
-#         new_future.set_result(f.result)
+#         new_future.set_result(None)
 
 #     return new_future
 
@@ -42,7 +39,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         producer_config.pop("compression.type", None)
         producer_config.pop("message.max.bytes", None)
-        self.producer = Producer(build_kafka_configuration(default_config=producer_config))
+        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
     def counter(
         self,
@@ -53,8 +50,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Union[int, float],
         tags: Mapping[str, str],
         unit: Optional[str] = None,
-        retention_days: Optional[int] = 90,
-    ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
+        retention_days: Optional[int] = None,
+    ) -> None:
 
         """
         Emit a counter metric for internal use cases only.
@@ -86,8 +83,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[int],
         tags: Mapping[str, str],
         unit: Optional[str] = None,
-        retention_days: Optional[int] = 90,
-    ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
+        retention_days: Optional[int] = None,
+    ) -> None:
 
         """
         Emit a set metric for internal use cases only. Can support
@@ -119,8 +116,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[Union[int, float]],
         tags: Mapping[str, str],
         unit: Optional[str] = None,
-        retention_days: Optional[int] = 90,
-    ) -> Optional[Future[BrokerValue[KafkaPayload]]]:
+        retention_days: Optional[int] = None,
+    ) -> None:
 
         """
         Emit a distribution metric for internal use cases only. Can
@@ -142,5 +139,5 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         return original_future
 
-    def flush_producer(self):
-        self.producer.flush()
+    def close(self):
+        self.producer.close()
