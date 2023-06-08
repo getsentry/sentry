@@ -134,11 +134,7 @@ describe('ExceptionStacktraceContent', function () {
 
   it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', function () {
     render(
-      <ExceptionStacktraceContent
-        {...props}
-        stackView={StackView.APP}
-        chainedException
-      />
+      <ExceptionStacktraceContent {...props} stackView={StackView.APP} chainedException />
     );
 
     for (const frame of frames) {
