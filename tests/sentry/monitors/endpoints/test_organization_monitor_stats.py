@@ -34,6 +34,14 @@ class OrganizationMonitorStatsTest(MonitorTestCase):
         )
         MonitorCheckIn.objects.create(
             monitor=self.monitor,
+            monitor_environment=monitor_environment_production,
+            project_id=self.project.id,
+            duration=None,
+            date_added=self.monitor.date_added + timedelta(minutes=1),
+            status=CheckInStatus.IN_PROGRESS,
+        )
+        MonitorCheckIn.objects.create(
+            monitor=self.monitor,
             monitor_environment=monitor_environment_debug,
             project_id=self.project.id,
             duration=2000,
@@ -90,6 +98,7 @@ class OrganizationMonitorStatsTest(MonitorTestCase):
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
         assert hour_one["timeout"] == 0
+        assert "in_progress" not in hour_one
 
         assert hour_two["duration"] == 2500
         assert hour_two["ok"] == 0
