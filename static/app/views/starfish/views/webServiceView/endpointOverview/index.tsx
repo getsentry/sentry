@@ -264,7 +264,7 @@ export default function EndpointOverview() {
             {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
             <SubHeader>{t('Sample Events')}</SubHeader>
-            <TransactionSamplesTable eventView={eventView} />
+            <TransactionSamplesTable queryConditions={queryConditions} />
           </Layout.Main>
           <Layout.Side>
             {renderSidebarCharts()}
