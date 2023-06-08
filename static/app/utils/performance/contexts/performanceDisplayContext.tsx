@@ -2,12 +2,12 @@ import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {createDefinedContext} from './utils';
 
-type useCurrentPerformanceView = {
+type UseCurrentPerformanceView = {
   performanceType: ProjectPerformanceType;
 };
 
 const [PerformanceDisplayProvider, _usePerformanceDisplayType] =
-  createDefinedContext<useCurrentPerformanceView>({
+  createDefinedContext<UseCurrentPerformanceView>({
     name: 'CurrentPerformanceViewContext',
   });
 
