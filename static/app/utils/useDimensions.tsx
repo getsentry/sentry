@@ -4,8 +4,8 @@ import {useResizeObserver} from '@react-aria/utils';
 /**
  * Returns a ref to be added to an element and returns the dimensions of that element
  */
-export function useDimensions() {
-  const elementRef = useRef<HTMLDivElement>(null);
+export function useDimensions<Element extends HTMLElement>() {
+  const elementRef = useRef<Element>(null);
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
 
   const onResize = useCallback(() => {
