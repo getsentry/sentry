@@ -1,7 +1,7 @@
 from datetime import datetime
 from threading import Thread
 from time import sleep
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -194,14 +194,18 @@ def _run_queue_stats_updater(redis_cluster: str) -> None:
 
         try:
             strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
-            queue_health = [
-                (queue, count >= strike_threshold) for (queue, count) in queue_history.items()
-            ]
+            queue_health = _list_queues_over_threshold(strike_threshold, queue_history)
             _update_queue_stats(cluster, queue_health)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
         sleep(options.get("backpressure.monitor_queues.check_interval"))
+
+
+def _list_queues_over_threshold(
+    strike_threshold: int, queue_history: Dict[str, int]
+) -> List[Tuple[str, int]]:
+    return [(queue, count >= strike_threshold) for (queue, count) in queue_history.items()]
 
 
 def monitor_queues():

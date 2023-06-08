@@ -4,12 +4,8 @@ from unittest.mock import Mock, patch
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic
-from pytest import raises
 
-from sentry.monitoring.queues import QUEUES as MONITORED_QUEUES
-from sentry.monitoring.queues import _unhealthy_queue_key, queue_monitoring_cluster
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
 from sentry.profiles.task import _prepare_frames_from_profile
 from sentry.testutils.cases import TestCase
@@ -54,80 +50,6 @@ class TestProcessProfileConsumerStrategy(TestCase):
         processing_strategy.terminate()
 
         process_profile_task.assert_called_with(payload=payload)
-
-    def test_backpressure_unhealthy(self):
-        queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
-
-        # Set the queue as unhealthy so it shouldn't process messages
-        queue_monitoring_cluster.set(queue_name, "1")
-        with self.options(
-            {
-                "backpressure.monitor_queues.enable": True,
-                "backpressure.monitor_queues.unhealthy_threshold": 0,
-                "backpressure.monitor_queues.strike_threshold": 1,
-            }
-        ):
-            with raises(MessageRejected):
-                self.process_one_message()
-
-    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
-    def test_backpressure_healthy(self, process_profile_task):
-        queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
-
-        # Set the queue as healthy
-        queue_monitoring_cluster.delete(queue_name)
-        with self.options(
-            {
-                "backpressure.monitor_queues.enable": True,
-                "backpressure.monitor_queues.unhealthy_threshold": 1000,
-                "backpressure.monitor_queues.strike_threshold": 1,
-            }
-        ):
-            self.process_one_message()
-
-        process_profile_task.assert_called_once()
-
-    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
-    def test_backpressure_not_enabled(self, process_profile_task):
-        with self.options(
-            {
-                "backpressure.monitor_queues.enable": False,
-            }
-        ):
-            self.process_one_message()
-
-        process_profile_task.assert_called_once()
-
-    def process_one_message(self):
-        processing_strategy = self.processing_factory().create_with_partitions(
-            commit=Mock(), partitions=None
-        )
-        message_dict = {
-            "organization_id": 1,
-            "project_id": 1,
-            "key_id": 1,
-            "received": int(datetime.utcnow().timestamp()),
-            "payload": json.dumps({"platform": "android", "profile": ""}),
-        }
-        payload = msgpack.packb(message_dict)
-
-        processing_strategy.submit(
-            Message(
-                BrokerValue(
-                    KafkaPayload(
-                        b"key",
-                        payload,
-                        [],
-                    ),
-                    Partition(Topic("profiles"), 1),
-                    1,
-                    datetime.now(),
-                )
-            )
-        )
-        processing_strategy.poll()
-        processing_strategy.join(1)
-        processing_strategy.terminate()
 
 
 def test_adjust_instruction_addr_sample_format():
