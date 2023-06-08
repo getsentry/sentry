@@ -213,4 +213,3 @@ def monitor_queues():
         args=(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER,),
     )
     queue_stats_updater_process.start()
-    queue_stats_updater_process.start()
