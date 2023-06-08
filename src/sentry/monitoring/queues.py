@@ -131,7 +131,7 @@ def is_queue_healthy(queue_name: str) -> bool:
     This behavior might change in the future.
     """
 
-    if not options.get("backpressure.monitor_queues.enable"):
+    if not options.get("backpressure.monitor_queues.enable_check"):
         return True
     # check if queue is healthy by pinging Redis
     try:
@@ -173,7 +173,7 @@ def _update_queue_stats(redis_cluster, queue_history: Dict[str, int]) -> None:
 def _run_queue_stats_updater(redis_cluster: str) -> None:
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
-        if not options.get("backpressure.monitor_queues.enable"):
+        if not options.get("backpressure.monitor_queues.enable_status"):
             sleep(10)
             continue
 
