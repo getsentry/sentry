@@ -533,11 +533,17 @@ def ingest_consumer(consumer_type, **options):
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
+    from arroyo import configure_metrics
+
     from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+    from sentry.utils import metrics
+    from sentry.utils.arroyo import MetricsWrapper
 
     # TODO: Remove options from the old consumer
     options.pop("concurrency", None)
     options.pop("v2_consumer", None)
+
+    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
 
     options["max_batch_time"] = options["max_batch_time"] / 1000
     consumer = get_ingest_consumer(consumer_type, **options)
