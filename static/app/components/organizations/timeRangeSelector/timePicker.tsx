@@ -109,6 +109,10 @@ const TimePicker = styled(
 `;
 
 const Input = styled('input')`
+  &::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
   &.rdrDateDisplayItem {
     width: 100%;
     background: ${p => p.theme.backgroundSecondary};
