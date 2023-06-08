@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -9,14 +8,11 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {generateQueryWithTag} from 'sentry/utils';
+import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatTagKey} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -24,8 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import Tags from 'sentry/views/discover/tags';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
+import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -53,7 +49,6 @@ type State = {
 export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
-  const theme = useTheme();
 
   const {endpoint, method, statsPeriod} = location.query;
   const transaction = endpoint
@@ -84,82 +79,8 @@ export default function EndpointOverview() {
   };
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  function generateTagUrl(key: string, value: string) {
-    const tagQuery = generateQueryWithTag(location.query, {
-      key: formatTagKey(key),
-      value,
-    });
 
-    return {
-      ...location,
-      tagQuery,
-    };
-  }
-
-  function renderFailureRateChart() {
-    return (
-      <EventsRequest
-        query={query.formatString()}
-        includePrevious={false}
-        partial
-        interval="1h"
-        includeTransformedData
-        limit={1}
-        environment={eventView.environment}
-        project={eventView.project}
-        period={eventView.statsPeriod}
-        referrer="starfish-homepage-failure-rate"
-        start={eventView.start}
-        end={eventView.end}
-        organization={organization}
-        yAxis="http_error_count()"
-        dataset={DiscoverDatasets.METRICS}
-      >
-        {eventData => {
-          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
-            series => ({
-              data: series.data,
-              seriesName: t('Errors (5XXs)'),
-              color: CHART_PALETTE[5][3],
-              silent: true,
-            })
-          );
-
-          if (!transformedData) {
-            return null;
-          }
-
-          return (
-            <Fragment>
-              <Header>
-                <ChartLabel>{DataTitles.errorCount}</ChartLabel>
-              </Header>
-              <Chart
-                statsPeriod={eventView.statsPeriod}
-                height={80}
-                data={transformedData}
-                start={eventView.start as string}
-                end={eventView.end as string}
-                loading={eventData.loading}
-                utc={false}
-                grid={{
-                  left: '8px',
-                  right: '0',
-                  top: '8px',
-                  bottom: '0',
-                }}
-                definedAxisTicks={2}
-                isLineChart
-                chartColors={[CHART_PALETTE[5][3]]}
-              />
-            </Fragment>
-          );
-        }}
-      </EventsRequest>
-    );
-  }
-
-  function renderThroughputChart() {
+  function renderSidebarCharts() {
     return (
       <EventsRequest
         query={query.formatString()}
@@ -175,11 +96,11 @@ export default function EndpointOverview() {
         start={pageFilter.selection.datetime.start}
         end={pageFilter.selection.datetime.end}
         organization={organization}
-        yAxis={['tps()']}
+        yAxis={['tps()', 'p95()', 'http_error_count()']}
         dataset={DiscoverDatasets.METRICS}
       >
-        {({loading, timeseriesData}) => {
-          if (!timeseriesData) {
+        {({loading, results}) => {
+          if (!results) {
             return null;
           }
           return (
@@ -190,14 +111,15 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
-                data={timeseriesData}
+                data={[results[0]]}
                 start=""
                 end=""
                 loading={loading}
                 utc={false}
                 isLineChart
                 definedAxisTicks={2}
-                chartColors={[theme.charts.getColorPalette(0)[0]]}
+                disableXAxis
+                chartColors={[THROUGHPUT_COLOR]}
                 grid={{
                   left: '8px',
                   right: '0',
@@ -207,6 +129,55 @@ export default function EndpointOverview() {
                 tooltipFormatterOptions={{
                   valueFormatter: value => t('%s/sec', value.toFixed(2)),
                 }}
+              />
+              <SidebarSpacer />
+              <Header>
+                <ChartLabel>{DataTitles.p95}</ChartLabel>
+              </Header>
+              <Chart
+                statsPeriod={(statsPeriod as string) ?? '24h'}
+                height={80}
+                data={[results[1]]}
+                start=""
+                end=""
+                loading={loading}
+                utc={false}
+                isLineChart
+                definedAxisTicks={2}
+                disableXAxis
+                chartColors={[P95_COLOR]}
+                grid={{
+                  left: '8px',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                tooltipFormatterOptions={{
+                  valueFormatter: value =>
+                    tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                }}
+              />
+              <SidebarSpacer />
+              <Header>
+                <ChartLabel>{DataTitles.errorCount}</ChartLabel>
+              </Header>
+              <Chart
+                statsPeriod={eventView.statsPeriod}
+                height={80}
+                data={[results[2]]}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={loading}
+                utc={false}
+                grid={{
+                  left: '8px',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                definedAxisTicks={2}
+                isLineChart
+                chartColors={[ERRORS_COLOR]}
               />
             </Fragment>
           );
@@ -253,17 +224,8 @@ export default function EndpointOverview() {
             <TransactionSamplesTable eventView={eventView} />
           </Layout.Main>
           <Layout.Side>
-            {renderThroughputChart()}
+            {renderSidebarCharts()}
             <SidebarSpacer />
-            {renderFailureRateChart()}
-            <SidebarSpacer />
-            <Tags
-              generateUrl={generateTagUrl}
-              totalValues={null}
-              eventView={eventView}
-              organization={organization}
-              location={location}
-            />
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
