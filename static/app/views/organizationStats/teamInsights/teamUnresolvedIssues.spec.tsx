@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamUnresolvedIssues from 'sentry/views/organizationStats/teamInsights/teamUnresolvedIssues';
+import {TeamUnresolvedIssues} from 'sentry/views/organizationStats/teamInsights/teamUnresolvedIssues';
 
 describe('TeamUnresolvedIssues', () => {
   it('should render graph with table with % change', () => {
