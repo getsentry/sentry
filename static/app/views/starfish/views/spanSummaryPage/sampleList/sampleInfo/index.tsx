@@ -15,7 +15,7 @@ type Props = {
 function SampleInfo(props: Props) {
   const {groupId, transactionName} = props;
 
-  const {data: spanTransactions} = useSpanTransactions({group_id: groupId});
+  const {data: spanTransactions} = useSpanTransactions({group: groupId});
   const {data: spanMetrics} = useSpanTransactionMetrics(
     {group: groupId},
     spanTransactions.map(row => row.transaction)
