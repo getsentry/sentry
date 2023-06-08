@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
+import {IssueCategory, NewQuery} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -30,6 +30,7 @@ import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable.tsx';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
@@ -53,6 +54,7 @@ export default function EndpointOverview() {
   const pageFilter = usePageFilters();
 
   const [state, setState] = useState<State>({spansFilter: ModuleName.ALL});
+  const [issueFilter, setIssueFilter] = useState<IssueCategory | 'ALL'>('ALL');
 
   const queryConditions = [
     'has:http.method',
@@ -256,6 +258,26 @@ export default function EndpointOverview() {
             <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
             <SubHeader>{t('Sample Events')}</SubHeader>
             <TransactionSamplesTable queryConditions={queryConditions} />
+            <SegmentedControlContainer>
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter issue types')}
+                value={issueFilter}
+                onChange={key => setIssueFilter(key)}
+              >
+                <SegmentedControl.Item key="ALL">{t('All Issues')}</SegmentedControl.Item>
+                <SegmentedControl.Item key={IssueCategory.ERROR}>
+                  {t('Errors Only')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key={IssueCategory.PERFORMANCE}>
+                  {t('Performance Only')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
+            </SegmentedControlContainer>
+            <IssuesTable
+              issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
+              transactionName={transaction}
+            />
           </Layout.Main>
           <Layout.Side>
             {renderSidebarCharts()}
