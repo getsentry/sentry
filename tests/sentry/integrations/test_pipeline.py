@@ -119,7 +119,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.signals.integration_added.send_robust")
     def test_provider_should_not_check_region_violation(self, *args):
-        """Ensures we don't reject regions if `provider.is_region_restricted` is set to True"""
+        """Ensures we don't reject regions if `provider.is_region_restricted` is set to False"""
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
             "sentry.integrations.pipeline.is_violating_region_restriction"
