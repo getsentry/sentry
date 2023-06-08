@@ -70,7 +70,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         description="The name of environments to filter by.",
     )
 
-    def NAME(description: str, required: str = False) -> str:
+    def NAME(description: str, required: bool = False) -> str:
         return OpenApiParameter(
             name="name",
             location="query",
@@ -79,7 +79,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
             description=description,
         )
 
-    def SLUG(description: str, required: str = False) -> str:
+    def SLUG(description: str, required: bool = False) -> str:
         return OpenApiParameter(
             name="slug",
             location="query",
