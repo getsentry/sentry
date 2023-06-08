@@ -462,9 +462,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                     },
                 )
                 raise IntegrationProviderError(
-                    "You do not have sufficient account access to create webhooks\n"
-                    "on the selected Azure DevOps organization.\n"
-                    "Please check with the owner of this Azure DevOps account."
+                    "Sentry cannot communicate with this Azure DevOps organization.\n"
+                    "Please ensure third-party app access via OAuth is enabled \n"
+                    "in the organization's security policy."
                 )
             raise e
 

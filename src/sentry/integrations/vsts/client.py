@@ -24,25 +24,51 @@ INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not vali
 
 
 class VstsApiPath:
+    """
+    Endpoints used by the Azure Devops (Formerly 'Visual Studios Team Services') integration client.
+    Last Updated: 06/2023
+    """
+
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get
     commit = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get-commits
     commits = "{instance}_apis/git/repositories/{repo_id}/commits"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get-commits-batch
     commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get-changes
     commits_changes = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/get
     project = "{instance}_apis/projects/{project_id}"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list
     projects = "{instance}_apis/projects"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/repositories/get-repository
     repository = "{instance}{project}_apis/git/repositories/{repo_id}"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/repositories/list
     repositories = "{instance}{project}_apis/git/repositories"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/hooks/subscriptions/get
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/hooks/subscriptions/delete
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/hooks/subscriptions/replace-subscription
     subscription = "{instance}_apis/hooks/subscriptions/{subscription_id}"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/hooks/subscriptions/create
     subscriptions = "{instance}_apis/hooks/subscriptions"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/get-work-item
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/update
     work_items = "{instance}_apis/wit/workitems/{id}"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/create
     work_items_create = "{instance}{project}/_apis/wit/workitems/${type}"
-    # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/search/work-item-search-results/fetch-work-item-search-results
     work_item_search = (
+        # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
         "https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults"
     )
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-item-type-states/list
     work_item_states = "{instance}{project}/_apis/wit/workitemtypes/{type}/states"
-    # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
-    users = "https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/graph/users/get
+    users = (
+        # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
+        "https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
+    )
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-item-type-categories/list
     work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
@@ -166,15 +192,23 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(VstsApiPath.work_items.format(instance=instance, id=id))
 
     def get_work_item_states(self, instance: str, project: str) -> Response:
-        return self.get(
-            VstsApiPath.work_item_states.format(
-                instance=instance,
-                project=project,
-                # TODO(lb): might want to make this custom like jira at some point
-                type="Bug",
-            ),
-            api_preview=True,
-        )
+        # XXX: Until we add the option to enter the 'WorkItemType' for syncing status changes from
+        # Sentry to Azure DevOps, we need will attempt to use the sequence below. There are certain
+        # ADO configurations which don't have 'Bug' or 'Issue', hence iterating until we find a match.
+        check_sequence = ["Bug", "Issue", "Task"]
+        response = None
+        for check_type in check_sequence:
+            response = self.get(
+                VstsApiPath.work_item_states.format(
+                    instance=instance,
+                    project=project,
+                    type=check_type,
+                ),
+                api_preview=True,
+            )
+            if response.get("count", 0) > 0:
+                break
+        return response
 
     def get_work_item_categories(self, instance: str, project: str) -> Response:
         return self.get(VstsApiPath.work_item_categories.format(instance=instance, project=project))
