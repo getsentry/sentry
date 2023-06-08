@@ -21,7 +21,7 @@ type Metric = {
 };
 
 export const useSpanTransactionMetricSeries = (
-  span?: IndexedSpan,
+  span?: Pick<IndexedSpan, 'group'>,
   transactions?: string[],
   referrer: string = 'span-transaction-metrics-series'
 ) => {

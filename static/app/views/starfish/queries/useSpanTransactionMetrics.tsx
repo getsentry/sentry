@@ -32,7 +32,7 @@ export const useSpanTransactionMetrics = (
     SELECT
       transaction,
       quantile(0.5)(exclusive_time) as p50,
-      quantile(0.5)(exclusive_time) as p95,
+      quantile(0.95)(exclusive_time) as p95,
       sum(exclusive_time) as "sum(span.self_time)",
       sum(exclusive_time) as total_time,
       divide(count(), ${

@@ -11,7 +11,7 @@ type Transaction = {
 };
 
 export const useSpanTransactions = (
-  span?: IndexedSpan,
+  span?: Pick<IndexedSpan, 'group'>,
   referrer = 'span-transactions'
 ) => {
   const pageFilters = usePageFilters();
