@@ -4,8 +4,7 @@ import moment from 'moment';
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
-
-type ResolutionValue = '1h' | '24h' | '7d' | '30d';
+import {ResolutionValue} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 interface Props {
   end: Date;
@@ -13,11 +12,17 @@ interface Props {
 }
 
 interface ResolutionOptions {
-  // Props to pass to <DateTime> when displaying a time marker
+  /**
+   * Props to pass to <DateTime> when displaying a time marker
+   */
   dateTimeProps: {dateOnly?: boolean; timeOnly?: boolean};
-  // The elapsed minutes based on the selected resolution
+  /**
+   * The elapsed minutes based on the selected resolution
+   */
   elapsedMinutes: number;
-  // The interval between each grid line and time label in minutes
+  /**
+   * The interval between each grid line and time label in minutes
+   */
   timeMarkerInterval: number;
 }
 
@@ -71,7 +76,7 @@ function getTimeMarkers(end: Date, resolution: string, width: number): TimeMarke
 }
 
 export function GridLineTimeLabels({end, resolution}: Props) {
-  const {elementRef, width} = useDimensions();
+  const {elementRef, width} = useDimensions<HTMLDivElement>();
   return (
     <LabelsContainer ref={elementRef}>
       {getTimeMarkers(end, resolution, width).map(({date, position}) => (
@@ -84,7 +89,7 @@ export function GridLineTimeLabels({end, resolution}: Props) {
 }
 
 export function GridLineOverlay({end, resolution}: Props) {
-  const {elementRef, width} = useDimensions();
+  const {elementRef, width} = useDimensions<HTMLDivElement>();
   return (
     <Overlay ref={elementRef}>
       <GridLineContainer>
