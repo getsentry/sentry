@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
 class _DefaultEnumHelpers:
@@ -20,19 +21,19 @@ class _DefaultEnumHelpers:
     def get_default_team_status_value() -> int:
         from sentry.models import TeamStatus
 
-        return TeamStatus.ACTIVE.value  # type: ignore[no-any-return]
+        return TeamStatus.ACTIVE.value
 
     @staticmethod
     def get_default_invite_status_value() -> int:
         from sentry.models import InviteStatus
 
-        return InviteStatus.APPROVED.value  # type: ignore[no-any-return]
+        return InviteStatus.APPROVED.value
 
     @staticmethod
     def get_default_organization_status_value() -> int:
         from sentry.models import OrganizationStatus
 
-        return OrganizationStatus.ACTIVE.value  # type: ignore[no-any-return]
+        return OrganizationStatus.ACTIVE.value
 
 
 class RpcTeam(RpcModel):
@@ -84,6 +85,12 @@ class RpcOrganizationMemberFlags(RpcModel):
         item = escape_flag_name(item)
         return bool(getattr(self, item))
 
+    def __setattr__(self, item: str, value: bool) -> None:
+        from sentry.services.hybrid_cloud.organization.serial import escape_flag_name
+
+        item = escape_flag_name(item)
+        super().__setattr__(item, value)
+
     def __getitem__(self, item: str) -> bool:
         return bool(getattr(self, item))
 
@@ -102,6 +109,11 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
+    token: str = ""
+    is_pending: bool = False
+    invite_approved: bool = False
+    token_expired: bool = False
+    legacy_token: str = ""
     email: str = ""
 
     def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
@@ -140,7 +152,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -188,3 +200,23 @@ class RpcUserOrganizationContext(RpcModel):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+
+
+class RpcUserInviteContext(RpcUserOrganizationContext):
+    """
+    A context containing an intended organization member object as a potential invite, and the true
+    inner organization member state as found for a given user_id if it exists, or just the organization
+    member state of the invite if none such exists.
+    """
+
+    invite_organization_member_id: Optional[int] = 0
+
+
+class RpcRegionUser(RpcModel):
+    """
+    Represents user information that may be propagated to each region that a user belongs to, often to make
+    more performant queries on organization member information.
+    """
+
+    id: int = -1
+    is_active: bool = True

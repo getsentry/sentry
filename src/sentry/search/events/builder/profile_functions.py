@@ -1,10 +1,11 @@
 from typing import Optional, Protocol
 
 from snuba_sdk import Column
+from snuba_sdk.function import Function
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SelectType, SnubaParams
 
 
 class ProfileFunctionsQueryBuilderProtocol(Protocol):
@@ -39,4 +40,24 @@ class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuild
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
-    pass
+    @property
+    def time_column(self) -> SelectType:
+        return Function(
+            "toDateTime",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "intDiv",
+                            [
+                                Function("toUInt32", [Column("timestamp")]),
+                                self.interval,
+                            ],
+                        ),
+                        self.interval,
+                    ],
+                ),
+            ],
+            "time",
+        )

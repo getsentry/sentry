@@ -329,15 +329,13 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
     transaction_query = QueryBuilder(
-        Dataset.Transactions,
+        Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
         selected_columns=[],
         limit=MAX_TRACE_SIZE,
     )
-    transaction_query.columns.append(
-        Function("sum", [Function("length", [Column("group_ids")])], "total_groups")
-    )
+    transaction_query.columns.append(Function("count()", alias="total_groups"))
     count = transaction_query.run_query("api.trace-view.count-performance-issues")
     return cast(int, count["data"][0].get("total_groups", 0))
 
@@ -401,7 +399,7 @@ def query_trace_data(
     )
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)

@@ -77,10 +77,6 @@ class OrganizationMemberSerializer(serializers.Serializer):
         return self.validate_orgRole(role)
 
     def validate_orgRole(self, role):
-        if features.has("organizations:team-roles", self.context["organization"]):
-            if role in {r.id for r in organization_roles.get_all() if r.is_retired}:
-                raise serializers.ValidationError("This org-level role has been deprecated")
-
         if role not in {r.id for r in self.context["allowed_roles"]}:
             raise serializers.ValidationError(
                 "You do not have permission to set that org-level role"
@@ -126,8 +122,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 invite_status=InviteStatus.APPROVED.value,
             )
-            .select_related("user")
-            .order_by("email", "user__email")
+            # TODO(hybridcloud) Cross silo joins here.
+            .select_related("user").order_by("email", "user__email")
         )
 
         query = request.GET.get("query")
@@ -140,6 +136,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         | Q(user__email__in=value)
                         | Q(user__emails__email__in=value)
                     )
+
+                elif key == "id":
+                    queryset = queryset.filter(id__in=value)
+
+                elif key == "user.id":
+                    queryset = queryset.filter(user__id__in=value)
 
                 elif key == "scope":
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
@@ -163,6 +165,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.filter(flags=F("flags").bitand(~ssoFlag))
 
                 elif key == "has2fa":
+                    # TODO(hybridcloud) Cross silo joins here.
                     has2fa = "true" in value
                     if has2fa:
                         types = [a.type for a in available_authenticators(ignore_backup=True)]
@@ -172,22 +175,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
                 elif key == "hasExternalUsers":
+                    externalactor_user_ids = ExternalActor.objects.filter(
+                        organization=organization,
+                    ).values_list("actor__user_id", flat=True)
+
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
-                        queryset = queryset.filter(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        queryset = queryset.filter(user_id__in=externalactor_user_ids)
                     else:
-                        queryset = queryset.exclude(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
-
+                        queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
+                    # TODO(hybridcloud) Cross silo joins.
                     queryset = queryset.filter(
                         Q(email__icontains=value)
                         | Q(user__email__icontains=value)
@@ -261,7 +260,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        region_outbox = None
         with transaction.atomic():
             # remove any invitation requests for this email before inviting
             existing_invite = OrganizationMember.objects.filter(
@@ -283,9 +281,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
-            region_outbox = om.save_outbox_for_create()
-        if region_outbox:
-            region_outbox.drain_shard(max_updates_to_drain=10)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

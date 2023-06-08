@@ -69,6 +69,7 @@ class AsyncComponent<
   constructor(props: P, context: any) {
     super(props, context);
 
+    this.api = new Client();
     this.fetchData = wrapErrorHandling(this, this.fetchData.bind(this));
     this.render = wrapErrorHandling(this, this.render.bind(this));
 
@@ -82,8 +83,7 @@ class AsyncComponent<
     }
   }
 
-  UNSAFE_componentWillMount() {
-    this.api = new Client();
+  componentDidMount() {
     this.fetchData();
 
     if (this.reloadOnVisible) {
@@ -189,6 +189,7 @@ class AsyncComponent<
   // XXX: can't call this getInitialState as React whines
   getDefaultState(): AsyncComponentState {
     const endpoints = this.getEndpoints();
+
     const state = {
       // has all data finished requesting?
       loading: true,
@@ -197,7 +198,15 @@ class AsyncComponent<
       // is there an error loading ANY data?
       error: false,
       errors: {},
+      // We will fetch immeditaely upon mount
+      remainingRequests: endpoints.length || undefined,
     };
+
+    // We are not loading if there are no endpoints
+    if (!endpoints.length) {
+      state.loading = false;
+    }
+
     endpoints.forEach(([stateKey, _endpoint]) => {
       state[stateKey] = null;
     });

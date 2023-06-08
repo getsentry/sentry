@@ -30,13 +30,24 @@
       "cwd": "${workspaceRoot}"
     },
     {
-      "name": "jest",
+      "name": "jest - current file",
       "type": "node",
       "request": "launch",
-      "protocol": "inspector",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "internalConsoleOptions": "openOnSessionStart",
-      "args": ["--runInBand"]
+      "args": [
+        // this runs one test at a time, rather than running them in parallel
+        // (necessary for debugging so that you know you're hitting a single
+        // test's breakpoints, in order)
+        "--runInBand",
+        "--watch",
+        "--verbose",
+        "${file}"],
+      // if we don't set this, output goes to the VSCode debug terminal, which
+      // only prints the test output if "outputCapture" is also set, and even
+      // then won't print in color
+      "console": "integratedTerminal",
+      // since we're not using it, don't automatically switch to it
+      "internalConsoleOptions": "neverOpen",
     },
     {
       "name": "pytest - current file",

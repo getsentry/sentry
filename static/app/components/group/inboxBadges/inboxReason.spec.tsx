@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
-import {GroupInboxReason, GroupSubstatus} from 'sentry/types';
+import {GroupInboxReason} from 'sentry/types';
 
 describe('InboxReason', () => {
   const inbox = {
@@ -19,21 +19,6 @@ describe('InboxReason', () => {
     render(<InboxReason showDateAdded inbox={inbox} />);
     // Use a pattern so we can work around slowness between beforeEach and here.
     expect(screen.getByText(/\d+(s|ms|m)/i)).toBeInTheDocument();
-  });
-
-  it('displays archived until escalating', async () => {
-    render(
-      <InboxReason
-        inbox={{
-          reason: 'archived',
-          reason_details: {substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING},
-          date_added: inbox.date_added,
-        }}
-      />
-    );
-    expect(screen.getByText('Archived')).toBeInTheDocument();
-    await userEvent.hover(screen.getByText('Archived'));
-    expect(await screen.findByText('Archived until escalating')).toBeInTheDocument();
   });
 
   it('has a tooltip', async () => {
@@ -66,5 +51,18 @@ describe('InboxReason', () => {
     await userEvent.hover(tag);
 
     expect(await screen.findByText('Affected 10 user(s)')).toBeInTheDocument();
+  });
+
+  it('renders unignored with null reason details', () => {
+    render(
+      <InboxReason
+        inbox={{
+          ...inbox,
+          reason: GroupInboxReason.UNIGNORED,
+          reason_details: null,
+        }}
+      />
+    );
+    expect(screen.getByText('Unignored')).toBeInTheDocument();
   });
 });

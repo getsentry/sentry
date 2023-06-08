@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
 from typing_extensions import TypedDict
 
@@ -20,7 +20,7 @@ class RpcUserOption(RpcModel):
 
 
 class UserOptionFilterArgs(TypedDict, total=False):
-    user_ids: Iterable[int]
+    user_ids: List[int]
     keys: List[str]
     key: str
     project_id: Optional[int]

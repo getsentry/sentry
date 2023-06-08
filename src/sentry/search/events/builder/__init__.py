@@ -27,6 +27,11 @@ from .spans_indexed import (  # NOQA
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
 )
+from .spans_metrics import (  # NOQA
+    SpansMetricsQueryBuilder,
+    TimeseriesSpansMetricsQueryBuilder,
+    TopSpansMetricsQueryBuilder,
+)
 
 __all__ = [
     "HistogramQueryBuilder",
@@ -39,6 +44,7 @@ __all__ = [
     "HistogramMetricQueryBuilder",
     "MetricsQueryBuilder",
     "TimeseriesMetricQueryBuilder",
+    "SpansMetricsQueryBuilder",
     "ProfilesQueryBuilder",
     "ProfilesTimeseriesQueryBuilder",
     "ProfileFunctionsQueryBuilder",
@@ -49,4 +55,6 @@ __all__ = [
     "TimeseriesSpanIndexedQueryBuilder",
     "TopEventsSpanIndexedQueryBuilder",
     "TimeseriesSessionsV2QueryBuilder",
+    "TimeseriesSpansMetricsQueryBuilder",
+    "TopSpansMetricsQueryBuilder",
 ]

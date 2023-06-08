@@ -18,7 +18,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["display_name"] = user.get_display_name()
     args["label"] = user.get_label()
     args["is_superuser"] = user.is_superuser
-    args["is_sentry_app"] = user.is_sentry_app or False
+    args["is_sentry_app"] = user.is_sentry_app if user.is_sentry_app is not None else False
     args["password_usable"] = user.has_usable_password()
 
     # Prefer eagerloaded attributes from _base_query

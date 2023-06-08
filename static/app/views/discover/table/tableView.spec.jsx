@@ -285,38 +285,6 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to transaction without project column selected', async function () {
-    rows.data[0]['project.name'] = 'project-slug';
-
-    renderComponent(initialData, rows, eventView);
-    await openContextMenu(2);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: expect.objectContaining({
-        transaction: '/organizations/',
-        project: ['2'],
-      }),
-    });
-  });
-
-  it('handles go to transaction with project column selected', async function () {
-    rows.data[0].project = 'project-slug';
-
-    renderComponent(initialData, rows, eventView);
-    await openContextMenu(2);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: expect.objectContaining({
-        transaction: '/organizations/',
-        project: ['2'],
-      }),
-    });
-  });
-
   it('renders transaction summary link', function () {
     rows.data[0].project = 'project-slug';
 

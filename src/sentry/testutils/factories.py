@@ -21,6 +21,7 @@ from django.utils.encoding import force_text
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -104,9 +105,6 @@ from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallati
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    organizationmember_mapping_service,
-)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -266,27 +264,29 @@ class Factories:
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
-        create_mapping = not kwargs.pop("no_mapping", False)
         org = Organization.objects.create(name=name, **kwargs)
-        if create_mapping:
-            Factories.create_org_mapping(org)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
+
+        region_outbox = Organization.outbox_for_update(org_id=org.id)
+        region_outbox.drain_shard()
         return org
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_org_mapping(org, **kwds):
-        kwds.setdefault("organization_id", org.id)
-        kwds.setdefault("slug", org.slug)
-        kwds.setdefault("name", org.name)
-        kwds.setdefault("idempotency_key", uuid4().hex)
-        kwds.setdefault("region_name", "test-region")
+    def create_org_mapping(org=None, **kwds):
+        if org:
+            kwds.setdefault("organization_id", org.id)
+            kwds.setdefault("slug", org.slug)
+            kwds.setdefault("name", org.name)
+            kwds.setdefault("idempotency_key", uuid4().hex)
+            kwds.setdefault("region_name", "na")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()
+    @in_test_psql_role_override("postgres")
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
@@ -306,7 +306,7 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        organizationmember_mapping_service.create_with_organization_member(org_member=om)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if team_roles:
             for team, role in team_roles:
@@ -320,7 +320,7 @@ class Factories:
     @exempt_from_silo_limits()
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
-            member, _ = OrganizationMember.objects.get_or_create(
+            member, created = OrganizationMember.objects.get_or_create(
                 user_id=user.id if user else None,
                 organization=team.organization,
                 defaults={"role": "member"},

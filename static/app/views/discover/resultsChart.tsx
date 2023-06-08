@@ -196,7 +196,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     yAxisOptions: this.getYAxisOptions(this.props.eventView),
   };
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const yAxisOptions = this.getYAxisOptions(this.props.eventView);
     const nextYAxisOptions = this.getYAxisOptions(nextProps.eventView);
 

@@ -100,7 +100,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
 
   useEffect(() => {
     if (openOnboardingSidebar) {
-      activatePanel(SidebarPanelKey.OnboardingWizard);
+      activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
     }
   }, [openOnboardingSidebar]);
 }
@@ -251,13 +251,6 @@ function Sidebar({location, organization}: Props) {
           id="starfish"
           icon={<SubitemDot collapsed={collapsed} />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Span Explorer')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/spans/`}
-          id="starfish"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
       </SidebarAccordion>
     </Feature>
   );
@@ -318,7 +311,6 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
-        isNew
       />
     </Feature>
   );
@@ -431,19 +423,19 @@ function Sidebar({location, organization}: Props) {
         <SidebarSectionGroup>
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.PerformanceOnboarding)}
+            onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />
           <ReplaysOnboardingSidebar
             currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
+            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />
           <ProfilingOnboardingSidebar
             currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.ReplaysOnboarding)}
+            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />
@@ -451,7 +443,7 @@ function Sidebar({location, organization}: Props) {
             <OnboardingStatus
               org={organization}
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.OnboardingWizard)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
@@ -475,7 +467,7 @@ function Sidebar({location, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.Broadcasts)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
               hidePanel={hidePanel}
               organization={organization}
             />
@@ -483,7 +475,7 @@ function Sidebar({location, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.ServiceIncidents)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
               hidePanel={hidePanel}
             />
           </SidebarSection>

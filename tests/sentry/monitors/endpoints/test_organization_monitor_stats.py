@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 @freeze_time(
     (datetime.now() - timedelta(days=2)).replace(hour=7, minute=57, second=0, microsecond=0)
 )
-class ListMonitorCheckInsTest(MonitorTestCase):
+class OrganizationMonitorStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-stats"
 
     def setUp(self):

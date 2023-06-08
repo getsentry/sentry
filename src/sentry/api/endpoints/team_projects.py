@@ -11,6 +11,7 @@ from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
@@ -111,41 +112,39 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         serializer = ProjectSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            with transaction.atomic():
-                try:
-                    with transaction.atomic():
-                        project = Project.objects.create(
-                            name=result["name"],
-                            slug=result.get("slug"),
-                            organization=team.organization,
-                            platform=result.get("platform"),
-                        )
-                except IntegrityError:
-                    return Response(
-                        {"detail": "A project with this slug already exists."}, status=409
+        result = serializer.validated_data
+        with transaction.atomic():
+            try:
+                with transaction.atomic():
+                    project = Project.objects.create(
+                        name=result["name"],
+                        slug=result.get("slug"),
+                        organization=team.organization,
+                        platform=result.get("platform"),
                     )
-                else:
-                    project.add_team(team)
+            except (IntegrityError, MaxSnowflakeRetryError):
+                return Response({"detail": "A project with this slug already exists."}, status=409)
+            else:
+                project.add_team(team)
 
-                # XXX: create sample event?
+            # XXX: create sample event?
 
-                self.create_audit_entry(
-                    request=request,
-                    organization=team.organization,
-                    target_object=project.id,
-                    event=audit_log.get_event_id("PROJECT_ADD"),
-                    data=project.get_audit_log_data(),
-                )
+            self.create_audit_entry(
+                request=request,
+                organization=team.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_ADD"),
+                data=project.get_audit_log_data(),
+            )
 
-                project_created.send(
-                    project=project,
-                    user=request.user,
-                    default_rules=result.get("default_rules", True),
-                    sender=self,
-                )
+            project_created.send(
+                project=project,
+                user=request.user,
+                default_rules=result.get("default_rules", True),
+                sender=self,
+            )
 
-            return Response(serialize(project, request.user), status=201)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serialize(project, request.user), status=201)

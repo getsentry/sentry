@@ -27,8 +27,8 @@ export type TrendFunction = {
 };
 
 export type TrendParameter = {
-  column: string;
-  label: string;
+  column: TrendParameterColumn;
+  label: TrendParameterLabel;
 };
 
 export enum TrendChangeType {
@@ -44,7 +44,7 @@ export enum TrendFunctionField {
   AVG = 'avg',
 }
 
-export enum TrendColumnField {
+export enum TrendParameterColumn {
   DURATION = 'transaction.duration',
   LCP = 'measurements.lcp',
   FCP = 'measurements.fcp',
@@ -54,6 +54,18 @@ export enum TrendColumnField {
   SPANS_HTTP = 'spans.http',
   SPANS_BROWSER = 'spans.browser',
   SPANS_RESOURCE = 'spans.resource',
+}
+
+export enum TrendParameterLabel {
+  DURATION = 'Duration',
+  LCP = 'LCP',
+  FCP = 'FCP',
+  FID = 'FID',
+  CLS = 'CLS',
+  SPANS_DB = 'Spans (db)',
+  SPANS_HTTP = 'Spans (http)',
+  SPANS_BROWSER = 'Spans (browser)',
+  SPANS_RESOURCE = 'Spans (resource)',
 }
 
 export type TrendStat = {
@@ -70,14 +82,14 @@ export type TrendsTransaction = {
   aggregate_range_2: number;
   count: number;
 
-  count_percentage: number;
-  count_range_1: number;
-  count_range_2: number;
   project: string;
   transaction: string;
   trend_difference: number;
   trend_percentage: number;
   breakpoint?: number;
+  count_percentage?: number;
+  count_range_1?: number;
+  count_range_2?: number;
 };
 
 export type TrendsDataEvents = {

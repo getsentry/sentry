@@ -1,0 +1,17 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "System.AggregateException",
+        "value": "One or more errors occurred.",
+        "mechanism": {
+          "type": "AppDomain.UnhandledException",
+          "handled": false,
+          "is_exception_group": true,
+          "exception_id": 0,
+          "parent_id": 0
+        }
+      }
+    ]
+  }
+}

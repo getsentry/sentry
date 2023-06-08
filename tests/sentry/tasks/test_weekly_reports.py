@@ -11,19 +11,12 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import (
-    GroupInboxReason,
-    GroupStatus,
-    OrganizationMember,
-    Project,
-    UserOption,
-    add_group_to_inbox,
-)
+from sentry.models import GroupStatus, GroupSubStatus, OrganizationMember, Project, UserOption
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     deliver_reports,
-    organization_project_issue_inbox_summaries,
+    organization_project_issue_substatus_summaries,
     organization_project_issue_summaries,
     prepare_organization_report,
     schedule_organizations,
@@ -119,9 +112,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        OrganizationMember.objects.filter(user=self.user).update(
-            flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user=self.user).update(
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+            )
 
         # disabled
         deliver_reports(ctx)
@@ -176,8 +170,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
 
-    @with_feature("organizations:issue-states")
-    def test_organization_project_issue_inbox_summaries(self):
+    @with_feature("organizations:escalating-issues")
+    def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
         now = timezone.now()
@@ -193,7 +187,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(event1.group, GroupInboxReason.NEW)
+        event1.group.substatus = GroupSubStatus.ONGOING
+        event1.group.save()
 
         event2 = self.store_event(
             data={
@@ -205,19 +200,20 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(event2.group, GroupInboxReason.ONGOING)
+        event2.group.substatus = GroupSubStatus.NEW
+        event2.group.save()
         timestamp = to_timestamp(now)
 
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        organization_project_issue_inbox_summaries(ctx)
+        organization_project_issue_substatus_summaries(ctx)
 
         project_ctx = ctx.projects[self.project.id]
 
-        assert project_ctx.new_inbox_count == 1
-        assert project_ctx.escalating_inbox_count == 0
-        assert project_ctx.ongoing_inbox_count == 1
-        assert project_ctx.regression_inbox_count == 0
-        assert project_ctx.total_inbox_count == 2
+        assert project_ctx.new_substatus_count == 1
+        assert project_ctx.escalating_substatus_count == 0
+        assert project_ctx.ongoing_substatus_count == 1
+        assert project_ctx.regression_substatus_count == 0
+        assert project_ctx.total_substatus_count == 2
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_simple(self, message_builder):
@@ -304,11 +300,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "new_issue_count": 2,
                 "reopened_issue_count": 0,
                 # New escalating-issues
-                "escalating_inbox_count": 0,
-                "new_inbox_count": 0,
-                "ongoing_inbox_count": 0,
-                "regression_inbox_count": 0,
-                "total_inbox_count": 0,
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 0,
+                "ongoing_substatus_count": 0,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 0,
             }
             assert len(context["key_errors"]) == 2
             assert context["trends"]["total_error_count"] == 2
@@ -316,11 +312,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert "Weekly Report for" in message_params["subject"]
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
-    @with_feature("organizations:issue-states")
-    def test_message_builder_inbox_simple(self, message_builder):
+    @with_feature("organizations:escalating-issues")
+    def test_message_builder_substatus_simple(self, message_builder):
         now = timezone.now()
-
-        two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
         self.create_member(
@@ -337,7 +331,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        add_group_to_inbox(event1.group, GroupInboxReason.NEW)
+        group1 = event1.group
+        group1.substatus = GroupSubStatus.NEW
+        group1.save()
 
         event2 = self.store_event(
             data={
@@ -349,42 +345,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": Outcome.ACCEPTED,
-                "category": DataCategory.ERROR,
-                "timestamp": three_days_ago,
-                "key_id": 1,
-            },
-            num_times=2,
-        )
-        add_group_to_inbox(event2.group, GroupInboxReason.ONGOING)
-
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": Outcome.ACCEPTED,
-                "category": DataCategory.TRANSACTION,
-                "timestamp": three_days_ago,
-                "key_id": 1,
-            },
-            num_times=10,
-        )
-
-        group1 = event1.group
         group2 = event2.group
-
-        group1.status = GroupStatus.RESOLVED
-        group1.substatus = None
-        group1.resolved_at = two_days_ago
-        group1.save()
-
-        group2.status = GroupStatus.RESOLVED
-        group2.substatus = None
-        group2.resolved_at = two_days_ago
+        group2.substatus = GroupSubStatus.ONGOING
         group2.save()
 
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
@@ -402,16 +364,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "existing_issue_count": 0,
                 "new_issue_count": 0,
                 "reopened_issue_count": 0,
-                "escalating_inbox_count": 0,
-                "new_inbox_count": 1,
-                "ongoing_inbox_count": 1,
-                "regression_inbox_count": 0,
-                "total_inbox_count": 2,
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 1,
+                "ongoing_substatus_count": 1,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 2,
             }
-            assert len(context["key_errors"]) == 2
-            assert context["trends"]["total_error_count"] == 2
-            assert context["trends"]["total_transaction_count"] == 10
-            assert "Weekly Report for" in message_params["subject"]
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):

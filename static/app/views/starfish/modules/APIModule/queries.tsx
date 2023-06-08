@@ -6,12 +6,12 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DefinedUseQueryResult} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDateQueryFilter} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const getHostListQuery = ({datetime}) => {
@@ -198,10 +198,12 @@ export const getEndpointDetailSeriesQuery = ({
   groupId,
 }) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  const interval = 12;
   return `SELECT
-     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
+     toStartOfInterval(start_timestamp, INTERVAL ${interval} HOUR) as interval,
      quantile(0.5)(exclusive_time) as p50,
      quantile(0.95)(exclusive_time) as p95,
+     divide(count(), multiply(${interval}, 60)) as spm,
      count() as count,
      countIf(greaterOrEquals(status, 400) AND lessOrEquals(status, 599)) as failure_count,
      failure_count / count as failure_rate
@@ -277,31 +279,6 @@ export const getEndpointDetailTableEventView = ({
   });
 };
 
-export const getSpanInTransactionQuery = ({groupId, datetime}) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  // TODO - add back `module = <moudle> to filter data
-  return `
-    SELECT count() AS count, quantile(0.5)(exclusive_time) as p50, span_operation
-    FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
-    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY span_operation
- `;
-};
-
-export const getSpanFacetBreakdownQuery = ({groupId, datetime}) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  // TODO - add back `module = <moudle> to filter data
-  return `
-    SELECT transaction, user, domain
-    FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
-    ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
- `;
-};
-
 export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
   const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
   return `
@@ -338,7 +315,8 @@ export const getEndpointAggregatesQuery = ({datetime, transaction}) => {
     description,
     toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
     count() AS count,
-    quantile(0.5)(exclusive_time) as p50
+    quantile(0.5)(exclusive_time) as p50,
+    quantile(0.95)(exclusive_time) as p95
     FROM spans_experimental_starfish
     WHERE module = 'http'
     ${transaction ? `AND transaction = '${transaction}'` : ''}

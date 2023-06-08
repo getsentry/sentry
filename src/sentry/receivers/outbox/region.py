@@ -11,6 +11,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry import roles
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -31,14 +32,8 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-
-
-@receiver(process_region_outbox, sender=OutboxCategory.VERIFY_ORGANIZATION_MAPPING)
-def process_organization_mapping_verifications(object_identifier: int, **kwds: Any):
-    if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
-        return
-
-    organization_mapping_service.verify_mappings(organization_id=org.id, slug=org.slug)
+from sentry.signals import member_joined
+from sentry.types.region import get_local_region
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -55,14 +50,21 @@ def process_user_ip_event(payload: Any, **kwds: Any):
         DatabaseBackedLogService().record_user_ip(event=UserIpEvent(**payload))
 
 
+def maybe_handle_joined_user(org_member: OrganizationMember) -> None:
+    if org_member.user_id is not None and org_member.role != roles.get_top_dog().id:
+        member_joined.send_robust(
+            sender=None,
+            member=org_member,
+            organization_id=org_member.organization_id,
+        )
+
+
+# No longer used.
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_CREATE)
 def process_organization_member_create(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
 ):
-    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
-        return
-
-    organizationmember_mapping_service.create_with_organization_member(org_member=org_member)
+    pass
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
@@ -71,22 +73,25 @@ def process_organization_member_updates(
 ):
     if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
         # Delete all identities that may have been associated.  This is an implicit cascade.
-        if payload and "user_id" in payload:
+        if payload and payload.get("user_id") is not None:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
             )
-        organizationmember_mapping_service.delete_with_organization_member(
-            organizationmember_id=object_identifier, organization_id=shard_identifier
+        organizationmember_mapping_service.delete(
+            organizationmember_id=object_identifier,
+            organization_id=shard_identifier,
         )
         return
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    organizationmember_mapping_service.update_with_organization_member(
+    organizationmember_mapping_service.upsert_mapping(
         organizationmember_id=org_member.id,
         organization_id=shard_identifier,
-        rpc_update_org_member=rpc_org_member_update,
+        mapping=rpc_org_member_update,
     )
+
+    maybe_handle_joined_user(org_member)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
@@ -102,8 +107,8 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         organization_mapping_service.delete(organization_id=object_identifier)
         return
 
-    update = update_organization_mapping_from_instance(org)
-    organization_mapping_service.update(organization_id=org.id, update=update)
+    update = update_organization_mapping_from_instance(org, get_local_region())
+    organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)

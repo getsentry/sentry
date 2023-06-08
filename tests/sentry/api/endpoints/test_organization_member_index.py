@@ -100,9 +100,7 @@ class OrganizationMemberSerializerTest(TestCase):
         data = {"email": "eric@localhost", "orgRole": "admin", "teamRoles": []}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
-
-        assert not serializer.is_valid()
-        assert serializer.errors == {"orgRole": ["This org-level role has been deprecated"]}
+        assert serializer.is_valid()
 
     def test_invalid_team_role(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -154,6 +152,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.user2.email
+
+    def test_id_query(self):
+        member = OrganizationMember.objects.create(
+            email="billy@localhost", organization=self.organization
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"id:{member.id}"}
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == "billy@localhost"
+
+    def test_user_id_query(self):
+        user = self.create_user("zoo@localhost", username="zoo")
+        OrganizationMember.objects.create(user=user, organization=self.organization)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"user.id:{user.id}"}
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == "zoo@localhost"
 
     def test_query_null_user(self):
         OrganizationMember.objects.create(email="billy@localhost", organization=self.organization)

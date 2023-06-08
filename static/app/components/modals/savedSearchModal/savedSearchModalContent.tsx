@@ -20,20 +20,22 @@ const DEFAULT_SORT_OPTIONS = [
 ];
 
 const SELECT_FIELD_VISIBILITY_OPTIONS = [
-  {value: SavedSearchVisibility.Owner, label: t('Only me')},
-  {value: SavedSearchVisibility.Organization, label: t('Users in my organization')},
+  {value: SavedSearchVisibility.OWNER, label: t('Only me')},
+  {value: SavedSearchVisibility.ORGANIZATION, label: t('Users in my organization')},
 ];
-
-function getSortOptions(organization: Organization) {
-  return organization?.features?.includes('issue-list-trend-sort')
-    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
-    : DEFAULT_SORT_OPTIONS;
-}
 
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
 
-  const selectFieldSortOptions = getSortOptions(organization).map(sortOption => ({
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
+  const sortOptions = [...DEFAULT_SORT_OPTIONS];
+  if (hasBetterPrioritySort) {
+    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+  }
+
+  const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,
     label: getSortLabel(sortOption),
   }));

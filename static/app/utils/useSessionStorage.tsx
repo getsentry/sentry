@@ -5,7 +5,7 @@ import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 const isBrowser = typeof window !== 'undefined';
 
 function readStorageValue<T>(key: string, initialValue: T) {
-  const value = sessionStorage.getItem(key);
+  const value = sessionStorageWrapper.getItem(key);
 
   // We check for 'undefined' because the value may have
   // previously been serialized as 'undefined'. This should no longer

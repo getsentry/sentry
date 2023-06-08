@@ -7,7 +7,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {FRONTEND_PAGELOAD_COLUMN_TITLES} from '../data';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from '../widgets/utils';
@@ -51,7 +51,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
   }
   return (
     <PerformanceDisplayProvider
-      value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND}}
+      value={{performanceType: ProjectPerformanceType.FRONTEND}}
     >
       <div data-test-id="frontend-pageload-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />

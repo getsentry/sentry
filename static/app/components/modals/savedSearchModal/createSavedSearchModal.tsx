@@ -26,20 +26,21 @@ const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-function getSortOptions(organization: Organization) {
-  return organization?.features?.includes('issue-list-trend-sort')
-    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
-    : DEFAULT_SORT_OPTIONS;
-}
-
 function validateSortOption({
-  organization,
   sort,
+  organization,
 }: {
   organization: Organization;
   sort?: string;
 }) {
-  if (getSortOptions(organization).find(option => option === sort)) {
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
+  const sortOptions = [...DEFAULT_SORT_OPTIONS];
+  if (hasBetterPrioritySort) {
+    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+  }
+  if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
 
@@ -61,8 +62,8 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({organization, sort}),
-    visibility: SavedSearchVisibility.Owner,
+    sort: validateSortOption({sort, organization}),
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (

@@ -59,6 +59,18 @@ describe('useReplayData', () => {
       count_segments: 0,
       error_ids: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {
+        data: [],
+      },
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
@@ -97,6 +109,19 @@ describe('useReplayData', () => {
       count_errors: 0,
       count_segments: 2,
       error_ids: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {
+        data: [],
+      },
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
     });
 
     const mockSegmentResponse1 = TestStubs.ReplaySegmentInit({timestamp: startedAt});
@@ -339,6 +364,19 @@ describe('useReplayData', () => {
       count_errors: 0,
       count_segments: 0,
       error_ids: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {
+        data: [],
+      },
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
     });
 
     MockApiClient.addMockResponse({

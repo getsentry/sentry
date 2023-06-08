@@ -1,6 +1,6 @@
 import {
   initializeData as _initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,9 +13,9 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
+const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
     ...rest,
@@ -30,9 +30,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
-        <PerformanceDisplayProvider
-          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
-        >
+        <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
             allowedCharts={[
               PerformanceWidgetSetting.TPM_AREA,

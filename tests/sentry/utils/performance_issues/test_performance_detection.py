@@ -177,23 +177,6 @@ class PerformanceDetectionTest(TestCase):
         ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_n_plus_one_extended_detection_matches_previous_group(self):
-        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
-        sdk_span_mock = Mock()
-
-        with override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0}):
-            n_plus_one_extended_problems = _detect_performance_problems(
-                n_plus_one_event, sdk_span_mock, self.project
-            )
-
-        with override_options({"performance.issues.n_plus_one_db_ext.problem-creation": 0.0}):
-            n_plus_one_original_problems = _detect_performance_problems(
-                n_plus_one_event, sdk_span_mock, self.project
-            )
-
-        assert n_plus_one_original_problems == n_plus_one_extended_problems
-
-    @override_options(BASE_DETECTOR_OPTIONS)
     def test_overlap_detector_problems(self):
         n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()

@@ -153,10 +153,11 @@ test-tools:
 
 backend-typing:
 	@echo "--> Running Python typing checks"
-	mypy --strict --warn-unreachable --config-file mypy.ini
+	mypy
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
+# Running Locally: Run `sentry devservices up kafka zookeeper` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"

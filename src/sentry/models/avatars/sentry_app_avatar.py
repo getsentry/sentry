@@ -9,7 +9,7 @@ from django.db import models
 from sentry.db.models import FlexibleForeignKey, control_silo_only_model
 from sentry.db.models.manager import BaseManager
 
-from . import AvatarBase
+from . import ControlAvatarBase
 
 if TYPE_CHECKING:
     from sentry.models import SentryApp
@@ -37,7 +37,7 @@ class SentryAppAvatarManager(BaseManager):
 
 
 @control_silo_only_model
-class SentryAppAvatar(AvatarBase):
+class SentryAppAvatar(ControlAvatarBase):
     """
     A SentryAppAvatar associates a SentryApp with a logo photo File
     and specifies which type of logo it is.

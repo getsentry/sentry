@@ -374,8 +374,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        # TODO(hybridcloud) This will do N queries for actors
-        recipient_actors = [RpcActor.from_object(r, fetch_actor=True) for r in recipients]
+        recipient_actors = RpcActor.many_from_object(recipients)
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=type, parent_id=parent.id, recipients=recipient_actors
@@ -548,11 +547,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders,
         types: set[NotificationSettingTypes] | None = None,
     ) -> None:
+        actor = RpcActor.from_object(recipient)
         for type_ in types or NOTIFICATION_SETTINGS_ALL_SOMETIMES.keys():
             self.update_settings(
                 provider=provider,
                 type=type_,
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
-                actor=RpcActor.from_object(recipient),
+                actor=actor,
                 user=recipient,
             )

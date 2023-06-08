@@ -16,12 +16,8 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
-from sentry.issues.escalating import is_escalating
-from sentry.issues.grouptype import (
-    PerformanceNPlusOneGroupType,
-    PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.issues.escalating import manage_issue_states
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models import (
     Activity,
@@ -55,7 +51,7 @@ from sentry.tasks.post_process import (
     process_event,
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
@@ -1179,6 +1175,41 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
+    def test_auto_assignment_when_owners_are_invalid(self):
+        """
+        Test that invalid group owners (that exist due to bugs) are deleted and not assigned
+        when no valid issue owner exists
+        """
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        # Hard code an invalid group owner
+        invalid_codeowner = GroupOwner(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            context={"rule": "codeowners:/**/*.css " + self.user.email},
+            user_id=self.user.id,
+        )
+        invalid_codeowner.save()
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee is None
+        assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
+
     @patch("sentry.tasks.post_process.logger")
     def test_debounces_handle_owner_assignments(self, logger):
         self.make_ownership()
@@ -1350,7 +1381,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
@@ -1366,6 +1396,11 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+        group.save(update_fields=["status", "substatus"])
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
+
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
             is_new=False,
@@ -1379,7 +1414,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             project=group.project,
             group=group,
             event=EventMatcher(event),
-            sender=is_escalating,
+            sender=manage_issue_states,
+            was_until_escalating=False,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -1390,7 +1426,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group=group, reason=GroupInboxReason.ESCALATING.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
+            group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
         ).exists()
         assert mock_send_unignored_robust.called
 
@@ -1409,7 +1445,10 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
             group = event.group
-            group.update(times_seen=50)
+            group.times_seen = 50
+            group.status = GroupStatus.IGNORED
+            group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+            group.save(update_fields=["times_seen", "status", "substatus"])
             snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
 
             self.call_post_process_group(
@@ -1433,6 +1472,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     def test_maintains_valid_snooze(self, mock_processor):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         self.call_post_process_group(
@@ -1445,6 +1486,35 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
+
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    def test_forecast_in_activity(self, mock_is_escalating):
+        """
+        Test that the forecast is added to the activity for escalating issues that were
+        previously ignored until_escalating.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert Activity.objects.filter(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_ESCALATING.value,
+            data={"event_id": event.event_id, "forecast": 0},
+        ).exists()
 
 
 @region_silo_test
@@ -1474,6 +1544,7 @@ class PostProcessGroupErrorTest(
             is_new_group_environment=is_new_group_environment,
             cache_key=cache_key,
             group_id=event.group_id,
+            project_id=event.project_id,
         )
         return cache_key
 
@@ -1487,17 +1558,12 @@ class PostProcessGroupPerformanceTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    PerformanceIssueTestCase,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        # Store a performance event
-        event = self.store_transaction(
-            project_id=project_id,
-            user_id="hi",
-            fingerprint=[fingerprint],
-        )
-        return event.for_group(event.groups[0])
+        return self.create_performance_issue(fingerprint=fingerprint)
 
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
@@ -1523,6 +1589,7 @@ class PostProcessGroupPerformanceTest(
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
                 group_states=group_states,
+                project_id=event.project_id,
             )
         return cache_key
 
@@ -1578,19 +1645,9 @@ class PostProcessGroupPerformanceTest(
         mock_handle_auto_assignment,
         mock_handle_owner_assignment,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
-        event = self.store_transaction(
-            project_id=self.project.id,
-            user_id=self.create_user(name="user1").name,
-            fingerprint=[
-                f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1",
-                f"{PerformanceNPlusOneGroupType.type_id}-group2",
-            ],
-            environment=None,
-            timestamp=min_ago,
-        )
-        assert len(event.groups) == 2
-        cache_key = write_event_to_cache(event)
+        event = self.create_performance_issue()
+        assert event.group
+        # cache_key = write_event_to_cache(event)
         group_state = dict(
             is_new=True,
             is_regression=False,
@@ -1607,15 +1664,17 @@ class PostProcessGroupPerformanceTest(
 
         post_process_group(
             **group_state,
-            cache_key=cache_key,
+            cache_key="dummykey",
             group_id=event.group_id,
-            group_states=[{"id": group.id, **group_state} for group in event.groups],
+            group_states=[{"id": event.group.id, **group_state}],
+            occurrence_id=event.occurrence_id,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
-        assert run_post_process_job_mock.call_count == 2
+        assert run_post_process_job_mock.call_count == 1
         assert call_order == [
             mock_handle_owner_assignment,
             mock_handle_auto_assignment,

@@ -24,7 +24,7 @@ from sentry.db.models import (
 )
 from sentry.models import clear_cached_files
 from sentry.models.distribution import Distribution
-from sentry.models.file import File
+from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction

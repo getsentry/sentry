@@ -2,9 +2,8 @@ import {forwardRef, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useLocale} from '@react-aria/i18n';
-import {useNumberField} from '@react-aria/numberfield';
+import {AriaNumberFieldProps, useNumberField} from '@react-aria/numberfield';
 import {useNumberFieldState} from '@react-stately/numberfield';
-import {AriaNumberFieldProps} from '@react-types/numberfield';
 
 import {Button} from 'sentry/components/button';
 import {InputStylesProps} from 'sentry/components/input';

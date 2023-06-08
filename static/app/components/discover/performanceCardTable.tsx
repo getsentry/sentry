@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import {AsyncComponentProps} from 'sentry/components/asyncComponent';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
@@ -22,7 +21,7 @@ import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 type PerformanceCardTableProps = {
   allReleasesEventView: EventView;
@@ -452,10 +451,10 @@ function PerformanceCardTable({
 
   function renderMobilePerformance() {
     const mobileVitals = [
-      MobileVital.AppStartCold,
-      MobileVital.AppStartWarm,
-      MobileVital.FramesSlow,
-      MobileVital.FramesFrozen,
+      MobileVital.APP_START_COLD,
+      MobileVital.APP_START_WARM,
+      MobileVital.FRAMES_SLOW,
+      MobileVital.FRAMES_FROZEN,
     ];
     const mobileVitalTitles = mobileVitals.map(mobileVital => {
       return (
@@ -613,25 +612,25 @@ function PerformanceCardTable({
   const loader = <StyledLoadingIndicator />;
 
   const platformPerformanceRender = {
-    [PROJECT_PERFORMANCE_TYPE.FRONTEND]: {
+    [ProjectPerformanceType.FRONTEND]: {
       title: t('Frontend Performance'),
       section: renderFrontendPerformance(),
     },
-    [PROJECT_PERFORMANCE_TYPE.BACKEND]: {
+    [ProjectPerformanceType.BACKEND]: {
       title: t('Backend Performance'),
       section: renderBackendPerformance(),
     },
-    [PROJECT_PERFORMANCE_TYPE.MOBILE]: {
+    [ProjectPerformanceType.MOBILE]: {
       title: t('Mobile Performance'),
       section: renderMobilePerformance(),
     },
-    [PROJECT_PERFORMANCE_TYPE.ANY]: {
+    [ProjectPerformanceType.ANY]: {
       title: t('[Unknown] Performance'),
       section: renderUnknownPerformance(),
     },
   };
 
-  const isUnknownPlatform = performanceType === PROJECT_PERFORMANCE_TYPE.ANY;
+  const isUnknownPlatform = performanceType === ProjectPerformanceType.ANY;
 
   return (
     <Fragment>
@@ -678,7 +677,7 @@ function PerformanceCardTable({
   );
 }
 
-interface Props extends AsyncComponentProps {
+interface Props {
   allReleasesEventView: EventView;
   location: Location;
   organization: Organization;

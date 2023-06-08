@@ -18,9 +18,8 @@ from sentry.models import (
     RuleFireHistory,
     RuleSnooze,
     RuleStatus,
-    User,
 )
-from sentry.models.actor import get_actor_for_user
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -37,7 +36,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     owner_id = payload.get("owner")
     if owner_id:
         with exempt_from_silo_limits():
-            assert rule.owner == User.objects.get(id=owner_id).actor
+            assert Actor.objects.get(id=rule.owner_id)
     else:
         assert rule.owner is None
 
@@ -224,6 +223,35 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             == self.sentry_app_installation.uuid
         )
         assert response.data["actions"][0]["disabled"] is True
+
+    def test_with_deleted_sentry_app(self):
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "123-uuid-does-not-exist",
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"summary": "Something happened here..."},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Nisanthan"},
+                ],
+            }
+        ]
+        data = {
+            "conditions": [],
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Action with deleted SentryApp is removed
+        assert response.data["actions"] == []
 
     @freeze_time()
     def test_last_triggered(self):

@@ -234,6 +234,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
+    description = serializers.CharField(required=False, max_length=255, allow_null=True)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
@@ -433,6 +434,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             dashboard=dashboard,
             display_type=widget_data["display_type"],
             title=widget_data["title"],
+            description=widget_data.get("description", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
@@ -459,6 +461,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     def update_widget(self, widget, data, order):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
+        widget.description = data.get("description", widget.description)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)

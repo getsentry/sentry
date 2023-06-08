@@ -12,7 +12,7 @@ class UserPermission(SentryPermission):
     def has_object_permission(self, request: Request, view, user=None):
         if user is None:
             user = request.user
-        if request.user == user:
+        if request.user.id == user.id:
             return True
         if is_system_auth(request.auth):
             return True

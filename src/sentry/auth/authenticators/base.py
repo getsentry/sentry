@@ -142,7 +142,7 @@ class AuthenticatorInterface:
 
         if self.authenticator is None:
             self.authenticator = Authenticator.objects.create(
-                user=user, type=self.type, config=self.config
+                user_id=user.id, type=self.type, config=self.config
             )
         else:
             if not self.allow_multi_enrollment:

@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.response import Response
 
-from fixtures.integrations.mock_service import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import AtlassianConnectValidationError

@@ -20,7 +20,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
-from sentry.models.actor import Actor
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -338,3 +338,13 @@ class Team(Model, SnowflakeIdMixin):
             self.outbox_for_update().save()
 
             return super().delete(**kwargs)
+
+    def get_member_actor_ids(self):
+        owner_ids = [self.actor_id]
+        member_user_ids = self.member_set.values_list("user_id", flat=True)
+        owner_ids += Actor.objects.filter(
+            type=ACTOR_TYPES["user"],
+            user_id__in=member_user_ids,
+        ).values_list("id", flat=True)
+
+        return owner_ids

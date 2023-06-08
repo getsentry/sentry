@@ -4,10 +4,12 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any, Optional
+from typing import Any, Optional, Set
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
+
+from sentry.options.manager import UpdateChannel
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -33,6 +35,18 @@ class Key:
     grace: int
     cache_key: str
     grouping_info: Optional[GroupingInfo]
+
+    def has_any_flag(self, flags: Set[int]) -> bool:
+        """
+        Returns true if the option is registered with at least one
+        of the flags passed as argument.
+        """
+        assert flags, "Flags must be provided to check the option."
+        for f in flags:
+            if self.flags & f:
+                return True
+
+        return False
 
 
 def _make_cache_value(key, value):
@@ -190,7 +204,18 @@ class OptionsStore:
                     )
         return value
 
-    def set(self, key, value):
+    def get_last_update_channel(self, key) -> Optional[UpdateChannel]:
+        """
+        Gets how the option was last updated to check for drift.
+        """
+        try:
+            option = self.model.objects.get(key=key.name)
+        except self.model.DoesNotExist:
+            return None
+
+        return UpdateChannel(option.last_updated_by)
+
+    def set(self, key, value, channel: UpdateChannel):
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -199,14 +224,20 @@ class OptionsStore:
         """
         assert self.cache is not None, "cache must be configured before mutating options"
 
-        self.set_store(key, value)
+        self.set_store(key, value, channel)
         return self.set_cache(key, value)
 
-    def set_store(self, key, value):
+    def set_store(self, key, value, channel: UpdateChannel):
         from sentry.db.models.query import create_or_update
 
         create_or_update(
-            model=self.model, key=key.name, values={"value": value, "last_updated": timezone.now()}
+            model=self.model,
+            key=key.name,
+            values={
+                "value": value,
+                "last_updated": timezone.now(),
+                "last_updated_by": channel.value,
+            },
         )
 
     def set_cache(self, key, value):

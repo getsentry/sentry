@@ -14,7 +14,15 @@ class PerfIndexerUseCaseIdBackfillTest(TestMigrations):
         PerfStringIndexer.objects.create(
             string="bye", organization_id=12, use_case_id="performance"
         )
+        # testing that new records with same string/org and new use_case_id
+        # may already been created at the time of the backfill
+        PerfStringIndexer.objects.create(
+            string="bye", organization_id=12, use_case_id="transactions"
+        )
 
     def test(self):
-        for i in PerfStringIndexer.objects.all():
-            assert i.use_case_id == "transactions"
+        # "hello" recprd should have been changed to "transactions"
+        assert not PerfStringIndexer.objects.filter(string="hello", use_case_id="performance")
+        # we keep the old performance record because we already have
+        # the new use_case_id
+        assert len(PerfStringIndexer.objects.filter(string="bye")) == 2

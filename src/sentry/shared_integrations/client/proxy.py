@@ -22,7 +22,7 @@ from sentry.silo.util import (
 logger = logging.getLogger(__name__)
 
 
-class IntegrationProxyClient(ApiClient):  # type: ignore
+class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
     Requests to third parties must always exit the Sentry subnet via the Control Silo, and only
@@ -65,7 +65,7 @@ class IntegrationProxyClient(ApiClient):  # type: ignore
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """
-        Every request through this subclassed clients run this method.
+        Every request through these subclassed clients run this method.
         If running as a monolith/control, we must authorize each request before sending.
         If running as a region, we don't authorize and instead, send it to our proxy endpoint,
         where tokens are added in by Control Silo. We do this to avoid race conditions around
