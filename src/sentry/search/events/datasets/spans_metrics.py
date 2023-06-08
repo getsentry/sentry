@@ -322,6 +322,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_percentile_percent_change,
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "http_error_count_percent_change",
+                    snql_distribution=self._resolve_http_error_count_percent_change,
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -412,10 +417,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
     ) -> SelectType:
         statuses = [
             self.builder.resolve_tag_value(status) for status in constants.HTTP_SERVER_ERROR_STATUS
         ]
+        base_condition = Function(
+            "in",
+            [
+                self.builder.column("span.status_code"),
+                list(status for status in statuses if status is not None),
+            ],
+        )
+        if extra_condition:
+            condition = Function(
+                "and",
+                [
+                    base_condition,
+                    extra_condition,
+                ],
+            )
+        else:
+            condition = base_condition
+
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -424,52 +448,65 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     self.resolve_metric("span.duration"),
                 ],
             ),
-            Function(
-                "in",
-                [
-                    self.builder.column("span.status_code"),
-                    list(status for status in statuses if status is not None),
-                ],
-            ),
+            condition,
             alias,
         )
+
+    def _get_middle(self):
+        """Get the middle for percent change functions"""
+        if self.builder.start is None or self.builder.end is None:
+            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
+        return self.builder.start + (self.builder.end - self.builder.start) / 2
+
+    def _first_half_condition(self):
+        """Create the first half condition for percent_change functions"""
+        return Function(
+            "less",
+            [
+                Function("toDateTime", [self._get_middle()]),
+                self.builder.column("timestamp"),
+            ],
+        )
+
+    def _second_half_condition(self):
+        """Create the second half condition for percent_change functions"""
+        return Function(
+            "greaterOrEquals",
+            [
+                Function("toDateTime", [self._get_middle()]),
+                self.builder.column("timestamp"),
+            ],
+        )
+
+    def _resolve_http_error_count_percent_change(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_http_error_count({}, None, self._first_half_condition())
+        second_half = self._resolve_http_error_count({}, None, self._second_half_condition())
+        return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percentile_percent_change(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        if self.builder.start is None or self.builder.end is None:
-            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
-        middle = self.builder.start + (self.builder.end - self.builder.start) / 2
         first_half = function_aliases.resolve_metrics_percentile(
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[
-                Function(
-                    "less",
-                    [
-                        Function("toDateTime", [middle]),
-                        self.builder.column("timestamp"),
-                    ],
-                ),
-            ],
+            extra_conditions=[self._first_half_condition()],
         )
         second_half = function_aliases.resolve_metrics_percentile(
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[
-                Function(
-                    "greaterOrEquals",
-                    [
-                        Function("toDateTime", [middle]),
-                        self.builder.column("timestamp"),
-                    ],
-                ),
-            ],
+            extra_conditions=[self._second_half_condition],
         )
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_percent_change_function(self, first_half, second_half, alias):
         return Function(
             "divide",
             [
