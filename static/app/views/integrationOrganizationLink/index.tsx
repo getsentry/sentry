@@ -149,8 +149,9 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     this.trackInstallationStart();
     // need to send to control silo to finish the installation
     window.location.assign(
-      controlSiloUrl +
-        `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+      `${controlSiloUrl}/extensions/${this.integrationSlug}/configure/?${urlEncode(
+        query
+      )}`
     );
   };
 
