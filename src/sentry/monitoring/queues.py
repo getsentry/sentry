@@ -149,7 +149,7 @@ def _is_healthy(queue_size) -> bool:
     return queue_size < options.get("backpressure.monitor_queues.unhealthy_threshold")
 
 
-def _update_queue_stats(redis_cluster, queue_history: Dict[str, int]) -> None:
+def _update_queue_stats(queue_history: Dict[str, int]) -> None:
     strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
     queue_health = _list_queues_over_threshold(strike_threshold, queue_history)
     unhealthy_queues = [queue for (queue, is_unhealthy) in queue_health if is_unhealthy]
@@ -170,7 +170,7 @@ def _update_queue_stats(redis_cluster, queue_history: Dict[str, int]) -> None:
         pipeline.execute()
 
 
-def _run_queue_stats_updater(redis_cluster: str) -> None:
+def _run_queue_stats_updater() -> None:
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
         if not options.get("backpressure.monitor_queues.enable_status"):
@@ -210,6 +210,5 @@ def monitor_queues():
         return
     queue_stats_updater_process = Thread(
         target=_run_queue_stats_updater,
-        args=(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER,),
     )
     queue_stats_updater_process.start()
