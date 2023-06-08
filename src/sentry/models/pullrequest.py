@@ -62,6 +62,7 @@ class PullRequest(Model):
     message = models.TextField(null=True)
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
+    comment = FlexibleForeignKey("sentry.PullRequestComment", null=True)
 
     objects = PullRequestManager()
 
@@ -95,7 +96,7 @@ class PullRequestComment(Model):
     __include_in_export__ = False
 
     external_id = BoundedBigIntegerField()
-    pull_request = FlexibleForeignKey("sentry.PullRequest")
+    pull_request = FlexibleForeignKey("sentry.PullRequest", unique=True)
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
     issues = ArrayField()
@@ -103,4 +104,3 @@ class PullRequestComment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_comment"
-        unique_together = (("pull_request", "external_id"),)
