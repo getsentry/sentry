@@ -194,9 +194,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert not team.idp_provisioned
         assert team.organization == self.organization
 
-        member = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
+        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True

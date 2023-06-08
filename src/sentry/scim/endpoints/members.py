@@ -38,9 +38,8 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -169,7 +168,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user_id=member.user_id, auth_provider__organization_id=organization.id
+                user=member.user, auth_provider__organization_id=organization.id
             ).delete()
             member.delete()
             self.create_audit_entry(
@@ -263,7 +262,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         The only supported attribute is `active`. After setting `active` to false
         Sentry will permanently delete the Organization Member.
         """
-
         serializer = SCIMPatchRequestSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -275,6 +273,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             # we only support setting active to False which deletes the orgmember
             if self._should_delete_member(operation):
                 self._delete_member(request, organization, member)
+                metrics.incr(
+                    "sentry.scim.member.delete",
+                    tags={"organization": organization},
+                )
                 return Response(status=204)
             else:
                 raise SCIMApiError(detail=SCIM_400_INVALID_PATCH)
@@ -301,6 +303,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         Delete an organization member with a SCIM User DELETE Request.
         """
         self._delete_member(request, organization, member)
+        metrics.incr("sentry.scim.member.delete", tags={"organization": organization})
         return Response(status=204)
 
     @extend_schema(
@@ -372,9 +375,18 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if requested_role not in allowed_roles:
             raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
+        previous_role = member.role
+        previous_restriction = member.flags["idp:role-restricted"]
         member.role = requested_role
         member.flags["idp:role-restricted"] = idp_role_restricted
         member.save()
+
+        # only update metric if the role changed
+        if (
+            previous_role != organization.default_role
+            or previous_restriction != idp_role_restricted
+        ):
+            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
 
         context = serialize(
             member,
@@ -435,18 +447,19 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         query_params = self.get_query_parameters(request)
 
-        queryset = OrganizationMember.objects.filter(
-            Q(invite_status=InviteStatus.APPROVED.value),
-            Q(user_is_active=True) | Q(user_id__isnull=True),
-            organization=organization,
-        ).order_by("email", "id")
-        if query_params["filter"]:
-            filtered_users = user_service.get_many_by_email(
-                emails=query_params["filter"], organization_id=organization.id
+        queryset = (
+            OrganizationMember.objects.filter(
+                Q(invite_status=InviteStatus.APPROVED.value),
+                Q(user__is_active=True) | Q(user__isnull=True),
+                organization=organization,
             )
+            .select_related("user")
+            .order_by("email", "user__email")
+        )
+        if query_params["filter"]:
             queryset = queryset.filter(
                 Q(email__iexact=query_params["filter"])
-                | Q(user_id__in=[u.id for u in filtered_users])
+                | Q(user__email__iexact=query_params["filter"])
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
@@ -512,6 +525,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.
         """
+        update_role = False
 
         with sentry_sdk.start_transaction(
             name="scim.provision_member", op="scim", sampled=True
@@ -519,6 +533,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
                 role = request.data["sentryOrgRole"].lower()
                 idp_role_restricted = True
+                update_role = True
             else:
                 role = organization.default_role
                 idp_role_restricted = False
@@ -603,6 +618,13 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     sender=self,
                     referrer=request.data.get("referrer"),
                 )
+
+            metrics.incr(
+                "sentry.scim.member.provision",
+                tags={"organization": organization},
+            )
+            if update_role:
+                metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
 
             context = serialize(
                 member,

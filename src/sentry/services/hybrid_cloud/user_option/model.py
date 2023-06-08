@@ -24,5 +24,4 @@ class UserOptionFilterArgs(TypedDict, total=False):
     keys: List[str]
     key: str
     project_id: Optional[int]
-    project_ids: Optional[List[int]]
     organization_id: Optional[int]

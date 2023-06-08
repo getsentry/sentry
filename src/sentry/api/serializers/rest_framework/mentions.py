@@ -4,7 +4,7 @@ from typing import Sequence
 
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, Team, User
+from sentry.models import ActorTuple, Team, User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -59,12 +59,15 @@ class MentionsMixin:
             mentioned_user_ids = {user.id for user in users}
 
             projects = self.context["projects"]
-            user_ids = list(
-                OrganizationMember.objects.filter(
-                    teams__projectteam__project__in=[p.id for p in projects],
-                    user_id__in=mentioned_user_ids,
-                ).values_list("user_id", flat=True)
+            organization_id = self.context["organization_id"]
+            users = user_service.get_many(
+                filter={
+                    "user_ids": mentioned_user_ids,
+                    "organization_id": organization_id,
+                    "project_ids": [p.id for p in projects],
+                },
             )
+            user_ids = [u.id for u in users]
 
             if len(mentioned_user_ids) > len(user_ids):
                 raise serializers.ValidationError("Cannot mention a non team member")

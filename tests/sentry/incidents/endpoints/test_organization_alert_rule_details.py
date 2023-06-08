@@ -498,7 +498,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
         OrganizationMemberTeam.objects.filter(
-            organizationmember__user_id=self.user.id,
+            organizationmember__user=self.user,
             team=self.team,
         ).delete()
         with self.feature("organizations:incidents"):
@@ -583,7 +583,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         OrganizationMemberTeam.objects.filter(
-            organizationmember__user_id=self.user.id,
+            organizationmember__user=self.user,
             team=self.team,
         ).delete()
         with self.feature("organizations:incidents"):

@@ -339,7 +339,12 @@ export function TimeRangeSelector({
                       organization={organization}
                       showTimePicker
                       onChange={val => {
-                        val.hasDateRangeErrors && setHasDateRangeErrors(true);
+                        if (val.hasDateRangeErrors) {
+                          setHasDateRangeErrors(true);
+                          return;
+                        }
+
+                        setHasDateRangeErrors(false);
                         setInternalValue(cur => ({
                           ...cur,
                           relative: null,
