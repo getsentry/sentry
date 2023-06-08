@@ -65,6 +65,19 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
+
+function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
+  const fourteen_days_ago = new Date(+new Date() - 12096e5);
+  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const firstEventDate = new Date(project?.firstEvent ?? '');
+  if (firstEventDate > fourteen_days_ago) {
+    return '14d';
+  }
+  if (firstEventDate > thirty_days_ago) {
+    return '30d';
+  }
+  return '>30d';
+}
 class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
@@ -96,6 +109,7 @@ class _Table extends Component<Props, State> {
       sent_transaction: firstEventData.singleProject?.firstTransactionEvent ?? false,
       single_project: firstEventData.isSingleProject,
       stats_period: statsPeriod,
+      hit_multi_project_cap: firstEventData.isAtMultiCap,
     });
   }
 
@@ -105,17 +119,19 @@ class _Table extends Component<Props, State> {
   getFirstEventData() {
     const {eventView, projects} = this.props;
     const isSingleProject = !areMultipleProjectsSelected(eventView);
-    const fourteen_days_ago = new Date(+new Date() - 12096e5);
-    const thirty_days_ago = new Date(+new Date() - 25920e5);
 
     const selectedProjects = eventView.getFullSelectedProjects(projects);
+    const isAtMultiCap = selectedProjects.length > 1000;
     const singleProject = selectedProjects[0];
-    let firstEventWithin: 'none' | '14d' | '30d' = 'none';
+    let firstEventWithin: 'none' | '14d' | '30d' | '>30d' = '>30d';
     if (isSingleProject) {
-      const firstEventDate = new Date(singleProject?.firstEvent ?? '');
-      if (firstEventDate > fourteen_days_ago) {
+      firstEventWithin = getProjectFirstEventGroup(singleProject);
+    } else if (!isAtMultiCap) {
+      const dateGroups = selectedProjects.map(getProjectFirstEventGroup);
+      if (dateGroups.every(g => g === '14d')) {
         firstEventWithin = '14d';
-      } else if (firstEventDate > thirty_days_ago) {
+      }
+      if (dateGroups.every(g => g === '14d' || g === '30d')) {
         firstEventWithin = '30d';
       }
     }
@@ -123,6 +139,7 @@ class _Table extends Component<Props, State> {
       firstEventWithin,
       isSingleProject,
       singleProject,
+      isAtMultiCap,
     };
   }
 

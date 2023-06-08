@@ -179,13 +179,12 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     [ids, storeIds]
   );
 
-  const shouldLoadSlugs = slugsToLoad.length > 0;
-  const shouldLoadIds = idsToLoad.length > 0;
-  const shouldLoadTeams = provideUserTeams && !store.loadedUserTeams;
+  const shouldLoadByQuery = slugsToLoad.length > 0 || idsToLoad.length > 0;
+  const shouldLoadUserTeams = provideUserTeams && !store.loadedUserTeams;
 
   // If we don't need to make a request either for slugs or user teams, set
   // initiallyLoaded to true
-  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams && !shouldLoadIds;
+  const initiallyLoaded = !shouldLoadUserTeams && !shouldLoadByQuery;
 
   const [state, setState] = useState<State>({
     initiallyLoaded,
@@ -221,7 +220,7 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     [api, orgId]
   );
 
-  const loadTeamsBySlugOrId = useCallback(
+  const loadTeamsByQuery = useCallback(
     async function () {
       if (orgId === undefined) {
         return;
@@ -349,16 +348,16 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
   // Load specified team slugs
   useEffect(() => {
-    if (shouldLoadSlugs || shouldLoadIds) {
-      loadTeamsBySlugOrId();
+    if (shouldLoadByQuery) {
+      loadTeamsByQuery();
     }
-  }, [shouldLoadSlugs, shouldLoadIds, loadTeamsBySlugOrId]);
+  }, [shouldLoadByQuery, loadTeamsByQuery]);
 
   useEffect(() => {
-    if (shouldLoadTeams) {
+    if (shouldLoadUserTeams) {
       loadUserTeams();
     }
-  }, [shouldLoadTeams, loadUserTeams]);
+  }, [shouldLoadUserTeams, loadUserTeams]);
 
   const isSuperuser = isActiveSuperuser();
 

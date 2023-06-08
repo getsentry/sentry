@@ -302,7 +302,7 @@ class SentryAppCreator:
                 {"name": [f"Name {self.name} is already taken, please use another."]}
             )
 
-        return slug  # type: ignore
+        return slug
 
     def _create_proxy_user(self, slug: str) -> User:
         # need a proxy user name that will always be unique

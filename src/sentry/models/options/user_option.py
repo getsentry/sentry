@@ -140,7 +140,7 @@ class UserOptionManager(OptionManager["User"]):
 # TODO(dcramer): the NULL UNIQUE constraint here isn't valid, and instead has to
 # be manually replaced in the database. We should restructure this model.
 @control_silo_only_model
-class UserOption(Model):  # type: ignore
+class UserOption(Model):
     """
     User options apply only to a user, and optionally a project OR an organization.
 
