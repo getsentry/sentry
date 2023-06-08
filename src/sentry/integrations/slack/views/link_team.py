@@ -51,7 +51,7 @@ def build_team_linking_url(
     )
 
 
-class SelectTeamForm(forms.Form):  # type: ignore
+class SelectTeamForm(forms.Form):
     team = forms.ChoiceField(label="Team")
 
     def __init__(self, teams: Sequence[Team], *args: Any, **kwargs: Any):
