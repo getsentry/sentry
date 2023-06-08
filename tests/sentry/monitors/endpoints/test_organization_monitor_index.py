@@ -15,7 +15,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class ListOrganizationMonitorsTest(MonitorTestCase):
-    endpoint = "sentry-api-0-organization-monitors"
+    endpoint = "sentry-api-0-organization-monitor-index"
 
     def setUp(self):
         super().setUp()
@@ -155,7 +155,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(MonitorTestCase):
-    endpoint = "sentry-api-0-organization-monitors"
+    endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
 
     def setUp(self):
