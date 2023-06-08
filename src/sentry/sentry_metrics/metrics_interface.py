@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from concurrent.futures import Future
 from typing import Any, Mapping, Optional, Sequence, Union

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from concurrent.futures import Future
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Union
@@ -32,10 +34,13 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
 class KafkaMetricsBackend(GenericMetricsBackend):
     def __init__(self) -> None:
 
-        self.kafka_topic = settings.KAFKA_INGEST_PERFORMANCE_METRICS
+        kafka_topic_name = settings.KAFKA_INGEST_PERFORMANCE_METRICS
+        self.kafka_topic = Topic(kafka_topic_name)
 
-        cluster_name = settings.KAFKA_TOPICS[self.kafka_topic]["cluster"]
+        cluster_name = settings.KAFKA_TOPICS[kafka_topic_name]["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
         self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
     def counter(
@@ -67,7 +72,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
-        original_future = self.producer.produce(Topic(self.kafka_topic), payload)
+        original_future = self.producer.produce(self.kafka_topic, payload)
 
         return original_future
 
@@ -100,7 +105,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
-        original_future = self.producer.produce(Topic(self.kafka_topic), payload)
+        original_future = self.producer.produce(self.kafka_topic, payload)
 
         return original_future
 
@@ -132,6 +137,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         }
 
         payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
-        original_future = self.producer.produce(Topic(self.kafka_topic), payload)
+        original_future = self.producer.produce(self.kafka_topic, payload)
 
         return original_future
