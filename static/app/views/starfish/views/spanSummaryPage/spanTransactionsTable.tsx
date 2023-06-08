@@ -45,7 +45,7 @@ export type TableColumnHeader = GridColumnHeader<Keys>;
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
   const location = useLocation();
 
-  const {data: spanTransactions, isLoading} = useSpanTransactions(span);
+  const {data: spanTransactions, isLoading} = useSpanTransactions();
   const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
     span,
     spanTransactions.map(row => row.transaction)
@@ -105,7 +105,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: IndexedSpan;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
