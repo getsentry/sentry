@@ -1,22 +1,11 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Replayer} from '@sentry-internal/rrweb';
-import {eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import type {eventWithTime} from '@sentry-internal/rrweb';
+import {EventType, Replayer} from '@sentry-internal/rrweb';
 import first from 'lodash/first';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-
-// Copied from `node_modules/rrweb/typings/types.d.ts`
-enum EventType {
-  DomContentLoaded = 0,
-  Load = 1,
-  FullSnapshot = 2,
-  IncrementalSnapshot = 3,
-  Meta = 4,
-  Custom = 5,
-  Plugin = 6,
-}
 
 export type Extraction = {
   crumb: Crumb;

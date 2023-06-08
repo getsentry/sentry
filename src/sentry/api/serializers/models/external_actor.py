@@ -23,7 +23,7 @@ class ExternalActorResponse(ExternalActorResponseOptional):
 
 
 @register(ExternalActor)
-class ExternalActorSerializer(Serializer):  # type: ignore
+class ExternalActorSerializer(Serializer):
     def get_attrs(
         self, item_list: List[ExternalActor], user: User, **kwargs: Any
     ) -> MutableMapping[ExternalActor, MutableMapping[str, Any]]:

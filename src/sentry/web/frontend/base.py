@@ -159,7 +159,7 @@ class OrganizationMixin:
         if request.subdomain is not None and request.subdomain != organization_slug:
             # Customer domain is being used, set the subdomain as the requesting org slug.
             organization_slug = request.subdomain
-        return organization_slug  # type: ignore[no-any-return]
+        return organization_slug
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -248,7 +248,7 @@ class OrganizationMixin:
         return HttpResponseRedirect(url)
 
 
-class BaseView(View, OrganizationMixin):  # type: ignore[misc]
+class BaseView(View, OrganizationMixin):
     auth_required = True
     # TODO(dcramer): change sudo so it can be required only on POST
     sudo_required = False
@@ -271,7 +271,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
 
-    @csrf_exempt  # type: ignore[misc]
+    @csrf_exempt
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         A note on the CSRF protection process.
@@ -382,14 +382,14 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
     def get_no_permission_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-login")  # type: ignore[no-any-return]
+        return reverse("sentry-login")
 
     def get_not_2fa_compliant_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-account-settings-security")  # type: ignore[no-any-return]
+        return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request: Request, **kwargs: Any) -> dict[str, Any]:
         context = csrf(request)
-        return context  # type: ignore[no-any-return]
+        return context
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
@@ -408,7 +408,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return res
 
     def get_team_list(self, user: User, organization: Organization) -> list[Team]:
-        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)  # type: ignore[no-any-return]
+        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)
 
     def create_audit_entry(
         self, request: Request, transaction_id: int | None = None, **kwargs: Any
@@ -642,7 +642,7 @@ class ProjectView(OrganizationView):
         return args, kwargs
 
 
-class AvatarPhotoView(View):  # type: ignore[misc]
+class AvatarPhotoView(View):
     model: type[AvatarBase]
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:

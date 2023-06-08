@@ -435,7 +435,7 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GitHubWebhookBase(Endpoint):  # type: ignore
+class GitHubWebhookBase(Endpoint):
     """https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks"""
 
     authentication_classes = ()

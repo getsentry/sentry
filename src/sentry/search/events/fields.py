@@ -33,6 +33,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     RESULT_TYPES,
     SEARCH_MAP,
+    SPAN_FUNCTION_ALIASES,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
@@ -2030,6 +2031,8 @@ FUNCTIONS = {
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
+for alias, name in SPAN_FUNCTION_ALIASES.items():
+    FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 

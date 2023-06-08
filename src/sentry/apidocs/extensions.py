@@ -7,7 +7,7 @@ from drf_spectacular.utils import Direction
 from sentry.apidocs.spectacular_ports import resolve_type_hint  # type: ignore
 
 
-class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
+class TokenAuthExtension(OpenApiAuthenticationExtension):
     """
     Extension that adds what scopes are needed to access an endpoint to the
     OpenAPI Schema.
@@ -32,7 +32,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
         return {"type": "http", "scheme": "bearer"}
 
 
-class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore
+class SentryResponseSerializerExtension(OpenApiSerializerExtension):
     """
     This extension will register any Sentry Response Serializer as a component that can be used
     in an OpenAPI schema. To have the serializer schema be mapped, you must type the
@@ -55,7 +55,7 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ig
         return resolve_type_hint(type_hints["return"])
 
 
-class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore
+class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
     """
     This extension is used for the `inline_sentry_response_serializer` utils function
     and will simply resolve the type passed into the function to an OpenAPI schema.

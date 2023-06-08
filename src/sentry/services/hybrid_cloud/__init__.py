@@ -318,7 +318,7 @@ def coerce_id_from(m: object | int | None) -> int | None:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot coerce {m!r} into id!")
 
 
@@ -326,5 +326,5 @@ def extract_id_from(m: object | int) -> int:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot extract {m!r} from id!")

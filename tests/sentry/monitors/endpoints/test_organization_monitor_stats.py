@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 @freeze_time(
     (datetime.now() - timedelta(days=2)).replace(hour=7, minute=57, second=0, microsecond=0)
 )
-class ListMonitorCheckInsTest(MonitorTestCase):
+class OrganizationMonitorStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-stats"
 
     def setUp(self):
@@ -31,6 +31,14 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             duration=1000,
             date_added=self.monitor.date_added + timedelta(minutes=1),
             status=CheckInStatus.OK,
+        )
+        MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=monitor_environment_production,
+            project_id=self.project.id,
+            duration=None,
+            date_added=self.monitor.date_added + timedelta(minutes=1),
+            status=CheckInStatus.IN_PROGRESS,
         )
         MonitorCheckIn.objects.create(
             monitor=self.monitor,
@@ -90,6 +98,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
         assert hour_one["timeout"] == 0
+        assert "in_progress" not in hour_one
 
         assert hour_two["duration"] == 2500
         assert hour_two["ok"] == 0

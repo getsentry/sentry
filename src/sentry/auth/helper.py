@@ -300,7 +300,7 @@ class AuthIdentityHandler:
         except AuthIdentity.DoesNotExist:
             return None
 
-    @transaction.atomic  # type: ignore
+    @transaction.atomic
     def handle_attach_identity(self, member: RpcOrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
@@ -782,7 +782,7 @@ class AuthHelper(Pipeline):
             self.provider_model, self.provider, self.organization, self.request, identity
         )
 
-    @transaction.atomic  # type: ignore
+    @transaction.atomic
     def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponse:
         """
         The login flow executes both with anonymous and authenticated users.
@@ -840,7 +840,7 @@ class AuthHelper(Pipeline):
 
             return auth_handler.handle_existing_identity(self.state, auth_identity)
 
-    @transaction.atomic  # type: ignore
+    @transaction.atomic
     def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """
         The setup flow creates the auth provider as well as an identity linked
