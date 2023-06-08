@@ -1,7 +1,7 @@
 {
   "extends": "./config/tsconfig.base.json",
   "compilerOptions": {
-    "allowJs": true,
+    "allowJs": true
   },
   "include": ["static/app", "tests/js", "fixtures/js-stubs", "config", "scripts"]
 }
