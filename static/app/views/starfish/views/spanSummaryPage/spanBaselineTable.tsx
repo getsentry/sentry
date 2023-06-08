@@ -93,7 +93,7 @@ function BodyCell({
   }
 
   if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()']/60} />;
+    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()'] / 60} />;
   }
 
   if (column.key === 'time_spent_percentage()') {
