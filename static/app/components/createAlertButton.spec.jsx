@@ -41,7 +41,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(onClickMock).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the create alert button for org-members', () => {
+  it('disables the button for org-member', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
@@ -71,7 +71,33 @@ describe('CreateAlertFromViewButton', () => {
     expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
   });
 
-  it('enables the create alert button for team-admins', () => {
+  it('enables the button for org-owner/manager', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+    });
+    const noAccessProj = {
+      ...TestStubs.Project(),
+      access: [],
+    };
+
+    render(
+      <CreateAlertFromViewButton
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        projects={[noAccessProj]}
+        onClick={onClickMock}
+      />,
+      {
+        context: TestStubs.routerContext([{organization}]),
+        organization,
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeEnabled();
+  });
+
+  it('enables the button for team-admin', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
@@ -111,7 +137,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(screen.getByRole('button', {name: 'Create Alert'})).toBeEnabled();
   });
 
-  it('shows a guide for members', () => {
+  it('shows a guide for org-member', () => {
     const noAccessOrg = {
       ...organization,
       access: [],
@@ -124,7 +150,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_member']));
   });
 
-  it('shows a guide for owners/managers', () => {
+  it('shows a guide for org-owner/manager', () => {
     const adminAccessOrg = {
       ...organization,
       access: ['org:write'],
