@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
 from arroyo.backends.abstract import Producer
@@ -75,8 +75,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "type": "c",
         }
 
-        payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
-        self.producer.produce(self.kafka_topic, payload)
+        self.__produce(counter_metric)
 
     def set(
         self,
@@ -107,8 +106,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "type": "s",
         }
 
-        payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
-        self.producer.produce(self.kafka_topic, payload)
+        self.__produce(set_metric)
 
     def distribution(
         self,
@@ -138,7 +136,10 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "type": "d",
         }
 
-        payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
+        self.__produce(dist_metric)
+
+    def __produce(self, metric: Mapping[str, Any]):
+        payload = KafkaPayload(None, json.dumps(metric).encode("utf-8"), [])
         self.producer.produce(self.kafka_topic, payload)
 
     def close(self):
