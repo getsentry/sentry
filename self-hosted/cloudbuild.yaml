@@ -9,7 +9,7 @@ steps:
         'SOURCE_COMMIT=$COMMIT_SHA',
         '--destination=us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA',
         '-f',
-        './docker/builder.dockerfile',
+        './self-hosted/builder.dockerfile',
       ]
     timeout: 180s
   - name: 'us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA'
@@ -29,7 +29,7 @@ steps:
         'SOURCE_COMMIT=$COMMIT_SHA',
         '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
         '-f',
-        './docker/Dockerfile',
+        './self-hosted/Dockerfile',
       ]
     timeout: 300s
 timeout: 2640s

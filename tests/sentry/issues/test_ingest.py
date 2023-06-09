@@ -40,7 +40,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
@@ -110,7 +110,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
 
 
 @region_silo_test
-class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
         process_occurrence_data(data)
@@ -121,7 +121,7 @@ class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 
 
 @region_silo_test
-class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
@@ -224,7 +224,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
             assert group_info is not None
 
 
-class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
@@ -242,7 +242,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
         }
 
 
-class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
@@ -257,7 +257,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 
 
 @region_silo_test
-class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")

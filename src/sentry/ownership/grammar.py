@@ -17,8 +17,8 @@ from typing import (
 )
 
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
@@ -234,7 +234,7 @@ class Owner(namedtuple("Owner", "type identifier")):
         return cls(data["type"], data["identifier"])
 
 
-class OwnershipVisitor(NodeVisitor):  # type: ignore
+class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
     def visit_ownership(self, node: Node, children: Sequence[Optional[Rule]]) -> Sequence[Rule]:

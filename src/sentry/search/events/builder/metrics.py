@@ -36,9 +36,10 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -195,6 +196,8 @@ class MetricsQueryBuilder(QueryBuilder):
             # precisely going hour to hour
             self.start.minute
             == self.end.minute
+            == self.start.second
+            == self.end.second
             == duration % 3600
             == 0
         ):

@@ -14,7 +14,7 @@ __all__ = (
 )
 
 
-class BoundedIntegerField(models.IntegerField):  # type: ignore
+class BoundedIntegerField(models.IntegerField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
@@ -24,7 +24,7 @@ class BoundedIntegerField(models.IntegerField):  # type: ignore
         return cast(int, super().get_prep_value(value))
 
 
-class BoundedPositiveIntegerField(models.PositiveIntegerField):  # type: ignore
+class BoundedPositiveIntegerField(models.PositiveIntegerField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
@@ -34,7 +34,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):  # type: ignore
         return cast(int, super().get_prep_value(value))
 
 
-class BoundedAutoField(models.AutoField):  # type: ignore
+class BoundedAutoField(models.AutoField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
@@ -46,7 +46,7 @@ class BoundedAutoField(models.AutoField):  # type: ignore
 
 if settings.SENTRY_USE_BIG_INTS:
 
-    class BoundedBigIntegerField(models.BigIntegerField):  # type: ignore
+    class BoundedBigIntegerField(models.BigIntegerField):
         description = _("Big Integer")
 
         MAX_VALUE = 9223372036854775807
@@ -60,7 +60,7 @@ if settings.SENTRY_USE_BIG_INTS:
                 assert value <= self.MAX_VALUE
             return cast(int, super().get_prep_value(value))
 
-    class BoundedBigAutoField(models.AutoField):  # type: ignore
+    class BoundedBigAutoField(models.AutoField):
         description = _("Big Integer")
 
         MAX_VALUE = 9223372036854775807

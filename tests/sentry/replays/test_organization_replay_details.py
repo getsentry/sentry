@@ -48,7 +48,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            self.login_as(member2.user)
+            self.login_as(member2)
             response = self.client.get(self.url)
             assert response.status_code == 404
 

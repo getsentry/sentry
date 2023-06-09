@@ -301,7 +301,7 @@ def _render_trees(group: Group, user):
     # or 1 otherwise.
     find_hash_expr = _construct_arraymax(
         [1]
-        + [  # type: ignore
+        + [
             Function("indexOf", [Column("hierarchical_hashes"), hash])
             for hash in materialized_hashes
         ]
