@@ -69,7 +69,9 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         if request.access.has_scope("org:write"):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
-                    team__organization=organization, member__user_is_active=True
+                    team__organization=organization,
+                    member__user_is_active=True,
+                    member__user_id__isnull=False,
                 ).select_related("team")
             )
 
@@ -77,6 +79,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
                     member__user_is_active=True,
+                    member__user_id__isnull=False,
                     team__id__in=request.access.team_ids_with_membership,
                 ).select_related("team")
             )
