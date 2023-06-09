@@ -107,7 +107,7 @@ _DEFAULT_DAEMONS = {
         *_DEV_METRICS_INDEXER_ARGS,
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
-    "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
+    "profiles": ["sentry", "run", "consumer", "ingest-profiles", "--no-strict-offset-reset"],
     "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
