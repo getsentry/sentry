@@ -11,7 +11,19 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Tuple,
+    TypedDict,
+    TypeVar,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
@@ -1225,8 +1237,10 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute alerts feature
+    # Enable the mute issue alerts feature
     "organizations:mute-alerts": False,
+    # Enable the mute metric alerts feature
+    "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -1453,6 +1467,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
+    # Enabled experimental session replay errors view, replacing issues
+    "organizations:session-replay-errors-tab": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
     "organizations:session-replay-ga": False,
     # Enabled experimental session replay network data view
@@ -2929,8 +2945,13 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
 
+
+class TopicDefinition(TypedDict):
+    cluster: str
+
+
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS = {
+KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -2969,6 +2990,10 @@ KAFKA_TOPICS = {
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
+# If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
+# single-threaded under the hood for performance
+KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
+
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
