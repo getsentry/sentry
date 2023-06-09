@@ -14,7 +14,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
 from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
@@ -142,7 +142,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GlobalParams.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
