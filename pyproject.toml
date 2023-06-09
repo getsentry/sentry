@@ -1108,7 +1108,6 @@ module = [
     "sentry.services.hybrid_cloud.integration.impl",
     "sentry.services.hybrid_cloud.integration.service",
     "sentry.services.hybrid_cloud.log.impl",
-    "sentry.services.hybrid_cloud.lost_password_hash.model",
     "sentry.services.hybrid_cloud.notifications.impl",
     "sentry.services.hybrid_cloud.organization.impl",
     "sentry.services.hybrid_cloud.organization.model",
