@@ -48,9 +48,20 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
     help="Prints the updates without applying them.",
 )
 @click.option("-f", "--file", help="File name to load. If not provided assume stdin.")
+@click.option(
+    "-p",
+    "--path",
+    help=("Path in the options file to reach the object that contains the options themselves"),
+    default="options",
+)
 @click.pass_context
 @configuration
-def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
+def configoptions(
+    ctx,
+    dry_run: bool,
+    file: Optional[str],
+    path: str,
+) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
