@@ -64,8 +64,6 @@ class ProjectManager(BaseManager):
 
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
-        from sentry.models import ObjectStatus
-
         return self.filter(
             status=ObjectStatus.ACTIVE,
             teams__organizationmember__user_id__in=user_ids,

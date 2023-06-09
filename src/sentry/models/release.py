@@ -30,12 +30,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager import BaseManager
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    BaseManager,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
