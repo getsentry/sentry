@@ -43,6 +43,8 @@ class OrganizationExamples:
                     "latestRelease": None,
                 }
             ],
+            status_codes=["200"],
+            response_only=True,
         )
     ]
 
@@ -62,5 +64,6 @@ class OrganizationExamples:
                 ],
             },
             status_codes=["200"],
+            response_only=True,
         ),
     ]

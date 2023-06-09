@@ -59,5 +59,6 @@ class ProjectExamples:
                 "status": "active",
             },
             status_codes=["201"],
+            response_only=True,
         ),
     ]
