@@ -1,9 +1,11 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
 
 type Props = {
@@ -44,19 +46,22 @@ function DurationChart({groupId, transactionName}: Props) {
   );
 
   return (
-    <Chart
-      statsPeriod="24h"
-      height={140}
-      data={[spanMetricsSeriesData?.['p95(span.duration)']]}
-      start=""
-      end=""
-      loading={isLoading}
-      scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
-      utc={false}
-      chartColors={[P95_COLOR]}
-      isLineChart
-      definedAxisTicks={4}
-    />
+    <Fragment>
+      <h5>{DataTitles.p95}</h5>
+      <Chart
+        statsPeriod="24h"
+        height={140}
+        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+        start=""
+        end=""
+        loading={isLoading}
+        scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
+        utc={false}
+        chartColors={[P95_COLOR]}
+        isLineChart
+        definedAxisTicks={4}
+      />
+    </Fragment>
   );
 }
 
