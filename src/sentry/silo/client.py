@@ -44,7 +44,7 @@ class BaseSiloClient(BaseApiClient):
         """
         Directly proxy the provided request to the appropriate silo with minimal header changes.
         """
-        full_url = self.build_url(incoming_request.path)
+        full_url = self.build_url(incoming_request.get_full_path())
         prepared_request = Request(
             method=incoming_request.method,
             url=full_url,
@@ -53,10 +53,9 @@ class BaseSiloClient(BaseApiClient):
         ).prepare()
         raw_response: Response = super()._request(  # type: ignore
             incoming_request.method,
-            incoming_request.path,
-            raw_response=True,
-            allow_text=True,
+            incoming_request.get_full_path(),
             prepared_request=prepared_request,
+            raw_response=True,
         )
         self.logger.info(
             "proxy_request",

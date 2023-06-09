@@ -1,26 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import Any, Mapping
 
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 from ...mixins import IssueSyncMixin
 from ..client import JiraCloudClient
 
-if TYPE_CHECKING:
-    from sentry.models import Integration
-
-
 logger = logging.getLogger(__name__)
 
 
-def _get_client(integration: Integration) -> JiraCloudClient:
+def _get_client(integration: RpcIntegration) -> JiraCloudClient:
     return JiraCloudClient(
         integration.metadata["base_url"],
         integration.metadata["shared_secret"],
@@ -28,13 +25,13 @@ def _get_client(integration: Integration) -> JiraCloudClient:
     )
 
 
-def set_badge(integration: Integration, issue_key: str, group_link_num: int) -> Response:
+def set_badge(integration: RpcIntegration, issue_key: str, group_link_num: int) -> Response:
     client = _get_client(integration)
     return client.set_issue_property(issue_key, group_link_num)
 
 
 def get_assignee_email(
-    integration: Integration,
+    integration: RpcIntegration,
     assignee: Mapping[str, str],
     use_email_scope: bool = False,
 ) -> str | None:
@@ -48,7 +45,7 @@ def get_assignee_email(
 
 
 def handle_assignee_change(
-    integration: Integration,
+    integration: RpcIntegration,
     data: Mapping[str, Any],
     use_email_scope: bool = False,
 ) -> None:
