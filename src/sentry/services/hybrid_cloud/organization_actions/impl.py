@@ -42,16 +42,8 @@ def update_organization_with_outbox_message(
     return org
 
 
-class OrganizationUpsertOptions(TypedDict, total=False):
-    name: str
-    status: OrganizationStatus
-    flags: CombinedExpression
-    default_role: int
-    slug: str
-
-
 def upsert_organization_by_org_id_with_outbox_message(
-    *, org_id: int, upsert_data: OrganizationUpsertOptions
+    *, org_id: int, upsert_data: OrganizationCreateOptions
 ) -> Organization:
     with transaction.atomic():
         org, created = Organization.objects.update_or_create(id=org_id, defaults=upsert_data)
