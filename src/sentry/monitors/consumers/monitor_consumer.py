@@ -197,7 +197,7 @@ def _process_message(wrapper: Dict) -> None:
 
             try:
                 monitor = _ensure_monitor_with_config(
-                    project, validated_params["monitor_slug"], monitor_config
+                    project, params["monitor_slug"], monitor_config
                 )
 
                 if not monitor:
@@ -227,14 +227,14 @@ def _process_message(wrapper: Dict) -> None:
                 )
                 logger.debug(
                     "monitor environment exceeds limits for monitor: %s",
-                    validated_params["monitor_slug"],
+                    params["monitor_slug"],
                 )
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
 
             # Invalid UUIDs will raise ValueError
-            check_in_id = uuid.UUID(validated_params["check_in_id"])
+            check_in_id = uuid.UUID(params["check_in_id"])
 
             # When the UUID is empty we will default to looking for the most
             # recent check-in which is not in a terminal state.
