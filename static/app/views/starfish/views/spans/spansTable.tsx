@@ -9,6 +9,7 @@ import Link from 'sentry/components/links/link';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -25,6 +26,7 @@ type Props = {
 
 export type SpanDataRow = {
   'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
@@ -42,7 +44,8 @@ export type Keys =
   | 'p95(span.duration)'
   | 'sps_percent_change()'
   | 'sum(span.duration)'
-  | 'time_spent_percentage()';
+  | 'time_spent_percentage()'
+  | 'percentile_percent_change(span.duration, 0.95)';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
@@ -124,6 +127,15 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
       <ThroughputCell
         throughputPerSecond={row['spm()']}
         delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.duration)']}
+        delta={row['percentile_percent_change(span.duration, 0.95)']}
       />
     );
   }

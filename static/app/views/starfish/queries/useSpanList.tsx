@@ -20,6 +20,7 @@ const SPAN_FILTER_KEY_TO_LOCAL_FIELD = {
 
 export type SpanMetrics = {
   'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
@@ -146,6 +147,7 @@ function getEventView(
         'sum(span.duration)',
         'p95(span.duration)',
         'time_spent_percentage()',
+        'percentile_percent_change(span.duration, 0.95)',
       ],
       orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,
