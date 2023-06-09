@@ -4,11 +4,11 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
+from sentry.constants import ObjectStatus
 from sentry.models import (
     ApiKey,
     AuthIdentity,
     AuthProvider,
-    ObjectStatus,
     Organization,
     TeamStatus,
     User,

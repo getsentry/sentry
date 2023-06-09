@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Any, Environment, Mapping, Optional
+from sentry.models import Environment
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (

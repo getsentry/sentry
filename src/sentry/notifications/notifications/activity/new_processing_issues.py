@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, MutableMapping
+from typing import Any, Mapping, MutableMapping
 
-from sentry.models import Activity, Mapping, NotificationSetting
+from sentry.models import Activity, NotificationSetting
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap

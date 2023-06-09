@@ -27,7 +27,6 @@ from sentry.models import (
     GroupHistory,
     GroupHistoryStatus,
     GroupStatus,
-    GroupSubStatus,
     Organization,
     OrganizationMember,
     OrganizationStatus,
@@ -36,6 +35,7 @@ from sentry.models import (
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder

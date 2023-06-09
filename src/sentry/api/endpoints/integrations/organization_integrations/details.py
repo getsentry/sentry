@@ -12,8 +12,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
+from sentry.constants import ObjectStatus
 from sentry.features.helpers import requires_feature
-from sentry.models import ObjectStatus, OrganizationIntegration, ScheduledDeletion
+from sentry.models import OrganizationIntegration, ScheduledDeletion
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry

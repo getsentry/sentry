@@ -1,7 +1,8 @@
 from datetime import timedelta
 from time import time
 
-from sentry.models import ObjectStatus, OrganizationIntegration
+from sentry.constants import ObjectStatus
+from sentry.models import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 

@@ -1,16 +1,10 @@
 from urllib.parse import urlparse
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
-from sentry.models import (
-    ExternalActor,
-    ExternalProviders,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-)
+from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test
