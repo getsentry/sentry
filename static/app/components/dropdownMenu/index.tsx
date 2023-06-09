@@ -1,4 +1,5 @@
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
@@ -118,6 +119,13 @@ interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
+  /**
+   * Whether to render the menu inside a React portal (false by default). This should
+   * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
+   * scrollable container that messes with the menu's position. Some features, namely
+   * submenus, will not work correctly inside portals.
+   */
+  usePortal?: boolean;
 }
 
 /**
@@ -139,6 +147,7 @@ function DropdownMenu({
   className,
 
   // Overlay props
+  usePortal = false,
   offset = 8,
   position = 'bottom-start',
   isDismissable = true,
@@ -235,7 +244,7 @@ function DropdownMenu({
       return null;
     }
 
-    return (
+    const menu = (
       <DropdownMenuList
         {...props}
         {...menuProps}
@@ -266,6 +275,8 @@ function DropdownMenu({
         }}
       </DropdownMenuList>
     );
+
+    return usePortal ? createPortal(menu, document.body) : menu;
   }
 
   return (
