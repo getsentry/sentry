@@ -134,7 +134,9 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {organization} = this.state;
     const orgId = organization && organization.slug;
     window.location.assign(
-      `${organization?.links.organizationUrl}/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
+      `${organization?.links.organizationUrl || ''}/settings/${orgId}/integrations/${
+        data.provider.key
+      }/${data.id}/`
     );
   };
 
@@ -146,7 +148,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     this.trackInstallationStart();
     // need to send to control silo to finish the installation
     window.location.assign(
-      `${organization?.links.organizationUrl}/extensions/${
+      `${organization?.links.organizationUrl || ''}/extensions/${
         this.integrationSlug
       }/configure/?${urlEncode(query)}`
     );
