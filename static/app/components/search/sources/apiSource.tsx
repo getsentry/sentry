@@ -398,9 +398,8 @@ class ApiSource extends Component<Props, State> {
         'url',
         url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
       );
-      Sentry.captureException(
-        new Error(`API Source Failed: ${err?.responseJSON?.detail}`)
-      );
+      scope.setFingerprint(['api-source-failed']);
+      Sentry.captureException(err);
     });
   };
 
