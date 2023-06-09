@@ -6,8 +6,8 @@ from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
-from sentry.utils.snuba import Dataset
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
