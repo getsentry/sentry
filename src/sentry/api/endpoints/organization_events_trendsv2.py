@@ -208,6 +208,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
 
             for i in range(len(split_transactions_data)):
+                trends_request = trends_request.copy()
                 trends_request["data"] = split_transactions_data[i]
                 trends_requests.append(trends_request)
 
