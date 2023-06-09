@@ -39,7 +39,7 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="organizationmember",
                     name="user_email",
-                    field=models.BooleanField(default=True),
+                    field=models.CharField(max_length=75, null=True, blank=True),
                 ),
             ],
         )
