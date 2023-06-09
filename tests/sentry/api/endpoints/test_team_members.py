@@ -47,8 +47,8 @@ class TeamMembersTest(APITestCase):
         response = self.get_response(self.org.slug, self.team.slug)
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[1]["id"] == str(self.team_member.id)
-        assert response.data[0]["id"] == str(pending_invite.id)
+        assert response.data[0]["id"] == str(self.team_member.id)
+        assert response.data[1]["id"] == str(pending_invite.id)
 
     def test_team_members_list_does_not_include_inactive_users(self):
         inactive_user = self.create_user(email="inactive@example.com")

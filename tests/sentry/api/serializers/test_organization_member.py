@@ -26,8 +26,8 @@ class OrganizationMemberSerializerTest(TestCase):
 
     def _get_org_members(self):
         return list(
-            self.org.member_set.filter(user_id__in=[self.owner_user.id, self.user_2.id]).order_by(
-                "id"
+            self.org.member_set.filter(user__in=[self.owner_user, self.user_2]).order_by(
+                "user_email"
             )
         )
 
@@ -84,8 +84,8 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
             self.user_2,
             OrganizationMemberWithProjectsSerializer(projects=projects),
         )
-        expected_projects = [[self.project.slug], [self.project.slug, self.project_2.slug]]
-        expected_projects[1].sort()
+        expected_projects = [[self.project.slug, self.project_2.slug], [self.project.slug]]
+        expected_projects[0].sort()
         assert [r["projects"] for r in result] == expected_projects
 
         projects = [self.project_2]
@@ -94,7 +94,7 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
             self.user_2,
             OrganizationMemberWithProjectsSerializer(projects=projects),
         )
-        expected_projects = [[], [self.project_2.slug]]
+        expected_projects = [[self.project_2.slug], []]
         assert [r["projects"] for r in result] == expected_projects
 
 
@@ -107,15 +107,15 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
             OrganizationMemberWithTeamsSerializer(),
         )
         expected_teams = [
-            [self.team.slug],
             [self.team.slug, self.team_2.slug],
+            [self.team.slug],
         ]
         expected_team_roles = [
-            [{"teamSlug": self.team.slug, "role": None}],
             [
                 {"teamSlug": self.team.slug, "role": None},
                 {"teamSlug": self.team_2.slug, "role": None},
             ],
+            [{"teamSlug": self.team.slug, "role": None}],
         ]
         assert [r["teams"] for r in result] == expected_teams
         assert [r["teamRoles"] for r in result] == expected_team_roles
