@@ -336,7 +336,7 @@ export function getAmendedFieldOptions({
 
 // Extract metric names from aggregation functions present in the widget queries
 export function getMetricFields(queries: WidgetQuery[]) {
-  return queries.reduce((acc, query) => {
+  return queries.reduce<string[]>((acc, query) => {
     for (const field of [...query.aggregates, ...query.columns]) {
       const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
       if (fieldParameter && !acc.includes(fieldParameter)) {
@@ -345,7 +345,7 @@ export function getMetricFields(queries: WidgetQuery[]) {
     }
 
     return acc;
-  }, [] as string[]);
+  }, []);
 }
 
 // Used to limit the number of results of the "filter your results" fields dropdown

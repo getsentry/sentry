@@ -120,14 +120,17 @@ export function getCrumbsByColumn(
     return [column, breadcrumb] as [number, Crumb];
   });
 
-  const crumbsByColumn = columnCrumbPairs.reduce((map, [column, breadcrumb]) => {
-    if (map.has(column)) {
-      map.get(column)?.push(breadcrumb);
-    } else {
-      map.set(column, [breadcrumb]);
-    }
-    return map;
-  }, new Map() as Map<number, Crumb[]>);
+  const crumbsByColumn = columnCrumbPairs.reduce<Map<number, Crumb[]>>(
+    (map, [column, breadcrumb]) => {
+      if (map.has(column)) {
+        map.get(column)?.push(breadcrumb);
+      } else {
+        map.set(column, [breadcrumb]);
+      }
+      return map;
+    },
+    new Map()
+  );
 
   return crumbsByColumn;
 }
