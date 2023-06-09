@@ -105,8 +105,9 @@ class UsageTable extends Component<Props> {
       </CellStat>,
       <CellStat key={5}>
         <Button
+          title="Go to project level stats"
           data-test-id={project.slug}
-          size="sm"
+          size="xs"
           onClick={() => {
             this.loadProject(parseInt(stat.project.id, 10));
           }}
@@ -115,7 +116,7 @@ class UsageTable extends Component<Props> {
           <span>View Stats</span>
         </Button>
         <Link to={stat.projectSettingsLink}>
-          <StyledSettingsButton size="sm">
+          <StyledSettingsButton size="xs" title="Go to project settings">
             <SettingsIcon size="sm" />
           </StyledSettingsButton>
         </Link>
@@ -157,6 +158,8 @@ export const CellStat = styled('div')`
   align-items: center;
   font-variant-numeric: tabular-nums;
   justify-content: right;
+  padding-top: 9px;
+  padding-bottom: 9px;
 `;
 
 export const CellProject = styled(CellStat)`
