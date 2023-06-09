@@ -12,7 +12,12 @@ type Props = {
 };
 
 function SampleTable({groupId, transactionName}: Props) {
-  const {data: spanMetrics} = useSpanMetrics({group: groupId}, {transactionName});
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    {transactionName},
+    ['p95(span.duration)'],
+    'span-summary-panel-samples-table-p95'
+  );
 
   const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
     groupId,
