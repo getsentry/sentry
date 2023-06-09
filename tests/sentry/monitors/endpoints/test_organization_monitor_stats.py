@@ -14,70 +14,56 @@ from sentry.testutils.silo import region_silo_test
 class OrganizationMonitorStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-stats"
 
+    def add_checkin(self, offset, duration=None, env=None, status=None):
+        if status is None:
+            status = CheckInStatus.OK
+        if env is None:
+            env = self.env_prod
+
+        MonitorCheckIn.objects.create(
+            monitor=self.monitor,
+            monitor_environment=env,
+            project_id=self.project.id,
+            duration=duration,
+            date_added=self.monitor.date_added + timedelta(**offset),
+            status=status,
+        )
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.monitor = self._create_monitor()
+        self.env_prod = self._create_monitor_environment(monitor=self.monitor)
+        self.env_debug = self._create_monitor_environment(monitor=self.monitor, name="debug")
+
+        # Be sure to note the freeze time above
         self.since = self.monitor.date_added
         self.until = self.monitor.date_added + timedelta(hours=2)
-        monitor_environment_production = self._create_monitor_environment(monitor=self.monitor)
-        monitor_environment_debug = self._create_monitor_environment(
-            monitor=self.monitor, name="debug"
-        )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_production,
-            project_id=self.project.id,
-            duration=1000,
-            date_added=self.monitor.date_added + timedelta(minutes=1),
-            status=CheckInStatus.OK,
-        )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_production,
-            project_id=self.project.id,
-            duration=None,
-            date_added=self.monitor.date_added + timedelta(minutes=1),
-            status=CheckInStatus.IN_PROGRESS,
-        )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_debug,
-            project_id=self.project.id,
-            duration=2000,
-            date_added=self.monitor.date_added + timedelta(minutes=2),
-            status=CheckInStatus.OK,
-        )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_production,
-            project_id=self.project.id,
+
+        self.add_checkin(offset={"minutes": 1}, duration=1000)
+        self.add_checkin(offset={"minutes": 1}, status=CheckInStatus.IN_PROGRESS)
+        self.add_checkin(offset={"minutes": 2}, duration=2000, env=self.env_debug)
+
+        self.add_checkin(
+            offset={"hours": 1, "minutes": 1},
             duration=1500,
-            date_added=self.monitor.date_added + timedelta(hours=1, minutes=1),
             status=CheckInStatus.MISSED,
         )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_debug,
-            project_id=self.project.id,
+        self.add_checkin(
+            offset={"hours": 1, "minutes": 2},
             duration=2500,
-            date_added=self.monitor.date_added + timedelta(hours=1, minutes=2),
+            env=self.env_debug,
             status=CheckInStatus.ERROR,
         )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_production,
-            project_id=self.project.id,
+        self.add_checkin(
+            offset={"hours": 1, "minutes": 1},
             duration=3000,
-            date_added=self.monitor.date_added + timedelta(hours=1, minutes=1),
             status=CheckInStatus.TIMEOUT,
         )
-        MonitorCheckIn.objects.create(
-            monitor=self.monitor,
-            monitor_environment=monitor_environment_debug,
-            project_id=self.project.id,
+        self.add_checkin(
+            offset={"hours": 1, "minutes": 2},
             duration=3000,
-            date_added=self.monitor.date_added + timedelta(hours=1, minutes=2),
+            env=self.env_debug,
             status=CheckInStatus.TIMEOUT,
         )
 
