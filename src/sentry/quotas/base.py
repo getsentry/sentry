@@ -333,21 +333,21 @@ class Quota(Service):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
-        for option, compat_options, id, categories in (
+        for global_option, org_options, id, categories in (
             (
-                "project-abuse-quota.error-limit",
+                "getsentry.rate-limit.project-errors",
                 (
-                    "sentry:project-error-limit",
-                    "getsentry.rate-limit.project-errors",
+                    "sentry:project-error-limit",  # deprecated, do not use
+                    "project-abuse-quota.error-limit",  # new option
                 ),
                 "pae",
                 DataCategory.error_categories(),
             ),
             (
-                "project-abuse-quota.transaction-limit",
+                "getsentry.rate-limit.project-transactions",
                 (
-                    "sentry:project-transaction-limit",
-                    "getsentry.rate-limit.project-transactions",
+                    "sentry:project-transaction-limit",  # deprecated, do not use
+                    "project-abuse-quota.transaction-limit",  # new option
                 ),
                 "pati",  # project abuse transaction indexed limit
                 (index_data_category("transaction", org),),
@@ -372,15 +372,15 @@ class Quota(Service):
             # option for overriding the global option, the second one.
             # For now, these deprecated ones take precedence over the new
             # to preserve existing behavior.
-            if compat_options:
-                limit = org.get_option(compat_options[0])
+            if org_options:
+                limit = org.get_option(org_options[0])
                 if not limit:
-                    limit = options.get(compat_options[1])
+                    limit = options.get(org_options[1])
 
             if not limit:
-                limit = org.get_option(option)
+                limit = org.get_option(global_option)
                 if not limit:
-                    limit = options.get(option)
+                    limit = options.get(global_option)
 
             limit = _limit_from_settings(limit)
             if limit is None:
