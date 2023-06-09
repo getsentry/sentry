@@ -24,7 +24,7 @@ export type SpanMetrics = {
   'time_spent_percentage()': number;
 };
 
-export const useSpanMetricSeries = (
+export const useSpanMetricsSeries = (
   span?: Pick<IndexedSpan, 'group'>,
   queryFilters: {transactionName?: string} = {},
   referrer = 'span-metrics-series'

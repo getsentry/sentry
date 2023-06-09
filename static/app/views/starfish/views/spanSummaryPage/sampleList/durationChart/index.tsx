@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
 function DurationChart({groupId, transactionName}: Props) {
   const theme = useTheme();
 
-  const {isLoading, data: spanMetricsSeriesData} = useSpanMetricSeries(
+  const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {group: groupId},
     {transactionName},
     'sidebar-span-metrics'
