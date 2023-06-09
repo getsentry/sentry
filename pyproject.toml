@@ -70,8 +70,6 @@ django_settings_module = "sentry.conf.server_mypy"
 # these have py.typed but incorrect types
 [[tool.mypy.overrides]]
 module = [
-    # TODO: remove after https://github.com/getsentry/sentry/pull/50508
-    "docker.*",
     # TODO: these cause type errors when followed
     "snuba_sdk.*",
     # this package marks itself as typed but has no annotations
@@ -103,7 +101,7 @@ module = [
     "cssselect.*",
     "datadog.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
-    "docker.errors.*",
+    "docker.*",
     "email_reply_parser.*",
     "fido2.*",
     "honcho.manager.*",
