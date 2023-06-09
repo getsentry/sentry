@@ -25,7 +25,7 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
-    key: 'ProjectCreationForAllExperiment',
+    key: 'ProjectCreationForAllExperimentV2',
     type: ExperimentType.ORGANIZATION,
     parameter: 'exposed',
     assignments: [0, 1],

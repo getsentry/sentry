@@ -44,7 +44,7 @@ describe('ProjectCreationAccess', function () {
     const experiment_org = TestStubs.Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-project-creation-all'],
-      experiments: [{ProjectCreationForAllExperiment: 1}],
+      experiments: [{ProjectCreationForAllExperimentV2: 1}],
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
@@ -62,7 +62,7 @@ describe('ProjectCreationAccess', function () {
     const no_exp_org = TestStubs.Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-project-creation-all'],
-      experiments: [{ProjectCreationForAllExperiment: 0}],
+      experiments: [{ProjectCreationForAllExperimentV2: 0}],
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
@@ -80,7 +80,7 @@ describe('ProjectCreationAccess', function () {
     const no_flag_org = TestStubs.Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: [],
-      experiments: [{ProjectCreationForAllExperiment: 1}],
+      experiments: [{ProjectCreationForAllExperimentV2: 1}],
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
