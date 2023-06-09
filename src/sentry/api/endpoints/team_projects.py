@@ -14,7 +14,8 @@ from sentry.api.serializers.models.project import (
 )
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, PROJECT_PARAMS
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS, PROJECT_PARAMS
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
@@ -52,22 +53,31 @@ class TeamProjectPermission(TeamPermission):
     }
 
 
+@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
-    public = {"POST"}
+    public = {"GET", "POST"}
     permission_classes = (TeamProjectPermission,)
 
+    @extend_schema(
+        operation_id="List a Team's Projects",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            GLOBAL_PARAMS.TEAM_SLUG,
+            CURSOR_QUERY_PARAM,
+        ],
+        request=None,
+        responses={
+            201: SentryProjectResponseSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="Team not found."),
+        },
+        examples=TeamExamples.LIST_TEAM_PROJECTS,
+    )
     def get(self, request: Request, team) -> Response:
         """
-        List a Team's Projects
-        ``````````````````````
-
         Return a list of projects bound to a team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to list the projects of.
-        :auth: required
         """
         if request.auth and hasattr(request.auth, "project"):
             queryset = Project.objects.filter(id=request.auth.project.id)
