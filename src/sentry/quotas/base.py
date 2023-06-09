@@ -367,11 +367,12 @@ class Quota(Service):
         ):
             limit = 0
             abuse_window = global_abuse_window
-            # compat_options were previously present in getsentry
-            # for errors and transactions. The first one is the org
-            # option for overriding the global option, the second one.
-            # For now, these deprecated ones take precedence over the new
-            # to preserve existing behavior.
+            # org_options were previously present in getsentry
+            # for errors and transactions. The first one is the deprecated
+            # org option for overriding the global option, the second one
+            # is the updated option which should be used.
+            # The org options take precendence over the global default
+            # (with the deprecated one having higher precedence for compatibility).
             if org_options:
                 limit = org.get_option(org_options[0])
                 if not limit:
