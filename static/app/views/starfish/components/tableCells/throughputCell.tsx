@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {ComparisonLabel} from 'sentry/views/starfish/components/samplesTable/common';
 
@@ -28,4 +29,5 @@ const Container = styled('div')`
   display: flex;
   width: 100%;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
