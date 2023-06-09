@@ -1942,6 +1942,7 @@ module = [
     "tests.sentry.sentry_metrics.test_strings",
     "tests.sentry.services.test_http",
     "tests.sentry.services.test_hybrid_cloud",
+    "tests.sentry.services.test_organization_actions",
     "tests.sentry.services.test_smtp",
     "tests.sentry.shared_integrations.client.test_base",
     "tests.sentry.silo.test_client",

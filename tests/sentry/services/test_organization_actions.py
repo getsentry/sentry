@@ -30,7 +30,7 @@ def assert_outbox_update_message_exists(org: Organization, expected_count: int):
         assert org_update_outbox.category == OutboxCategory.ORGANIZATION_UPDATE
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationUpdateTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
@@ -42,7 +42,7 @@ class OrganizationUpdateTest(TestCase):
         with outbox_runner():
             pass
 
-        org = create_organization_with_outbox_message(
+        org: Organization = create_organization_with_outbox_message(
             create_options={"slug": "santry", "name": "santry", "status": OrganizationStatus.ACTIVE}
         )
 
@@ -85,7 +85,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         # a new entry.
         previous_org_count = Organization.objects.count()
         org_before_modification = Organization.objects.get(id=self.org.id)
-        updated_org = upsert_organization_by_org_id_with_outbox_message(
+        updated_org: Organization = upsert_organization_by_org_id_with_outbox_message(
             org_id=self.org.id,
             upsert_data={
                 "slug": "foobar",
@@ -111,7 +111,8 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         previous_org_count = Organization.objects.count()
         org_before_modification = Organization.objects.get(id=self.org.id)
         desired_org_id = 1234
-        created_org = upsert_organization_by_org_id_with_outbox_message(
+
+        created_org: Organization = upsert_organization_by_org_id_with_outbox_message(
             org_id=desired_org_id,
             upsert_data={"slug": "random", "name": "rando", "status": OrganizationStatus.ACTIVE},
         )
