@@ -1,4 +1,6 @@
-from typing import cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -14,39 +16,51 @@ __all__ = (
 )
 
 
-class BoundedIntegerField(models.IntegerField):
+if TYPE_CHECKING:
+    IntegerField = models.IntegerField[int, int]
+    PositiveIntegerField = models.PositiveIntegerField[int, int]
+    AutoField = models.AutoField[int, int]
+    BigIntegerField = models.BigIntegerField[int, int]
+else:
+    IntegerField = models.IntegerField
+    PositiveIntegerField = models.PositiveIntegerField
+    AutoField = models.AutoField
+    BigIntegerField = models.BigIntegerField
+
+
+class BoundedIntegerField(IntegerField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return cast(int, super().get_prep_value(value))
+        return super().get_prep_value(value)
 
 
-class BoundedPositiveIntegerField(models.PositiveIntegerField):
+class BoundedPositiveIntegerField(PositiveIntegerField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return cast(int, super().get_prep_value(value))
+        return super().get_prep_value(value)
 
 
-class BoundedAutoField(models.AutoField):
+class BoundedAutoField(AutoField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return cast(int, super().get_prep_value(value))
+        return super().get_prep_value(value)
 
 
 if settings.SENTRY_USE_BIG_INTS:
 
-    class BoundedBigIntegerField(models.BigIntegerField):
+    class BoundedBigIntegerField(BigIntegerField):
         description = _("Big Integer")
 
         MAX_VALUE = 9223372036854775807
@@ -58,9 +72,9 @@ if settings.SENTRY_USE_BIG_INTS:
             if value:
                 value = int(value)
                 assert value <= self.MAX_VALUE
-            return cast(int, super().get_prep_value(value))
+            return super().get_prep_value(value)
 
-    class BoundedBigAutoField(models.AutoField):
+    class BoundedBigAutoField(AutoField):
         description = _("Big Integer")
 
         MAX_VALUE = 9223372036854775807
@@ -68,8 +82,8 @@ if settings.SENTRY_USE_BIG_INTS:
         def db_type(self, connection: BaseDatabaseWrapper) -> str:
             return "bigserial"
 
-        def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str:
-            return cast(str, BoundedBigIntegerField().db_type(connection))
+        def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str | None:
+            return BoundedBigIntegerField().db_type(connection)
 
         def get_internal_type(self) -> str:
             return "BigIntegerField"
@@ -78,12 +92,12 @@ if settings.SENTRY_USE_BIG_INTS:
             if value:
                 value = int(value)
                 assert value <= self.MAX_VALUE
-            return cast(int, super().get_prep_value(value))
+            return super().get_prep_value(value)
 
 else:
     # we want full on classes for these
-    class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore
+    class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore[no-redef]
         pass
 
-    class BoundedBigAutoField(BoundedAutoField):  # type: ignore
+    class BoundedBigAutoField(BoundedAutoField):  # type: ignore[no-redef]
         pass
