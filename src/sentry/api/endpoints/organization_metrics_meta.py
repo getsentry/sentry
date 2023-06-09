@@ -1,11 +1,12 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import set_tag
+from sentry_sdk import set_tag, start_span
 
+from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.search.events.fields import get_function_alias
-from sentry.snuba import metrics_performance
+from sentry.snuba import metrics_performance, discover
 
 COUNT_UNPARAM = "count_unparameterized_transactions()"
 COUNT_HAS_TXN = "count_has_transaction_name()"
@@ -90,10 +91,41 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
                 functions_acl=["count_unparameterized_transactions", "count_null_transactions"],
                 use_aggregate_conditions=True,
             )
+
             if len(sum_metrics["data"]) > 0:
                 metrics_count = sum_metrics["data"][0].get("count")
                 if metrics_count == 0:
                     set_tag("empty_metrics", True)
+
+                    if (
+                        features.has(
+                            "organizations:performance-indexed-processed-compat-drift",
+                            organization,
+                            actor=request.user,
+                        )
+                        and request.GET.get("statsPeriod", "30d") == "1h"
+                    ):
+                        with start_span(
+                            op="metrics-compatiblity.check-transactions",
+                            description="Checking processed vs. indexed counts",
+                        ) as span:
+                            result = discover.query(
+                                selected_columns=[
+                                    "count() as transactions",
+                                ],
+                                query="event.type:transaction",
+                                params=params,
+                                limit=1,
+                                referrer="api.organization-events-metrics-compatibility.sum_metrics",
+                            )
+                            if len(result["data"]) > 0:
+                                transaction_count = ["data"][0]["transactions"]
+                                span.set_data("transaction_count", transaction_count)
+                                span.set_data("metrics_count", metrics_count)
+                                set_tag(
+                                    "has_processed_drift",
+                                    transaction_count > 0 and metrics_count == 0,
+                                )
 
                 data["sum"].update(
                     {
