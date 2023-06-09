@@ -106,7 +106,7 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && !prevStack.includes(top)) {
         top = top.parent;
       }
 

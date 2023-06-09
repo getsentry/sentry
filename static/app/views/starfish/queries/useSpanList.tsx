@@ -1,6 +1,7 @@
 import {Location} from 'history';
 import moment, {Moment} from 'moment';
 
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -31,6 +32,7 @@ export type SpanMetrics = {
 export const useSpanList = (
   moduleName: ModuleName,
   transaction?: string,
+  spanCategory?: string,
   orderBy?: string,
   limit?: number,
   _referrer = 'span-metrics'
@@ -47,10 +49,15 @@ export const useSpanList = (
     endTime,
     dateFilters,
     transaction,
-    orderBy,
     limit
   );
-  const eventView = getEventView(moduleName, location, transaction, orderBy);
+  const eventView = getEventView(
+    moduleName,
+    location,
+    transaction,
+    spanCategory,
+    orderBy
+  );
 
   // TODO: Add referrer
   const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
@@ -71,7 +78,6 @@ function getQuery(
   endTime: Moment,
   dateFilters: string,
   transaction?: string,
-  orderBy?: string,
   limit?: number
 ) {
   const conditions = buildQueryConditions(moduleName, location).filter(Boolean);
@@ -81,7 +87,7 @@ function getQuery(
     span_operation as "span.operation",
     description as "span.description",
     domain as "span.domain",
-    sum(exclusive_time) as "sum(span.duration)"
+    sum(exclusive_time) as "sum(span.duration)",
     quantile(0.95)(exclusive_time) as "p95(span.duration)",
     divide(count(), ${
       moment(endTime ?? undefined).unix() - moment(startTime).unix()
@@ -93,7 +99,7 @@ function getQuery(
     ${transaction ? `AND transaction = '${transaction}'` : ''}
     ${dateFilters}
     GROUP BY group_id, span_operation, domain, description
-    ORDER BY ${orderBy ?? 'count'} desc
+    ORDER BY count() desc
     ${limit ? `LIMIT ${limit}` : ''}`;
 }
 
@@ -117,9 +123,10 @@ function getEventView(
   moduleName: ModuleName,
   location: Location,
   transaction?: string,
+  spanCategory?: string,
   orderBy?: string
 ) {
-  const query = buildEventViewQuery(moduleName, location, transaction)
+  const query = buildEventViewQuery(moduleName, location, transaction, spanCategory)
     .filter(Boolean)
     .join(' ');
 
@@ -149,7 +156,8 @@ function getEventView(
 function buildEventViewQuery(
   moduleName: ModuleName,
   location: Location,
-  transaction?: string
+  transaction?: string,
+  spanCategory?: string
 ) {
   const {query} = location;
   const result = Object.keys(query)
@@ -161,6 +169,10 @@ function buildEventViewQuery(
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
+  }
+
+  if (defined(spanCategory)) {
+    result.push(`span.category:${spanCategory}`);
   }
 
   if (transaction) {

@@ -90,7 +90,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   get mappings() {
     const {integration} = this.props;
     const {teams} = this.state;
-    const externalTeamMappings = teams.reduce((acc, team) => {
+    const externalTeamMappings = teams.reduce<ExternalActorMapping[]>((acc, team) => {
       const {externalTeams} = team;
       acc.push(
         ...externalTeams
@@ -98,7 +98,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
           .map(externalTeam => ({...externalTeam, sentryName: team.slug}))
       );
       return acc;
-    }, [] as ExternalActorMapping[]);
+    }, []);
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 

@@ -11,6 +11,7 @@ import {ModuleName} from 'sentry/views/starfish/types';
 import SpansView from './spansView';
 
 type Query = {
+  'span.category'?: string;
   'span.module'?: string;
 };
 
@@ -22,6 +23,8 @@ export default function Spans() {
   )
     ? (location.query['span.module'] as ModuleName)
     : ModuleName.ALL;
+
+  const spanCategory = location.query['span.category'];
 
   return (
     <Layout.Page>
@@ -36,7 +39,7 @@ export default function Spans() {
           <Layout.Main fullWidth>
             <PageErrorAlert />
             <PageFiltersContainer>
-              <SpansView moduleName={moduleName} />
+              <SpansView moduleName={moduleName} spanCategory={spanCategory} />
             </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>

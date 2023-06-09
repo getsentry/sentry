@@ -34,7 +34,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
-enum SORT_BY {
+enum SortBy {
   ASC = 'date_added',
   DESC = '-date_added',
 }
@@ -134,7 +134,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
 
   // query params
   const query = decodeScalar(location.query.query);
-  const sortBy = location.query.sort ?? SORT_BY.DESC;
+  const sortBy = location.query.sort ?? SortBy.DESC;
   const cursor = location.query.cursor ?? '';
 
   // endpoints
@@ -215,7 +215,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       query: {
         ...location.query,
         cursor: undefined,
-        sort: sortBy === SORT_BY.ASC ? SORT_BY.DESC : SORT_BY.ASC,
+        sort: sortBy === SortBy.ASC ? SortBy.DESC : SortBy.ASC,
       },
     });
   }, [location, router, sortBy]);
@@ -304,13 +304,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
             <Tooltip
               containerDisplayMode="inline-flex"
               title={
-                sortBy === SORT_BY.DESC
+                sortBy === SortBy.DESC
                   ? t('Switch to ascending order')
                   : t('Switch to descending order')
               }
             >
               <IconArrow
-                direction={sortBy === SORT_BY.DESC ? 'down' : 'up'}
+                direction={sortBy === SortBy.DESC ? 'down' : 'up'}
                 data-test-id="icon-arrow"
               />
             </Tooltip>
