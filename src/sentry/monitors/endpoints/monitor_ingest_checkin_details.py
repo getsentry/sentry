@@ -98,7 +98,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         elif params.get("status", checkin.status) in CheckInStatus.FINISHED_VALUES:
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             if not valid_duration(duration):
-                return self.respond(serializer.errors, status=400)
+                return self.respond({"duration": ["Check-in has is too old to update"]}, status=400)
 
             params["duration"] = duration
 
