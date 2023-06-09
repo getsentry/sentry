@@ -115,7 +115,7 @@ petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.0
 pillow==9.2.0
-pip-tools==6.7.0
+pip-tools==6.13.0
 planout==0.6.0
 platformdirs==2.5.2
 pluggy==0.13.1

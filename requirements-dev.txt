@@ -24,7 +24,7 @@ isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
 # note: wheel is pulled in by pip-tools
-pip-tools>=6.7.0
+pip-tools>=6.13.0
 packaging>=21.3
 
 # for type checking
