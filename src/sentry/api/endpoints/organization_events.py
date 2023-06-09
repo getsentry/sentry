@@ -2,7 +2,7 @@ import logging
 from typing import Mapping
 
 import sentry_sdk
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -172,41 +173,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOTFOUND,
         },
-        examples=[
-            OpenApiExample(
-                "Success",
-                value={
-                    "data": [
-                        {
-                            "count_if(transaction.duration,greater,300)": 5,
-                            "count()": 10,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 50,
-                            "transaction": "foo",
-                        },
-                        {
-                            "count_if(transaction.duration,greater,300)": 3,
-                            "count()": 20,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 15,
-                            "transaction": "bar",
-                        },
-                        {
-                            "count_if(transaction.duration,greater,300)": 8,
-                            "count()": 40,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 20,
-                            "transaction": "baz",
-                        },
-                    ],
-                    "meta": {
-                        "fields": {
-                            "count_if(transaction.duration,greater,300)": "integer",
-                            "count()": "integer",
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": "number",
-                            "transaction": "string",
-                        },
-                    },
-                },
-            )
-        ],
+        examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
     def get(self, request: Request, organization) -> Response:
         """

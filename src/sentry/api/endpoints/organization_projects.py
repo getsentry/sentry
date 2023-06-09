@@ -1,7 +1,7 @@
 from typing import List
 
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +14,7 @@ from sentry.api.serializers.models.project import (
     ProjectSummarySerializer,
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -40,48 +41,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[
-            OpenApiExample(
-                "Success",
-                value=[
-                    {
-                        "dateCreated": "2018-11-06T21:19:58.536Z",
-                        "firstEvent": None,
-                        "access": [],
-                        "hasAccess": True,
-                        "id": "3",
-                        "isBookmarked": False,
-                        "isMember": True,
-                        "name": "Prime Mover",
-                        "platform": "",
-                        "platforms": [],
-                        "slug": "prime-mover",
-                        "team": {
-                            "id": "2",
-                            "name": "Powerful Abolitionist",
-                            "slug": "powerful-abolitionist",
-                        },
-                        "teams": [
-                            {
-                                "id": "2",
-                                "name": "Powerful Abolitionist",
-                                "slug": "powerful-abolitionist",
-                            }
-                        ],
-                        "environments": ["local"],
-                        "eventProcessing": {"symbolicationDegraded": False},
-                        "features": ["releases"],
-                        "firstTransactionEvent": True,
-                        "hasSessions": True,
-                        "hasProfiles": True,
-                        "hasReplays": True,
-                        "hasMonitors": True,
-                        "hasUserReports": False,
-                        "latestRelease": None,
-                    }
-                ],
-            )
-        ],
+        examples=OrganizationExamples.LIST_PROJECTS,
     )
     def get(self, request: Request, organization) -> Response:
         """

@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, List
 
 import sentry_sdk
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
 from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -148,24 +149,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "Successful response",
-                value={
-                    "start": "2022-02-14T19:00:00Z",
-                    "end": "2022-02-28T18:03:00Z",
-                    "intervals": ["2022-02-28T00:00:00Z"],
-                    "groups": [
-                        {
-                            "by": {"outcome": "invalid"},
-                            "totals": {"sum(quantity)": 165665},
-                            "series": {"sum(quantity)": [165665]},
-                        }
-                    ],
-                },
-                status_codes=["200"],
-            ),
-        ],
+        examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )
     def get(self, request: Request, organization) -> Response:
         """
