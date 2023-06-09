@@ -129,3 +129,36 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
                 "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0},
             },
         ]
+
+    def test_custom_resolution(self):
+        two_min_later = self.since + timedelta(minutes=2)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            **{
+                "monitor": [self.monitor1.slug],
+                "since": self.since.timestamp(),
+                "until": two_min_later.timestamp(),
+                "resolution": "1m",
+            },
+        )
+
+        min_0, min_1, min_2 = resp.data[self.monitor1.slug]
+
+        assert min_0 == [
+            1647849420,
+            {},
+        ]
+
+        assert min_1 == [
+            1647849480,
+            {
+                "production": {"ok": 1, "error": 0, "missed": 0, "timeout": 0},
+            },
+        ]
+        assert min_2 == [
+            1647849540,
+            {
+                "debug": {"ok": 1, "error": 0, "missed": 0, "timeout": 0},
+            },
+        ]
