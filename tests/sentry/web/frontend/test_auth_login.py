@@ -11,7 +11,8 @@ from django.utils import timezone
 from django.utils.http import urlquote
 
 from sentry import newsletter, options
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.models.organization import Organization
 from sentry.testutils import TestCase

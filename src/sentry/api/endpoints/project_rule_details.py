@@ -11,19 +11,12 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import (
-    RuleActivity,
-    RuleActivityType,
-    RuleSnooze,
-    RuleStatus,
-    SentryAppComponent,
-    Team,
-    User,
-)
+from sentry.models import RuleActivity, RuleActivityType, RuleStatus, SentryAppComponent, Team, User
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited

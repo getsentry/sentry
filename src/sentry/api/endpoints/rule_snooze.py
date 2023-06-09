@@ -11,7 +11,8 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
-from sentry.models import Organization, OrganizationMember, Rule, RuleSnooze
+from sentry.models import Organization, OrganizationMember, Rule
+from sentry.models.rulesnooze import RuleSnooze
 
 
 class RuleSnoozeValidator(CamelSnakeSerializer):

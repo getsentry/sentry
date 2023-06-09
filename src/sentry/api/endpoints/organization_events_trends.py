@@ -20,7 +20,8 @@ from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.events.types import Alias, SelectType, WhereType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import raw_snql_query
 
 
 class TrendColumns(TypedDict):

@@ -1,5 +1,6 @@
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import ApiApplication, SentryApp
 from sentry.utils.cache import memoize
 

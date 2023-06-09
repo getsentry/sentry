@@ -10,7 +10,8 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Environment, GroupRuleStatus, Rule, RuleSnooze
+from sentry.models import Environment, GroupRuleStatus, Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values

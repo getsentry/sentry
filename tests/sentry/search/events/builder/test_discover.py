@@ -12,8 +12,9 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
+from sentry.utils.snuba import QueryOutsideRetentionError
 from sentry.utils.validators import INVALID_ID_DETAILS
 
 pytestmark = pytest.mark.sentry_metrics

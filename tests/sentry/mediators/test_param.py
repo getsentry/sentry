@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.mediators import Param
+from sentry.mediators.param import Param
 from sentry.models import User
 from sentry.testutils import TestCase
 

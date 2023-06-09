@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 
 import pytz
 
-from sentry.models import Rule, RuleSnooze
+from sentry.models import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.tasks.clear_expired_rulesnoozes import clear_expired_rulesnoozes
 from sentry.testutils import APITestCase
 

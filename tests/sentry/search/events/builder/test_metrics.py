@@ -19,8 +19,8 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.utils.snuba import Dataset
 
 pytestmark = pytest.mark.sentry_metrics
 

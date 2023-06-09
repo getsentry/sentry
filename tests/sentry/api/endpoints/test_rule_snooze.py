@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 import pytz
 
 from sentry import audit_log
-from sentry.models import AuditLogEntry, Rule, RuleSnooze
+from sentry.models import AuditLogEntry, Rule
 from sentry.models.actor import ActorTuple
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test

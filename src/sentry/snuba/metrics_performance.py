@@ -12,7 +12,8 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 

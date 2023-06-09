@@ -4,7 +4,8 @@ import freezegun
 import pytz
 
 from sentry.api.serializers import serialize
-from sentry.models import Rule, RuleFireHistory
+from sentry.models import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
 from sentry.testutils import APITestCase, TestCase

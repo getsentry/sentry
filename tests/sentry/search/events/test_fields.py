@@ -12,7 +12,7 @@ from sentry.search.events.fields import (
     parse_combinator,
     parse_function,
 )
-from sentry.utils.snuba import Dataset
+from sentry.snuba.dataset import Dataset
 
 
 @pytest.mark.parametrize(

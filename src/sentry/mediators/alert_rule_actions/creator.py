@@ -1,6 +1,8 @@
 from sentry.coreapi import APIError
-from sentry.mediators import Mediator, Param, external_requests
+from sentry.mediators import external_requests
 from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import SentryAppComponent
 from sentry.utils.cache import memoize
 

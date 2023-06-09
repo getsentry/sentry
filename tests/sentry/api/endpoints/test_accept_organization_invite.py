@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,

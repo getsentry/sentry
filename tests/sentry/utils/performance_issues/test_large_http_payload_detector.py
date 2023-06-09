@@ -9,10 +9,10 @@ from sentry.testutils.performance_issues.event_generators import create_event, c
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors import LargeHTTPPayloadDetector
 from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 @region_silo_test

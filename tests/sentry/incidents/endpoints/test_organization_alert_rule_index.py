@@ -15,9 +15,10 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import AuditLogEntry, Rule, RuleFireHistory
+from sentry.models import AuditLogEntry, Rule
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rule import RuleSource
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase

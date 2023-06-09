@@ -7,9 +7,9 @@ import pytz
 from django.utils import timezone
 
 from sentry.models import GroupRelease, Project, Release
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.utils.snuba import (
-    Dataset,
     SnubaQueryParams,
     UnqualifiedQueryError,
     _prepare_query_params,

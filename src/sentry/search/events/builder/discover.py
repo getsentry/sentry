@@ -71,10 +71,10 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
-    Dataset,
     QueryOutsideRetentionError,
     is_duration_measurement,
     is_measurement,

@@ -11,7 +11,8 @@ from sentry.search.events.builder import (
     TopEventsSpanIndexedQueryBuilder,
 )
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 logger = logging.getLogger(__name__)
 

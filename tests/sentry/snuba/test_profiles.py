@@ -8,12 +8,12 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-from sentry.search.events.fields import InvalidSearchQuery
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
-from sentry.utils.snuba import Dataset
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)

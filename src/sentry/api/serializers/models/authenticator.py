@@ -3,9 +3,9 @@ from sentry.auth.authenticators import (
     AuthenticatorInterface,
     RecoveryCodeInterface,
     SmsInterface,
-    TotpInterface,
     U2fInterface,
 )
+from sentry.auth.authenticators.totp import TotpInterface
 
 
 @register(AuthenticatorInterface)

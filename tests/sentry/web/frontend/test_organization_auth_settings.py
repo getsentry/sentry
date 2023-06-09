@@ -5,7 +5,7 @@ from django.db import models
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry,

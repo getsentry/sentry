@@ -1,4 +1,5 @@
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import Repository
 from sentry.plugins.base import plugins
 from sentry.utils.cache import memoize

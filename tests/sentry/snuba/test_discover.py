@@ -14,9 +14,10 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
 )
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.snuba import Dataset, get_array_column_alias
+from sentry.utils.snuba import get_array_column_alias
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 

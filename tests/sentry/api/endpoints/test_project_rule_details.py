@@ -9,17 +9,10 @@ from freezegun import freeze_time
 from pytz import UTC
 
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import (
-    Environment,
-    Integration,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleFireHistory,
-    RuleSnooze,
-    RuleStatus,
-)
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test

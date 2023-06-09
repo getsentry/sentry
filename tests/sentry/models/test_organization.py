@@ -13,7 +13,7 @@ from sentry.api.endpoints.organization_details import (
     old_value,
     update_tracked_data,
 )
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
