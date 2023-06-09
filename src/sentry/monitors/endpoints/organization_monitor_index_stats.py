@@ -31,7 +31,10 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
 class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
     # TODO(epurkhiser): probably convert to snuba
     def get(self, request: Request, organization) -> Response:
-        args = self._parse_args(request)
+        # Do not restirct rollups allowing us to define custom resolutions.
+        # Important for this endpoint since we want our buckets to align with
+        # the UI's time scale markers.
+        args = self._parse_args(request, restrict_rollups=False)
 
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
@@ -66,7 +69,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         bucket = Func(
             timedelta(seconds=args["rollup"]),
             "date_added",
-            datetime.fromtimestamp(end),
+            datetime.fromtimestamp(start),
             function="date_bin",
             output_field=DateTimeField(),
         )
