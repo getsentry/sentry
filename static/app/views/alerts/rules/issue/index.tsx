@@ -1020,14 +1020,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {project: _selectedProject, projects, organization} = this.props;
     const {rule} = this.state;
 
-    const hasOpenMembership = organization.features.includes('open-membership');
-    const hasOrgWrite = organization.access.includes('org:write');
-
     const projectOptions = getProjectOptions({
+      organization,
       projects,
       isFormDisabled: disabled,
-      hasOpenMembership,
-      hasOrgWrite,
     });
 
     return (
