@@ -15,7 +15,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, Set, cast
+from typing import Any, Collection, FrozenSet, Iterable, Mapping, Set
 
 import sentry_sdk
 from django.conf import settings
@@ -152,12 +152,12 @@ class Access(abc.ABC):
     # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
-            return cast(OrganizationRole, organization_roles.get(self.role))
+            return organization_roles.get(self.role)
         return None
 
     def get_organization_roles(self) -> Iterable[OrganizationRole]:
         if self.roles is not None:
-            return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
+            return [organization_roles.get(r) for r in self.roles]
         return []
 
     @abc.abstractmethod

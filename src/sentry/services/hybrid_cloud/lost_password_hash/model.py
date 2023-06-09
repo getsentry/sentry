@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import datetime
-from typing import cast
 
 from sentry.models import LostPasswordHash
 from sentry.services.hybrid_cloud import RpcModel
@@ -17,4 +16,4 @@ class RpcLostPasswordHash(RpcModel):
     date_added = datetime.datetime
 
     def get_absolute_url(self, mode: str = "recover") -> str:
-        return cast(str, LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode))
+        return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)

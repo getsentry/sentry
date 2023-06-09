@@ -2236,7 +2236,7 @@ def _calculate_event_grouping(
             hashes = event.get_hashes()
 
     hashes.write_to_event(event.data)
-    return cast(CalculatedHashes, hashes)
+    return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
