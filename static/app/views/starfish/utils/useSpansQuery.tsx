@@ -24,6 +24,7 @@ export function useSpansQuery<T = any[]>({
   limit,
   forceUseDiscover,
   enabled,
+  referrer = 'use-spans-query',
 }: {
   enabled?: boolean;
   eventView?: EventView;
@@ -31,6 +32,7 @@ export function useSpansQuery<T = any[]>({
   initialData?: any;
   limit?: number;
   queryString?: string;
+  referrer?: string;
 }): UseSpansQueryReturnType<T> {
   const {options} = useStarfishOptions();
   const {useDiscover} = options;
@@ -40,7 +42,7 @@ export function useSpansQuery<T = any[]>({
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
     if (eventView) {
-      return queryFunction({eventView, initialData, limit, enabled});
+      return queryFunction({eventView, initialData, limit, enabled, referrer});
     }
     throw new Error(
       'eventView argument must be defined when Starfish useDiscover is true'
@@ -48,7 +50,7 @@ export function useSpansQuery<T = any[]>({
   }
 
   if (queryString) {
-    return queryFunction({queryString, initialData, enabled});
+    return queryFunction({queryString, initialData, enabled, referrer});
   }
   throw new Error(
     'queryString argument must be defined when Starfish useDiscover is false, ie when using scraped data via fetch API'
@@ -71,14 +73,17 @@ export function useWrappedQuery({
   queryString,
   initialData,
   enabled,
+  referrer,
 }: {
   queryString: string;
   enabled?: boolean;
   initialData?: any;
+  referrer?: string;
 }) {
   const {isLoading, data} = useQuery({
     queryKey: [queryString],
-    queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${queryString}&referrer=${referrer}`).then(res => res.json()),
     retry: false,
     initialData,
     enabled,

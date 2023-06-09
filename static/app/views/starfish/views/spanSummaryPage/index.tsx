@@ -30,7 +30,12 @@ function SpanSummaryPage({params, location}: Props) {
   const {transaction} = location.query;
 
   const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
-  const {data: spanMetrics} = useSpanMetrics({group: groupId});
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    undefined,
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    'span-summary-page-metrics'
+  );
 
   return (
     <Layout.Page>
@@ -53,7 +58,7 @@ function SpanSummaryPage({params, location}: Props) {
                   title={t('Throughput')}
                   description={t('Throughput of this span per second')}
                 >
-                  <ThroughputCell throughputPerSecond={spanMetrics?.['spm()'] / 60} />
+                  <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                 </Block>
                 <Block title={t('Duration')} description={t('Time spent in this span')}>
                   <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
