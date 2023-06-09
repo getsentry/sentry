@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
@@ -36,14 +37,14 @@ function DurationChart({groupId, transactionName}: Props) {
     ({timestamp, duration, transaction_id}) => ({
       data: [
         {
-          name: timestamp,
+          name: moment(timestamp).unix(),
           value: duration,
         },
       ],
       symbol: 'path://M -1 -1 V -5 H 0 V -1 H 4 V 0 H 0 V 4 H -1 V 0 H -5 V -1 H -1',
       color: theme.gray400,
       symbolSize: 15,
-      seriesName: transaction_id.split('-')[0],
+      seriesName: transaction_id,
     })
   );
 
