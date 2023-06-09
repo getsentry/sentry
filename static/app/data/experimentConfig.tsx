@@ -32,7 +32,7 @@ export const experimentList = [
   },
   {
     key: 'PrioritySortExperiment',
-    type: ExperimentType.ORGANIZATION,
+    type: ExperimentType.USER,
     parameter: 'variant',
     assignments: ['baseline', 'variant1', 'variant2'],
   },

@@ -25,6 +25,7 @@ import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -336,10 +337,11 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   getBetterPriorityParams(): BetterPriorityEndpointParams {
-    console.log(this.props.experimentAssignment);
-    console.log(this.props.organization?.experiments?.PrioritySortExperiment);
+    const user = ConfigStore.get('user');
+    const hasBetterPrioritySort = this.props.organization.isEarlyAdopter;
+    const variant = user.experiments?.PrioritySortExperiment;
     const query = this.props.location.query ?? {};
-    const {
+    let {
       eventHalflifeHours,
       hasStacktrace,
       issueHalflifeHours,
@@ -347,7 +349,22 @@ class IssueListOverview extends Component<Props, State> {
       norm,
       v2,
       relativeVolume,
+      sort,
     } = query;
+    if (variant === 'variant1' && hasBetterPrioritySort) {
+      v2 = true;
+      issueHalflifeHours = 12;
+    } else if (variant === 'variant2' && hasBetterPrioritySort) {
+      v2 = true;
+      issueHalflifeHours = 12;
+      relativeVolume = 0;
+    } else {
+      sort = 'date';
+      eventHalflifeHours = null;
+      hasStacktrace = null;
+      logLevel = null;
+      norm = null;
+    }
 
     return {
       eventHalflifeHours,
@@ -357,6 +374,7 @@ class IssueListOverview extends Component<Props, State> {
       norm,
       v2,
       relativeVolume,
+      sort,
     };
   }
 
@@ -392,7 +410,6 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const mergedParams = {...params, ...this.getBetterPriorityParams()};
-
     // only include defined values.
     return pickBy(mergedParams, v => defined(v)) as EndpointParams;
   };
