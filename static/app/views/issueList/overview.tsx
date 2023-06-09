@@ -26,6 +26,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
@@ -263,6 +264,7 @@ class IssueListOverview extends Component<Props, State> {
 
   componentWillUnmount() {
     this._poller.disable();
+    SelectedGroupStore.reset();
     GroupStore.reset();
     this.props.api.clear();
     this.listener?.();
