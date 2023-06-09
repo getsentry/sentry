@@ -89,7 +89,7 @@ function UpgradeGrouping({
       ProjectsStore.onUpdateSuccess(response);
       onUpgrade();
     } catch (err) {
-      handleXhrErrorResponse(t('Unable to upgrade config'), err);
+      handleXhrErrorResponse('Unable to upgrade config', err);
     }
   }
 
