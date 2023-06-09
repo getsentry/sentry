@@ -414,18 +414,17 @@ class Browser:
 
 
 def pytest_addoption(parser):
-    parser.addini("selenium_driver", help="selenium driver (chrome, phantomjs, or firefox)")
+    parser.addini("selenium_driver", help="selenium driver (chrome, or firefox)")
 
     group = parser.getgroup("selenium", "selenium")
     group._addoption(
         "--selenium-driver",
         dest="selenium_driver",
-        help="selenium driver (chrome, phantomjs, or firefox)",
+        help="selenium driver (chrome, or firefox)",
     )
     group._addoption(
         "--window-size", dest="window_size", help="window size (WIDTHxHEIGHT)", default="1680x1050"
     )
-    group._addoption("--phantomjs-path", dest="phantomjs_path", help="path to phantomjs driver")
     group._addoption("--chrome-path", dest="chrome_path", help="path to google-chrome")
     group._addoption("--chromedriver-path", dest="chromedriver_path", help="path to chromedriver")
     group._addoption(
@@ -492,11 +491,6 @@ def browser(request, live_server):
             )
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
-    elif driver_type == "phantomjs":
-        phantomjs_path = request.config.getoption("phantomjs_path")
-        if not phantomjs_path:
-            phantomjs_path = os.path.join("node_modules", "phantomjs-prebuilt", "bin", "phantomjs")
-        driver = webdriver.PhantomJS(executable_path=phantomjs_path)  # type: ignore[attr-defined]
     else:
         raise pytest.UsageError("--driver must be specified")
 
