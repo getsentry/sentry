@@ -60,7 +60,7 @@ def pr_to_issue_query(pr_id):
             SELECT pr.repository_id repo_id,
                 pr.key pr_key,
                 pr.organization_id org_id,
-                array_agg(go.id ORDER BY go.date_added) issues
+                array_agg(go.group_id ORDER BY go.date_added) issues
             FROM sentry_groupowner go
             JOIN sentry_commit c ON c.id = (go.context::jsonb->>'commitId')::int
             JOIN sentry_pull_request pr ON c.key = pr.merge_commit_sha
