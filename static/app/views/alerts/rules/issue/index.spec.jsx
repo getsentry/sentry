@@ -19,6 +19,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
+import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -149,6 +150,43 @@ describe('IssueRuleEditor', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.reset();
+  });
+
+  describe('Viewing the rule', () => {
+    const rule = TestStubs.MetricRule();
+
+    it('is visible without org-level alerts:write', () => {
+      createWrapper({
+        organization: {access: []},
+        project: {access: []},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
+    });
+
+    it('is enabled with org-level alerts:write', () => {
+      createWrapper({
+        organization: {access: ['alerts:write']},
+        project: {access: []},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
+
+    it('is enabled with project-level alerts:write', () => {
+      createWrapper({
+        organization: {access: []},
+        project: {access: ['alerts:write']},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
   });
 
   describe('Edit Rule', function () {
