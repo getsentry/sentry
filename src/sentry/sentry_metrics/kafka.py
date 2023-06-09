@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence, Union
 
+import sentry_kafka_schemas
 from arroyo import Topic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -12,6 +13,10 @@ from sentry.sentry_metrics.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+
+ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
+    "ingest-metrics"
+)
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
@@ -142,6 +147,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         self.__produce(dist_metric)
 
     def __produce(self, metric: Mapping[str, Any]):
+        ingest_codec.validate(metric)
         payload = KafkaPayload(None, json.dumps(metric).encode("utf-8"), [])
         self.producer.produce(self.kafka_topic, payload)
 
