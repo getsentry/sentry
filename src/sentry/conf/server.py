@@ -1227,7 +1227,7 @@ SENTRY_FEATURES = {
     "organizations:crash-rate-alerts": True,
     # Enable the mute issue alerts feature
     "organizations:mute-alerts": False,
-    # Enable the mute mute alerts feature
+    # Enable the mute metric alerts feature
     "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
