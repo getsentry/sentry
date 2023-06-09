@@ -71,7 +71,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
     )
 
     @staticmethod
-    def NAME(description: str, required: bool = False) -> OpenApiParameter:
+    def name(description: str, required: bool = False) -> OpenApiParameter:
         return OpenApiParameter(
             name="name",
             location="query",
@@ -81,7 +81,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
     @staticmethod
-    def SLUG(description: str, required: bool = False) -> OpenApiParameter:
+    def slug(description: str, required: bool = False) -> OpenApiParameter:
         return OpenApiParameter(
             name="slug",
             location="query",
@@ -223,7 +223,7 @@ class PROJECT_PARAMS:
     )
 
     @staticmethod
-    def PLATFORM(description: str) -> OpenApiParameter:
+    def platform(description: str) -> OpenApiParameter:
         return OpenApiParameter(
             name="platform",
             location="query",

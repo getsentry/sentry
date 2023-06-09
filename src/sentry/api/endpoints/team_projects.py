@@ -9,7 +9,9 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
-from sentry.api.serializers.models.project import ProjectSerializer as sentry_project_serializer
+from sentry.api.serializers.models.project import (
+    ProjectSerializer as SentryProjectResponseSerializer,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GLOBAL_PARAMS, PROJECT_PARAMS
@@ -51,7 +53,6 @@ class TeamProjectPermission(TeamPermission):
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Teams"])
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     public = {"POST"}
     permission_classes = (TeamProjectPermission,)
@@ -107,16 +108,16 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         parameters=[
             GLOBAL_PARAMS.ORG_SLUG,
             GLOBAL_PARAMS.TEAM_SLUG,
-            GLOBAL_PARAMS.NAME("The name of the project.", required=True),
-            GLOBAL_PARAMS.SLUG(
+            GLOBAL_PARAMS.name("The name of the project.", required=True),
+            GLOBAL_PARAMS.slug(
                 "Optional slug for the project. If not provided a slug is generated from the name."
             ),
-            PROJECT_PARAMS.PLATFORM("The platform for the project."),
+            PROJECT_PARAMS.platform("The platform for the project."),
             PROJECT_PARAMS.DEFAULT_RULES,
         ],
         request=ProjectPostSerializer,
         responses={
-            201: sentry_project_serializer,
+            201: SentryProjectResponseSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
@@ -164,5 +165,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 default_rules=result.get("default_rules", True),
                 sender=self,
             )
+
+        return Response(serialize(project, request.user), status=201)
 
         return Response(serialize(project, request.user), status=201)
