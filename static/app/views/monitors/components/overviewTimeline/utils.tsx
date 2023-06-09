@@ -1,9 +1,6 @@
 import moment from 'moment';
 
-import {
-  TimeWindow,
-  TimeWindowData,
-} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {TimeWindow, TimeWindowData} from './types';
 
 // Stores options and data which correspond to each selectable time window
 export const timeWindowData: TimeWindowData = {
