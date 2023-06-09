@@ -37,7 +37,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   return (
-    <MonitorListPanel>
+    <MonitorListPanel monitorCount={monitorList.length}>
       <ListFilters>
         <Button size="xs" icon={<IconSort size="xs" />} aria-label={t('Reverse sort')} />
         <SegmentedControl
@@ -79,9 +79,10 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
   );
 }
 
-const MonitorListPanel = styled(Panel)`
+const MonitorListPanel = styled(Panel)<{monitorCount: number}>`
   display: grid;
   grid-template-columns: 350px 1fr;
+  grid-template-rows: repeat(${p => p.monitorCount + 1}, auto);
 `;
 
 const TimelineContainer = styled('div')``;

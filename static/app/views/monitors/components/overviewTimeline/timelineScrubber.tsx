@@ -65,29 +65,22 @@ export function GridLineOverlay({end, timeWindow}: Props) {
   const {elementRef, width} = useDimensions<HTMLDivElement>();
   return (
     <Overlay ref={elementRef}>
-      <GridLineContainer>
-        {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
-          <Gridline key={date.getTime()} left={position} />
-        ))}
-      </GridLineContainer>
+      {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
+        <Gridline key={date.getTime()} left={position} />
+      ))}
     </Overlay>
   );
 }
 
 const Overlay = styled('div')`
-  grid-row: 1;
   grid-column: 2;
-  height: 100%;
-  width: 100%;
-  position: absolute;
-`;
-
-const GridLineContainer = styled('div')`
+  grid-row: 1 / -1;
   position: relative;
-  height: 100%;
 `;
 
 const LabelsContainer = styled('div')`
+  grid-column: 2;
+  grid-row: 1;
   position: relative;
   align-self: stretch;
   border-bottom: 1px solid ${p => p.theme.border};
