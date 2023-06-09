@@ -158,6 +158,7 @@ def prune_empty_keys(obj: None | Mapping[TKey, TValue | None]) -> None | dict[TK
 __all__ = (
     "JSONData",
     "JSONDecodeError",
+    "JSONEncoder",
     "dump",
     "dumps",
     "dumps_htmlsafe",
