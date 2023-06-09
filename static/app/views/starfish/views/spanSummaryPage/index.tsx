@@ -13,12 +13,17 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
@@ -37,6 +42,16 @@ function SpanSummaryPage({params, location}: Props) {
     ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
     'span-summary-page-metrics'
   );
+
+  const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
+    useSpanMetricsSeries(
+      {group: groupId},
+      undefined,
+      ['p95(span.duration)', 'sps()'],
+      'sidebar-span-metrics'
+    );
+
+  useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   return (
     <Layout.Page>
@@ -81,7 +96,7 @@ function SpanSummaryPage({params, location}: Props) {
 
               {span?.description && (
                 <BlockContainer>
-                  <Block title={t('Description')}>
+                  <Block>
                     <Panel>
                       <PanelBody>
                         <DescriptionContainer>
@@ -89,6 +104,40 @@ function SpanSummaryPage({params, location}: Props) {
                         </DescriptionContainer>
                       </PanelBody>
                     </Panel>
+                  </Block>
+
+                  <Block>
+                    <ChartPanel title={DataTitles.throughput}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spanMetricsSeriesData?.['sps()']]}
+                        start=""
+                        end=""
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[THROUGHPUT_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </Block>
+
+                  <Block>
+                    <ChartPanel title={DataTitles.p95}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+                        start=""
+                        end=""
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[P95_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
                   </Block>
                 </BlockContainer>
               )}
@@ -116,8 +165,8 @@ const FilterOptionsContainer = styled('div')`
 
 type BlockProps = {
   children: React.ReactNode;
-  title: React.ReactNode;
   description?: React.ReactNode;
+  title?: React.ReactNode;
 };
 
 export function Block({title, description, children}: BlockProps) {
