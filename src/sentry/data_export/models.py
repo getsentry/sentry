@@ -122,7 +122,7 @@ class ExportedData(Model):
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,
-                "payload": json.dumps(self.payload, indent=2, sort_keys=True),
+                "payload": json.dumps(self.payload),
             },
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",

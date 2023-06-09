@@ -75,7 +75,7 @@ class Chartcuterie(ChartRenderer):
             # Using sentry json formatter to handle datetime objects
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                data=json.dumps(payload, cls=json._default_encoder),
+                data=json.dumps(payload),
                 headers={"Content-Type": "application/json"},
             )
 

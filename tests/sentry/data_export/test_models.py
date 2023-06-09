@@ -167,7 +167,7 @@ class ExportedDataTest(TestCase):
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,
-                "payload": json.dumps(self.data_export.payload, indent=2, sort_keys=True),
+                "payload": json.dumps(self.data_export.payload),
             },
             "type": "organization.export-data",
             "template": "sentry/emails/data-export-failure.txt",
