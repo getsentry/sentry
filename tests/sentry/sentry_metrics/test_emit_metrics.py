@@ -1,4 +1,4 @@
-from sentry.sentry_metrics.kafka_metrics_interface import KafkaMetricsBackend
+from sentry.sentry_metrics.kafka import KafkaMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
@@ -6,7 +6,7 @@ def test_emit() -> None:
     metrics_backend = KafkaMetricsBackend()
 
     use_case_id = UseCaseID.TRANSACTIONS
-    org_id = 2
+    org_id = 5
     project_id = 1
     metric_name = "my_metric"
     values = [2, 3]

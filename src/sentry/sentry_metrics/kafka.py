@@ -8,7 +8,7 @@ from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
-from sentry.sentry_metrics.metrics_interface import GenericMetricsBackend
+from sentry.sentry_metrics.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -60,8 +60,9 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         """
         Emit a counter metric for internal use cases only.
-        Ensure that the use_case_id passed in has been registered
-        in the UseCaseID enum.
+        Note that, as of now, this function will return
+        immediately even if the metric message has not been
+        produced to the broker yet.
         """
 
         counter_metric = {
@@ -91,8 +92,9 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         """
         Emit a set metric for internal use cases only. Can support
-        a sequence of values. Ensure that the use_case_id passed in has
-        been registered in the UseCaseID enum.
+        a sequence of values. Note that, as of now, this function
+        will return immediately even if the metric message has not been
+        produced to the broker yet.
         """
 
         set_metric = {
@@ -122,8 +124,9 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         """
         Emit a distribution metric for internal use cases only. Can
-        support a sequence of values. Ensure that the use_case_id passed in
-        has been registered in the UseCaseID enum.
+        support a sequence of values. Note that, as of now, this function
+        will return immediately even if the metric message has not been
+        produced to the broker yet.
         """
         dist_metric = {
             "org_id": org_id,

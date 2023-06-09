@@ -6,7 +6,7 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from arroyo.utils.clock import TestingClock as Clock
 
-from sentry.sentry_metrics.kafka_metrics_interface import KafkaMetricsBackend, build_mri
+from sentry.sentry_metrics.kafka import KafkaMetricsBackend, build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 
