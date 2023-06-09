@@ -32,8 +32,6 @@ interface Props {
   monitorListPageLinks?: string | null;
 }
 
-const DEFAULT_WIDTH = 800;
-
 export function OverviewTimeline({monitorList}: Props) {
   const {replace, location} = useRouter();
   const organization = useOrganization();
@@ -41,7 +39,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const resolution = location.query?.resolution ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, resolution);
-  const {elementRef, width} = useDimensions<HTMLDivElement>();
+  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
 
   const handleResolutionChange = useCallback(
     (value: string) => {
@@ -51,7 +49,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const rollup = Math.floor(
-    (timeWindowData[resolution].elapsedMinutes * 60) / (width > 0 ? width : DEFAULT_WIDTH)
+    (timeWindowData[resolution].elapsedMinutes * 60) / timelineWidth
   );
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -69,6 +67,7 @@ export function OverviewTimeline({monitorList}: Props) {
     ],
     {
       staleTime: 0,
+      enabled: timelineWidth > 0,
     }
   );
 
@@ -88,13 +87,17 @@ export function OverviewTimeline({monitorList}: Props) {
           <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
         </SegmentedControl>
       </ListFilters>
+      <TimelineWidthTracker ref={elementRef} />
       <GridLineTimeLabels
         timeWindow={resolution}
         end={nowRef.current}
-        width={width}
-        ref={elementRef}
+        width={timelineWidth}
       />
-      <GridLineOverlay timeWindow={resolution} end={nowRef.current} width={width} />
+      <GridLineOverlay
+        timeWindow={resolution}
+        end={nowRef.current}
+        width={timelineWidth}
+      />
 
       {monitorList.map(monitor => (
         <Fragment key={monitor.id}>
@@ -106,7 +109,7 @@ export function OverviewTimeline({monitorList}: Props) {
               bucketedData={monitorStats[monitor.slug]}
               end={nowRef.current}
               start={start}
-              width={width}
+              width={timelineWidth}
             />
           )}
         </Fragment>
@@ -160,4 +163,11 @@ const ListFilters = styled('div')`
   gap: ${space(1)};
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const TimelineWidthTracker = styled('div')`
+  position: absolute;
+  width: 100%;
+  grid-row: 1;
+  grid-column: 2;
 `;

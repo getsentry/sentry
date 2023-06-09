@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -49,19 +48,17 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   return times;
 }
 
-export const GridLineTimeLabels = forwardRef<HTMLDivElement, Props>(
-  ({end, timeWindow, width}: Props, ref) => {
-    return (
-      <LabelsContainer ref={ref}>
-        {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
-          <TimeLabelContainer key={date.getTime()} left={position}>
-            <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
-          </TimeLabelContainer>
-        ))}
-      </LabelsContainer>
-    );
-  }
-);
+export function GridLineTimeLabels({end, timeWindow, width}: Props) {
+  return (
+    <LabelsContainer>
+      {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
+        <TimeLabelContainer key={date.getTime()} left={position}>
+          <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
+        </TimeLabelContainer>
+      ))}
+    </LabelsContainer>
+  );
+}
 
 export function GridLineOverlay({end, timeWindow, width}: Props) {
   return (
