@@ -1,5 +1,6 @@
 from sentry.models import InviteStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
 
@@ -52,13 +53,14 @@ class TeamMembersTest(APITestCase):
     def test_team_members_list_does_not_include_inactive_users(self):
         inactive_user = self.create_user(email="inactive@example.com")
         inactive_user.is_active = False
-        inactive_user.save()
+        with outbox_runner():
+            inactive_user.save()
+            inactive_member = self.create_member(
+                organization=self.org,
+                user=inactive_user,
+                teams=[self.team],
+            )
 
-        inactive_member = self.create_member(
-            organization=self.org,
-            user=inactive_user,
-            teams=[self.team],
-        )
         self.login_as(user=self.user)
 
         response = self.get_response(self.org.slug, self.team.slug)

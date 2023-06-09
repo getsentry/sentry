@@ -16,14 +16,14 @@ class TasksAuthTest(TestCase):
             organization_id=self.organization.id, provider="dummy"
         )
         om = OrganizationMember.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
             flags=OrganizationMember.flags["sso:linked"],
         )
         assert om.flags["sso:linked"]
         self.user2 = self.create_user(email="baz@example.com")
         om2 = OrganizationMember.objects.create(
-            user=self.user2, organization=self.organization, flags=0
+            user_id=self.user2.id, organization=self.organization, flags=0
         )
         assert not om2.flags["sso:linked"]
 

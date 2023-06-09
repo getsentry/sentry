@@ -27,7 +27,7 @@ class TeamTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         assert list(team.member_set.all()) == [member]
 
@@ -35,7 +35,7 @@ class TeamTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        OrganizationMember.objects.get(user=user, organization=org)
+        OrganizationMember.objects.get(user_id=user.id, organization=org)
 
         assert list(team.member_set.all()) == []
 
@@ -95,16 +95,16 @@ class TransferTest(TestCase):
         assert project.organization == org2
 
         # owner does not exist on new org, so should not be transferred
-        assert not OrganizationMember.objects.filter(user=user, organization=org2).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id, organization=org2).exists()
 
         # existing member should now have access
-        member = OrganizationMember.objects.get(user=user2, organization=org2)
+        member = OrganizationMember.objects.get(user_id=user2.id, organization=org2)
         assert list(member.teams.all()) == [team]
         # role should not automatically upgrade
         assert member.role == "member"
 
         # old member row should still exist
-        assert OrganizationMember.objects.filter(user=user2, organization=org).exists()
+        assert OrganizationMember.objects.filter(user_id=user2.id, organization=org).exists()
 
         # no references to old org for this team should exist
         assert not OrganizationMemberTeam.objects.filter(

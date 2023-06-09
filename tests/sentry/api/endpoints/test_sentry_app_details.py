@@ -402,7 +402,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_members_cant_update(self):
         with exempt_from_silo_limits():
-            member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+            member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "member"
             member_om.save()
         self.login_as(user=self.user)
@@ -412,7 +412,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_create_integration_exceeding_scopes(self):
         with exempt_from_silo_limits():
-            member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+            member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "manager"
             member_om.save()
         self.login_as(user=self.user)

@@ -100,6 +100,7 @@ class OrganizationMemberSerializerTest(TestCase):
         data = {"email": "eric@localhost", "orgRole": "admin", "teamRoles": []}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
+
         assert serializer.is_valid()
 
     def test_invalid_team_role(self):
@@ -166,7 +167,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
     def test_user_id_query(self):
         user = self.create_user("zoo@localhost", username="zoo")
-        OrganizationMember.objects.create(user=user, organization=self.organization)
+        OrganizationMember.objects.create(user_id=user.id, organization=self.organization)
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": f"user.id:{user.id}"}
         )
@@ -297,8 +298,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Two authenticators to ensure the user list is distinct
         with exempt_from_silo_limits():
-            Authenticator.objects.create(user=member_2fa.user, type=1)
-            Authenticator.objects.create(user=member_2fa.user, type=2)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=1)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=2)
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -370,7 +371,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
             organization=self.organization, email="foo@example.com"
         )
 
-        assert member.user is None
+        assert member.user_id is None
         assert member.role == "manager"
         self.assert_org_member_mapping(org_member=member)
 
@@ -386,7 +387,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
     def test_existing_user_for_invite(self):
         user = self.create_user("foobar@example.com")
         member = OrganizationMember.objects.create(
-            organization=self.organization, user=user, role="member"
+            organization=self.organization, user_id=user.id, role="member"
         )
 
         data = {"email": user.email, "role": "member", "teams": [self.team.slug]}

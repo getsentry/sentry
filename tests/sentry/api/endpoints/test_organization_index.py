@@ -85,7 +85,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         response = self.get_success_response(qs_params={"member": 1})
         assert len(response.data) == 2
 
-        om = OrganizationMember.objects.get(organization=org, user=self.user)
+        om = OrganizationMember.objects.get(organization=org, user_id=self.user.id)
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
@@ -220,7 +220,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         response = self.get_success_response(name="org name")
 
         org_member = OrganizationMember.objects.get(
-            organization_id=response.data["id"], user=self.user
+            organization_id=response.data["id"], user_id=self.user.id
         )
         self.assert_org_member_mapping(org_member=org_member)
 

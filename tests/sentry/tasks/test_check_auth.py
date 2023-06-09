@@ -21,7 +21,7 @@ class CheckAuthTest(TestCase):
             organization_id=organization.id, provider="dummy"
         )
         OrganizationMember.objects.create(
-            user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
         )
 
         ai = AuthIdentity.objects.create(
@@ -49,7 +49,7 @@ class CheckAuthIdentityTest(TestCase):
             organization_id=organization.id, provider="dummy"
         )
         om = OrganizationMember.objects.create(
-            user=user, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
         )
 
         ai = AuthIdentity.objects.create(

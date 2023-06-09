@@ -37,7 +37,7 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     ).values_list("organizationmember_id", flat=True),
                 )
                 .select_related("user")
-                .order_by("user__email")
+                .order_by("user_email")
             )
 
             organization_members = list(qs)
