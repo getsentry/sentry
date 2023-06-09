@@ -6,7 +6,7 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.search.events.fields import get_function_alias
-from sentry.snuba import metrics_performance, discover
+from sentry.snuba import discover, metrics_performance
 
 COUNT_UNPARAM = "count_unparameterized_transactions()"
 COUNT_HAS_TXN = "count_has_transaction_name()"
