@@ -137,7 +137,10 @@ def run_basic_consumer(
 
     add_global_tags(kafka_topic=topic, group_id=group_id)
 
-    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+    topic_def = settings.KAFKA_TOPICS[topic]
+    assert topic_def is not None
+    cluster_name: str = topic_def["cluster"]
+
     consumer_config = build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,
