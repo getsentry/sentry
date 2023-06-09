@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0480_apiapplication_owner_optional"),
+        ("sentry", "0481_add_pull_request_comment_table"),
     ]
 
     operations = [
