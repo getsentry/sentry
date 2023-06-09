@@ -14,7 +14,11 @@ type Props = {
 function SampleInfo(props: Props) {
   const {groupId, transactionName} = props;
 
-  const {data: spanMetrics} = useSpanMetrics({group: groupId}, {transactionName});
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    {transactionName},
+    'span-summary-panel-metrics'
+  );
 
   return (
     <BlockContainer>

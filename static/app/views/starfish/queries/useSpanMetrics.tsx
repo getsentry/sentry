@@ -22,7 +22,7 @@ export type SpanMetrics = {
 export const useSpanMetrics = (
   span?: Pick<IndexedSpan, 'group'>,
   queryFilters: {transactionName?: string} = {},
-  _referrer = 'span-metrics'
+  referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
@@ -47,6 +47,7 @@ export const useSpanMetrics = (
     queryString: query,
     initialData: [],
     enabled: Boolean(query),
+    referrer,
   });
 
   return {isLoading, data: data[0] ?? {}};

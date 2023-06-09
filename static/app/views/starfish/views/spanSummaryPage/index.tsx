@@ -30,7 +30,11 @@ function SpanSummaryPage({params, location}: Props) {
   const {transaction} = location.query;
 
   const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
-  const {data: spanMetrics} = useSpanMetrics({group: groupId});
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    undefined,
+    'span-summary-page-metrics'
+  );
 
   return (
     <Layout.Page>
