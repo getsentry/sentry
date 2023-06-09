@@ -999,7 +999,6 @@ module = [
     "sentry.plugins.utils",
     "sentry.plugins.validators.url",
     "sentry.post_process_forwarder.post_process_forwarder",
-    "sentry.profiles.consumers",
     "sentry.profiles.flamegraph",
     "sentry.profiles.task",
     "sentry.profiles.utils",
