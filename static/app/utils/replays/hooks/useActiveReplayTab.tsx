@@ -8,10 +8,11 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 export enum TabKey {
   CONSOLE = 'console',
   DOM = 'dom',
-  NETWORK = 'network',
-  TRACE = 'trace',
+  ERRORS = 'errors',
   ISSUES = 'issues',
   MEMORY = 'memory',
+  NETWORK = 'network',
+  TRACE = 'trace',
 }
 
 function isReplayTab(tab: string): tab is TabKey {

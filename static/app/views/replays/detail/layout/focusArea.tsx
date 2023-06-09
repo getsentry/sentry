@@ -4,6 +4,7 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
+import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import IssueList from 'sentry/views/replays/detail/issueList';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
@@ -37,6 +38,13 @@ function FocusArea({}: Props) {
         <IssueList
           replayId={replay.getReplay()?.id}
           projectId={replay.getReplay()?.project_id}
+        />
+      );
+    case TabKey.ERRORS:
+      return (
+        <ErrorList
+          errorCrumbs={replay?.getErrorCrumbs()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
     case TabKey.DOM:

@@ -151,6 +151,10 @@ export default class ReplayReader {
 
   getRawErrors = memoize(() => this.rawErrors);
 
+  getErrorCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => crumb.type === BreadcrumbType.ERROR)
+  );
+
   getNonConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category !== 'console')
   );
