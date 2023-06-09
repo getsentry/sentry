@@ -14,10 +14,12 @@ export default function ChartPanel({title, children, button}: Props) {
   return (
     <Panel>
       <PanelBody withPadding>
-        <Header>
-          {title && <ChartLabel>{title}</ChartLabel>}
-          {button}
-        </Header>
+        {title && (
+          <Header>
+            {title && <ChartLabel>{title}</ChartLabel>}
+            {button}
+          </Header>
+        )}
         {children}
       </PanelBody>
     </Panel>
