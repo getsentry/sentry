@@ -1,3 +1,5 @@
+from typing import List
+
 from django.db import IntegrityError, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -12,10 +14,12 @@ from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import (
     ProjectSerializer as SentryProjectResponseSerializer,
 )
+from sentry.api.serializers.models.project import ProjectWithTeamResponseDict
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS, PROJECT_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
@@ -68,7 +72,9 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         ],
         request=None,
         responses={
-            200: SentryProjectResponseSerializer,
+            200: inline_sentry_response_serializer(
+                "OrganizationProjectResponseDict", List[ProjectWithTeamResponseDict]
+            ),
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
         },
