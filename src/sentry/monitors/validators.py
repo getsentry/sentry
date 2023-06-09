@@ -219,6 +219,15 @@ class MonitorValidator(CamelSnakeSerializer):
         return validated_data
 
 
+class CheckInDurationValidator(serializers.Serializer):
+    duration = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        min_value=0,
+    )
+
+
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -227,11 +236,8 @@ class MonitorCheckInValidator(serializers.Serializer):
             ("in_progress", CheckInStatus.IN_PROGRESS),
         )
     )
-    duration = EmptyIntegerField(
+    duration = CheckInDurationValidator(
         required=False,
-        allow_null=True,
-        max_value=BoundedPositiveIntegerField.MAX_VALUE,
-        min_value=0,
     )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
