@@ -39,11 +39,11 @@ interface TeamStabilityProps extends DateTimeObject {
 
 export function TeamStability({
   organization,
+  projects,
   start,
   end,
   period,
   utc,
-  projects,
 }: TeamStabilityProps) {
   const api = useApi();
   const projectsWithSessions = projects.filter(project => project.hasSessions);
@@ -69,7 +69,7 @@ export function TeamStability({
         },
       },
     ],
-    {staleTime: 0, enabled: projectsWithSessions.length === 0}
+    {staleTime: 5000, enabled: projectsWithSessions.length !== 0}
   );
   const {
     data: weekSessions,
@@ -85,10 +85,13 @@ export function TeamStability({
         },
       },
     ],
-    {staleTime: 0, enabled: projectsWithSessions.length === 0}
+    {staleTime: 5000, enabled: projectsWithSessions.length !== 0}
   );
 
-  const isLoading = periodSessionsLoading || weekSessionsLoading;
+  const isLoading =
+    projectsWithSessions.length === 0
+      ? false
+      : periodSessionsLoading || weekSessionsLoading;
   const isError = periodSessionsError || weekSessionsError;
 
   function getScore(projectId: number, dataset: 'week' | 'period'): number | null {
