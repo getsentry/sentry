@@ -68,8 +68,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         ],
         request=None,
         responses={
-            201: SentryProjectResponseSerializer,
-            400: RESPONSE_BAD_REQUEST,
+            200: SentryProjectResponseSerializer,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
         },
