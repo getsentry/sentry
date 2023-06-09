@@ -171,7 +171,9 @@ def comment_workflow(pr_id):
             group_ids=top_5_issue_ids,
         )
     else:
-        client.update_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+        client.update_comment(
+            repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
+        )
 
         pr_comment.updated_at = timezone.now()
         pr_comment.group_ids = top_5_issue_ids

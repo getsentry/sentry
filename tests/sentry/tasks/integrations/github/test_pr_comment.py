@@ -1,12 +1,14 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
 import responses
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
@@ -336,6 +338,46 @@ class TestCommentWorkflow(GithubCommentTestCase):
             responses.calls[1].request.body
             == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 1
+        assert pull_request_comment_query[0].external_id == 1
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @with_feature("organizations:pr-comment-bot")
+    @responses.activate
+    @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
+    def test_comment_workflow_updates_comment(self, get_jwt, mock_issues):
+        groups = [g.id for g in Group.objects.all()]
+        mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
+        pull_request_comment = PullRequestComment.objects.create(
+            external_id=1,
+            pull_request_id=self.pr.id,
+            created_at=timezone.now() - timedelta(hours=1),
+            updated_at=timezone.now() - timedelta(hours=1),
+            group_ids=[1, 2, 3, 4],
+        )
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.PATCH,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/1/",
+            json={"id": 1},
+        )
+
+        pr_comment.comment_workflow(pr_id=self.pr.id)
+
+        assert (
+            responses.calls[1].request.body
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+        )
+        pull_request_comment.refresh_from_db()
+        assert pull_request_comment.group_ids == [str(g.id) for g in Group.objects.all()]
+        assert pull_request_comment.updated_at == timezone.now()
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
