@@ -7,31 +7,25 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
-import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
-import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
-  count: number;
-  metricSeries: Record<string, Series>;
   metrics: SpanTransactionMetrics;
   transaction: string;
 };
 
 type Props = {
-  span: Span;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -39,33 +33,19 @@ type Props = {
 export type Keys =
   | 'transaction'
   | 'p95(transaction.duration)'
-  | 'timeSpent'
-  | 'spans_per_second';
+  | 'time_spent_percentage(local)'
+  | 'spm()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
   const location = useLocation();
-  const {data: applicationMetrics} = useApplicationMetrics();
 
-  const {data: spanTransactions, isLoading} = useSpanTransactions(span);
-  const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
-  const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
+  const {data: spanTransactionMetrics, isLoading} = useSpanTransactionMetrics(span);
 
-  const spanTransactionsWithMetrics = spanTransactions.map(row => {
+  const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
-      ...row,
-      timeSpent: formatPercentage(
-        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics['sum(span.duration)']
-      ),
-      metrics: spanTransactionMetrics[row.transaction],
-      metricSeries: spanTransactionMetricsSeries[row.transaction],
+      transaction: row.transaction,
+      metrics: row,
     };
   });
 
@@ -103,7 +83,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: Span;
+  span: Pick<IndexedSpan, 'group'>;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -122,18 +102,20 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   }
 
   if (column.key === 'p95(transaction.duration)') {
-    return <DurationCell seconds={row.metrics?.p95} />;
+    return <DurationCell milliseconds={row.metrics?.['p95(span.duration)']} />;
   }
 
-  if (column.key === 'spans_per_second') {
-    return <ThroughputCell throughputPerSecond={row.metrics?.spans_per_second} />;
+  if (column.key === 'spm()') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()']} />;
   }
 
-  if (column.key === 'timeSpent') {
+  if (column.key === 'time_spent_percentage(local)') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalSpanTime={row.metrics?.total_time}
+        formattedTimeSpent={formatPercentage(
+          row.metrics?.['time_spent_percentage(local)']
+        )}
+        totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );
   }
@@ -145,7 +127,7 @@ function TransactionCell({span, column, row}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/span/${encodeURIComponent(span.group)}?${qs.stringify({
           transaction: row.transaction,
         })}`}
       >
@@ -162,7 +144,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'spans_per_second',
+    key: 'spm()',
     name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -172,7 +154,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'timeSpent',
+    key: 'time_spent_percentage(local)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },

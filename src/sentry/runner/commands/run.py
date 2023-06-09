@@ -11,6 +11,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
+from sentry.utils.imports import import_string
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -595,7 +596,6 @@ def occurrences_ingest_consumer(**options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
-@click.option("--join-timeout", type=int, help="Join timeout in seconds.", default=10)
 @click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
 @click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
@@ -646,6 +646,67 @@ def profiles_consumer(**options):
 
     consumer = get_profiles_process_consumer(**options)
     run_processor_with_signals(consumer)
+
+
+@run.command("consumer")
+@log_options()
+@click.argument(
+    "consumer_name",
+)
+@click.option(
+    "--topic",
+    type=str,
+    help="Main topic with messages for processing",
+)
+@click.option(
+    "--consumer-group",
+    "group_id",
+    required=True,
+    help="Kafka consumer group for the consumer.",
+)
+@click.option(
+    "--auto-offset-reset",
+    "auto_offset_reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@strict_offset_reset_option()
+@configuration
+def basic_consumer(consumer_name, topic, **options):
+    """
+    Launch a "new-style" consumer based on its "consumer name".
+
+    Example:
+
+        sentry run consumer ingest-profiles --consumer-group ingest-profiles
+
+    runs the ingest-profiles consumer with the consumer group ingest-profiles.
+    """
+    from sentry.consumers import KAFKA_CONSUMERS
+
+    try:
+        consumer_definition = KAFKA_CONSUMERS[consumer_name]
+    except KeyError:
+        raise click.ClickException(
+            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
+        )
+
+    try:
+        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+        default_topic = consumer_definition["topic"]
+    except KeyError:
+        raise click.ClickException(
+            f"The consumer group {consumer_name} does not have a strategy factory"
+            f"registered. Most likely there is another subcommand in 'sentry run' "
+            f"responsible for this consumer"
+        )
+
+    from sentry.utils.arroyo import run_basic_consumer
+
+    run_basic_consumer(
+        topic=topic or default_topic, **options, strategy_factory_cls=strategy_factory_cls
+    )
 
 
 @run.command("ingest-replay-recordings")

@@ -349,8 +349,8 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
     substatus_counts = (
         Group.objects.filter(
             project__organization_id=ctx.organization.id,
-            first_seen__gte=ctx.start,
-            first_seen__lt=ctx.end,
+            last_seen__gte=ctx.start,
+            last_seen__lt=ctx.end,
             status=GroupStatus.UNRESOLVED,
         )
         .values("project_id", "substatus")

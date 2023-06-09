@@ -1,9 +1,9 @@
 import Duration from 'sentry/components/duration';
 
 type Props = {
-  seconds: number;
+  milliseconds: number;
 };
 
-export default function DurationCell({seconds}: Props) {
-  return <Duration seconds={seconds} fixedDigits={2} abbreviation />;
+export default function DurationCell({milliseconds}: Props) {
+  return <Duration seconds={milliseconds / 1000} fixedDigits={2} abbreviation />;
 }

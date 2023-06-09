@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Type
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -21,6 +21,7 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.api import permissions
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -125,7 +126,7 @@ def allow_cors_options(func):
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes = (NoPermission,)
+    permission_classes: Tuple[Type[permissions.BasePermission]] = (NoPermission,)
 
     cursor_name = "cursor"
 

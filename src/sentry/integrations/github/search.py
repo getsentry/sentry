@@ -9,7 +9,7 @@ from sentry.shared_integrations.exceptions import ApiError
 
 
 @control_silo_endpoint
-class GitHubSearchEndpoint(IntegrationEndpoint):  # type: ignore
+class GitHubSearchEndpoint(IntegrationEndpoint):
     def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(

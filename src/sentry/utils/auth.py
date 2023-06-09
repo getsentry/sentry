@@ -372,7 +372,7 @@ def set_active_org(request: HttpRequest, org_slug: str) -> None:
         request.session["activeorg"] = org_slug
 
 
-class EmailAuthBackend(ModelBackend):  # type: ignore
+class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
 

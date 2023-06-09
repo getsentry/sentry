@@ -34,7 +34,7 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
 
 # temporary hack for removing unnecessary subqueries from group by list
 # TODO: remove when upgrade to django 3.0
-class NoGroupBySubquery(Subquery):  # type: ignore
+class NoGroupBySubquery(Subquery):
     def get_group_by_cols(self) -> List[str]:
         return []
 

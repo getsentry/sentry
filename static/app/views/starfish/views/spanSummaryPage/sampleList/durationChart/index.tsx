@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
@@ -21,6 +22,7 @@ type Props = {
 function DurationChart({groupId, transactionName, spanDescription}: Props) {
   const pageFilter = usePageFilters();
   const {isLoading, data} = useQuerySpansInTransaction({groupId});
+  const theme = useTheme();
 
   const spanGroupOperation = data?.[0]?.span_operation;
   const module = data?.[0]?.module;
@@ -50,6 +52,9 @@ function DurationChart({groupId, transactionName, spanDescription}: Props) {
           value: spanDuration,
         },
       ],
+      symbol: 'path://M -1 -1 V -5 H 0 V -1 H 4 V 0 H 0 V 4 H -1 V 0 H -5 V -1 H -1',
+      color: theme.gray400,
+      symbolSize: 15,
       seriesName: transaction_id.split('-')[0],
     })
   );

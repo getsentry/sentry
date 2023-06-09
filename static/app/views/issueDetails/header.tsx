@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -11,7 +11,6 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -26,8 +25,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {Event, Group, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -75,19 +73,6 @@ function GroupHeaderTabs({
   const hasReplaySupport = organizationFeatures.has('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
-
-  useEffect(() => {
-    if (!hasReplaySupport || typeof replaysCount === 'undefined') {
-      return;
-    }
-
-    trackAnalytics('replay.render-issues-detail-count', {
-      platform: project.platform!,
-      project_id: project.id,
-      count: replaysCount,
-      organization,
-    });
-  }, [hasReplaySupport, replaysCount, project, organization]);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -271,38 +256,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Consecutive HTTP Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Slow DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="beta"
-            title={t(
-              'Consecutive DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Large Render Blocking Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
