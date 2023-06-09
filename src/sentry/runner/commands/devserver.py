@@ -226,6 +226,8 @@ and run `sentry devservices up kafka zookeeper`.
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
     has_https = shutil.which("https") is not None
 
+    needs_kafka = False
+
     control_silo_port = port + 10
 
     if needs_https and not has_https:
@@ -325,6 +327,7 @@ and run `sentry devservices up kafka zookeeper`.
             daemons += [_get_daemon("post-process-forwarder")]
             daemons += [_get_daemon("post-process-forwarder-transactions")]
             daemons += [_get_daemon("post-process-forwarder-issue-platform")]
+            needs_kafka = True
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -351,8 +354,10 @@ and run `sentry devservices up kafka zookeeper`.
                 _get_daemon("metrics-perf"),
                 _get_daemon("metrics-billing"),
             ]
+            needs_kafka = True
 
     if settings.SENTRY_USE_RELAY:
+        needs_kafka = True
         daemons += [
             _get_daemon("ingest-events"),
             _get_daemon("ingest-attachments"),
@@ -364,6 +369,7 @@ and run `sentry devservices up kafka zookeeper`.
             daemons += [_get_daemon("profiles")]
 
     if occurrence_ingest:
+        needs_kafka = True
         daemons += [_get_daemon("occurrences")]
 
     if needs_https and has_https:
@@ -385,7 +391,7 @@ and run `sentry devservices up kafka zookeeper`.
         ]
 
     # Create all topics if the Kafka eventstream is selected
-    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream" or needs_kafka:
         from sentry.utils.batching_kafka_consumer import create_topics
 
         for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
