@@ -83,7 +83,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   });
 
   if (!segments?.data || !cumulativeTime?.data || topData.length === 0) {
-    return <Placeholder height="200px" />;
+    return <Placeholder height="285px" />;
   }
 
   const totalValues = cumulativeTime.data[0]['sum(span.duration)']

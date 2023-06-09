@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0479_add_timeout_at_checkin"),
+        ("sentry", "0483_backfill_organization_member_user_email"),
     ]
 
     database_operations = [

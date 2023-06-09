@@ -36,6 +36,8 @@ class HerokuReleaseHook(ReleaseHook):
 
     def is_valid_signature(self, body, heroku_hmac):
         secret = ProjectOption.objects.get_value(project=self.project, key="heroku:webhook_secret")
+        if secret is None:
+            return False
         computed_hmac = base64.b64encode(
             hmac.new(
                 key=secret.encode("utf-8"),

@@ -10,6 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {NumberContainer} from 'sentry/utils/discover/styles';
@@ -98,12 +99,12 @@ export function SpanGroupBreakdown({
               : {statsPeriod: period};
           if (['db', 'http'].includes(group['span.category'])) {
             spansLinkQueryParams['span.module'] = group['span.category'];
+          } else {
+            spansLinkQueryParams['span.module'] = 'Other';
           }
+          spansLinkQueryParams['span.category'] = group['span.category'];
 
-          const spansLink =
-            group['span.category'] === 'Other'
-              ? `/starfish/spans/`
-              : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
             <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
@@ -119,9 +120,13 @@ export function SpanGroupBreakdown({
                   }}
                 />
                 <TextAlignLeft>
-                  <Link to={spansLink}>
+                  {defined(transaction) ? (
                     <TextOverflow>{group['span.category']}</TextOverflow>
-                  </Link>
+                  ) : (
+                    <Link to={spansLink}>
+                      <TextOverflow>{group['span.category']}</TextOverflow>
+                    </Link>
+                  )}
                 </TextAlignLeft>
                 <RightAlignedCell>
                   <Tooltip

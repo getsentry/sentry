@@ -32,7 +32,7 @@ class OrganizationMemberListTest(APITestCase):
             list(
                 self.org.member_set.filter(
                     user_id__in=[self.owner_user.id, self.user_2.id]
-                ).order_by("id")
+                ).order_by("user_email")
             ),
             self.user_2,
             OrganizationMemberWithProjectsSerializer(projects=projects),

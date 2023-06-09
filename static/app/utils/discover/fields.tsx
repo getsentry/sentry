@@ -818,7 +818,7 @@ export function generateAggregateFields(
       const newField = `${func}(${parameters
         .map(param => param.defaultValue)
         .join(',')})`;
-      if (fields.indexOf(newField) === -1 && excludeFields.indexOf(newField) === -1) {
+      if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
       }
     }

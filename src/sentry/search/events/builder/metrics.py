@@ -195,6 +195,8 @@ class MetricsQueryBuilder(QueryBuilder):
             # precisely going hour to hour
             self.start.minute
             == self.end.minute
+            == self.start.second
+            == self.end.second
             == duration % 3600
             == 0
         ):

@@ -20,7 +20,7 @@ class RuleSnoozeValidator(CamelSnakeSerializer):
 
 
 @register(RuleSnooze)
-class RuleSnoozeSerializer(Serializer):  # type: ignore
+class RuleSnoozeSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         result = {
             "ownerId": obj.owner_id,

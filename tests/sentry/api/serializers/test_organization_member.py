@@ -27,7 +27,7 @@ class OrganizationMemberSerializerTest(TestCase):
     def _get_org_members(self):
         return list(
             self.org.member_set.filter(user_id__in=[self.owner_user.id, self.user_2.id]).order_by(
-                "id"
+                "user_email"
             )
         )
 
@@ -107,8 +107,8 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
             OrganizationMemberWithTeamsSerializer(),
         )
         expected_teams = [
-            [self.team.slug],
             [self.team.slug, self.team_2.slug],
+            [self.team.slug],
         ]
         expected_team_roles = [
             [{"teamSlug": self.team.slug, "role": None}],

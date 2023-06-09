@@ -81,10 +81,6 @@ class OrganizationMemberSerializer(serializers.Serializer):
         return self.validate_orgRole(role)
 
     def validate_orgRole(self, role):
-        if features.has("organizations:team-roles", self.context["organization"]):
-            if role in {r.id for r in organization_roles.get_all() if r.is_retired}:
-                raise serializers.ValidationError("This org-level role has been deprecated")
-
         if role not in {r.id for r in self.context["allowed_roles"]}:
             raise serializers.ValidationError(
                 "You do not have permission to set that org-level role"

@@ -2,46 +2,46 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   ApplicationMetrics,
   useApplicationMetrics,
 } from 'sentry/views/starfish/queries/useApplicationMetrics';
 import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricSeries} from 'sentry/views/starfish/queries/useSpanMetricSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
-  span: Span;
+  span: IndexedSpan;
 };
 
 type Row = {
   description: string;
-  metricSeries: Record<string, Series>;
   metrics: SpanMetrics;
-  timeSpent: string;
 };
 
 export type Keys =
   | 'description'
-  | 'spans_per_second'
+  | 'sps()'
   | 'p95(span.self_time)'
-  | 'timeSpent';
+  | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanBaselineTable({span}: Props) {
   const location = useLocation();
 
   const {data: applicationMetrics} = useApplicationMetrics();
-  const {data: spanMetrics} = useSpanMetrics(span);
-  const {data: spanMetricSeries} = useSpanMetricSeries(span);
+  const {data: spanMetrics} = useSpanMetrics(
+    span,
+    undefined,
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    'span-baseline-table'
+  );
 
   const renderHeadCell = column => {
     return <span>{column.name}</span>;
@@ -65,10 +65,6 @@ export function SpanBaselineTable({span}: Props) {
         {
           description: span.description ?? '',
           metrics: spanMetrics,
-          metricSeries: spanMetricSeries,
-          timeSpent: formatPercentage(
-            spanMetrics.total_time / applicationMetrics['sum(span.duration)']
-          ),
         },
       ]}
       columnOrder={COLUMN_ORDER}
@@ -85,7 +81,7 @@ export function SpanBaselineTable({span}: Props) {
 type CellProps = {
   column: TableColumnHeader;
   row: Row;
-  span: Span;
+  span: IndexedSpan;
 };
 
 function BodyCell({
@@ -98,18 +94,18 @@ function BodyCell({
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return <DurationCell seconds={row.metrics.p95} />;
+    return <DurationCell milliseconds={row.metrics?.['p95(span.duration)']} />;
   }
 
-  if (column.key === 'spans_per_second') {
-    return <ThroughputCell throughputPerSecond={row.metrics.spans_per_second} />;
+  if (column.key === 'sps()') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.['sps()']} />;
   }
 
-  if (column.key === 'timeSpent') {
+  if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalSpanTime={row.metrics.total_time}
+        formattedTimeSpent={formatPercentage(row.metrics?.['time_spent_percentage()'])}
+        totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );
   }
@@ -128,7 +124,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'spans_per_second',
+    key: 'sps()',
     name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -138,7 +134,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'timeSpent',
+    key: 'time_spent_percentage()',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },

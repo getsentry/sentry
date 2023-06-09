@@ -5,7 +5,7 @@
 
 from typing import Optional
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -16,7 +16,6 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -26,7 +25,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organization_id: int,
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
+    ) -> Optional[RpcOrganizationMemberMapping]:
         def apply_update(existing: OrganizationMemberMapping) -> None:
             existing.role = mapping.role
             existing.user_id = mapping.user_id
@@ -51,7 +50,12 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 assert existing
                 apply_update(existing)
                 return serialize_org_member_mapping(existing)
-        except IntegrationError:
+        except IntegrityError as e:
+            # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
+            # This is "safe" since the upsert here should be a no-op.
+            if "fk_auth_user" in str(e):
+                return None
+
             existing = self._find_organization_member(
                 organization_id=organization_id,
                 organizationmember_id=organizationmember_id,

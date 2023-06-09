@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
@@ -1287,7 +1287,7 @@ class DiscoverFunction:
 
     def alias_as(self, name):
         """Create a copy of this function to be used as an alias"""
-        alias = deepcopy(self)
+        alias = copy(self)
         alias.name = name
         return alias
 
@@ -2029,7 +2029,6 @@ FUNCTIONS = {
 
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
-
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 

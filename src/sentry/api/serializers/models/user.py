@@ -118,7 +118,7 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 
 @register(User)
-class UserSerializer(Serializer):  # type: ignore
+class UserSerializer(Serializer):
     def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
         if isinstance(requester, User):
             return bool(requester == obj)

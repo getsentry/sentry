@@ -1,5 +1,7 @@
 import logging
 
+from django.db import IntegrityError
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,8 +14,6 @@ from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -25,23 +25,27 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    if OrganizationMember.objects.filter(
-        organization_id=organization.id, email__iexact=email
-    ).exists():
+    om = OrganizationMember.objects.filter(
+        Q(email__iexact=email)
+        | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
+        organization=organization,
+    ).first()
+    if om:
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return
 
-    if user_service.get_many_by_email(
-        emails=[email], organization_id=organization.id, is_active=True
-    ):
-        return
+    try:
+        om = OrganizationMember.objects.create(
+            organization_id=organization.id,
+            role=organization.default_role,
+            email=email,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+    except IntegrityError:
+        pass
 
-    rpc_org_member = organization_service.add_organization_member(
-        organization_id=organization.id,
-        default_org_role=organization.default_role,
-        email=email,
-        invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-    )
-    return OrganizationMember.objects.get(id=rpc_org_member.id)
+    om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+    return om
 
 
 @region_silo_endpoint

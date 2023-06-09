@@ -65,7 +65,7 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
 @overload
 def get_or_create(
     client: docker.DockerClient, thing: Literal["network"], name: str
-) -> docker.modlels.networks.Network:
+) -> docker.models.networks.Network:
     ...
 
 
@@ -491,6 +491,7 @@ def rm(project: str, services: list[str]) -> None:
     an explicit list of services to remove.
     """
     from docker.errors import NotFound
+
     from sentry.runner import configure
 
     configure()

@@ -18,8 +18,6 @@ from sentry.models import (
     EnvironmentProject,
     Integration,
     NotificationSetting,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
     OrganizationMember,
     OrganizationOption,
     Project,
@@ -30,6 +28,7 @@ from sentry.models import (
     Rule,
     ScheduledDeletion,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux, with_feature

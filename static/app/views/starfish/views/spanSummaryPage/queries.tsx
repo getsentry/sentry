@@ -137,7 +137,7 @@ export const useQuerySpansInTransaction = (options: {
       SELECT
       count() AS count,
       quantile(0.5)(exclusive_time) as p50,
-      quantile(0.5)(exclusive_time) as p95,
+      quantile(0.95)(exclusive_time) as p95,
       span_operation,
       action,
       module,

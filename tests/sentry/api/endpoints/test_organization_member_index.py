@@ -101,8 +101,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
-        assert not serializer.is_valid()
-        assert serializer.errors == {"orgRole": ["This org-level role has been deprecated"]}
+        assert serializer.is_valid()
 
     def test_invalid_team_role(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}

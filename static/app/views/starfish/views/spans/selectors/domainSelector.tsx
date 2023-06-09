@@ -52,7 +52,7 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
           ...location,
           query: {
             ...location.query,
-            domain: newValue.value,
+            'span.domain': newValue.value,
           },
         });
       }}

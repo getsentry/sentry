@@ -22,7 +22,7 @@ from sentry.silo.util import (
 logger = logging.getLogger(__name__)
 
 
-class IntegrationProxyClient(ApiClient):  # type: ignore
+class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
     Requests to third parties must always exit the Sentry subnet via the Control Silo, and only

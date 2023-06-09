@@ -58,7 +58,7 @@ class Service:
         """
 
 
-class LazyServiceWrapper(LazyObject):  # type: ignore
+class LazyServiceWrapper(LazyObject):
     """
     Lazyily instantiates a standard Sentry service class.
 
