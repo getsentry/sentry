@@ -27,7 +27,7 @@ type Row = {
 
 export type Keys =
   | 'description'
-  | 'spm()'
+  | 'sps()'
   | 'p95(span.self_time)'
   | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
@@ -36,7 +36,12 @@ export function SpanBaselineTable({span}: Props) {
   const location = useLocation();
 
   const {data: applicationMetrics} = useApplicationMetrics();
-  const {data: spanMetrics} = useSpanMetrics(span);
+  const {data: spanMetrics} = useSpanMetrics(
+    span,
+    undefined,
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    'span-baseline-table'
+  );
 
   const renderHeadCell = column => {
     return <span>{column.name}</span>;
@@ -92,8 +97,8 @@ function BodyCell({
     return <DurationCell milliseconds={row.metrics?.['p95(span.duration)']} />;
   }
 
-  if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()'] / 60} />;
+  if (column.key === 'sps()') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.['sps()']} />;
   }
 
   if (column.key === 'time_spent_percentage()') {
@@ -119,7 +124,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'spm()',
+    key: 'sps()',
     name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },
