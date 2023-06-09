@@ -20,7 +20,7 @@ const makeApiDocsCommand = function () {
   }
   console.log('rebuilding OpenAPI schema...');
   isCurrentlyRunning = true;
-  const buildCommand = spawn('make', ['build-api-docs']);
+  const buildCommand = spawn('make', ['-C', '../', 'build-api-docs']);
 
   buildCommand.stdout.on('data', function (data) {
     stdout.write(data.toString());

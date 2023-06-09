@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +9,12 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.api.serializers.models.project import (
+    ProjectSerializer as SentryProjectResponseSerializer,
+)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import GLOBAL_PARAMS, PROJECT_PARAMS
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.signals import project_created
@@ -16,7 +23,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-class ProjectSerializer(serializers.Serializer):
+class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=50, required=True)
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -47,6 +54,7 @@ class TeamProjectPermission(TeamPermission):
 
 @region_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
+    public = {"POST"}
     permission_classes = (TeamProjectPermission,)
 
     def get(self, request: Request, team) -> Response:
@@ -93,24 +101,35 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        # Ensure POST is in the projects tab
+        tags=["Projects"],
+        operation_id="Create a New Project",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            GLOBAL_PARAMS.TEAM_SLUG,
+            GLOBAL_PARAMS.name("The name of the project.", required=True),
+            GLOBAL_PARAMS.slug(
+                "Optional slug for the project. If not provided a slug is generated from the name."
+            ),
+            PROJECT_PARAMS.platform("The platform for the project."),
+            PROJECT_PARAMS.DEFAULT_RULES,
+        ],
+        request=ProjectPostSerializer,
+        responses={
+            201: SentryProjectResponseSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="Team not found."),
+            409: OpenApiResponse(description="A project with this slug already exists."),
+        },
+        examples=ProjectExamples.CREATE_PROJECT,
+    )
     def post(self, request: Request, team) -> Response:
         """
-        Create a New Project
-        ````````````````````
-
         Create a new project bound to a team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to create a new project
-                                  for.
-        :param string name: the name for the new project.
-        :param string slug: optionally a slug for the new project.  If it's
-                            not provided a slug is generated from the name.
-        :param bool default_rules: create default rules (defaults to True)
-        :auth: required
         """
-        serializer = ProjectSerializer(data=request.data)
+        serializer = ProjectPostSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
