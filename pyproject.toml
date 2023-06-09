@@ -144,8 +144,6 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "bin.react-to-product-owners-yml-changes",
-    "bin.typed_code",
     "fixtures.integrations.jira.stub_client",
     "fixtures.integrations.mock_service",
     "fixtures.integrations.stub_service",
