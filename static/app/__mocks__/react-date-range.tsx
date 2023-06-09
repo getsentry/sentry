@@ -88,13 +88,13 @@ export function DateRange({ranges, onChange}: DateRangeProps) {
         <DateRangeInputs
           range={range}
           onChange={({startDate, endDate, key}) => {
-            const rangesByKey = ranges?.reduce(
+            const rangesByKey = ranges?.reduce<RangeKeyDict>(
               (acc, nextRange) => ({
                 ...acc,
                 [nextRange?.key ?? '']:
                   nextRange.key === key ? {...nextRange, startDate, endDate} : nextRange,
               }),
-              {} as RangeKeyDict
+              {}
             );
 
             onChange?.(rangesByKey);
