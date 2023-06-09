@@ -36,7 +36,7 @@ export const useSpanList = (
   spanCategory?: string,
   orderBy?: string,
   limit?: number,
-  _referrer = 'span-metrics'
+  referrer = 'use-span-list'
 ) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
@@ -67,6 +67,7 @@ export const useSpanList = (
     initialData: [],
     enabled: Boolean(query),
     limit,
+    referrer,
   });
 
   return {isLoading, data};
