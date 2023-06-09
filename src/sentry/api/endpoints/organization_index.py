@@ -219,6 +219,7 @@ class OrganizationIndexEndpoint(Endpoint):
                             team=team, organizationmember=om, is_active=True
                         )
 
+                om.outbox_for_update().drain_shard(max_updates_to_drain=10)
                 org_setup_complete.send_robust(
                     instance=org, user=request.user, sender=self.__class__
                 )
@@ -236,7 +237,6 @@ class OrganizationIndexEndpoint(Endpoint):
                     org,
                     actor_id=request.user.id if request.user.is_authenticated else None,
                 )
-                om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
             # TODO(hybrid-cloud): We'll need to catch a more generic error
             # when the internal RPC is implemented.
