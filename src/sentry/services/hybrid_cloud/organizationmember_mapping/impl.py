@@ -5,7 +5,7 @@
 
 from typing import Optional
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -25,25 +25,34 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organization_id: int,
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
-        with transaction.atomic():
-            existing = self._find_organization_member(
-                organization_id=organization_id,
-                organizationmember_id=organizationmember_id,
-            )
+    ) -> Optional[RpcOrganizationMemberMapping]:
+        try:
+            with transaction.atomic():
+                existing = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
+                )
 
-            if not existing:
-                existing = OrganizationMemberMapping.objects.create(organization_id=organization_id)
+                if not existing:
+                    existing = OrganizationMemberMapping.objects.create(
+                        organization_id=organization_id
+                    )
 
-            existing.role = mapping.role
-            existing.user_id = mapping.user_id
-            existing.email = mapping.email
-            existing.inviter_id = mapping.inviter_id
-            existing.invite_status = mapping.invite_status
-            existing.organizationmember_id = organizationmember_id
+                existing.role = mapping.role
+                existing.user_id = mapping.user_id
+                existing.email = mapping.email
+                existing.inviter_id = mapping.inviter_id
+                existing.invite_status = mapping.invite_status
+                existing.organizationmember_id = organizationmember_id
 
-            existing.save()
+                existing.save()
             return serialize_org_member_mapping(existing)
+        except IntegrityError as e:
+            # Stale user id, which will happen if a cascading deletion on the user has no reached the region.
+            # This is "safe" since the upsert here should be a no-op.
+            if "fk_auth_user" in str(e):
+                return None
+            raise
 
     def _find_organization_member(
         self,

@@ -21,7 +21,6 @@ from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
     GroupRelease,
-    GroupSubStatus,
     Integration,
     NotificationSetting,
     Organization,
@@ -55,6 +54,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware

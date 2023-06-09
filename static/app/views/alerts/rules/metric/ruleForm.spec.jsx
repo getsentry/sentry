@@ -6,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
@@ -80,8 +81,6 @@ describe('Incident Rules Form', () => {
 
   describe('Viewing the rule', () => {
     const rule = TestStubs.MetricRule();
-    const permissionAlertText =
-      'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.';
 
     it('is enabled without org-level alerts:write', () => {
       organization.access = [];
