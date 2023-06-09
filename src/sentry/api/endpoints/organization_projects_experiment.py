@@ -82,7 +82,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
         exposed = expt_manager.get(
-            "ProjectCreationForAllExperiment", org=organization, actor=request.user
+            "ProjectCreationForAllExperimentV2", org=organization, actor=request.user
         )
 
         if (
