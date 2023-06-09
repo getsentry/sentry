@@ -207,7 +207,6 @@ def _process_message(wrapper: Dict) -> None:
                     )
                     logger.info("monitor.validation.failed", extra={**params})
                     return
-
             except MonitorLimitsExceeded:
                 metrics.incr(
                     "monitors.checkin.result",
