@@ -30,6 +30,7 @@ export type SpanDataRow = {
   'span.group': string;
   'span.op': string;
   'spm()': number;
+  'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
 
@@ -39,6 +40,7 @@ export type Keys =
   | 'span.domain'
   | 'spm()'
   | 'p95(span.duration)'
+  | 'sps_percent_change()'
   | 'sum(span.duration)'
   | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
@@ -118,7 +120,12 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
   }
 
   if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row[column.key]} />;
+    return (
+      <ThroughputCell
+        throughputPerSecond={row['spm()']}
+        delta={row['sps_percent_change()']}
+      />
+    );
   }
 
   return row[column.key];
