@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry.api.base import control_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.integrations.utils import get_integration_from_jwt
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -18,7 +18,7 @@ from .base import JiraWebhookBase
 logger = logging.getLogger(__name__)
 
 
-@control_silo_endpoint
+@region_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.
