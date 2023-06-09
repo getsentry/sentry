@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import uuid
 from os import path
 from typing import List, Optional, Set, Tuple
 
@@ -11,7 +12,6 @@ from symbolic import SymbolicError, normalize_debug_id
 from sentry import options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
-from sentry.db.models.fields import uuid
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,

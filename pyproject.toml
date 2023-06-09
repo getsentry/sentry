@@ -1503,7 +1503,6 @@ module = [
     "tests.sentry.api.endpoints.test_project_plugin_details",
     "tests.sentry.api.endpoints.test_project_release_details",
     "tests.sentry.api.endpoints.test_project_release_file_details",
-    "tests.sentry.api.endpoints.test_project_release_files",
     "tests.sentry.api.endpoints.test_project_releases",
     "tests.sentry.api.endpoints.test_project_rule_details",
     "tests.sentry.api.endpoints.test_project_rules",

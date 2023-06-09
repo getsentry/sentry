@@ -1,8 +1,9 @@
+import uuid
+
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.db.models.fields import uuid
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
