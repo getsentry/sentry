@@ -98,7 +98,6 @@ module = [
     "codeowners.*",
     "confluent_kafka.*",
     "csp.middleware.*",
-    "cssselect.*",
     "datadog.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",

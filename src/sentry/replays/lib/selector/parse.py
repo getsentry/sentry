@@ -1,11 +1,9 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
-from cssselect import Selector, SelectorSyntaxError
+from cssselect import SelectorSyntaxError
 from cssselect import parse as cssselect_parse
-from cssselect.parser import Attrib, Class, CombinedSelector, Element, Hash
+from cssselect.parser import Attrib, Class, CombinedSelector, Element, Hash, Tree
 from rest_framework.exceptions import ParseError
-
-SelectorType = Union[Attrib, Class, Element, Hash]
 
 
 class QueryType:
@@ -22,7 +20,7 @@ class QueryType:
 
 def parse_selector(css_selector: str) -> List[QueryType]:
     try:
-        selectors: List[Selector] = cssselect_parse(css_selector)
+        selectors = cssselect_parse(css_selector)
     except SelectorSyntaxError:
         # Invalid selector syntax. No query data can be extracted.
         return []
@@ -38,7 +36,7 @@ def parse_selector(css_selector: str) -> List[QueryType]:
     return queries
 
 
-def visit_selector_tree(query: QueryType, selector: SelectorType) -> None:
+def visit_selector_tree(query: QueryType, selector: Tree) -> None:
     """Visit selector tree ignoring unhandled items.
 
     We intentionally ignore specificity and psuedo-elements.
