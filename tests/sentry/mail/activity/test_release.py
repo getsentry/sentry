@@ -104,7 +104,7 @@ class ReleaseTestCase(ActivityTestCase):
 
         context = email.get_context()
         assert context["environment"] == "production"
-        assert context["repos"][0]["commits"] == [
+        assert [(c, u.id) for c, u in context["repos"][0]["commits"]] == [
             (
                 self.commit4,
                 self.user5.id,
