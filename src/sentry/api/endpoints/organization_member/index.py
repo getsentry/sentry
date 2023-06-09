@@ -121,7 +121,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True) | Q(user_id__isnull=True),
+            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
             organization=organization,
             invite_status=InviteStatus.APPROVED.value,
         ).order_by("id")

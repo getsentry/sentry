@@ -187,6 +187,7 @@ def get_participants_for_release(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=projects,
             user_is_active=True,
+            user_id__isnull=False,
         )
         .distinct()
         .values_list("user_id", flat=True)

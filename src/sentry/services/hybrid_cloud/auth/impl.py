@@ -99,6 +99,7 @@ def query_sso_state(
                             Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
                             organization_id=org_id,
                             user_is_active=True,
+                            user_id__isnull=False,
                         )
                         .exclude(id=mem_id)
                         .values_list("user_id")

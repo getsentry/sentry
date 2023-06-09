@@ -252,6 +252,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 organizationmemberteam__team__in=self.teams.all(),
             ).values("id"),
             user_is_active=True,
+            user_id__isnull=False,
         ).distinct()
 
     def get_members_as_rpc_users(self) -> Iterable[RpcUser]:

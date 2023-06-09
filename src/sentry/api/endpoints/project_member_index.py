@@ -12,7 +12,7 @@ from sentry.models import OrganizationMember
 class ProjectMemberIndexEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True) | Q(user_id__isnull=True),
+            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
             organization=project.organization,
             teams__in=project.teams.all(),
         ).distinct()

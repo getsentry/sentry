@@ -45,7 +45,7 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 class TeamMembersEndpoint(TeamEndpoint):
     def get(self, request: Request, team) -> Response:
         queryset = OrganizationMemberTeam.objects.filter(
-            Q(organizationmember__user_is_active=True)
+            Q(organizationmember__user_is_active=True, organizationmember__user_id__isnull=False)
             | Q(organizationmember__user_id__isnull=True),
             organizationmember__organization=team.organization,
             organizationmember__invite_status=InviteStatus.APPROVED.value,

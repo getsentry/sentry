@@ -450,7 +450,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         queryset = OrganizationMember.objects.filter(
             Q(invite_status=InviteStatus.APPROVED.value),
-            Q(user_is_active=True) | Q(user_id__isnull=True),
+            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
             organization=organization,
         ).order_by("email", "id")
         if query_params["filter"]:
