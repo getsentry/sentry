@@ -37,6 +37,7 @@ class OrganizationExamples:
                     "hasSessions": True,
                     "hasProfiles": True,
                     "hasReplays": True,
+                    "hasMinifiedStackTrace": False,
                     "hasMonitors": True,
                     "hasUserReports": False,
                     "latestRelease": None,
