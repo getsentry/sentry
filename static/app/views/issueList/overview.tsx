@@ -152,6 +152,7 @@ type BetterPriorityEndpointParams = Partial<EndpointParams> & {
   norm?: boolean;
   relativeVolume?: number;
   v2?: boolean;
+  variant?: string;
 };
 
 class IssueListOverview extends Component<Props, State> {
@@ -338,10 +339,9 @@ class IssueListOverview extends Component<Props, State> {
 
   getBetterPriorityParams(): BetterPriorityEndpointParams {
     const user = ConfigStore.get('user');
-    const hasBetterPrioritySort = this.props.organization.isEarlyAdopter;
-    const variant = user.experiments?.PrioritySortExperiment;
+    const variant = user.experiments?.PrioritySortExperiment || 'baseline';
     const query = this.props.location.query ?? {};
-    let {
+    const {
       eventHalflifeHours,
       hasStacktrace,
       issueHalflifeHours,
@@ -349,22 +349,7 @@ class IssueListOverview extends Component<Props, State> {
       norm,
       v2,
       relativeVolume,
-      sort,
     } = query;
-    if (variant === 'variant1' && hasBetterPrioritySort) {
-      v2 = true;
-      issueHalflifeHours = 12;
-    } else if (variant === 'variant2' && hasBetterPrioritySort) {
-      v2 = true;
-      issueHalflifeHours = 12;
-      relativeVolume = 0;
-    } else {
-      sort = 'date';
-      eventHalflifeHours = null;
-      hasStacktrace = null;
-      logLevel = null;
-      norm = null;
-    }
 
     return {
       eventHalflifeHours,
@@ -374,7 +359,7 @@ class IssueListOverview extends Component<Props, State> {
       norm,
       v2,
       relativeVolume,
-      sort,
+      variant,
     };
   }
 
