@@ -1,15 +1,37 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import DateTime from 'sentry/components/dateTime';
 import {Resizeable} from 'sentry/components/replays/resizeable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {CheckIn, CheckInStatus} from 'sentry/views/monitors/types';
+import {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {CheckInStatus} from 'sentry/views/monitors/types';
 
 interface Props {
-  checkins: CheckIn[];
+  bucketedData: MonitorBucketData;
   end: Date;
   start: Date;
   width?: number;
+}
+
+function getAggregateStatus(envData: MonitorBucketData[number][1]) {
+  // Orders the status in terms of precedence for showing to the user
+  const statusOrdering = [
+    CheckInStatus.OK,
+    CheckInStatus.MISSED,
+    CheckInStatus.TIMEOUT,
+    CheckInStatus.ERROR,
+  ];
+
+  return Object.values(envData).reduce((currentStatus, value) => {
+    for (const [index, status] of statusOrdering.entries()) {
+      if (value[status] > 0 && index > statusOrdering.indexOf(currentStatus)) {
+        currentStatus = status;
+      }
+    }
+    return currentStatus;
+  }, CheckInStatus.OK);
 }
 
 function getColorFromStatus(status: CheckInStatus, theme: Theme) {
@@ -23,13 +45,13 @@ function getColorFromStatus(status: CheckInStatus, theme: Theme) {
   return statusToColor[status];
 }
 
-function getCheckInPosition(checkDate: string, timelineStart: Date, msPerPixel: number) {
+function getCheckInPosition(checkDate: number, timelineStart: Date, msPerPixel: number) {
   const elapsedSinceStart = new Date(checkDate).getTime() - timelineStart.getTime();
   return elapsedSinceStart / msPerPixel;
 }
 
 export function CheckInTimeline(props: Props) {
-  const {checkins, start, end} = props;
+  const {bucketedData, start, end} = props;
 
   function renderTimelineWithWidth(width: number) {
     const timeWindow = end.getTime() - start.getTime();
@@ -37,13 +59,24 @@ export function CheckInTimeline(props: Props) {
 
     return (
       <TimelineContainer>
-        {checkins.map(({id, dateCreated, status}) => {
-          const left = getCheckInPosition(dateCreated, start, msPerPixel);
+        {bucketedData.map(([timestamp, envData]) => {
+          const timestampMs = timestamp * 1000;
+          if (Object.keys(envData).length === 0) {
+            return null;
+          }
+
+          const left = getCheckInPosition(timestampMs, start, msPerPixel);
           if (left < 0) {
             return null;
           }
 
-          return <JobTick key={id} left={left} status={status} />;
+          return (
+            <JobTickContainer left={left} key={timestamp}>
+              <Tooltip title={<DateTime date={timestampMs} />}>
+                <JobTick status={getAggregateStatus(envData)} />
+              </Tooltip>
+            </JobTickContainer>
+          );
         })}
       </TimelineContainer>
     );
@@ -62,12 +95,14 @@ const TimelineContainer = styled('div')`
   margin: ${space(4)} 0;
 `;
 
-const JobTick = styled('div')<{left: number; status: CheckInStatus}>`
+const JobTickContainer = styled('div')<{left: number}>`
   position: absolute;
+  left: ${p => p.left}px;
+`;
+
+const JobTick = styled('div')<{status: CheckInStatus}>`
+  background: ${p => getColorFromStatus(p.status, p.theme)};
   width: 4px;
   height: 14px;
   border-radius: 6px;
-  left: ${p => p.left}px;
-
-  background: ${p => getColorFromStatus(p.status, p.theme)};
 `;

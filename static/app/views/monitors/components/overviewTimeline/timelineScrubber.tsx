@@ -1,9 +1,9 @@
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {
   getStartFromTimeWindow,
@@ -13,6 +13,7 @@ import {
 interface Props {
   end: Date;
   timeWindow: TimeWindow;
+  width: number;
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
@@ -48,23 +49,23 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   return times;
 }
 
-export function GridLineTimeLabels({end, timeWindow}: Props) {
-  const {elementRef, width} = useDimensions<HTMLDivElement>();
-  return (
-    <LabelsContainer ref={elementRef}>
-      {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
-        <TimeLabelContainer key={date.getTime()} left={position}>
-          <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
-        </TimeLabelContainer>
-      ))}
-    </LabelsContainer>
-  );
-}
+export const GridLineTimeLabels = forwardRef<HTMLDivElement, Props>(
+  ({end, timeWindow, width}: Props, ref) => {
+    return (
+      <LabelsContainer ref={ref}>
+        {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
+          <TimeLabelContainer key={date.getTime()} left={position}>
+            <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
+          </TimeLabelContainer>
+        ))}
+      </LabelsContainer>
+    );
+  }
+);
 
-export function GridLineOverlay({end, timeWindow}: Props) {
-  const {elementRef, width} = useDimensions<HTMLDivElement>();
+export function GridLineOverlay({end, timeWindow, width}: Props) {
   return (
-    <Overlay ref={elementRef}>
+    <Overlay>
       <GridLineContainer>
         {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
