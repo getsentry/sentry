@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Union
+from typing import List, Sequence, Union, cast
 
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -91,7 +91,7 @@ def query_replay_clicks(
     end: datetime.datetime,
     limit: int,
     offset: int,
-    search_filters: SearchFilter,
+    search_filters: Sequence[SearchFilter],
     organization_id: int,
 ):
     """Query replay clicks.
@@ -164,14 +164,18 @@ class Selector(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+        is_wildcard: bool = False,
     ) -> Condition:
         if operator == Op.NEQ:
             return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
         # This list of queries implies an `OR` operation between each item in the set. To `AND`
         # selector queries apply them separately.
-        queries: list[QueryType] = parse_selector(value)
+        queries: list[QueryType] = parse_selector(cast(str, value))
 
         # A valid selector will always return at least one query condition. If this did not occur
         # then the selector was not well-formed. We return an empty resultset.
@@ -225,7 +229,7 @@ class ReplayClicksQueryConfig(QueryConfig):
 
 
 def generate_pregrouped_conditions(
-    query: list[Union[SearchFilter, ParenExpression, str]],
+    query: Sequence[Union[SearchFilter, ParenExpression, str]],
     query_config: QueryConfig,
 ) -> list[Expression]:
     """Convert search filters to snuba conditions.
