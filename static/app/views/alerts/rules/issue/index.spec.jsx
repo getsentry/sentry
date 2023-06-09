@@ -19,6 +19,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
+import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -153,8 +154,6 @@ describe('IssueRuleEditor', function () {
 
   describe('Viewing the rule', () => {
     const rule = TestStubs.MetricRule();
-    const permissionAlertText =
-      'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.';
 
     it('is visible without org-level alerts:write', () => {
       createWrapper({
