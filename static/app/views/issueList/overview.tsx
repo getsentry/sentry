@@ -36,6 +36,7 @@ import {
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
+import {ExperimentAssignment} from 'sentry/types/experiments';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
@@ -50,6 +51,7 @@ import withRouteAnalytics, {
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withExperiment from 'sentry/utils/withExperiment';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -84,6 +86,7 @@ type Params = {
 
 type Props = {
   api: Client;
+  experimentAssignment: ExperimentAssignment['PrioritySortExperiment'];
   location: Location;
   organization: Organization;
   params: Params;
@@ -333,6 +336,8 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   getBetterPriorityParams(): BetterPriorityEndpointParams {
+    console.log(this.props.experimentAssignment);
+    console.log(this.props.organization?.experiments);
     const query = this.props.location.query ?? {};
     const {
       eventHalflifeHours,
@@ -1281,7 +1286,15 @@ class IssueListOverview extends Component<Props, State> {
 export default withRouteAnalytics(
   withApi(
     withPageFilters(
-      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+      withSavedSearches(
+        withOrganization(
+          withIssueTags(
+            withProfiler(
+              withExperiment(IssueListOverview, {experiment: 'PrioritySortExperiment'})
+            )
+          )
+        )
+      )
     )
   )
 );
