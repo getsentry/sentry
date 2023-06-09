@@ -1,7 +1,7 @@
 import re
 from unittest.mock import patch
 
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

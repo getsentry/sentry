@@ -6,7 +6,8 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils.http import urlquote
 
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,

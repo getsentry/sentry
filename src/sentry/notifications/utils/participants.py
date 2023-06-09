@@ -29,11 +29,11 @@ from sentry.models import (
     ProjectOwnership,
     Release,
     Rule,
-    RuleSnooze,
     Team,
     User,
 )
 from sentry.models.commit import Commit
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
     get_settings_by_provider,
     get_values_by_provider_by_type,

@@ -111,7 +111,7 @@ from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
-from sentry.utils.performance_issues.performance_detection import PerformanceProblem
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 def get_fixture_path(*parts: str) -> str:
