@@ -31,7 +31,7 @@ jobs:
   docker-setup:
     name: Docker set up
     runs-on: macos-12
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
