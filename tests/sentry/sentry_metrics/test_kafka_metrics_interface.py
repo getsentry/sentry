@@ -44,6 +44,7 @@ def test_produce() -> None:
         "timestamp": int(datetime.now().timestamp()),
         "tags": tags,
         "retention_days": 90,
+        "type": "s",
     }
 
     value = json.dumps(set_metric).encode("utf-8")

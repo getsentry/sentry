@@ -72,6 +72,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": retention_days,
+            "type": "c",
         }
 
         payload = KafkaPayload(None, json.dumps(counter_metric).encode("utf-8"), [])
@@ -103,6 +104,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": retention_days,
+            "type": "s",
         }
 
         payload = KafkaPayload(None, json.dumps(set_metric).encode("utf-8"), [])
@@ -133,6 +135,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": retention_days,
+            "type": "d",
         }
 
         payload = KafkaPayload(None, json.dumps(dist_metric).encode("utf-8"), [])
