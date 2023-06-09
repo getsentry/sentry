@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -12,13 +13,13 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanBaselineTable} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Props = {
@@ -78,7 +79,20 @@ function SpanSummaryPage({params, location}: Props) {
                 </Block>
               </BlockContainer>
 
-              {span && <SpanBaselineTable span={span} />}
+              {span?.description && (
+                <BlockContainer>
+                  <Block title={t('Description')}>
+                    <Panel>
+                      <PanelBody>
+                        <DescriptionContainer>
+                          <SpanDescription span={span} />
+                        </DescriptionContainer>
+                      </PanelBody>
+                    </Panel>
+                  </Block>
+                </BlockContainer>
+              )}
+
               {span && <SpanTransactionsTable span={span} />}
 
               {transaction && span?.group && (
@@ -144,6 +158,11 @@ export const BlockContainer = styled('div')`
     padding-right: ${space(1)};
   }
   padding-bottom: ${space(2)};
+`;
+
+const DescriptionContainer = styled('div')`
+  width: 100%;
+  padding: ${space(1)};
 `;
 
 const BlockWrapper = styled('div')`
