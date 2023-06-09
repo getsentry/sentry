@@ -27,6 +27,7 @@ export type SpanMetrics = {
 export const useSpanMetricsSeries = (
   span?: Pick<IndexedSpan, 'group'>,
   queryFilters: {transactionName?: string} = {},
+  yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
   const location = useLocation();
@@ -38,7 +39,13 @@ export const useSpanMetricsSeries = (
     ? getQuery(span, startTime, endTime, dateFilters, queryFilters.transactionName)
     : '';
   const eventView = span
-    ? getEventView(span, location, pageFilters.selection, queryFilters.transactionName)
+    ? getEventView(
+        span,
+        location,
+        pageFilters.selection,
+        yAxis,
+        queryFilters.transactionName
+      )
     : undefined;
 
   // TODO: Add referrer
@@ -51,7 +58,7 @@ export const useSpanMetricsSeries = (
   });
 
   const parsedData = keyBy(
-    ['spm()', 'p95(span.duration)'].map(seriesName => {
+    yAxis.map(seriesName => {
       const series: Series = {
         seriesName,
         data: data.map(datum => ({value: datum[seriesName], name: datum.interval})),
@@ -96,6 +103,7 @@ function getEventView(
   span: {group: string},
   location: Location,
   pageFilters: PageFilters,
+  yAxis: string[],
   transaction?: string
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
@@ -106,18 +114,8 @@ function getEventView(
       query: `span.group:${cleanGroupId}${
         transaction ? ` transaction:${transaction}` : ''
       }`,
-      fields: [
-        'spm()',
-        'sum(span.duration)',
-        'p95(span.duration)',
-        'time_spent_percentage()',
-      ],
-      yAxis: [
-        'spm()',
-        'sum(span.duration)',
-        'p95(span.duration)',
-        'time_spent_percentage()',
-      ],
+      fields: [],
+      yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
       interval: getInterval(pageFilters.datetime, 'low'),
       projects: [1],

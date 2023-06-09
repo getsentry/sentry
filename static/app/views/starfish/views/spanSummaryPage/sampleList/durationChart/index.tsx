@@ -18,6 +18,7 @@ function DurationChart({groupId, transactionName}: Props) {
   const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {group: groupId},
     {transactionName},
+    ['p95(span.duration)'],
     'sidebar-span-metrics'
   );
 
