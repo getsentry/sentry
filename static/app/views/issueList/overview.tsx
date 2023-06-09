@@ -337,7 +337,7 @@ class IssueListOverview extends Component<Props, State> {
 
   getBetterPriorityParams(): BetterPriorityEndpointParams {
     console.log(this.props.experimentAssignment);
-    console.log(this.props.organization?.experiments);
+    console.log(this.props.organization?.experiments?.PrioritySortExperiment);
     const query = this.props.location.query ?? {};
     const {
       eventHalflifeHours,
