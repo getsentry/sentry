@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar, cast
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -57,7 +57,7 @@ class BaseModel(models.Model):
         # Django decided that it shouldn't let us hash objects even though they have
         # memory addresses. We need that behavior, so let's revert.
         if self.pk:
-            return cast(int, models.Model.__hash__(self))
+            return models.Model.__hash__(self)
         return id(self)
 
     def __reduce__(
