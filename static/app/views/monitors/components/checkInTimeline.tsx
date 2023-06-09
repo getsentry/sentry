@@ -5,7 +5,10 @@ import DateTime from 'sentry/components/dateTime';
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {
+  MonitorBucketData,
+  MonitorBucketEnvMapping,
+} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 
 interface Props {
@@ -15,7 +18,7 @@ interface Props {
   width?: number;
 }
 
-function getAggregateStatus(envData: MonitorBucketData[number][1]) {
+function getAggregateStatus(envData: MonitorBucketEnvMapping) {
   // Orders the status in terms of precedence for showing to the user
   const statusOrdering = [
     CheckInStatus.OK,
