@@ -110,7 +110,10 @@ type Props = {
 
 function MetricHistory({incidents}: Props) {
   const organization = useOrganization();
-  const numOfIncidents = incidents?.length ?? 0;
+  const filteredIncidents = (incidents ?? []).filter(
+    incident => incident.activities?.length
+  );
+  const numOfIncidents = filteredIncidents.length;
 
   return (
     <CollapsePanel
@@ -127,7 +130,7 @@ function MetricHistory({incidents}: Props) {
             emptyMessage={t('No alerts triggered during this time.')}
             expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
           >
-            {incidents?.map((incident, idx) => {
+            {filteredIncidents.map((incident, idx) => {
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
                 return null;
               }
