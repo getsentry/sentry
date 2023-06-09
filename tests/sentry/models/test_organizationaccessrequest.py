@@ -19,7 +19,7 @@ class SendRequestEmailTest(TestCase):
         team = self.create_team(organization=org)
 
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(organization=org, user=owner),
+            organizationmember=OrganizationMember.objects.get(organization=org, user_id=owner.id),
             team=team,
         )
 
