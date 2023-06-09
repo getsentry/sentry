@@ -5,8 +5,8 @@ import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
 
 type Props = {
   groupId: string;
@@ -24,18 +24,20 @@ function DurationChart({groupId, transactionName}: Props) {
     'sidebar-span-metrics'
   );
 
-  const {data: sampleListData, isLoading: isSamplesLoading} =
-    useQueryGetSpanTransactionSamples({
-      groupId,
-      transactionName,
-    });
+  const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
+    groupId,
+    transactionName,
+    undefined,
+    '-duration',
+    'span-summary-panel-samples-table-spans'
+  );
 
-  const sampledSpanDataSeries: Series[] = sampleListData.map(
-    ({timestamp, spanDuration, transaction_id}) => ({
+  const sampledSpanDataSeries: Series[] = spans.map(
+    ({timestamp, duration, transaction_id}) => ({
       data: [
         {
           name: timestamp,
-          value: spanDuration,
+          value: duration,
         },
       ],
       symbol: 'path://M -1 -1 V -5 H 0 V -1 H 4 V 0 H 0 V 4 H -1 V 0 H -5 V -1 H -1',
@@ -55,7 +57,7 @@ function DurationChart({groupId, transactionName}: Props) {
         start=""
         end=""
         loading={isLoading}
-        scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
+        scatterPlot={areSpanSamplesLoading ? undefined : sampledSpanDataSeries}
         utc={false}
         chartColors={[P95_COLOR]}
         isLineChart
