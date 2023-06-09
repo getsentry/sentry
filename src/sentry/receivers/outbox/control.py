@@ -33,7 +33,12 @@ def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (user := maybe_process_tombstone(User, object_identifier)) is None:
         return
     organization_service.update_region_user(
-        user=RpcRegionUser(id=user.id, is_active=user.is_active), region_name=region_name
+        user=RpcRegionUser(
+            id=user.id,
+            is_active=user.is_active,
+            email=user.email,
+        ),
+        region_name=region_name,
     )
 
 

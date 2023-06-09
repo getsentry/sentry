@@ -189,6 +189,8 @@ class OrganizationMember(Model):
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
+    # This email indicates the invite state of this membership -- it will be cleared when the user is set.
+    # it does not necessarily represent the final email of the user associated with the membership, see user_email.
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     flags = BitField(
@@ -223,10 +225,15 @@ class OrganizationMember(Model):
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
+    # These attributes are replicated via USER_UPDATE category outboxes for the user object associated with the user_id
+    # when it exists.
     user_is_active = models.BooleanField(
         null=False,
         default=True,
     )
+    # Note, this is the email of the user that may or may not be associated with the member, not the email used to
+    # invite the user.
+    user_email = models.CharField(max_length=75, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"

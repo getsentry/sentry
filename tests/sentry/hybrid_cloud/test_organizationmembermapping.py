@@ -13,6 +13,22 @@ from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, re
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
+    def test_upsert_stale_user_id(self):
+        assert (
+            organizationmember_mapping_service.upsert_mapping(
+                organization_id=self.organization.id,
+                organizationmember_id=111111,
+                mapping=RpcOrganizationMemberMappingUpdate(
+                    role=self.organization.default_role,
+                    user_id=10001,
+                    email=None,
+                    inviter_id=None,
+                    invite_status=None,
+                ),
+            )
+            is None
+        )
+
     def test_upsert_email_invite(self):
         with exempt_from_silo_limits():
             om = OrganizationMember.objects.create(
