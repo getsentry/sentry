@@ -30,7 +30,7 @@ jobs:
   # The bootstrap workflow (see last workflow) tests the experience of first time engineers
   docker-setup:
     name: Docker set up
-    runs-on: macos-11
+    runs-on: macos-12
     timeout-minutes: 30
     env:
       # Make the environment more similar to what Mac defaults to
