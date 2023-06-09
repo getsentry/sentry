@@ -114,7 +114,6 @@ module = [
     "onelogin.saml2.constants.*",
     "onelogin.saml2.idp_metadata_parser.*",
     "openapi_core.*",
-    "petname.*",
     "phabricator.*",
     "phonenumbers.*",
     "progressbar.*",
