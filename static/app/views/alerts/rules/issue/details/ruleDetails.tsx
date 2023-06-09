@@ -230,7 +230,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     );
   }
 
-  const hasSnoozeFeature = organization.features.includes('mute-alerts');
   const isSnoozed = rule.snooze;
 
   const ruleActionCategory = getRuleActionCategory(rule);
@@ -306,7 +305,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {hasSnoozeFeature && (
+            {
               <Access access={['alerts:write']}>
                 {({hasAccess}) => (
                   <SnoozeAlert
@@ -319,7 +318,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   />
                 )}
               </Access>
-            )}
+            }
             <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
               {t('Duplicate')}
             </Button>
@@ -342,7 +341,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       <Layout.Body>
         <Layout.Main>
           {renderIncompatibleAlert()}
-          {hasSnoozeFeature && isSnoozed && (
+          {isSnoozed && (
             <Alert showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                 ? tct(
