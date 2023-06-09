@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -10,6 +10,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  GridLineOverlay,
+  GridLineTimeLabels,
+} from 'sentry/views/monitors/components/overviewTimeline/timelineScrubber';
 
 import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
@@ -23,6 +27,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const {replace, location} = useRouter();
 
   const resolution = location.query?.resolution ?? '24h';
+  const nowRef = useRef<Date>(new Date());
 
   const handleResolutionChange = useCallback(
     (value: string) => {
@@ -47,7 +52,8 @@ export function OverviewTimeline({monitorList}: Props) {
           <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
         </SegmentedControl>
       </ListFilters>
-      <TimelineScrubber />
+      <GridLineTimeLabels timeWindow={resolution} end={nowRef.current} />
+      <GridLineOverlay timeWindow={resolution} end={nowRef.current} />
 
       {monitorList.map(monitor => (
         <Fragment key={monitor.id}>
@@ -105,9 +111,5 @@ const ListFilters = styled('div')`
   display: flex;
   gap: ${space(1)};
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const TimelineScrubber = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
