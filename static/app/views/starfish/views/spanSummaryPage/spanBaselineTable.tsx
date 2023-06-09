@@ -36,7 +36,12 @@ export function SpanBaselineTable({span}: Props) {
   const location = useLocation();
 
   const {data: applicationMetrics} = useApplicationMetrics();
-  const {data: spanMetrics} = useSpanMetrics(span);
+  const {data: spanMetrics} = useSpanMetrics(
+    span,
+    undefined,
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    'span-baseline-table'
+  );
 
   const renderHeadCell = column => {
     return <span>{column.name}</span>;

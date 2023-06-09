@@ -17,6 +17,7 @@ function SampleInfo(props: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName},
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage(local)'],
     'span-summary-panel-metrics'
   );
 
@@ -30,7 +31,9 @@ function SampleInfo(props: Props) {
       </Block>
       <Block title={DataTitles.timeSpent}>
         <TimeSpentCell
-          formattedTimeSpent={formatPercentage(spanMetrics?.['time_spent_percentage()'])}
+          formattedTimeSpent={formatPercentage(
+            spanMetrics?.['time_spent_percentage(local)']
+          )}
           totalSpanTime={spanMetrics?.['sum(span.duration)']}
         />
       </Block>

@@ -11,17 +11,13 @@ import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
-  'first_seen()': string;
-  'last_seen()': string;
-  'p95(span.duration)': number;
-  'sps()': number;
-  'sum(span.duration)': number;
-  'time_spent_percentage()': number;
+  [metric: string]: number;
 };
 
 export const useSpanMetrics = (
   span?: Pick<IndexedSpan, 'group'>,
   queryFilters: {transactionName?: string} = {},
+  fields: string[] = [],
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
@@ -38,7 +34,7 @@ export const useSpanMetrics = (
     ? getQuery(span, startTime, endTime, dateFilters, queryFilters.transactionName)
     : '';
   const eventView = span
-    ? getEventView(span, location, queryFilters.transactionName)
+    ? getEventView(span, location, queryFilters.transactionName, fields)
     : undefined;
 
   // TODO: Add referrer
@@ -77,7 +73,12 @@ function getQuery(
   `;
 }
 
-function getEventView(span: {group: string}, location: Location, transaction?: string) {
+function getEventView(
+  span: {group: string},
+  location: Location,
+  transaction?: string,
+  fields: string[] = []
+) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
   return EventView.fromNewQueryWithLocation(
@@ -86,12 +87,7 @@ function getEventView(span: {group: string}, location: Location, transaction?: s
       query: `span.group:${cleanGroupId}${
         transaction ? ` transaction:${transaction}` : ''
       }`,
-      fields: [
-        'sps()',
-        'sum(span.duration)',
-        'p95(span.duration)',
-        'time_spent_percentage()',
-      ],
+      fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
       version: 2,

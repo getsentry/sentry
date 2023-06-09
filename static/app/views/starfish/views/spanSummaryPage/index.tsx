@@ -33,6 +33,7 @@ function SpanSummaryPage({params, location}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     undefined,
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
     'span-summary-page-metrics'
   );
 
