@@ -79,7 +79,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 role=result["role"] or organization.default_role,
                 email=result["email"],
-                invite_id=request.user.id,
+                inviter_id=request.user.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
