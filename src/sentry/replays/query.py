@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -57,7 +57,7 @@ def query_replays_collection(
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
-    search_filters: List[SearchFilter],
+    search_filters: Sequence[SearchFilter],
     organization: Optional[Organization] = None,
     actor: Optional[Any] = None,
 ) -> dict:

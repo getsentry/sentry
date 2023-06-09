@@ -1025,7 +1025,6 @@ module = [
     "sentry.replays.cache",
     "sentry.replays.consumers",
     "sentry.replays.endpoints.organization_replay_count",
-    "sentry.replays.endpoints.organization_replay_index",
     "sentry.replays.endpoints.project_replay_clicks_index",
     "sentry.replays.endpoints.project_replay_recording_segment_details",
     "sentry.replays.endpoints.project_replay_recording_segment_index",
