@@ -4,43 +4,16 @@ import moment from 'moment';
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {ResolutionValue} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {
+  getStartFromTimeWindow,
+  timeWindowData,
+} from 'sentry/views/monitors/components/overviewTimeline/utils';
 
 interface Props {
   end: Date;
-  resolution: ResolutionValue;
+  timeWindow: TimeWindow;
 }
-
-interface ResolutionOptions {
-  /**
-   * Props to pass to <DateTime> when displaying a time marker
-   */
-  dateTimeProps: {dateOnly?: boolean; timeOnly?: boolean};
-  /**
-   * The elapsed minutes based on the selected resolution
-   */
-  elapsedMinutes: number;
-  /**
-   * The interval between each grid line and time label in minutes
-   */
-  timeMarkerInterval: number;
-}
-
-// Stores options and data which correspond to each selectable resolution
-const resolutionData: Record<ResolutionValue, ResolutionOptions> = {
-  '1h': {elapsedMinutes: 60, timeMarkerInterval: 10, dateTimeProps: {timeOnly: true}},
-  '24h': {
-    elapsedMinutes: 60 * 24,
-    timeMarkerInterval: 60 * 4,
-    dateTimeProps: {timeOnly: true},
-  },
-  '7d': {elapsedMinutes: 60 * 24 * 7, timeMarkerInterval: 60 * 24, dateTimeProps: {}},
-  '30d': {
-    elapsedMinutes: 60 * 24 * 30,
-    timeMarkerInterval: 60 * 24 * 5,
-    dateTimeProps: {dateOnly: true},
-  },
-};
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
   if (resolution === '1h') {
@@ -57,17 +30,17 @@ interface TimeMarker {
   position: number;
 }
 
-function getTimeMarkers(end: Date, resolution: string, width: number): TimeMarker[] {
-  const {elapsedMinutes, timeMarkerInterval} = resolutionData[resolution];
+function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeMarker[] {
+  const {elapsedMinutes, timeMarkerInterval} = timeWindowData[timeWindow];
   const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
 
   const times: TimeMarker[] = [];
-  const start = moment(end).subtract(elapsedMinutes, 'minute');
+  const start = getStartFromTimeWindow(end, timeWindow);
 
   // Iterate and generate time markers which represent location of grid lines/time labels
   for (let i = 1; i < elapsedMinutes / timeMarkerInterval; i++) {
     const timeMark = moment(start).add(i * timeMarkerInterval, 'minute');
-    clampTimeBasedOnResolution(timeMark, resolution);
+    clampTimeBasedOnResolution(timeMark, timeWindow);
     const position = (timeMark.valueOf() - start.valueOf()) / msPerPixel;
     times.push({date: timeMark.toDate(), position});
   }
@@ -75,25 +48,25 @@ function getTimeMarkers(end: Date, resolution: string, width: number): TimeMarke
   return times;
 }
 
-export function GridLineTimeLabels({end, resolution}: Props) {
+export function GridLineTimeLabels({end, timeWindow}: Props) {
   const {elementRef, width} = useDimensions<HTMLDivElement>();
   return (
     <LabelsContainer ref={elementRef}>
-      {getTimeMarkers(end, resolution, width).map(({date, position}) => (
+      {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
-          <TimeLabel date={date} {...resolutionData[resolution].dateTimeProps} />
+          <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
         </TimeLabelContainer>
       ))}
     </LabelsContainer>
   );
 }
 
-export function GridLineOverlay({end, resolution}: Props) {
+export function GridLineOverlay({end, timeWindow}: Props) {
   const {elementRef, width} = useDimensions<HTMLDivElement>();
   return (
     <Overlay ref={elementRef}>
       <GridLineContainer>
-        {getTimeMarkers(end, resolution, width).map(({date, position}) => (
+        {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
         ))}
       </GridLineContainer>

@@ -52,8 +52,8 @@ export function OverviewTimeline({monitorList}: Props) {
           <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
         </SegmentedControl>
       </ListFilters>
-      <GridLineTimeLabels resolution={resolution} end={nowRef.current} />
-      <GridLineOverlay resolution={resolution} end={nowRef.current} />
+      <GridLineTimeLabels timeWindow={resolution} end={nowRef.current} />
+      <GridLineOverlay timeWindow={resolution} end={nowRef.current} />
 
       {monitorList.map(monitor => (
         <Fragment key={monitor.id}>
