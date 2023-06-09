@@ -17,7 +17,7 @@ import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughp
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import SampleList from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
+import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanBaselineTable} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
