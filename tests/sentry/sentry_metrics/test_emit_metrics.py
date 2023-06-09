@@ -14,7 +14,14 @@ def test_emit() -> None:
     retention = 90
 
     metrics_backend.set(
-        use_case_id, org_id, project_id, metric_name, values, tags, retention_days=retention
+        use_case_id,
+        org_id,
+        project_id,
+        metric_name,
+        values,
+        tags,
+        unit=None,
+        retention_days=retention,
     )
 
     metrics_backend.close()

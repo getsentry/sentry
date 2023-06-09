@@ -27,7 +27,10 @@ def test_produce_set() -> None:
     broker.create_topic(my_topic, partitions=1)
 
     metrics_backend = KafkaMetricsBackend()
-    # add comment for explanation
+    # For testing, we are swapping out the KafkaProducer
+    # with a LocalProducer, but regardless,
+    # close() must always be called in order to close
+    # the backend's KafkaProducer
     metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
@@ -70,7 +73,10 @@ def test_produce_counter() -> None:
     broker.create_topic(my_topic, partitions=1)
 
     metrics_backend = KafkaMetricsBackend()
-    # add comment for explanation
+    # For testing, we are swapping out the KafkaProducer
+    # with a LocalProducer, but regardless,
+    # close() must always be called in order to close
+    # the backend's KafkaProducer
     metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
@@ -113,7 +119,10 @@ def test_produce_distribution() -> None:
     broker.create_topic(my_topic, partitions=1)
 
     metrics_backend = KafkaMetricsBackend()
-    # add comment for explanation
+    # For testing, we are swapping out the KafkaProducer
+    # with a LocalProducer, but regardless,
+    # close() must always be called in order to close
+    # the backend's KafkaProducer
     metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
