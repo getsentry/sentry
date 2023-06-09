@@ -28,7 +28,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
+class BaseGroupCounts(SnubaTestCase, TestCase):
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -57,7 +57,7 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
 
 class HistoricGroupCounts(
     BaseGroupCounts,
-    PerformanceIssueTestCase,  # type: ignore[misc]
+    PerformanceIssueTestCase,
     SearchIssueTestMixin,
 ):
     """Test that querying Snuba for the hourly counts for groups works as expected."""
@@ -204,7 +204,7 @@ def test_datetime_number_of_days() -> None:
 
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
-    def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
+    def save_mock_escalating_group_forecast(
         self, group: Group, forecast_values=List[int], date_added=datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""

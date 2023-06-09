@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -13,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import {generateBaseControlSiloUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -32,8 +34,11 @@ type State = AsyncView['state'] & {
   selectedOrgSlug?: string;
 };
 
+const controlSiloUrl = generateBaseControlSiloUrl();
+
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
   disableErrorReport = false;
+  controlSiloApi = new Client({baseUrl: controlSiloUrl + '/api/0'});
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -103,8 +108,8 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         Organization,
         {providers: IntegrationProvider[]}
       ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
-        this.api.requestPromise(
+        this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
+        this.controlSiloApi.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
       ]);
@@ -142,8 +147,11 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {selectedOrgSlug} = this.state;
     const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
     this.trackInstallationStart();
+    // need to send to control silo to finish the installation
     window.location.assign(
-      `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+      `${controlSiloUrl}/extensions/${this.integrationSlug}/configure/?${urlEncode(
+        query
+      )}`
     );
   };
 

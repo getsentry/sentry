@@ -93,7 +93,7 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
 
@@ -122,7 +122,7 @@ class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
         return value
 
 
-class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
+class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
         ("name", "name"),
         ("description", "description"),
@@ -203,7 +203,7 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+class ControlSiloOrganizationSerializer(Serializer):
     def serialize(
         self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
     ) -> ControlSiloOrganizationSerializerResponse:
@@ -215,7 +215,7 @@ class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
 
 
 @register(Organization)
-class OrganizationSerializer(Serializer):  # type: ignore
+class OrganizationSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -374,7 +374,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
 
 
 @register(OrganizationOnboardingTask)
-class OnboardingTasksSerializer(Serializer):  # type: ignore
+class OnboardingTasksSerializer(Serializer):
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:

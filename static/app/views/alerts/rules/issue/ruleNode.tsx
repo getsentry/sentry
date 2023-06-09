@@ -103,12 +103,12 @@ function AssigneeFilterFields({
       ruleData={data}
       onChange={onMemberTeamChange}
       options={[
-        {value: AssigneeTargetType.Unassigned, label: t('No One')},
-        {value: AssigneeTargetType.Team, label: t('Team')},
-        {value: AssigneeTargetType.Member, label: t('Member')},
+        {value: AssigneeTargetType.UNASSIGNED, label: t('No One')},
+        {value: AssigneeTargetType.TEAM, label: t('Team')},
+        {value: AssigneeTargetType.MEMBER, label: t('Member')},
       ]}
-      memberValue={AssigneeTargetType.Member}
-      teamValue={AssigneeTargetType.Team}
+      memberValue={AssigneeTargetType.MEMBER}
+      teamValue={AssigneeTargetType.TEAM}
     />
   );
 }
@@ -134,12 +134,12 @@ function MailActionFields({
       ruleData={data as IssueAlertRuleAction}
       onChange={onMemberTeamChange}
       options={[
-        {value: MailActionTargetType.IssueOwners, label: issueOwnersLabel},
-        {value: MailActionTargetType.Team, label: t('Team')},
-        {value: MailActionTargetType.Member, label: t('Member')},
+        {value: MailActionTargetType.ISSUE_OWNERS, label: issueOwnersLabel},
+        {value: MailActionTargetType.TEAM, label: t('Team')},
+        {value: MailActionTargetType.MEMBER, label: t('Member')},
       ]}
-      memberValue={MailActionTargetType.Member}
-      teamValue={MailActionTargetType.Team}
+      memberValue={MailActionTargetType.MEMBER}
+      teamValue={MailActionTargetType.TEAM}
     />
   );
 }
@@ -314,7 +314,7 @@ function RuleNode({
 
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType !== MailActionTargetType.IssueOwners &&
+      data.targetType !== MailActionTargetType.ISSUE_OWNERS &&
       organization.features.includes('issue-alert-fallback-targeting')
     ) {
       // Hide the fallback options when targeting team or member
@@ -413,7 +413,7 @@ function RuleNode({
 
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType === MailActionTargetType.IssueOwners &&
+      data.targetType === MailActionTargetType.ISSUE_OWNERS &&
       !organization.features.includes('issue-alert-fallback-targeting')
     ) {
       return (

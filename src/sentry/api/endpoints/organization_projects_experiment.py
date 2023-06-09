@@ -4,6 +4,7 @@ import string
 from email.headerregistry import Address
 
 from django.db import IntegrityError, transaction
+from django.utils.text import slugify
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +13,7 @@ from rest_framework.serializers import ValidationError
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.team_projects import ProjectSerializer
+from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.experiments import manager as expt_manager
@@ -33,8 +34,8 @@ def _generate_suffix() -> str:
     return "".join(random.choice(letters) for _ in range(3))
 
 
-def fetch_email_username(email: str) -> str:
-    return Address(addr_spec=email).username
+def fetch_slugifed_email_username(email: str) -> str:
+    return slugify(Address(addr_spec=email).username)
 
 
 # This endpoint is intended to be available to all members of an
@@ -72,7 +73,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
-        serializer = ProjectSerializer(data=request.data)
+        serializer = ProjectPostSerializer(data=request.data)
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
@@ -92,7 +93,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"
-        parsed_email = fetch_email_username(request.user.email)
+        parsed_email = fetch_slugifed_email_username(request.user.email)
 
         project_name = result["name"]
         default_team_slug = f"team-{parsed_email}"

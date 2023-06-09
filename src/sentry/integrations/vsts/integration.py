@@ -108,7 +108,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):  # type: ignore
+class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -331,7 +331,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         return default_project_
 
 
-class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
+class VstsIntegrationProvider(IntegrationProvider):
     key = "vsts"
     name = "Azure DevOps"
     metadata = metadata
@@ -462,9 +462,9 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
                     },
                 )
                 raise IntegrationProviderError(
-                    "You do not have sufficient account access to create webhooks\n"
-                    "on the selected Azure DevOps organization.\n"
-                    "Please check with the owner of this Azure DevOps account."
+                    "Sentry cannot communicate with this Azure DevOps organization.\n"
+                    "Please ensure third-party app access via OAuth is enabled \n"
+                    "in the organization's security policy."
                 )
             raise e
 
@@ -576,7 +576,7 @@ class AccountConfigView(PipelineView):
         return None
 
 
-class AccountForm(forms.Form):  # type: ignore
+class AccountForm(forms.Form):
     def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(

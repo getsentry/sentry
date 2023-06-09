@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models import Team
@@ -26,7 +28,8 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_scim_team_index_create(self):
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_scim_team_index_create(self, mock_metrics):
         url = reverse(
             "sentry-api-0-organization-scim-team-index",
             args=[self.organization.slug],
@@ -47,6 +50,10 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert Team.objects.get(id=team_id).name == "Test SCIMv2"
         assert Team.objects.get(id=team_id).idp_provisioned
         assert len(Team.objects.get(id=team_id).member_set) == 0
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.provision",
+            tags={"organization": self.organization},
+        )
 
     def test_scim_team_index_populated(self):
         team = self.create_team(organization=self.organization)
