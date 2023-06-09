@@ -252,3 +252,36 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.data["sum"]["metrics"] == 6
         assert response.data["sum"]["metrics_unparam"] == 2
         assert response.data["sum"]["metrics_null"] == 3
+
+    def test_drift_calculation(self):
+        self.features = {
+            "organizations:performance-use-metrics": True,
+            "organizations:performance-indexed-processed-compat-drift": True,
+        }
+
+        data = {
+            "event_id": "a" * 32,
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+            "timestamp": iso_format(before_now(minutes=1)),
+            "start_timestamp": iso_format(before_now(minutes=1, seconds=3)),
+        }
+        self.store_event(data=data, project_id=self.project.id)
+
+        # Make current project incompatible
+        self.store_transaction_metric(
+            1, tags={"transaction": "api.issue.delete"}, timestamp=self.min_ago
+        )
+        url = reverse(
+            "sentry-api-0-organization-metrics-compatibility-sums",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["sum"]["metrics"] == 1
+        assert response.data["sum"]["metrics_unparam"] == 0
+        assert response.data["sum"]["metrics_null"] == 0
