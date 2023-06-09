@@ -4,6 +4,7 @@ from time import sleep
 from typing import Dict, List, Tuple
 from urllib.parse import urlparse
 
+import requests
 import sentry_sdk
 from django.conf import settings
 from django.utils.functional import cached_property
@@ -27,6 +28,13 @@ class RedisBackend:
 
         return StrictRedis.from_url(self.broker_url)
 
+    def get_memory_stats(self):
+        info = self.client.info()
+        return {
+            "mem_used": info.get("used_memory", 0),
+            "mem_limit": info.get("maxmemory", 0) or info.get("total_system_memory", 0),
+        }
+
     def bulk_get_sizes(self, queues):
         return [(queue, self.get_size(queue)) for queue in queues]
 
@@ -45,6 +53,7 @@ class AmqpBackend:
     def __init__(self, broker_url):
         dsn = urlparse(broker_url)
         host, port = dsn.hostname, dsn.port
+        self.hostname = host
         if port is None:
             port = 5672
         self.conn_info = dict(
@@ -53,6 +62,15 @@ class AmqpBackend:
             password=dsn.password,
             virtual_host=dsn.path[1:] or "/",
         )
+
+    def get_memory_stats(self):
+        url = f"http://{self.hostname}:15672/api/nodes"
+        user = self.conn_info["userid"]
+        password = self.conn_info["password"]
+
+        response = requests.get(url, auth=(user, password))
+        response.raise_for_status()
+        return {k: v for k, v in response.json()[0].items() if k in ["mem_used", "mem_limit"]}
 
     def get_conn(self):
         from amqp import Connection
@@ -201,7 +219,7 @@ def _run_queue_stats_updater() -> None:
 
 def _list_queues_over_threshold(
     strike_threshold: int, queue_history: Dict[str, int]
-) -> List[Tuple[str, int]]:
+) -> List[Tuple[str, bool]]:
     return [(queue, count >= strike_threshold) for (queue, count) in queue_history.items()]
 
 
