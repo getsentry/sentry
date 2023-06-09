@@ -305,20 +305,18 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {
-              <Access access={['alerts:write']}>
-                {({hasAccess}) => (
-                  <SnoozeAlert
-                    isSnoozed={isSnoozed}
-                    onSnooze={onSnooze}
-                    ruleId={rule.id}
-                    projectSlug={projectSlug}
-                    ruleActionCategory={ruleActionCategory}
-                    hasAccess={hasAccess}
-                  />
-                )}
-              </Access>
-            }
+            <Access access={['alerts:write']}>
+              {({hasAccess}) => (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  onSnooze={onSnooze}
+                  ruleId={rule.id}
+                  projectSlug={projectSlug}
+                  ruleActionCategory={ruleActionCategory}
+                  hasAccess={hasAccess}
+                />
+              )}
+            </Access>
             <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
               {t('Duplicate')}
             </Button>
