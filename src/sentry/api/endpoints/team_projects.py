@@ -167,5 +167,3 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             )
 
         return Response(serialize(project, request.user), status=201)
-
-        return Response(serialize(project, request.user), status=201)
