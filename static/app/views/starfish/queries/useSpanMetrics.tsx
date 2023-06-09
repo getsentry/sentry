@@ -14,7 +14,7 @@ export type SpanMetrics = {
   'first_seen()': string;
   'last_seen()': string;
   'p95(span.duration)': number;
-  'spm()': number;
+  'sps()': number;
   'sum(span.duration)': number;
   'time_spent_percentage()': number;
 };
@@ -86,7 +86,7 @@ function getEventView(span: {group: string}, location: Location, transaction?: s
         transaction ? ` transaction:${transaction}` : ''
       }`,
       fields: [
-        'spm()',
+        'sps()',
         'sum(span.duration)',
         'p95(span.duration)',
         'time_spent_percentage()',

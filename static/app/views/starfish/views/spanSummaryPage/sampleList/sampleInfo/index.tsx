@@ -19,7 +19,7 @@ function SampleInfo(props: Props) {
   return (
     <BlockContainer>
       <Block title={DataTitles.throughput}>
-        <ThroughputCell throughputPerSecond={spanMetrics?.['spm()']} />
+        <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
       </Block>
       <Block title={DataTitles.p95}>
         <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />

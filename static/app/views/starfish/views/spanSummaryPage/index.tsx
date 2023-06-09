@@ -53,7 +53,7 @@ function SpanSummaryPage({params, location}: Props) {
                   title={t('Throughput')}
                   description={t('Throughput of this span per second')}
                 >
-                  <ThroughputCell throughputPerSecond={spanMetrics?.['spm()'] / 60} />
+                  <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                 </Block>
                 <Block title={t('Duration')} description={t('Time spent in this span')}>
                   <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
