@@ -21,7 +21,7 @@ from sentry.types.region import find_all_region_names
 
 
 def generate_name():
-    return petname.Generate(2, " ", letters=10).title()
+    return petname.generate(2, " ", letters=10).title()
 
 
 def generate_token():
