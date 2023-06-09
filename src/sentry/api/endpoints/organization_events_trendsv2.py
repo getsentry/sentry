@@ -89,6 +89,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                granularity=86400,
             )
 
         def generate_top_transaction_query(events):

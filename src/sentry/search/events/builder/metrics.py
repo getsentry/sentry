@@ -53,6 +53,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
+        granularity: Optional[int] = None,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -61,6 +62,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
+        self._granularity = granularity
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         # always true if this is being called
@@ -182,6 +184,10 @@ class MetricsQueryBuilder(QueryBuilder):
             and will fallback to hourly granularity
         - If the duration is over 30d we always use the daily granularities
         """
+        # TODO add comments explaining the need for custom granularity
+        if self._granularity is not None:
+            return Granularity(self._granularity)
+
         if self.end is None or self.start is None:
             raise ValueError("skip_time_conditions must be False when calling this method")
         duration = (self.end - self.start).total_seconds()
