@@ -32,7 +32,6 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
 
 class KafkaMetricsBackend(GenericMetricsBackend):
     def __init__(self) -> None:
-
         kafka_topic_name = settings.KAFKA_INGEST_PERFORMANCE_METRICS
         self.kafka_topic = Topic(kafka_topic_name)
 
@@ -40,8 +39,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         assert kafka_topic_dict is not None
         cluster_name = kafka_topic_dict["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
         self.producer: Producer = KafkaProducer(
             build_kafka_configuration(default_config=producer_config)
         )
@@ -54,8 +51,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: Union[int, float],
         tags: Mapping[str, str],
-        unit: Optional[str] = None,
-        retention_days: Optional[int] = None,
+        unit: Optional[str],
+        retention_days: int = 90,
     ) -> None:
 
         """
@@ -86,8 +83,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: Sequence[int],
         tags: Mapping[str, str],
-        unit: Optional[str] = None,
-        retention_days: Optional[int] = None,
+        unit: Optional[str],
+        retention_days: int = 90,
     ) -> None:
 
         """
@@ -118,8 +115,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: Sequence[Union[int, float]],
         tags: Mapping[str, str],
-        unit: Optional[str] = None,
-        retention_days: Optional[int] = None,
+        unit: Optional[str],
+        retention_days: int = 90,
     ) -> None:
 
         """

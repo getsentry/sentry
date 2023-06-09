@@ -16,8 +16,8 @@ class GenericMetricsBackend(ABC):
         metric_name: str,
         value: Union[int, float],
         tags: Mapping[str, str],
-        unit: Optional[str] = None,
-        retention_days: Optional[int] = None,
+        unit: Optional[str],
+        retention_days: int = 90,
     ) -> None:
 
         """
@@ -37,8 +37,8 @@ class GenericMetricsBackend(ABC):
         metric_name: str,
         value: Sequence[int],
         tags: Mapping[str, str],
-        unit: Optional[str] = None,
-        retention_days: Optional[int] = None,
+        unit: Optional[str],
+        retention_days: int = 90,
     ) -> None:
 
         """
@@ -58,7 +58,7 @@ class GenericMetricsBackend(ABC):
         value: Sequence[Union[int, float]],
         tags: Mapping[str, str],
         unit: Optional[str] = None,
-        retention_days: Optional[int] = None,
+        retention_days: int = 90,
     ) -> None:
 
         """
