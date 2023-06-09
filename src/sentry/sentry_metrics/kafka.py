@@ -24,15 +24,10 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
-# def set_future(f: Future[BrokerValue[KafkaPayload]]) -> Future[None]:
-#     new_future: Future[None] = Future()
-
-#     if f.exception() is not None:
-#         new_future.set_exception(f.exception())
-#     else:
-#         new_future.set_result(None)
-
-#     return new_future
+# TODO: Use the Futures that are returned by the call to produce.
+# These can be returned to the user, or handled in some way internally.
+# Ensure all of the MetricsBackend implementations have the same
+# Future return type.
 
 
 class KafkaMetricsBackend(GenericMetricsBackend):
@@ -152,4 +147,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         self.producer.produce(self.kafka_topic, payload)
 
     def close(self):
+        """
+        Calling this is required once we are done emitting metrics
+        using the current instance of the KafkaMetricsBackend.
+        """
         self.producer.close()
