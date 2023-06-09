@@ -204,6 +204,9 @@ def pytest_configure(config):
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
 
+    # For now, multiprocessing does not work in tests.
+    settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
