@@ -76,19 +76,15 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       [projects, projectSlug]
     );
 
-    // const eventUrl = {
-    //   pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-errors`,
-    // };
-
     const crumbTime = useMemo(
       // @ts-expect-error
-      () => relativeTimeInMs(crumb.timestamp * 1000, startTimestampMs),
+      () => relativeTimeInMs(new Date(crumb.timestamp).getTime(), startTimestampMs),
       [crumb.timestamp, startTimestampMs]
     );
     const hasOccurred = currentTime >= crumbTime;
     const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
 
-    const isByTimestamp = sortConfig.by === 'startTimestamp';
+    const isByTimestamp = sortConfig.by === 'timestamp';
     const isAsc = isByTimestamp ? sortConfig.asc : undefined;
     const columnProps = {
       className: classNames({
