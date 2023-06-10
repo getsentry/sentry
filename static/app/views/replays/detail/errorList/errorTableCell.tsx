@@ -7,14 +7,13 @@ import Link from 'sentry/components/links/link';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
@@ -76,6 +75,18 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       [projects, projectSlug]
     );
 
+    const issueUrl =
+      groupId && eventId
+        ? {
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
+            ),
+            query: {
+              referrer: 'replay-errors',
+            },
+          }
+        : null;
+
     const crumbTime = useMemo(
       // @ts-expect-error
       () => relativeTimeInMs(new Date(crumb.timestamp).getTime(), startTimestampMs),
@@ -130,18 +141,13 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             contextType={ContextType.EVENT}
             organization={organization}
           >
-            <Link
-              to={{
-                pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
-                ),
-                query: {
-                  referrer: 'replay-errors',
-                },
-              }}
-            >
+            {issueUrl ? (
+              <Link to={issueUrl}>
+                <Text>{getShortEventId(eventId || '')}</Text>
+              </Link>
+            ) : (
               <Text>{getShortEventId(eventId || '')}</Text>
-            </Link>
+            )}
           </QuickContextHoverWrapper>
         </Cell>
       ),
@@ -165,7 +171,11 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             contextType={ContextType.ISSUE}
             organization={organization}
           >
-            <ViewIssueLink breadcrumb={crumb as Extract<Crumb, BreadcrumbTypeDefault>} />
+            {issueUrl ? (
+              <Link to={issueUrl}>{groupShortId}</Link>
+            ) : (
+              <span>{groupShortId}</span>
+            )}
           </QuickContextHoverWrapper>
         </Cell>
       ),
