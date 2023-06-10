@@ -31,12 +31,12 @@ from sentry.models import (
     ProjectOwnership,
     Repository,
     Rule,
-    RuleSnooze,
     User,
     UserEmail,
     UserOption,
     UserReport,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,

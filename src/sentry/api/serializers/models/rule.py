@@ -11,10 +11,10 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
-    RuleFireHistory,
     actor_type_to_string,
 )
 from sentry.models.actor import Actor
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.services.hybrid_cloud.user.service import user_service
 
 

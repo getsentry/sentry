@@ -57,10 +57,8 @@ from sentry.notifications.notify import notify
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.performance_detection import (
-    EventPerformanceProblem,
-    PerformanceProblem,
-)
+from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
