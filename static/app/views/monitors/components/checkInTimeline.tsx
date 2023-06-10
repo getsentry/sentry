@@ -78,7 +78,7 @@ export function CheckInTimeline(props: Props) {
           }
 
           return (
-            <JobTickContainer left={left} key={timestamp}>
+            <JobTickContainer style={{left}} key={timestamp}>
               <Tooltip title={<DateTime date={timestampMs} />}>
                 <JobTick status={getAggregateStatus(envData)} />
               </Tooltip>
@@ -102,9 +102,8 @@ const TimelineContainer = styled('div')`
   margin: ${space(4)} 0;
 `;
 
-const JobTickContainer = styled('div')<{left: number}>`
+const JobTickContainer = styled('div')`
   position: absolute;
-  left: ${p => p.left}px;
 `;
 
 const JobTick = styled('div')<{status: CheckInStatus}>`
