@@ -1,3 +1,5 @@
+import {CheckInStatus} from 'sentry/views/monitors/types';
+
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
 export interface TimeWindowOptions {
@@ -16,3 +18,7 @@ export interface TimeWindowOptions {
 }
 
 export type TimeWindowData = Record<TimeWindow, TimeWindowOptions>;
+
+export type MonitorBucketData = [timestamp: number, envData: MonitorBucketEnvMapping][];
+
+export type MonitorBucketEnvMapping = Record<string, Record<CheckInStatus, number>>;
