@@ -26,6 +26,7 @@ class SCIMExamples:
                 ],
             },
             status_codes=["200"],
+            response_only=True,
         ),
     ]
 
@@ -48,6 +49,7 @@ class SCIMExamples:
                 ],
             },
             status_codes=["200"],
+            response_only=True,
         ),
     ]
 
@@ -94,6 +96,8 @@ class SCIMExamples:
                 "members": [],
                 "meta": {"resourceType": "Group"},
             },
+            status_codes=["200"],
+            response_only=True,
         ),
     ]
 
@@ -111,6 +115,7 @@ class SCIMExamples:
                 "sentryOrgRole": "member",
             },
             status_codes=["200"],
+            response_only=True,
         ),
     ]
 
@@ -122,6 +127,7 @@ class SCIMExamples:
                 "Operations": [{"op": "replace", "value": {"active": False}}],
             },
             status_codes=["204"],
+            response_only=True,
         ),
     ]
 

@@ -37,11 +37,14 @@ class OrganizationExamples:
                     "hasSessions": True,
                     "hasProfiles": True,
                     "hasReplays": True,
+                    "hasMinifiedStackTrace": False,
                     "hasMonitors": True,
                     "hasUserReports": False,
                     "latestRelease": None,
                 }
             ],
+            status_codes=["200"],
+            response_only=True,
         )
     ]
 
@@ -61,5 +64,6 @@ class OrganizationExamples:
                 ],
             },
             status_codes=["200"],
+            response_only=True,
         ),
     ]
