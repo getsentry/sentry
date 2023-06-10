@@ -48,8 +48,12 @@ function getColorFromStatus(status: CheckInStatus, theme: Theme) {
   return statusToColor[status];
 }
 
-function getCheckInPosition(checkDate: number, timelineStart: Date, msPerPixel: number) {
-  const elapsedSinceStart = new Date(checkDate).getTime() - timelineStart.getTime();
+function getBucketedCheckInsPosition(
+  timestamp: number,
+  timelineStart: Date,
+  msPerPixel: number
+) {
+  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
   return elapsedSinceStart / msPerPixel;
 }
 
@@ -68,7 +72,7 @@ export function CheckInTimeline(props: Props) {
             return null;
           }
 
-          const left = getCheckInPosition(timestampMs, start, msPerPixel);
+          const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
           if (left < 0) {
             return null;
           }
