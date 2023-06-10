@@ -18,14 +18,12 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/timelineScrubber';
-import {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {
-  getStartFromTimeWindow,
-  timeWindowData,
-} from 'sentry/views/monitors/components/overviewTimeline/utils';
 
 import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
+
+import {MonitorBucketData} from './types';
+import {getStartFromTimeWindow, timeWindowData} from './utils';
 
 interface Props {
   monitorList: Monitor[];
