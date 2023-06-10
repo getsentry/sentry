@@ -4,9 +4,8 @@ from typing import Sequence
 
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, Team, User
+from sentry.models import ActorTuple, OrganizationMember, OrganizationMemberTeam, Team, User
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
@@ -20,13 +19,16 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
-    team_users = user_service.get_many(
-        filter={
-            "organization_id": organization_id,
-            "team_ids": [t.id for t in actor_mentions["teams"]],
-        }
+    team_user_ids = set(
+        OrganizationMemberTeam.objects.filter(
+            team_id__in=[t.id for t in actor_mentions["teams"]],
+            organizationmember__user_id__isnull=False,
+            organizationmember__user_is_active=True,
+            organizationmember__organization_id=organization_id,
+            is_active=True,
+        ).values_list("organizationmember__user_id", flat=True)
     )
-    mentioned_team_users = {u.id for u in team_users} - set({u.id for u in actor_mentions["users"]})
+    mentioned_team_users = team_user_ids - set({u.id for u in actor_mentions["users"]})
 
     return {
         "users": {user.id for user in actor_mentions["users"]},
