@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -35,8 +35,6 @@ const cellMeasurer = {
 function ErrorList({errorCrumbs, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
-  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
-
   const filterProps = useErrorFilters({errorCrumbs: errorCrumbs || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
@@ -55,10 +53,6 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
       dynamicColumnIndex: 1,
       deps,
     });
-
-  const onClickCell = useCallback(({rowIndex}: {dataIndex: number; rowIndex: number}) => {
-    setScrollToRow(rowIndex);
-  }, []);
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const error = items[rowIndex - 1];
@@ -94,7 +88,6 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
               handleMouseEnter={handleMouseEnter}
               handleMouseLeave={handleMouseLeave}
               onClickTimestamp={handleClick}
-              onClickCell={onClickCell}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
@@ -135,12 +128,6 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
                     </NoRowRenderer>
                   )}
                   onScrollbarPresenceChange={onScrollbarPresenceChange}
-                  onScroll={() => {
-                    if (scrollToRow !== undefined) {
-                      setScrollToRow(undefined);
-                    }
-                  }}
-                  scrollToRow={scrollToRow}
                   overscanColumnCount={COLUMN_COUNT}
                   overscanRowCount={5}
                   rowCount={items.length + 1}

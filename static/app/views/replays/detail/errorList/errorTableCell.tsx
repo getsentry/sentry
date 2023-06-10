@@ -26,7 +26,6 @@ type Props = {
   currentTime: number;
   handleMouseEnter: (crumb: Crumb) => void;
   handleMouseLeave: (crumb: Crumb) => void;
-  onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   onClickTimestamp: (crumb: Crumb) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
@@ -51,9 +50,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       currentTime,
       handleMouseEnter,
       handleMouseLeave,
-      onClickCell,
       onClickTimestamp,
-      rowIndex,
       sortConfig,
       crumb,
       startTimestampMs,
@@ -61,9 +58,6 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
     }: Props,
     ref
   ) => {
-    // Rows include the sortable header, the dataIndex does not
-    const dataIndex = rowIndex - 1;
-
     const organization = useOrganization();
 
     // @ts-expect-error
@@ -123,7 +117,6 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             : undefined,
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      onClick: () => onClickCell({dataIndex, rowIndex}),
       onMouseEnter: () => handleMouseEnter(crumb),
       onMouseLeave: () => handleMouseLeave(crumb),
       ref,
