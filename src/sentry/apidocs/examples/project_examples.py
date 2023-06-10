@@ -5,7 +5,7 @@ class ProjectExamples:
     CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
-            {
+            value={
                 "id": "4505321021243392",
                 "slug": "the-spoiled-yoghurt",
                 "name": "The Spoiled Yoghurt",
@@ -59,5 +59,6 @@ class ProjectExamples:
                 "status": "active",
             },
             status_codes=["201"],
+            response_only=True,
         ),
     ]
