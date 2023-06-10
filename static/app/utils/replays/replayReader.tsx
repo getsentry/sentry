@@ -146,13 +146,13 @@ export default class ReplayReader {
   });
 
   getConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => ['console', 'issue'].includes(crumb.category || ''))
+    this.breadcrumbs.filter(crumb => crumb.category === 'console')
   );
 
   getRawErrors = memoize(() => this.rawErrors);
 
-  getErrorCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.type === BreadcrumbType.ERROR)
+  getIssueCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => crumb.category === 'issue')
   );
 
   getNonConsoleCrumbs = memoize(() =>

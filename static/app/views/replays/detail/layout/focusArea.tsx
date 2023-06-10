@@ -43,7 +43,7 @@ function FocusArea({}: Props) {
     case TabKey.ERRORS:
       return (
         <ErrorList
-          errorCrumbs={replay?.getErrorCrumbs()}
+          errorCrumbs={replay?.getIssueCrumbs()}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
@@ -66,13 +66,28 @@ function FocusArea({}: Props) {
         />
       );
     case TabKey.CONSOLE:
-    default:
+    default: {
+      const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+
+      if (hasErrorTab) {
+        return (
+          <Console
+            breadcrumbs={replay?.getConsoleCrumbs()}
+            startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+          />
+        );
+      }
+
+      const breadcrumbs = !replay
+        ? undefined
+        : [...replay.getConsoleCrumbs(), ...replay.getIssueCrumbs()];
       return (
         <Console
-          breadcrumbs={replay?.getConsoleCrumbs()}
+          breadcrumbs={breadcrumbs}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
+    }
   }
 }
 

@@ -15,7 +15,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
   const hasReplayNetworkDetails = organization.features.includes(
     'session-replay-network-details'
   );
-  const hasErrorTab = true || organization.features.includes('session-replay-errors-tab');
+  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
   const networkLabel =
     !hasErrorTab && hasReplayNetworkDetails ? (
