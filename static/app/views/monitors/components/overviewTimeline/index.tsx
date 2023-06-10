@@ -22,7 +22,7 @@ import {
 import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
 
-import {MonitorBucketData} from './types';
+import {MonitorBucketData, TimeWindow} from './types';
 import {getStartFromTimeWindow, timeWindowData} from './utils';
 
 interface Props {
@@ -34,20 +34,20 @@ export function OverviewTimeline({monitorList}: Props) {
   const {replace, location} = useRouter();
   const organization = useOrganization();
 
-  const resolution = location.query?.resolution ?? '24h';
+  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
-  const start = getStartFromTimeWindow(nowRef.current, resolution);
+  const start = getStartFromTimeWindow(nowRef.current, timeWindow);
   const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
 
   const handleResolutionChange = useCallback(
-    (value: string) => {
-      replace({...location, query: {...location.query, resolution: value}});
+    (value: TimeWindow) => {
+      replace({...location, query: {...location.query, timeWindow: value}});
     },
     [location, replace]
   );
 
   const rollup = Math.floor(
-    (timeWindowData[resolution].elapsedMinutes * 60) / timelineWidth
+    (timeWindowData[timeWindow].elapsedMinutes * 60) / timelineWidth
   );
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -73,8 +73,8 @@ export function OverviewTimeline({monitorList}: Props) {
     <MonitorListPanel>
       <ListFilters>
         <Button size="xs" icon={<IconSort size="xs" />} aria-label={t('Reverse sort')} />
-        <SegmentedControl
-          value={resolution}
+        <SegmentedControl<TimeWindow>
+          value={timeWindow}
           onChange={handleResolutionChange}
           size="xs"
           aria-label={t('Time Scale')}
@@ -87,12 +87,12 @@ export function OverviewTimeline({monitorList}: Props) {
       </ListFilters>
       <TimelineWidthTracker ref={elementRef} />
       <GridLineTimeLabels
-        timeWindow={resolution}
+        timeWindow={timeWindow}
         end={nowRef.current}
         width={timelineWidth}
       />
       <GridLineOverlay
-        timeWindow={resolution}
+        timeWindow={timeWindow}
         end={nowRef.current}
         width={timelineWidth}
       />
