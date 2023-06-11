@@ -135,11 +135,6 @@ export default class ReplayReader {
     this._rrwebEvents.push(recordingStartFrame(replayRecord));
     this._rrwebEvents.push(recordingEndFrame(replayRecord));
 
-    // Sort what needs sorting
-    // TODO(replay): We could remove this sort call if useReplayData was more
-    // careful about maintaining cursor order when calling setAttachments()
-    this._rrwebEvents.sort((a, b) => a.timestamp - b.timestamp);
-
     /*********************/
     /** OLD STUFF BELOW **/
     /*********************/
@@ -206,10 +201,6 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._rrwebEvents;
 
-  getSortedRRWebFrames = memoize(() =>
-    this.getRRWebFrames().sort((a, b) => a.timestamp - b.timestamp)
-  );
-
   getConsoleFrames = memoize(() =>
     this._breadcrumbFrames.filter(frame => frame.category === 'console')
   );
@@ -265,11 +256,6 @@ export default class ReplayReader {
   /*********************/
   /** OLD STUFF BELOW **/
   /*********************/
-
-  getRRWebEvents = () => {
-    return this.rrwebEvents;
-  };
-
   getCrumbsWithRRWebNodes = memoize(() =>
     this.breadcrumbs.filter(
       crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
@@ -314,7 +300,7 @@ export default class ReplayReader {
   getDomNodes = memoize(() =>
     extractDomNodes({
       crumbs: this.getCrumbsWithRRWebNodes(),
-      rrwebEvents: this.getRRWebEvents(),
+      rrwebEvents: this.getRRWebFrames(),
       finishedAt: this.replayRecord.finished_at,
     })
   );
