@@ -59,9 +59,8 @@ class TrendTypeField(serializers.Field):
             if data == trend_type.value:
                 return trend_type
 
-        raise serializers.ValidationError(
-            f"Unknown trend type. Expected {TrendType.REGRESSION.value} or {TrendType.IMPROVEMENT.value}"
-        )
+        expected = " or ".join(trend_type.value for trend_type in TrendType)
+        raise serializers.ValidationError(f"Unknown trend type. Expected {expected}")
 
 
 class FunctionTrendsSerializer(serializers.Serializer):
@@ -101,7 +100,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,  # type: ignore[attr-defined]
             )
 
             set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
@@ -119,7 +118,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 top_events=top_functions,
                 organization=organization,
                 zerofill_results=zerofill_results,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,  # type: ignore[attr-defined]
                 # this ensures the result key is formatted as `{project.id},{fingerprint}`
                 # in order to be compatible with the trends service
                 result_key_order=["project.id", "fingerprint"],
@@ -181,5 +180,3 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 default_per_page=5,
                 max_per_page=5,
             )
-
-        return Response(status=200)

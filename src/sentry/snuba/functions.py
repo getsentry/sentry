@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import sentry_sdk
 
@@ -149,13 +149,8 @@ def top_events_timeseries(
         assert False, "Other is not supported"  # TODO: support other
     else:
         result = top_functions_builder.run_query(referrer)
-        other_result = {"data": []}
 
-    if (
-        not allow_empty
-        and not len(result.get("data", []))
-        and not len(other_result.get("data", []))
-    ):
+    if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
             {
                 "data": zerofill([], params["start"], params["end"], rollup, "time")
@@ -176,7 +171,7 @@ def top_events_timeseries(
         if result_key_order is None:
             result_key_order = top_functions_builder.translated_groupby
 
-        results = {}
+        results: Dict[str, Any] = {}
 
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
@@ -192,8 +187,8 @@ def top_events_timeseries(
                     extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
 
-        for key, item in results.items():
-            results[key] = SnubaTSResult(
+        return {
+            key: SnubaTSResult(
                 {
                     "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
                     if zerofill_results
@@ -204,8 +199,8 @@ def top_events_timeseries(
                 params["end"],
                 rollup,
             )
-
-        return results
+            for key, item in results.items()
+        }
 
 
 def create_result_key(result_row, fields) -> str:
