@@ -79,7 +79,6 @@ export function Associations({associations = [], loading}: Props) {
         header={t('Releases')}
         displayTimeout={0}
         showUnderline
-        forceVisible
       >
         {tn('%s Release', '%s Releases', associations.length)}
       </WiderHovercard>{' '}
