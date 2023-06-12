@@ -23,7 +23,7 @@ class ConfigOptionsTest(CliTestCase):
         options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("map_option", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-        options.register("list_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("list_option", default=[1, 2], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("drifted_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
