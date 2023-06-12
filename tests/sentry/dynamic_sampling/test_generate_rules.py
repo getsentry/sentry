@@ -494,7 +494,7 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
 )
 def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
@@ -567,7 +567,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
 )
 def test_low_volume_transactions_rules_not_returned_when_inactive(
     get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
