@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class GitlabRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITLAB]
     webhook_identifier = WebhookProviderIdentifier.GITLAB
-    _integration = None
+    _integration: Integration = None
 
     def _get_external_id(self) -> Tuple[str, str] | HttpResponse:
         clear_tags_and_context()
