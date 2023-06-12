@@ -99,11 +99,6 @@ def resolve_type_hint(hint) -> Any:
             properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}
         return build_object_type(properties=properties, required=properties.keys())
     elif origin is list or hint is list:
-        print(origin, "||", hint, "||", list)
-        print("***************")
-        print(args)
-        print("---------------")
-        print(args[0])
         return build_array_type(
             resolve_type_hint(args[0]) if args else build_basic_type(OpenApiTypes.ANY)
         )
@@ -136,10 +131,6 @@ def resolve_type_hint(hint) -> Any:
             schema.update(build_basic_type(mixin_base_types[0]))
         return schema
     elif isinstance(hint, _TypedDictMeta):
-        print(f"excluded_fields: {excluded_fields}")
-        for k, v in get_type_hints(hint).items():
-            print(f"key: {k}, value: {v}")
-            print(f"resolve: {resolve_type_hint(v)}")
         return build_object_type(
             properties={
                 k: resolve_type_hint(v)

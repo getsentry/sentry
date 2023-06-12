@@ -7,6 +7,7 @@ from typing import (
     AbstractSet,
     Any,
     Dict,
+    FrozenSet,
     List,
     Mapping,
     MutableMapping,
@@ -168,7 +169,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     isMember: bool
     teamRole: str
     flags: Dict[str, Any]
-    access: frozenset[str]  # scopes granted by teamRole
+    access: FrozenSet[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
     memberCount: int
