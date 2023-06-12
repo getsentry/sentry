@@ -477,6 +477,7 @@ export function Provider({
         replayer.pause(getCurrentTime());
       }
       setIsPlaying(play);
+
       trackAnalytics('replay.play-pause', {
         organization,
         user_email: config.user.email,
