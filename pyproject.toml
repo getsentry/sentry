@@ -1594,6 +1594,7 @@ module = [
     "tests.sentry.mediators.token_exchange.test_refresher",
     "tests.sentry.mediators.token_exchange.test_validator",
     "tests.sentry.middleware.integrations.parsers.test_github",
+    "tests.sentry.middleware.integrations.parsers.test_gitlab",
     "tests.sentry.middleware.integrations.parsers.test_slack",
     "tests.sentry.middleware.test_auth",
     "tests.sentry.middleware.test_customer_domain",
