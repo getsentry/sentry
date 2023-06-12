@@ -1,4 +1,5 @@
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {DocumentationSection} from 'sentry/components/onboarding/documentationSection';
 import {useState} from 'react';
 
 <ProductSelection
@@ -21,7 +22,7 @@ npm install --save @sentry/react
 
 Initialize Sentry as early as possible in your application's lifecycle.
 
-<div className='error-monitoring'>
+<DocumentationSection activeProductSelection={props.activeProductSelection}>
 
 ```javascript
 import { createRoot } React from "react-dom/client";
@@ -38,9 +39,9 @@ const root = createRoot(container);
 root.render(<App />)
 ```
 
-</div>
+</DocumentationSection>
 
-<div className='replay-and-performance'>
+<DocumentationSection products={[PRODUCT.SESSION_REPLAY, PRODUCT.PERFORMANCE_MONITORING]} activeProductSelection={props.activeProductSelection}>
 
 ```javascript
 import { createRoot } React from "react-dom/client";
@@ -69,9 +70,9 @@ const root = createRoot(container);
 root.render(<App />)
 ```
 
-</div>
+</DocumentationSection>
 
-<div className='performance'>
+<DocumentationSection products={[PRODUCT.PERFORMANCE_MONITORING]} activeProductSelection={props.activeProductSelection}>
 
 ```javascript
 import { createRoot } React from "react-dom/client";
@@ -96,9 +97,9 @@ const root = createRoot(container);
 root.render(<App />)
 ```
 
-</div>
+</DocumentationSection>
 
-<div className='replay'>
+<DocumentationSection products={[PRODUCT.SESSION_REPLAY]} activeProductSelection={props.activeProductSelection}>
 
 ```javascript
 import { createRoot } React from "react-dom/client";
@@ -121,7 +122,7 @@ const root = createRoot(container);
 root.render(<App />)
 ```
 
-</div>
+</DocumentationSection>
 
 ## Verify
 
@@ -135,34 +136,34 @@ return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
 
 ## Next Steps
 
-<div className='error-monitoring'>
+<DocumentationSection activeProductSelection={props.activeProductSelection}>
 
 - [Source Maps](https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/): Learn how to enable readable stack traces in your Sentry errors.
 - [React Features](https://docs.sentry.io/platforms/javascript/guides/react/features/): Learn about our first class integration with the React framework.
 - [Performance Monitoring](https://docs.sentry.io/platforms/javascript/guides/react/performance/): Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.
 - [Session Replay](https://docs.sentry.io/platforms/javascript/guides/react/session-replay/): Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.
 
-</div>
+</DocumentationSection>
 
-<div className='replay-and-performance'>
+<DocumentationSection products={[PRODUCT.SESSION_REPLAY, PRODUCT.PERFORMANCE_MONITORING]} activeProductSelection={props.activeProductSelection}>
 
 - [Source Maps](https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/): Learn how to enable readable stack traces in your Sentry errors.
 - [React Features](https://docs.sentry.io/platforms/javascript/guides/react/features/): Learn about our first class integration with the React framework.
 
-</div>
+</DocumentationSection>
 
-<div className='performance'>
+<DocumentationSection products={[PRODUCT.PERFORMANCE_MONITORING]} activeProductSelection={props.activeProductSelection}>
 
 - [Source Maps](https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/): Learn how to enable readable stack traces in your Sentry errors.
 - [React Features](https://docs.sentry.io/platforms/javascript/guides/react/features/): Learn about our first class integration with the React framework.
 - [Session Replay](https://docs.sentry.io/platforms/javascript/guides/react/session-replay/): Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.
 
-</div>
+</DocumentationSection>
 
-<div className='replay'>
+<DocumentationSection products={[PRODUCT.SESSION_REPLAY]} activeProductSelection={props.activeProductSelection}>
 
 - [Source Maps](https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/): Learn how to enable readable stack traces in your Sentry errors.
 - [React Features](https://docs.sentry.io/platforms/javascript/guides/react/features/): Learn about our first class integration with the React framework.
 - [Performance Monitoring](https://docs.sentry.io/platforms/javascript/guides/react/performance/): Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.
 
-</div>
+</DocumentationSection>

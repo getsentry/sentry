@@ -1,6 +1,5 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {MDXProvider} from '@mdx-js/react';
 import {motion} from 'framer-motion';
@@ -103,6 +102,7 @@ function LoadGettingStartedDoc({
 }) {
   const [module, setModule] = useState<null | {
     default: React.ComponentType<{
+      activeProductSelection: PRODUCT[];
       components: any;
       dsn: string;
     }>;
@@ -140,9 +140,14 @@ function LoadGettingStartedDoc({
   const {default: GettingStartedDoc} = module;
   return (
     <MDXProvider>
-      <GettingStartedDocWrapper activeProductSelection={activeProductSelection}>
+      <GettingStartedDocWrapper>
         <GettingStartedDoc
           dsn={projectKeys[0].dsn.public}
+          activeProductSelection={
+            Array.isArray(activeProductSelection)
+              ? activeProductSelection
+              : [activeProductSelection]
+          }
           components={{
             code: MDXCodeSyntaxHighlight,
             pre: MDXPre,
@@ -568,41 +573,8 @@ const SyntaxHighlight = styled(CodeSnippet)`
   margin-bottom: 1em;
 `;
 
-const GettingStartedDocWrapper = styled('div')<{activeProductSelection: PRODUCT[]}>`
+const GettingStartedDocWrapper = styled('div')`
   hr {
     border-color: ${p => p.theme.border};
   }
-
-  .replay,
-  .performance,
-  .replay-and-performance,
-  .error-monitoring {
-    display: none;
-  }
-
-  ${p =>
-    p.activeProductSelection.includes(PRODUCT.SESSION_REPLAY) &&
-    p.activeProductSelection.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? css`
-          .replay-and-performance {
-            display: block;
-          }
-        `
-      : p.activeProductSelection.includes(PRODUCT.SESSION_REPLAY)
-      ? css`
-          .replay {
-            display: block;
-          }
-        `
-      : p.activeProductSelection.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? css`
-          .performance {
-            display: block;
-          }
-        `
-      : css`
-          .error-monitoring {
-            display: block;
-          }
-        `}
 `;
