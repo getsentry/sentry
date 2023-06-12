@@ -1,18 +1,18 @@
 import abc
 from unittest.mock import Mock
 
+from fixtures.sdk_crash_detection.crash_event import (
+    IN_APP_FRAME,
+    get_crash_event,
+    get_crash_event_with_frames,
+    get_frames,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
-from tests.sentry.utils.sdk_crashes.test_fixture import (
-    IN_APP_FRAME,
-    get_crash_event,
-    get_crash_event_with_frames,
-    get_frames,
-)
 
 
 class BaseEventStripperMixin(BaseTestCase, metaclass=abc.ABCMeta):
