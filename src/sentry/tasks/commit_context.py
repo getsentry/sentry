@@ -1,15 +1,22 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
-from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    Project,
+    PullRequest,
+    Repository,
+    RepositoryProjectPathConfig,
+)
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
@@ -24,6 +31,19 @@ PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 logger = logging.getLogger(__name__)
+
+
+def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
+    pr = PullRequest.objects.get(
+        organization_id=commit.organization_id, merge_commit_sha=commit.key
+    )
+    if (
+        pr is not None
+        and pr.date_added >= datetime.now() - timedelta(days=30)
+        and group_owner.group_id in pr.comment.issues
+    ):
+        # gh_comment_task.delay(pr.id)
+        pass
 
 
 @instrumented_task(
@@ -270,6 +290,11 @@ def process_commit_context(
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
+
+            if features.has("organizations:pr-comment-bot", project.organization):
+                repo = Repository.objects.get(id=commit.repository_id)
+                if repo is not None and Repository.provider == "integrations:github":
+                    queue_comment_task_if_needed(commit, group_owner)
 
             if created:
                 # If owners exceeds the limit, delete the oldest one.
