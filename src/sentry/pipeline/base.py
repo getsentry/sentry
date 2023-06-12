@@ -12,6 +12,7 @@ from rest_framework.request import Request
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
@@ -94,7 +95,7 @@ class Pipeline(abc.ABC):
         self,
         request: Request,
         provider_key: str,
-        organization: Organization | None = None,
+        organization: Organization | RpcOrganizationSummary | None = None,
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
