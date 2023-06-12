@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 from sentry.issues.grouptype import GroupType, ReplayDeadClickType, ReplayRageClickType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -63,7 +63,7 @@ def _report_click_issue(
     replay_id: str,
     click_event: SentryEvent,
     title: str,
-    issue_type: GroupType,
+    issue_type: Type[GroupType],
     replay_event: Optional[Dict[str, Any]],
 ) -> None:
     payload = click_event["data"]["payload"]
