@@ -19,7 +19,7 @@ from typing import (
     Union,
 )
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils import metrics
 from sentry.utils.services import Service
@@ -400,12 +400,12 @@ class UseCaseKeyResults:
 
 def metric_path_key_compatible_resolve(
     resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
-) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
+) -> Callable[[Any, Union[UseCaseID, MetricPathKey], int, str], Optional[int]]:
     @wraps(resolve_func)
     def wrapper(
-        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
+        self: Any, use_case_id: Union[UseCaseID, MetricPathKey], org_id: int, string: str
     ) -> Optional[int]:
-        if isinstance(use_case_id, UseCaseKey):
+        if isinstance(use_case_id, MetricPathKey):
             use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
             metrics.incr("sentry_metrics.indexer.unsafe_resolve")
         return resolve_func(self, use_case_id, org_id, string)
@@ -415,12 +415,12 @@ def metric_path_key_compatible_resolve(
 
 def metric_path_key_compatible_rev_resolve(
     rev_resolve_func: Callable[[Any, UseCaseID, int, int], Optional[str]]
-) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, int], Optional[str]]:
+) -> Callable[[Any, Union[UseCaseID, MetricPathKey], int, int], Optional[str]]:
     @wraps(rev_resolve_func)
     def wrapper(
-        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
+        self: Any, use_case_id: Union[UseCaseID, MetricPathKey], org_id: int, id: int
     ) -> Optional[str]:
-        if isinstance(use_case_id, UseCaseKey):
+        if isinstance(use_case_id, MetricPathKey):
             use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
             metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
         return rev_resolve_func(self, use_case_id, org_id, id)

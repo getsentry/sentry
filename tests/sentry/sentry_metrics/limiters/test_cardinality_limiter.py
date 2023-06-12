@@ -11,7 +11,7 @@ from sentry.ratelimits.cardinality import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -29,9 +29,9 @@ class MockUseCaseID(Enum):
 
 
 MOCK_METRIC_PATH_MAPPING = {
-    MockUseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_1: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_2: UseCaseKey.PERFORMANCE,
+    MockUseCaseID.TRANSACTIONS: MetricPathKey.PERFORMANCE,
+    MockUseCaseID.USE_CASE_1: MetricPathKey.PERFORMANCE,
+    MockUseCaseID.USE_CASE_2: MetricPathKey.PERFORMANCE,
 }
 
 MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
@@ -124,7 +124,7 @@ def test_reject_all():
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,
@@ -179,7 +179,7 @@ def test_reject_all_with_default():
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,
@@ -238,7 +238,7 @@ def test_reject_partial():
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,
@@ -293,7 +293,7 @@ def test_reject_partial_again():
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,
@@ -364,7 +364,7 @@ def test_accept_all():
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,
@@ -434,7 +434,7 @@ def test_sample_rate_zero(set_sentry_option):
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,
@@ -495,7 +495,7 @@ def test_sample_rate_half(set_sentry_option):
         limiter = TimeseriesCardinalityLimiter("", backend)
 
         result = limiter.check_cardinality_limits(
-            UseCaseKey.PERFORMANCE,
+            MetricPathKey.PERFORMANCE,
             {
                 PartitionIdxOffset(0, 0): {
                     "org_id": 1,

@@ -606,13 +606,13 @@ def occurrences_ingest_consumer(**options):
 def metrics_parallel_consumer(**options):
     from sentry.sentry_metrics.configuration import (
         IndexerStorage,
-        UseCaseKey,
+        MetricPathKey,
         get_ingest_config,
         initialize_global_consumer_state,
     )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
-    use_case = UseCaseKey(options.pop("ingest_profile"))
+    use_case = MetricPathKey(options.pop("ingest_profile"))
     db_backend = IndexerStorage(options.pop("indexer_db"))
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
@@ -780,12 +780,12 @@ def monitors_consumer(**options):
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
-    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import IndexerStorage, MetricPathKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
     from sentry.utils.metrics import global_tags
 
     ingest_config = get_ingest_config(
-        UseCaseKey(options.pop("ingest_profile")), IndexerStorage(options.pop("indexer_db"))
+        MetricPathKey(options.pop("ingest_profile")), IndexerStorage(options.pop("indexer_db"))
     )
 
     consumer = get_last_seen_updater(ingest_config=ingest_config, **options)

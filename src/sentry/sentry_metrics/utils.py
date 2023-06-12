@@ -2,7 +2,7 @@ from typing import Optional, Sequence, Union
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
@@ -16,7 +16,7 @@ class MetricIndexNotFound(InvalidParams):
 
 
 def reverse_resolve_tag_value(
-    use_case_id: UseCaseKey, org_id: int, index: Union[int, str, None], weak: bool = False
+    use_case_id: MetricPathKey, org_id: int, index: Union[int, str, None], weak: bool = False
 ) -> Optional[str]:
     if isinstance(index, str) or index is None:
         return index
@@ -27,7 +27,7 @@ def reverse_resolve_tag_value(
             return reverse_resolve(use_case_id, org_id, index)
 
 
-def reverse_resolve(use_case_id: UseCaseKey, org_id: int, index: int) -> str:
+def reverse_resolve(use_case_id: MetricPathKey, org_id: int, index: int) -> str:
     assert index > 0
     resolved = indexer.reverse_resolve(use_case_id, org_id, index)
     # The indexer should never return None for integers > 0:
@@ -37,7 +37,7 @@ def reverse_resolve(use_case_id: UseCaseKey, org_id: int, index: int) -> str:
     return resolved
 
 
-def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Optional[str]:
+def reverse_resolve_weak(use_case_id: MetricPathKey, org_id: int, index: int) -> Optional[str]:
     """
     Resolve an index value back to a string, special-casing 0 to return None.
 
@@ -52,7 +52,7 @@ def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Op
 
 
 def resolve(
-    use_case_id: UseCaseKey,
+    use_case_id: MetricPathKey,
     org_id: int,
     string: str,
 ) -> int:
@@ -63,25 +63,25 @@ def resolve(
     return resolved
 
 
-def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
+def resolve_tag_key(use_case_id: MetricPathKey, org_id: int, string: str) -> str:
     resolved = resolve(use_case_id, org_id, string)
-    assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
-    if use_case_id == UseCaseKey.PERFORMANCE:
+    assert use_case_id in (MetricPathKey.PERFORMANCE, MetricPathKey.RELEASE_HEALTH)
+    if use_case_id == MetricPathKey.PERFORMANCE:
         return f"tags_raw[{resolved}]"
     else:
         return f"tags[{resolved}]"
 
 
-def resolve_tag_value(use_case_id: UseCaseKey, org_id: int, string: str) -> Union[str, int]:
+def resolve_tag_value(use_case_id: MetricPathKey, org_id: int, string: str) -> Union[str, int]:
     assert isinstance(string, str)
-    assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
-    if use_case_id == UseCaseKey.PERFORMANCE:
+    assert use_case_id in (MetricPathKey.PERFORMANCE, MetricPathKey.RELEASE_HEALTH)
+    if use_case_id == MetricPathKey.PERFORMANCE:
         return string
     return resolve_weak(use_case_id, org_id, string)
 
 
 def resolve_tag_values(
-    use_case_id: UseCaseKey, org_id: int, strings: Sequence[str]
+    use_case_id: MetricPathKey, org_id: int, strings: Sequence[str]
 ) -> Sequence[Union[str, int]]:
     rv = []
     for string in strings:
@@ -92,7 +92,7 @@ def resolve_tag_values(
     return rv
 
 
-def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+def resolve_weak(use_case_id: MetricPathKey, org_id: int, string: str) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
 
@@ -108,7 +108,7 @@ def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
 
 
 def resolve_many_weak(
-    use_case_id: UseCaseKey, org_id: int, strings: Sequence[str]
+    use_case_id: MetricPathKey, org_id: int, strings: Sequence[str]
 ) -> Sequence[int]:
     """
     Resolve multiple values at once, omitting missing ones. This is useful in

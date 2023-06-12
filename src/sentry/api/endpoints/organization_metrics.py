@@ -8,7 +8,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -22,17 +22,17 @@ from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-def get_use_case_id(request: Request) -> UseCaseKey:
+def get_use_case_id(request: Request) -> MetricPathKey:
     """
     Get useCase from query params and validate it against UseCaseKey enum type
     Raise a ParseError if the use_case parameter is invalid.
     """
 
     try:
-        return UseCaseKey(request.GET.get("useCase", "release-health"))
+        return MetricPathKey(request.GET.get("useCase", "release-health"))
     except ValueError:
         raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseKey]}"
+            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in MetricPathKey]}"
         )
 
 

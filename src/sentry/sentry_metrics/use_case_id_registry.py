@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Mapping
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 
 
 class UseCaseID(Enum):
@@ -13,18 +13,18 @@ class UseCaseID(Enum):
 
 
 # UseCaseKey will be renamed to MetricPathKey
-METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
-    UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
-    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
-    UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
+METRIC_PATH_MAPPING: Mapping[UseCaseID, MetricPathKey] = {
+    UseCaseID.SPANS: MetricPathKey.PERFORMANCE,
+    UseCaseID.TRANSACTIONS: MetricPathKey.PERFORMANCE,
+    UseCaseID.SESSIONS: MetricPathKey.RELEASE_HEALTH,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware
 # as this is temporary and eventually UseCaseKey will have a 1:N relationship
 # with UseCaseID
-REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
-    UseCaseKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
-    UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
+REVERSE_METRIC_PATH_MAPPING: Mapping[MetricPathKey, UseCaseID] = {
+    MetricPathKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
+    MetricPathKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
 USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
@@ -40,5 +40,5 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
+def get_metric_path_from_usecase(use_case: UseCaseID) -> MetricPathKey:
     return METRIC_PATH_MAPPING[use_case]

@@ -31,7 +31,7 @@ from sentry.incidents.tasks import (
     handle_trigger_action,
     send_subscriber_notifications,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
@@ -291,15 +291,17 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
             "data": [
                 {
                     resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    ): resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                        MetricPathKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    ): resolve_tag_value(
+                        MetricPathKey.RELEASE_HEALTH, self.organization.id, "init"
+                    ),
                     "value": 100.0,
                 },
                 {
                     resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                        MetricPathKey.RELEASE_HEALTH, self.organization.id, "session.status"
                     ): resolve_tag_value(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
+                        MetricPathKey.RELEASE_HEALTH, self.organization.id, "crashed"
                     ),
                     "value": 2.0,
                 },

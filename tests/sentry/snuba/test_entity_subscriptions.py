@@ -11,7 +11,7 @@ from sentry.exceptions import (
 )
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -153,7 +153,7 @@ class EntitySubscriptionTestCase(TestCase):
     # this should be removed.
     def test_get_entity_subscription_for_metrics_dataset_for_users(self) -> None:
         org_id = self.organization.id
-        use_case_id = UseCaseKey.RELEASE_HEALTH
+        use_case_id = MetricPathKey.RELEASE_HEALTH
 
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription(
@@ -203,7 +203,7 @@ class EntitySubscriptionTestCase(TestCase):
                 Column("metric_id"),
                 Op.EQ,
                 resolve(
-                    UseCaseKey.RELEASE_HEALTH,
+                    MetricPathKey.RELEASE_HEALTH,
                     self.organization.id,
                     entity_subscription.metric_key.value,
                 ),
@@ -213,7 +213,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_for_users_with_metrics_layer(self) -> None:
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            use_case_id = UseCaseKey.RELEASE_HEALTH
+            use_case_id = MetricPathKey.RELEASE_HEALTH
 
             aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
             entity_subscription = get_entity_subscription(
@@ -276,7 +276,7 @@ class EntitySubscriptionTestCase(TestCase):
     # this should be removed.
     def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
         org_id = self.organization.id
-        use_case_id = UseCaseKey.RELEASE_HEALTH
+        use_case_id = MetricPathKey.RELEASE_HEALTH
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription(
             query_type=SnubaQuery.Type.CRASH_RATE,
@@ -344,7 +344,7 @@ class EntitySubscriptionTestCase(TestCase):
     ) -> None:
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            use_case_id = UseCaseKey.RELEASE_HEALTH
+            use_case_id = MetricPathKey.RELEASE_HEALTH
             aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.CRASH_RATE,
@@ -468,7 +468,7 @@ class EntitySubscriptionTestCase(TestCase):
         ).get_snql_query()
 
         metric_id = resolve(
-            UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+            MetricPathKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
         )
 
         assert snql_query.query.select == [
@@ -525,7 +525,7 @@ class EntitySubscriptionTestCase(TestCase):
             ).get_snql_query()
 
             metric_id = resolve(
-                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+                MetricPathKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
             )
 
             assert snql_query.query.select == [

@@ -40,7 +40,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
@@ -2601,7 +2601,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     "data": [
                         {
                             resolve_tag_key(
-                                UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                                MetricPathKey.RELEASE_HEALTH, self.organization.id, "session.status"
                             ): 1001
                         }
                     ]
@@ -2657,9 +2657,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
-            tag_value_init = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "init")
-            tag_value_crashed = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
+            session_status = resolve_tag_key(MetricPathKey.RELEASE_HEALTH, org_id, "session.status")
+            tag_value_init = resolve_tag_value(MetricPathKey.RELEASE_HEALTH, org_id, "init")
+            tag_value_crashed = resolve_tag_value(MetricPathKey.RELEASE_HEALTH, org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id

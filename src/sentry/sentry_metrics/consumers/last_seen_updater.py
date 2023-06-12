@@ -17,7 +17,7 @@ from arroyo.processing.strategies.transform import TransformStep
 from arroyo.types import BaseValue, Commit, Message, Partition, Topic
 from django.utils import timezone
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
@@ -101,7 +101,7 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
 class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        use_case_id: UseCaseKey,
+        use_case_id: MetricPathKey,
         max_batch_size: int,
         max_batch_time: float,
     ) -> None:

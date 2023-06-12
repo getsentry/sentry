@@ -13,7 +13,7 @@ from sentry.ratelimits.cardinality import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.sentry_metrics.use_case_id_registry import (
     USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
@@ -29,7 +29,7 @@ OrgId = int
 @dataclasses.dataclass(frozen=True)
 class CardinalityLimiterState:
     _cardinality_limiter: CardinalityLimiter
-    _metric_path_key: UseCaseKey
+    _metric_path_key: MetricPathKey
     _grants: Optional[Sequence[GrantedQuota]]
     _timestamp: Optional[Timestamp]
     keys_to_remove: Sequence[PartitionIdxOffset]
@@ -84,7 +84,7 @@ class TimeseriesCardinalityLimiter:
         self.backend: CardinalityLimiter = rate_limiter
 
     def check_cardinality_limits(
-        self, metric_path_key: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
+        self, metric_path_key: MetricPathKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
         hash_to_offset = {}
@@ -94,8 +94,8 @@ class TimeseriesCardinalityLimiter:
         # for each metric path. ultimately, this can be moved into the
         # loop below to make rollout options occur on a per use case-basis
         rollout_option = {
-            UseCaseKey.PERFORMANCE: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-            UseCaseKey.RELEASE_HEALTH: "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
+            MetricPathKey.PERFORMANCE: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
+            MetricPathKey.RELEASE_HEALTH: "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
         }[metric_path_key]
 
         for key, message in messages.items():

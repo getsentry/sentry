@@ -133,7 +133,7 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -1247,7 +1247,7 @@ class BaseMetricsTestCase(SnubaTestCase):
                     else to_timestamp(session["started"])
                 ),
                 value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                use_case_id=MetricPathKey.RELEASE_HEALTH,
             )
 
         # seq=0 is equivalent to relay's session.init, init=True is transformed
@@ -1293,7 +1293,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         tags: Dict[str, str],
         timestamp: int,
         value,
-        use_case_id: UseCaseKey,
+        use_case_id: MetricPathKey,
     ):
         mapping_meta = {}
 
@@ -1322,7 +1322,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
 
-            if use_case_id == UseCaseKey.PERFORMANCE:
+            if use_case_id == MetricPathKey.PERFORMANCE:
                 return name
 
             res = indexer.record(
@@ -1355,13 +1355,13 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseKey.PERFORMANCE else 1,
+            "version": 2 if use_case_id == MetricPathKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        if use_case_id == UseCaseKey.PERFORMANCE:
+        if use_case_id == MetricPathKey.PERFORMANCE:
             entity = f"generic_metrics_{type}s"
         else:
             entity = f"metrics_{type}s"
@@ -1431,7 +1431,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         name: str,
         tags: Dict[str, str],
         value: int,
-        use_case_id: UseCaseKey,
+        use_case_id: MetricPathKey,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1521,7 +1521,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=MetricPathKey.PERFORMANCE,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1548,7 +1548,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=MetricPathKey.RELEASE_HEALTH,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1644,7 +1644,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
-        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+        use_case_id: MetricPathKey = MetricPathKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1672,7 +1672,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=MetricPathKey.PERFORMANCE,
             )
 
     def wait_for_metric_count(
@@ -1699,7 +1699,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             data = get_series(
                 [project],
                 metrics_query=metrics_query,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=MetricPathKey.PERFORMANCE,
             )
             count = data["groups"][0]["totals"][f"count({metric})"]
             if count >= total:
@@ -2335,7 +2335,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             },
             type="counter",
             value=1,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=MetricPathKey.RELEASE_HEALTH,
         )
         self.store_metric(
             org_id=org_id,
@@ -2345,7 +2345,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             tags={"tag3": "value3"},
             type="counter",
             value=1,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=MetricPathKey.RELEASE_HEALTH,
         )
         self.store_metric(
             org_id=org_id,
@@ -2359,7 +2359,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             },
             type="set",
             value=123,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=MetricPathKey.RELEASE_HEALTH,
         )
         self.store_metric(
             org_id=org_id,
@@ -2369,7 +2369,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             tags={},
             type="set",
             value=123,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=MetricPathKey.RELEASE_HEALTH,
         )
 
 

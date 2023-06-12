@@ -12,7 +12,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
-from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import IndexerStorage, MetricPathKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.sentry_metrics
 
 MESSAGE_PROCESSOR = MessageProcessor(
-    get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
+    get_ingest_config(MetricPathKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
 )
 
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
@@ -279,12 +279,12 @@ def __translated_payload(
 
     new_tags = {
         indexer.resolve(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=k
-        ): indexer.resolve(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=v)
+            use_case_id=MetricPathKey.RELEASE_HEALTH, org_id=org_id, string=k
+        ): indexer.resolve(use_case_id=MetricPathKey.RELEASE_HEALTH, org_id=org_id, string=v)
         for k, v in payload["tags"].items()
     }
     payload["metric_id"] = indexer.resolve(
-        use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=payload["name"]
+        use_case_id=MetricPathKey.RELEASE_HEALTH, org_id=org_id, string=payload["name"]
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
@@ -477,7 +477,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     outer_message = Message(Value(message_batch, last.committable))
 
     message_processor = MessageProcessor(
-        get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
+        get_ingest_config(MetricPathKey.RELEASE_HEALTH, IndexerStorage.MOCK)
     )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
     message_processor._indexer.indexer._strings[UseCaseID.SESSIONS][1]["rate_limited_test"] = None

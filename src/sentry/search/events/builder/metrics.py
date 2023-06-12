@@ -35,7 +35,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import to_timestamp
@@ -308,9 +308,9 @@ class MetricsQueryBuilder(QueryBuilder):
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
             if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
+                use_case_id = MetricPathKey.PERFORMANCE
             else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
+                use_case_id = MetricPathKey.RELEASE_HEALTH
             result = indexer.resolve(use_case_id, self.organization_id, value)
             self._indexer_cache[value] = result
 
@@ -639,9 +639,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=MetricPathKey.PERFORMANCE
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else MetricPathKey.RELEASE_HEALTH,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )
@@ -828,9 +828,9 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                 metrics_query=transform_mqb_query_to_metrics_query(
                     snuba_request.query, is_alerts_query=self.is_alerts_query
                 ),
-                use_case_id=UseCaseKey.PERFORMANCE
+                use_case_id=MetricPathKey.PERFORMANCE
                 if self.is_performance
-                else UseCaseKey.RELEASE_HEALTH,
+                else MetricPathKey.RELEASE_HEALTH,
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
@@ -1042,9 +1042,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=MetricPathKey.PERFORMANCE
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else MetricPathKey.RELEASE_HEALTH,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )

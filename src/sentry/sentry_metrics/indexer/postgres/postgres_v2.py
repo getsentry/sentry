@@ -10,7 +10,7 @@ from psycopg2 import OperationalError
 from psycopg2.errorcodes import DEADLOCK_DETECTED
 
 from sentry import options
-from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import IndexerStorage, MetricPathKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
@@ -62,7 +62,7 @@ class PGStringIndexerV2(StringIndexer):
 
         conditions = []
         for use_case_id, organization_id, string in db_use_case_keys.as_tuples():
-            if metric_path_key is UseCaseKey.PERFORMANCE:
+            if metric_path_key is MetricPathKey.PERFORMANCE:
                 conditions.append(
                     Q(
                         use_case_id=use_case_id.value,
@@ -128,7 +128,7 @@ class PGStringIndexerV2(StringIndexer):
                 UseCaseKeyResult(
                     use_case_id=(
                         UseCaseID(db_obj.use_case_id)
-                        if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
+                        if self._get_metric_path_key(strings.keys()) is MetricPathKey.PERFORMANCE
                         else UseCaseID.SESSIONS
                     ),
                     org_id=db_obj.organization_id,
@@ -194,7 +194,7 @@ class PGStringIndexerV2(StringIndexer):
 
             table = self._get_table_from_metric_path_key(metric_path_key)
 
-            if metric_path_key is UseCaseKey.PERFORMANCE:
+            if metric_path_key is MetricPathKey.PERFORMANCE:
                 new_records = [
                     table(
                         organization_id=int(organization_id),
@@ -220,7 +220,7 @@ class PGStringIndexerV2(StringIndexer):
                 UseCaseKeyResult(
                     use_case_id=(
                         UseCaseID.SESSIONS
-                        if metric_path_key is UseCaseKey.RELEASE_HEALTH
+                        if metric_path_key is MetricPathKey.RELEASE_HEALTH
                         else UseCaseID(db_obj.use_case_id)
                     ),
                     org_id=db_obj.organization_id,
@@ -245,7 +245,7 @@ class PGStringIndexerV2(StringIndexer):
                 UseCaseKeyResult(
                     use_case_id=(
                         UseCaseID(db_obj.use_case_id)
-                        if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
+                        if self._get_metric_path_key(strings.keys()) is MetricPathKey.PERFORMANCE
                         else UseCaseID.SESSIONS
                     ),
                     org_id=db_obj.organization_id,
@@ -321,7 +321,7 @@ class PGStringIndexerV2(StringIndexer):
             if filtered_db_write_keys.size == 0:
                 return db_read_key_results.merge(rate_limited_key_results)
 
-            if use_case_path_key is UseCaseKey.PERFORMANCE:
+            if use_case_path_key is MetricPathKey.PERFORMANCE:
                 new_records = [
                     self._get_table_from_use_case_ids(strings.keys())(
                         organization_id=int(organization_id),
@@ -382,7 +382,7 @@ class PGStringIndexerV2(StringIndexer):
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
-            if metric_path_key is UseCaseKey.PERFORMANCE:
+            if metric_path_key is MetricPathKey.PERFORMANCE:
                 return int(
                     table.objects.using_replica()
                     .get(organization_id=org_id, string=string, use_case_id=use_case_id.value)
@@ -409,7 +409,7 @@ class PGStringIndexerV2(StringIndexer):
         string: str = obj.string
         return string
 
-    def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
+    def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> MetricPathKey:
         metrics_paths = {METRIC_PATH_MAPPING[use_case_id] for use_case_id in use_case_ids}
         if len(metrics_paths) > 1:
             raise ValueError(
@@ -420,7 +420,7 @@ class PGStringIndexerV2(StringIndexer):
     def _get_table_from_use_case_ids(self, use_case_ids: Collection[UseCaseID]) -> IndexerTable:
         return TABLE_MAPPING[self._get_metric_path_key(use_case_ids)]
 
-    def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> IndexerTable:
+    def _get_table_from_metric_path_key(self, metric_path_key: MetricPathKey) -> IndexerTable:
         return TABLE_MAPPING[metric_path_key]
 
     def resolve_shared_org(self, string: str) -> Optional[int]:

@@ -11,7 +11,7 @@ from sentry.ratelimits.sliding_windows import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey, MetricsIngestConfiguration
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     FetchTypeExt,
@@ -38,14 +38,14 @@ def _build_quota_key(namespace: str, org_id: Optional[OrgId] = None) -> str:
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseKey, namespace: str) -> Sequence[Quota]:
+def _construct_quotas(use_case_id: MetricPathKey, namespace: str) -> Sequence[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
     This value can potentially cached globally as long as it is invalidated
     when sentry.options are.
     """
-    if use_case_id == UseCaseKey.PERFORMANCE:
+    if use_case_id == MetricPathKey.PERFORMANCE:
         return [
             Quota(prefix_override=_build_quota_key(namespace, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
@@ -53,7 +53,7 @@ def _construct_quotas(use_case_id: UseCaseKey, namespace: str) -> Sequence[Quota
             Quota(prefix_override=None, **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
         ]
-    elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+    elif use_case_id == MetricPathKey.RELEASE_HEALTH:
         return [
             Quota(prefix_override=_build_quota_key(namespace, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
@@ -67,7 +67,7 @@ def _construct_quotas(use_case_id: UseCaseKey, namespace: str) -> Sequence[Quota
 
 @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
 def _construct_quota_requests(
-    use_case_id: UseCaseKey, namespace: str, keys: KeyCollection
+    use_case_id: MetricPathKey, namespace: str, keys: KeyCollection
 ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
     org_ids = []
     requests = []
@@ -97,7 +97,7 @@ class DroppedString:
 @dataclasses.dataclass(frozen=True)
 class RateLimitState:
     _writes_limiter: WritesLimiter
-    _use_case_id: UseCaseKey
+    _use_case_id: MetricPathKey
     _namespace: str
     _requests: Sequence[RequestedQuota]
     _grants: Sequence[GrantedQuota]

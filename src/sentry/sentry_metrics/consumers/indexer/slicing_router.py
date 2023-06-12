@@ -10,7 +10,7 @@ from sentry.ingest.slicing import (
     map_logical_partition_to_slice,
     map_org_id_to_logical_partition,
 )
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     MessageRoute,
     MessageRouter,
@@ -139,7 +139,7 @@ class SlicingRouter(MessageRouter):
 
 def get_slicing_router(config: MetricsIngestConfiguration) -> Optional[SlicingRouter]:
     if config.is_output_sliced:
-        if config.use_case_id == UseCaseKey.PERFORMANCE:
+        if config.use_case_id == MetricPathKey.PERFORMANCE:
             sliceable = "generic_metrics"
         else:
             raise SlicingConfigurationException(

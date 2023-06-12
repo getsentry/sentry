@@ -20,7 +20,7 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.sentry_metrics import indexer
-    from sentry.sentry_metrics.configuration import UseCaseKey
+    from sentry.sentry_metrics.configuration import MetricPathKey
     from sentry.sentry_metrics.indexer.mock import MockIndexer
     from sentry.snuba import tasks
     from sentry.utils import snuba
@@ -39,7 +39,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
         def new_resolve(use_case_id, org_id, string):
             if (
-                use_case_id == UseCaseKey.PERFORMANCE
+                use_case_id == MetricPathKey.PERFORMANCE
                 and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES
             ):
                 pytest.fail(

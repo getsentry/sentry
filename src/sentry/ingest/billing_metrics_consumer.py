@@ -12,7 +12,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.utils import json
@@ -143,7 +143,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return bool(
             (tag_value := bucket["tags"].get(self.profile_tag_key))
             and "true"
-            == reverse_resolve_tag_value(UseCaseKey.PERFORMANCE, bucket["org_id"], tag_value)
+            == reverse_resolve_tag_value(MetricPathKey.PERFORMANCE, bucket["org_id"], tag_value)
         )
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:

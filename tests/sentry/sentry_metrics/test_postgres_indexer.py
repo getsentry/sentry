@@ -1,6 +1,6 @@
 from typing import Mapping, Set
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MetricPathKey
 from sentry.sentry_metrics.indexer.base import FetchType, Metadata, UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.cache import CachingIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2, indexer_cache
@@ -21,7 +21,7 @@ class PostgresIndexerV2Test(TestCase):
         self.indexer = CachingIndexer(indexer_cache, PGStringIndexerV2())
         self.org2 = self.create_organization()
         self.use_case_id = UseCaseID.SESSIONS
-        self.use_case_key = UseCaseKey.RELEASE_HEALTH
+        self.use_case_key = MetricPathKey.RELEASE_HEALTH
         self.cache_namespace = self.use_case_id.value
 
     def tearDown(self) -> None:

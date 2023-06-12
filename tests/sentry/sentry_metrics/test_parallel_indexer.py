@@ -6,8 +6,8 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry.sentry_metrics.configuration import (
     RELEASE_HEALTH_PG_NAMESPACE,
     IndexerStorage,
+    MetricPathKey,
     MetricsIngestConfiguration,
-    UseCaseKey,
 )
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -48,7 +48,7 @@ def test_basic(request):
             db_backend_options={},
             input_topic="ingest-metrics",
             output_topic="snuba-metrics",
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=MetricPathKey.RELEASE_HEALTH,
             internal_metrics_tag="test",
             writes_limiter_cluster_options={},
             writes_limiter_namespace="test",

@@ -4,7 +4,7 @@ from unittest.mock import patch
 from sentry.sentry_metrics.configuration import (
     PERFORMANCE_PG_NAMESPACE,
     RELEASE_HEALTH_PG_NAMESPACE,
-    UseCaseKey,
+    MetricPathKey,
 )
 from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.limiters.writes import UcaWritesLimiter
@@ -29,15 +29,15 @@ class MockUseCaseID(Enum):
 
 
 MOCK_METRIC_PATH_MAPPING = {
-    MockUseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_1: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_2: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_3: UseCaseKey.PERFORMANCE,
+    MockUseCaseID.TRANSACTIONS: MetricPathKey.PERFORMANCE,
+    MockUseCaseID.USE_CASE_1: MetricPathKey.PERFORMANCE,
+    MockUseCaseID.USE_CASE_2: MetricPathKey.PERFORMANCE,
+    MockUseCaseID.USE_CASE_3: MetricPathKey.PERFORMANCE,
 }
 
 MOCK_REVERSE_METRIC_PATH_MAPPING = {
-    UseCaseKey.RELEASE_HEALTH: MockUseCaseID.SESSIONS,
-    UseCaseKey.PERFORMANCE: MockUseCaseID.TRANSACTIONS,
+    MetricPathKey.RELEASE_HEALTH: MockUseCaseID.SESSIONS,
+    MetricPathKey.PERFORMANCE: MockUseCaseID.TRANSACTIONS,
 }
 
 MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
