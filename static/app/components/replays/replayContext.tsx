@@ -243,7 +243,8 @@ export function Provider({
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
-  const unMountedRef = useRef(false);
+
+  const didUseInitialOffset = useRef(false);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
@@ -334,24 +335,48 @@ export function Provider({
     [getCurrentTime, isPlaying]
   );
 
+  const applyInitialOffset = useCallback(() => {
+    if (
+      !didUseInitialOffset.current &&
+      initialTimeOffsetMs &&
+      events &&
+      replayerRef.current
+    ) {
+      const {highlight: highlightArgs, offsetMs} = initialTimeOffsetMs;
+      if (offsetMs) {
+        setCurrentTime(offsetMs);
+      }
+      if (highlightArgs) {
+        highlight(highlightArgs);
+        setTimeout(() => {
+          clearAllHighlightsCallback();
+          highlight(highlightArgs);
+        });
+      }
+      didUseInitialOffset.current = true;
+    }
+  }, [
+    clearAllHighlightsCallback,
+    events,
+    highlight,
+    setCurrentTime,
+    initialTimeOffsetMs,
+  ]);
+
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
-        return () => {};
+        return;
       }
 
       if (replayerRef.current) {
-        if (!hasNewEvents && !unMountedRef.current) {
-          // Already have a player for these events, the parent node must've re-rendered
-          if (initialTimeOffsetMs?.offsetMs && events) {
-            setCurrentTime(initialTimeOffsetMs.offsetMs);
-          }
-          return () => {};
+        if (!hasNewEvents) {
+          return;
         }
 
         if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
-          return () => {};
+          return;
         }
 
         // We have new events, need to clear out the old iframe because a new
@@ -392,17 +417,7 @@ export function Provider({
       // @ts-expect-error
       replayerRef.current = inst;
 
-      if (unMountedRef.current) {
-        unMountedRef.current = false;
-      }
-
-      if (initialTimeOffsetMs?.offsetMs && events) {
-        setCurrentTime(initialTimeOffsetMs.offsetMs);
-      }
-
-      return () => {
-        unMountedRef.current = true;
-      };
+      applyInitialOffset();
     },
     [
       events,
@@ -410,20 +425,9 @@ export function Provider({
       theme.purple200,
       setReplayFinished,
       hasNewEvents,
-      initialTimeOffsetMs,
-      setCurrentTime,
+      applyInitialOffset,
     ]
   );
-
-  useEffect(() => {
-    if (initialTimeOffsetMs?.offsetMs && events && replayerRef.current) {
-      setCurrentTime(initialTimeOffsetMs.offsetMs);
-    }
-
-    return () => {
-      unMountedRef.current = true;
-    };
-  }, [events, initialTimeOffsetMs, setCurrentTime]);
 
   const setSpeed = useCallback(
     (newSpeed: number) => {
@@ -464,14 +468,14 @@ export function Provider({
         replayer.pause(getCurrentTime());
       }
       setIsPlaying(play);
-
+      clearAllHighlightsCallback();
       trackAnalytics('replay.play-pause', {
         organization,
         user_email: config.user.email,
         play,
       });
     },
-    [getCurrentTime, config.user.email, organization]
+    [clearAllHighlightsCallback, getCurrentTime, config.user.email, organization]
   );
 
   useEffect(() => {
@@ -495,8 +499,9 @@ export function Provider({
     if (replayerRef.current) {
       replayerRef.current.play(0);
       setIsPlaying(true);
+      clearAllHighlightsCallback();
     }
-  }, []);
+  }, [clearAllHighlightsCallback]);
 
   const toggleSkipInactive = useCallback((skip: boolean) => {
     const replayer = replayerRef.current;
@@ -526,30 +531,11 @@ export function Provider({
       ? [true, buffer.target]
       : [false, currentPlayerTime];
 
-  // Only on pageload: highlight the node that relates to the initialTimeOffset
   useEffect(() => {
-    if (
-      !isBuffering &&
-      initialTimeOffsetMs?.highlight &&
-      events &&
-      events?.length >= 2 &&
-      replayerRef.current
-    ) {
-      const highlightArgs = initialTimeOffsetMs.highlight;
-      highlight(highlightArgs);
-      setTimeout(() => {
-        clearAllHighlightsCallback();
-        highlight(highlightArgs);
-      });
+    if (!isBuffering && events && events.length >= 2 && replayerRef.current) {
+      applyInitialOffset();
     }
-  }, [
-    clearAllHighlightsCallback,
-    events,
-    dimensions,
-    highlight,
-    initialTimeOffsetMs,
-    isBuffering,
-  ]);
+  }, [isBuffering, events, applyInitialOffset]);
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
