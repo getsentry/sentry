@@ -21,7 +21,7 @@ from urllib.request import Request
 from sentry import audit_log
 from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
-from sentry.models import ExternalActor, Identity, Integration, Organization, Team
+from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
@@ -203,7 +203,10 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return logging.getLogger(f"sentry.integration.{self.key}")
 
     def post_install(
-        self, integration: Integration, organization: Organization, extra: Optional[Any] = None
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Optional[Any] = None,
     ) -> None:
         pass
 
