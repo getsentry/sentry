@@ -6,7 +6,7 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
-class VstsRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
+class VstsRepositoryProvider(IntegrationRepositoryProvider):
     name = "Azure DevOps"
     repo_provider = "vsts"
 

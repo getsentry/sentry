@@ -66,7 +66,7 @@ function BreadcrumbItem({
   startTimestampMs,
   style,
 }: Props) {
-  const {title, description, projectSlug} = getDetails(crumb);
+  const {color, description, projectSlug, title, type} = getDetails(crumb);
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
@@ -88,6 +88,11 @@ function BreadcrumbItem({
     [index, onDimensionChange]
   );
 
+  // Note: use `crumb.type` here as `getDetails()` will return a type based on
+  // crumb category for presentation purposes. e.g. if we wanted to use an
+  // error icon for a non-Sentry error
+  const shouldShowCrumbProject = crumb.type === BreadcrumbType.ERROR && projectSlug;
+
   return (
     <CrumbItem
       aria-current={isCurrent}
@@ -99,8 +104,8 @@ function BreadcrumbItem({
       onMouseLeave={handleMouseLeave}
       style={style}
     >
-      <IconWrapper color={crumb.color} hasOccurred>
-        <BreadcrumbIcon type={crumb.type} />
+      <IconWrapper color={color} hasOccurred>
+        <BreadcrumbIcon type={type} />
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>
@@ -130,9 +135,7 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
-        {crumb.type === BreadcrumbType.ERROR && projectSlug && (
-          <CrumbProject projectSlug={projectSlug} />
-        )}
+        {shouldShowCrumbProject && <CrumbProject projectSlug={projectSlug} />}
       </CrumbDetails>
     </CrumbItem>
   );

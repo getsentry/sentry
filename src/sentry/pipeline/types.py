@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from sentry.models import Model, Organization
+from sentry.db.models.base import Model
+from sentry.models import Organization
 
 from .store import PipelineSessionStore
 

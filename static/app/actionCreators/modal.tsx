@@ -46,13 +46,13 @@ type OpenSudoModalOptions = {
   sudo?: boolean;
 };
 
-type emailVerificationModalOptions = {
+type EmailVerificationModalOptions = {
   actionMessage?: string;
   emailVerified?: boolean;
   onClose?: () => void;
 };
 
-type inviteMembersModalOptions = {
+type InviteMembersModalOptions = {
   initialData?: Partial<InviteRow>[];
   onClose?: () => void;
   source?: string;
@@ -68,7 +68,7 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
 export async function openEmailVerification({
   onClose,
   ...args
-}: emailVerificationModalOptions = {}) {
+}: EmailVerificationModalOptions = {}) {
   const mod = await import('sentry/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
@@ -239,7 +239,7 @@ export async function openDebugFileSourceModal({
 export async function openInviteMembersModal({
   onClose,
   ...args
-}: inviteMembersModalOptions = {}) {
+}: InviteMembersModalOptions = {}) {
   const mod = await import('sentry/components/modals/inviteMembersModal');
   const {default: Modal, modalCss} = mod;
 

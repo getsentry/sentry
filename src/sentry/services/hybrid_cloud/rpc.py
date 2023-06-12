@@ -488,7 +488,7 @@ def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinf
     request.add_header("Content-Length", str(len(data)))
     # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
     # request.add_header("Authorization", f"Bearer {api_token}")
-    return urlopen(request, data)  # type: ignore
+    return urlopen(request, data)
 
 
 @dataclass(frozen=True)

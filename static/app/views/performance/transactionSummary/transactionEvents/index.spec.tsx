@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {
   initializeData as _initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -122,7 +122,7 @@ const setupMockApiResponeses = () => {
   });
 };
 
-const initializeData = (settings?: initializeDataSettings) => {
+const initializeData = (settings?: InitializeDataSettings) => {
   settings = {
     features: ['performance-view'],
     query: {project: '1', transaction: 'transaction'},

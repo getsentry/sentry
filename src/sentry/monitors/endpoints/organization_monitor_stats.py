@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from collections import OrderedDict
+from datetime import datetime, timedelta
 
+from django.db.models import Avg, Count, DateTimeField, Func
+from django.db.models.functions import Extract
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,10 +33,7 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     def get(self, request: Request, organization, project, monitor) -> Response:
         args = self._parse_args(request)
 
-        stats = {}
-        duration_stats = {}
-        current = normalize_to_epoch(args["start"], args["rollup"])
-
+        start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
 
         tracked_statuses = [
@@ -43,14 +43,7 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
             CheckInStatus.TIMEOUT,
         ]
 
-        # initialize success/failure/missed/duration stats in preparation for counting/aggregating
-        while current <= end:
-            stats[current] = {status: 0 for status in tracked_statuses}
-            duration_stats[current] = {"sum": 0, "num_checkins": 0}
-            current += args["rollup"]
-
-        # retrieve the list of checkins in the time range and count success/failure/missed/duration
-        history = MonitorCheckIn.objects.filter(
+        check_ins = MonitorCheckIn.objects.filter(
             monitor=monitor,
             status__in=tracked_statuses,
             date_added__gt=args["start"],
@@ -60,28 +53,57 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         environments = get_environments(request, organization)
 
         if environments:
-            history = history.filter(monitor_environment__environment__in=environments)
+            check_ins = check_ins.filter(monitor_environment__environment__in=environments)
 
-        for dt, status, duration in history.values_list(
-            "date_added", "status", "duration"
-        ).iterator():
-            ts = normalize_to_epoch(dt, args["rollup"])
-            stats[ts][status] += 1
-            if duration:
-                duration_stats[ts]["sum"] += duration
-                duration_stats[ts]["num_checkins"] += 1
+        # Use postgres' `date_bin` to bucket rounded to our rolllups
+        bucket = Func(
+            timedelta(seconds=args["rollup"]),
+            "date_added",
+            datetime.fromtimestamp(end),
+            function="date_bin",
+            output_field=DateTimeField(),
+        )
+        # Save space on date allocation and return buckets as unix timestamps
+        bucket = Extract(bucket, "epoch")
 
-        stats_duration_data = []
-        statuses_to_name = dict(CheckInStatus.as_choices())
-        # compute average duration and construct response object
-        for ts, data in stats.items():
-            duration_sum, num_checkins = duration_stats[ts].values()
-            avg_duration = 0
-            if num_checkins > 0:
-                avg_duration = duration_sum / num_checkins
-            datapoint = {statuses_to_name[status]: data[status] for status in tracked_statuses}
-            datapoint["ts"] = ts
-            datapoint["duration"] = avg_duration
-            stats_duration_data.append(datapoint)
+        # retrieve the list of checkins in the time range and count each by
+        # status. Bucketing is done at the postgres level for performance
+        check_in_history = (
+            check_ins.all()
+            .annotate(bucket=bucket)
+            .values("status", "bucket")
+            .order_by("bucket")
+            .annotate(count=Count("*"))
+            .values_list("bucket", "status", "count")
+        )
 
-        return Response(stats_duration_data)
+        # Duration count must be done as a second query
+        duration_history = (
+            check_ins.all()
+            .annotate(bucket=bucket)
+            .values("bucket")
+            .order_by("bucket")
+            .annotate(duration_avg=Avg("duration"))
+            .values_list("bucket", "duration_avg")
+        )
+
+        stats = OrderedDict()
+        status_to_name = dict(CheckInStatus.as_choices())
+
+        # initialize success/failure/missed/duration stats
+        while start <= end:
+            stats[start] = {status_to_name[status]: 0 for status in tracked_statuses}
+            stats[start]["duration"] = 0
+            start += args["rollup"]
+
+        for ts, status, count in check_in_history.iterator():
+            named_status = status_to_name[status]
+            stats[ts][named_status] = count
+
+        for ts, duration_avg in duration_history.iterator():
+            stats[ts]["duration"] = duration_avg
+
+        # Ordered dict keeps timestamp order
+        stats_list = [{"ts": ts, **data} for ts, data in stats.items()]
+
+        return Response(stats_list)

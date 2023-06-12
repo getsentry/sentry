@@ -9,6 +9,7 @@ from snuba_sdk import Condition, Direction, Op, OrderBy
 from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
@@ -17,7 +18,6 @@ from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
     InvalidFunctionArgument,
-    InvalidSearchQuery,
     NumberRange,
     NumericColumn,
     SnQLFunction,
@@ -85,7 +85,7 @@ COLUMNS = [
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
-class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
+class ProfileFunctionColumnArg(ColumnArg):
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -98,7 +98,7 @@ class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class ProfileFunctionNumericColumn(NumericColumn):  # type: ignore
+class ProfileFunctionNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 

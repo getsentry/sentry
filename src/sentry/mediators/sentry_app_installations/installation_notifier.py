@@ -1,6 +1,7 @@
 from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer, serialize
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.utils.cache import memoize
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 

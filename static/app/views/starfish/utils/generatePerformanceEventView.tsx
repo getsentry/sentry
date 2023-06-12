@@ -124,9 +124,12 @@ export function generateWebServiceEventView(
   const fields = [
     'transaction',
     'http.method',
-    'tpm()',
+    'tps()',
+    'tps_percent_change()',
     'p95(transaction.duration)',
+    'percentile_percent_change(transaction.duration,0.95)',
     'http_error_count()',
+    'http_error_count_percent_change()',
     'time_spent_percentage()',
     'sum(transaction.duration)',
   ];

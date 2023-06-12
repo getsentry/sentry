@@ -119,7 +119,7 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 
 @register(User)
-class UserSerializer(Serializer):  # type: ignore
+class UserSerializer(Serializer):
     def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
         if isinstance(requester, User):
             return bool(requester == obj)
@@ -269,7 +269,8 @@ class DetailedUserSerializer(UserSerializer):
 
         memberships = manytoone_to_dict(
             OrganizationMember.objects.filter(
-                user__in=item_list, organization__status=OrganizationStatus.ACTIVE
+                user_id__in={u.id for u in item_list},
+                organization__status=OrganizationStatus.ACTIVE,
             ),
             "user_id",
         )

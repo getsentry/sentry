@@ -21,7 +21,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
         user: Optional[int] = None,
-    ) -> RpcOrganizationMapping:
+    ) -> Optional[RpcOrganizationMapping]:
         # TODO(HC) fix/re-enable this code when org mappings are being created by the responsible outbox
         # if idempotency_key:
         #     org_mapping, _created = OrganizationMapping.objects.update_or_create(
@@ -45,7 +45,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         #     )
         #
         # return serialize_organization_mapping(org_mapping)
-        pass
+        return None
 
     def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
         try:

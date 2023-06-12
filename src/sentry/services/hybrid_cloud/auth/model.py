@@ -56,7 +56,7 @@ def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
     return base64.b64encode(input).decode("utf8")
 
 
-class RpcAuthentication(BaseAuthentication):  # type: ignore
+class RpcAuthentication(BaseAuthentication):
     www_authenticate_realm = "api"
     types: List[RpcAuthenticatorType]
 

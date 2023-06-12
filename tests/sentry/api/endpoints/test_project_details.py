@@ -18,8 +18,6 @@ from sentry.models import (
     EnvironmentProject,
     Integration,
     NotificationSetting,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
     OrganizationMember,
     OrganizationOption,
     Project,
@@ -30,6 +28,7 @@ from sentry.models import (
     Rule,
     ScheduledDeletion,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux, with_feature
@@ -1113,9 +1112,9 @@ class CopyProjectSettingsTest(APITestCase):
         project = self.create_project(teams=[team], fire_project_created=True)
 
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-                role="admin"
-            )
+            OrganizationMember.objects.filter(
+                user_id=user.id, organization=self.organization
+            ).update(role="admin")
 
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -1140,9 +1139,9 @@ class CopyProjectSettingsTest(APITestCase):
         project = self.create_project(teams=[team], fire_project_created=True)
 
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-                role="admin"
-            )
+            OrganizationMember.objects.filter(
+                user_id=user.id, organization=self.organization
+            ).update(role="admin")
 
         self.other_project.add_team(team)
 

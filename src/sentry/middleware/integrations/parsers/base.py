@@ -11,7 +11,7 @@ from rest_framework import status
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
@@ -35,7 +35,7 @@ class BaseRequestParser(abc.ABC):
         raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
 
     @property
-    def webhook_identifier(self) -> str:
+    def webhook_identifier(self) -> WebhookProviderIdentifier:
         raise NotImplementedError(
             "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
         )

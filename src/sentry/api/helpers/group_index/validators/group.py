@@ -10,7 +10,7 @@ from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 from . import InboxDetailsValidator, StatusDetailsValidator
 
 
-class GroupValidator(serializers.Serializer):  # type: ignore
+class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(

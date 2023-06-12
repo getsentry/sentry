@@ -15,6 +15,7 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
@@ -275,6 +276,13 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+        if self.escape_text:
+            text = escape_slack_text(text)
+            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
+            # If we figure out why this is required we should note it here because it's quite strange
+            if self.is_unfurl:
+                text = escape_slack_text(text)
+
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -313,7 +321,6 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 ExternalProviders.SLACK,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-            is_unfurl=self.is_unfurl,
         )
 
 

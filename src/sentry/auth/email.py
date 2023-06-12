@@ -84,10 +84,10 @@ class _EmailResolver:
             if not self.parent.organization:
                 return ()
             query = OrganizationMember.objects.filter(
-                organization=self.parent.organization, user__in=[ue.user for ue in candidates]
+                organization=self.parent.organization, user_id__in=[ue.user_id for ue in candidates]
             )
-            users_in_org = set(query.values_list("user", flat=True))
-            return (ue for ue in candidates if ue.user.id in users_in_org)
+            users_in_org = set(query.values_list("user_id", flat=True))
+            return (ue for ue in candidates if ue.user_id in users_in_org)
 
         def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
             metrics.incr("auth.email_resolution.by_org_membership", sample_rate=1.0)
