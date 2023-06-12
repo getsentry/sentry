@@ -7,6 +7,7 @@ from typing import Optional
 import click
 
 from sentry.bgtasks.api import managed_bgtasks
+from sentry.consumers import print_deprecation_warning
 from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
@@ -629,6 +630,7 @@ def metrics_parallel_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
+    print_deprecation_warning("billing-metrics-consumer", options["group_id"])
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
 
     consumer = get_metrics_billing_consumer(**options)
@@ -642,6 +644,7 @@ def metrics_billing_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
+    print_deprecation_warning("ingest-profiles", options["group_id"])
     from sentry.profiles.consumers import get_profiles_process_consumer
 
     consumer = get_profiles_process_consumer(**options)
@@ -717,6 +720,7 @@ def basic_consumer(consumer_name, topic, **options):
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
 def replays_recordings_consumer(**options):
+    print_deprecation_warning("ingest-replay-recordings", options["group_id"])
     from sentry.replays.consumers import get_replays_recordings_consumer
 
     consumer = get_replays_recordings_consumer(**options)
@@ -730,6 +734,7 @@ def replays_recordings_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def monitors_consumer(**options):
+    print_deprecation_warning("ingest-monitors", options["group_id"])
     from sentry.monitors.consumers import get_monitor_check_ins_consumer
 
     consumer = get_monitor_check_ins_consumer(**options)

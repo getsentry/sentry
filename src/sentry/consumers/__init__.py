@@ -30,3 +30,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
 
 for consumer in KAFKA_CONSUMERS:
     assert KAFKA_CONSUMERS[consumer]["topic"] in settings.KAFKA_TOPICS, consumer
+
+
+def print_deprecation_warning(name, group_id):
+    import click
+
+    click.echo(
+        f"WARNING: Deprecated command, use sentry run consumer {name} --consumer-group {group_id}"
+    )
