@@ -1,3 +1,4 @@
+from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import HttpResponse
@@ -8,12 +9,13 @@ from sentry.middleware.integrations.integration_control import IntegrationContro
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
 @control_silo_test(stable=True)
-class GitlabRequestParserTest(TestCase):
+class GitlabRequestParserTest(TestCase, BaseTestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
@@ -22,8 +24,8 @@ class GitlabRequestParserTest(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = self.create_integration(  # type: ignore
-            organization=self.organization,  # type: ignore
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="gitlab",
             name="Example Gitlab",
             external_id=EXTERNAL_ID,
@@ -78,18 +80,24 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
-        parser.get_response_from_control_silo = MagicMock()  # type: ignore
-        parser.get_response_from_outbox_creation = MagicMock()  # type: ignore
 
         # No regions identified
-        parser.get_regions_from_organizations = MagicMock(return_value=[])  # type: ignore
-        parser.get_response()
-        assert parser.get_response_from_control_silo.called
+        with mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo, mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[]
+        ):
+            parser.get_response()
+            assert get_response_from_control_silo.called
 
         # Regions found
-        parser.get_regions_from_organizations = MagicMock(return_value=[self.region])  # type: ignore
-        parser.get_response()
-        assert parser.get_response_from_outbox_creation.called
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[self.region]
+        ):
+            parser.get_response()
+            assert get_response_from_outbox_creation.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
