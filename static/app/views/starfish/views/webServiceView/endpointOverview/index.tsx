@@ -295,6 +295,7 @@ function SpanMetricsTable({
   filter: ModuleName;
   transaction: string | undefined;
 }) {
+  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
