@@ -528,26 +528,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "epm",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("transaction.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            Function("divide", [args["interval"], 60]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
@@ -596,26 +577,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "eps",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("transaction.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            args["interval"],
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
