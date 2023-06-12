@@ -17,10 +17,10 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
-    RuleSnooze,
     ScheduledDeletion,
     ServiceHook,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,

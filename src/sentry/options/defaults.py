@@ -1003,6 +1003,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "sentry-metrics.writes-limiter.apply-uca-limiting",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # per-organization limits on the number of timeseries that can be observed in
 # each window.
 #
@@ -1295,8 +1300,12 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Enables queue monitoring for backpressure management.
-register("backpressure.monitor_queues.enable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Enables reporting status of queues for backpressure management.
+register(
+    "backpressure.monitor_queues.enable_status", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+# Enables checking queue health in consumers for backpressure management.
+register("backpressure.monitor_queues.enable_check", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "backpressure.monitor_queues.unhealthy_threshold", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
 )

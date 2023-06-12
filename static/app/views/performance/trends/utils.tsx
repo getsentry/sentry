@@ -17,7 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
+import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
 
 import {
   NormalizedTrendsTransaction,
@@ -177,17 +177,17 @@ export function getCurrentTrendParameter(
 }
 
 export function performanceTypeToTrendParameterLabel(
-  performanceType: PROJECT_PERFORMANCE_TYPE
+  performanceType: ProjectPerformanceType
 ): TrendParameter {
   switch (performanceType) {
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND:
+    case ProjectPerformanceType.FRONTEND:
       return {
         label: TrendParameterLabel.LCP,
         column: TrendParameterColumn.LCP,
       };
-    case PROJECT_PERFORMANCE_TYPE.ANY:
-    case PROJECT_PERFORMANCE_TYPE.BACKEND:
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
+    case ProjectPerformanceType.ANY:
+    case ProjectPerformanceType.BACKEND:
+    case ProjectPerformanceType.FRONTEND_OTHER:
     default:
       return {
         label: TrendParameterLabel.DURATION,

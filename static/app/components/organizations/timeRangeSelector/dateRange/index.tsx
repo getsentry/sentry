@@ -168,6 +168,7 @@ class BaseDateRange extends Component<Props, State> {
 
   render() {
     const {className, maxPickableDays, utc, showTimePicker, onChangeUtc} = this.props;
+    const {hasStartErrors, hasEndErrors} = this.state;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
 
@@ -203,6 +204,8 @@ class BaseDateRange extends Component<Props, State> {
               end={endTime}
               onChangeStart={this.handleChangeStart}
               onChangeEnd={this.handleChangeEnd}
+              hasStartErrors={hasStartErrors}
+              hasEndErrors={hasEndErrors}
             />
             <UtcPicker>
               <Checkbox

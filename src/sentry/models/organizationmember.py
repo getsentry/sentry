@@ -80,10 +80,10 @@ class OrganizationMemberManager(BaseManager):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
-        return self.select_related("user").filter(
+        return self.filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
-            user__isnull=False,
+            user_id__isnull=False,
         )
 
     def delete_expired(self, threshold: int) -> None:
@@ -136,7 +136,7 @@ class OrganizationMemberManager(BaseManager):
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 InviteStatus.REQUESTED_TO_JOIN.value,
             ],
-            user__isnull=True,
+            user_id__isnull=True,
             id=id,
         )
 
@@ -148,20 +148,23 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
-        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
-            "id", flat=True
+        users_by_email = user_service.get_many(
+            filter=dict(
+                emails=[email],
+                is_active=True,
+            )
         )
 
         # may be empty
         team_members = set(
             OrganizationMemberTeam.objects.filter(
                 team_id__org_role=role,
-                organizationmember_id__in=org_members,
+                organizationmember__user_id__in=[u.id for u in users_by_email],
             ).values_list("organizationmember_id", flat=True)
         )
 
         org_members = set(
-            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
                 "id", flat=True
             )
         )
@@ -189,6 +192,8 @@ class OrganizationMember(Model):
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
+    # This email indicates the invite state of this membership -- it will be cleared when the user is set.
+    # it does not necessarily represent the final email of the user associated with the membership, see user_email.
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     flags = BitField(
@@ -223,10 +228,15 @@ class OrganizationMember(Model):
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
 
+    # These attributes are replicated via USER_UPDATE category outboxes for the user object associated with the user_id
+    # when it exists.
     user_is_active = models.BooleanField(
         null=False,
         default=True,
     )
+    # Note, this is the email of the user that may or may not be associated with the member, not the email used to
+    # invite the user.
+    user_email = models.CharField(max_length=75, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"

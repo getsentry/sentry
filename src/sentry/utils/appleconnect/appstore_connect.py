@@ -159,7 +159,7 @@ def _get_appstore_json(
             else:
                 raise RequestError(full_url)
         try:
-            return response.json()  # type: ignore
+            return response.json()
         except Exception as e:
             raise ValueError(
                 "Response body not JSON", full_url, response.status_code, response.text
@@ -168,7 +168,7 @@ def _get_appstore_json(
 
 def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
     """Gets the URL for the next page from an App Store Connect paged response."""
-    return safe.get_path(response_json, "links", "next")  # type: ignore
+    return safe.get_path(response_json, "links", "next")
 
 
 def _get_appstore_info_paged(
