@@ -218,7 +218,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     def _verify_dist_matches(self, release, event, artifact, filename):
         try:
             if event.dist is None and artifact.dist_id is None:
-                return
+                return True
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
             raise SourceMapException(
