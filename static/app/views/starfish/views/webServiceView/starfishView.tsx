@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
@@ -20,6 +21,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -44,6 +46,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
+  const router = useRouter();
 
   const pageFilters = usePageFilters();
   const {selection} = pageFilters;
@@ -105,7 +108,16 @@ export function StarfishView(props: BasePerformanceViewProps) {
           return (
             <Fragment>
               <FailureDetailPanel
-                onClose={() => setSelectedSpike(null)}
+                onClose={() => {
+                  setSelectedSpike(null);
+                  router.push({
+                    pathname: router.location.pathname,
+                    query: omit(router.location.query, [
+                      'startTimestamp',
+                      'endTimestamp',
+                    ]),
+                  });
+                }}
                 chartData={transformedData}
                 spike={selectedSpike}
               />
@@ -131,6 +143,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
                     setSelectedSpike({
                       startTimestamp: e.data.coord[0][0],
                       endTimestamp: e.data.coord[1][0],
+                    });
+                    router.push({
+                      pathname: router.location.pathname,
+                      query: {
+                        ...router.location.query,
+                        startTimestamp: e.data.coord[0][0],
+                        endTimestamp: e.data.coord[1][0],
+                      },
                     });
                   }
                 }}
