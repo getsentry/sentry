@@ -26,6 +26,7 @@ from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
@@ -286,7 +287,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
         repo_ids = Repository.objects.filter(
