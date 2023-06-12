@@ -82,6 +82,7 @@ class OutboxWebhookPayload:
 class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
     GITHUB = 1
+    JIRA = 2
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -328,7 +329,7 @@ class ControlOutbox(OutboxBase):
     def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=request.method,
-            path=request.path,
+            path=request.get_full_path(),
             uri=request.get_raw_uri(),
             headers={k: v for k, v in request.headers.items()},
             body=request.body.decode(encoding="utf-8"),

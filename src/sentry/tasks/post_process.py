@@ -725,7 +725,8 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.escalating import is_escalating, manage_issue_states
-    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus
+    from sentry.types.group import GroupSubStatus
 
     event = job["event"]
     group = event.group

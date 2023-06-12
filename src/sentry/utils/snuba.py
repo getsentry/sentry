@@ -817,7 +817,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
-        hashable = json.dumps(query, sort_keys=True)
+        hashable = json.dumps(query)
 
     # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
