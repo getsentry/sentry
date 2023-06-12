@@ -17,7 +17,7 @@ class GithubRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path = reverse("sentry-extensions-github-webhook")
+    path = reverse("sentry-integration-github-webhook")
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
