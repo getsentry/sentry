@@ -226,6 +226,11 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
+METRICS_FUNCTION_ALIASES = {
+    "tps_percent_change": "eps_percent_change",
+    "tpm_percent_change": "epm_percent_change",
+}
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
