@@ -6,6 +6,8 @@ type Props = {
   products?: PRODUCT[];
 };
 
+// It displays the content (children) if  "products" and "activeProductSelection" matches.
+// The "activeProductSelection" comes from a URL parameter
 export function DocumentationSection({
   children,
   activeProductSelection,
