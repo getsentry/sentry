@@ -146,7 +146,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
 
 
 def print_deprecation_warning(name, group_id):
-    assert name in KAFKA_CONSUMERS
+    assert name in KAFKA_CONSUMERS, name
 
     import click
 
