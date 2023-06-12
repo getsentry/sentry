@@ -8,7 +8,6 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -98,9 +97,7 @@ function SpanSummaryPage({params, location}: Props) {
                   )}
                 >
                   <TimeSpentCell
-                    formattedTimeSpent={formatPercentage(
-                      spanMetrics?.['time_spent_percentage()']
-                    )}
+                    timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
                     totalSpanTime={spanMetrics?.['sum(span.duration)']}
                   />
                 </Block>
