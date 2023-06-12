@@ -200,21 +200,25 @@ describe('Performance > Table', function () {
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
       expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
-      await userEvent.hover(cellActionContainers[8]);
-      const cellActions = await screen.findByTestId('cell-action');
-      expect(cellActions).toBeInTheDocument();
-      await userEvent.click(cellActions);
+      const cellActionTriggers = screen.getAllByRole('button', {name: 'Actions'});
+      expect(cellActionTriggers[8]).toBeInTheDocument();
+      await userEvent.click(cellActionTriggers[8]);
 
-      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
-      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
 
-      await userEvent.hover(cellActionContainers[0]); // Transaction name
-      const transactionCellActions = await screen.findAllByTestId('cell-action');
-      expect(transactionCellActions[0]).toBeInTheDocument();
-      await userEvent.click(transactionCellActions[0]);
+      await userEvent.keyboard('{Escape}'); // Close actions menu
+
+      const transactionCellTrigger = cellActionTriggers[0]; // Transaction name
+      expect(transactionCellTrigger).toBeInTheDocument();
+      await userEvent.click(transactionCellTrigger);
 
       expect(browserHistory.push).toHaveBeenCalledTimes(0);
-      await userEvent.click(screen.getByTestId('add-to-filter'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
