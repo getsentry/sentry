@@ -10,7 +10,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
-from sentry.monitoring.queues import is_queue_healthy, monitor_queues
+from sentry.monitoring.queues import is_queue_healthy
 from sentry.profiles.task import process_profile_task
 
 
@@ -21,10 +21,6 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self) -> None:
-        super().__init__()
-        monitor_queues()
-
     def create_with_partitions(
         self,
         commit: Commit,
