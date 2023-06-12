@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
@@ -73,7 +73,7 @@ async function clickEl(el) {
 }
 
 function _initializeData(
-  settings: initializeDataSettings,
+  settings: InitializeDataSettings,
   options?: {selectedProjectId?: string}
 ) {
   const newSettings = {...settings};

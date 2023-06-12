@@ -55,7 +55,32 @@ _DEFAULT_DAEMONS = {
         "--synchronize-commit-group=generic_events_group",
         "--no-strict-offset-reset",
     ],
-    "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    # NOTE: you can add `"--v2-consumer"` to run a local dev server with the v2 consumer,
+    # and `"--processes=2"` to make it run in multi-process mode.
+    "ingest-events": [
+        "sentry",
+        "run",
+        "ingest-consumer",
+        "--consumer-type=events",
+        # "--v2-consumer",
+        # "--processes=2",
+    ],
+    "ingest-attachments": [
+        "sentry",
+        "run",
+        "ingest-consumer",
+        "--consumer-type=attachments",
+        # "--v2-consumer",
+        # "--processes=2",
+    ],
+    "ingest-transactions": [
+        "sentry",
+        "run",
+        "ingest-consumer",
+        "--consumer-type=transactions",
+        # "--v2-consumer",
+        # "--processes=2",
+    ],
     "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
     "server": ["sentry", "run", "web"],
     "subscription-consumer": [
@@ -137,8 +162,8 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
-@log_options()  # type: ignore[misc]  # needs this decorator to be typed
-@configuration  # type: ignore[misc]  # needs this decorator to be typed
+@log_options()  # needs this decorator to be typed
+@configuration  # needs this decorator to be typed
 def devserver(
     reload: bool,
     watchers: bool,
@@ -200,6 +225,8 @@ and run `sentry devservices up kafka zookeeper`.
     # Make sure we're trying to use a port that we can actually bind to
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
     has_https = shutil.which("https") is not None
+
+    needs_kafka = False
 
     control_silo_port = port + 10
 
@@ -300,6 +327,7 @@ and run `sentry devservices up kafka zookeeper`.
             daemons += [_get_daemon("post-process-forwarder")]
             daemons += [_get_daemon("post-process-forwarder-transactions")]
             daemons += [_get_daemon("post-process-forwarder-issue-platform")]
+            needs_kafka = True
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -326,14 +354,22 @@ and run `sentry devservices up kafka zookeeper`.
                 _get_daemon("metrics-perf"),
                 _get_daemon("metrics-billing"),
             ]
+            needs_kafka = True
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
+        needs_kafka = True
+        daemons += [
+            _get_daemon("ingest-events"),
+            _get_daemon("ingest-attachments"),
+            _get_daemon("ingest-transactions"),
+            _get_daemon("monitors"),
+        ]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
 
     if occurrence_ingest:
+        needs_kafka = True
         daemons += [_get_daemon("occurrences")]
 
     if needs_https and has_https:
@@ -355,7 +391,7 @@ and run `sentry devservices up kafka zookeeper`.
         ]
 
     # Create all topics if the Kafka eventstream is selected
-    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream" or needs_kafka:
         from sentry.utils.batching_kafka_consumer import create_topics
 
         for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():

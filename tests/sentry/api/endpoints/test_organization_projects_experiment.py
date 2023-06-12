@@ -103,7 +103,9 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert team.organization == self.organization
         assert team.name == team.slug == self.t1
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True, role="admin"
         ).exists()
@@ -124,7 +126,9 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert team.organization == self.organization
         assert team.name == team.slug == self.t1
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True, role="admin"
         ).exists()
@@ -151,7 +155,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert team.organization == self.organization
         assert team.name == team.slug == t1
 
-        member = OrganizationMember.objects.get(user=user, organization=self.organization)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True, role="admin"
         ).exists()

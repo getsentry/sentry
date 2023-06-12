@@ -22,10 +22,10 @@ from sentry.utils.performance_issues.base import (
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     NPlusOneDBSpanDetector,
-    PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,

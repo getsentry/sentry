@@ -20,6 +20,7 @@ export const OTHER_SPAN_GROUP_MODULE = 'Other';
 
 type Props = {
   transaction?: string;
+  transactionMethod?: string;
 };
 
 type Group = {
@@ -36,8 +37,7 @@ export type DataRow = {
   group: Group;
 };
 
-export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Props) {
-  const transaction = maybeTransaction ?? '';
+export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Props) {
   const pageFilter = usePageFilters();
   const organization = useOrganization();
   const location = useLocation();
@@ -48,7 +48,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
     eventView: getEventView(
       selection,
       // TODO: Fix has:span.category in the backend
-      `has:span.category ${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server has:span.category ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
       ['span.category']
     ),
     orgSlug: organization.slug,
@@ -59,7 +61,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   const {data: cumulativeTime} = useDiscoverQuery({
     eventView: getEventView(
       selection,
-      `${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
+        transactionMethod ? `http.method:${transactionMethod}` : ''
+      }`,
       []
     ),
     orgSlug: organization.slug,
@@ -69,7 +73,9 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   const {isLoading: isTopDataLoading, data: topData} = useWrappedDiscoverTimeseriesQuery({
     eventView: getEventView(
       selection,
-      `has:span.category  ${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server has:span.category ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
       ['span.category'],
       true
     ),
@@ -77,7 +83,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
   });
 
   if (!segments?.data || !cumulativeTime?.data || topData.length === 0) {
-    return <Placeholder height="200px" />;
+    return <Placeholder height="285px" />;
   }
 
   const totalValues = cumulativeTime.data[0]['sum(span.duration)']
@@ -148,6 +154,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
         topSeriesData={data}
         colorPalette={colorPalette}
         initialShowSeries={initialShowSeries}
+        transaction={transaction}
       />
     </StyledPanel>
   );

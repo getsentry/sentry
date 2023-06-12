@@ -23,15 +23,15 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    GroupSubStatus,
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
-class ValidateSearchFilterPermissionsTest(TestCase):  # type: ignore[misc]
+class ValidateSearchFilterPermissionsTest(TestCase):
     def run_test(self, query: str) -> None:
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
@@ -84,7 +84,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):  # type: ignore[misc]
         self.assert_analytics_recorded(mock_record)
 
 
-class UpdateGroupsTest(TestCase):  # type: ignore[misc]
+class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_unresolving_resolved_group(self, send_robust: Mock, send_unresolved: Mock) -> None:
@@ -237,7 +237,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")  # type: ignore[misc]
+    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_with_substatus_archived_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()
@@ -261,7 +261,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert not GroupInbox.objects.filter(group=group).exists()
 
 
-class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
+class TestHandleIsSubscribed(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -286,7 +286,7 @@ class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
         assert resp["reason"] == "unknown"
 
 
-class TestHandleIsBookmarked(TestCase):  # type: ignore[misc]
+class TestHandleIsBookmarked(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -308,7 +308,7 @@ class TestHandleIsBookmarked(TestCase):  # type: ignore[misc]
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleHasSeen(TestCase):  # type: ignore[misc]
+class TestHandleHasSeen(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -334,7 +334,7 @@ class TestHandleHasSeen(TestCase):  # type: ignore[misc]
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleIsPublic(TestCase):  # type: ignore[misc]
+class TestHandleIsPublic(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]

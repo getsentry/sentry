@@ -173,7 +173,7 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
-class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
+class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
     def get_projects(
