@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
+from sentry.dynamic_sampling.tasks.boost_low_volume_projects.utils import (
+    fetch_projects_with_total_root_transaction_count_and_rates,
+)
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
@@ -31,7 +33,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            results = fetch_projects_with_total_volumes(org_ids=[org1.id])
+            results = fetch_projects_with_total_root_transaction_count_and_rates(org_ids=[org1.id])
         assert results[org1.id] == [(p1.id, 1.0, 0, 0)]
 
     def test_simple_one_org_one_project_sample_rate_zero(self):
@@ -47,7 +49,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 0.0}):
-            results = fetch_projects_with_total_volumes(org_ids=[org1.id])
+            results = fetch_projects_with_total_root_transaction_count_and_rates(org_ids=[org1.id])
         # No results
         assert results == {}
 
@@ -64,6 +66,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 0}):
-            results = fetch_projects_with_total_volumes(org_ids=[org1.id])
+            results = fetch_projects_with_total_root_transaction_count_and_rates(org_ids=[org1.id])
             # No data because rate is too small
             assert results[org1.id] == []

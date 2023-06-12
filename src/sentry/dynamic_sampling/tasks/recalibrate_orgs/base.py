@@ -2,8 +2,11 @@ import logging
 from datetime import timedelta
 from typing import Dict
 
-from sentry.dynamic_sampling.tasks.common import get_active_orgs
-from sentry.dynamic_sampling.tasks.recalibrate_orgs.utils import fetch_org_volumes, rebalance_org
+from sentry.dynamic_sampling.tasks.recalibrate_orgs.utils import (
+    fetch_org_volumes,
+    get_active_orgs,
+    rebalance_org,
+)
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.tasks.base import instrumented_task
 

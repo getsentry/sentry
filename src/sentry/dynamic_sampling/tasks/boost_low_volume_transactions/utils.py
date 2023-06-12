@@ -22,6 +22,8 @@ from sentry import options
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
+    MAX_ORGS_PER_QUERY,
+    MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
 )
 from sentry.sentry_metrics import indexer
@@ -75,7 +77,9 @@ def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) ->
     )
 
 
-def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
+def get_orgs_with_project_counts(
+    max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: int = MAX_PROJECTS_PER_QUERY
+) -> Iterator[List[int]]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements

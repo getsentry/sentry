@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.prioritise_transactions import (
+from sentry.dynamic_sampling.tasks.boost_low_volume_transactions.utils import (
     ProjectIdentity,
     ProjectTransactionsTotals,
     fetch_project_transaction_totals,

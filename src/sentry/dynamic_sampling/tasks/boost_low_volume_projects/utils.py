@@ -38,13 +38,17 @@ from sentry.dynamic_sampling.rules.utils import (
     ProjectId,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.snuba_utils import MAX_TRANSACTIONS_PER_PROJECT
 from sentry.dynamic_sampling.tasks.common import (
     are_equal_with_epsilon,
     compute_guarded_sliding_window_sample_rate,
     sample_rate_to_float,
 )
-from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL, CHUNK_SIZE, MAX_SECONDS
+from sentry.dynamic_sampling.tasks.constants import (
+    CACHE_KEY_TTL,
+    CHUNK_SIZE,
+    MAX_SECONDS,
+    MAX_TRANSACTIONS_PER_PROJECT,
+)
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.sliding_window_org.utils import (
     fetch_orgs_with_total_root_transactions_count,

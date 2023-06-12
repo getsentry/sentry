@@ -3,8 +3,7 @@ from typing import Tuple
 
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.recalibrate_transactions import fetch_org_volumes
-from sentry.dynamic_sampling.snuba_utils import get_active_orgs
+from sentry.dynamic_sampling.tasks.recalibrate_orgs.utils import fetch_org_volumes, get_active_orgs
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
