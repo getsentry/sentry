@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -500,18 +499,11 @@ def query_subscription_consumer(**options):
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
-    "consumer_types",
+    "consumer_type",
     "--consumer-type",
-    default=[],
-    multiple=True,
-    help="Specify which type of consumer to create, i.e. from which topic to consume messages. By default all ingest-related topics are consumed ",
+    required=True,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages",
     type=click.Choice(ConsumerType.all()),
-)
-@click.option(
-    "--all-consumer-types",
-    default=False,
-    is_flag=True,
-    help="Listen to all consumer types at once.",
 )
 @kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @strict_offset_reset_option()
@@ -535,74 +527,28 @@ def query_subscription_consumer(**options):
 )
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
+def ingest_consumer(consumer_type, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    if all_consumer_types:
-        if consumer_types:
-            raise click.ClickException(
-                "Cannot specify --all-consumer types and --consumer-type at the same time"
-            )
-        else:
-            consumer_types = set(ConsumerType.all())
+    from arroyo import configure_metrics
 
-    if not all_consumer_types and not consumer_types:
-        raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
-
-    if v2_consumer:
-        from sentry.ingest.consumer_v2.factory import get_ingest_consumer
-
-        if len(consumer_types) != 1:
-            raise click.ClickException(
-                "Only a single `--consumer-type` allowed when using the `v2` ingest consumer"
-            )
-
-        # Our batcher expects the time in seconds
-        options["max_batch_time"] = int(options["max_batch_time"] / 1000)
-
-        type_ = consumer_types[0]
-        metrics_name = f"ingest_{type_}"
-        from arroyo import configure_metrics
-
-        from sentry.utils import metrics
-        from sentry.utils.arroyo import MetricsWrapper
-
-        configure_metrics(MetricsWrapper(metrics.backend, name=metrics_name))
-
-        # Ignore these arguments which are only relevant for the old ingest consumer
-        options.pop("concurrency", None)
-
-        consumer = get_ingest_consumer(type_=type_, **options)
-        run_processor_with_signals(consumer)
-
-        return
-
-    # else:
-
-    from sentry.ingest.ingest_consumer import get_ingest_consumer
+    from sentry.ingest.consumer_v2.factory import get_ingest_consumer
     from sentry.utils import metrics
+    from sentry.utils.arroyo import MetricsWrapper
 
-    # Ignore these arguments which are only relevant for new ingest consumer
-    options.pop("strict_offset_reset", None)
-    options.pop("processes", None)
-    options.pop("input_block_size", None)
-    options.pop("output_block_size", None)
+    # TODO: Remove options from the old consumer
+    options.pop("concurrency", None)
+    options.pop("v2_consumer", None)
 
-    concurrency = options.pop("concurrency", None)
-    if concurrency is not None:
-        executor = ThreadPoolExecutor(concurrency)
-    else:
-        executor = None
+    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
 
-    with metrics.global_tags(
-        ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
-    ):
-        consumer = get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options)
-        run_processor_with_signals(consumer)
+    options["max_batch_time"] = options["max_batch_time"] / 1000
+    consumer = get_ingest_consumer(consumer_type, **options)
+    run_processor_with_signals(consumer)
 
 
 @run.command("occurrences-ingest-consumer")
