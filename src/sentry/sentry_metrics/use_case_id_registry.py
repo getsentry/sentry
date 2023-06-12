@@ -30,6 +30,7 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
 USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.performance.per-org",
     UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+    UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
 }
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
