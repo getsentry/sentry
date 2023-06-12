@@ -38,7 +38,7 @@ export default function IssueTable({organization, location, spike, transactions}
     {
       key: 'title',
       name: 'Title',
-      width: 280,
+      width: 350,
     },
     {
       key: 'count_unique(user)',
@@ -56,7 +56,10 @@ export default function IssueTable({organization, location, spike, transactions}
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>
   ): React.ReactNode {
-    const align = fieldAlignment(column.name, column.type, tableMeta);
+    let align = fieldAlignment(column.name, column.type, tableMeta);
+    if (column.key === 'count()') {
+      align = 'right';
+    }
     return <StyledNonLink align={align}>{column.name}</StyledNonLink>;
   }
 

@@ -1043,6 +1043,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
