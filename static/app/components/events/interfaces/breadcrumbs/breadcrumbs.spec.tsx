@@ -4,7 +4,6 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import {Project} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   useHasOrganizationSentAnyReplayEvents,
@@ -59,6 +58,8 @@ describe('Breadcrumbs', () => {
     >;
 
   beforeEach(() => {
+    const project = TestStubs.Project({platform: 'javascript'});
+
     MockUseProjects.mockReturnValue({
       fetchError: null,
       fetching: false,
@@ -66,7 +67,7 @@ describe('Breadcrumbs', () => {
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
       placeholders: [],
-      projects: [TestStubs.Project({platform: 'javascript'}) as Project],
+      projects: [project],
     });
     MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
       hasOrgSentReplays: false,
@@ -80,7 +81,7 @@ describe('Breadcrumbs', () => {
       organization: TestStubs.Organization(),
       projectSlug: 'project-slug',
       isShare: false,
-      event: TestStubs.Event({entries: []}),
+      event: TestStubs.Event({entries: [], projectID: project.id}),
       data: {
         values: [
           {
@@ -128,6 +129,21 @@ describe('Breadcrumbs', () => {
         ],
       },
     };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            title: '/settings/',
+            'project.name': 'javascript',
+            id: 'abcdabcdabcdabcdabcdabcdabcdabcd',
+          },
+        ],
+        meta: {},
+      },
+    });
   });
 
   describe('filterCrumbs', function () {
@@ -217,6 +233,42 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
+    });
+
+    it('should render Sentry Transactions crumb', async function () {
+      props.data.values = [
+        {
+          message: '12345678123456781234567812345678',
+          category: 'sentry.transaction',
+          level: BreadcrumbLevelType.INFO,
+          type: BreadcrumbType.TRANSACTION,
+        },
+        {
+          message: 'abcdabcdabcdabcdabcdabcdabcdabcd',
+          category: 'sentry.transaction',
+          level: BreadcrumbLevelType.INFO,
+          type: BreadcrumbType.TRANSACTION,
+        },
+      ];
+
+      render(<Breadcrumbs {...props} />);
+
+      // Transaction not in response should show as non-clickable id
+      expect(
+        await screen.findByText('12345678123456781234567812345678')
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('12345678123456781234567812345678')).not.toHaveAttribute(
+        'href'
+      );
+
+      // Transaction in response should show as clickable title
+      expect(await screen.findByRole('link', {name: '/settings/'})).toBeInTheDocument();
+
+      expect(screen.getByText('/settings/')).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
+      );
     });
   });
 

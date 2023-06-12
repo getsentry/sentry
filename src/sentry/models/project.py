@@ -55,7 +55,9 @@ class ProjectManager(BaseManager):
             projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
                 lambda u: u.id, users
             ),
-        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
+        ).values_list(
+            "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
+        )
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
@@ -64,8 +66,6 @@ class ProjectManager(BaseManager):
 
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
-        from sentry.models import ObjectStatus
-
         return self.filter(
             status=ObjectStatus.ACTIVE,
             teams__organizationmember__user_id__in=user_ids,
@@ -251,7 +251,8 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 organizationmemberteam__is_active=True,
                 organizationmemberteam__team__in=self.teams.all(),
             ).values("id"),
-            user__is_active=True,
+            user_is_active=True,
+            user_id__isnull=False,
         ).distinct()
 
     def get_members_as_rpc_users(self) -> Iterable[RpcUser]:

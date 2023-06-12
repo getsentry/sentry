@@ -37,7 +37,7 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.1
     queue="transactions.name_clusterer",
     default_retry_delay=5,  # copied from release monitor
     max_retries=5,  # copied from release monitor
-)  # type: ignore
+)
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="txcluster_spawn"):
@@ -57,7 +57,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
     max_retries=5,  # copied from release monitor
     soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
-)  # type: ignore
+)
 def cluster_projects(projects: Sequence[Project]) -> None:
     num_clustered = 0
     try:
@@ -100,7 +100,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
     queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
     default_retry_delay=5,  # copied from transaction name clusterer
     max_retries=5,  # copied from transaction name clusterer
-)  # type: ignore
+)
 def spawn_clusterers_span_descs(**kwargs: Any) -> None:
     """Look for existing span description sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="span_descs-cluster_spawn"):
@@ -123,7 +123,7 @@ def spawn_clusterers_span_descs(**kwargs: Any) -> None:
     max_retries=5,  # copied from transaction name clusterer
     soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
-)  # type: ignore
+)
 def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
     num_clustered = 0
     try:
@@ -151,7 +151,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                 num_rules_added = rules.update_rules(ClustererNamespace.SPANS, project, new_rules)
 
                 # Track a global counter of new rules:
-                metrics.incr("span_descs.new_rules_discovered", num_rules_added)
+                metrics.incr("span_descs.new_rules_discovered", num_rules_added, sample_rate=1.0)
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.

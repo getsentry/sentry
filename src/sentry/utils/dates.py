@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
+from typing import Any, Mapping, Optional, Tuple, Union, overload
 
 import pytz
 from dateutil.parser import parse
@@ -19,7 +19,7 @@ def ensure_aware(value: datetime) -> datetime:
     """
     if is_aware(value):
         return value
-    return cast(datetime, make_aware(value))
+    return make_aware(value)
 
 
 def to_timestamp(value: datetime) -> float:

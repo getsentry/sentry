@@ -1,17 +1,16 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AccountSubscriptions from 'sentry/views/settings/account/accountSubscriptions';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
 describe('AccountSubscriptions', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders empty', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [],
     });
@@ -23,24 +22,21 @@ describe('AccountSubscriptions', function () {
   });
 
   it('renders list and can toggle', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.Subscriptions(),
     });
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
-
-    const wrapper = render(<AccountSubscriptions />, {
-      context: TestStubs.routerContext(),
-    });
-
-    expect(wrapper.container).toSnapshot();
+    render(<AccountSubscriptions />);
 
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByTestId('switch')[0]);
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Product & Feature Updates'})
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -49,6 +45,36 @@ describe('AccountSubscriptions', function () {
         data: {
           listId: 2,
           subscribed: false,
+        },
+      })
+    );
+  });
+
+  it('can handle multiple email addresses', async function () {
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        ...TestStubs.Subscriptions().map(x => ({...x, email: 'a@1.com'})),
+        ...TestStubs.Subscriptions().map(x => ({...x, email: 'b@2.com'})),
+      ],
+    });
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+    render(<AccountSubscriptions />);
+
+    await userEvent.click(
+      screen.getAllByRole('checkbox', {name: 'Sentry Newsletter'})[0]
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          listId: 1,
+          subscribed: true,
         },
       })
     );

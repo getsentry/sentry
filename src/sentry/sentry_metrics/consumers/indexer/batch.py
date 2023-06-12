@@ -294,13 +294,6 @@ class IndexerBatch:
                 message.value.partition.index, message.value.offset
             )
             if partition_offset in self.skipped_offsets:
-                logger.info(
-                    "process_message.offset_skipped",
-                    extra={
-                        "offset": message.value.offset,
-                        "partition": message.value.partition.index,
-                    },
-                )
                 continue
             old_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
 

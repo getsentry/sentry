@@ -17,7 +17,7 @@ from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.models import Organization, Project
 
-ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.UNIFORM_RULE}
+ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE}
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
@@ -48,6 +48,12 @@ def is_sliding_window_enabled(organization: Organization) -> bool:
     return not features.has(
         "organizations:ds-sliding-window-org", organization, actor=None
     ) and features.has("organizations:ds-sliding-window", organization, actor=None)
+
+
+def is_sliding_window_org_enabled(organization: Organization) -> bool:
+    return features.has(
+        "organizations:ds-sliding-window-org", organization, actor=None
+    ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
 def can_boost_new_projects(organization: Organization) -> bool:
@@ -86,7 +92,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
         # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
         # any issues.
         sample_rate = get_prioritise_by_project_sample_rate(
-            project=project, default_sample_rate=sample_rate
+            org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
         )
 
     return float(sample_rate)

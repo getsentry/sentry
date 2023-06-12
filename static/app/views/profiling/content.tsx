@@ -43,6 +43,7 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
+import {SlowestFunctionsWidget} from './landing/slowestFunctionsWidget';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
@@ -109,7 +110,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     trackAnalytics('profiling_views.onboarding', {
       organization,
     });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
@@ -266,8 +267,19 @@ function ProfilingContent({location}: ProfilingContentProps) {
               ) : (
                 <Fragment>
                   <PanelsGrid>
-                    <ProfilingSlowestTransactionsPanel />
-                    <ProfileCharts query={query} selection={selection} hideCount />
+                    {organization.features.includes(
+                      'profiling-global-suspect-functions'
+                    ) ? (
+                      <SlowestFunctionsWidget />
+                    ) : (
+                      <ProfilingSlowestTransactionsPanel />
+                    )}
+                    <ProfileCharts
+                      referrer="api.profiling.landing-chart"
+                      query={query}
+                      selection={selection}
+                      hideCount
+                    />
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}

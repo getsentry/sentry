@@ -13,9 +13,9 @@ import AsyncView from 'sentry/views/asyncView';
 import Layout from 'sentry/views/auth/layout';
 
 export enum DownloadStatus {
-  Early = 'EARLY',
-  Valid = 'VALID',
-  Expired = 'EXPIRED',
+  EARLY = 'EARLY',
+  VALID = 'VALID',
+  EXPIRED = 'EXPIRED',
 }
 
 type RouteParams = {
@@ -71,9 +71,9 @@ class DataDownload extends AsyncView<Props, State> {
   getActionLink(queryType): string {
     const {orgId} = this.props.params;
     switch (queryType) {
-      case ExportQueryType.IssuesByTag:
+      case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgId}/issues/`;
-      case ExportQueryType.Discover:
+      case ExportQueryType.DISCOVER:
         return `/organizations/${orgId}/discover/queries/`;
       default:
         return '/';
@@ -161,7 +161,7 @@ class DataDownload extends AsyncView<Props, State> {
     const {
       download: {
         query = {
-          type: ExportQueryType.IssuesByTag,
+          type: ExportQueryType.ISSUES_BY_TAG,
           info: {},
         },
       },
@@ -169,7 +169,7 @@ class DataDownload extends AsyncView<Props, State> {
 
     // default to IssuesByTag because we don't want to
     // display this unless we're sure its a discover query
-    const {type = ExportQueryType.IssuesByTag} = query;
+    const {type = ExportQueryType.ISSUES_BY_TAG} = query;
 
     return type === 'Discover' ? (
       <Fragment>
@@ -256,9 +256,9 @@ class DataDownload extends AsyncView<Props, State> {
   renderContent(): React.ReactNode {
     const {download} = this.state;
     switch (download.status) {
-      case DownloadStatus.Early:
+      case DownloadStatus.EARLY:
         return this.renderEarly();
-      case DownloadStatus.Expired:
+      case DownloadStatus.EXPIRED:
         return this.renderExpired();
       default:
         return this.renderValid();

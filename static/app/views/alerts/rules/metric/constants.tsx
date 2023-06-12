@@ -51,13 +51,13 @@ export type OptionConfig = {
  * Allowed error aggregations for alerts
  */
 export const errorFieldConfig: OptionConfig = {
-  aggregations: [AggregationKey.Count, AggregationKey.CountUnique],
+  aggregations: [AggregationKey.COUNT, AggregationKey.COUNT_UNIQUE],
   fields: ['user'],
 };
 
 const commonAggregations = [
-  AggregationKey.Avg,
-  AggregationKey.Percentile,
+  AggregationKey.AVG,
+  AggregationKey.PERCENTILE,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P95,
@@ -67,9 +67,9 @@ const commonAggregations = [
 
 const allAggregations = [
   ...commonAggregations,
-  AggregationKey.FailureRate,
-  AggregationKey.Apdex,
-  AggregationKey.Count,
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.APDEX,
+  AggregationKey.COUNT,
 ];
 
 export const DuplicateMetricFields: string[] = [

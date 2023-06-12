@@ -364,9 +364,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
                 "log_level": 5,
-                "frequency": 5,
                 "has_stacktrace": 5,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
             }
             results = self.make_query(
                 sort_by="betterPriority",
@@ -435,7 +438,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
     def test_substatus(self):
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             results = self.make_query(search_filter_query="is:ongoing")
             assert set(results) == {self.group1}
 
@@ -2065,7 +2068,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert len(results) == 0
 
 
-class EventsBetterPriorityTest(SharedSnubaTest):
+class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -2103,10 +2106,63 @@ class EventsBetterPriorityTest(SharedSnubaTest):
 
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
-                "log_level": 5,
-                "frequency": 5,
-                "has_stacktrace": 5,
+                "log_level": 0,
+                "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
+            }
+            results = self.make_query(
+                sort_by="betterPriority",
+                projects=[new_project],
+                aggregate_kwargs=weights,
+            )
+        recent_group = Group.objects.get(id=recent_event.group.id)
+        old_group = Group.objects.get(id=old_event.group.id)
+        assert list(results) == [recent_group, old_group]
+
+    def test_better_priority_sort_v2(self):
+        """Test that the v2 formula works."""
+        new_project = self.create_project(organization=self.project.organization)
+        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-recent-group"],
+                "event_id": "c" * 32,
+                "message": "group1",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "event3@example.com"},
+                "timestamp": iso_format(base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-old-group"],
+                "event_id": "a" * 32,
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "environment": "production",
+                "tags": {"server": "example.com", "sentry:user": "old_event@example.com"},
+                "timestamp": iso_format(base_datetime - timedelta(days=20)),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=new_project.id,
+        )
+        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+
+        with self.feature("organizations:issue-list-better-priority-sort"):
+            weights: PrioritySortWeights = {
+                "log_level": 0,
+                "has_stacktrace": 0,
+                "relative_volume": 1,
+                "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": True,
+                "norm": False,
             }
             results = self.make_query(
                 sort_by="betterPriority",
@@ -2150,9 +2206,12 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         agg_kwargs = {
             "better_priority": {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
             }
         }
         query_executor = self.backend._get_query_executor()
@@ -2172,15 +2231,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         # initially group 2's score is higher since it has a more recent event
         assert group2_score_before > group1_score_before
 
-        # agg_kwargs["better_priority"].update({"log_level": 5})
-        agg_kwargs_after = {
-            "better_priority": {
-                "log_level": 10,
-                "frequency": 0,
-                "has_stacktrace": 0,
-                "event_halflife_hours": 4,
-            }
-        }
+        agg_kwargs["better_priority"].update({"log_level": 5})
 
         results2 = query_executor.snuba_search(
             start=None,
@@ -2191,7 +2242,7 @@ class EventsBetterPriorityTest(SharedSnubaTest):
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
-            aggregate_kwargs=agg_kwargs_after,
+            aggregate_kwargs=agg_kwargs,
         )[0]
         group1_score_after = results2[0][1]
         group2_score_after = results2[1][1]
@@ -2204,9 +2255,12 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         agg_kwargs = {
             "better_priority": {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
             }
         }
         query_executor = self.backend._get_query_executor()
@@ -2310,9 +2364,12 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         agg_kwargs = {
             "better_priority": {
                 "log_level": 0,
-                "frequency": 0,
                 "has_stacktrace": 0,
+                "relative_volume": 1,
                 "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
             }
         }
         query_executor = self.backend._get_query_executor()
@@ -2347,6 +2404,73 @@ class EventsBetterPriorityTest(SharedSnubaTest):
         group1_score_after = results[0][1]
         group2_score_after = results[1][1]
         assert group1_score_after < group2_score_after
+
+    def test_better_priority_mixed_group_types(self):
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "a" * 32,
+                "timestamp": iso_format(base_datetime - timedelta(hours=1)),
+                "message": "foo",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+                "environment": "staging",
+                "level": "fatal",
+            },
+            project_id=self.project.id,
+        )
+        error_group = error_event.group
+
+        profile_event_id = uuid.uuid4().hex
+        _, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(event_id=profile_event_id),
+            {
+                "event_id": profile_event_id,
+                "project_id": self.project.id,
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        profile_group_1 = group_info.group
+
+        agg_kwargs = {
+            "better_priority": {
+                "log_level": 0,
+                "has_stacktrace": 0,
+                "relative_volume": 1,
+                "event_halflife_hours": 4,
+                "issue_halflife_hours": 24 * 7,
+                "v2": False,
+                "norm": False,
+            }
+        }
+        query_executor = self.backend._get_query_executor()
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                ProfileFileIOGroupType.build_visible_feature_name(),
+                "organizations:issue-list-better-priority-sort",
+            ]
+        ):
+            results = query_executor.snuba_search(
+                start=None,
+                end=None,
+                project_ids=[self.project.id],
+                environment_ids=[],
+                sort_field="better_priority",
+                organization=self.organization,
+                group_ids=[profile_group_1.id, error_group.id],
+                limit=150,
+                aggregate_kwargs=agg_kwargs,
+            )[0]
+        error_group_score = results[0][1]
+        profile_group_score = results[1][1]
+        assert error_group_score > 0
+        assert profile_group_score > 0
 
 
 class EventsTransactionsSnubaSearchTest(SharedSnubaTest):

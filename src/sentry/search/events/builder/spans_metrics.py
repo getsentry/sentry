@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set
 
 from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Op, Or
@@ -5,6 +6,8 @@ from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Op, Or
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.discover import create_result_key
+from sentry.utils.snuba import bulk_snql_query
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
@@ -111,3 +114,26 @@ class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
             final_condition = None
 
         return final_condition
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        queries = self.get_snql_query()
+        if queries:
+            results = bulk_snql_query(queries, referrer, use_cache)
+        else:
+            results = []
+
+        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        meta_dict = {}
+        for current_result in results:
+            # there's multiple groupbys so we need the unique keys
+            for row in current_result["data"]:
+                result_key = create_result_key(row, self.translated_groupby, {})
+                time_alias = row[self.time_alias]
+                time_map[f"{time_alias}-{result_key}"].update(row)
+            for meta in current_result["meta"]:
+                meta_dict[meta["name"]] = meta["type"]
+
+        return {
+            "data": list(time_map.values()),
+            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+        }
