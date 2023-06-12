@@ -18,9 +18,7 @@ import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -47,26 +45,6 @@ export function StarfishView(props: BasePerformanceViewProps) {
   const theme = useTheme();
   const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
   const router = useRouter();
-
-  const pageFilters = usePageFilters();
-  const {selection} = pageFilters;
-  const {projects, environments} = selection;
-
-  useApiQuery<null>(
-    [
-      `/organizations/${organization.slug}/events-starfish/`,
-      {
-        query: {
-          environment: environments,
-          project: projects.map(proj => String(proj)),
-          statsPeriod: '7d',
-        },
-      },
-    ],
-    {
-      staleTime: 10,
-    }
-  );
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
