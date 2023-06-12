@@ -29,11 +29,12 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import Group, Organization
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.utils.numbers import base32_encode, format_grouped_length
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import Dataset, bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
@@ -156,6 +157,7 @@ class TraceEvent:
         parent: Optional[str],
         generation: Optional[int],
         light: bool = False,
+        params: ParamsType = None,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []
@@ -169,7 +171,7 @@ class TraceEvent:
         # Added as required because getting the nodestore_event is expensive
         self._nodestore_event: Optional[Event] = None
         self.fetched_nodestore: bool = False
-        self.load_performance_issues(light)
+        self.load_performance_issues(light, params)
 
     @property
     def nodestore_event(self) -> Optional[Event]:
@@ -181,7 +183,7 @@ class TraceEvent:
                 )
         return self._nodestore_event
 
-    def load_performance_issues(self, light: bool) -> None:
+    def load_performance_issues(self, light: bool, params: ParamsType) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -196,22 +198,30 @@ class TraceEvent:
                 span = [self.event["trace.span"]]
             else:
                 if self.nodestore_event is not None:
-                    hashes = self.nodestore_event.get_hashes().hashes
-                    problems = [
-                        eventproblem.problem
-                        for eventproblem in EventPerformanceProblem.fetch_multi(
-                            [(self.nodestore_event, event_hash) for event_hash in hashes]
-                        )
-                        if eventproblem
-                    ]
+                    occurrence_query = QueryBuilder(
+                        Dataset.IssuePlatform,
+                        params,
+                        query=f"event_id:{self.nodestore_event.event_id}",
+                        selected_columns=["occurrence_id"],
+                    )
+                    occurrence_ids = occurrence_query.process_results(
+                        occurrence_query.run_query("api.trace-view.get-occurrence-ids")
+                    )["data"]
+
+                    problems = IssueOccurrence.fetch_multi(
+                        [occurrence.get("occurrence_id") for occurrence in occurrence_ids],
+                        self.nodestore_event.project_id,
+                    )
                     unique_spans: Set[str] = set()
                     for problem in problems:
-                        if problem.parent_span_ids is not None:
-                            unique_spans = unique_spans.union(problem.parent_span_ids)
+                        parent_span_ids = problem.evidence_data.get("parent_span_ids")
+                        if parent_span_ids is not None:
+                            unique_spans = unique_spans.union(parent_span_ids)
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
-                            if event_span.get("span_id") in problem.offender_span_ids:
+                            offender_span_ids = problem.evidence_data.get("offender_span_ids")
+                            if event_span.get("span_id") in offender_span_ids:
                                 try:
                                     start_timestamp = float(event_span.get("start_timestamp"))
                                     if start is None:
@@ -610,6 +620,9 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
+            params = self.get_snuba_params(
+                self.request, self.request.organization, check_global_views=False
+            )
             if current_generation is None:
                 for root in roots:
                     # We might not be necessarily connected to the root if we're on an orphan event
@@ -633,12 +646,15 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     None,
                                     0,
                                     True,
+                                    params=params,
                                 )
                             )
                             current_generation = 1
                             break
 
-            current_event = TraceEvent(snuba_event, root_id, current_generation, True)
+            current_event = TraceEvent(
+                snuba_event, root_id, current_generation, True, params=params
+            )
             trace_results.append(current_event)
 
             spans: NodeSpans = nodestore_event.data.get("spans", [])
@@ -669,6 +685,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     else None
                                 ),
                                 True,
+                                params=params,
                             )
                             for child_event in child_events
                         ]
@@ -716,12 +733,15 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: Dict[str, TraceEvent] = {}
         results_map: Dict[Optional[str], List[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
+        params = self.get_snuba_params(
+            self.request, self.request.organization, check_global_views=False
+        )
         # The root of the orphan tree we're currently navigating through
         orphan_root: Optional[SnubaTransaction] = None
         if roots:
             results_map[None] = []
         for root in roots:
-            root_event = TraceEvent(root, None, 0)
+            root_event = TraceEvent(root, None, 0, params=params)
             parent_events[root["id"]] = root_event
             results_map[None].append(root_event)
             to_check.append(root)
@@ -741,7 +761,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0
+                        current_event, None, 0, params=params
                     )
 
                     # Used to avoid removing the orphan from results entirely if we loop
@@ -811,6 +831,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             previous_event.generation + 1
                             if previous_event.generation is not None
                             else None,
+                            params=params,
                         )
                         # Add this event to its parent's children
                         previous_event.children.append(parent_events[child_event["id"]])

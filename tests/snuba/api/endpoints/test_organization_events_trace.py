@@ -666,9 +666,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
-        # TODO: Uncomment this once perf issues are fixed here
-        # assert len(root["performance_issues"]) == 1
-        # assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
+        assert len(root["performance_issues"]) == 1
+        assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
