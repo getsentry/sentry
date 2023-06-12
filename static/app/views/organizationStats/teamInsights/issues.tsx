@@ -20,7 +20,7 @@ import DescriptionCard from './descriptionCard';
 import TeamIssuesAge from './teamIssuesAge';
 import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamResolutionTime from './teamResolutionTime';
-import TeamUnresolvedIssues from './teamUnresolvedIssues';
+import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 
 type Props = RouteComponentProps<{}, {}>;
