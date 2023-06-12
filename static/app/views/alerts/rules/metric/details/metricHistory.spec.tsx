@@ -26,4 +26,10 @@ describe('MetricHistory', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Show 7 Hidden Alerts'}));
     expect(screen.getAllByRole('link').length).toBe(incidents.length);
   });
+
+  it('filters incidents with no activities (unexpected behavior)', () => {
+    const incidents = [TestStubs.Incident({activities: []})];
+    render(<MetricHistory incidents={incidents} />);
+    expect(screen.getByText('No alerts triggered during this time.')).toBeInTheDocument();
+  });
 });
