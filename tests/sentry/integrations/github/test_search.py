@@ -43,7 +43,7 @@ class GithubSearchTest(APITestCase):
 
         self.login_as(self.user)
         self.url = reverse(
-            "sentry-extensions-github-search",
+            "sentry-integration-github-search",
             kwargs={
                 "organization_slug": self.organization.slug,
                 "integration_id": self.installation.model.id,
@@ -194,7 +194,7 @@ class GithubSearchTest(APITestCase):
     # Missing Resources
     def test_missing_integration(self):
         url = reverse(
-            "sentry-extensions-github-search",
+            "sentry-integration-github-search",
             kwargs={"organization_slug": self.organization.slug, "integration_id": "1234567890"},
         )
         resp = self.client.get(

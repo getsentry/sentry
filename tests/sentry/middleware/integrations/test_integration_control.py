@@ -11,7 +11,7 @@ from sentry.testutils import TestCase
 class IntegrationControlMiddlewareTest(TestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response)
-    prefix = IntegrationControlMiddleware.webhook_prefix
+    prefix = IntegrationControlMiddleware.integration_prefix
 
     def setUp(self):
         self.factory = RequestFactory()
