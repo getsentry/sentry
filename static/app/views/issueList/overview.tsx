@@ -849,21 +849,7 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       sort,
     });
-    if (sort === IssueSortOptions.BETTER_PRIORITY) {
-      this.transitionTo({
-        sort,
-        statsPeriod: '7d',
-        logLevel: 0,
-        hasStacktrace: 0,
-        eventHalflifeHours: 4,
-        issueHalflifeHours: 24 * 7,
-        v2: false,
-        norm: false,
-        relativeVolume: 1,
-      });
-    } else {
-      this.transitionTo({sort});
-    }
+    this.transitionTo({sort});
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
