@@ -45,6 +45,10 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  getPrioritySortVariant,
+  prioritySortExperimentEnabled,
+} from 'sentry/utils/prioritySort';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -88,6 +92,7 @@ type Props = {
   api: Client;
   experimentAssignment: ExperimentAssignment['PrioritySortExperiment'];
   location: Location;
+  logExperiment: () => void;
   organization: Organization;
   params: Params;
   savedSearch: SavedSearch;
@@ -197,6 +202,7 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchMemberList();
     // let custom analytics take control
     this.props.setDisableRouteAnalytics?.();
+    this.logExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -276,6 +282,12 @@ class IssueListOverview extends Component<Props, State> {
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
+  logExperiment() {
+    if (prioritySortExperimentEnabled(this.props.organization)) {
+      this.props.logExperiment();
+    }
+  }
+
   getQueryFromSavedSearchOrLocation({
     savedSearch,
     location,
@@ -336,8 +348,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   getBetterPriorityParams(): BetterPriorityEndpointParams {
-    console.log(this.props.experimentAssignment);
-    console.log(this.props.organization?.experiments?.PrioritySortExperiment);
+    const variant = getPrioritySortVariant(this.props.organization);
     const query = this.props.location.query ?? {};
     const {
       eventHalflifeHours,
@@ -357,6 +368,7 @@ class IssueListOverview extends Component<Props, State> {
       norm,
       v2,
       relativeVolume,
+      variant,
     };
   }
 
@@ -1290,7 +1302,10 @@ export default withRouteAnalytics(
         withOrganization(
           withIssueTags(
             withProfiler(
-              withExperiment(IssueListOverview, {experiment: 'PrioritySortExperiment'})
+              withExperiment(IssueListOverview, {
+                experiment: 'PrioritySortExperiment',
+                injectLogExperiment: true,
+              })
             )
           )
         )

@@ -4,6 +4,7 @@ import {SelectField, TextField} from 'sentry/components/forms';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchVisibility} from 'sentry/types';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -27,9 +28,7 @@ const SELECT_FIELD_VISIBILITY_OPTIONS = [
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
 
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
   const sortOptions = [...DEFAULT_SORT_OPTIONS];
   if (hasBetterPrioritySort) {
     sortOptions.push(IssueSortOptions.BETTER_PRIORITY);

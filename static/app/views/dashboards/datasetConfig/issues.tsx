@@ -6,6 +6,7 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -73,12 +74,13 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
 }
 
 function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
+
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
   if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
+    sortOptions.unshift(IssueSortOptions.BETTER_PRIORITY);
+    const index = sortOptions.indexOf(IssueSortOptions.PRIORITY);
+    sortOptions.splice(index, 1);
   }
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),

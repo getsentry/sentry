@@ -9,6 +9,7 @@ import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -33,9 +34,7 @@ function validateSortOption({
   organization: Organization;
   sort?: string;
 }) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
   const sortOptions = [...DEFAULT_SORT_OPTIONS];
   if (hasBetterPrioritySort) {
     sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
