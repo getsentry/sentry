@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import ClippedBox, {ClipFade} from 'sentry/components/clippedBox';
+import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import Placeholder from 'sentry/components/placeholder';
@@ -112,11 +112,19 @@ const NumericList = styled('ol')`
 
 const WiderHovercard = styled(Hovercard)`
   width: 320px;
+  /* "Body" element */
+  > div:last-child {
+    transition: all 5s ease-in-out;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    max-height: 300px;
+  }
 `;
 
 const ClippedBoxWithoutPadding = styled(ClippedBox)`
   padding: 0;
-  ${ClipFade} {
+  /* "ClipFade" element */
+  > div:last-child {
     background: ${p => p.theme.background};
     border-bottom: 0;
     padding: 0;
