@@ -76,9 +76,9 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         assert len(contexts) == 2
 
         assert contexts.get("os") == {
-          "name": "iOS",
-          "version": "16.3",
-          "build": "20D47",
+            "name": "iOS",
+            "version": "16.3",
+            "build": "20D47",
         }
 
         device_context = contexts.get("device")
