@@ -9,7 +9,7 @@ from arroyo.types import Commit, Message, Partition
 
 from sentry import options
 from sentry.monitoring.queues import is_queue_healthy, monitor_queues
-from sentry.processing.backpressure.arroyo import create_backpressure_step
+from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.profiles.task import process_profile_task
 
 
@@ -17,7 +17,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
     process_profile_task.s(payload=message.payload.value).apply_async()
 
 
-class ProfilesHealthCheck:
+class ProfilesHealthChecker(HealthChecker):
     def __init__(self):
         self.last_check = 0
         # Queue is healthy by default
@@ -36,9 +36,9 @@ class ProfilesHealthCheck:
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, health_checker) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.health_checker = health_checker
+        self.health_checker = ProfilesHealthChecker()
         monitor_queues()
 
     def create_with_partitions(
