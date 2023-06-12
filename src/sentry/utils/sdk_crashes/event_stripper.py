@@ -4,18 +4,20 @@ from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
-ALLOWED_EVENT_KEYS = {
-    "type",
-    "datetime",
-    "timestamp",
-    "platform",
-    "sdk",
-    "level",
-    "logger",
-    "exception",
-    "debug_meta",
-    "contexts",
-}
+ALLOWED_EVENT_KEYS = frozenset(
+    {
+        "type",
+        "datetime",
+        "timestamp",
+        "platform",
+        "sdk",
+        "level",
+        "logger",
+        "exception",
+        "debug_meta",
+        "contexts",
+    }
+)
 
 
 def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Event:
