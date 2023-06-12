@@ -138,10 +138,8 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
-    detect_performance_problems,
-)
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
@@ -2236,7 +2234,7 @@ def _calculate_event_grouping(
             hashes = event.get_hashes()
 
     hashes.write_to_event(event.data)
-    return cast(CalculatedHashes, hashes)
+    return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")

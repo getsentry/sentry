@@ -79,51 +79,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "epm",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("span.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            Function("divide", [args["interval"], 60]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "eps",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("span.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            args["interval"],
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
@@ -327,6 +289,18 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_http_error_count_percent_change,
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "epm_percent_change",
+                    snql_distribution=self._resolve_epm_percent_change,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "eps_percent_change",
+                    snql_distribution=self._resolve_eps_percent_change,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -452,6 +426,58 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_epm(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        return self._resolve_rate(60, args, alias, extra_condition)
+
+    def _resolve_eps(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        return self._resolve_rate(None, args, alias, extra_condition)
+
+    def _resolve_rate(
+        self,
+        interval: Optional[int],
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        base_condition = Function(
+            "equals",
+            [
+                Column("metric_id"),
+                self.resolve_metric("span.duration"),
+            ],
+        )
+        if extra_condition:
+            condition = Function("and", [base_condition, extra_condition])
+        else:
+            condition = base_condition
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countIf",
+                    [
+                        Column("value"),
+                        condition,
+                    ],
+                ),
+                args["interval"]
+                if interval is None
+                else Function("divide", [args["interval"], interval]),
+            ],
+            alias,
+        )
+
     def _get_middle(self):
         """Get the middle for percent change functions"""
         if self.builder.start is None or self.builder.end is None:
@@ -502,8 +528,26 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[self._second_half_condition],
+            extra_conditions=[self._second_half_condition()],
         )
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_epm_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_epm(args, None, self._first_half_condition())
+        second_half = self._resolve_epm(args, None, self._second_half_condition())
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_eps_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_eps(args, None, self._first_half_condition())
+        second_half = self._resolve_eps(args, None, self._second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percent_change_function(self, first_half, second_half, alias):

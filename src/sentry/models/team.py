@@ -195,7 +195,8 @@ class Team(Model, SnowflakeIdMixin):
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
-            user__is_active=True,
+            user_id__isnull=False,
+            user_is_active=True,
         ).distinct()
 
     def has_access(self, user, access=None):
@@ -271,7 +272,7 @@ class Team(Model, SnowflakeIdMixin):
         for member in old_memberships:
             try:
                 new_member = OrganizationMember.objects.get(
-                    user=member.user, organization=organization
+                    user_id=member.user_id, organization=organization
                 )
             except OrganizationMember.DoesNotExist:
                 continue

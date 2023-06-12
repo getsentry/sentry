@@ -3,7 +3,7 @@ from typing import List, Optional
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.search.events.builder import TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType, SelectType
-from sentry.utils.snuba import Dataset
+from sentry.snuba.dataset import Dataset
 
 
 class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
