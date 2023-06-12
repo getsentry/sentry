@@ -16,7 +16,9 @@ class NamespaceOption:
     persistent_storage: str
     """Option name to store produced rules in the clusterer, in persistent storage."""
     tracker: str
-    """Option name to store tracking data of this namespace."""
+    """Option name to emit tracking data of this namespace, such as metrics."""
+    meta_store: str
+    """Option name to emit store metadata belonging to this namespace."""
 
 
 class ClustererNamespace(Enum):
@@ -26,4 +28,13 @@ class ClustererNamespace(Enum):
         rules="txrules",
         persistent_storage="sentry:transaction_name_cluster_rules",
         tracker="txcluster.rules_per_project",
+        meta_store="sentry:transaction_name_cluster_meta",
+    )
+    SPANS = NamespaceOption(
+        name="spans",
+        data="span.descs.data",
+        rules="span.descs.rules",
+        persistent_storage="sentry:span_description_cluster_rules",
+        tracker="span.descs.rules_per_project",
+        meta_store="sentry:span_descriptions_cluster_meta",
     )

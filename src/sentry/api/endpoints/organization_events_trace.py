@@ -34,9 +34,10 @@ from sentry.models import Group, Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import Dataset, bulk_snql_query
+from sentry.utils.snuba import bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -433,7 +434,7 @@ def query_trace_data(
     )
 
 
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)

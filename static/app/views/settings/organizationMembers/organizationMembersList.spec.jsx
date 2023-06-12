@@ -60,7 +60,7 @@ describe('OrganizationMembersList', function () {
     flags: {
       'sso:linked': true,
     },
-    orgRolesFromTeams: [
+    groupOrgRoles: [
       {
         teamSlug: ownerTeam.slug,
         role: {id: 'owner'},

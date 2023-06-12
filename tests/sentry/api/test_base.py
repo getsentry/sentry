@@ -15,6 +15,7 @@ from sentry.models import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.cursors import Cursor
 
 
@@ -129,6 +130,47 @@ class EndpointTest(APITestCase):
         )
         assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+        assert "Access-Control-Allow-Credentials" not in response
+
+    @override_options({"system.base-hostname": "example.com"})
+    def test_allow_credentials(self):
+        org = self.create_organization()
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        request.META["HTTP_ORIGIN"] = "http://acme.example.com"
+        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
+            apikey.key.encode("utf-8")
+        )
+
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://acme.example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage, X-CSRFToken"
+        )
+        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+        assert response["Access-Control-Allow-Credentials"] == "true"
+
+    @override_options({"system.base-hostname": "acme.com"})
+    def test_allow_credentials_incorrect(self):
+        org = self.create_organization()
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        request.META["HTTP_ORIGIN"] = "http://acme.example.com"
+        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
+            apikey.key.encode("utf-8")
+        )
+
+        response = _dummy_endpoint(request)
+        response.render()
+        assert "Access-Control-Allow-Credentials" not in response
 
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")

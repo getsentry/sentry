@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import transaction
+from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -218,6 +219,10 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 return self.respond(status=404)
 
             for monitor_object in monitor_objects_list:
+                # randomize slug on monitor deletion to prevent re-creation side effects
+                if type(monitor_object) == Monitor:
+                    monitor_object.update(slug=get_random_string(length=24))
+
                 schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
                 self.create_audit_entry(
                     request=request,

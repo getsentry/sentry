@@ -5,10 +5,12 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
-import {TextAlignRight} from 'sentry/views/starfish/modules/APIModule/endpointTable';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/views/spanSummary';
+import {
+  OverflowEllipsisTextContainer,
+  TextAlignRight,
+} from 'sentry/views/starfish/components/textAlign';
 
-type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p50_comparison';
+type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p95_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
@@ -18,47 +20,43 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'timestamp',
-    name: 'Timestamp',
-    width: 300,
-  },
-  {
     key: 'duration',
     name: 'Span Duration',
     width: 200,
   },
   {
-    key: 'p50_comparison',
-    name: 'Compared to P50',
+    key: 'p95_comparison',
+    name: 'Compared to P95',
     width: 200,
   },
 ];
 
 type SpanTableRow = {
-  exclusive_time: number;
-  p50Comparison: number;
-  'project.name': string;
-  spanDuration: number;
-  spanOp: string;
+  description: string;
+  duration: number;
+  op: string;
   span_id: string;
   timestamp: string;
-  transaction: string;
-  transactionDuration: number;
+  transaction: {
+    id: string;
+    'project.name': string;
+    timestamp: string;
+    'transaction.duration': number;
+  };
   transaction_id: string;
-  user: string;
 };
 
 type Props = {
   data: SpanTableRow[];
   isLoading: boolean;
-  p50: number;
+  p95: number;
 };
 
-export function SpanSamplesTable({isLoading, data, p50}: Props) {
+export function SpanSamplesTable({isLoading, data, p95}: Props) {
   const location = useLocation();
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p50_comparison') {
+    if (column.key === 'p95_comparison') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -73,9 +71,7 @@ export function SpanSamplesTable({isLoading, data, p50}: Props) {
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={`/performance/${row['project.name']}:${
-            row.transaction_id
-          }#span-${row.span_id.slice(19).replace('-', '')}`}
+          to={`/performance/${row.transaction['project.name']}:${row.transaction_id}#span-${row.span_id}`}
         >
           {row.transaction_id.slice(0, 8)}
         </Link>
@@ -85,15 +81,15 @@ export function SpanSamplesTable({isLoading, data, p50}: Props) {
     if (column.key === 'duration') {
       return (
         <SpanDurationBar
-          spanOp={row.spanOp}
-          spanDuration={row.spanDuration}
-          transactionDuration={row.transactionDuration}
+          spanOp={row.op}
+          spanDuration={row.duration}
+          transactionDuration={row.transaction['transaction.duration']}
         />
       );
     }
 
-    if (column.key === 'p50_comparison') {
-      return <DurationComparisonCell duration={row.spanDuration} p50={p50} />;
+    if (column.key === 'p95_comparison') {
+      return <DurationComparisonCell duration={row.duration} p95={p95} />;
     }
 
     if (column.key === 'timestamp') {

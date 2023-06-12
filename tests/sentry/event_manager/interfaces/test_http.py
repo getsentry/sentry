@@ -25,6 +25,7 @@ def test_basic(make_http_snapshot):
 def test_full(make_http_snapshot):
     make_http_snapshot(
         dict(
+            api_target="foo",
             method="GET",
             url="http://example.com",
             query_string="foo=bar",

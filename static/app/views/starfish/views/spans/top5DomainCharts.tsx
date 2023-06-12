@@ -1,7 +1,7 @@
 import {Fragment, ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment, {Moment} from 'moment';
+import moment from 'moment';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,6 +14,7 @@ import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 
 const INTERVAL = 12;
@@ -229,16 +230,4 @@ const useQueryTopTablesChart = (interval: number) => {
   const joinedData = [...topDomainsResponse.data, ...otherDomainsResponse.data];
 
   return {...otherDomainsResponse, data: joinedData};
-};
-
-export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
-    start: startTime.format('YYYY-MM-DD HH:mm:ss'),
-    end: endTime.format('YYYY-MM-DD HH:mm:ss'),
-  });
-
-  return `
-  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-  `;
 };

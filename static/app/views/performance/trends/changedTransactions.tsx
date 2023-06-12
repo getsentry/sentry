@@ -37,13 +37,14 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
+import {getSelectedTransaction} from 'sentry/views/performance/utils';
 
 import Chart from './chart';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
-  TrendColumnField,
   TrendFunctionField,
+  TrendParameterColumn,
   TrendsStats,
   TrendView,
 } from './types';
@@ -67,7 +68,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   trendChangeType: TrendChangeType;
   trendView: TrendView;
-  previousTrendColumn?: TrendColumnField;
+  previousTrendColumn?: TrendParameterColumn;
   previousTrendFunction?: TrendFunctionField;
   withBreakpoint?: boolean;
 };
@@ -105,30 +106,6 @@ function getChartTitle(trendChangeType: TrendChangeType): string {
     default:
       throw new Error('No trend type passed');
   }
-}
-
-function getSelectedTransaction(
-  location: Location,
-  trendChangeType: TrendChangeType,
-  transactions?: NormalizedTrendsTransaction[]
-): NormalizedTrendsTransaction | undefined {
-  const queryKey = getSelectedQueryKey(trendChangeType);
-  const selectedTransactionName = decodeScalar(location.query[queryKey]);
-
-  if (!transactions) {
-    return undefined;
-  }
-
-  const selectedTransaction = transactions.find(
-    transaction =>
-      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
-  );
-
-  if (selectedTransaction) {
-    return selectedTransaction;
-  }
-
-  return transactions.length > 0 ? transactions[0] : undefined;
 }
 
 function handleChangeSelected(
@@ -596,8 +573,8 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     trendView: eventView,
     transaction,
     projects,
+    location,
     currentTrendFunction,
-    currentTrendColumn,
   } = props;
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -608,7 +585,9 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projectID,
     display: DisplayModes.TREND,
     trendFunction: currentTrendFunction,
-    trendColumn: currentTrendColumn,
+    additionalQuery: {
+      trendParameter: location.query.trendParameter?.toString(),
+    },
   });
 
   return (

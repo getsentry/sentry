@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import CommitLink from 'sentry/components/commitLink';
 import Duration from 'sentry/components/duration';
 import IssueLink from 'sentry/components/issueLink';

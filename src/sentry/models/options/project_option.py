@@ -52,6 +52,7 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:span_attributes",
         "sentry:transaction_name_cluster_rules",
+        "sentry:span_description_cluster_rules",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -136,7 +137,7 @@ class ProjectOptionManager(OptionManager["Project"]):
 
 
 @region_silo_only_model
-class ProjectOption(Model):  # type: ignore
+class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.
 

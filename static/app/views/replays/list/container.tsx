@@ -13,7 +13,7 @@ function ReplaysListContainer() {
   const {slug: orgSlug} = useOrganization();
 
   return (
-    <SentryDocumentTitle title={`Session Replay - ${orgSlug}`}>
+    <SentryDocumentTitle title={`Session Replay — ${orgSlug}`}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>

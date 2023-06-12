@@ -101,6 +101,12 @@ urlpatterns += [
         api.ClientConfigView.as_view(),
         name="sentry-api-client-config",
     ),
+    # Forbidden Relay endpoint
+    url(
+        r"^api/relay/.*$",
+        api.not_found,
+        name="sentry-api-internal-relay",
+    ),
     # We do not want to have webpack assets served under a versioned URL, as these assets have
     # a filecontent-based hash in its filenames so that it can be cached long term
     url(

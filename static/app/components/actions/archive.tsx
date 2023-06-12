@@ -4,7 +4,7 @@ import {getIgnoreActions} from 'sentry/components/actions/ignore';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
@@ -39,7 +39,10 @@ export function getArchiveActions({
 }: Pick<
   ArchiveActionProps,
   'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
->) {
+>): {
+  dropdownItems: MenuItemProps[];
+  onArchive: (resolution: GroupStatusResolution) => void;
+} {
   // TODO(workflow): Replace ignore actions with more archive actions
   const {dropdownItems} = getIgnoreActions({
     confirmLabel,
@@ -65,7 +68,8 @@ export function getArchiveActions({
     dropdownItems: [
       {
         key: 'untilEscalating',
-        label: t('Until it escalates'),
+        label: t('Until escalating'),
+        details: t('When events exceed their weekly forecast'),
         onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
       },
       {
@@ -112,13 +116,14 @@ function ArchiveActions({
       <ArchiveButton
         size={size}
         tooltipProps={{delay: 1000, disabled}}
-        title={t('Hides the issue until the sh*t hits the fan and events escalate.')}
+        title={t('Archive issue until a high number of events are seen.')}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
         {t('Archive')}
       </ArchiveButton>
       <DropdownMenu
+        minMenuWidth={270}
         size="sm"
         trigger={triggerProps => (
           <DropdownTrigger

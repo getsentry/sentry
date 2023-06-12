@@ -1,6 +1,12 @@
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {ERROR_MAP as origErrorMap} from 'sentry/utils/requestError/requestError';
 
 import {isEventWithFileUrl, isFilteredRequestErrorEvent} from './initializeSdk';
+
+const ERROR_MAP = {
+  ...origErrorMap,
+  // remove `UndefinedResponseBodyError` since we don't filter those
+  200: undefined,
+};
 
 describe('isFilteredRequestErrorEvent', () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE'];

@@ -43,8 +43,8 @@ describe('ProjectCreationAccess', function () {
   it('passes if org is part of experiment and member has no access', function () {
     const experiment_org = TestStubs.Organization({
       access: ['org:read', 'team:read', 'project:read'],
-      features: ['organizations:team-project-creation-all'],
-      experiments: [{ProjectCreationForAllExperiment: 1}],
+      features: ['team-project-creation-all'],
+      experiments: [{ProjectCreationForAllExperimentV2: 1}],
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
@@ -61,8 +61,8 @@ describe('ProjectCreationAccess', function () {
   it('fails if org is not part of experiment and member has no access', function () {
     const no_exp_org = TestStubs.Organization({
       access: ['org:read', 'team:read', 'project:read'],
-      features: ['organizations:team-project-creation-all'],
-      experiments: [{ProjectCreationForAllExperiment: 0}],
+      features: ['team-project-creation-all'],
+      experiments: [{ProjectCreationForAllExperimentV2: 0}],
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
@@ -80,7 +80,7 @@ describe('ProjectCreationAccess', function () {
     const no_flag_org = TestStubs.Organization({
       access: ['org:read', 'team:read', 'project:read'],
       features: [],
-      experiments: [{ProjectCreationForAllExperiment: 1}],
+      experiments: [{ProjectCreationForAllExperimentV2: 1}],
     });
 
     jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({

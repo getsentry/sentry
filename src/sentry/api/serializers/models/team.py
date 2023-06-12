@@ -179,7 +179,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
 
 
 @register(Team)
-class TeamSerializer(Serializer):  # type: ignore
+class TeamSerializer(Serializer):
     expand: Sequence[str] | None
     collapse: Sequence[str] | None
     access: Access | None
@@ -246,6 +246,9 @@ class TeamSerializer(Serializer):  # type: ignore
                 )
 
                 top_org_role = org_roles[0] if org_roles else None
+                if is_superuser:
+                    top_org_role = organization_roles.get_top_dog().id
+
                 if top_org_role:
                     minimum_team_role = roles.get_minimum_team_role(top_org_role)
                     if minimum_team_role.priority > effective_team_role.priority:
@@ -346,7 +349,6 @@ def get_scim_teams_members(
     # TODO(hybridcloud) Another cross silo join
     members = RangeQuerySetWrapper(
         OrganizationMember.objects.filter(teams__in=team_list)
-        .select_related("user")
         .prefetch_related("teams")
         .distinct("id"),
         limit=10000,
@@ -374,7 +376,7 @@ class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequi
     members: List[SCIMTeamMemberListItem]
 
 
-class TeamSCIMSerializer(Serializer):  # type: ignore
+class TeamSCIMSerializer(Serializer):
     def __init__(
         self,
         expand: Optional[Sequence[str]] = None,
