@@ -1,11 +1,9 @@
-import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {eventWithTime} from '@sentry-internal/rrweb';
 import {EventType, Replayer} from '@sentry-internal/rrweb';
 import first from 'lodash/first';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 export type Extraction = {
   crumb: Crumb;
@@ -13,9 +11,77 @@ export type Extraction = {
   timestamp: number;
 };
 
-type HookOpts = {
-  replay: null | ReplayReader;
+type Args = {
+  crumbs: Crumb[] | undefined;
+  finishedAt: Date | undefined;
+  rrwebEvents: eventWithTime[] | undefined;
 };
+
+function _extractDomNodes({
+  crumbs,
+  rrwebEvents,
+  finishedAt,
+}: Args): Promise<Extraction[]> {
+  // Get a list of the breadcrumbs that relate directly to the DOM, for each
+  // crumb we will extract the referenced HTML.
+  if (!crumbs || !rrwebEvents || rrwebEvents.length < 2 || !finishedAt) {
+    return Promise.reject();
+  }
+
+  return new Promise((resolve, reject) => {
+    const domRoot = document.createElement('div');
+    domRoot.className = 'sentry-block';
+    const {style} = domRoot;
+    style.position = 'fixed';
+    style.inset = '0';
+    style.width = '0';
+    style.height = '0';
+    style.overflow = 'hidden';
+
+    document.body.appendChild(domRoot);
+
+    // Grab the last event, but skip the synthetic `replay-end` event that the
+    // ReplayerReader added. RRWeb will skip that event when it comes time to render
+    const lastEvent = rrwebEvents[rrwebEvents.length - 2];
+
+    const isLastRRWebEvent = (event: eventWithTime) => lastEvent === event;
+
+    const replayerRef = new Replayer(rrwebEvents, {
+      root: domRoot,
+      loadTimeout: 1,
+      showWarning: false,
+      blockClass: 'sentry-block',
+      speed: 99999,
+      skipInactive: true,
+      triggerFocus: false,
+      plugins: [
+        new BreadcrumbReferencesPlugin({
+          crumbs,
+          isFinished: isLastRRWebEvent,
+          onFinish: rows => {
+            // if (isMounted) {
+            resolve(rows);
+            // }
+            setTimeout(() => {
+              if (document.body.contains(domRoot)) {
+                document.body.removeChild(domRoot);
+              }
+            }, 0);
+          },
+        }),
+      ],
+      mouseTail: false,
+    });
+
+    try {
+      // Run the replay to the end, we will capture data as it streams into the plugin
+      replayerRef.pause(finishedAt.getTime());
+    } catch (error) {
+      Sentry.captureException(error);
+      reject(error);
+    }
+  });
+}
 
 const requestIdleCallback =
   window.requestIdleCallback ||
@@ -31,93 +97,17 @@ const requestIdleCallback =
     }, 1);
   };
 
-function useExtractedCrumbHtml({replay}: HookOpts) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
-
-  const crumbs = replay?.getCrumbsWithRRWebNodes();
-  const rrwebEvents = replay?.getRRWebEvents();
-  const finishedAt = replay?.getReplay().finished_at;
-
-  useEffect(() => {
+export default function extractDomNodes(args: Args): Promise<Extraction[]> {
+  return new Promise((resolve, reject) => {
     requestIdleCallback(
       () => {
-        if (!crumbs || !rrwebEvents || rrwebEvents.length < 2 || !finishedAt) {
-          return () => {};
-        }
-
-        // Get a list of the breadcrumbs that relate directly to the DOM, for each
-        // crumb we will extract the referenced HTML.
-
-        let isMounted = true;
-
-        const domRoot = document.createElement('div');
-        domRoot.className = 'sentry-block';
-        const {style} = domRoot;
-        style.position = 'fixed';
-        style.inset = '0';
-        style.width = '0';
-        style.height = '0';
-        style.overflow = 'hidden';
-
-        document.body.appendChild(domRoot);
-
-        // Grab the last event, but skip the synthetic `replay-end` event that the
-        // ReplayerReader added. RRWeb will skip that event when it comes time to render
-        const lastEvent = rrwebEvents[rrwebEvents.length - 2];
-
-        const isLastRRWebEvent = (event: eventWithTime) => lastEvent === event;
-
-        const replayerRef = new Replayer(rrwebEvents, {
-          root: domRoot,
-          loadTimeout: 1,
-          showWarning: false,
-          blockClass: 'sentry-block',
-          speed: 99999,
-          skipInactive: true,
-          triggerFocus: false,
-          plugins: [
-            new BreadcrumbReferencesPlugin({
-              crumbs,
-              isFinished: isLastRRWebEvent,
-              onFinish: rows => {
-                if (isMounted) {
-                  setBreadcrumbReferences(rows);
-                }
-                setTimeout(() => {
-                  if (document.body.contains(domRoot)) {
-                    document.body.removeChild(domRoot);
-                  }
-                }, 0);
-              },
-            }),
-          ],
-          mouseTail: false,
-        });
-
-        try {
-          // Run the replay to the end, we will capture data as it streams into the plugin
-          replayerRef.pause(finishedAt.getTime());
-        } catch (error) {
-          Sentry.captureException(error);
-        }
-
-        setIsLoading(false);
-
-        return () => {
-          isMounted = false;
-        };
+        _extractDomNodes(args).then(resolve).catch(reject);
       },
       {
         timeout: 2500,
       }
     );
-  }, [crumbs, rrwebEvents, finishedAt]);
-
-  return {
-    isLoading,
-    actions: breadcrumbRefs,
-  };
+  });
 }
 
 type PluginOpts = {
@@ -241,5 +231,3 @@ function removeNodesAtLevel(html: string, level: number) {
     return html;
   }
 }
-
-export default useExtractedCrumbHtml;
