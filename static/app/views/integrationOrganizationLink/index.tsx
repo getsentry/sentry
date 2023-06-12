@@ -34,11 +34,9 @@ type State = AsyncView['state'] & {
   selectedOrgSlug?: string;
 };
 
-const controlSiloUrl = generateBaseControlSiloUrl();
-
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: controlSiloUrl + '/api/0'});
+  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -136,22 +134,25 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   onInstallWithInstallationId = (data: Integration) => {
     const {organization} = this.state;
     const orgId = organization && organization.slug;
-    this.props.router.push(
-      normalizeUrl(`/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`)
+    const normalizedUrl = normalizeUrl(
+      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
+    );
+    window.location.assign(
+      `${organization?.links.organizationUrl || ''}${normalizedUrl}`
     );
   };
 
   // non-Github redirects to the extension view where the backend will finish the installation
   finishInstallation = () => {
     // add the selected org to the query parameters and then redirect back to configure
-    const {selectedOrgSlug} = this.state;
+    const {selectedOrgSlug, organization} = this.state;
     const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
     this.trackInstallationStart();
     // need to send to control silo to finish the installation
     window.location.assign(
-      `${controlSiloUrl}/extensions/${this.integrationSlug}/configure/?${urlEncode(
-        query
-      )}`
+      `${organization?.links.organizationUrl || ''}/extensions/${
+        this.integrationSlug
+      }/configure/?${urlEncode(query)}`
     );
   };
 
