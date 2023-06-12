@@ -198,7 +198,7 @@ const Title = styled('h5')`
   margin-bottom: ${space(1)};
 `;
 
-const ClipFade = styled('div')`
+export const ClipFade = styled('div')`
   position: absolute;
   left: 0;
   right: 0;
