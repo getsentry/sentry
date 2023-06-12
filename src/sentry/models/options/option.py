@@ -99,7 +99,7 @@ class OptionMixin(HasOption):
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Value) -> bool:
-        return self.option_manager.set_value(self, key, value)  # type: ignore[no-any-return]
+        return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)
