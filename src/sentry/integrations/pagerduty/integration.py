@@ -13,8 +13,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -146,7 +147,9 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self, integration: Integration, organization: RpcOrganizationSummary, extra=None
+    ):
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
