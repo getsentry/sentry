@@ -11,6 +11,7 @@ import pytz
 from django.test import override_settings
 from django.utils import timezone
 
+from fixtures.sdk_crash_detection.crash_event import get_crash_event
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -61,7 +62,6 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
-from tests.sentry.utils.sdk_crashes.test_fixture import get_crash_event
 
 
 class EventMatcher:
