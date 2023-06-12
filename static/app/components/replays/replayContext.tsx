@@ -289,76 +289,6 @@ export function Provider({
     setIsPlaying(false);
   }, []);
 
-  const initRoot = useCallback(
-    (root: RootElem) => {
-      if (events === undefined) {
-        return;
-      }
-
-      if (root === null) {
-        return;
-      }
-
-      if (isFetching) {
-        return;
-      }
-
-      if (replayerRef.current) {
-        if (!hasNewEvents && !unMountedRef.current) {
-          // Already have a player for these events, the parent node must've re-rendered
-          return;
-        }
-
-        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
-          // If this is true, then no need to clear old iframe as nothing was rendered
-          return;
-        }
-
-        // We have new events, need to clear out the old iframe because a new
-        // `Replayer` instance is about to be created
-        while (root.firstChild) {
-          root.removeChild(root.firstChild);
-        }
-      }
-
-      // eslint-disable-next-line no-new
-      const inst = new Replayer(events, {
-        root,
-        blockClass: 'sentry-block',
-        // liveMode: false,
-        // triggerFocus: false,
-        mouseTail: {
-          duration: 0.75 * 1000,
-          lineCap: 'round',
-          lineWidth: 2,
-          strokeStyle: theme.purple200,
-        },
-        // unpackFn: _ => _,
-        // plugins: [],
-        skipInactive: savedReplayConfigRef.current.skip ?? true,
-        speed: savedReplayConfigRef.current.speed || 1,
-      });
-
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
-      inst.on(ReplayerEvents.Resize, forceDimensions);
-      inst.on(ReplayerEvents.Finish, setReplayFinished);
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
-      inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
-      inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
-
-      // `.current` is marked as readonly, but it's safe to set the value from
-      // inside a `useEffect` hook.
-      // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
-      replayerRef.current = inst;
-
-      if (unMountedRef.current) {
-        unMountedRef.current = false;
-      }
-    },
-    [events, isFetching, theme.purple200, setReplayFinished, hasNewEvents]
-  );
-
   const getCurrentTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
     []
@@ -403,6 +333,97 @@ export function Provider({
     },
     [getCurrentTime, isPlaying]
   );
+
+  const initRoot = useCallback(
+    (root: RootElem) => {
+      if (events === undefined || root === null || isFetching) {
+        return () => {};
+      }
+
+      if (replayerRef.current) {
+        if (!hasNewEvents && !unMountedRef.current) {
+          // Already have a player for these events, the parent node must've re-rendered
+          if (initialTimeOffsetMs?.offsetMs && events) {
+            setCurrentTime(initialTimeOffsetMs.offsetMs);
+          }
+          return () => {};
+        }
+
+        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+          // If this is true, then no need to clear old iframe as nothing was rendered
+          return () => {};
+        }
+
+        // We have new events, need to clear out the old iframe because a new
+        // `Replayer` instance is about to be created
+        while (root.firstChild) {
+          root.removeChild(root.firstChild);
+        }
+      }
+
+      // eslint-disable-next-line no-new
+      const inst = new Replayer(events, {
+        root,
+        blockClass: 'sentry-block',
+        // liveMode: false,
+        // triggerFocus: false,
+        mouseTail: {
+          duration: 0.75 * 1000,
+          lineCap: 'round',
+          lineWidth: 2,
+          strokeStyle: theme.purple200,
+        },
+        // unpackFn: _ => _,
+        // plugins: [],
+        skipInactive: savedReplayConfigRef.current.skip ?? true,
+        speed: savedReplayConfigRef.current.speed || 1,
+      });
+
+      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      inst.on(ReplayerEvents.Resize, forceDimensions);
+      inst.on(ReplayerEvents.Finish, setReplayFinished);
+      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
+      inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
+
+      // `.current` is marked as readonly, but it's safe to set the value from
+      // inside a `useEffect` hook.
+      // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+      // @ts-expect-error
+      replayerRef.current = inst;
+
+      if (unMountedRef.current) {
+        unMountedRef.current = false;
+      }
+
+      if (initialTimeOffsetMs?.offsetMs && events) {
+        setCurrentTime(initialTimeOffsetMs.offsetMs);
+      }
+
+      return () => {
+        unMountedRef.current = true;
+      };
+    },
+    [
+      events,
+      isFetching,
+      theme.purple200,
+      setReplayFinished,
+      hasNewEvents,
+      initialTimeOffsetMs,
+      setCurrentTime,
+    ]
+  );
+
+  useEffect(() => {
+    if (initialTimeOffsetMs?.offsetMs && events && replayerRef.current) {
+      setCurrentTime(initialTimeOffsetMs.offsetMs);
+    }
+
+    return () => {
+      unMountedRef.current = true;
+    };
+  }, [events, initialTimeOffsetMs, setCurrentTime]);
 
   const setSpeed = useCallback(
     (newSpeed: number) => {
@@ -495,17 +516,6 @@ export function Provider({
 
     setIsSkippingInactive(skip);
   }, []);
-
-  // Only on pageload: set the initial playback timestamp
-  useEffect(() => {
-    if (initialTimeOffsetMs?.offsetMs && events && replayerRef.current) {
-      setCurrentTime(initialTimeOffsetMs.offsetMs);
-    }
-
-    return () => {
-      unMountedRef.current = true;
-    };
-  }, [events, initialTimeOffsetMs, setCurrentTime]);
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);
 
