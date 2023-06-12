@@ -225,9 +225,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
 
-            if query_kwargs["sort_by"] == "betterPriority":
-                query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
-
             query_kwargs["environments"] = environments if environments else None
 
             query_kwargs["actor"] = request.user
