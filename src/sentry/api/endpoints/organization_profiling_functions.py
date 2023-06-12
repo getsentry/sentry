@@ -92,8 +92,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         data = serializer.validated_data
 
         def get_event_stats(columns, query, params, rollup, zerofill_results, comparison_delta):
-            # ensure minimum roll up of 1 hour
-            rollup = max(rollup, 60 * 60)
+            # TODO: need to check how many buckets this creates per group for various periods
+            rollup = max(rollup, 60 * 60)  # ensure minimum roll up of 1 hour
 
             top_functions = functions.query(
                 selected_columns=["project.id", "fingerprint", "package", "function", "count()"],
@@ -106,6 +106,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
             set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
 
+            # TODO: does this fit within in a single query, if not,
+            # do we need to break this into multiple queries
             results = functions.top_events_timeseries(
                 timeseries_columns=columns,
                 selected_columns=["project.id", "fingerprint"],
@@ -159,6 +161,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         def get_stats_data_for_trending_events(results):
             formatted_results = []
             for result in results["data"]:
+                # The endpoint originally was meant for only transactions
+                # hence the name of the key, but it can be adapted to work
+                # for functions as well.
                 stats_key = f"{result['project']},{result['transaction']}"
                 formatted_results.append(
                     {
