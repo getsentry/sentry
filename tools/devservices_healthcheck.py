@@ -49,8 +49,7 @@ def check_kafka():
             "sentry_kafka",
             "kafka-topics",
             "--zookeeper",
-            # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
-            os.environ.get("ZK_HOST", "127.0.0.1:2181"),
+            "sentry_zookeeper:2181",
             "--list",
         ),
         check=True,
