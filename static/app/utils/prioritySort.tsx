@@ -20,10 +20,11 @@ export function getPrioritySortVariant(organization: Organization) {
   const user = ConfigStore.get('user');
   const _variant = user.experiments?.PrioritySortExperiment || 'baseline';
 
-  // feature flag override to force baseline
+  // check if the experiment is active
   const isInExperiment = prioritySortExperimentEnabled(organization);
 
   // feature flag override to force variant1
+  // otherwise let the experiment decide
   const isVariant1 =
     organization.features.includes('issue-list-better-priority-sort') ||
     (isInExperiment && _variant === 'variant1');
