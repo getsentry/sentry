@@ -16,7 +16,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.net.http import connection_from_url
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
-from sentry.snuba.metrics_performance import query
+from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 IMPROVED = "improved"
 REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
+
+TOP_EVENTS_LIMIT = 50
+EVENTS_PER_QUERY = 10
+DAY_GRANULARITY_IN_SECONDS = 86400
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -72,24 +76,25 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         selected_columns = self.get_field_list(organization, request)
 
-        _query = request.GET.get("query")
+        query = request.GET.get("query")
 
-        top_events_limit = 50
-        events_per_query = 10
-
-        def get_top_events(user_query, params, orderby, event_limit, referrer):
+        def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = selected_columns.copy()
             top_event_columns.append("count()")
-            return query(
+
+            # Granularity is set to 1d - the highest granularity possible
+            # in order to optimize the top event query since we don't case
+            # about havinbg exact counts.
+            return metrics_query(
                 top_event_columns,
                 query=user_query,
                 params=params,
-                orderby=orderby,
+                orderby=["-count()"],
                 limit=event_limit,
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
-                granularity=86400,
+                granularity=DAY_GRANULARITY_IN_SECONDS,
             )
 
         def generate_top_transaction_query(events):
@@ -102,12 +107,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return f"transaction:[{top_transaction_as_str}]"
 
         def get_timeseries(top_events, params, rollup, zerofill_results):
-            # Prepare bulk top transaction name query
+            # Split top events into multiple queries for bulk timeseries query
             data = top_events["data"]
             split_top_events = [
-                data[i : i + events_per_query] for i in range(0, len(data), events_per_query)
+                data[i : i + EVENTS_PER_QUERY] for i in range(0, len(data), EVENTS_PER_QUERY)
             ]
-            new_queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
+            queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
             timeseries_columns = selected_columns.copy()
             timeseries_columns.append(trend_function)
@@ -115,7 +120,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
-                new_queries,
+                queries,
                 params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
@@ -124,8 +129,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 apply_formatting=False,
             )
 
+            # Parse results
             translated_groupby = ["transaction"]
-
             results = {}
             formatted_results = {}
             for index, item in enumerate(top_events["data"]):
@@ -169,13 +174,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return formatted_results
 
         def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
-            # Get top transaction names with the highest event count
-            # and apply user query
+            # Fetch transactions names with the highest event count
             top_events = get_top_events(
                 user_query=user_query,
                 params=params,
-                orderby=["-count()"],
-                event_limit=top_events_limit,
+                event_limit=TOP_EVENTS_LIMIT,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
@@ -185,6 +188,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if len(top_events.get("data", [])) == 0:
                 return {}
 
+            # Fetch timeseries for each top transaction name
             return get_timeseries(top_events, params, rollup, zerofill_results)
 
         def get_trends_data(stats_data, request):
@@ -200,7 +204,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             trends_request["trendFunction"] = trend_function
             trends_request["data"] = stats_data
 
-            # send the data to microservice
+            # Send the data to microservice
             trends = get_trends(trends_request)
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
 
@@ -233,7 +237,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     True,
                 ),
                 "stats": trending_transaction_names_stats,
-                # temporary change to see what stats data is returned
+                # Temporary change to see what stats data is returned
                 "raw_stats": trends_request
                 if features.has(
                     "organizations:performance-trendsv2-dev-only",
@@ -248,15 +252,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 request,
                 organization,
                 get_event_stats_metrics,
-                top_events=events_per_query,
+                top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
                 params=params,
-                query=_query,
+                query=query,
             )
 
             sentry_sdk.set_tag("performance.trendsv2.stats_data", bool(stats_data))
 
-            # handle empty response
+            # Handle empty response
             if not bool(stats_data):
                 return Response(
                     {

@@ -184,8 +184,9 @@ class MetricsQueryBuilder(QueryBuilder):
         - if duration is between 3d to 30d we allow 30 minutes on the day boundaries for daily granularities
             and will fallback to hourly granularity
         - If the duration is over 30d we always use the daily granularities
+
+        In special cases granularity can be set manually bypassing the granularity calculation below.
         """
-        # TODO add comments explaining the need for custom granularity
         if self._granularity is not None:
             return Granularity(self._granularity)
 
