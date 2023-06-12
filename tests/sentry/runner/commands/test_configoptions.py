@@ -124,22 +124,6 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("list_option") == [1, 2]
         assert options.get("drifted_option") == [1, 2, 3]
 
-    def test_path(self):
-        """
-        Test we can pass a path to the configoptions script to look
-        for in the input if the `options` object is not at the root.
-        """
-        rv = self.invoke(
-            "--path=/object/data/sentry-options.yaml",
-            "patch",
-            input=Path(
-                "tests/sentry/runner/commands/valid_nested_patch.yaml",
-            ).read_text(),
-        )
-        assert rv.exit_code == 0
-        assert options.get("int_option") == 40
-        assert options.get("str_option") == "new value"
-
     def test_sync(self):
         rv = self.invoke(
             "-f",
