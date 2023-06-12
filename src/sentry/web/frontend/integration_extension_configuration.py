@@ -115,7 +115,7 @@ class IntegrationExtensionConfigurationView(BaseView):
     def map_params_to_state(self, params):
         return params
 
-    def has_one_required_feature(self, org, user):
+    def has_one_required_feature(self, org: RpcOrganizationSummary, user):
         provider = integrations.get(self.provider)
         integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
