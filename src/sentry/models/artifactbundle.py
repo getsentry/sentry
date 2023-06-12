@@ -1,6 +1,6 @@
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Optional, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -62,17 +62,20 @@ class ArtifactBundle(Model):
         db_table = "sentry_artifactbundle"
 
     @classmethod
-    def get_release_dist_pair(
+    def get_release_associations(
         cls, organization_id: int, artifact_bundle: "ArtifactBundle"
-    ) -> Tuple[Optional[str], Optional[str]]:
-        try:
-            release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
-                organization_id=organization_id, artifact_bundle=artifact_bundle
-            )[0]
+    ) -> List[Mapping[str, str]]:
+        release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+            organization_id=organization_id, artifact_bundle=artifact_bundle
+        )
 
-            return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
-        except IndexError:
-            return None, None
+        return [
+            {
+                "release": release_artifact_bundle.release_name,
+                "dist": release_artifact_bundle.dist_name or None,
+            }
+            for release_artifact_bundle in release_artifact_bundles
+        ]
 
     @classmethod
     def get_ident(cls, url, dist=None):

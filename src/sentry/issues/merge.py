@@ -6,7 +6,8 @@ from uuid import uuid4
 import rest_framework
 
 from sentry import eventstream
-from sentry.models import Activity, Group, GroupCategory, GroupStatus, Project, User
+from sentry.issues.grouptype import GroupCategory
+from sentry.models import Activity, Group, GroupStatus, Project, User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 

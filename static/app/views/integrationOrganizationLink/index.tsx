@@ -34,9 +34,11 @@ type State = AsyncView['state'] & {
   selectedOrgSlug?: string;
 };
 
+const controlSiloUrl = generateBaseControlSiloUrl();
+
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl()});
+  controlSiloApi = new Client({baseUrl: controlSiloUrl + '/api/0'});
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -145,8 +147,11 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {selectedOrgSlug} = this.state;
     const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
     this.trackInstallationStart();
+    // need to send to control silo to finish the installation
     window.location.assign(
-      `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+      `${controlSiloUrl}/extensions/${this.integrationSlug}/configure/?${urlEncode(
+        query
+      )}`
     );
   };
 

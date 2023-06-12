@@ -25,9 +25,9 @@ class TextType:
         return "text"
 
 
-class CharField(TextType, models.CharField):  # type: ignore
+class CharField(TextType, models.CharField):
     pass
 
 
-class EmailField(TextType, models.EmailField):  # type: ignore
+class EmailField(TextType, models.EmailField):
     pass
