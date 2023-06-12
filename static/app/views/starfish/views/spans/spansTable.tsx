@@ -112,15 +112,6 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
     );
   }
 
-  if (column.key === 'p95(span.duration)') {
-    return (
-      <DurationCell
-        milliseconds={row['p95(span.duration)']}
-        delta={row['percentile_percent_change(span.duration, 0.95)']}
-      />
-    );
-  }
-
   if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
@@ -135,6 +126,15 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
       <ThroughputCell
         throughputPerSecond={row['spm()']}
         delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.duration)']}
+        delta={row['percentile_percent_change(span.duration, 0.95)']}
       />
     );
   }
