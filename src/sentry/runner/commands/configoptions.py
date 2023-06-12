@@ -60,23 +60,9 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
     help="Prints the updates without applying them.",
 )
 @click.option("-f", "--file", help="File name to load. If not provided assume stdin.")
-@click.option(
-    "-p",
-    "--path",
-    help=(
-        "Path in the options file to reach the object that contains the options themselves"
-        "example: /object/data It should not contain the `options` key at the end."
-    ),
-    default="",
-)
 @click.pass_context
 @configuration
-def configoptions(
-    ctx,
-    dry_run: bool,
-    file: Optional[str],
-    path: str,
-) -> None:
+def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
@@ -115,27 +101,13 @@ def configoptions(
     ctx.obj["dry_run"] = dry_run
 
     with open(file) if file is not None else sys.stdin as stream:
-        options_map = yaml.safe_load(stream)
+        options_to_update = yaml.safe_load(stream)
 
-    path_list = path.split("/")
-
-    # The options file has an `options` root key. This is how it is produced
-    # by the scripts that generate it. So, in order to stay consistent with
-    # that we do not ask the user of this script to provide that key.
-    path_list.append("options")
-    current_path = ""
-    for key in path_list:
-        if key:
-            options_map = options_map.get(key)
-            if options_map is None:
-                click.echo(f"Invalid path. Key {key} not found in /{current_path}")
-                exit(-1)
-            current_path = current_path + "/" + key
-
-    ctx.obj["options_to_update"] = options_map
+    options_to_update = options_to_update["options"]
+    ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
-    for key, value in options_map.items():
+    for key, value in options_to_update.items():
         not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
