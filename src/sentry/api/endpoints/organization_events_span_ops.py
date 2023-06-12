@@ -8,7 +8,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import raw_snql_query
 
 
 class SpanOp(TypedDict):

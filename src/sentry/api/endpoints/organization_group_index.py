@@ -40,7 +40,6 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import (
     DEFAULT_PRIORITY_WEIGHTS,
-    V2_DEFAULT_PRIORITY_WEIGHTS,
     PrioritySortWeights,
     get_search_filter,
 )
@@ -185,56 +184,35 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             return func(val) if val is not None else default
 
-        if _coerce(request.GET.get("v2"), bool, False):
-            return {
-                "better_priority": {
-                    "log_level": _coerce(
-                        request.GET.get("logLevel"), int, V2_DEFAULT_PRIORITY_WEIGHTS["log_level"]
-                    ),
-                    "has_stacktrace": _coerce(
-                        request.GET.get("hasStacktrace"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
-                    ),
-                    "relative_volume": _coerce(
-                        request.GET.get("relativeVolume"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
-                    ),
-                    "event_halflife_hours": _coerce(
-                        request.GET.get("eventHalflifeHours"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
-                    ),
-                    "issue_halflife_hours": _coerce(
-                        request.GET.get("issueHalflifeHours"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
-                    ),
-                    "v2": True,
-                    "norm": _coerce(
-                        request.GET.get("norm"), bool, V2_DEFAULT_PRIORITY_WEIGHTS["norm"]
-                    ),
-                }
+        return {
+            "better_priority": {
+                "log_level": _coerce(
+                    request.GET.get("logLevel"), int, DEFAULT_PRIORITY_WEIGHTS["log_level"]
+                ),
+                "has_stacktrace": _coerce(
+                    request.GET.get("hasStacktrace"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
+                ),
+                "relative_volume": _coerce(
+                    request.GET.get("relativeVolume"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
+                ),
+                "event_halflife_hours": _coerce(
+                    request.GET.get("eventHalflifeHours"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
+                ),
+                "issue_halflife_hours": _coerce(
+                    request.GET.get("issueHalflifeHours"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
+                ),
+                "v2": _coerce(request.GET.get("v2"), bool, DEFAULT_PRIORITY_WEIGHTS["v2"]),
+                "norm": _coerce(request.GET.get("norm"), bool, DEFAULT_PRIORITY_WEIGHTS["norm"]),
             }
-        else:
-            return {
-                "better_priority": {
-                    "log_level": _coerce(
-                        request.GET.get("logLevel"), int, DEFAULT_PRIORITY_WEIGHTS["log_level"]
-                    ),
-                    "has_stacktrace": _coerce(
-                        request.GET.get("hasStacktrace"),
-                        int,
-                        DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
-                    ),
-                    "relative_volume": DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
-                    "event_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
-                    "issue_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
-                    "v2": False,
-                    "norm": False,
-                }
-            }
+        }
 
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None

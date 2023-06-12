@@ -47,7 +47,7 @@ jobs:
           result-encoding: string
 
       - name: Find previous dry-run comment
-        uses: peter-evans/find-comment@1769778a0c5bd330272d749d12c036d65e70d39d
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
         if: github.event_name == 'pull_request'
         id: fc
         with:

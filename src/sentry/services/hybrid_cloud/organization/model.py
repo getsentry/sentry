@@ -232,3 +232,4 @@ class RpcRegionUser(RpcModel):
 
     id: int = -1
     is_active: bool = True
+    email: Optional[str] = None
