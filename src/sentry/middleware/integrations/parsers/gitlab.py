@@ -22,7 +22,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
     webhook_identifier = WebhookProviderIdentifier.GITLAB
     _integration: Integration = None
 
-    def _get_external_id(self) -> Tuple[str, str] | HttpResponse:
+    def _resolve_external_id(self) -> Tuple[str, str] | HttpResponse:
         clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
@@ -50,7 +50,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
                 return self._integration
 
             # Webhook endpoints
-            result = self._get_external_id()
+            result = self._resolve_external_id()
             if isinstance(result, tuple):
                 (external_id, _secret) = result
                 self._integration = Integration.objects.filter(
@@ -64,7 +64,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
     def get_response(self) -> HttpResponse:
         result = resolve(self.request.path)
         if result.url_name == "sentry-extensions-gitlab-webhook":
-            maybe_http_response = self._get_external_id()
+            maybe_http_response = self._resolve_external_id()
             if isinstance(maybe_http_response, HttpResponse):
                 return maybe_http_response
 
