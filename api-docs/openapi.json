@@ -93,9 +93,6 @@
     "/api/0/teams/{organization_slug}/{team_slug}/": {
       "$ref": "paths/teams/by-slug.json"
     },
-    "/api/0/teams/{organization_slug}/{team_slug}/projects/": {
-      "$ref": "paths/teams/projects.json"
-    },
     "/api/0/teams/{organization_slug}/{team_slug}/stats/": {
       "$ref": "paths/teams/stats.json"
     },

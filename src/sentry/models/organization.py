@@ -44,6 +44,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 
 
 class OrganizationStatus(IntEnum):
@@ -323,7 +324,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": owners})
+        return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -358,7 +359,13 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             role__in=roles,
         )
         if not include_null_users:
-            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+            user_ids_with_role = members_with_role.filter(user_id__isnull=False).values_list(
+                "user_id", flat=True
+            )
+            user_ids = user_service.get_many_ids(
+                filter=dict(is_active=True, user_ids=list(user_ids_with_role))
+            )
+            members_with_role = members_with_role.filter(user_id__in=user_ids)
 
         members_with_role = set(members_with_role.values_list("id", flat=True))
 
@@ -399,11 +406,11 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
 
         logger = logging.getLogger("sentry.merge")
         for from_member in OrganizationMember.objects.filter(
-            organization=from_org, user__isnull=False
+            organization=from_org, user_id__isnull=False
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user_id=from_member.user.id
+                    organization=to_org, user_id=from_member.user_id
                 )
             except OrganizationMember.DoesNotExist:
                 with transaction.atomic():
@@ -629,7 +636,10 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             return reverse(Organization.get_url_viewname())
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.id != "member":
+        """
+        Note that scopes for team-roles are filtered through this method too.
+        """
+        if bool(NON_MEMBER_SCOPES & role.scopes):
             return role.scopes
 
         scopes = set(role.scopes)

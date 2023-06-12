@@ -11,6 +11,7 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
+import {EventType} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -89,6 +90,8 @@ export default class ReplayReader {
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
+    this.rawErrors = errors;
+
     this.sortedSpans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
       replayRecord,
@@ -104,6 +107,7 @@ export default class ReplayReader {
     this.replayRecord = replayRecord;
   }
 
+  private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
@@ -145,6 +149,8 @@ export default class ReplayReader {
     this.breadcrumbs.filter(crumb => ['console', 'issue'].includes(crumb.category || ''))
   );
 
+  getRawErrors = memoize(() => this.rawErrors);
+
   getNonConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category !== 'console')
   );
@@ -161,7 +167,7 @@ export default class ReplayReader {
 
   sdkConfig = memoize(() => {
     const found = this.rrwebEvents.find(
-      event => event.type === 5 && event.data.tag === 'options'
+      event => event.type === EventType.Custom && event.data.tag === 'options'
     ) as undefined | RecordingOptions;
     return found?.data?.payload;
   });

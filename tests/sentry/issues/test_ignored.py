@@ -11,15 +11,15 @@ from sentry.models import (
     GroupInboxReason,
     GroupSnooze,
     GroupStatus,
-    GroupSubStatus,
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 
-class HandleIgnoredTest(TestCase):  # type: ignore
+class HandleIgnoredTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
@@ -64,7 +64,7 @@ class HandleIgnoredTest(TestCase):  # type: ignore
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
-class HandleArchiveUntilEscalating(TestCase):  # type: ignore
+class HandleArchiveUntilEscalating(TestCase):
     @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
     def test_archive_until_escalating_no_counts(
         self, mock_query_groups_past_counts: MagicMock

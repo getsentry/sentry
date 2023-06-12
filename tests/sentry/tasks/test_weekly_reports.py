@@ -11,7 +11,7 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import GroupStatus, GroupSubStatus, OrganizationMember, Project, UserOption
+from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -25,6 +25,7 @@ from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -113,7 +114,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user=self.user).update(
+            OrganizationMember.objects.filter(user_id=self.user.id).update(
                 flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
             )
 

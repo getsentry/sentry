@@ -678,19 +678,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     if (canRunShortcut(token, this.filterTokens.length)) {
       switch (shortcutType) {
-        case ShortcutType.Delete: {
+        case ShortcutType.DELETE: {
           this.deleteToken();
           break;
         }
-        case ShortcutType.Negate: {
+        case ShortcutType.NEGATE: {
           this.negateToken();
           break;
         }
-        case ShortcutType.Next: {
+        case ShortcutType.NEXT: {
           this.moveToNextToken(filterTokens);
           break;
         }
-        case ShortcutType.Previous: {
+        case ShortcutType.PREVIOUS: {
           this.moveToNextToken(filterTokens.reverse());
           break;
         }
@@ -1208,7 +1208,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    */
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
-      .filter(value => value.indexOf(query) > -1)
+      .filter(value => value.includes(query))
       .map((value, i) => {
         const escapedValue = escapeValue(value);
         return {
@@ -1352,7 +1352,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const filteredSearchGroups = !preparedQuery
       ? this.state.searchGroups
       : this.state.searchGroups.filter(
-          item => item.value && item.value.indexOf(preparedQuery) !== -1
+          item => item.value && item.value.includes(preparedQuery)
         );
 
     this.setState({
@@ -1906,6 +1906,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
               trigger={props => (
                 <ActionButton
                   {...props}
+                  size="sm"
                   aria-label={t('Show more')}
                   icon={<VerticalEllipsisIcon size="xs" />}
                 />
