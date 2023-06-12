@@ -624,8 +624,26 @@ def SOCIAL_AUTH_DEFAULT_USERNAME() -> str:
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
+# Hybrid cloud multi-silo configuration
+# Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
+SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
+
+# If this instance is a region silo, which region is it running in?
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+
+# Enable siloed development environment.
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+
+# List of the available regions, or a JSON string
+# that is parsed.
+SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+
+# Fallback region name for monolith deployments
+SENTRY_MONOLITH_REGION: str = "--monolith--"
+
+
 # Queue configuration
-from kombu import Queue
+from kombu import Exchange, Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
@@ -726,13 +744,36 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_archive_issues",
 )
 
-CELERY_QUEUES = [
+default_exchange = Exchange("default", type="direct")
+control_exchange = default_exchange
+
+if USE_SILOS:
+    control_exchange = Exchange("control", type="direct")
+
+
+CELERY_QUEUES_ALL = [
+    Queue("options", routing_key="options"),
+    Queue("files.copy", routing_key="files.copy"),
+    Queue("files.delete", routing_key="files.delete"),
+]
+
+CELERY_QUEUES_CONTROL = [
+    Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
+    Queue("auth", routing_key="auth", exchange=control_exchange),
+    Queue("integrations", routing_key="integrations", exchange=control_exchange),
+    Queue(
+        "hybrid_cloud.control_repair",
+        routing_key="hybrid_cloud.control_repair",
+        exchange=control_exchange,
+    ),
+]
+
+CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
-    Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
@@ -769,8 +810,6 @@ CELERY_QUEUES = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
-    Queue("files.copy", routing_key="files.copy"),
-    Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
@@ -786,9 +825,7 @@ CELERY_QUEUES = [
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
-    Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
-    Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
@@ -817,23 +854,16 @@ CELERY_QUEUES = [
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
-    Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
 ]
 
-for queue in CELERY_QUEUES:
-    queue.durable = False
-
-
 from celery.schedules import crontab
-
-CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
 
 # Only tasks that work with users/integrations and shared subsystems
 # are run in control silo.
-CONTROL_CELERYBEAT_SCHEDULE = {
+CELERYBEAT_SCHEDULE_CONTROL = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
@@ -881,7 +911,7 @@ CONTROL_CELERYBEAT_SCHEDULE = {
 }
 
 # Most tasks run in the regions
-REGION_CELERYBEAT_SCHEDULE = {
+CELERYBEAT_SCHEDULE_REGION = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
         # Run every hour
@@ -1076,9 +1106,25 @@ REGION_CELERYBEAT_SCHEDULE = {
     },
 }
 
-# Assume we're in monolith mode and need to run all the tasks.
-# We reassign this after figuring out the silo mode later in this module.
-CELERYBEAT_SCHEDULE = {**CONTROL_CELERYBEAT_SCHEDULE, **REGION_CELERYBEAT_SCHEDULE}
+# Assign the configuration keys celery uses based on our silo mode.
+if SILO_MODE == SiloMode.CONTROL.value:
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
+    CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
+    CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+
+elif SILO_MODE == SiloMode.REGION.value:
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
+    CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
+
+else:
+    CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+
+for queue in CELERY_QUEUES:
+    queue.durable = False
+
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
@@ -3354,7 +3400,6 @@ SENTRY_FUNCTIONS_PROJECT_NAME = None
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
 # Settings related to SiloMode
-SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
@@ -3363,18 +3408,14 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
-SENTRY_MONOLITH_REGION: str = "--monolith--"
-
-# Enable siloed development environment.
-USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
-
 if USE_SILOS:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
 
+    # TODO(hybridcloud) Having a region connection is going to require
+    # a ton of changes to transaction.atomic(). We should use control + default
+    # instead.
     DATABASES["region"] = DATABASES["default"].copy()
     DATABASES["region"]["NAME"] = "region"
 
@@ -3400,15 +3441,6 @@ if USE_SILOS:
         }
     )
     DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
-
-
-# Now that we know the silo assignment choose the task set to run
-# if we aren't in monolith mode.
-if SILO_MODE == SiloMode.CONTROL:
-    CELERYBEAT_SCHEDULE = CONTROL_CELERYBEAT_SCHEDULE
-
-if SILO_MODE == SiloMode.REGION:
-    CELERYBEAT_SCHEDULE = REGION_CELERYBEAT_SCHEDULE
 
 
 # How long we should wait for a gateway proxy request to return before giving up
