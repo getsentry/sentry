@@ -484,7 +484,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     },
                 ],
                 "type": MonitorCheckInMissed.type_id,
-                "level": "warning",
+                "level": "error",
                 "culprit": "",
             },
         ) == dict(occurrence)

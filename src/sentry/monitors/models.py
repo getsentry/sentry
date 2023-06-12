@@ -592,7 +592,8 @@ class MonitorEnvironment(Model):
 
 def get_group_type_and_level(reason: str):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        return MonitorCheckInMissed, "warning"
+        # TODO(rjo100): use error for now to prevent ungrouping
+        return MonitorCheckInMissed, "error"
     elif reason == MonitorFailure.DURATION:
         return MonitorCheckInTimeout, "error"
 
