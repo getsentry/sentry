@@ -19,7 +19,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 class ProfilesHealthChecker(HealthChecker):
     def __init__(self):
-        self.last_check = 0
+        self.last_check: float = 0
         # Queue is healthy by default
         self.is_queue_healthy = True
 
