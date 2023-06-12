@@ -3,14 +3,16 @@ import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 import moment from 'moment';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconFire} from 'sentry/icons/iconFire';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {getFormattedDate} from 'sentry/utils/dates';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,85 +40,6 @@ export default function FailureDetailPanel({
 
   const hasStartAndEnd = spike?.startTimestamp && spike.endTimestamp;
 
-  function renderStatsOverview() {
-    const transactionCountQuery: NewQuery = {
-      name: t('Transaction Event Count'),
-      projects: [],
-      start: spike?.startTimestamp
-        ? new Date(spike?.startTimestamp).toUTCString()
-        : undefined,
-      end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
-      range: !hasStartAndEnd
-        ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
-        : undefined,
-      fields: ['count_if(http.status_code,greaterOrEquals,500)'],
-      query: 'event.type:transaction',
-      version: 2,
-    };
-
-    const errorCountQuery: NewQuery = {
-      name: t('Error Event Count'),
-      projects: [],
-      start: spike?.startTimestamp
-        ? new Date(spike?.startTimestamp).toUTCString()
-        : undefined,
-      end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
-      range: !hasStartAndEnd
-        ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
-        : undefined,
-      fields: ['count()'],
-      query: 'event.type:error',
-      version: 2,
-    };
-
-    return (
-      <OverviewStatsSection>
-        <StatBlock>
-          <SectionHeading>{t('Transaction Events')}</SectionHeading>
-          <DiscoverQuery
-            eventView={EventView.fromNewQueryWithLocation(
-              transactionCountQuery,
-              location
-            )}
-            orgSlug={organization.slug}
-            location={location}
-            referrer="api.starfish.failure-event-list"
-            queryExtras={{dataset: 'discover'}}
-          >
-            {({isLoading, tableData}) => (
-              <StatValue>
-                {isLoading
-                  ? '—'
-                  : tableData?.data[0]['count_if(http.status_code,greaterOrEquals,500)']}
-              </StatValue>
-            )}
-          </DiscoverQuery>
-        </StatBlock>
-        <StatBlock>
-          <SectionHeading>{t('Error Events')}</SectionHeading>
-          <DiscoverQuery
-            eventView={EventView.fromNewQueryWithLocation(errorCountQuery, location)}
-            orgSlug={organization.slug}
-            location={location}
-            referrer="api.starfish.failure-event-list"
-            queryExtras={{dataset: 'discover'}}
-          >
-            {({isLoading, tableData}) => (
-              <StatValue>{isLoading ? '—' : tableData?.data[0]['count()']}</StatValue>
-            )}
-          </DiscoverQuery>
-        </StatBlock>
-        <StatBlock>
-          <SectionHeading>{t('Users')}</SectionHeading>
-          {/** TODO: We need a count_unique_if() function to get the number of users who were affected by 5xx events
-           * Need to implement this in Discover in the future, let's do this later.
-           */}
-          <StatValue>—</StatValue>
-        </StatBlock>
-      </OverviewStatsSection>
-    );
-  }
-
   const newQuery: NewQuery = {
     name: t('Failure Sample'),
     projects: [],
@@ -124,83 +47,87 @@ export default function FailureDetailPanel({
       ? new Date(spike?.startTimestamp).toUTCString()
       : undefined,
     end: spike?.endTimestamp ? new Date(spike?.endTimestamp).toUTCString() : undefined,
+    dataset: DiscoverDatasets.METRICS,
     range: !hasStartAndEnd
       ? decodeScalar(location.query.statsPeriod) || DEFAULT_STATS_PERIOD
       : undefined,
-    fields: [
-      'transaction',
-      'count_if(http.status_code,greaterOrEquals,500)',
-      'equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))',
-      'http.method',
-      'count_if(http.status_code,equals,200)',
-    ],
+    fields: ['transaction', 'http_error_count()', 'http.method'],
     query:
-      'event.type:transaction has:http.method transaction.op:http.server count_if(http.status_code,greaterOrEquals,500):>0',
+      'event.type:transaction has:http.method transaction.op:http.server http_error_count():>0',
     version: 2,
   };
-  newQuery.orderby = '-count_if_http_status_code_greaterOrEquals_500';
+  newQuery.orderby = '-http_error_count';
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
   return (
     <Detail detailKey={spike?.startTimestamp.toString()} onClose={onClose}>
-      <TimeRangeHeading>{`${moment(spike?.startTimestamp).format(
-        'MMMM Do YYYY, h:mm:ss a'
-      )} - ${moment(spike?.endTimestamp).format(
-        'MMMM Do YYYY, h:mm:ss a'
-      )}`}</TimeRangeHeading>
-      <h4>{t('Error Spike Detail')}</h4>
-
+      <Section>
+        <IconFire color="errorText" size="lg" />
+        <PanelTitle>{t('Web Service')}</PanelTitle>
+      </Section>
       {spike && (
-        <DiscoverQuery
-          eventView={eventView}
-          orgSlug={organization.slug}
-          location={location}
-          referrer="api.starfish.failure-event-list"
-          queryExtras={{dataset: 'discover'}}
-          limit={5}
-        >
-          {results => {
-            const transactions = results?.tableData?.data.map(row => row.transaction);
-            return (
-              <Fragment>
-                {renderStatsOverview()}
-                <FocusedFailureRateChart data={chartData} spike={spike} />
-                <Title>{t('Failing Endpoints')}</Title>
-                <FailureDetailTable
-                  {...results}
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                />
+        <Fragment>
+          <Section>
+            <StatBlock>
+              <SectionHeading>{t('Regression Metric')}</SectionHeading>
+              <StatValue>{t('5xx Responses')}</StatValue>
+            </StatBlock>
+            <StatBlock>
+              <SectionHeading>{t('Start Time')}</SectionHeading>
+              <StatValue>
+                {getFormattedDate(moment(spike.startTimestamp), 'MMM D, YYYY LT')}
+              </StatValue>
+            </StatBlock>
+          </Section>
+          <DiscoverQuery
+            eventView={eventView}
+            orgSlug={organization.slug}
+            location={location}
+            referrer="api.starfish.failure-event-list"
+            limit={5}
+          >
+            {results => {
+              const transactions = results?.tableData?.data.map(row => row.transaction);
+              return (
+                <Fragment>
+                  <FocusedFailureRateChart data={chartData} spike={spike} />
+                  <Title>{t('Failing Endpoints')}</Title>
+                  <FailureDetailTable
+                    {...results}
+                    location={location}
+                    organization={organization}
+                    eventView={eventView}
+                    spike={spike}
+                  />
 
-                <Title>{t('Related Issues')}</Title>
-                <IssueTable
-                  location={location}
-                  organization={organization}
-                  isLoading={results.isLoading}
-                  spike={spike}
-                  transactions={transactions as string[]}
-                />
-              </Fragment>
-            );
-          }}
-        </DiscoverQuery>
+                  <Title>{t('Related Issues')}</Title>
+                  <IssueTable
+                    location={location}
+                    organization={organization}
+                    isLoading={results.isLoading}
+                    spike={spike}
+                    transactions={transactions as string[]}
+                  />
+                </Fragment>
+              );
+            }}
+          </DiscoverQuery>
+        </Fragment>
       )}
     </Detail>
   );
 }
 
+const PanelTitle = styled('h4')`
+  margin-left: ${space(1)};
+`;
+
 const Title = styled('h5')`
   margin-bottom: ${space(1)};
 `;
 
-const TimeRangeHeading = styled('div')`
-  color: ${p => p.theme.red300};
-  margin-bottom: ${space(4)};
-`;
-
-const OverviewStatsSection = styled('div')`
+const Section = styled('div')`
   display: flex;
   flex-direction: row;
   margin-bottom: ${space(2)};
@@ -216,4 +143,15 @@ const StatBlock = styled('div')`
 const StatValue = styled('div')`
   font-weight: 400;
   font-size: 22px;
+`;
+
+const SectionHeading = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  align-items: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: bold;
+  margin: ${space(1)} 0 0 0;
 `;

@@ -528,7 +528,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[self._second_half_condition],
+            extra_conditions=[self._second_half_condition()],
         )
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
@@ -552,13 +552,26 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_percent_change_function(self, first_half, second_half, alias):
         return Function(
-            "divide",
+            "if",
             [
                 Function(
-                    "minus",
-                    [second_half, first_half],
+                    "greater",
+                    [
+                        first_half,
+                        0,
+                    ],
                 ),
-                first_half,
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "minus",
+                            [second_half, first_half],
+                        ),
+                        first_half,
+                    ],
+                ),
+                None,
             ],
             alias,
         )

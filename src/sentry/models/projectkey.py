@@ -150,7 +150,7 @@ class ProjectKey(Model):
         if not self.secret_key:
             self.secret_key = ProjectKey.generate_api_key()
         if not self.label:
-            self.label = petname.Generate(2, " ", letters=10).title()
+            self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
