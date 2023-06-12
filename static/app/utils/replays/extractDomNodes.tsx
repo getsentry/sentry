@@ -73,9 +73,7 @@ function _extractDomNodes({
           crumbs,
           isFinished: isLastRRWebEvent,
           onFinish: rows => {
-            // if (isMounted) {
             resolve(rows);
-            // }
             setTimeout(() => {
               if (document.body.contains(domRoot)) {
                 document.body.removeChild(domRoot);
