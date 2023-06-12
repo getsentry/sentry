@@ -295,7 +295,7 @@ export function Provider({
     []
   );
 
-  const setCurrentTime = useCallback(
+  const privateSetCurrentTime = useCallback(
     (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
       if (!replayer) {
@@ -335,6 +335,14 @@ export function Provider({
     [getCurrentTime, isPlaying]
   );
 
+  const setCurrentTime = useCallback(
+    (requestedTimeMs: number) => {
+      privateSetCurrentTime(requestedTimeMs);
+      clearAllHighlightsCallback();
+    },
+    [privateSetCurrentTime, clearAllHighlightsCallback]
+  );
+
   const applyInitialOffset = useCallback(() => {
     if (
       !didUseInitialOffset.current &&
@@ -344,7 +352,7 @@ export function Provider({
     ) {
       const {highlight: highlightArgs, offsetMs} = initialTimeOffsetMs;
       if (offsetMs) {
-        setCurrentTime(offsetMs);
+        privateSetCurrentTime(offsetMs);
       }
       if (highlightArgs) {
         highlight(highlightArgs);
@@ -359,9 +367,11 @@ export function Provider({
     clearAllHighlightsCallback,
     events,
     highlight,
-    setCurrentTime,
     initialTimeOffsetMs,
+    privateSetCurrentTime,
   ]);
+
+  useEffect(clearAllHighlightsCallback, [clearAllHighlightsCallback, isPlaying]);
 
   const initRoot = useCallback(
     (root: RootElem) => {
@@ -468,14 +478,13 @@ export function Provider({
         replayer.pause(getCurrentTime());
       }
       setIsPlaying(play);
-      clearAllHighlightsCallback();
       trackAnalytics('replay.play-pause', {
         organization,
         user_email: config.user.email,
         play,
       });
     },
-    [clearAllHighlightsCallback, getCurrentTime, config.user.email, organization]
+    [getCurrentTime, config.user.email, organization]
   );
 
   useEffect(() => {
@@ -499,9 +508,8 @@ export function Provider({
     if (replayerRef.current) {
       replayerRef.current.play(0);
       setIsPlaying(true);
-      clearAllHighlightsCallback();
     }
-  }, [clearAllHighlightsCallback]);
+  }, []);
 
   const toggleSkipInactive = useCallback((skip: boolean) => {
     const replayer = replayerRef.current;
