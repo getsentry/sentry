@@ -20,11 +20,8 @@ export function DurationComparisonCell({duration, p95}: Props) {
   return <ComparisonLabel value={diff}>{labelString}</ComparisonLabel>;
 }
 
-export const PlaintextLabel = styled('div')`
-  text-align: right;
-`;
+export const PlaintextLabel = styled('div')``;
 
-export const ComparisonLabel = styled('div')<{value: number}>`
-  text-align: right;
+export const ComparisonLabel = styled('span')<{value: number}>`
   color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
 `;
