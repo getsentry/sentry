@@ -1,54 +1,56 @@
-from threading import Thread
-from time import sleep
+from time import time
 from typing import Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies.abstract import (
-    MessageRejected,
-    ProcessingStrategy,
-    ProcessingStrategyFactory,
-)
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
+from sentry import options
 from sentry.monitoring.queues import is_queue_healthy, monitor_queues
+from sentry.processing.backpressure.arroyo import create_backpressure_step
 from sentry.profiles.task import process_profile_task
-
-was_queue_healthy = True
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-    if not was_queue_healthy:
-        raise MessageRejected()
     process_profile_task.s(payload=message.payload.value).apply_async()
 
 
-def _run_backpressure_updater() -> None:
-    global was_queue_healthy
-    while True:
-        was_queue_healthy = is_queue_healthy("profiles.process")
-        sleep(5)
+class ProfilesHealthCheck:
+    def __init__(self):
+        self.last_check = 0
+        # Queue is healthy by default
+        self.is_queue_healthy = True
 
-
-def check_for_backpressure() -> None:
-    Thread(
-        target=_run_backpressure_updater,
-    ).start()
+    def is_healthy(self):
+        now = time()
+        # Check queue health if it's been more than the interval
+        if now - self.last_check >= options.get(
+            "backpressure.monitor_queues.check_interval_in_seconds"
+        ):
+            self.is_queue_healthy = is_queue_healthy("profiles.process")
+            # We don't count the time it took to check as part of the interval
+            self.last_check = now
+        return self.is_queue_healthy
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self) -> None:
+    def __init__(self, health_checker) -> None:
         super().__init__()
+        self.health_checker = health_checker
         monitor_queues()
-        check_for_backpressure()
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTask(
+        next_step = RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
+        )
+        return create_backpressure_step(
+            health_checker=self.health_checker,
+            next_step=next_step,
         )

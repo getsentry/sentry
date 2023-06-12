@@ -51,6 +51,7 @@ class TestMonitoringQueues(TestCase):
         with self.options(  # type: ignore[attr-defined]
             {
                 "backpressure.monitor_queues.enable_check": True,
+                "backpressure.monitor_queues.check_interval_in_seconds": 0,
                 "backpressure.monitor_queues.unhealthy_threshold": 0,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -67,6 +68,7 @@ class TestMonitoringQueues(TestCase):
         with self.options(  # type: ignore[attr-defined]
             {
                 "backpressure.monitor_queues.enable_check": True,
+                "backpressure.monitor_queues.check_interval_in_seconds": 0,
                 "backpressure.monitor_queues.unhealthy_threshold": 1000,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
