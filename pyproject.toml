@@ -1660,7 +1660,6 @@ module = [
     "tests.sentry.utils.locking.backends.test_redis",
     "tests.sentry.utils.suspect_resolutions.test_get_suspect_resolutions",
     "tests.sentry.utils.suspect_resolutions.test_metric_correlation",
-    "tests.sentry.utils.test_assets",
     "tests.sentry.utils.test_audit",
     "tests.sentry.utils.test_auth",
     "tests.sentry.utils.test_committers",
