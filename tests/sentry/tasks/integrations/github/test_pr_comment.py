@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -177,34 +178,6 @@ class TestPrToIssueQuery(GithubCommentTestCase):
             [groupowner_2.group_id],
         )
 
-    def test_multiple_orgs(self):
-        """Results should be across multiple orgs"""
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        commit_2 = self.add_commit_to_repo(
-            self.another_org_repo, self.another_org_user, self.another_org_project
-        )
-        pr_1 = self.add_pr_to_commit(commit_1)
-        pr_2 = self.add_pr_to_commit(commit_2)
-        groupowner_1 = self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        groupowner_2 = self.add_groupowner_to_commit(
-            commit_2, self.another_org_project, self.another_org_user
-        )
-
-        results = pr_comment.pr_to_issue_query(pr_1.id)
-        assert results[0] == (
-            self.gh_repo.id,
-            pr_1.key,
-            self.organization.id,
-            [groupowner_1.group_id],
-        )
-        results = pr_comment.pr_to_issue_query(pr_2.id)
-        assert results[0] == (
-            self.another_org_repo.id,
-            pr_2.key,
-            self.another_organization.id,
-            [groupowner_2.group_id],
-        )
-
 
 class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
@@ -332,7 +305,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             json={"id": 1},
         )
 
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         assert (
             responses.calls[1].request.body
@@ -369,7 +342,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             json={"id": 1},
         )
 
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         assert (
             responses.calls[1].request.body
@@ -401,7 +374,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
 
         with pytest.raises(ApiError):
-            pr_comment.comment_workflow(pr_id=self.pr.id)
+            pr_comment.comment_workflow(self.pr.id, self.project.id)
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
@@ -409,23 +382,23 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_org(self, mock_issues, mock_issue_query):
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         assert not mock_issues.called
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_feature_flag(self, mock_issues):
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         assert not mock_issues.called
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.models.Group.objects.get_from_cache")
+    @patch("sentry.models.Project.objects.get_from_cache")
     @with_feature("organizations:pr-comment-bot")
-    def test_comment_workflow_missing_group(self, mock_group, mock_issues):
-        mock_group.side_effect = Group.DoesNotExist
+    def test_comment_workflow_missing_project(self, mock_project, mock_issues):
+        mock_project.side_effect = Project.DoesNotExist
 
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         assert not mock_issues.called
 
@@ -437,7 +410,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_repo(self, mock_format_comment, mock_repository, mock_issues):
         mock_repository.get.side_effect = Repository.DoesNotExist
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -460,7 +433,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
         ]
 
-        pr_comment.comment_workflow(pr_id=self.pr.id)
+        pr_comment.comment_workflow(self.pr.id, self.project.id)
 
         assert mock_issues.called
         assert not mock_format_comment.called

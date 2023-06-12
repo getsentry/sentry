@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -9,6 +11,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
+from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models import Group, GroupOwnerType, Project
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestComment
@@ -53,7 +56,7 @@ def format_comment(issues: List[PullRequestIssue]):
     return COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
 
 
-def pr_to_issue_query(pr_id):
+def pr_to_issue_query(pr_id: int):
     with connection.cursor() as cursor:
         cursor.execute(
             f"""
@@ -109,13 +112,45 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
+def create_or_update_comment(
+    pr_comment: PullRequestComment | None,
+    client: GitHubAppsClient,
+    repo: Repository,
+    pr_key: int,
+    comment_body: str,
+    pullrequest_id: int,
+    issue_list: List[int],
+):
+    # client will raise ApiError if the request is not successful
+    if pr_comment is None:
+        resp = client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+
+        current_time = timezone.now()
+        PullRequestComment.objects.create(
+            external_id=resp.body["id"],
+            pull_request_id=pullrequest_id,
+            created_at=current_time,
+            updated_at=current_time,
+            group_ids=issue_list,
+        )
+    else:
+        client.update_comment(
+            repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
+        )
+
+        pr_comment.updated_at = timezone.now()
+        pr_comment.group_ids = issue_list
+        pr_comment.save()
+
+
 @instrumented_task(name="sentry.tasks.integrations.github_pr_comments")
-def comment_workflow(pr_id):
-    gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pr_id)[0]
+def comment_workflow(pullrequest_id: int, project_id: int):
+    gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pullrequest_id)[0]
 
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
+        # TODO(cathy): release the cache key even after exceptions
         logger.error("github.pr_comment.org_missing")
         return
 
@@ -124,14 +159,14 @@ def comment_workflow(pr_id):
         return
 
     pr_comment = None
-    pr_comment_query = PullRequestComment.objects.filter(pull_request__id=pr_id)
+    pr_comment_query = PullRequestComment.objects.filter(pull_request__id=pullrequest_id)
     if pr_comment_query.exists():
         pr_comment = pr_comment_query[0]
 
     try:
-        project = Group.objects.get_from_cache(id=issue_list[0]).project
-    except Group.DoesNotExist:
-        logger.error("github.pr_comment.group_missing", extra={"organization_id": org_id})
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.error("github.pr_comment.project_missing", extra={"organization_id": org_id})
         return
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
@@ -154,27 +189,12 @@ def comment_workflow(pr_id):
     )
 
     # GitHubAppsClient (GithubClientMixin)
+    # TODO(cathy): create helper function to fetch client for repo
     client = installation.get_client()
 
     comment_body = format_comment(issue_comment_contents)
 
-    # client raises ApiError if the request is not successful
-    if pr_comment is None:
-        resp = client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
-
-        current_time = timezone.now()
-        PullRequestComment.objects.create(
-            external_id=resp.body["id"],
-            pull_request_id=pr_id,
-            created_at=current_time,
-            updated_at=current_time,
-            group_ids=top_5_issue_ids,
-        )
-    else:
-        client.update_comment(
-            repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
-        )
-
-        pr_comment.updated_at = timezone.now()
-        pr_comment.group_ids = top_5_issue_ids
-        pr_comment.save()
+    top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
+    create_or_update_comment(
+        pr_comment, client, repo, pr_key, comment_body, pullrequest_id, top_24_issues
+    )
