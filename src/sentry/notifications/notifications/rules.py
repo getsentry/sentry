@@ -167,7 +167,7 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
+        if len(self.rules) > 0:
             context["snooze_alert"] = True
             context[
                 "snooze_alert_url"
