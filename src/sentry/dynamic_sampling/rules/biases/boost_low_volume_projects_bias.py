@@ -5,7 +5,7 @@ from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, R
 from sentry.models import Project
 
 
-class UniformBias(Bias):
+class BoostLowVolumeProjectsBias(Bias):
     def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
         return [
             {
@@ -18,6 +18,6 @@ class UniformBias(Bias):
                     "op": "and",
                     "inner": [],
                 },
-                "id": RESERVED_IDS[RuleType.UNIFORM_RULE],
+                "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE],
             }
         ]

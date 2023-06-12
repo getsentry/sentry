@@ -494,7 +494,7 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
 )
 def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
@@ -506,8 +506,8 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     get_transactions_resampling_rates.return_value = {
         "t1": t1_rate,
     }, implicit_rate
-    boost_low_transactions_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS]
-    uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
+    boost_low_transactions_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE]
+    uniform_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE]
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -567,7 +567,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
 @pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
 )
 def test_low_volume_transactions_rules_not_returned_when_inactive(
     get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
@@ -576,7 +576,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     get_transactions_resampling_rates.return_value = {
         "t1": 0.7,
     }, 0.037
-    uniform_id = RESERVED_IDS[RuleType.UNIFORM_RULE]
+    uniform_id = RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE]
 
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -585,7 +585,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
             {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
             {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
             {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
@@ -622,7 +622,7 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
             {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
             {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
             {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
@@ -656,7 +656,7 @@ def test_generate_rules_return_boost_replay_id(get_blended_sample_rate, default_
             {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
             {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
             {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
         ],
     )
 

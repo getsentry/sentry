@@ -51,7 +51,7 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
                 {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
                 {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
                 {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+                {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
