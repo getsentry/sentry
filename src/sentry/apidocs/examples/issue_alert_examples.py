@@ -7,5 +7,6 @@ class IssueAlertExamples:
             "Successful response",
             value={},
             status_codes=["200"],
+            response_only=True,
         )
     ]

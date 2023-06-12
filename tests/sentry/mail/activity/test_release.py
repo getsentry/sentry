@@ -8,13 +8,14 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import ActivityTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ReleaseTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()
@@ -104,14 +105,14 @@ class ReleaseTestCase(ActivityTestCase):
 
         context = email.get_context()
         assert context["environment"] == "production"
-        assert [(c, u.id) for c, u in context["repos"][0]["commits"]] == [
+        assert context["repos"][0]["commits"] == [
             (
                 self.commit4,
-                self.user5.id,
+                user_service.get_user(user_id=self.user5.id).by_email(self.user5_alt_email),
             ),
-            (self.commit3, self.user4.id),
-            (self.commit2, self.user2.id),
-            (self.commit1, self.user1.id),
+            (self.commit3, user_service.get_user(user_id=self.user4.id)),
+            (self.commit2, user_service.get_user(user_id=self.user2.id)),
+            (self.commit1, user_service.get_user(user_id=self.user1.id)),
         ]
 
         user_context = email.get_recipient_context(RpcActor.from_orm_user(self.user1), {})
