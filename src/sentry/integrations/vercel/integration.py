@@ -15,6 +15,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.models import (
+    Integration,
     Organization,
     Project,
     ProjectKey,
@@ -25,6 +26,7 @@ from sentry.models import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -359,7 +361,9 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self, integration: Integration, organization: RpcOrganizationSummary, extra=None
+    ):
         # check if we have an Vercel internal installation already
         if SentryAppInstallationForProvider.objects.filter(
             organization_id=organization.id, provider="vercel"
