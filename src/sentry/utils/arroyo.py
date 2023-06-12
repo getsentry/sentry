@@ -8,6 +8,9 @@ from arroyo.backends.kafka.consumer import KafkaConsumer
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.run_task_with_multiprocessing import (
+    RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
+)
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
 from arroyo.types import FilteredPayload, Message, Topic, TStrategyPayload
 from arroyo.utils.metrics import Metrics
@@ -99,14 +102,20 @@ def _initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
-class RunTaskWithMultiprocessing(ProcessingStrategy[Union[FilteredPayload, TStrategyPayload]]):
+class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
+    """
+    A variant of arroyo's RunTaskWithMultiprocessing that initializes Sentry
+    for you, and ensures global metric tags in the subprocess are inherited
+    from the main process.
+    """
+
     def __new__(
         cls,
         *function: Callable[[Message[TStrategyPayload]], TResult],
         next_step: ProcessingStrategy[Union[FilteredPayload, TResult]],
         initializer: Optional[Callable[[], None]] = None,
         **kwargs: Any,
-    ) -> RunTaskWithMultiprocessing[Union[FilteredPayload, TStrategyPayload]]:
+    ) -> RunTaskWithMultiprocessing:
 
         from django.conf import settings
 
