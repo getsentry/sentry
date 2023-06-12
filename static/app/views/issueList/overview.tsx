@@ -156,6 +156,7 @@ type BetterPriorityEndpointParams = Partial<EndpointParams> & {
   norm?: boolean;
   relativeVolume?: number;
   v2?: boolean;
+  variant?: string;
 };
 
 class IssueListOverview extends Component<Props, State> {
