@@ -223,6 +223,7 @@ default_manager.add("organizations:issue-states", OrganizationFeature, FeatureHa
 default_manager.add("organizations:remove-mark-reviewed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:event-attachments", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:global-views", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:getting-started-doc-with-product-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:incidents", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
