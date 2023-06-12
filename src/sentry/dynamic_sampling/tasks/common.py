@@ -1,71 +1,110 @@
 import logging
 import math
-from datetime import timedelta
-from typing import Dict, Optional, Sequence, Tuple
+import time
+from datetime import datetime, timedelta
+from typing import Generator, List, Optional, Tuple
 
 import sentry_sdk
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
-from sentry import options, quotas
-from sentry.dynamic_sampling.models.base import ModelType
-from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
-from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
-from sentry.dynamic_sampling.prioritise_transactions import (
-    ProjectTransactions,
-    fetch_project_transaction_totals,
-    fetch_transactions_with_total_volumes,
-    get_orgs_with_project_counts,
-    transactions_zip,
+from sentry import quotas
+from sentry.dynamic_sampling.rules.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
+    MAX_ORGS_PER_QUERY,
+    MAX_PROJECTS_PER_QUERY,
+    MAX_SECONDS,
 )
-from sentry.dynamic_sampling.recalibrate_transactions import (
-    OrganizationDataVolume,
-    fetch_org_volumes,
-)
-from sentry.dynamic_sampling.rules.base import (
-    is_sliding_window_enabled,
-    is_sliding_window_org_enabled,
-)
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_prioritise_by_project_cache_key,
-    get_prioritise_by_project_sample_rate,
-)
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
-    set_transactions_resampling_rates,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import (
-    SLIDING_WINDOW_CALCULATION_ERROR,
-    extrapolate_monthly_volume,
-    generate_sliding_window_cache_key,
-    generate_sliding_window_org_cache_key,
-    get_sliding_window_org_sample_rate,
-    get_sliding_window_sample_rate,
-    get_sliding_window_size,
-    mark_sliding_window_executed,
-    mark_sliding_window_org_executed,
-)
-from sentry.dynamic_sampling.rules.utils import (
-    DecisionDropCount,
-    DecisionKeepCount,
-    OrganizationId,
-    ProjectId,
-    adjusted_factor,
-    generate_cache_key_rebalance_factor,
-    get_redis_client_for_ds,
-)
-from sentry.dynamic_sampling.sliding_window import (
-    fetch_orgs_with_total_root_transactions_count,
-    fetch_projects_with_total_root_transactions_count,
-)
-from sentry.dynamic_sampling.snuba_utils import (
-    get_active_orgs,
-    get_orgs_with_project_counts_without_modulo,
-)
-from sentry.models import Organization, Project
-from sentry.tasks.base import instrumented_task
-from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import metrics
+from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
+from sentry.sentry_metrics import indexer
+from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.referrer import Referrer
+from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
+
+
+def get_active_orgs_with_projects_counts(
+    max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: int = MAX_PROJECTS_PER_QUERY
+) -> Generator[List[int], None, None]:
+    """
+    Fetch organisations in batches.
+    A batch will return at max max_orgs elements
+    It will accumulate org ids in the list until either it accumulates max_orgs or the
+    number of projects in the already accumulated orgs is more than max_projects or there
+    are no more orgs
+    """
+    start_time = time.time()
+    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+    offset = 0
+    last_result: List[Tuple[int, int]] = []
+    while (time.time() - start_time) < MAX_SECONDS:
+        query = (
+            Query(
+                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                select=[
+                    Function("uniq", [Column("project_id")], "num_projects"),
+                    Column("org_id"),
+                ],
+                groupby=[
+                    Column("org_id"),
+                ],
+                where=[
+                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=1)),
+                    Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                    Condition(Column("metric_id"), Op.EQ, metric_id),
+                ],
+                granularity=Granularity(3600),
+                orderby=[
+                    OrderBy(Column("org_id"), Direction.ASC),
+                ],
+            )
+            .set_limit(CHUNK_SIZE + 1)
+            .set_offset(offset)
+        )
+        request = Request(
+            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+        )
+        data = raw_snql_query(
+            request,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
+        )["data"]
+        count = len(data)
+        more_results = count > CHUNK_SIZE
+        offset += CHUNK_SIZE
+        if more_results:
+            data = data[:-1]
+        for row in data:
+            last_result.append((row["org_id"], row["num_projects"]))
+
+        first_idx = 0
+        count_projects = 0
+        for idx, (org_id, num_projects) in enumerate(last_result):
+            count_projects += num_projects
+            if idx - first_idx >= max_orgs - 1 or count_projects >= max_projects:
+                # we got to the number of elements desired
+                yield [o for o, _ in last_result[first_idx : idx + 1]]
+                first_idx = idx + 1
+                count_projects = 0
+
+        # keep what is left unused from last_result for the next iteration or final result
+        last_result = last_result[first_idx:]
+        if not more_results:
+            break
+    if len(last_result) > 0:
+        yield [org_id for org_id, _ in last_result]
 
 
 def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
@@ -92,3 +131,55 @@ def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
         return False
 
     return math.isclose(a, b)
+
+
+def compute_guarded_sliding_window_sample_rate(
+    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+) -> Optional[float]:
+    """
+    Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
+    any problem would arise.
+    """
+    try:
+        # We want to compute the sliding window sample rate by considering a window of time.
+        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
+        return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
+def compute_sliding_window_sample_rate(
+    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+) -> Optional[float]:
+    """
+    Computes the actual sample rate for the sliding window given the total root count and the size of the
+    window that was used for computing the root count.
+
+    The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
+    enabled in the first place for that project.
+    """
+    extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+    if extrapolated_volume is None:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("org_id", org_id)
+            scope.set_extra("window_size", window_size)
+            sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")
+
+        return None
+
+    # We want to log the monthly volume for observability purposes.
+    log_extrapolated_monthly_volume(
+        org_id, project_id, total_root_count, extrapolated_volume, window_size
+    )
+
+    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
+    if sampling_tier is None:
+        return None
+
+    # We unpack the tuple containing the sampling tier information in the form (volume, sample_rate). This is done
+    # under the assumption that the sampling_tier tuple contains both non-null values.
+    _, sample_rate = sampling_tier
+
+    # We assume that the sample_rate is a float.
+    return float(sample_rate)

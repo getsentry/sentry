@@ -998,12 +998,12 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
     "dynamic-sampling-prioritize-transactions": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },

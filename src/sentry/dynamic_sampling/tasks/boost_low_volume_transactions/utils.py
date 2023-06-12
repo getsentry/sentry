@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
 
 from snuba_sdk import (
@@ -19,6 +19,11 @@ from snuba_sdk import (
 )
 
 from sentry import options
+from sentry.dynamic_sampling.tasks.constants import (
+    BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+    CHUNK_SIZE,
+    MAX_SECONDS,
+)
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -26,10 +31,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
-MAX_SECONDS = 60
-CHUNK_SIZE = 9998  # Snuba's limit is 10000 and we fetch CHUNK_SIZE+1
-# Controls the time range on which data is collected
-QUERY_TIME_INTERVAL = timedelta(hours=1)
 
 
 class ProjectIdentity(TypedDict, total=True):
@@ -108,7 +109,11 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
                     Column("org_id"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(
+                        Column("timestamp"),
+                        Op.GTE,
+                        datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                 ]
@@ -184,7 +189,11 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
                     Column("project_id"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(
+                        Column("timestamp"),
+                        Op.GTE,
+                        datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                     Condition(Column("org_id"), Op.IN, org_ids),
@@ -282,7 +291,11 @@ def fetch_transactions_with_total_volumes(
                     AliasedExpression(Column(transaction_tag), "transaction_name"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(
+                        Column("timestamp"),
+                        Op.GTE,
+                        datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                     Condition(Column("org_id"), Op.IN, org_ids),
@@ -355,7 +368,6 @@ def merge_transactions(
     right: Optional[ProjectTransactions],
     totals: Optional[ProjectTransactionsTotals],
 ) -> ProjectTransactions:
-
     if right is None and left is None:
         raise ValueError(
             "no transactions passed to merge",
