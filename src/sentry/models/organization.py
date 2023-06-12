@@ -165,7 +165,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
 
     __include_in_export__ = True
     name = models.CharField(max_length=64)
-    slug = models.SlugField(unique=True)
+    slug: models.SlugField[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
