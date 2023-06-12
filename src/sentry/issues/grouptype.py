@@ -373,6 +373,14 @@ class ReplayDeadClickType(GroupType):
     category = GroupCategory.REPLAY.value
 
 
+@dataclass(frozen=True)
+class ReplayRageClickType(GroupType):
+    type_id = 5002
+    slug = "replay_click_dead_experimental"
+    description = "Rage Click Detected"
+    category = GroupCategory.REPLAY.value
+
+
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: Type[GroupType],
