@@ -13,7 +13,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, ISSUE_ALERT_PARAMS
+from sentry.apidocs.parameters import ISSUE_ALERT_PARAMS, GlobalParams
 from sentry.models import Project, Rule
 from sentry.rules.history import fetch_rule_hourly_stats
 from sentry.rules.history.base import TimeSeriesValue
@@ -39,7 +39,7 @@ class TimeSeriesValueSerializer(Serializer):
 class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve firing starts for an issue alert rule for a given time range. Results are returned in hourly buckets.",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.PROJECT_SLUG, ISSUE_ALERT_PARAMS],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, ISSUE_ALERT_PARAMS],
         responses={
             200: TimeSeriesValueSerializer,
             401: RESPONSE_UNAUTHORIZED,

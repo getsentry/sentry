@@ -14,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
+from sentry.apidocs.parameters import VISIBILITY_PARAMS, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -155,12 +155,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
         parameters=[
-            GLOBAL_PARAMS.END,
-            GLOBAL_PARAMS.ENVIRONMENT,
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT,
-            GLOBAL_PARAMS.START,
-            GLOBAL_PARAMS.STATS_PERIOD,
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
             VISIBILITY_PARAMS.FIELD,
             VISIBILITY_PARAMS.PER_PAGE,
             VISIBILITY_PARAMS.QUERY,
