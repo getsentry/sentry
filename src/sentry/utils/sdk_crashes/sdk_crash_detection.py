@@ -13,9 +13,6 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class SDKCrashReporter:
-    def __init__(self) -> None:
-        self
-
     def report(self, event_data: Dict[str, Any], event_project_id: int) -> Event:
         from sentry.event_manager import EventManager
 
