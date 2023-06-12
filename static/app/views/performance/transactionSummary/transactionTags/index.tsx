@@ -27,7 +27,7 @@ function TransactionTags(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Tags}
+      tab={Tab.TAGS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={TagsPageContent}

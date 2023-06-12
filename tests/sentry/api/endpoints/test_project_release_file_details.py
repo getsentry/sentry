@@ -60,7 +60,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         from io import BytesIO
 
-        f = File.objects.create(name="applicatiosn.js", type="release.file")
+        f = File.objects.create(name="applications.js", type="release.file")
         f.putfile(BytesIO(b"File contents here"))
 
         releasefile = ReleaseFile.objects.create(

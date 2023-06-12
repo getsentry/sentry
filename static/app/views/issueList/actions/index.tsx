@@ -133,9 +133,16 @@ function IssueListActions({
 
   function handleUpdate(data?: any) {
     if (data.status === 'ignored') {
+      const statusDetails = data.statusDetails.ignoreCount
+        ? 'ignoreCount'
+        : data.statusDetails.ignoreDuration
+        ? 'ignoreDuration'
+        : data.statusDetails.ignoreUserCount
+        ? 'ignoreUserCount'
+        : undefined;
       trackAnalytics('issues_stream.archived', {
-        status_details: data.statusDetails,
-        substatus: data.substatus,
+        action_status_details: statusDetails,
+        action_substatus: data.substatus,
         organization,
       });
     }
