@@ -1,10 +1,13 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   groupId: string;
@@ -22,41 +25,46 @@ function DurationChart({groupId, transactionName}: Props) {
     'sidebar-span-metrics'
   );
 
-  const {data: sampleListData, isLoading: isSamplesLoading} =
-    useQueryGetSpanTransactionSamples({
-      groupId,
-      transactionName,
-    });
+  const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
+    groupId,
+    transactionName,
+    undefined,
+    '-duration',
+    'span-summary-panel-samples-table-spans'
+  );
 
-  const sampledSpanDataSeries: Series[] = sampleListData.map(
-    ({timestamp, spanDuration, transaction_id}) => ({
+  const sampledSpanDataSeries: Series[] = spans.map(
+    ({timestamp, duration, transaction_id}) => ({
       data: [
         {
-          name: timestamp,
-          value: spanDuration,
+          name: moment(timestamp).unix(),
+          value: duration,
         },
       ],
       symbol: 'path://M -1 -1 V -5 H 0 V -1 H 4 V 0 H 0 V 4 H -1 V 0 H -5 V -1 H -1',
       color: theme.gray400,
       symbolSize: 15,
-      seriesName: transaction_id.split('-')[0],
+      seriesName: transaction_id,
     })
   );
 
   return (
-    <Chart
-      statsPeriod="24h"
-      height={140}
-      data={[spanMetricsSeriesData?.['p95(span.duration)']]}
-      start=""
-      end=""
-      loading={isLoading}
-      scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
-      utc={false}
-      chartColors={[P95_COLOR]}
-      isLineChart
-      definedAxisTicks={4}
-    />
+    <Fragment>
+      <h5>{DataTitles.p95}</h5>
+      <Chart
+        statsPeriod="24h"
+        height={140}
+        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+        start=""
+        end=""
+        loading={isLoading}
+        scatterPlot={areSpanSamplesLoading ? undefined : sampledSpanDataSeries}
+        utc={false}
+        chartColors={[P95_COLOR]}
+        isLineChart
+        definedAxisTicks={4}
+      />
+    </Fragment>
   );
 }
 

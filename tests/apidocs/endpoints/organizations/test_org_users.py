@@ -12,7 +12,7 @@ class OrganizationUsersDocs(APIDocsTestCase):
         self.user_2 = self.create_user("bar@localhost", username="bar")
 
         self.org = self.create_organization(owner=self.owner_user)
-        self.org.member_set.create(user=self.user_2)
+        self.org.member_set.create(user_id=self.user_2.id)
         self.team = self.create_team(organization=self.org, members=[self.owner_user, self.user_2])
         self.project = self.create_project(teams=[self.team])
 

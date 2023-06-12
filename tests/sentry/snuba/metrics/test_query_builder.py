@@ -480,6 +480,88 @@ def test_build_snuba_query(mock_now, mock_now2):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
+def test_build_snuba_query_mri(mock_now, mock_now2):
+    org_id = 1
+    use_case_id = UseCaseKey.RELEASE_HEALTH
+    # Your typical release health query querying everything
+    query_params = MultiValueDict(
+        {
+            "groupBy": [],
+            "field": [
+                "sum(c:sessions/session@none)",
+            ],
+            "interval": ["1d"],
+            "statsPeriod": ["2d"],
+        }
+    )
+
+    NUM_INTERVALS = 2 + 1  # period / interval_length + 1 ( add one for last partial interval)
+    TOTALS_LIMIT = MAX_POINTS // NUM_INTERVALS
+    SERIES_LIMIT = TOTALS_LIMIT * NUM_INTERVALS
+
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params, allow_mri=True)
+    query_builder = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition.to_metrics_query(), use_case_id
+    )
+    snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
+
+    assert fields_in_entities == {
+        "metrics_counters": [
+            ("sum", SessionMRI.SESSION.value, SessionMRI.SESSION.value),
+        ]
+    }
+
+    for key in ["totals", "series"]:
+        groupby = [] if key == "totals" else [Column("bucketed_time")]
+        limit = Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT)
+
+        assert snuba_queries["metrics_counters"][key] == Query(
+            match=Entity("metrics_counters"),
+            select=[
+                Function(
+                    function="sumIf",
+                    parameters=[
+                        Column("value"),
+                        Function(
+                            function="equals",
+                            parameters=[
+                                Column("metric_id"),
+                                9223372036854775809,
+                            ],
+                            alias=None,
+                        ),
+                    ],
+                    alias="c:sessions/session@none",
+                )
+            ],
+            groupby=groupby,
+            where=[
+                Condition(Column("org_id"), Op.EQ, 1),
+                Condition(Column("project_id"), Op.IN, [1]),
+                Condition(
+                    Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, 0, tzinfo=timezone.utc)
+                ),
+                Condition(
+                    Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, 0, tzinfo=timezone.utc)
+                ),
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
+                ),
+            ],
+            having=[],
+            limit=limit,
+            offset=None,
+            granularity=Granularity(query_definition.rollup),
+        )
+
+
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+@mock.patch(
+    "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
+)
 def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseKey.RELEASE_HEALTH
