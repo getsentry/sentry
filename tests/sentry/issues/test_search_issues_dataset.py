@@ -8,7 +8,7 @@ from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
-class DatasetTest(SnubaTestCase, TestCase):  # type: ignore[misc]
+class DatasetTest(SnubaTestCase, TestCase):
     def test_query_dataset_returns_empty(self) -> None:
         # make a random query just to verify the table exists
         now = datetime.now()
@@ -26,6 +26,7 @@ class DatasetTest(SnubaTestCase, TestCase):  # type: ignore[misc]
             ],
             "aggregations": [["count()", "", "count"]],
             "consistent": False,
+            "tenant_ids": {"referrer": "search_issues", "organization_id": 1},
         }
         request = json_to_snql(json_body, "search_issues")
         request.validate()

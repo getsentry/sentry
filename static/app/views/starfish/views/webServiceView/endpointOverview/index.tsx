@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -8,34 +7,30 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {IssueCategory, NewQuery} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {useQuery} from 'sentry/utils/queryClient';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
+import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {FacetInsights} from 'sentry/views/starfish/components/facetInsights';
-import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {
-  getSpanListQuery,
-  getSpansTrendsQuery,
-} from 'sentry/views/starfish/views/spans/queries';
-import SpansTable, {
-  SpanDataRow,
-  SpanTrendDataRow,
-} from 'sentry/views/starfish/views/spans/spansTable';
-import {buildQueryConditions} from 'sentry/views/starfish/views/spans/spansView';
+import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable.tsx';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
@@ -49,7 +44,6 @@ type State = {
 export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
-  const theme = useTheme();
 
   const {endpoint, method, statsPeriod} = location.query;
   const transaction = endpoint
@@ -60,6 +54,7 @@ export default function EndpointOverview() {
   const pageFilter = usePageFilters();
 
   const [state, setState] = useState<State>({spansFilter: ModuleName.ALL});
+  const [issueFilter, setIssueFilter] = useState<IssueCategory | 'ALL'>('ALL');
 
   const queryConditions = [
     'has:http.method',
@@ -75,63 +70,150 @@ export default function EndpointOverview() {
     name: t('Endpoint Overview'),
     query: query.formatString(),
     projects: [1],
-    fields: [],
+    fields: ['tps()', 'p95(transaction.duration)', 'http_error_count()'],
+    dataset: DiscoverDatasets.METRICS,
+    start: pageFilter.selection.datetime.start ?? undefined,
+    end: pageFilter.selection.datetime.end ?? undefined,
+    range: pageFilter.selection.datetime.period ?? undefined,
     version: 2,
   };
 
-  function renderFailureRateChart() {
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  const {data: totals, isLoading: isTotalsLoading} = useDiscoverQuery({
+    eventView,
+    orgSlug: organization.slug,
+    location,
+  });
+
+  function renderSidebarCharts() {
     return (
       <EventsRequest
         query={query.formatString()}
         includePrevious={false}
         partial
+        limit={5}
         interval="1h"
         includeTransformedData
-        limit={1}
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-homepage-failure-rate"
+        referrer="starfish-endpoint-overview"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+        yAxis={['tps()', 'p95(transaction.duration)', 'http_error_count()']}
+        dataset={DiscoverDatasets.METRICS}
       >
-        {eventData => {
-          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
-            series => ({
-              data: series.data,
-              seriesName: t('Error Rate'),
-              color: CHART_PALETTE[5][3],
-              silent: true,
-            })
-          );
-
-          if (!transformedData) {
+        {({loading, results}) => {
+          if (!results) {
             return null;
           }
-
           return (
             <Fragment>
+              <Header>
+                <ChartLabel>{t('Throughput Per Second')}</ChartLabel>
+              </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? t('%s/s', (totals.data[0]['tps()'] as number).toFixed(2))
+                    : undefined
+                }
+              />
+              <Chart
+                statsPeriod={(statsPeriod as string) ?? '24h'}
+                height={80}
+                data={[results[0]]}
+                start=""
+                end=""
+                loading={loading}
+                utc={false}
+                isLineChart
+                definedAxisTicks={2}
+                disableXAxis
+                chartColors={[THROUGHPUT_COLOR]}
+                grid={{
+                  left: '8px',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                tooltipFormatterOptions={{
+                  valueFormatter: value => t('%s/sec', value.toFixed(2)),
+                }}
+              />
+              <SidebarSpacer />
+              <Header>
+                <ChartLabel>{DataTitles.p95}</ChartLabel>
+              </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? tooltipFormatterUsingAggregateOutputType(
+                        totals.data[0]['p95(transaction.duration)'] as number,
+                        'duration'
+                      )
+                    : undefined
+                }
+              />
+              <Chart
+                statsPeriod={(statsPeriod as string) ?? '24h'}
+                height={80}
+                data={[results[1]]}
+                start=""
+                end=""
+                loading={loading}
+                utc={false}
+                isLineChart
+                definedAxisTicks={2}
+                disableXAxis
+                chartColors={[P95_COLOR]}
+                grid={{
+                  left: '8px',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                tooltipFormatterOptions={{
+                  valueFormatter: value =>
+                    tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                }}
+              />
+              <SidebarSpacer />
+              <Header>
+                <ChartLabel>{DataTitles.errorCount}</ChartLabel>
+              </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? tooltipFormatterUsingAggregateOutputType(
+                        totals.data[0]['http_error_count()'] as number,
+                        'integer'
+                      )
+                    : undefined
+                }
+              />
               <Chart
                 statsPeriod={eventView.statsPeriod}
                 height={80}
-                data={transformedData}
+                data={[results[2]]}
                 start={eventView.start as string}
                 end={eventView.end as string}
-                loading={eventData.loading}
+                loading={loading}
                 utc={false}
                 grid={{
-                  left: '0',
+                  left: '8px',
                   right: '0',
                   top: '8px',
                   bottom: '0',
                 }}
                 definedAxisTicks={2}
                 isLineChart
-                chartColors={theme.charts.getColorPalette(2)}
-                disableXAxis
-                aggregateOutputFormat="percentage"
+                chartColors={[ERRORS_COLOR]}
               />
             </Fragment>
           );
@@ -140,14 +222,12 @@ export default function EndpointOverview() {
     );
   }
 
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-
   return (
     <PageFiltersContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Endpoint Overview')}</Layout.Title>
+            <Layout.Title>{`${method} ${transaction}`}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -158,94 +238,10 @@ export default function EndpointOverview() {
             </PageFilterBar>
           </SearchContainerWithFilterAndMetrics>
 
-          <Layout.Main fullWidth>
-            <SubHeader>{t('Endpoint URL')}</SubHeader>
-            <pre>{`${method} ${transaction}`}</pre>
+          <Layout.Main>
             <StyledRow minSize={200}>
-              <ChartsContainer>
-                <ChartsContainerItem>
-                  <SpanGroupBreakdownContainer transaction={transaction as string} />
-                </ChartsContainerItem>
-                <ChartsContainerItem2>
-                  <MiniChartPanel title={t('Error Rate')}>
-                    {renderFailureRateChart()}
-                  </MiniChartPanel>
-                  <EventsRequest
-                    query={query.formatString()}
-                    includePrevious={false}
-                    partial
-                    limit={5}
-                    interval="1h"
-                    includeTransformedData
-                    environment={eventView.environment}
-                    project={eventView.project}
-                    period={pageFilter.selection.datetime.period}
-                    referrer="starfish-endpoint-overview"
-                    start={pageFilter.selection.datetime.start}
-                    end={pageFilter.selection.datetime.end}
-                    organization={organization}
-                    yAxis={[
-                      'tpm()',
-                      'p95(transaction.duration)',
-                      'p50(transaction.duration)',
-                    ]}
-                    queryExtras={{dataset: 'metrics'}}
-                  >
-                    {({results, loading}) => {
-                      return (
-                        <Fragment>
-                          <MiniChartPanel title={t('Duration')}>
-                            <Chart
-                              statsPeriod={(statsPeriod as string) ?? '24h'}
-                              height={110}
-                              data={results?.[1] ? [results?.[1], results?.[2]] : []}
-                              start=""
-                              end=""
-                              loading={loading}
-                              utc={false}
-                              isLineChart
-                              disableXAxis
-                              definedAxisTicks={2}
-                              chartColors={theme.charts.getColorPalette(2)}
-                              grid={{
-                                left: '0',
-                                right: '0',
-                                top: '8px',
-                                bottom: '16px',
-                              }}
-                            />
-                          </MiniChartPanel>
-                          <MiniChartPanel title={t('Throughput')}>
-                            <Chart
-                              statsPeriod={(statsPeriod as string) ?? '24h'}
-                              height={80}
-                              data={results?.[0] ? [results?.[0]] : []}
-                              start=""
-                              end=""
-                              loading={loading}
-                              utc={false}
-                              stacked
-                              isLineChart
-                              disableXAxis
-                              definedAxisTicks={2}
-                              chartColors={[theme.charts.getColorPalette(0)[0]]}
-                              grid={{
-                                left: '0',
-                                right: '0',
-                                top: '8px',
-                                bottom: '16px',
-                              }}
-                            />
-                          </MiniChartPanel>
-                        </Fragment>
-                      );
-                    }}
-                  </EventsRequest>
-                </ChartsContainerItem2>
-              </ChartsContainer>
+              <SpanGroupBreakdownContainer transaction={transaction as string} />
             </StyledRow>
-            <SubHeader>{t('Sample Events')}</SubHeader>
-            <TransactionSamplesTable eventView={eventView} />
             <SegmentedControlContainer>
               <SegmentedControl
                 size="xs"
@@ -258,9 +254,35 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
+            {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
-            <FacetInsights eventView={eventView} />
+            <SubHeader>{t('Sample Events')}</SubHeader>
+            <TransactionSamplesTable queryConditions={queryConditions} />
+            <SegmentedControlContainer>
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter issue types')}
+                value={issueFilter}
+                onChange={key => setIssueFilter(key)}
+              >
+                <SegmentedControl.Item key="ALL">{t('All Issues')}</SegmentedControl.Item>
+                <SegmentedControl.Item key={IssueCategory.ERROR}>
+                  {t('Errors Only')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key={IssueCategory.PERFORMANCE}>
+                  {t('Performance Only')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
+            </SegmentedControlContainer>
+            <IssuesTable
+              issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
+              transactionName={transaction}
+            />
           </Layout.Main>
+          <Layout.Side>
+            {renderSidebarCharts()}
+            <SidebarSpacer />
+          </Layout.Side>
         </Layout.Body>
       </Layout.Page>
     </PageFiltersContainer>
@@ -274,59 +296,42 @@ function SpanMetricsTable({
   filter: ModuleName;
   transaction: string | undefined;
 }) {
-  const location = useLocation();
-  const pageFilter = usePageFilters();
-
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-  const queryConditions = buildQueryConditions(filter || ModuleName.ALL, location);
-  if (transaction) {
-    queryConditions.push(`transaction = '${transaction}'`);
-  }
-
-  const query = getSpanListQuery(
-    pageFilter.selection.datetime,
-    queryConditions,
-    'count',
+  const {isLoading: areSpansLoading, data: spansData} = useSpanList(
+    filter ?? ModuleName.ALL,
+    transaction,
+    undefined,
+    '-time_spent_percentage',
     SPANS_TABLE_LIMIT
   );
 
-  const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', query],
-    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-  });
-
-  const groupIDs = spansData.map(({group_id}) => group_id);
-
-  const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
-    SpanTrendDataRow[]
-  >({
-    queryKey: ['spansTrends'],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
-      ).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-    enabled: groupIDs.length > 0,
-  });
-
   return (
     <SpansTable
-      location={location}
       moduleName={ModuleName.ALL}
-      queryConditions={queryConditions}
-      isLoading={areSpansLoading || areSpansTrendsLoading}
+      isLoading={areSpansLoading}
       spansData={spansData}
-      orderBy="count"
+      orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
-      spansTrendsData={spansTrendsData}
     />
   );
 }
+
+type ChartValueProps = {
+  isLoading: boolean;
+  value: React.ReactNode;
+};
+
+function ChartSummaryValue({isLoading, value}: ChartValueProps) {
+  if (isLoading) {
+    return <Placeholder height="24px" />;
+  }
+
+  return <ChartValue>{value}</ChartValue>;
+}
+
+const ChartValue = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
 
 const SubHeader = styled('h3')`
   color: ${p => p.theme.gray300};
@@ -351,21 +356,19 @@ const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};
 `;
 
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-`;
-
-const ChartsContainerItem = styled('div')`
-  flex: 1.5;
-`;
-
-const ChartsContainerItem2 = styled('div')`
-  flex: 1;
-`;
-
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const ChartLabel = styled('div')`
+  ${p => p.theme.text.cardTitle}
+`;
+
+const Header = styled('div')`
+  padding: 0 ${space(1)} 0 0;
+  min-height: 24px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;

@@ -195,9 +195,10 @@ function NotificationActionManager({
     >
       <DropdownMenu
         items={getMenuItems()}
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
+            isOpen={isOpen}
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}

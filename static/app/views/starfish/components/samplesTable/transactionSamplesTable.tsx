@@ -7,9 +7,12 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
@@ -25,7 +28,7 @@ type Keys =
   | 'profile_id'
   | 'timestamp'
   | 'transaction.duration'
-  | 'p50_comparison'
+  | 'p95_comparison'
   | 'span_ops_breakdown.relative';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -33,12 +36,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'id',
     name: 'Event ID',
-    width: 200,
+    width: 140,
   },
   {
     key: 'profile_id',
     name: 'Profile ID',
-    width: 200,
+    width: 140,
   },
   {
     key: SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -53,17 +56,17 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction.duration',
     name: 'Duration',
-    width: 200,
+    width: 100,
   },
   {
-    key: 'p50_comparison',
-    name: 'Compared to P50',
-    width: 200,
+    key: 'p95_comparison',
+    name: 'Compared to P95',
+    width: 100,
   },
 ];
 
 type Props = {
-  eventView: EventView;
+  queryConditions: string[];
 };
 
 type DataRow = {
@@ -78,13 +81,26 @@ type DataRow = {
   'transaction.duration': number;
 };
 
-export function TransactionSamplesTable({eventView}: Props) {
+export function TransactionSamplesTable({queryConditions}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const query = new MutableSearch(queryConditions);
+
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: 'Endpoint Overview Samples',
+    query: query.formatString(),
+    projects: [1],
+    fields: [],
+    dataset: DiscoverDatasets.DISCOVER,
+    version: 2,
+  };
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p50_comparison') {
+    if (column.key === 'p95_comparison') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -145,11 +161,11 @@ export function TransactionSamplesTable({eventView}: Props) {
       return <DateTime date={row[column.key]} year timeZone seconds />;
     }
 
-    if (column.key === 'p50_comparison') {
+    if (column.key === 'p95_comparison') {
       return (
         <DurationComparisonCell
           duration={row['transaction.duration']}
-          p50={(aggregatesData?.['p50(transaction.duration)'] as number) ?? 0}
+          p95={(aggregatesData?.['p95(transaction.duration)'] as number) ?? 0}
         />
       );
     }

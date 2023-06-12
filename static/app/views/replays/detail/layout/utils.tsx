@@ -15,8 +15,8 @@ export const getDefaultLayout = (collapsed: boolean): LayoutKey => {
     innerWidth <= mediumScreenWidth ? innerWidth : innerWidth - sidebarWidth;
 
   if (windowsWidth < innerHeight) {
-    return LayoutKey.topbar;
+    return LayoutKey.TOPBAR;
   }
 
-  return LayoutKey.sidebar_left;
+  return LayoutKey.SIDEBAR_LEFT;
 };

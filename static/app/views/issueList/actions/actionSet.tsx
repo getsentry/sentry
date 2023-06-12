@@ -82,7 +82,10 @@ function ActionSet({
   const canRemoveBookmark =
     allInQuerySelected || selectedIssues.some(issue => issue.isBookmarked);
   const canSetUnresolved =
-    allInQuerySelected || selectedIssues.some(issue => issue.status === 'resolved');
+    allInQuerySelected ||
+    selectedIssues.some(
+      issue => issue.status === 'resolved' || issue.status === 'ignored'
+    );
 
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {

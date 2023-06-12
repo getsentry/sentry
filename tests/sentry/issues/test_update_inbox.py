@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class MarkReviewedTest(TestCase):  # type: ignore
+class MarkReviewedTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
@@ -26,6 +26,17 @@ class MarkReviewedTest(TestCase):  # type: ignore
         )
         assert not GroupInbox.objects.filter(group=self.group).exists()
 
+    def test_no_group_list(self) -> None:
+        update_inbox(
+            in_inbox=False,
+            group_list=[],
+            project_lookup=self.project_lookup,
+            acting_user=self.user,
+            http_referrer="",
+            sender=self,
+        )
+        assert GroupInbox.objects.filter(group=self.group).exists()
+
     def test_add_to_inbox(self) -> None:
         new_group = self.create_group()
         update_inbox(
@@ -40,7 +51,7 @@ class MarkReviewedTest(TestCase):  # type: ignore
         assert GroupInbox.objects.filter(group=self.group).exists()
         assert GroupInbox.objects.filter(group=new_group).exists()
 
-    @with_feature("organizations:remove-mark-reviewed")  # type: ignore
+    @with_feature("organizations:remove-mark-reviewed")
     @patch("sentry.signals.issue_mark_reviewed.send_robust")
     def test_mark_reviewed_disabled(self, issue_mark_reviewed: MagicMock) -> None:
         add_group_to_inbox(self.group, GroupInboxReason.NEW)

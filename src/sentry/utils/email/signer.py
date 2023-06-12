@@ -3,7 +3,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str, force_text
 
 
-class _CaseInsensitiveSigner(Signer):  # type: ignore
+class _CaseInsensitiveSigner(Signer):
     """
     Generate a signature that is comprised of only lowercase letters.
 

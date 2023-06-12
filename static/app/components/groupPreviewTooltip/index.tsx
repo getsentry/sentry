@@ -1,7 +1,6 @@
 import {ReactChild} from 'react';
 
 import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
@@ -10,9 +9,6 @@ import {StackTracePreview} from './stackTracePreview';
 type GroupPreviewTooltipProps = {
   children: ReactChild;
   groupId: string;
-  // we need eventId only when hovering over Event, not Group
-  // (different API call is made to get the stack trace then)
-  eventId?: string;
   groupingCurrentLevel?: number;
   issueCategory?: IssueCategory;
   projectId?: string;
@@ -20,42 +16,25 @@ type GroupPreviewTooltipProps = {
 
 function GroupPreviewTooltip({
   children,
-  eventId,
   groupId,
   groupingCurrentLevel,
   issueCategory,
-  projectId,
 }: GroupPreviewTooltipProps) {
-  const projectSlug = eventId ? ProjectsStore.getById(projectId)?.slug : undefined;
+  if (!issueCategory) {
+    return null;
+  }
 
   switch (issueCategory) {
     case IssueCategory.ERROR:
       return (
-        <StackTracePreview
-          issueId={groupId}
-          groupingCurrentLevel={groupingCurrentLevel}
-          eventId={eventId}
-          projectSlug={projectSlug}
-        >
+        <StackTracePreview groupId={groupId} groupingCurrentLevel={groupingCurrentLevel}>
           {children}
         </StackTracePreview>
       );
     case IssueCategory.PERFORMANCE:
-      return (
-        <SpanEvidencePreview
-          groupId={groupId}
-          eventId={eventId}
-          projectSlug={projectSlug}
-        >
-          {children}
-        </SpanEvidencePreview>
-      );
+      return <SpanEvidencePreview groupId={groupId}>{children}</SpanEvidencePreview>;
     default:
-      return (
-        <EvidencePreview groupId={groupId} eventId={eventId} projectSlug={projectSlug}>
-          {children}
-        </EvidencePreview>
-      );
+      return <EvidencePreview groupId={groupId}>{children}</EvidencePreview>;
   }
 }
 

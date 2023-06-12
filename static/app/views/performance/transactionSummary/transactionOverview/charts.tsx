@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -20,7 +21,11 @@ import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/tran
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
-import {TrendColumnField, TrendFunctionField} from '../../trends/types';
+import {
+  TrendFunctionField,
+  TrendParameterColumn,
+  TrendParameterLabel,
+} from '../../trends/types';
 import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from '../../trends/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 
@@ -36,7 +41,7 @@ import VitalsChart from './vitalsChart';
 function generateDisplayOptions(
   currentFilter: SpanOperationBreakdownFilter
 ): SelectValue<string>[] {
-  if (currentFilter === SpanOperationBreakdownFilter.None) {
+  if (currentFilter === SpanOperationBreakdownFilter.NONE) {
     return [
       {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
       {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
@@ -111,13 +116,16 @@ function TransactionSummaryCharts({
   function handleTrendColumnChange(value: string) {
     browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, trendColumn: value},
+      query: {
+        ...location.query,
+        trendParameter: value,
+      },
     });
   }
 
   const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = TRENDS_PARAMETERS.map(
-    ({column, label}) => ({
-      value: column,
+    ({label}) => ({
+      value: label,
       label,
     })
   );
@@ -127,8 +135,8 @@ function TransactionSummaryCharts({
     location.query.trendFunction,
     TREND_FUNCTIONS_OPTIONS[0].value
   ) as TrendFunctionField;
-  let trendColumn = decodeScalar(
-    location.query.trendColumn,
+  let trendParameter = decodeScalar(
+    location.query.trendParameter,
     TREND_PARAMETERS_OPTIONS[0].value
   );
 
@@ -138,9 +146,15 @@ function TransactionSummaryCharts({
   if (!Object.values(TrendFunctionField).includes(trendFunction)) {
     trendFunction = TrendFunctionField.P50;
   }
-  if (!Object.values(TrendColumnField).includes(trendColumn as TrendColumnField)) {
-    trendColumn = TrendColumnField.DURATION;
+  if (
+    !Object.values(TrendParameterLabel).includes(trendParameter as TrendParameterLabel)
+  ) {
+    trendParameter = TrendParameterLabel.DURATION;
   }
+
+  const trendColumn =
+    TRENDS_PARAMETERS.find(parameter => parameter.label === trendParameter)?.column ||
+    TrendParameterColumn.DURATION;
 
   const releaseQueryExtra = {
     yAxis: display === DisplayModes.VITALS ? 'countVital' : 'countDuration',
@@ -153,7 +167,12 @@ function TransactionSummaryCharts({
   };
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
+  const mepCardinalityContext = useMetricsCardinalityContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   return (
     <Panel>
@@ -261,7 +280,7 @@ function TransactionSummaryCharts({
           {display === DisplayModes.TREND && (
             <OptionSelector
               title={t('Parameter')}
-              selected={trendColumn}
+              selected={trendParameter}
               options={TREND_PARAMETERS_OPTIONS}
               onChange={handleTrendColumnChange}
             />

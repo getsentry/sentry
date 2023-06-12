@@ -64,6 +64,7 @@ class TeamMembers extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     // Initialize "add member" dropdown with data
     this.fetchMembersRequest('');
   }

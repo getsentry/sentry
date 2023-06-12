@@ -76,12 +76,13 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_TRENDS_CHART.value,
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION.value,
     Referrer.API_PROFILING_LANDING_CHART.value,
+    Referrer.API_PROFILING_PROFILE_SUMMARY_CHART.value,
     Referrer.API_RELEASES_RELEASE_DETAILS_CHART.value,
 }
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",

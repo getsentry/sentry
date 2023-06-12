@@ -99,7 +99,7 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     return bool(len(actions))
 
 
-class NotifyEventServiceForm(forms.Form):  # type: ignore
+class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

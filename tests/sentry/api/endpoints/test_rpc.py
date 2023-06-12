@@ -1,5 +1,6 @@
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.testutils import APITestCase
@@ -39,18 +40,27 @@ class RpcServiceEndpointTest(APITestCase):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path)
         assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }
 
     @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_missing_argument_key(self):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path, {})
         assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }
 
     @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_missing_argument_values(self):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path, {"args": {}})
         assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }
 
     @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_with_empty_response(self):
@@ -72,3 +82,16 @@ class RpcServiceEndpointTest(APITestCase):
         assert response_obj.organization.id == organization.id
         assert response_obj.organization.slug == organization.slug
         assert response_obj.organization.name == organization.name
+
+    @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
+    def test_with_invalid_arguments(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        response = self.client.post(path, {"args": {"id": "invalid type"}})
+        assert response.status_code == 400
+        assert response.data == [ErrorDetail(string="Invalid input.", code="invalid")]
+
+        response = self.client.post(path, {"args": {"invalid": "invalid type"}})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }

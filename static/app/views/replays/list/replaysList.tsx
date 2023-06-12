@@ -1,8 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -13,10 +15,12 @@ import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/h
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import {ReplaySearchAlert} from 'sentry/views/replays/list/replaySearchAlert';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
@@ -56,6 +60,8 @@ function ReplaysList() {
   );
 }
 
+const MIN_REPLAY_CLICK_SDK = '7.44.0';
+
 function ReplaysListTable({
   eventView,
   location,
@@ -71,22 +77,56 @@ function ReplaysListTable({
     organization,
   });
 
+  const {
+    selection: {projects},
+  } = usePageFilters();
+
+  const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
+    minVersion: MIN_REPLAY_CLICK_SDK,
+    organization,
+    projectId: projects.map(p => String(p)),
+  });
+
+  const conditions = useMemo(() => {
+    return new MutableSearch(decodeScalar(location.query.query, ''));
+  }, [location.query.query]);
+
+  const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
+
+  const hasReplayClickSearchBannerRollout = organization.features.includes(
+    'session-replay-click-search-banner-rollout'
+  );
   return (
     <Fragment>
-      <ReplaySearchAlert />
+      {hasReplayClickSearchBannerRollout && (
+        <ReplaySearchAlert needSdkUpdates={Boolean(allSelectedProjectsNeedUpdates)} />
+      )}
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}
         sort={eventView.sorts[0]}
         visibleColumns={[
-          ReplayColumns.replay,
-          ReplayColumns.os,
-          ReplayColumns.browser,
-          ReplayColumns.duration,
-          ReplayColumns.countErrors,
-          ReplayColumns.activity,
+          ReplayColumn.REPLAY,
+          ReplayColumn.OS,
+          ReplayColumn.BROWSER,
+          ReplayColumn.DURATION,
+          ReplayColumn.COUNT_ERRORS,
+          ReplayColumn.ACTIVITY,
         ]}
+        emptyMessage={
+          allSelectedProjectsNeedUpdates && hasReplayClick ? (
+            <Fragment>
+              {t('Unindexed search field')}
+              <EmptyStateSubheading>
+                {tct('Field [field] requires an [sdkPrompt]', {
+                  field: <strong>'click'</strong>,
+                  sdkPrompt: <strong>{t('SDK version >= 7.44.0')}</strong>,
+                })}
+              </EmptyStateSubheading>
+            </Fragment>
+          ) : undefined
+        }
       />
       <Pagination
         pageLinks={pageLinks}
@@ -104,5 +144,10 @@ function ReplaysListTable({
     </Fragment>
   );
 }
+
+const EmptyStateSubheading = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 export default ReplaysList;
