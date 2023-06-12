@@ -26,9 +26,9 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    UserOption,
 )
 from sentry.roles import organization_roles, team_roles
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
@@ -240,7 +240,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (assigned_org_role != member.role):
+            if member.user_id == request.user.id and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -362,15 +362,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         with transaction.atomic():
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
-            proj_list = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
+            proj_list = list(
+                Project.objects.filter(organization=organization).values_list("id", flat=True)
             )
-            uo_list = UserOption.objects.filter(
-                user=member.user, project_id__in=proj_list, key="mail:email"
-            )
-            for uo in uo_list:
-                uo.delete()
-
+            uos = [
+                uo
+                for uo in user_option_service.get_many(
+                    filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
+                )
+            ]
+            user_option_service.delete_options(option_ids=[uo.id for uo in uos])
             member.delete()
 
         self.create_audit_entry(

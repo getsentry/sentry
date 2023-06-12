@@ -94,7 +94,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, email__iexact=email
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
@@ -168,7 +170,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = OrganizationMember.objects.filter(organization_id=org.id, email=email).first()
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, email__iexact=email
+            ).first()
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, id=organization_member_id
@@ -299,6 +303,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         ), "Must set either user_id or email"
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
+
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:

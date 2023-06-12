@@ -4,9 +4,8 @@ from typing import Sequence
 
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, Team, User
+from sentry.models import ActorTuple, OrganizationMember, OrganizationMemberTeam, Team, User
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
@@ -20,13 +19,16 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
-    team_users = user_service.get_many(
-        filter={
-            "organization_id": organization_id,
-            "team_ids": [t.id for t in actor_mentions["teams"]],
-        }
+    team_user_ids = set(
+        OrganizationMemberTeam.objects.filter(
+            team_id__in=[t.id for t in actor_mentions["teams"]],
+            organizationmember__user_id__isnull=False,
+            organizationmember__user_is_active=True,
+            organizationmember__organization_id=organization_id,
+            is_active=True,
+        ).values_list("organizationmember__user_id", flat=True)
     )
-    mentioned_team_users = {u.id for u in team_users} - set({u.id for u in actor_mentions["users"]})
+    mentioned_team_users = team_user_ids - set({u.id for u in actor_mentions["users"]})
 
     return {
         "users": {user.id for user in actor_mentions["users"]},
@@ -59,15 +61,12 @@ class MentionsMixin:
             mentioned_user_ids = {user.id for user in users}
 
             projects = self.context["projects"]
-            organization_id = self.context["organization_id"]
-            users = user_service.get_many(
-                filter={
-                    "user_ids": mentioned_user_ids,
-                    "organization_id": organization_id,
-                    "project_ids": [p.id for p in projects],
-                },
+            user_ids = list(
+                OrganizationMember.objects.filter(
+                    teams__projectteam__project__in=[p.id for p in projects],
+                    user_id__in=mentioned_user_ids,
+                ).values_list("user_id", flat=True)
             )
-            user_ids = [u.id for u in users]
 
             if len(mentioned_user_ids) > len(user_ids):
                 raise serializers.ValidationError("Cannot mention a non team member")

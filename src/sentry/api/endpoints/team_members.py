@@ -17,7 +17,6 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "organizationmember")
-        prefetch_related_objects(item_list, "organizationmember__user")
 
         org_member_set = serialize(
             {
@@ -46,7 +45,8 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 class TeamMembersEndpoint(TeamEndpoint):
     def get(self, request: Request, team) -> Response:
         queryset = OrganizationMemberTeam.objects.filter(
-            Q(organizationmember__user__is_active=True) | Q(organizationmember__user__isnull=True),
+            Q(organizationmember__user_is_active=True, organizationmember__user_id__isnull=False)
+            | Q(organizationmember__user_id__isnull=True),
             organizationmember__organization=team.organization,
             organizationmember__invite_status=InviteStatus.APPROVED.value,
             team=team,
@@ -57,8 +57,6 @@ class TeamMembersEndpoint(TeamEndpoint):
             request=request,
             queryset=queryset,
             order_by=(
-                "organizationmember__user__name",
-                "organizationmember__user__email",
                 "organizationmember__email",
                 "id",
             ),

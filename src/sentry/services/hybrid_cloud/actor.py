@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Actor, Team, User
 
 
 class ActorType(str, Enum):
@@ -37,7 +37,6 @@ class RpcActor(RpcModel):
     """Whether this actor is a User or Team"""
 
     slug: Optional[str] = None
-    is_superuser: bool = False
 
     def __post_init__(self) -> None:
         if (self.actor_type == ActorType.TEAM) == (self.slug is None):
@@ -108,7 +107,7 @@ class RpcActor(RpcModel):
         fetch_actor: whether to make an extra query or call to fetch the actor id
                      Without the actor_id the RpcActor acts as a tuple of id and type.
         """
-        from sentry.models import Team, User
+        from sentry.models import Actor, Team, User
 
         if isinstance(obj, cls):
             return obj
@@ -120,6 +119,8 @@ class RpcActor(RpcModel):
             return cls.from_rpc_user(obj, fetch_actor=fetch_actor)
         if isinstance(obj, RpcTeam):
             return cls.from_rpc_team(obj)
+        if isinstance(obj, Actor):
+            return cls.from_orm_actor(obj)
         raise TypeError(f"Cannot build RpcActor from {type(obj)}")
 
     @classmethod
@@ -131,7 +132,17 @@ class RpcActor(RpcModel):
             id=user.id,
             actor_id=actor_id,
             actor_type=ActorType.USER,
-            is_superuser=user.is_superuser,
+        )
+
+    @classmethod
+    def from_orm_actor(cls, actor: "Actor") -> "RpcActor":
+        actor_type = ActorType.USER if actor.type == ACTOR_TYPES["user"] else ActorType.TEAM
+        model_id = actor.user_id if actor_type == ActorType.USER else actor.team_id
+
+        return cls(
+            id=model_id,
+            actor_id=actor.id,
+            actor_type=actor_type,
         )
 
     @classmethod
@@ -143,7 +154,6 @@ class RpcActor(RpcModel):
             id=user.id,
             actor_id=actor_id,
             actor_type=ActorType.USER,
-            is_superuser=user.is_superuser,
         )
 
     @classmethod
