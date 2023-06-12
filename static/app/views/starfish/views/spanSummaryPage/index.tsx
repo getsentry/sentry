@@ -20,7 +20,7 @@ import {SpanDescription} from 'sentry/views/starfish/components/spanDescription'
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
+import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -35,7 +35,19 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction} = location.query;
 
-  const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
+  const {data: spanMetas} = useSpanMeta(
+    groupId,
+    undefined,
+    'span-summary-page-span-meta'
+  );
+  // TODO: Span meta might in theory return more than one row! In that case, we
+  // need to indicate in the UI that more than one set of meta corresponds to
+  // the span group
+  const span = {
+    group: groupId,
+    ...spanMetas?.[0],
+  };
+
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     undefined,
@@ -69,7 +81,7 @@ function SpanSummaryPage({params, location}: Props) {
                 <DatePageFilter alignDropdown="left" />
               </FilterOptionsContainer>
               <BlockContainer>
-                <Block title={t('Operation')}>{span?.op}</Block>
+                <Block title={t('Operation')}>{span?.['span.op']}</Block>
                 <Block
                   title={t('Throughput')}
                   description={t('Throughput of this span per second')}
@@ -94,13 +106,13 @@ function SpanSummaryPage({params, location}: Props) {
                 </Block>
               </BlockContainer>
 
-              {span?.description && (
+              {span?.['span.description'] && (
                 <BlockContainer>
                   <Block>
                     <Panel>
                       <PanelBody>
                         <DescriptionContainer>
-                          <SpanDescription span={span} />
+                          <SpanDescription spanMeta={spanMetas?.[0]} />
                         </DescriptionContainer>
                       </PanelBody>
                     </Panel>

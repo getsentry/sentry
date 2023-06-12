@@ -1,24 +1,30 @@
 import styled from '@emotion/styled';
 
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
 
-export function SpanDescription({span}: {span: IndexedSpan}) {
-  if (span.op.startsWith('db')) {
-    return <DatabaseSpanDescription span={span} />;
+type SpanMeta = {
+  'span.action': string;
+  'span.description': string;
+  'span.domain': string;
+  'span.op': string;
+};
+
+export function SpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
+  if (spanMeta['span.op'].startsWith('db')) {
+    return <DatabaseSpanDescription spanMeta={spanMeta} />;
   }
 
-  return <div>{span.description}</div>;
+  return <div>{spanMeta['span.description']}</div>;
 }
 
-function DatabaseSpanDescription({span}: {span: IndexedSpan}) {
+function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
   return (
     <CodeWrapper>
       <FormattedCode>
-        {highlightSql(span.description || '', {
-          action: span.action || '',
-          domain: span.domain || '',
+        {highlightSql(spanMeta['span.description'] || '', {
+          action: spanMeta['span.action'] || '',
+          domain: spanMeta['span.domain'] || '',
         })}
       </FormattedCode>
     </CodeWrapper>
