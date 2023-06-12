@@ -13,26 +13,6 @@ __all__ = ("GzippedDictField",)
 
 logger = logging.getLogger("sentry")
 
-PICKLE_WRITE_JSON = True
-VALIDATE_JSON_SAMPLE_RATE = 1
-
-
-def _validate_roundtrip(o: object) -> None:
-    try:
-        s = json.dumps(o)
-    except Exception:
-        raise TypeError(
-            "Tried to serialize a pickle field with a value that cannot be serialized as JSON"
-        )
-    else:
-        rt = json.loads(s)
-        if o != rt:
-            raise TypeError(
-                f"json serialized database value was not the same after deserializing:\n"
-                f"- {type(o)=}\n"
-                f"- {type(rt)=}"
-            )
-
 
 class GzippedDictField(TextField):
     """
