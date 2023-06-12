@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import uuid
+from datetime import datetime
 from os import path
 from typing import List, Optional, Set, Tuple
 
@@ -284,12 +285,69 @@ def _extract_debug_ids_from_manifest(
     return bundle_id, debug_ids_with_types
 
 
-def _remove_duplicate_artifact_bundles(bundle: ArtifactBundle, bundle_id: str):
+def _remove_duplicate_artifact_bundles(org_id: int, ids: List[int]):
+    # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of
+    # all ArtifactBundle(s) with the specific bundle_id.
+    if not ids:
+        return
+
     # Even though we delete via a QuerySet the associated file is also deleted, because django will still
     # fire the on_delete signal.
-    ArtifactBundle.objects.filter(
-        ~Q(id=bundle.id), bundle_id=bundle_id, organization_id=bundle.organization_id
-    ).delete()
+    ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=org_id).delete()
+
+
+def _bind_or_create_artifact_bundle(
+    bundle_id: uuid,
+    date_added: datetime,
+    org_id: int,
+    archive_file: File,
+    artifact_count: int,
+) -> Tuple[ArtifactBundle, bool]:
+    existing_artifact_bundles = list(
+        ArtifactBundle.objects.filter(organization_id=org_id, bundle_id=bundle_id)
+    )
+
+    if len(existing_artifact_bundles) == 0:
+        existing_artifact_bundle = None
+    else:
+        existing_artifact_bundle = existing_artifact_bundles.pop()
+        # We want to remove all the duplicate artifact bundles that have the same bundle_id.
+        _remove_duplicate_artifact_bundles(
+            org_id=org_id, ids=list(map(lambda value: value.id, existing_artifact_bundles))
+        )
+
+    # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
+    if existing_artifact_bundle is None:
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=org_id,
+            # In case we didn't find the bundle_id in the manifest, we will just generate our own.
+            bundle_id=bundle_id or uuid.uuid4().hex,
+            file=archive_file,
+            artifact_count=artifact_count,
+            # For now these two fields will have the same value but in separate tasks we will update "date_added"
+            # in order to perform partitions rebalancing in the database.
+            date_added=date_added,
+            date_uploaded=date_added,
+        )
+
+        return artifact_bundle, True
+    else:
+        # We store a reference to the previous file to which the bundle was pointing to.
+        existing_file = existing_artifact_bundle.file
+
+        # Only if the file objects are different we want to update the database, otherwise we will end up deleting
+        # a newly bound file.
+        if existing_file != archive_file:
+            # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
+            # with its corresponding artifact count.
+            existing_artifact_bundle.update(
+                date_added=date_added, file=archive_file, artifact_count=artifact_count
+            )
+
+            # We now delete that file, in order to avoid orphan files in the database.
+            existing_file.delete()
+
+        return existing_artifact_bundle, False
 
 
 def _create_artifact_bundle(
@@ -299,7 +357,7 @@ def _create_artifact_bundle(
     project_ids: Optional[List[int]],
     archive_file: File,
     artifact_count: int,
-):
+) -> None:
     with ReleaseArchive(archive_file.getfile()) as archive:
         bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
@@ -307,56 +365,60 @@ def _create_artifact_bundle(
         # a release for the upload.
         if len(debug_ids_with_types) > 0 or version:
             now = timezone.now()
+            # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
+            # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
+            new_date_added = {"date_added": now}
 
+            # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
+            # state after all of these updates.
             with atomic_transaction(
                 using=(
                     router.db_for_write(ArtifactBundle),
+                    router.db_for_write(File),
                     router.db_for_write(ReleaseArtifactBundle),
                     router.db_for_write(ProjectArtifactBundle),
                     router.db_for_write(DebugIdArtifactBundle),
                 )
             ):
-                artifact_bundle = ArtifactBundle.objects.create(
-                    organization_id=org_id,
-                    # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-                    bundle_id=bundle_id or uuid.uuid4().hex,
-                    file=archive_file,
-                    artifact_count=artifact_count,
-                    # For now these two fields will have the same value but in separate tasks we will update "date_added"
-                    # in order to perform partitions rebalancing in the database.
+                artifact_bundle, created = _bind_or_create_artifact_bundle(
+                    bundle_id=bundle_id,
                     date_added=now,
-                    date_uploaded=now,
+                    org_id=org_id,
+                    archive_file=archive_file,
+                    artifact_count=artifact_count,
                 )
 
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
                 if version:
-                    ReleaseArtifactBundle.objects.create(
+                    ReleaseArtifactBundle.objects.create_or_update(
                         organization_id=org_id,
                         release_name=version,
-                        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
+                        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
+                        # tables.
                         dist_name=dist or "",
                         artifact_bundle=artifact_bundle,
-                        date_added=now,
+                        values=new_date_added,
+                        defaults=new_date_added,
                     )
 
                 for project_id in project_ids or ():
-                    ProjectArtifactBundle.objects.create(
+                    ProjectArtifactBundle.objects.create_or_update(
                         organization_id=org_id,
                         project_id=project_id,
                         artifact_bundle=artifact_bundle,
-                        date_added=now,
+                        values=new_date_added,
+                        defaults=new_date_added,
                     )
 
                 for source_file_type, debug_id in debug_ids_with_types:
-                    DebugIdArtifactBundle.objects.create(
+                    DebugIdArtifactBundle.objects.create_or_update(
                         organization_id=org_id,
                         debug_id=debug_id,
                         artifact_bundle=artifact_bundle,
                         source_file_type=source_file_type.value,
-                        date_added=now,
+                        values=new_date_added,
+                        defaults=new_date_added,
                     )
-
-                _remove_duplicate_artifact_bundles(artifact_bundle, bundle_id)
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"

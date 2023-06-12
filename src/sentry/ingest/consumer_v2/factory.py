@@ -19,6 +19,7 @@ from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
+from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils import kafka_config
 
@@ -39,6 +40,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
+        self.health_checker = HealthChecker()
 
     def create_with_partitions(
         self,
@@ -62,10 +64,12 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 initializer=initialize_consumer_state,
             )
         else:
-            return RunTask(
+            next_step = RunTask(
                 function=process_ingest_message,
                 next_step=CommitOffsets(commit),
             )
+
+        return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
 
 def get_ingest_consumer(
