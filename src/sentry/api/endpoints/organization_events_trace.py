@@ -158,7 +158,7 @@ class TraceEvent:
         parent: Optional[str],
         generation: Optional[int],
         light: bool = False,
-        params: ParamsType = None,
+        snuba_params: ParamsType = None,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []
@@ -172,7 +172,7 @@ class TraceEvent:
         # Added as required because getting the nodestore_event is expensive
         self._nodestore_event: Optional[Event] = None
         self.fetched_nodestore: bool = False
-        self.load_performance_issues(light, params)
+        self.load_performance_issues(light, snuba_params)
 
     @property
     def nodestore_event(self) -> Optional[Event]:
@@ -184,7 +184,7 @@ class TraceEvent:
                 )
         return self._nodestore_event
 
-    def load_performance_issues(self, light: bool, params: ParamsType) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: ParamsType) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -201,7 +201,7 @@ class TraceEvent:
                 if self.nodestore_event is not None:
                     occurrence_query = QueryBuilder(
                         Dataset.IssuePlatform,
-                        params,
+                        snuba_params,
                         query=f"event_id:{self.nodestore_event.event_id}",
                         selected_columns=["occurrence_id"],
                     )
@@ -647,14 +647,14 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     None,
                                     0,
                                     True,
-                                    params=params,
+                                    snuba_params=params,
                                 )
                             )
                             current_generation = 1
                             break
 
             current_event = TraceEvent(
-                snuba_event, root_id, current_generation, True, params=params
+                snuba_event, root_id, current_generation, True, snuba_params=params
             )
             trace_results.append(current_event)
 
@@ -686,7 +686,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     else None
                                 ),
                                 True,
-                                params=params,
+                                snuba_params=params,
                             )
                             for child_event in child_events
                         ]
@@ -742,7 +742,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if roots:
             results_map[None] = []
         for root in roots:
-            root_event = TraceEvent(root, None, 0, params=params)
+            root_event = TraceEvent(root, None, 0, snuba_params=params)
             parent_events[root["id"]] = root_event
             results_map[None].append(root_event)
             to_check.append(root)
@@ -762,7 +762,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0, params=params
+                        current_event, None, 0, snuba_params=params
                     )
 
                     # Used to avoid removing the orphan from results entirely if we loop
@@ -832,7 +832,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             previous_event.generation + 1
                             if previous_event.generation is not None
                             else None,
-                            params=params,
+                            snuba_params=params,
                         )
                         # Add this event to its parent's children
                         previous_event.children.append(parent_events[child_event["id"]])
