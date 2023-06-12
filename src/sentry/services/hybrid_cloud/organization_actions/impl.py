@@ -6,7 +6,7 @@ from django.db.models.expressions import CombinedExpression
 from sentry.models import Organization, OrganizationStatus
 
 
-class OrganizationCreateOptions(TypedDict, total=False):
+class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
     name: str
     slug: str
     status: OrganizationStatus
@@ -15,7 +15,7 @@ class OrganizationCreateOptions(TypedDict, total=False):
 
 
 def create_organization_with_outbox_message(
-    *, create_options: OrganizationCreateOptions
+    *, create_options: OrganizationCreateAndUpdateOptions
 ) -> Organization:
     with transaction.atomic():
         org: Organization = Organization.objects.create(**create_options)
@@ -23,15 +23,8 @@ def create_organization_with_outbox_message(
     return org
 
 
-class OrganizationUpdateOptions(TypedDict, total=False):
-    name: str
-    status: OrganizationStatus
-    flags: CombinedExpression
-    default_role: int
-
-
 def update_organization_with_outbox_message(
-    *, org_id: int, update_data: OrganizationUpdateOptions
+    *, org_id: int, update_data: OrganizationCreateAndUpdateOptions
 ) -> Organization:
     with transaction.atomic():
         org: Organization = Organization.objects.get(id=org_id)
@@ -43,7 +36,7 @@ def update_organization_with_outbox_message(
 
 
 def upsert_organization_by_org_id_with_outbox_message(
-    *, org_id: int, upsert_data: OrganizationCreateOptions
+    *, org_id: int, upsert_data: OrganizationCreateAndUpdateOptions
 ) -> Organization:
     with transaction.atomic():
         org, created = Organization.objects.update_or_create(id=org_id, defaults=upsert_data)
