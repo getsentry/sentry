@@ -1,5 +1,7 @@
+from collections import defaultdict
 from typing import Optional
 
+import sentry_sdk
 from django.db import router
 from django.db.models import Q
 from rest_framework import status
@@ -54,9 +56,13 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         query = request.GET.get("query")
 
         try:
-            queryset = ArtifactBundle.objects.filter(
-                organization_id=project.organization_id,
-                projectartifactbundle__project_id=project.id,
+            queryset = (
+                ArtifactBundle.objects.filter(
+                    organization_id=project.organization_id,
+                    projectartifactbundle__project_id=project.id,
+                ).values_list("id", "bundle_id", "artifact_count", "date_uploaded")
+                # We want to use the more efficient DISTINCT ON.
+                .distinct("id", "bundle_id", "artifact_count", "date_uploaded")
             )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
@@ -93,21 +99,74 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         :auth: required
         """
 
+        project_id = project.id
         bundle_id = request.GET.get("bundleId")
 
         if bundle_id:
-            try:
-                # Since there were cases in which users could have uploaded multiple bundles with the same id, this call
-                # had to be refactored to delete multiple ones at the same time.
-                with atomic_transaction(using=(router.db_for_write(ArtifactBundle))):
-                    ArtifactBundle.objects.filter(
-                        organization_id=project.organization_id, bundle_id=bundle_id
-                    ).delete()
+            error = None
 
-                return Response(status=204)
-            except ArtifactBundle.DoesNotExist:
-                return Response(
-                    {"error": f"Couldn't find a bundle with bundle_id {bundle_id}"}, status=404
+            project_artifact_bundles = ProjectArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+                artifact_bundle__bundle_id=bundle_id,
+            ).select_related("artifact_bundle")
+            # We group the bundles by their id, since we might have multiple bundles with the same bundle_id due to a
+            # problem that was fixed in https://github.com/getsentry/sentry/pull/49836.
+            grouped_bundles = defaultdict(list)
+            for project_artifact_bundle in project_artifact_bundles:
+                grouped_bundles[project_artifact_bundle.artifact_bundle].append(
+                    project_artifact_bundle
                 )
+
+            # We loop for each group of bundles with the same id, in order to check how many projects are connected to
+            # the same bundle.
+            for artifact_bundle, project_artifact_bundles in grouped_bundles.items():
+                # Technically for each bundle we will have always different project ids bound to it but to make the
+                # system more robust we compute the set of project ids to work avoid considering duplicates in the
+                # next code.
+                found_project_ids = set()
+                for project_artifact_bundle in project_artifact_bundles:
+                    found_project_ids.add(project_artifact_bundle.project_id)
+
+                # In case there are no project ids, which shouldn't happen, there is a db problem, thus we want to track
+                # it.
+                if len(found_project_ids) == 0:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_tag("bundle_id", bundle_id)
+                        scope.set_tag("org_id", project.organization.id)
+                        sentry_sdk.capture_message(
+                            "An artifact bundle without project(s) has been detected."
+                        )
+
+                    break
+
+                has_one_project_left = len(found_project_ids) == 1
+                if project_id in found_project_ids:
+                    # We delete the ProjectArtifactBundle entries that are bound to project requesting the deletion.
+                    with atomic_transaction(
+                        using=(
+                            router.db_for_write(ArtifactBundle),
+                            router.db_for_write(ProjectArtifactBundle),
+                        )
+                    ):
+                        if has_one_project_left:
+                            # If there is one project id we know that artifact_bundles must contain at least one
+                            # element, so we just take it out and delete it. This deletion will cascade delete every
+                            # connected entity.
+                            artifact_bundle.delete()
+                        else:
+                            # If there is more than one project, we will just delete the ProjectArtifactBundle entry
+                            # corresponding to project id of the requesting project.
+                            for project_artifact_bundle in project_artifact_bundles:
+                                if project_id == project_artifact_bundle.project_id:
+                                    project_artifact_bundle.delete()
+                else:
+                    error = f"Artifact bundle with {bundle_id} found but it is not connected to project {project_id}"
+
+            # TODO: here we might end up having artifact bundles without a project connected, thus it would be better
+            #  to also perform deletion of a bundle without any projects.
+            if error is None:
+                return Response(status=204)
+            else:
+                return Response({"error": error}, status=404)
 
         return Response({"error": f"Supplied an invalid bundle_id {bundle_id}"}, status=404)
