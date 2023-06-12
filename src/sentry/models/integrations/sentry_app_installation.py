@@ -175,20 +175,20 @@ class SentryAppInstallation(ParanoidModel):
             for outbox in self.outboxes_for_update(
                 identifier=self.id,
                 org_id=self.organization_id,
-                api_application_id=self.api_application_id,
+                # In the case of a bad relation, it's ok to just replicate this in a special ordering.
+                api_application_id=self.api_application_id or 0,
             ):
                 outbox.save()
             return super().delete(**kwargs)
 
     @property
-    def api_application_id(self) -> int:
+    def api_application_id(self) -> int | None:
         from sentry.models import SentryApp
 
         try:
             return self.sentry_app.application_id
         except SentryApp.DoesNotExist:
-            # In the case of a bad relation, it's ok to just replicate this in a special ordering.
-            return 0
+            return None
 
     @classmethod
     def outboxes_for_update(
