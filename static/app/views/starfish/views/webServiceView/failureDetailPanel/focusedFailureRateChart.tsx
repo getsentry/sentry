@@ -4,9 +4,11 @@ import {YAXisOption} from 'echarts/types/dist/shared';
 import {AreaChartProps} from 'sentry/components/charts/areaChart';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
@@ -82,12 +84,19 @@ function FocusedFailureRateChart({data, spike}: Props) {
         return tooltipFormatter(value, 'number');
       },
     },
-    xAxis: {
-      show: false,
+    grid: {
+      left: '0',
+      right: '0',
+      top: '8px',
+      bottom: '0',
     },
   } as Omit<AreaChartProps, 'series'>;
 
-  return <LineChart height={120} series={series} yAxis={yAxis} {...chartProps} />;
+  return (
+    <ChartPanel title={t('5xx Responses')}>
+      <LineChart height={120} series={series} yAxis={yAxis} {...chartProps} />
+    </ChartPanel>
+  );
 }
 
 export default FocusedFailureRateChart;
