@@ -30,6 +30,7 @@ class Provider(PipelineProvider, abc.ABC):
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
     """
+    is_partner = False
 
     is_partner = False
 

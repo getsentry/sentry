@@ -22,6 +22,7 @@ class AskEmail(AuthView):
 class DummyProvider(Provider):
     TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
     name = "Dummy"
+    is_partner = False
 
     def get_auth_pipeline(self):
         return [AskEmail()]
