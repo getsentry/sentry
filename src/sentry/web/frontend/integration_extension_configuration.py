@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from sentry import features, integrations
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models import Organization, OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.web.frontend.base import BaseView
 
 logger = logging.getLogger(__name__)
@@ -51,12 +53,16 @@ class IntegrationExtensionConfigurationView(BaseView):
 
         # check if we have one org
         organization = None
-        organizations = request.user.get_orgs()
+        organizations = organization_service.get_organizations(
+            user_id=request.user.id, only_visible=True
+        )
         if organizations.count() == 1:
             organization = organizations[0]
         # if we have an org slug in the query param, use that org
         elif "orgSlug" in request.GET:
-            organization = Organization.objects.get(slug=request.GET["orgSlug"])
+            organization = organization_service.get_org_by_slug(
+                slug=request.GET["orgSlug"], user_id=request.user.id
+            )
 
         org_id = organization.id if organization else None
         log_params = {"organization_id": org_id, "provider": self.provider}
