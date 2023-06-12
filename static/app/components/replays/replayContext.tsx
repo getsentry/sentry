@@ -243,8 +243,7 @@ export function Provider({
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
-
-  const didUseInitialOffset = useRef(false);
+  const didApplyInitialOffset = useRef(false);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
@@ -345,7 +344,7 @@ export function Provider({
 
   const applyInitialOffset = useCallback(() => {
     if (
-      !didUseInitialOffset.current &&
+      !didApplyInitialOffset.current &&
       initialTimeOffsetMs &&
       events &&
       replayerRef.current
@@ -361,7 +360,7 @@ export function Provider({
           highlight(highlightArgs);
         });
       }
-      didUseInitialOffset.current = true;
+      didApplyInitialOffset.current = true;
     }
   }, [
     clearAllHighlightsCallback,
