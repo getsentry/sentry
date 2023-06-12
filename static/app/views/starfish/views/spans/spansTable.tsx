@@ -26,11 +26,13 @@ type Props = {
 
 export type SpanDataRow = {
   'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'spm()': number;
+  'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
 
@@ -40,8 +42,10 @@ export type Keys =
   | 'span.domain'
   | 'spm()'
   | 'p95(span.duration)'
+  | 'sps_percent_change()'
   | 'sum(span.duration)'
-  | 'time_spent_percentage()';
+  | 'time_spent_percentage()'
+  | 'percentile_percent_change(span.duration, 0.95)';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
@@ -123,7 +127,21 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
   }
 
   if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row[column.key]} />;
+    return (
+      <ThroughputCell
+        throughputPerSecond={row['spm()']}
+        delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.duration)']}
+        delta={row['percentile_percent_change(span.duration, 0.95)']}
+      />
+    );
   }
 
   return row[column.key];
