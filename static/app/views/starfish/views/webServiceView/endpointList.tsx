@@ -33,10 +33,13 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 const COLUMN_TITLES = [
-  'Endpoint',
+  t('Endpoint'),
   DataTitles.throughput,
+  t('Change'),
   DataTitles.p95,
+  t('Change'),
   DataTitles.errorCount,
+  t('Change'),
   DataTitles.timeSpent,
 ];
 
@@ -131,21 +134,38 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     }
 
     if (
-      field.startsWith(
-        'equation|(percentile_range(transaction.duration,0.95,lessOrEquals,'
-      )
+      [
+        'percentile_percent_change(transaction.duration,0.95)',
+        'http_error_count_percent_change()',
+      ].includes(field)
     ) {
       const deltaValue = dataRow[field] as number;
       const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
 
       return (
         <NumberContainer>
-          <TrendingDuration trendDirection={trendDirection}>
+          <PercentChangeCell trendDirection={trendDirection}>
             {tct('[sign][delta]', {
               sign: deltaValue >= 0 ? '+' : '-',
               delta: formatPercentage(Math.abs(deltaValue), 2),
             })}
-          </TrendingDuration>
+          </PercentChangeCell>
+        </NumberContainer>
+      );
+    }
+
+    if (field === 'tps_percent_change()') {
+      const deltaValue = dataRow[field] as number;
+      const trendDirection = deltaValue > 0 ? 'good' : deltaValue < 0 ? 'bad' : 'neutral';
+
+      return (
+        <NumberContainer>
+          <PercentChangeCell trendDirection={trendDirection}>
+            {tct('[sign][delta]', {
+              sign: deltaValue >= 0 ? '+' : '-',
+              delta: formatPercentage(Math.abs(deltaValue), 2),
+            })}
+          </PercentChangeCell>
         </NumberContainer>
       );
     }
@@ -319,7 +339,9 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
 export default EndpointList;
 
-const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutral'}>`
+export const PercentChangeCell = styled('div')<{
+  trendDirection: 'good' | 'bad' | 'neutral';
+}>`
   color: ${p =>
     p.trendDirection === 'good'
       ? p.theme.successText
