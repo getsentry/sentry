@@ -14,6 +14,7 @@ from sentry.db.models import (
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.log import AuditLogEvent
+from sentry.services.hybrid_cloud.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
 
@@ -76,10 +77,14 @@ class AuditLogEntry(Model):
 
     def _apply_actor_label(self):
         if not self.actor_label:
-            assert self.actor or self.actor_key
-            if self.actor:
-                self.actor_label = self.actor.username
+            assert self.actor_id or self.actor_key
+            if self.actor_id:
+                # Fetch user by RPC service as
+                # Audit logs are often created in regions.
+                user = user_service.get_user(self.actor_id)
+                self.actor_label = user.username
             else:
+                # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
 
     def as_event(self) -> AuditLogEvent:
@@ -95,7 +100,7 @@ class AuditLogEntry(Model):
                 self.organization_id
             ),  # prefer raising NoneType here over actually passing through
             date_added=self.datetime or timezone.now(),
-            actor_user_id=self.actor and self.actor.id,
+            actor_user_id=self.actor_id and self.actor_id,
             target_object_id=self.target_object,
             ip_address=self.ip_address and str(self.ip_address),
             event_id=self.event and int(self.event),
