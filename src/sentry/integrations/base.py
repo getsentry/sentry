@@ -24,6 +24,7 @@ from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -209,7 +210,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     def create_audit_log_entry(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         request: Request,
         action: str,
         extra: Optional[Any] = None,
