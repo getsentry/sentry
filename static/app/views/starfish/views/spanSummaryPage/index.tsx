@@ -4,23 +4,27 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {ReleasePreview} from 'sentry/views/starfish/components/releasePreview';
-import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {
-  useSpanFirstSeenEvent,
-  useSpanLastSeenEvent,
-} from 'sentry/views/starfish/queries/useSpanSeenEvent';
-import SampleList from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanBaselineTable} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Props = {
@@ -31,10 +35,35 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction} = location.query;
 
-  const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
-  const {data: spanMetrics} = useSpanMetrics({group: groupId});
-  const {data: firstSeenSpanEvent} = useSpanFirstSeenEvent({group_id: groupId});
-  const {data: lastSeenSpanEvent} = useSpanLastSeenEvent({group_id: groupId});
+  const {data: spanMetas} = useSpanMeta(
+    groupId,
+    undefined,
+    'span-summary-page-span-meta'
+  );
+  // TODO: Span meta might in theory return more than one row! In that case, we
+  // need to indicate in the UI that more than one set of meta corresponds to
+  // the span group
+  const span = {
+    group: groupId,
+    ...spanMetas?.[0],
+  };
+
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    undefined,
+    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    'span-summary-page-metrics'
+  );
+
+  const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
+    useSpanMetricsSeries(
+      {group: groupId},
+      undefined,
+      ['p95(span.duration)', 'sps()'],
+      'sidebar-span-metrics'
+    );
+
+  useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   return (
     <Layout.Page>
@@ -52,31 +81,79 @@ function SpanSummaryPage({params, location}: Props) {
                 <DatePageFilter alignDropdown="left" />
               </FilterOptionsContainer>
               <BlockContainer>
-                <Block title={t('Operation')}>{span?.op}</Block>
+                <Block title={t('Operation')}>{span?.['span.op']}</Block>
                 <Block
-                  title={t('First Seen')}
-                  description={t(
-                    'The first time this span was ever seen in the current retention window'
-                  )}
+                  title={t('Throughput')}
+                  description={t('Throughput of this span per second')}
                 >
-                  <TimeSince date={spanMetrics?.['first_seen()']} />
-                  {firstSeenSpanEvent?.release && (
-                    <ReleasePreview release={firstSeenSpanEvent?.release} />
-                  )}
+                  <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                 </Block>
-
+                <Block title={t('Duration')} description={t('Time spent in this span')}>
+                  <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
+                </Block>
                 <Block
-                  title={t('Last Seen')}
-                  description={t('The most recent time this span was seen')}
-                >
-                  <TimeSince date={spanMetrics?.['last_seen()']} />
-                  {lastSeenSpanEvent?.release && (
-                    <ReleasePreview release={lastSeenSpanEvent?.release} />
+                  title={t('Time Spent')}
+                  description={t(
+                    'Time spent in this span as a proportion of total application time'
                   )}
+                >
+                  <TimeSpentCell
+                    formattedTimeSpent={formatPercentage(
+                      spanMetrics?.['time_spent_percentage()']
+                    )}
+                    totalSpanTime={spanMetrics?.['sum(span.duration)']}
+                  />
                 </Block>
               </BlockContainer>
 
-              {span && <SpanBaselineTable span={span} />}
+              {span?.['span.description'] && (
+                <BlockContainer>
+                  <Block>
+                    <Panel>
+                      <PanelBody>
+                        <DescriptionContainer>
+                          <SpanDescription spanMeta={spanMetas?.[0]} />
+                        </DescriptionContainer>
+                      </PanelBody>
+                    </Panel>
+                  </Block>
+
+                  <Block>
+                    <ChartPanel title={DataTitles.throughput}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spanMetricsSeriesData?.['sps()']]}
+                        start=""
+                        end=""
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[THROUGHPUT_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </Block>
+
+                  <Block>
+                    <ChartPanel title={DataTitles.p95}>
+                      <Chart
+                        statsPeriod="24h"
+                        height={140}
+                        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+                        start=""
+                        end=""
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[P95_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </Block>
+                </BlockContainer>
+              )}
+
               {span && <SpanTransactionsTable span={span} />}
 
               {transaction && span?.group && (
@@ -100,8 +177,8 @@ const FilterOptionsContainer = styled('div')`
 
 type BlockProps = {
   children: React.ReactNode;
-  title: React.ReactNode;
   description?: React.ReactNode;
+  title?: React.ReactNode;
 };
 
 export function Block({title, description, children}: BlockProps) {
@@ -142,6 +219,11 @@ export const BlockContainer = styled('div')`
     padding-right: ${space(1)};
   }
   padding-bottom: ${space(2)};
+`;
+
+const DescriptionContainer = styled('div')`
+  width: 100%;
+  padding: ${space(1)};
 `;
 
 const BlockWrapper = styled('div')`

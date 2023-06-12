@@ -16,6 +16,7 @@ from .manager import (  # NOQA
     FLAG_RATE,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
+    NotWritableReason,
     OptionsManager,
     UnknownOption,
     UpdateChannel,
@@ -23,15 +24,19 @@ from .manager import (  # NOQA
 from .store import OptionsStore
 
 __all__ = (
-    "get",
-    "set",
+    "FLAG_AUTOMATOR_MODIFIABLE",
+    "NotWritableReason",
+    "UnknownOption",
+    "UpdateChannel",
+    "can_update",
+    "default_store",
     "delete",
-    "register",
+    "get",
+    "get_last_update_channel",
     "isset",
     "lookup_key",
-    "UnknownOption",
-    "default_store",
-    "get_last_update_channel",
+    "register",
+    "set",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
@@ -51,6 +56,7 @@ filter = default_manager.filter
 isset = default_manager.isset
 lookup_key = default_manager.lookup_key
 get_last_update_channel = default_manager.get_last_update_channel
+can_update = default_manager.can_update
 
 
 def load_defaults():

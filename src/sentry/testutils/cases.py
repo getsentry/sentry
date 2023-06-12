@@ -75,7 +75,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -111,12 +111,14 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    OrganizationMember,
     Project,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
     RuleSource,
+    User,
     UserEmail,
     UserOption,
 )
@@ -269,6 +271,10 @@ class BaseTestCase(Fixtures):
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
+        if isinstance(user, OrganizationMember):
+            with exempt_from_silo_limits():
+                user = User.objects.get(id=user.user_id)
+
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()

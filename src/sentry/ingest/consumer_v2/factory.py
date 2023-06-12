@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional
+from typing import Any, Mapping, MutableMapping, NamedTuple
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -14,11 +14,12 @@ from arroyo.processing.strategies import (
     RunTask,
     RunTaskWithMultiprocessing,
 )
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import Commit, Partition
 from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
+from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils import kafka_config
 
@@ -34,10 +35,10 @@ class MultiProcessConfig(NamedTuple):
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        function: Callable[[Message[KafkaPayload]], None],
-        multi_process: Optional[MultiProcessConfig] = None,
+        health_checker: HealthChecker,
+        multi_process: MultiProcessConfig | None = None,
     ):
-        self.function = function
+        self.health_checker = health_checker
         self.multi_process = multi_process
 
     def create_with_partitions(
@@ -46,8 +47,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if (mp := self.multi_process) is not None:
-            return RunTaskWithMultiprocessing(
-                self.function,
+            next_step = RunTaskWithMultiprocessing(
+                process_ingest_message,
                 CommitOffsets(commit),
                 mp.num_processes,
                 mp.max_batch_size,
@@ -57,14 +58,16 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 initializer=initialize_consumer_state,
             )
         else:
-            return RunTask(
-                function=self.function,
+            next_step = RunTask(
+                function=process_ingest_message,
                 next_step=CommitOffsets(commit),
             )
 
+        return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
+
 
 def get_ingest_consumer(
-    type_: str,
+    consumer_type: str,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
@@ -76,7 +79,7 @@ def get_ingest_consumer(
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or ConsumerType.get_topic_name(type_)
+    topic = force_topic or ConsumerType.get_topic_name(consumer_type)
     consumer_config = get_config(
         topic,
         group_id,
@@ -86,14 +89,12 @@ def get_ingest_consumer(
     )
     consumer = KafkaConsumer(consumer_config)
 
-    # The `attachments` topic that is used for "complex" events needs ordering
-    # guarantees: Attachments have to be written before the event using them
-    # is being processed. We will use a simple serial `RunTask` for those
+    # The attachments consumer that is used for multiple message types needs
+    # ordering guarantees: Attachments have to be written before the event using
+    # them is being processed. We will use a simple serial `RunTask` for those
     # for now.
-    # For all other topics, we can use multi processing.
-    allow_multi_processing = topic != settings.KAFKA_INGEST_ATTACHMENTS
     multi_process = None
-    if processes > 1 and allow_multi_processing:
+    if processes > 1 and consumer_type != ConsumerType.Attachments:
         multi_process = MultiProcessConfig(
             num_processes=processes,
             max_batch_size=max_batch_size,
@@ -102,12 +103,14 @@ def get_ingest_consumer(
             output_block_size=output_block_size,
         )
 
-    processor_factory = IngestStrategyFactory(process_ingest_message, multi_process=multi_process)
+    health_checker = HealthChecker()
 
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=processor_factory,
+        processor_factory=IngestStrategyFactory(
+            health_checker=health_checker, multi_process=multi_process
+        ),
         commit_policy=ONCE_PER_SECOND,
     )
 

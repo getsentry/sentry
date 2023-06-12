@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.signing import SignatureExpired
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -8,7 +9,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, integrations
-from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models import Organization, OrganizationMember
 from sentry.web.frontend.base import BaseView
@@ -119,11 +119,25 @@ class IntegrationExtensionConfigurationView(BaseView):
         provider = integrations.get(self.provider)
         integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
-            try:
-                if features.has(flag_name, org, actor=user):
-                    return True
+            log_params = {
+                "flag_name": flag_name,
+                "organization_id": org.id,
+                "provider": self.provider,
+            }
             # we have some integration features that are not actually
             # registered. Those features are unrestricted.
-            except FeatureNotRegistered:
+            if flag_name not in settings.SENTRY_FEATURES:
+                logger.info(
+                    "integration-extension-config.missing-feature",
+                    extra=log_params,
+                )
                 return True
+            result = features.has(flag_name, org, actor=user)
+            logger.info(
+                "integration-extension-config.feature-result",
+                extra={"result": result, **log_params},
+            )
+            if result:
+                return True
+        # no features enabled for this provider
         return False
