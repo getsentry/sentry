@@ -23,7 +23,7 @@ class ProfilesHealthCheck:
         # Queue is healthy by default
         self.is_queue_healthy = True
 
-    def is_healthy(self):
+    def is_healthy(self) -> bool:
         now = time()
         # Check queue health if it's been more than the interval
         if now - self.last_check >= options.get(
