@@ -7,7 +7,10 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 from django.conf import settings
 
-from sentry.replays.usecases.ingest.click_issue import report_dead_click_issue
+from sentry.replays.usecases.ingest.click_issue import (
+    report_dead_click_issue,
+    report_rage_click_issue,
+)
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
@@ -148,6 +151,9 @@ def get_user_actions(
                 logger.info("sentry.replays.slow_click", extra=log)
 
                 report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
+                continue
+            elif category == "ui.rageClickDetected":
+                report_rage_click_issue(project_id, replay_id, cast(SentryEvent, event))
                 continue
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
