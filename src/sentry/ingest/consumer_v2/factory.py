@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, NamedTuple, Optional
+from typing import Any, Mapping, MutableMapping, NamedTuple
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -19,6 +19,7 @@ from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
+from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils import kafka_config
 
@@ -34,8 +35,10 @@ class MultiProcessConfig(NamedTuple):
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        multi_process: Optional[MultiProcessConfig] = None,
+        health_checker: HealthChecker,
+        multi_process: MultiProcessConfig | None = None,
     ):
+        self.health_checker = health_checker
         self.multi_process = multi_process
 
     def create_with_partitions(
@@ -44,7 +47,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if (mp := self.multi_process) is not None:
-            return RunTaskWithMultiprocessing(
+            next_step = RunTaskWithMultiprocessing(
                 process_ingest_message,
                 CommitOffsets(commit),
                 mp.num_processes,
@@ -55,10 +58,12 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 initializer=initialize_consumer_state,
             )
         else:
-            return RunTask(
+            next_step = RunTask(
                 function=process_ingest_message,
                 next_step=CommitOffsets(commit),
             )
+
+        return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
 
 def get_ingest_consumer(
@@ -98,10 +103,14 @@ def get_ingest_consumer(
             output_block_size=output_block_size,
         )
 
+    health_checker = HealthChecker()
+
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=IngestStrategyFactory(multi_process=multi_process),
+        processor_factory=IngestStrategyFactory(
+            health_checker=health_checker, multi_process=multi_process
+        ),
         commit_policy=ONCE_PER_SECOND,
     )
 
