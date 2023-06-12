@@ -12,6 +12,7 @@ from sentry import tsdb
 from sentry.debug.utils.packages import get_all_package_versions
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.locks import locks
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
@@ -39,6 +40,9 @@ def should_skip_beacon(install_id):
 
     if settings.DEBUG:
         logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "debug"})
+        return True
+
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
         return True
 
     return False
