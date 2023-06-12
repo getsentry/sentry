@@ -30,8 +30,8 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             if "SentrySDK crash" in function:
                 return False
 
-            functionsMatchers = ["*sentrycrash*", "**[[]Sentry*"]
-            for matcher in functionsMatchers:
+            function_matchers = ["*sentrycrash*", "**[[]Sentry*"]
+            for matcher in function_matchers:
                 if glob_match(frame.get("function"), matcher, ignorecase=True):
                     return True
 
