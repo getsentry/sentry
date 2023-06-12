@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.dynamic_sampling import RESERVED_IDS, RuleType
-from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
-    RareTransactionsRulesBias,
+from sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias import (
+    BoostLowVolumeTransactionsBias,
 )
 
 
@@ -34,7 +34,7 @@ def _create_mocks():
 def test_transaction_boost_known_projects(get_transactions_resampling_rates):
     """
     Test that when there is information available about project transactions it
-    generates rules for boosting rare transactions
+    generates rules for boosting low volume transactions
     """
     project, fake_get_trans_res_rates, explicit_rates, implicit_rate = _create_mocks()
     rate = 0.2
@@ -49,7 +49,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
     t1_factor = t1_rate / rate / implicit_factor
     t2_factor = t2_rate / rate / implicit_factor
 
-    rules = RareTransactionsRulesBias().generate_rules(project=project, base_sample_rate=rate)
+    rules = BoostLowVolumeTransactionsBias().generate_rules(project=project, base_sample_rate=rate)
     expected = [
         {
             "samplingValue": {"type": "factor", "value": t1_factor},
@@ -65,7 +65,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
                     }
                 ],
             },
-            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS],
+            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE],
         },
         {
             "samplingValue": {"type": "factor", "value": t2_factor},
@@ -81,7 +81,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
                     }
                 ],
             },
-            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + 1,
+            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE] + 1,
         },
         {
             "samplingValue": {"type": "factor", "value": implicit_factor},
@@ -90,7 +90,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
                 "op": "and",
                 "inner": [],
             },
-            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + 2,
+            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE] + 2,
         },
     ]
     assert rules == expected
@@ -104,5 +104,5 @@ def test_transaction_boost_unknown_projects():
     project, fake_get_trans_res_rates, _explicit_rates, _implicit_rate = _create_mocks()
     rate = 0.2
 
-    rules = RareTransactionsRulesBias().generate_rules(project=project, base_sample_rate=rate)
+    rules = BoostLowVolumeTransactionsBias().generate_rules(project=project, base_sample_rate=rate)
     assert rules == []
