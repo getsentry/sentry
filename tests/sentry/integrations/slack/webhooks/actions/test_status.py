@@ -15,7 +15,6 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupStatus,
-    GroupSubStatus,
     Identity,
     InviteStatus,
     OrganizationMember,
@@ -24,6 +23,7 @@ from sentry.models import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -469,7 +469,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
 
         # Remove the user from the organization.
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         member.remove_user()
         member.save()
 
@@ -636,7 +638,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_invitation_validation_error(self):
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user=self.user).update(role="manager")
+            OrganizationMember.objects.filter(user_id=self.user.id).update(role="manager")
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
             organization=self.organization,
@@ -682,7 +684,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_no_member_admin(self):
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user=self.user).update(role="admin")
+            OrganizationMember.objects.filter(user_id=self.user.id).update(role="admin")
 
         other_user = self.create_user()
         member = OrganizationMember.objects.create(

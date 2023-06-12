@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 import pytest
 from django.db import IntegrityError, transaction
 
-from sentry.models import Rule, RuleSnooze
+from sentry.models import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import APITestCase
 
 

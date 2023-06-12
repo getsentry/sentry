@@ -323,7 +323,7 @@ const ContentWrap = styled('div')<{
     p.showDivider &&
     !p.isFocused &&
     `
-      ${MenuItemWrap}:not(:last-child) &::after {
+      li:not(:last-child) &::after {
         content: '';
         position: absolute;
         left: 0;

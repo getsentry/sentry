@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
@@ -256,7 +256,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == user
+            assert om.user_id == user.id
 
             ale = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
@@ -327,7 +327,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == user
+            assert om.user_id == user.id
 
             om2 = Factories.create_member(
                 email="newuser3@example.com",
@@ -370,7 +370,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == user
+            assert om.user_id == user.id
 
             ale = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
