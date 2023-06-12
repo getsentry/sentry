@@ -50,7 +50,7 @@ class ArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
-    bundle_id = models.UUIDField(default=NULL_UUID)
+    bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -93,10 +93,10 @@ class ReleaseArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250)
+    release_name = models.CharField(max_length=250, db_index=True)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -105,6 +105,7 @@ class ReleaseArtifactBundle(Model):
         db_table = "sentry_releaseartifactbundle"
 
         unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        index_together = (("release_name", "dist_name"),)
 
 
 @region_silo_only_model
