@@ -12,15 +12,14 @@ from arroyo.processing.strategies import (
     ProcessingStrategy,
     ProcessingStrategyFactory,
     RunTask,
-    RunTaskWithMultiprocessing,
 )
 from arroyo.types import Commit, Partition
 from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
-from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils import kafka_config
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 
 class MultiProcessConfig(NamedTuple):
@@ -45,14 +44,13 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         if (mp := self.multi_process) is not None:
             return RunTaskWithMultiprocessing(
-                process_ingest_message,
-                CommitOffsets(commit),
-                mp.num_processes,
-                mp.max_batch_size,
-                mp.max_batch_time,
-                mp.input_block_size,
-                mp.output_block_size,
-                initializer=initialize_consumer_state,
+                function=process_ingest_message,
+                next_step=CommitOffsets(commit),
+                num_processes=mp.num_processes,
+                max_batch_size=mp.max_batch_size,
+                max_batch_time=mp.max_batch_time,
+                input_block_size=mp.input_block_size,
+                output_block_size=mp.output_block_size,
             )
         else:
             return RunTask(
