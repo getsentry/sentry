@@ -150,9 +150,24 @@ export interface Thread {
   id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
-  lockReason?: string | null;
+  heldLocks?: Record<string, Lock> | null;
   name?: string | null;
   state?: string | null;
+}
+
+export type Lock = {
+  address: string | null;
+  class_name: string | null;
+  package_name: string | null;
+  thread_id: number | null;
+  type: LockType;
+};
+
+export enum LockType {
+  LOCKED = 1,
+  WAITING = 2,
+  SLEEPING = 4,
+  BLOCKED = 8,
 }
 
 export type Frame = {

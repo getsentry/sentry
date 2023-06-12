@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
   getThreadStateHelpText,
@@ -26,6 +27,7 @@ import {
   StackView,
   Thread,
 } from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
@@ -150,7 +152,7 @@ export function Threads({
       current,
       crashed,
       state: threadState,
-      lockReason,
+      heldLocks,
     } = activeThread ?? {};
 
     if (isNil(id) || !name) {
@@ -158,6 +160,7 @@ export function Threads({
     }
 
     const threadStateDisplay = getMappedThreadState(threadState);
+    const lockReason = getLockReason(heldLocks);
 
     return (
       <Pills>
@@ -172,7 +175,7 @@ export function Threads({
         {!isNil(threadStateDisplay) && (
           <Pill name={t('state')} value={threadStateDisplay} />
         )}
-        {!isNil(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
+        {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
   }
@@ -284,7 +287,7 @@ export function Threads({
                       title={getThreadStateHelpText(threadStateDisplay)}
                     />
                   )}
-                  {<LockReason>{activeThread?.lockReason}</LockReason>}
+                  {<LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>}
                 </ThreadStateWrapper>
               </EventDataSection>
             )}

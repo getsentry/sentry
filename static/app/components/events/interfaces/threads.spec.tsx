@@ -629,7 +629,15 @@ describe('Threads', function () {
                   },
                   rawStacktrace: null,
                   state: 'BLOCKED',
-                  lockReason: 'waiting on tid=1',
+                  heldLocks: {
+                    '0x0d3a2f0a': {
+                      type: 8,
+                      address: '0x0d3a2f0a',
+                      package_name: 'java.lang',
+                      class_name: 'Object',
+                      thread_id: 11,
+                    },
+                  },
                 },
                 {
                   id: 1,
@@ -903,7 +911,9 @@ describe('Threads', function () {
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
         expect(screen.getAllByText('Blocked')).toHaveLength(2);
-        expect(screen.getAllByText('waiting on tid=1')).toHaveLength(2);
+        expect(
+          screen.getAllByText('waiting to lock <0x0d3a2f0a> held by thread 11')
+        ).toHaveLength(2);
         expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Actions
