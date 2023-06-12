@@ -9,6 +9,7 @@ import Link from 'sentry/components/links/link';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -106,6 +107,10 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
         )}
       </OverflowEllipsisTextContainer>
     );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return <DurationCell milliseconds={row['p95(span.duration)']} />;
   }
 
   if (column.key === 'time_spent_percentage()') {
