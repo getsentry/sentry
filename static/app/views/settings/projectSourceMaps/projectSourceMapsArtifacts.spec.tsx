@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {ProjectSourceMapsArtifacts} from 'sentry/views/settings/projectSourceMaps/projectSourceMapsArtifacts';
@@ -202,14 +203,14 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(
         screen.getByText('7227e105-744e-4066-8c69-3e5e344723fc')
       ).toBeInTheDocument();
-      // Chips
-      await userEvent.hover(await screen.findByText('2.0'));
+
+      // Release information
       expect(
-        await screen.findByText('Associated with release "2.0"')
+        await screen.findByText(textWithMarkupMatcher('2 Releases associated'))
       ).toBeInTheDocument();
-      await userEvent.hover(await screen.findByText('android'));
+      await userEvent.hover(screen.getByText('2 Releases'));
       expect(
-        await screen.findByText('Associated with distribution "android"')
+        await screen.findByText('frontend@2e318148eac9298ec04a662ae32b4b093b027f0a')
       ).toBeInTheDocument();
 
       // Search bar
@@ -269,6 +270,11 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(
         await screen.findByText('There are no artifacts in this bundle.')
       ).toBeInTheDocument();
+
+      // TODO(Pri): Uncomment once fully transitioned to associations.
+      // expect(
+      //   screen.getByText('No releases associated with this bundle')
+      // ).toBeInTheDocument();
     });
   });
 });
