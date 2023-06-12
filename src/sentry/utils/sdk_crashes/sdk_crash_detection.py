@@ -55,7 +55,7 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            sdk_crash_event_data = strip_event_data(event, self.cocoa_sdk_crash_detector)
+            sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
                 sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
