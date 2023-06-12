@@ -122,6 +122,12 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
             from arroyo.processing.strategies.run_task import RunTask
 
+            kwargs.pop("num_processes", None)
+            kwargs.pop("input_block_size", None)
+            kwargs.pop("output_block_size", None)
+            kwargs.pop("max_batch_size", None)
+            kwargs.pop("max_batch_time", None)
+
             return RunTask(**kwargs)  # type: ignore[return-value]
         else:
             from arroyo.processing.strategies.run_task_with_multiprocessing import (
