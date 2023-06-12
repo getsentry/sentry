@@ -468,8 +468,7 @@ class Quota(Service):
     ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the creation of a uniform rule (Boost Low Volume Projects) with blended sample rate is not supported for
-        that project or organization.
+        if the the organization doesn't have dynamic sampling.
 
         The reasoning for having two params as `Optional` is because this method was first designed to work with
         `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`
