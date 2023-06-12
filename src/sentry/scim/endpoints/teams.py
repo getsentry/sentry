@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
-from sentry.apidocs.parameters import GlobalParams, ScimParams
+from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
@@ -206,7 +206,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Team",
-        parameters=[ScimParams.TEAM_ID, GlobalParams.ORG_SLUG],
+        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_SLUG],
         request=None,
         responses={
             200: TeamSCIMSerializer,
@@ -285,7 +285,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
-        parameters=[GlobalParams.ORG_SLUG, ScimParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -410,7 +410,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Delete an Individual Team",
-        parameters=[GlobalParams.ORG_SLUG, ScimParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
         request=None,
         responses={
             204: RESPONSE_SUCCESS,

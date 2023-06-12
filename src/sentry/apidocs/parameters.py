@@ -91,7 +91,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
-class ScimParams:
+class SCIMParams:
     MEMBER_ID = OpenApiParameter(
         name="member_id",
         location="path",
