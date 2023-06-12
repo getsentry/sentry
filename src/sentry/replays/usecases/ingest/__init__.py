@@ -80,7 +80,7 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload=cast(bytes, message_dict["payload"]),
-                version=message_dict.get("version", 0),
+                version=cast(int, message_dict.get("version", 0)),
             )
             _ingest_recording(message, transaction)
 
