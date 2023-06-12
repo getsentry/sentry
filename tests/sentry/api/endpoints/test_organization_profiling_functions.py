@@ -1,5 +1,4 @@
 from django.urls import reverse
-from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils import ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -34,26 +33,24 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200
-        assert response.data == {}
+        assert response.json() == {}
 
     def test_missing_paramse(self):
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url)
         assert response.status_code == 400
-        assert response.data == {
-            "function": [ErrorDetail(string="This field is required.", code="required")],
-            "trend": [ErrorDetail(string="This field is required.", code="required")],
+        assert response.json() == {
+            "function": ["This field is required."],
+            "trend": ["This field is required."],
         }
 
     def test_bad_trend_type(self):
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url, {"function": "avg()", "trend": "foo"})
         assert response.status_code == 400
-        assert response.data == {
+        assert response.json() == {
             "trend": [
-                ErrorDetail(
-                    string="Unknown trend type. Expected regression or improvement", code="invalid"
-                ),
+                "Unknown trend type. Expected regression or improvement or none",
             ]
         }
 

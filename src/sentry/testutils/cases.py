@@ -1762,7 +1762,7 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-class ProfilesSnubaTestCase(TestCase):
+class ProfilesSnubaTestCase(TestCase, BaseTestCase):
     def setUp(self):
         super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
