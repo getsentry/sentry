@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
+    Dict,
     List,
     Mapping,
     MutableMapping,
@@ -45,12 +46,9 @@ from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import (
-        OrganizationSerializerResponse,
-        ProjectSerializerResponse,
-        SCIMMeta,
-    )
+    from sentry.api.serializers import OrganizationSerializerResponse, SCIMMeta
     from sentry.api.serializers.models.external_actor import ExternalActorResponse
+    from sentry.api.serializers.models.project import ProjectSerializerResponse
 
 
 def _get_team_memberships(
@@ -157,9 +155,9 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
 
 
 class _TeamSerializerResponseOptional(TypedDict, total=False):
-    externalTeams: list[ExternalActorResponse]
+    externalTeams: List[ExternalActorResponse]
     organization: OrganizationSerializerResponse
-    projects: ProjectSerializerResponse
+    projects: List[ProjectSerializerResponse]
 
 
 class TeamSerializerResponse(_TeamSerializerResponseOptional):
@@ -169,7 +167,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     dateCreated: datetime
     isMember: bool
     teamRole: str
-    flags: dict[str, Any]
+    flags: Dict[str, Any]
     access: frozenset[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
@@ -306,7 +304,6 @@ class TeamSerializer(Serializer):
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
-
         result: TeamSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,

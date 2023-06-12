@@ -1,6 +1,9 @@
+from typing import List
+
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,7 +13,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamSerializer
+from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import (
     ExternalActor,
     OrganizationMember,
@@ -57,25 +64,36 @@ class TeamPostSerializer(serializers.Serializer):
         return attrs
 
 
+@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    public = {"GET"}
     permission_classes = (OrganizationTeamsPermission,)
 
     def team_serializer_for_post(self):
         # allow child routes to supply own serializer, used in SCIM teams route
         return TeamSerializer()
 
+    @extend_schema(
+        operation_id="List an Organization's Teams",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            TeamParams.DETAILED,
+            CursorQueryParam,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrgTeamResponse", List[TeamSerializerResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=TeamExamples.LIST_ORG_TEAMS,
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        List an Organization's Teams
-        ````````````````````````````
-
-        Return a list of teams bound to a organization.
-
-        :pparam string organization_slug: the slug of the organization for
-                                          which the teams should be listed.
-        :param string detailed: Specify "0" to return team details that do not include projects
-        :auth: required
+        Returns a list of teams bound to a organization.
         """
         # TODO(dcramer): this should be system-wide default for organization
         # based endpoints
