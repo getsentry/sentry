@@ -1,4 +1,3 @@
-import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -49,7 +48,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
 from sentry.dynamic_sampling.tasks.sliding_window_org.utils import (
     fetch_orgs_with_total_root_transactions_count,
 )
@@ -60,8 +59,6 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -166,9 +163,8 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         if not more_results:
             break
     else:
-        logger.error(
-            "",
-            extra={"offset": offset},
+        log_query_timeout(
+            query="fetch_projects_with_total_root_transaction_count_and_rates", offset=offset
         )
 
     return aggregated_projects

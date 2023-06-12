@@ -1,4 +1,3 @@
-import logging
 import time
 from datetime import datetime
 from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
@@ -26,13 +25,12 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
 )
+from sentry.dynamic_sampling.tasks.logging import log_query_timeout
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 class ProjectIdentity(TypedDict, total=True):
@@ -238,10 +236,7 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
             }
 
     else:
-        logger.error(
-            "",
-            extra={"offset": offset},
-        )
+        log_query_timeout(query="fetch_project_transaction_totals", offset=offset)
 
     return None
 
@@ -359,10 +354,7 @@ def fetch_transactions_with_total_volumes(
                 }
             break
     else:
-        logger.error(
-            "",
-            extra={"offset": offset},
-        )
+        log_query_timeout(query="fetch_transactions_with_total_volumes", offset=offset)
 
     return None
 

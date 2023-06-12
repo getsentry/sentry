@@ -1,4 +1,3 @@
-import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -28,14 +27,13 @@ from sentry.dynamic_sampling.tasks.common import (
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL, CHUNK_SIZE, MAX_SECONDS
+from sentry.dynamic_sampling.tasks.logging import log_query_timeout
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 def adjust_base_sample_rates_of_projects(
@@ -161,9 +159,6 @@ def fetch_projects_with_total_root_transactions_count(
         if not more_results:
             break
     else:
-        logger.error(
-            f"Fetching the transaction root count of multiple orgs took more than {MAX_SECONDS} seconds.",
-            extra={"offset": offset},
-        )
+        log_query_timeout(query="fetch_projects_with_total_root_transactions_count", offset=offset)
 
     return aggregated_projects

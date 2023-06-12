@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -35,3 +35,11 @@ def log_sample_rate_source(
         "dynamic_sampling.sample_rate_source",
         extra=extra,
     )
+
+
+def log_query_timeout(query: str, offset: int) -> None:
+    logger.error("dynamic_sampling.query_timeout", extra={"query": query, "offset": offset})
+
+
+def log_recalibrate_orgs_errors(errors: Dict[str, str]) -> None:
+    logger.error("dynamic_sampling.recalibrate_orgs", extra={"errors": errors})

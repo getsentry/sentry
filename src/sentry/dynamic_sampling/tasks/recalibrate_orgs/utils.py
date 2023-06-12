@@ -1,4 +1,3 @@
-import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -33,8 +32,6 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)

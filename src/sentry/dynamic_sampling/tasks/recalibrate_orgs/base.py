@@ -1,7 +1,7 @@
-import logging
 from datetime import timedelta
 from typing import Dict
 
+from sentry.dynamic_sampling.tasks.logging import log_recalibrate_orgs_errors
 from sentry.dynamic_sampling.tasks.recalibrate_orgs.utils import (
     fetch_org_volumes,
     get_active_orgs,
@@ -9,8 +9,6 @@ from sentry.dynamic_sampling.tasks.recalibrate_orgs.utils import (
 )
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.tasks.base import instrumented_task
-
-logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -35,4 +33,4 @@ def recalibrate_orgs() -> None:
                 errors[str(org_volume.org_id)] = error_message
 
     if errors:
-        logger.info("Dynamic sampling organization recalibration failed", extra=errors)
+        log_recalibrate_orgs_errors(errors=errors)
