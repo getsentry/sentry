@@ -137,7 +137,7 @@ export function generateWebServiceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: 'event.type:transaction has:http.method transaction.op:http.server',
     projects: [],
     fields,
     version: 2,
