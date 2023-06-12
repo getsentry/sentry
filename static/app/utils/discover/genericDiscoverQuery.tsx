@@ -423,10 +423,14 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   return useQuery<T, QueryError>(
     [route, apiPayload],
     async () => {
-      const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
+      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
       });
-      return resp;
+      const pageLinks = resp?.getResponseHeader('Link');
+      if (!pageLinks) {
+        return data;
+      }
+      return {pageLinks, ...data};
     },
     options
   );

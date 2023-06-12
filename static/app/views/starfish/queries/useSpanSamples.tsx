@@ -53,6 +53,7 @@ export function useSpanSamples(
   });
 
   const data = (response.data?.data ?? []) as unknown as IndexedSpan[];
+  const pageLinks = response.data?.pageLinks;
 
-  return {...response, data};
+  return {...response, data, pageLinks};
 }

@@ -81,7 +81,10 @@ export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'child
     };
   };
 
-  return useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
+  return useGenericDiscoverQuery<
+    TableData & {pageLinks?: string},
+    DiscoverQueryPropsWithThresholds
+  >({
     route: 'events',
     shouldRefetchData,
     afterFetch,
