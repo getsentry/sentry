@@ -32,6 +32,7 @@ class ActivatableBias(TypedDict):
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling
 # experience. These can be overridden by the project details endpoint
 class RuleType(Enum):
+    # Legacy value "uniformRule" is kept for backwards compatibility, since it is used as a key in the project options
     BOOST_LOW_VOLUME_PROJECTS_RULE = "uniformRule"
     RECALIBRATION_RULE = "recalibrationRule"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
