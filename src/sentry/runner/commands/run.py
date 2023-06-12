@@ -502,28 +502,16 @@ def query_subscription_consumer(**options):
     "consumer_type",
     "--consumer-type",
     required=True,
-    help="Specify which type of consumer to create, i.e. from which topic to consume messages",
+    help="Specify which type of consumer to create",
     type=click.Choice(ConsumerType.all()),
 )
 @kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @strict_offset_reset_option()
-@click.option(
-    "--concurrency",
-    type=int,
-    default=None,
-    help="Thread pool size (only utilitized for message types that support concurrent processing)",
-)
 @configuration
 @click.option(
     "--processes",
     default=1,
     type=int,
-)
-@click.option(
-    "--v2-consumer",
-    default=False,
-    is_flag=True,
-    help="Use the new arroyo-based `v2` consumer",
 )
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
@@ -539,10 +527,6 @@ def ingest_consumer(consumer_type, **options):
     from sentry.ingest.consumer_v2.factory import get_ingest_consumer
     from sentry.utils import metrics
     from sentry.utils.arroyo import MetricsWrapper
-
-    # TODO: Remove options from the old consumer
-    options.pop("concurrency", None)
-    options.pop("v2_consumer", None)
 
     configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
 
