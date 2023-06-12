@@ -17,12 +17,12 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentStatus,
-    IncidentTrigger,
     TriggerStatus,
 )
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -74,7 +74,7 @@ class EmailActionHandler(ActionHandler):
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = NotificationSetting.objects.filter_to_accepting_recipients(
                 self.project,
-                {member.user for member in target.member_set},
+                {RpcUser(id=member.user_id) for member in target.member_set},
             )[ExternalProviders.EMAIL]
             return {user.id for user in users}
 
@@ -197,8 +197,6 @@ def generate_incident_trigger_email_context(
     user=None,
 ):
     trigger = alert_rule_trigger
-    incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
-
     alert_rule = trigger.alert_rule
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
@@ -266,7 +264,7 @@ def generate_incident_trigger_email_context(
         "incident_name": incident.title,
         "environment": environment_string,
         "time_window": format_duration(snuba_query.time_window / 60),
-        "triggered_at": incident_trigger.date_added,
+        "triggered_at": incident.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
         "threshold": threshold,

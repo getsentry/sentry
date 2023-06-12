@@ -192,7 +192,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
-    setState({...state, fetching: true});
+    setState(prev => ({...prev, fetching: true}));
     try {
       const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
         slugs: slugsToLoad,
@@ -202,22 +202,22 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
       ProjectsStore.loadInitialData(fetchedProjects);
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         hasMore,
         fetching: false,
         initiallyLoaded: true,
         nextCursor,
-      });
+      }));
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         fetching: false,
         initiallyLoaded: !store.loading,
         fetchError: err,
-      });
+      }));
     }
   }
 
@@ -235,7 +235,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
-    setState({...state, fetching: true});
+    setState(prev => ({...prev, fetching: true}));
 
     try {
       api.clear();
@@ -253,17 +253,17 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         ProjectsStore.loadInitialData(fetchedProjects);
       }
 
-      setState({
-        ...state,
+      setState(prev => ({
+        ...prev,
         hasMore,
         fetching: false,
         lastSearch: search,
         nextCursor,
-      });
+      }));
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState(prev => ({...prev, fetching: false, fetchError: err}));
     }
   }
 
@@ -287,7 +287,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
-    setState({...state, initiallyLoaded: storeLoaded});
+    setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
   }, [store.loading]);
 
   const {initiallyLoaded, fetching, fetchError, hasMore} = state;

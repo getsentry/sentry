@@ -1175,6 +1175,41 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
+    def test_auto_assignment_when_owners_are_invalid(self):
+        """
+        Test that invalid group owners (that exist due to bugs) are deleted and not assigned
+        when no valid issue owner exists
+        """
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        # Hard code an invalid group owner
+        invalid_codeowner = GroupOwner(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            context={"rule": "codeowners:/**/*.css " + self.user.email},
+            user_id=self.user.id,
+        )
+        invalid_codeowner.save()
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assignee = event.group.assignee_set.first()
+        assert assignee is None
+        assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
+
     @patch("sentry.tasks.post_process.logger")
     def test_debounces_handle_owner_assignments(self, logger):
         self.make_ownership()
@@ -1380,6 +1415,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group=group,
             event=EventMatcher(event),
             sender=manage_issue_states,
+            was_until_escalating=False,
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -1390,7 +1426,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             group=group, reason=GroupInboxReason.ESCALATING.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
+            group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
         ).exists()
         assert mock_send_unignored_robust.called
 
@@ -1453,6 +1489,32 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
+
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    def test_forecast_in_activity(self, mock_is_escalating):
+        """
+        Test that the forecast is added to the activity for escalating issues that were
+        previously ignored until_escalating.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert Activity.objects.filter(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_ESCALATING.value,
+            data={"event_id": event.event_id, "forecast": 0},
+        ).exists()
 
 
 @region_silo_test

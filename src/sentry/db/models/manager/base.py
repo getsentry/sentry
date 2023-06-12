@@ -562,4 +562,4 @@ def create_silo_limited_copy(
     queryset_subclass = type(qs_cls.__name__, (qs_cls,), queryset_overrides)
     manager_instance._queryset_class = queryset_subclass
 
-    return manager_instance  # type: ignore
+    return manager_instance

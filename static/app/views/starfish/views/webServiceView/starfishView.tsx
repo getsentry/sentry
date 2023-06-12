@@ -10,23 +10,24 @@ import {Organization, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import FailureRateChart from 'sentry/views/starfish/views/webServiceView/failureRateChart';
 
 const EventsRequest = withApi(_EventsRequest);
 
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import FacetBreakdownBar from 'sentry/views/starfish/components/breakdownBar';
-import Chart from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
@@ -82,13 +83,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))"
+        yAxis="http_error_count()"
+        dataset={DiscoverDatasets.METRICS}
       >
         {eventData => {
           const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
             series => ({
               data: series.data,
-              seriesName: t('Error Rate'),
+              seriesName: t('Errors (5XXs)'),
               color: CHART_PALETTE[5][3],
               silent: true,
             })
@@ -107,9 +109,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 chartData={transformedData}
                 spike={selectedSpike}
               />
-              <FailureRateChart
+              <Chart
                 statsPeriod={eventView.statsPeriod}
-                height={145}
+                height={80}
                 data={transformedData}
                 start={eventView.start as string}
                 end={eventView.end as string}
@@ -118,11 +120,13 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 grid={{
                   left: '0',
                   right: '0',
-                  top: '16px',
-                  bottom: '8px',
+                  top: '8px',
+                  bottom: '0',
                 }}
                 definedAxisTicks={2}
-                handleSpikeAreaClick={e => {
+                isLineChart
+                chartColors={theme.charts.getColorPalette(2)}
+                onClick={e => {
                   if (e.componentType === 'markArea') {
                     setSelectedSpike({
                       startTimestamp: e.data.coord[0][0],
@@ -160,25 +164,19 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="tpm()"
+        yAxis="tps()"
         queryExtras={{dataset: 'metrics'}}
       >
         {({loading, timeseriesData}) => {
-          const transformedData: Series[] | undefined = timeseriesData?.map(series => ({
-            data: series.data,
-            seriesName: t('Throughput'),
-            color: CHART_PALETTE[0][0],
-          }));
-
-          if (!transformedData) {
+          if (!timeseriesData) {
             return null;
           }
 
           return (
             <Chart
-              statsPeriod="24h"
-              height={145}
-              data={transformedData}
+              statsPeriod={eventView.statsPeriod}
+              height={80}
+              data={timeseriesData}
               start=""
               end=""
               loading={loading}
@@ -189,11 +187,12 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 top: '8px',
                 bottom: '0',
               }}
-              definedAxisTicks={4}
+              definedAxisTicks={2}
               stacked
-              isLineChart
               chartColors={theme.charts.getColorPalette(2)}
-              disableXAxis
+              tooltipFormatterOptions={{
+                valueFormatter: value => t('%s/sec', value.toFixed(2)),
+              }}
             />
           );
         }}
@@ -201,16 +200,22 @@ export function StarfishView(props: BasePerformanceViewProps) {
     );
   }
 
+  useSynchronizeCharts();
+
   return (
     <div data-test-id="starfish-view">
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <FacetBreakdownBar title={t('Where is time spent in my web service?')} />
+            <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>
-            <ChartPanel title={t('Error Rate')}>{renderFailureRateChart()}</ChartPanel>
-            <ChartPanel title={t('Throughput')}>{renderThroughputChart()}</ChartPanel>
+            <MiniChartPanel title={t('Throughput Per Second')}>
+              {renderThroughputChart()}
+            </MiniChartPanel>
+            <MiniChartPanel title={DataTitles.errorCount}>
+              {renderFailureRateChart()}
+            </MiniChartPanel>
           </ChartsContainerItem2>
         </ChartsContainer>
       </StyledRow>
@@ -218,16 +223,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <EndpointList
         {...props}
         setError={usePageError().setPageError}
-        dataset="discover" // Metrics dataset can't do total.transaction_duration yet
         onSelect={onSelect}
-        columnTitles={[
-          'endpoint',
-          'tpm',
-          'p50(duration)',
-          'p50 change',
-          'failure count',
-          'cumulative time',
-        ]}
       />
     </div>
   );
@@ -245,7 +241,7 @@ const ChartsContainer = styled('div')`
 `;
 
 const ChartsContainerItem = styled('div')`
-  flex: 1.5;
+  flex: 2;
 `;
 
 const ChartsContainerItem2 = styled('div')`

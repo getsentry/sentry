@@ -1,5 +1,4 @@
 import django_picklefield
-from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
 
@@ -21,7 +20,7 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             value = value.decode("utf-8")
         if value is None and self.null:
             return None
-        return json.dumps(value, default=jsonfield.default)
+        return json.dumps(value)
 
     def to_python(self, value):
         if value is None:

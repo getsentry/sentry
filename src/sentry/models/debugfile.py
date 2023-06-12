@@ -24,13 +24,8 @@ from typing import (
 
 from django.db import models
 from django.db.models.query import QuerySet
-from symbolic import (  # type: ignore
-    Archive,
-    ObjectErrorUnsupportedObject,
-    SymbolicError,
-    normalize_debug_id,
-)
-from symbolic.debuginfo import BcSymbolMap, UuidMapping  # type: ignore
+from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
+from symbolic.debuginfo import BcSymbolMap, UuidMapping
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -43,7 +38,8 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models.file import File, clear_cached_files
+from sentry.models.files.file import File
+from sentry.models.files.utils import clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
@@ -66,7 +62,7 @@ class BadDif(Exception):
     pass
 
 
-class ProjectDebugFileManager(BaseManager):  # type: ignore
+class ProjectDebugFileManager(BaseManager):
     def find_missing(self, checksums: Iterable[str], project: "Project") -> List[str]:
         if not checksums:
             return []
@@ -135,7 +131,7 @@ class ProjectDebugFileManager(BaseManager):  # type: ignore
 
 
 @region_silo_only_model
-class ProjectDebugFile(Model):  # type: ignore
+class ProjectDebugFile(Model):
     __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
@@ -605,7 +601,7 @@ def create_files_from_dif_zip(
 class DIFCache:
     @property
     def cache_path(self) -> str:
-        return options.get("dsym.cache-path")  # type: ignore
+        return options.get("dsym.cache-path")
 
     def get_project_path(self, project: "Project") -> str:
         return os.path.join(self.cache_path, str(project.id))

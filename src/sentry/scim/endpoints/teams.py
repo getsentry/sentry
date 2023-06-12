@@ -4,14 +4,14 @@ import re
 import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
-from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -27,9 +27,10 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -82,7 +83,7 @@ def _team_expand(excluded_attributes):
 
 
 @extend_schema(tags=["SCIM"])
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "POST"}
@@ -105,27 +106,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "listGroups",
-                value={
-                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-                    "totalResults": 1,
-                    "startIndex": 1,
-                    "itemsPerPage": 1,
-                    "Resources": [
-                        {
-                            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                            "id": "23232",
-                            "displayName": "test-scimv2",
-                            "members": [],
-                            "meta": {"resourceType": "Group"},
-                        }
-                    ],
-                },
-                status_codes=["200"],
-            ),
-        ],
+        examples=SCIMExamples.LIST_ORG_PAGINATED_TEAMS,
     )
     def get(self, request: Request, organization) -> Response:
         """
@@ -178,20 +159,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "provisionTeam",
-                response_only=True,
-                value={
-                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "displayName": "Test SCIMv2",
-                    "members": [],
-                    "meta": {"resourceType": "Group"},
-                    "id": "123",
-                },
-                status_codes=["201"],
-            ),
-        ],
+        examples=SCIMExamples.PROVISION_NEW_TEAM,
     )
     def post(self, request: Request, organization) -> Response:
         """
@@ -207,12 +175,13 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
                 "slug": slugify(request.data["displayName"]),
                 "idp_provisioned": True,
             }
-        ),
+        )
+        metrics.incr("sentry.scim.team.provision", tags={"organization": organization})
         return super().post(request, organization)
 
 
 @extend_schema(tags=["SCIM"])
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "PATCH", "DELETE"}
@@ -245,18 +214,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "Successful response",
-                value={
-                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": "23232",
-                    "displayName": "test-scimv2",
-                    "members": [],
-                    "meta": {"resourceType": "Group"},
-                },
-            ),
-        ],
+        examples=SCIMExamples.QUERY_INDIVIDUAL_TEAM,
     )
     def get(self, request: Request, organization, team) -> Response:
         """
@@ -286,7 +244,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     request=request,
                     organization=team.organization,
                     target_object=omt.id,
-                    target_user=member.user,
+                    target_user_id=member.user_id,
                     event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                     data=omt.get_audit_log_data(),
                 )
@@ -303,7 +261,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 request=request,
                 organization=team.organization,
                 target_object=omt.id,
-                target_user=member.user,
+                target_user_id=member.user_id,
                 event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                 data=omt.get_audit_log_data(),
             )
@@ -447,6 +405,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
+        metrics.incr("sentry.scim.team.update", tags={"organization": organization})
         return self.respond(status=204)
 
     @extend_schema(
@@ -464,6 +423,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
+        metrics.incr("sentry.scim.team.delete", tags={"organization": organization})
         return super().delete(request, team)
 
     def put(self, request: Request, organization, team) -> Response:

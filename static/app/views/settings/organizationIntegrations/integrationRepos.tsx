@@ -53,6 +53,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.searchRepositoriesRequest();
   }
 

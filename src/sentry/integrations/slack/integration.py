@@ -69,8 +69,10 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type: ignore
+class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackClient:
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
         return SlackClient(org_integration_id=self.org_integration.id)
 
     def get_config_data(self) -> Mapping[str, str]:
@@ -97,7 +99,7 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type:
             )
 
 
-class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
+class SlackIntegrationProvider(IntegrationProvider):
     key = "slack"
     name = "Slack"
     metadata = metadata

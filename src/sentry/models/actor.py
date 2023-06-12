@@ -123,11 +123,7 @@ def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
         user_id = user.id
     try:
         with transaction.atomic():
-            actor, created = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
-            if created:
-                # TODO(actorid) This RPC call should be removed once all reads to
-                # User.actor_id have been removed.
-                user_service.update_user(user_id=user_id, attrs={"actor_id": actor.id})
+            actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
     except IntegrityError as err:
         # Likely a race condition. Long term these need to be eliminated.
         sentry_sdk.capture_exception(err)
@@ -190,11 +186,12 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
+        from sentry.models.user import User
+
         obj = self.resolve()
-        # TODO(actorid) Remove this once user no longer has actor_id.
-        if getattr(obj, "actor_id") is None or isinstance(obj, RpcUser):
+        if isinstance(obj, (User, RpcUser)):
             return get_actor_for_user(obj)
-        # Team case
+        # Team case. Teams have actors generated as a post_save signal
         return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
@@ -215,13 +212,13 @@ class ActorTuple(namedtuple("Actor", "id type")):
             actors_by_type[actor.type].append(actor)
 
         results = {}
-        for type, _actors in actors_by_type.items():
-            if type == User:
+        for model_class, _actors in actors_by_type.items():
+            if model_class == User:
                 for instance in user_service.get_many(filter={"user_ids": [a.id for a in _actors]}):
-                    results[(type, instance.id)] = instance
+                    results[(model_class, instance.id)] = instance
             else:
-                for instance in type.objects.filter(id__in=[a.id for a in _actors]):
-                    results[(type, instance.id)] = instance
+                for instance in model_class.objects.filter(id__in=[a.id for a in _actors]):
+                    results[(model_class, instance.id)] = instance
 
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
@@ -230,7 +227,7 @@ def handle_team_post_save(instance, **kwargs):
     # we want to create an actor if we don't have one
     if not instance.actor_id:
         instance.actor_id = Actor.objects.create(
-            type=ACTOR_TYPES[type(instance).__name__.lower()],
+            type=ACTOR_TYPES["team"],
             team_id=instance.id,
         ).id
         instance.save()

@@ -79,7 +79,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        segment_values[REGION_ID] = get_local_region().id
+        segment_values[REGION_ID] = get_local_region().snowflake_id
     except RegionContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = NULL_REGION_ID
 

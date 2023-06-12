@@ -1,6 +1,12 @@
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {ERROR_MAP as origErrorMap} from 'sentry/utils/requestError/requestError';
 
-import {isFilteredRequestErrorEvent} from './initializeSdk';
+import {isEventWithFileUrl, isFilteredRequestErrorEvent} from './initializeSdk';
+
+const ERROR_MAP = {
+  ...origErrorMap,
+  // remove `UndefinedResponseBodyError` since we don't filter those
+  200: undefined,
+};
 
 describe('isFilteredRequestErrorEvent', () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE'];
@@ -107,5 +113,25 @@ describe('isFilteredRequestErrorEvent', () => {
 
       expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
     });
+  });
+});
+
+describe('isEventWithFileUrl', () => {
+  it('recognizes events with `file://` urls', () => {
+    const event = {request: {url: 'file://dogs/are/great.html'}};
+
+    expect(isEventWithFileUrl(event)).toBeTruthy();
+  });
+
+  it('rejects events with other urls', () => {
+    const event = {request: {url: 'http://dogs.are.great'}};
+
+    expect(isEventWithFileUrl(event)).toBeFalsy();
+  });
+
+  it('rejects events without urls', () => {
+    const event = {};
+
+    expect(isEventWithFileUrl(event)).toBeFalsy();
   });
 });

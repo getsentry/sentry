@@ -1,22 +1,11 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Replayer} from '@sentry-internal/rrweb';
-import {eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import type {eventWithTime} from '@sentry-internal/rrweb';
+import {EventType, Replayer} from '@sentry-internal/rrweb';
 import first from 'lodash/first';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-
-// Copied from `node_modules/rrweb/typings/types.d.ts`
-enum EventType {
-  DomContentLoaded = 0,
-  Load = 1,
-  FullSnapshot = 2,
-  IncrementalSnapshot = 3,
-  Meta = 4,
-  Custom = 5,
-  Plugin = 6,
-}
 
 export type Extraction = {
   crumb: Crumb;
@@ -46,12 +35,20 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
   const [isLoading, setIsLoading] = useState(true);
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
+  const crumbs = replay?.getCrumbsWithRRWebNodes();
+  const rrwebEvents = replay?.getRRWebEvents();
+  const finishedAt = replay?.getReplay().finished_at;
+
   useEffect(() => {
     requestIdleCallback(
       () => {
-        if (!replay) {
+        if (!crumbs || !rrwebEvents || rrwebEvents.length < 2 || !finishedAt) {
           return () => {};
         }
+
+        // Get a list of the breadcrumbs that relate directly to the DOM, for each
+        // crumb we will extract the referenced HTML.
+
         let isMounted = true;
 
         const domRoot = document.createElement('div');
@@ -64,11 +61,6 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
         style.overflow = 'hidden';
 
         document.body.appendChild(domRoot);
-
-        // Get a list of the breadcrumbs that relate directly to the DOM, for each
-        // crumb we will extract the referenced HTML.
-        const crumbs = replay.getCrumbsWithRRWebNodes();
-        const rrwebEvents = replay.getRRWebEvents();
 
         // Grab the last event, but skip the synthetic `replay-end` event that the
         // ReplayerReader added. RRWeb will skip that event when it comes time to render
@@ -105,7 +97,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
 
         try {
           // Run the replay to the end, we will capture data as it streams into the plugin
-          replayerRef.pause(replay.getReplay().finished_at.getTime());
+          replayerRef.pause(finishedAt.getTime());
         } catch (error) {
           Sentry.captureException(error);
         }
@@ -120,7 +112,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
         timeout: 2500,
       }
     );
-  }, [replay]);
+  }, [crumbs, rrwebEvents, finishedAt]);
 
   return {
     isLoading,

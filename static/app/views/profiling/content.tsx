@@ -32,12 +32,9 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  formatError,
-  formatSort,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
+import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -46,6 +43,7 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
+import {SlowestFunctionsWidget} from './landing/slowestFunctionsWidget';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
@@ -112,7 +110,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     trackAnalytics('profiling_views.onboarding', {
       organization,
     });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
@@ -269,8 +267,19 @@ function ProfilingContent({location}: ProfilingContentProps) {
               ) : (
                 <Fragment>
                   <PanelsGrid>
-                    <ProfilingSlowestTransactionsPanel />
-                    <ProfileCharts query={query} selection={selection} hideCount />
+                    {organization.features.includes(
+                      'profiling-global-suspect-functions'
+                    ) ? (
+                      <SlowestFunctionsWidget />
+                    ) : (
+                      <ProfilingSlowestTransactionsPanel />
+                    )}
+                    <ProfileCharts
+                      referrer="api.profiling.landing-chart"
+                      query={query}
+                      selection={selection}
+                      hideCount
+                    />
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}

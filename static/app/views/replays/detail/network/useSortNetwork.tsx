@@ -33,6 +33,7 @@ function useSortNetwork({items}: Opts) {
     's_n_by',
     DEFAULT_BY
   );
+  const {setParamValue: setDetailRow} = useUrlParams('n_detail_row', '');
 
   const sortAsc = getSortAsc();
   const sortBy = getSortBy();
@@ -57,8 +58,9 @@ function useSortNetwork({items}: Opts) {
         setSortAsc('true');
         setSortBy(fieldName);
       }
+      setDetailRow('');
     },
-    [sortConfig, setSortAsc, setSortBy]
+    [sortConfig, setSortAsc, setSortBy, setDetailRow]
   );
 
   return {

@@ -2,23 +2,27 @@ import datetime
 import logging
 import random
 import time
-from concurrent.futures.thread import ThreadPoolExecutor
+import uuid
 
 import msgpack
 import pytest
-from confluent_kafka import KafkaError
 from django.conf import settings
-from django.test import override_settings
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
-from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+from sentry.ingest.types import ConsumerType
 from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
 # Poll this amount of times (for 0.1 sec each) at most to wait for messages
 MAX_POLL_ITERATIONS = 100
+
+# Block size for shared memory of the multiprocessing kafka consumer strategy.
+# Any reasonable value will do for tests.
+DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 @pytest.fixture
@@ -30,7 +34,7 @@ def get_test_message(default_project):
     def inner(type, project=default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
-        event_id = "{}".format(now.strftime("000000000000%Y%m%d%H%M%S%f"))
+        event_id = uuid.uuid4().hex
         message_text = f"some message {event_id}"
         project_id = project.id  # must match the project id set up by the test fixtures
         if type == "transaction":
@@ -79,12 +83,7 @@ def random_group_id():
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize(
-    "executor",
-    [pytest.param(None, id="synchronous"), pytest.param(ThreadPoolExecutor(), id="asynchronous")],
-)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    executor,
     task_runner,
     kafka_producer,
     kafka_admin,
@@ -98,21 +97,27 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     admin.delete_topic(topic_event_name)
     producer = kafka_producer(settings)
 
+    create_topics("default", [topic_event_name])
+
     message, event_id = get_test_message(type="event")
     producer.produce(topic_event_name, message)
 
     transaction_message, transaction_event_id = get_test_message(type="transaction")
     producer.produce(topic_event_name, transaction_message)
 
-    with override_settings(KAFKA_CONSUMER_AUTO_CREATE_TOPICS=True):
-        consumer = get_ingest_consumer(
-            max_batch_size=2,
-            max_batch_time=5000,
-            group_id=random_group_id,
-            consumer_types={ConsumerType.Events},
-            auto_offset_reset="earliest",
-            executor=executor,
-        )
+    consumer = get_ingest_consumer(
+        consumer_type=ConsumerType.Events,
+        group_id=random_group_id,
+        auto_offset_reset="earliest",
+        strict_offset_reset=None,
+        max_batch_size=2,
+        max_batch_time=5,
+        processes=1,
+        input_block_size=DEFAULT_BLOCK_SIZE,
+        output_block_size=DEFAULT_BLOCK_SIZE,
+        force_cluster=None,
+        force_topic=None,
+    )
 
     with task_runner():
         i = 0
@@ -137,28 +142,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     assert transaction_message.data["contexts"]["trace"]
 
 
-def test_ingest_consumer_fails_when_not_autocreating_topics(kafka_admin, random_group_id):
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
-
-    admin = kafka_admin(settings)
-    admin.delete_topic(topic_event_name)
-
-    with override_settings(KAFKA_CONSUMER_AUTO_CREATE_TOPICS=False):
-        consumer = get_ingest_consumer(
-            max_batch_size=2,
-            max_batch_time=5000,
-            group_id=random_group_id,
-            consumer_types={ConsumerType.Events},
-            auto_offset_reset="earliest",
-        )
-
-    with pytest.raises(Exception) as err:
-        consumer._run_once()
-
-    kafka_error = err.value.args[0]
-    assert kafka_error.code() == KafkaError.UNKNOWN_TOPIC_OR_PART
-
-
 @pytest.mark.django_db(transaction=True)
 def test_ingest_topic_can_be_overridden(
     task_runner,
@@ -177,21 +160,25 @@ def test_ingest_topic_can_be_overridden(
     admin = kafka_admin(settings)
     admin.delete_topic(default_event_topic)
     admin.delete_topic(new_event_topic)
+    create_topics("default", [new_event_topic])
 
     producer = kafka_producer(settings)
     message, event_id = get_test_message(type="event")
     producer.produce(new_event_topic, message)
 
-    with override_settings(KAFKA_CONSUMER_AUTO_CREATE_TOPICS=True):
-        consumer = get_ingest_consumer(
-            max_batch_size=2,
-            max_batch_time=5000,
-            group_id=random_group_id,
-            consumer_types={ConsumerType.Events},
-            auto_offset_reset="earliest",
-            force_topic=new_event_topic,
-            force_cluster="default",
-        )
+    consumer = get_ingest_consumer(
+        consumer_type=ConsumerType.Events,
+        group_id=random_group_id,
+        auto_offset_reset="earliest",
+        strict_offset_reset=None,
+        max_batch_size=2,
+        max_batch_time=5,
+        processes=1,
+        input_block_size=DEFAULT_BLOCK_SIZE,
+        output_block_size=DEFAULT_BLOCK_SIZE,
+        force_topic=new_event_topic,
+        force_cluster="default",
+    )
 
     with task_runner():
         i = 0

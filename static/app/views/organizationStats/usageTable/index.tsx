@@ -1,6 +1,9 @@
 import {Component} from 'react';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
@@ -8,10 +11,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconSettings, IconWarning} from 'sentry/icons';
+import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Project} from 'sentry/types';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from '../utils';
 
@@ -22,12 +26,10 @@ type Props = {
   headers: React.ReactNode[];
   usageStats: TableStat[];
   errors?: Record<string, Error>;
-
   isEmpty?: boolean;
-
   isError?: boolean;
   isLoading?: boolean;
-};
+} & WithRouterProps<{}, {}>;
 
 export type TableStat = {
   accepted: number;
@@ -57,6 +59,14 @@ class UsageTable extends Component<Props> {
     return <IconWarning color="gray300" legacySize="48px" />;
   };
 
+  loadProject(projectId: number) {
+    updateProjects([projectId], this.props.router, {
+      save: true,
+      environments: [], // Clear environments when switching projects
+    });
+    window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
+  }
+
   renderTableRow(stat: TableStat & {project: Project}) {
     const {dataCategory} = this.props;
     const {project, total, accepted, filtered, dropped} = stat;
@@ -72,9 +82,6 @@ class UsageTable extends Component<Props> {
             displayName={project.slug}
           />
         </Link>
-        <SettingsIconLink to={stat.projectSettingsLink}>
-          <IconSettings size="sm" />
-        </SettingsIconLink>
       </CellProject>,
       <CellStat key={1}>
         {formatUsageWithUnits(total, dataCategory, getFormatUsageOptions(dataCategory))}
@@ -95,6 +102,24 @@ class UsageTable extends Component<Props> {
       </CellStat>,
       <CellStat key={4}>
         {formatUsageWithUnits(dropped, dataCategory, getFormatUsageOptions(dataCategory))}
+      </CellStat>,
+      <CellStat key={5}>
+        <Button
+          title="Go to project level stats"
+          data-test-id={project.slug}
+          size="xs"
+          onClick={() => {
+            this.loadProject(parseInt(stat.project.id, 10));
+          }}
+        >
+          <StyledIconGraph type="bar" size="sm" />
+          <span>View Stats</span>
+        </Button>
+        <Link to={stat.projectSettingsLink}>
+          <StyledSettingsButton size="xs" title="Go to project settings">
+            <SettingsIcon size="sm" />
+          </StyledSettingsButton>
+        </Link>
       </CellStat>,
     ];
   }
@@ -118,26 +143,27 @@ class UsageTable extends Component<Props> {
   }
 }
 
-export default UsageTable;
+export default withSentryRouter(UsageTable);
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: repeat(5, auto);
+  grid-template-columns: repeat(6, auto);
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr repeat(4, minmax(0, auto));
+    grid-template-columns: 1fr repeat(5, minmax(0, auto));
   }
 `;
 
 export const CellStat = styled('div')`
-  flex-shrink: 1;
-  text-align: right;
+  display: flex;
+  align-items: center;
   font-variant-numeric: tabular-nums;
+  justify-content: right;
+  padding-top: 9px;
+  padding-bottom: 9px;
 `;
 
 export const CellProject = styled(CellStat)`
-  display: flex;
-  align-items: center;
-  text-align: left;
+  justify-content: left;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -146,16 +172,30 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const SettingsIconLink = styled(Link)`
+const SettingsIcon = styled(IconSettings)`
   color: ${p => p.theme.gray300};
   align-items: center;
   display: inline-flex;
   justify-content: space-between;
-  margin-right: ${space(1.5)};
+  margin-right: ${space(1.0)};
   margin-left: ${space(1.0)};
   transition: 0.5s opacity ease-out;
 
   &:hover {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const StyledIconGraph = styled(IconGraph)`
+  color: ${p => p.theme.gray300};
+  margin-right: 5px;
+  &:hover {
+    color: ${p => p.theme.textColor};
+    cursor: pointer;
+  }
+`;
+
+const StyledSettingsButton = styled(Button)`
+  padding: 0px;
+  margin-left: 7px;
 `;

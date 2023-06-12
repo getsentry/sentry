@@ -122,6 +122,8 @@ export interface Member {
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
+  // TODO: Move to global store
+  groupOrgRoles: {role: OrgRole; teamSlug: string}[];
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   invite_link: string | null;
@@ -129,8 +131,7 @@ export interface Member {
   isOnlyOwner: boolean;
   name: string;
   orgRole: OrgRole['id'];
-  orgRoleList: OrgRole[]; // TODO: Move to global store
-  orgRolesFromTeams: {role: OrgRole; teamSlug: string}[];
+  orgRoleList: OrgRole[];
   pending: boolean | undefined;
   projects: string[];
 
@@ -212,7 +213,7 @@ export interface NewQuery {
   createdBy?: User;
   dataset?: DiscoverDatasets;
   display?: string;
-  end?: string;
+  end?: string | Date;
   environment?: Readonly<string[]>;
   expired?: boolean;
   id?: string;
@@ -220,7 +221,7 @@ export interface NewQuery {
   orderby?: string;
   query?: string;
   range?: string;
-  start?: string;
+  start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
   utc?: boolean | string;

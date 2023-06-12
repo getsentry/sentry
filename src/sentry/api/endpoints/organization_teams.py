@@ -20,6 +20,7 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
@@ -161,7 +162,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         idp_provisioned=result.get("idp_provisioned", False),
                         organization=organization,
                     )
-            except IntegrityError:
+            except (IntegrityError, MaxSnowflakeRetryError):
                 return Response(
                     {
                         "non_field_errors": [CONFLICTING_SLUG_ERROR],

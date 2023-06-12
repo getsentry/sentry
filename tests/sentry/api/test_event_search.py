@@ -195,6 +195,7 @@ shared_tests_skipped = [
     "supported_tags",
     "invalid_aggregate_column_with_duration_filter",
     "invalid_numeric_aggregate_filter",
+    "disallow_wildcard_filter",
 ]
 
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)

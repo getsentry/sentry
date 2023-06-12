@@ -23,7 +23,6 @@ export enum Actions {
   EXCLUDE = 'exclude',
   SHOW_GREATER_THAN = 'show_greater_than',
   SHOW_LESS_THAN = 'show_less_than',
-  TRANSACTION = 'transaction',
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
@@ -84,7 +83,6 @@ export function updateQuery(
     }
     // these actions do not modify the query in any way,
     // instead they have side effects
-    case Actions.TRANSACTION:
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
       break;
@@ -237,19 +235,6 @@ function makeCellActions({
         onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
       >
         {t('Show values less than')}
-      </ActionItem>
-    );
-  }
-
-  if (column.column.kind === 'field' && column.column.field === 'transaction') {
-    addMenuItem(
-      Actions.TRANSACTION,
-      <ActionItem
-        key="transaction-summary"
-        data-test-id="transaction-summary"
-        onClick={() => handleCellAction(Actions.TRANSACTION, value)}
-      >
-        {t('Go to summary')}
       </ActionItem>
     );
   }

@@ -74,7 +74,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -90,6 +90,7 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
+from sentry.mediators.project_rules import Creator
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
@@ -109,11 +110,14 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    OrganizationMember,
     Project,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
+    RuleSource,
+    User,
     UserEmail,
     UserOption,
 )
@@ -266,6 +270,10 @@ class BaseTestCase(Fixtures):
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
+        if isinstance(user, OrganizationMember):
+            with exempt_from_silo_limits():
+                user = User.objects.get(id=user.user_id)
+
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
@@ -501,6 +509,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         noise_limit=0,
         project_id=None,
         detector_option="performance.issues.n_plus_one_db.problem-creation",
+        user_data=None,
     ):
         if issue_type is None:
             issue_type = PerformanceNPlusOneGroupType
@@ -517,6 +526,8 @@ class PerformanceIssueTestCase(BaseTestCase):
             event_data["transaction"] = transaction
         if project_id is None:
             project_id = self.project.id
+        if user_data:
+            event_data["user"] = user_data
 
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -1809,6 +1820,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
+    @exempt_from_silo_limits()
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
@@ -2387,6 +2399,26 @@ class MonitorTestCase(APITestCase):
         return MonitorEnvironment.objects.create(
             monitor=monitor, environment=environment, **monitorenvironment_defaults
         )
+
+    def _create_alert_rule(self, monitor):
+        rule = Creator(
+            name="New Cool Rule",
+            owner=None,
+            project=self.project,
+            action_match="all",
+            filter_match="any",
+            conditions=[],
+            actions=[],
+            frequency=5,
+        ).call()
+        rule.update(source=RuleSource.CRON_MONITOR)
+
+        config = monitor.config
+        config["alert_rule_id"] = rule.id
+        monitor.config = config
+        monitor.save()
+
+        return rule
 
 
 class MonitorIngestTestCase(MonitorTestCase):

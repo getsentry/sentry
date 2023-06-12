@@ -119,9 +119,14 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
             return null;
           }
-          eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
-          ]);
+
+          // Skip character escaping because generating the query for EventsRequest
+          // downstream will already handle escaping
+          eventView.additionalConditions.setFilterValues(
+            'transaction',
+            [provided.widgetData.list.data[selectedListIndex].transaction as string],
+            false
+          );
 
           if (canUseMetricsData(organization)) {
             eventView.additionalConditions.setFilterValues('!transaction', [

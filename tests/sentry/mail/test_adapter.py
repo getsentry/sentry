@@ -31,13 +31,12 @@ from sentry.models import (
     ProjectOwnership,
     Repository,
     Rule,
-    RuleSnooze,
     User,
     UserEmail,
     UserOption,
     UserReport,
 )
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -55,6 +54,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
@@ -97,7 +97,9 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
         project = self.create_project(name="Test", teams=[team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            organizationmember=OrganizationMember.objects.get(
+                user_id=user.id, organization=organization
+            ),
             team=team,
         )
         self.create_member(user=user2, organization=organization, teams=[team])
@@ -119,7 +121,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
         user4 = User.objects.create(username="baz4", email="bar@example.com", is_active=True)
         self.create_member(user=user4, organization=organization, teams=[team])
-        assert user4 in self.adapter.get_sendable_user_objects(project)
+        assert user4.id in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
         # disabled by default user4
         NotificationSetting.objects.update_settings(
@@ -152,7 +154,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             user=user4,
         )
 
-        assert user4 not in self.adapter.get_sendable_user_objects(project)
+        assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
@@ -730,7 +732,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         team = self.create_team(organization=organization)
         project = self.create_project(name="Test", teams=[team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            organizationmember=OrganizationMember.objects.get(
+                user_id=user.id, organization=organization
+            ),
             team=team,
         )
         self.create_member(user=user2, organization=organization, teams=[team])
@@ -1103,12 +1107,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
-    @with_feature("organizations:issue-states")
-    def test_has_inbox_reason(self):
+    @with_feature("organizations:escalating-issues")
+    def test_group_substatus_header(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+        # Header is based on the group substatus
+        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.save()
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -1498,7 +1504,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             data={"text": "sup guise"},
         )
 
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
 
         with self.tasks():
             self.adapter.notify_about_activity(activity)
@@ -1514,7 +1520,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
 
         return UserReport.objects.create(
             project_id=self.project.id,

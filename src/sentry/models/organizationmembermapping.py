@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import organization_roles
 
@@ -21,8 +22,6 @@ class OrganizationMemberMapping(Model):
     __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    # TODO: allow null values for organizationmember_id column. We will later repair and populate these columns with
-    # values; and remove null=True.
     organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -52,5 +51,12 @@ class OrganizationMemberMapping(Model):
             ("organization_id", "email"),
             ("organization_id", "organizationmember_id"),
         )
+
+    def save(self, *args, **kwds):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            if self.user and self.id is None:
+                for outbox in self.user.outboxes_for_update():
+                    outbox.save()
+            super().save(*args, **kwds)
 
     __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")

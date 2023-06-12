@@ -54,7 +54,7 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
         return f"{key}:{value}"
     except DataError:
         raise InvalidQuery(f"malformed '{key}:' query '{value}'.")
-    return euser.tag_value  # type: ignore
+    return euser.tag_value
 
 
 def parse_status_value(status: Union[str, int]) -> int:

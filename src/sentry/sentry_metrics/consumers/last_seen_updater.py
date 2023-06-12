@@ -28,7 +28,7 @@ MAPPING_META = "mapping_meta"
 
 
 @functools.lru_cache(maxsize=10)
-def get_metrics():  # type: ignore
+def get_metrics():
     from sentry.utils import metrics
 
     return metrics

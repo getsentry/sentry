@@ -13,17 +13,27 @@ import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {DataRow} from 'sentry/views/starfish/components/databaseTableView';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {
   UseSpansQueryReturnType,
   useWrappedDiscoverTimeseriesQuery,
 } from 'sentry/views/starfish/utils/useSpansQuery';
+
+export type TransactionListDataRow = {
+  count: number;
+  example: string;
+  frequency: number;
+  group_id: string;
+  p75: number;
+  transaction: string;
+  uniqueEvents: number;
+};
 
 export const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
@@ -60,9 +70,11 @@ const getDomainSubquery = (date_filters: string) => {
     ${DEFAULT_WHERE}
     ${date_filters} and
     domain != ''
-   group by domain
-   order by ${ORDERBY}
-   limit 5
+  group by domain
+  having
+    ${SPM} > 0.05
+  order by ${ORDERBY}
+  limit 5
   `;
 };
 
@@ -140,14 +152,14 @@ export const useQueryDbTables = (): DefinedUseQueryResult<
 export const useQueryTopDbOperationsChart = (
   interval: number
 ): DefinedUseQueryResult<
-  {action: string; count: number; interval: string; p75: number}[]
+  {action: string; count: number; interval: string; p50: number}[]
 > => {
   const pageFilter = usePageFilters();
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    floor(quantile(0.50)(exclusive_time), 5) as p50,
     action,
     count() as count,
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
@@ -255,7 +267,7 @@ type TopTableQuery = {
   count: number;
   domain: string;
   interval: string;
-  p75: number;
+  p50: number;
 }[];
 
 export const useQueryTopTablesChart = (
@@ -266,7 +278,7 @@ export const useQueryTopTablesChart = (
   const dateFilters = getDateQueryFilter(startTime, endTime);
   const query = `
   select
-    floor(quantile(0.75)(exclusive_time), 5) as p75,
+    floor(quantile(0.50)(exclusive_time), 5) as p50,
     domain,
     divide(count(), multiply(${interval}, 60)) as count,
     toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
@@ -290,7 +302,7 @@ export const useQueryTopTablesChart = (
 
   const query2 = `
   select
-  floor(quantile(0.75)(exclusive_time), 5) as p75,
+  floor(quantile(0.50)(exclusive_time), 5) as p50,
   divide(count(), multiply(${interval}, 60)) as count,
   toStartOfInterval(start_timestamp, INTERVAL ${interval} hour) as interval
   from default.spans_experimental_starfish
@@ -667,17 +679,6 @@ const getOrderByFromKey = (
   }
   sortDirection ??= '';
   return `${sortKey} ${sortDirection}`;
-};
-
-export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
-    start: startTime.format('YYYY-MM-DD HH:mm:ss'),
-    end: endTime.format('YYYY-MM-DD HH:mm:ss'),
-  });
-  return `
-  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-  `;
 };
 
 const shouldRefetchData = (

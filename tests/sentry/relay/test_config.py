@@ -1,8 +1,10 @@
 import time
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
+import pytz
 from freezegun import freeze_time
 from sentry_relay import validate_project_config
 
@@ -16,6 +18,7 @@ from sentry.dynamic_sampling import (
     RuleType,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import ProjectKey, ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
@@ -252,6 +255,11 @@ def test_project_config_with_all_biases_enabled(
         ],
     )
     default_project.add_team(default_team)
+    # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
+    # automatically.
+    old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+    default_project.organization.date_added = old_date
+    default_project.date_added = old_date
 
     # We create a team key transaction.
     TeamKeyTransaction.objects.create(
@@ -563,6 +571,19 @@ def test_txnames_ready(default_project, num_clusterer_runs):
         assert "txNameReady" not in config
     elif num_clusterer_runs == 10:
         assert config["txNameReady"] is True
+
+
+@pytest.mark.django_db
+def test_accept_span_desc_rules(default_project):
+    with Feature({"projects:span-metrics-extraction": True}), mock.patch(
+        "sentry.relay.config.get_sorted_rules",
+        return_value=[
+            ("**/test/*/**", 0),
+        ],
+    ):
+        config = get_project_config(default_project).to_dict()["config"]
+        _validate_project_config(config)
+        assert "spanDescriptionRules" in config
 
 
 @pytest.mark.django_db

@@ -8,7 +8,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GithubSearchTest(APITestCase):
     # There is another test case that inherits from this
     # one to ensure that github:enterprise behaves as expected.
@@ -194,7 +194,7 @@ class GithubSearchTest(APITestCase):
     # Missing Resources
     def test_missing_integration(self):
         url = reverse(
-            "sentry-extensions-gitlab-search",
+            "sentry-extensions-github-search",
             kwargs={"organization_slug": self.organization.slug, "integration_id": "1234567890"},
         )
         resp = self.client.get(

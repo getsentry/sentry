@@ -3,9 +3,10 @@ from django.utils import timezone
 
 from sentry.db.models import Model, control_silo_only_model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
+from sentry.options.manager import UpdateChannel
 
 
-class BaseOption(Model):  # type: ignore
+class BaseOption(Model):
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.
@@ -18,6 +19,9 @@ class BaseOption(Model):  # type: ignore
 
     key = models.CharField(max_length=128, unique=True)
     last_updated = models.DateTimeField(default=timezone.now)
+    last_updated_by = models.CharField(
+        max_length=16, choices=UpdateChannel.choices(), default=UpdateChannel.UNKNOWN.value
+    )
 
     class Meta:
         abstract = True

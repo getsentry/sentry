@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
-from sentry.mediators import Mediator, Param
-from sentry.mediators.param import if_param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param, if_param
 from sentry.models import Actor
 
 

@@ -10,7 +10,7 @@ import {
   Group,
   GroupActivityAssigned,
   GroupActivityType,
-  GroupTombstone,
+  GroupTombstoneHelper,
   IssueCategory,
   IssueType,
   TreeLabelPart,
@@ -22,15 +22,17 @@ import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
-function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
-  return !maybe.hasOwnProperty('type');
+export function isTombstone(
+  maybe: BaseGroup | Event | GroupTombstoneHelper
+): maybe is GroupTombstoneHelper {
+  return 'isTombstone' in maybe && maybe.isTombstone;
 }
 
 /**
  * Extract the display message from an event.
  */
 export function getMessage(
-  event: Event | BaseGroup | GroupTombstone
+  event: Event | BaseGroup | GroupTombstoneHelper
 ): string | undefined {
   if (isTombstone(event)) {
     return event.culprit || '';
@@ -58,7 +60,7 @@ export function getMessage(
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | BaseGroup | GroupTombstone) {
+export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   if (isTombstone(event)) {
     return undefined;
   }
@@ -115,7 +117,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
 }
 
 export function getTitle(
-  event: Event | BaseGroup,
+  event: Event | BaseGroup | GroupTombstoneHelper,
   features: string[] = [],
   grouping = false
 ) {
@@ -133,6 +135,7 @@ export function getTitle(
       }
 
       const displayTitleWithTreeLabel =
+        !isTombstone(event) &&
         features.includes('grouping-title-ui') &&
         (grouping ||
           isNativePlatform(event.platform) ||
@@ -175,17 +178,11 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
-      const isPerfIssue = event.issueCategory === IssueCategory.PERFORMANCE;
-      return {
-        title: isPerfIssue ? metadata.title : customTitle ?? title,
-        subtitle: isPerfIssue ? culprit : '',
-        treeLabel: undefined,
-      };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue = event.issueCategory === IssueCategory.PROFILE;
+      const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
-        title: isProfilingIssue ? metadata.title : customTitle ?? title,
-        subtitle: isProfilingIssue ? culprit : '',
+        title: customTitle ?? title,
+        subtitle: isIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:
@@ -310,6 +307,13 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
+export function eventHasExceptionGroup(event: Event) {
+  const exceptionEntries = getExceptionEntries(event);
+  return exceptionEntries.some(entry =>
+    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  );
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -338,6 +342,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_platform: event?.platform,
     event_type: event?.type,
     has_release: !!event?.release,
+    has_exception_group: event ? eventHasExceptionGroup(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,

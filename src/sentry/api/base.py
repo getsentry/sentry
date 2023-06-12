@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Type
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -20,7 +20,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, tsdb
+from sentry import analytics, options, tsdb
+from sentry.api import permissions
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -83,7 +84,6 @@ def allow_cors_options(func):
 
     @functools.wraps(func)
     def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
-
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
             response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
@@ -110,6 +110,14 @@ def allow_cors_options(func):
         else:
             response["Access-Control-Allow-Origin"] = origin
 
+        # If the requesting origin is a subdomain of
+        # the application's base-hostname we should allow cookies
+        # to be sent.
+        basehost = options.get("system.base-hostname")
+        if basehost and origin:
+            if origin.endswith(basehost):
+                response["Access-Control-Allow-Credentials"] = "true"
+
         return response
 
     return allow_cors_options_wrapper
@@ -118,7 +126,7 @@ def allow_cors_options(func):
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes = (NoPermission,)
+    permission_classes: Tuple[Type[permissions.BasePermission]] = (NoPermission,)
 
     cursor_name = "cursor"
 
@@ -130,7 +138,8 @@ class Endpoint(APIView):
     def get_authenticators(self) -> List[BaseAuthentication]:
         """
         Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that can be supported using HybridCloud.
+        Aggregates together authenticators that should be called cross silo, while
+        leaving methods that should be run locally.
         """
 
         # TODO: Increase test coverage and get this working for monolith mode.
@@ -485,12 +494,20 @@ class EnvironmentMixin:
 
 
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None):
+    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+        """
+        Parse common stats parameters from the query string. This includes
+        `since`, `until`, and `resolution`.
+
+        :param boolean restrict_rollups: When False allows any rollup value to
+        be specified. Be careful using this as this allows for fine grain
+        rollups that may put strain on the system.
+        """
         try:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")

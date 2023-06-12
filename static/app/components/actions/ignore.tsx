@@ -205,7 +205,6 @@ type IgnoreActionProps = {
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
-  disableTooltip?: boolean;
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
@@ -218,7 +217,6 @@ function IgnoreActions({
   shouldConfirm,
   confirmMessage,
   className,
-  disableTooltip,
   size = 'xs',
   confirmLabel = t('Ignore'),
   isIgnored = false,
@@ -249,7 +247,7 @@ function IgnoreActions({
     <ButtonBar className={className} merged>
       <IgnoreButton
         size={size}
-        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
+        tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
