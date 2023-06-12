@@ -14,7 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_release_files import ArtifactSource
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
+from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Distribution, Project, Release, ReleaseFile, SourceMapProcessingIssue
 from sentry.models.releasefile import read_artifact_index
@@ -45,11 +45,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Debug issues related to source maps for a given event",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT_SLUG,
-            EVENT_PARAMS.EVENT_ID,
-            EVENT_PARAMS.FRAME_IDX,
-            EVENT_PARAMS.EXCEPTION_IDX,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            EventParams.EVENT_ID,
+            EventParams.FRAME_IDX,
+            EventParams.EXCEPTION_IDX,
         ],
         request=None,
         responses={

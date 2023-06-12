@@ -13,7 +13,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ProjectKey
 from sentry.monitors.models import MonitorCheckIn
@@ -30,9 +30,9 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Retrieve check-ins for a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            MONITOR_PARAMS.CHECKIN_ID,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            MonitorParams.CHECKIN_ID,
         ],
         responses={
             200: inline_sentry_response_serializer(

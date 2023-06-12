@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOTFOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
@@ -63,8 +63,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     @extend_schema(
         operation_id="Create a new check-in",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
         ],
         request=MonitorCheckInValidator,
         responses={
