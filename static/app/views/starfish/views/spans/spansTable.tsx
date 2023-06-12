@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -22,6 +23,7 @@ type Props = {
   orderBy: string;
   spansData: SpanDataRow[];
   columnOrder?: TableColumnHeader[];
+  endpoint?: string;
 };
 
 export type SpanDataRow = {
@@ -55,6 +57,7 @@ export default function SpansTable({
   onSetOrderBy,
   isLoading,
   columnOrder,
+  endpoint,
 }: Props) {
   const location = useLocation();
 
@@ -68,7 +71,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
       }}
       location={location}
     />
@@ -98,12 +101,20 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.ReactNode {
+function renderBodyCell(
+  column: TableColumnHeader,
+  row: SpanDataRow,
+  endpoint?: string
+): React.ReactNode {
   if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
-          <Link to={`/starfish/span/${row['span.group']}`}>
+          <Link
+            to={`/starfish/span/${row['span.group']}${
+              endpoint ? `?${urlEncode({endpoint})}` : ''
+            }`}
+          >
             {row['span.description'] || '<null>'}
           </Link>
         ) : (

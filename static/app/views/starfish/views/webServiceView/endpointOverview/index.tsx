@@ -312,6 +312,7 @@ function SpanMetricsTable({
       spansData={spansData}
       orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
+      endpoint={transaction}
     />
   );
 }
