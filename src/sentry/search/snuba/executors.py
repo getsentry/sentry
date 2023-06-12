@@ -66,20 +66,10 @@ class PrioritySortWeights(TypedDict):
 DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
-    "relative_volume": 0,
-    "event_halflife_hours": 4,
-    "issue_halflife_hours": 24 * 7,
-    "v2": False,
-    "norm": False,
-}
-
-V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
-    "log_level": 0,
-    "has_stacktrace": 0,
     "relative_volume": 1,
-    "event_halflife_hours": 12,
-    "issue_halflife_hours": 4,
-    "v2": False,
+    "event_halflife_hours": 4,
+    "issue_halflife_hours": 72,
+    "v2": True,
     "norm": False,
 }
 
