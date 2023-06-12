@@ -1,4 +1,5 @@
-from sentry.models import Integration, ObjectStatus, Organization, Repository
+from sentry.constants import ObjectStatus
+from sentry.models import Integration, Organization, Repository
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger

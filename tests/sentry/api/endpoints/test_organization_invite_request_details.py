@@ -96,7 +96,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert audit_log_entry.data == self.invite_request.get_audit_log_data()
 
     def test_member_cannot_delete_invite_request(self):
-        self.login_as(user=self.member.user)
+        self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.invite_request.id)
 
         assert resp.status_code == 403
@@ -165,7 +165,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
         ).exists()
 
     def test_member_cannot_update_invite_request(self):
-        self.login_as(user=self.member.user)
+        self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.request_to_join.id, role="manager")
         assert resp.status_code == 403
 
@@ -195,10 +195,10 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert audit_log_entry.data == member.get_audit_log_data()
 
     def test_member_cannot_approve_invite_request(self):
-        self.invite_request.inviter_id = self.member.user.id
+        self.invite_request.inviter_id = self.member.user_id
         self.invite_request.save()
 
-        self.login_as(user=self.member.user)
+        self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 
         assert resp.status_code == 403
@@ -283,7 +283,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_manager_cannot_approve_owner(self, mock_invite_email):
-        self.login_as(user=self.manager.user)
+        self.login_as(user=self.manager)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 
         assert resp.status_code == 400
@@ -295,7 +295,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert mock_invite_email.call_count == 0
 
     def test_manager_can_approve_manager(self):
-        self.login_as(user=self.manager.user)
+        self.login_as(user=self.manager)
         invite_request = self.create_member(
             email="hello@example.com",
             organization=self.org,

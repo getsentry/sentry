@@ -9,7 +9,7 @@ from django.db import models
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization

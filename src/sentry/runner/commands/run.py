@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -12,6 +11,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
+from sentry.utils.imports import import_string
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -478,7 +478,17 @@ def post_process_forwarder(**options):
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+    from sentry.snuba.query_subscriptions.constants import (
+        dataset_to_logical_topic,
+        topic_to_dataset,
+    )
     from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
+
+    dataset = topic_to_dataset[options["topic"]]
+    logical_topic = dataset_to_logical_topic[dataset]
+    # name of new consumer == name of logical topic
+    print_deprecation_warning(logical_topic, options["group_id"])
 
     subscriber = get_query_subscription_consumer(
         topic=options["topic"],
@@ -488,7 +498,7 @@ def query_subscription_consumer(**options):
         max_batch_size=options["max_batch_size"],
         # Our batcher expects the time in seconds
         max_batch_time=int(options["max_batch_time"] / 1000),
-        processes=options["processes"],
+        num_processes=options["processes"],
         input_block_size=options["input_block_size"],
         output_block_size=options["output_block_size"],
         multi_proc=True,
@@ -499,109 +509,45 @@ def query_subscription_consumer(**options):
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
-    "consumer_types",
+    "consumer_type",
     "--consumer-type",
-    default=[],
-    multiple=True,
-    help="Specify which type of consumer to create, i.e. from which topic to consume messages. By default all ingest-related topics are consumed ",
+    required=True,
+    help="Specify which type of consumer to create",
     type=click.Choice(ConsumerType.all()),
-)
-@click.option(
-    "--all-consumer-types",
-    default=False,
-    is_flag=True,
-    help="Listen to all consumer types at once.",
 )
 @kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
 @strict_offset_reset_option()
-@click.option(
-    "--concurrency",
-    type=int,
-    default=None,
-    help="Thread pool size (only utilitized for message types that support concurrent processing)",
-)
 @configuration
 @click.option(
     "--processes",
+    "num_processes",
     default=1,
     type=int,
 )
-@click.option(
-    "--v2-consumer",
-    default=False,
-    is_flag=True,
-    help="Use the new arroyo-based `v2` consumer",
-)
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
+def ingest_consumer(consumer_type, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    if all_consumer_types:
-        if consumer_types:
-            raise click.ClickException(
-                "Cannot specify --all-consumer types and --consumer-type at the same time"
-            )
-        else:
-            consumer_types = set(ConsumerType.all())
+    from sentry.consumers import print_deprecation_warning
 
-    if not all_consumer_types and not consumer_types:
-        raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
+    print_deprecation_warning(f"ingest-{consumer_type}", options["group_id"])
 
-    if v2_consumer:
-        from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+    from arroyo import configure_metrics
 
-        if len(consumer_types) != 1:
-            raise click.ClickException(
-                "Only a single `--consumer-type` allowed when using the `v2` ingest consumer"
-            )
-
-        # Our batcher expects the time in seconds
-        options["max_batch_time"] = int(options["max_batch_time"] / 1000)
-
-        type_ = consumer_types[0]
-        metrics_name = f"ingest_{type_}"
-        from arroyo import configure_metrics
-
-        from sentry.utils import metrics
-        from sentry.utils.arroyo import MetricsWrapper
-
-        configure_metrics(MetricsWrapper(metrics.backend, name=metrics_name))
-
-        # Ignore these arguments which are only relevant for the old ingest consumer
-        options.pop("concurrency", None)
-
-        consumer = get_ingest_consumer(type_=type_, **options)
-        run_processor_with_signals(consumer)
-
-        return
-
-    # else:
-
-    from sentry.ingest.ingest_consumer import get_ingest_consumer
+    from sentry.ingest.consumer_v2.factory import get_ingest_consumer
     from sentry.utils import metrics
+    from sentry.utils.arroyo import MetricsWrapper
 
-    # Ignore these arguments which are only relevant for new ingest consumer
-    options.pop("strict_offset_reset", None)
-    options.pop("processes", None)
-    options.pop("input_block_size", None)
-    options.pop("output_block_size", None)
+    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
 
-    concurrency = options.pop("concurrency", None)
-    if concurrency is not None:
-        executor = ThreadPoolExecutor(concurrency)
-    else:
-        executor = None
-
-    with metrics.global_tags(
-        ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
-    ):
-        consumer = get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options)
-        run_processor_with_signals(consumer)
+    options["max_batch_time"] = options["max_batch_time"] / 1000
+    consumer = get_ingest_consumer(consumer_type, **options)
+    run_processor_with_signals(consumer)
 
 
 @run.command("occurrences-ingest-consumer")
@@ -615,12 +561,16 @@ def ingest_consumer(consumer_types, all_consumer_types, v2_consumer, **options):
 @configuration
 @click.option(
     "--processes",
+    "num_processes",
     default=1,
     type=int,
 )
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-occurrences", options["group_id"])
     from django.conf import settings
 
     from sentry.utils import metrics
@@ -682,6 +632,9 @@ def metrics_parallel_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("billing-metrics-consumer", options["group_id"])
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
 
     consumer = get_metrics_billing_consumer(**options)
@@ -695,10 +648,90 @@ def metrics_billing_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-profiles", options["group_id"])
     from sentry.profiles.consumers import get_profiles_process_consumer
 
     consumer = get_profiles_process_consumer(**options)
     run_processor_with_signals(consumer)
+
+
+@run.command("consumer")
+@log_options()
+@click.argument(
+    "consumer_name",
+)
+@click.argument("consumer_args", nargs=-1)
+@click.option(
+    "--topic",
+    type=str,
+    help="Main topic with messages for processing",
+)
+@click.option(
+    "--consumer-group",
+    "group_id",
+    required=True,
+    help="Kafka consumer group for the consumer.",
+)
+@click.option(
+    "--auto-offset-reset",
+    "auto_offset_reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@strict_offset_reset_option()
+@configuration
+def basic_consumer(consumer_name, consumer_args, topic, **options):
+    """
+    Launch a "new-style" consumer based on its "consumer name".
+
+    Example:
+
+        sentry run consumer ingest-profiles --consumer-group ingest-profiles
+
+    runs the ingest-profiles consumer with the consumer group ingest-profiles.
+
+    Consumers are defined in 'sentry.consumers'. Each consumer can take
+    additional CLI options. Those can be passed after '--':
+
+        sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --processes 1
+
+    Consumer-specific arguments can be viewed with:
+
+        sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --help
+    """
+    from sentry.consumers import KAFKA_CONSUMERS
+
+    try:
+        consumer_definition = KAFKA_CONSUMERS[consumer_name]
+    except KeyError:
+        raise click.ClickException(
+            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
+        )
+
+    try:
+        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+        default_topic = consumer_definition["topic"]
+    except KeyError:
+        raise click.ClickException(
+            f"The consumer group {consumer_name} does not have a strategy factory"
+            f"registered. Most likely there is another subcommand in 'sentry run' "
+            f"responsible for this consumer"
+        )
+
+    cmd = click.Command(
+        name=consumer_name, params=list(consumer_definition.get("click_options") or ())
+    )
+    cmd_context = cmd.make_context(consumer_name, list(consumer_args))
+    strategy_factory = cmd_context.invoke(
+        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+    )
+
+    from sentry.utils.arroyo import run_basic_consumer
+
+    run_basic_consumer(topic=topic or default_topic, **options, strategy_factory=strategy_factory)
 
 
 @run.command("ingest-replay-recordings")
@@ -709,6 +742,9 @@ def profiles_consumer(**options):
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
 def replays_recordings_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-replay-recordings", options["group_id"])
     from sentry.replays.consumers import get_replays_recordings_consumer
 
     consumer = get_replays_recordings_consumer(**options)
@@ -722,6 +758,9 @@ def replays_recordings_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def monitors_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-monitors", options["group_id"])
     from sentry.monitors.consumers import get_monitor_check_ins_consumer
 
     consumer = get_monitor_check_ins_consumer(**options)

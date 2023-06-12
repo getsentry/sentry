@@ -258,7 +258,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           project_id: recentCreatedProject.id,
         });
       } catch (error) {
-        handleXhrErrorResponse(t('Unable to delete project in project creation'), error);
+        handleXhrErrorResponse('Unable to delete project in project creation', error);
         // we don't give the user any feedback regarding this error as this shall be silent
       }
     }

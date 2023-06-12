@@ -231,6 +231,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: List[str]
     hasAccess: bool
+    hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasProfiles: bool
     hasReplays: bool

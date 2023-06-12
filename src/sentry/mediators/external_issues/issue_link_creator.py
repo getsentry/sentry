@@ -1,5 +1,7 @@
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param, external_issues, external_requests
+from sentry.mediators import external_issues, external_requests
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.utils.cache import memoize
 
 

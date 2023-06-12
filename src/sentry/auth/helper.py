@@ -591,7 +591,7 @@ class AuthIdentityHandler:
     @property
     def provider_name(self) -> str:
         if self.auth_provider:
-            return cast(str, self.auth_provider.provider_name)
+            return self.auth_provider.provider_name
         else:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "

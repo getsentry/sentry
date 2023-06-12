@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
+from django.urls import reverse
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
@@ -16,7 +17,7 @@ class GithubRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path = f"{IntegrationControlMiddleware.webhook_prefix}github/webhook/"
+    path = reverse("sentry-integration-github-webhook")
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):

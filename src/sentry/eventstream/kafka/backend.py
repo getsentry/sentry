@@ -11,7 +11,6 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    cast,
 )
 
 from confluent_kafka import KafkaError
@@ -42,7 +41,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.__producers: MutableMapping[str, Producer] = {}
 
     def get_transactions_topic(self, project_id: int) -> str:
-        return cast(str, self.transactions_topic)
+        return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
         if topic not in self.__producers:

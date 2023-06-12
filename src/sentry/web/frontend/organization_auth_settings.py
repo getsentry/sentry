@@ -94,7 +94,9 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 .bitand(~OrganizationMember.flags["sso:invalid"])
             )
 
-        user_ids = OrganizationMember.objects.filter(organization_id=organization.id).values("user")
+        user_ids = OrganizationMember.objects.filter(organization_id=organization.id).values(
+            "user_id"
+        )
         User.objects.filter(id__in=user_ids).update(is_managed=False)
 
         email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)

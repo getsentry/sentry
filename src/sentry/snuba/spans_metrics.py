@@ -10,7 +10,8 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.builder.spans_metrics import TopSpansMetricsQueryBuilder
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
 

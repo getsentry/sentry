@@ -19,8 +19,8 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.utils.snuba import Dataset
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -493,6 +493,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 28, 1, 57, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "On the hour, long period"
+
+        # Hour to hour should only happen at the precise hour
+        start = datetime.datetime(2015, 5, 18, 10, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 18, 0, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "precisely hour to hour"
+
+        # Even a few seconds means we need to switch back to minutes since the latter bucket may not be filled
+        start = datetime.datetime(2015, 5, 18, 10, 0, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 18, 0, 1, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 60, "hour to hour but with seconds"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity

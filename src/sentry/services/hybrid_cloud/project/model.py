@@ -10,7 +10,7 @@ from pydantic.fields import Field
 from sentry.constants import ObjectStatus
 from sentry.db.models import ValidateFunction, Value
 from sentry.models.options.option import HasOption
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import OptionValue, RpcModel
 
 
 def _project_status_visible() -> int:
@@ -45,3 +45,8 @@ class RpcProject(RpcModel, HasOption):
         from sentry.services.hybrid_cloud.project import project_service
 
         project_service.delete_option(self, key)
+
+
+class RpcProjectOptionValue(RpcModel):
+    keyed_result: OptionValue
+    well_known_result: OptionValue
