@@ -535,7 +535,7 @@ def ingest_consumer(consumer_type, **options):
     """
     from sentry.consumers import print_deprecation_warning
 
-    print_deprecation_warning(ConsumerType.get_topic_name(consumer_type), options["group_id"])
+    print_deprecation_warning(f"ingest-{consumer_type}", options["group_id"])
 
     from arroyo import configure_metrics
 
