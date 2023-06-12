@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features, integrations
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.models import Organization, OrganizationMember
+from sentry.models import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.web.frontend.base import BaseView
@@ -102,7 +102,7 @@ class IntegrationExtensionConfigurationView(BaseView):
         # if anything before fails, we give up and send them to the link page where we can display errors
         return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
 
-    def init_pipeline(self, request: Request, organization, params):
+    def init_pipeline(self, request: Request, organization: RpcOrganizationSummary, params):
         pipeline = ExternalIntegrationPipeline(
             request=request, organization=organization, provider_key=self.external_provider_key
         )
