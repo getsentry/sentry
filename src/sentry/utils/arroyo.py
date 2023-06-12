@@ -135,7 +135,9 @@ def run_basic_consumer(
 
     from sentry.metrics.middleware import add_global_tags
 
-    add_global_tags(kafka_topic=topic, group_id=group_id)
+    add_global_tags(kafka_topic=topic, consumer_group=group_id)
+
+    _initialize_arroyo_main()
 
     topic_def = settings.KAFKA_TOPICS[topic]
     assert topic_def is not None
