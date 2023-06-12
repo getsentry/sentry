@@ -188,7 +188,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         In special cases granularity can be set manually bypassing the granularity calculation below.
         """
-        if self._granularity is not None:
+        if hasattr(self, "_granularity"):
             return Granularity(self._granularity)
 
         if self.end is None or self.start is None:
