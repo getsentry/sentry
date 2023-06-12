@@ -1,3 +1,4 @@
+from time import sleep
 from typing import Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -16,6 +17,7 @@ from sentry.profiles.task import process_profile_task
 
 def process_message(message: Message[KafkaPayload]) -> None:
     if not is_queue_healthy("profiles.process"):
+        sleep(0.1)
         raise MessageRejected()
     process_profile_task.s(payload=message.payload.value).apply_async()
 
