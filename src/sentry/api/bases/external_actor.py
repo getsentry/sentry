@@ -36,7 +36,7 @@ STRICT_NAME_PROVIDERS = {
 }
 
 
-class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
+class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     external_id = serializers.CharField(required=False, allow_null=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))

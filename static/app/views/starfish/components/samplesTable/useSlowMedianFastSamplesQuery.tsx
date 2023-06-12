@@ -5,7 +5,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const LIMIT_PER_POPULATION = 5;
+const LIMIT_PER_POPULATION = 2;
 
 /**
  * This hook will fetch transaction events from 3 different types of populations and combine them in one set, then return them:

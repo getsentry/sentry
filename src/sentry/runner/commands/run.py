@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -12,6 +11,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
+from sentry.utils.imports import import_string
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -499,20 +499,14 @@ def query_subscription_consumer(**options):
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
-    "consumer_types",
+    "consumer_type",
     "--consumer-type",
-    default=[],
-    multiple=True,
-    help="Specify which type of consumer to create, i.e. from which topic to consume messages. By default all ingest-related topics are consumed ",
+    required=True,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages",
     type=click.Choice(ConsumerType.all()),
 )
-@click.option(
-    "--all-consumer-types",
-    default=False,
-    is_flag=True,
-    help="Listen to all consumer types at once.",
-)
 @kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
+@strict_offset_reset_option()
 @click.option(
     "--concurrency",
     type=int,
@@ -520,38 +514,41 @@ def query_subscription_consumer(**options):
     help="Thread pool size (only utilitized for message types that support concurrent processing)",
 )
 @configuration
-def ingest_consumer(consumer_types, all_consumer_types, **options):
+@click.option(
+    "--processes",
+    default=1,
+    type=int,
+)
+@click.option(
+    "--v2-consumer",
+    default=False,
+    is_flag=True,
+    help="Use the new arroyo-based `v2` consumer",
+)
+@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+def ingest_consumer(consumer_type, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest.ingest_consumer import get_ingest_consumer
+    from arroyo import configure_metrics
+
+    from sentry.ingest.consumer_v2.factory import get_ingest_consumer
     from sentry.utils import metrics
+    from sentry.utils.arroyo import MetricsWrapper
 
-    if all_consumer_types:
-        if consumer_types:
-            raise click.ClickException(
-                "Cannot specify --all-consumer types and --consumer-type at the same time"
-            )
-        else:
-            consumer_types = set(ConsumerType.all())
+    # TODO: Remove options from the old consumer
+    options.pop("concurrency", None)
+    options.pop("v2_consumer", None)
 
-    if not all_consumer_types and not consumer_types:
-        raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
+    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
 
-    concurrency = options.pop("concurrency", None)
-    if concurrency is not None:
-        executor = ThreadPoolExecutor(concurrency)
-    else:
-        executor = None
-
-    with metrics.global_tags(
-        ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
-    ):
-        consumer = get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options)
-        run_processor_with_signals(consumer)
+    options["max_batch_time"] = options["max_batch_time"] / 1000
+    consumer = get_ingest_consumer(consumer_type, **options)
+    run_processor_with_signals(consumer)
 
 
 @run.command("occurrences-ingest-consumer")
@@ -599,7 +596,6 @@ def occurrences_ingest_consumer(**options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
-@click.option("--join-timeout", type=int, help="Join timeout in seconds.", default=10)
 @click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
 @click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
@@ -650,6 +646,67 @@ def profiles_consumer(**options):
 
     consumer = get_profiles_process_consumer(**options)
     run_processor_with_signals(consumer)
+
+
+@run.command("consumer")
+@log_options()
+@click.argument(
+    "consumer_name",
+)
+@click.option(
+    "--topic",
+    type=str,
+    help="Main topic with messages for processing",
+)
+@click.option(
+    "--consumer-group",
+    "group_id",
+    required=True,
+    help="Kafka consumer group for the consumer.",
+)
+@click.option(
+    "--auto-offset-reset",
+    "auto_offset_reset",
+    default="latest",
+    type=click.Choice(["earliest", "latest", "error"]),
+    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+)
+@strict_offset_reset_option()
+@configuration
+def basic_consumer(consumer_name, topic, **options):
+    """
+    Launch a "new-style" consumer based on its "consumer name".
+
+    Example:
+
+        sentry run consumer ingest-profiles --consumer-group ingest-profiles
+
+    runs the ingest-profiles consumer with the consumer group ingest-profiles.
+    """
+    from sentry.consumers import KAFKA_CONSUMERS
+
+    try:
+        consumer_definition = KAFKA_CONSUMERS[consumer_name]
+    except KeyError:
+        raise click.ClickException(
+            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
+        )
+
+    try:
+        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+        default_topic = consumer_definition["topic"]
+    except KeyError:
+        raise click.ClickException(
+            f"The consumer group {consumer_name} does not have a strategy factory"
+            f"registered. Most likely there is another subcommand in 'sentry run' "
+            f"responsible for this consumer"
+        )
+
+    from sentry.utils.arroyo import run_basic_consumer
+
+    run_basic_consumer(
+        topic=topic or default_topic, **options, strategy_factory_cls=strategy_factory_cls
+    )
 
 
 @run.command("ingest-replay-recordings")

@@ -30,13 +30,13 @@ class NotifyEmailFormTest(TestCase):
         self.project = self.create_project(name="Test", teams=[self.team])
         OrganizationMemberTeam.objects.create(
             organizationmember=OrganizationMember.objects.get(
-                user=self.user, organization=organization
+                user_id=self.user.id, organization=organization
             ),
             team=self.team,
         )
-        self.create_member(user=self.user2, organization=organization, teams=[self.team])
+        self.create_member(user_id=self.user2.id, organization=organization, teams=[self.team])
         self.create_member(
-            user=self.inactive_user,
+            user_id=self.inactive_user.id,
             organization=organization,
             teams=[self.team, self.team_not_in_project],
         )

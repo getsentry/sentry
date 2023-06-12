@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect} from 'react';
 
 import {unassignedValue} from 'sentry/data/experimentConfig';
 import {Organization, Team} from 'sentry/types';
@@ -15,29 +15,29 @@ export function useProjectCreationAccess({
   teams: Team[];
 }) {
   const {experimentAssignment, logExperiment} = useExperiment(
-    'ProjectCreationForAllExperiment',
+    'ProjectCreationForAllExperimentV2',
     {
       logExperimentOnMount: false,
     }
   );
-  const canCreateProject = useMemo(() => {
-    if (
-      organization.access.includes('project:admin') ||
-      teams?.some(tm => tm.access.includes('team:admin'))
-    ) {
-      return true;
-    }
 
-    if (!organization.features.includes('team-project-creation-all')) {
-      return false;
-    }
+  const isAdmin =
+    organization.access.includes('project:admin') ||
+    teams?.some(tm => tm.access.includes('team:admin'));
 
-    if (experimentAssignment === unassignedValue) {
-      return false;
-    }
+  const shouldBeInExperiment =
+    !isAdmin &&
+    organization.features.includes('team-project-creation-all') &&
+    experimentAssignment !== unassignedValue;
 
-    logExperiment();
-    return experimentAssignment === 1;
-  }, [organization, teams, experimentAssignment, logExperiment]);
+  const canCreateProject =
+    isAdmin || (shouldBeInExperiment && experimentAssignment === 1);
+
+  useEffect(() => {
+    if (shouldBeInExperiment) {
+      logExperiment();
+    }
+  }, [logExperiment, shouldBeInExperiment]);
+
   return {canCreateProject};
 }

@@ -33,7 +33,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {
@@ -91,7 +91,7 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            title={getTermHelp(organization, PerformanceTerm.APDEX)}
             size="sm"
           />
         </ChartTitle>
@@ -108,7 +108,7 @@ function SidebarCharts({
           {t('Failure Rate')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+            title={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
             size="sm"
           />
         </ChartTitle>

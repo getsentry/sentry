@@ -2473,10 +2473,10 @@
     lru_map "^0.3.3"
     tslib "^1.9.3"
 
-"@sentry/profiling-node@^1.0.0-beta.1":
-  version "1.0.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-1.0.0-beta.1.tgz#e0e513f9cc91885497a3ece13b22386030698975"
-  integrity sha512-GSnXqES0ey69nYRBcqgyyl9IE+FQWSaQS1D7PLL2AOKfEoVBNBa6PmBk6o3Oy6Vqq3kvLkGMYJ2KdNruP9ueDw==
+"@sentry/profiling-node@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-1.0.0.tgz#962eee31db689af0fda2a560bc3cc737402fc30a"
+  integrity sha512-xgCiljGe5cLfqf5JqCW8al0auUH+YVg/m+NOCC4wn9o5srg4BUrgZ5kFdtjwT9CJOQwlwqULhIHEnWtjterZbg==
   dependencies:
     "@sentry/core" "^7.53.0"
     "@sentry/hub" "^7.53.0"

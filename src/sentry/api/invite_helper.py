@@ -186,11 +186,11 @@ class ApiInviteHelper:
             self.invite_context.member.token or self.invite_context.member.legacy_token,
             self.token,
         )
-        return tokens_are_equal  # type: ignore[no-any-return]
+        return tokens_are_equal
 
     @property
     def user_authenticated(self) -> bool:
-        return self.request.user.is_authenticated  # type: ignore[no-any-return]
+        return self.request.user.is_authenticated
 
     @property
     def member_already_exists(self) -> bool:

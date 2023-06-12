@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @region_silo_endpoint
-class GroupEventDetailsEndpoint(GroupEndpoint):  # type: ignore
+class GroupEventDetailsEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

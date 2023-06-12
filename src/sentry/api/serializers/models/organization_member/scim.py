@@ -7,7 +7,7 @@ from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER
 from .response import OrganizationMemberSCIMSerializerResponse
 
 
-class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
+class OrganizationMemberSCIMSerializer(Serializer):
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
