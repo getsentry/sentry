@@ -11,7 +11,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VercelExtensionConfigurationTest(TestCase):
     path = "/extensions/vercel/configure/"
 
