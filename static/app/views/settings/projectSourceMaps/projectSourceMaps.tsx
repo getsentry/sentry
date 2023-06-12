@@ -32,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
 import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum SortBy {
@@ -321,12 +322,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           query
             ? tct('No [tabName] match your search query.', {
                 tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
+                  ? t('artifact bundles')
                   : t('release bundles'),
               })
             : tct('No [tabName] found for this project.', {
                 tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
+                  ? t('artifact bundles')
                   : t('release bundles'),
               })
         }
@@ -349,7 +350,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   project.slug
                 }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
-                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                  // TODO(Pri): Move the loading to the component once fully transitioned to associations.
+                  !debugIdBundlesLoading &&
+                  (data.associations ? (
+                    <Associations associations={data.associations} />
+                  ) : (
+                    <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                  ))
                 }
               />
             ))
