@@ -1017,7 +1017,6 @@ module = [
     "sentry.services.hybrid_cloud.log.impl",
     "sentry.services.hybrid_cloud.notifications.impl",
     "sentry.services.hybrid_cloud.organization.impl",
-    "sentry.services.hybrid_cloud.organization.model",
     "sentry.services.hybrid_cloud.organization.serial",
     "sentry.services.hybrid_cloud.organization_mapping.serial",
     "sentry.services.hybrid_cloud.organizationmember_mapping.impl",
