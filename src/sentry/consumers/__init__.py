@@ -18,6 +18,14 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
     },
+    "ingest-monitors": {
+        "topic": settings.KAFKA_INGEST_MONITORS,
+        "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
+    },
+    "billing-metrics-consumer": {
+        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
+        "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
+    },
 }
 
 for consumer in KAFKA_CONSUMERS:
