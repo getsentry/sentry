@@ -195,7 +195,8 @@ def _merge_system_info(data, system_info):
 
 def _merge_full_response(data, response):
     data["platform"] = "native"
-    if response.get("crashed") is not None:
+    # Do not overwrite the event's level if it has been set previously
+    if response.get("crashed") is not None and data.get("level") is None:
         data["level"] = "fatal" if response["crashed"] else "info"
 
     if response.get("system_info"):
