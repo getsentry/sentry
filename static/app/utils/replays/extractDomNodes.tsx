@@ -17,6 +17,20 @@ type Args = {
   rrwebEvents: eventWithTime[] | undefined;
 };
 
+const requestIdleCallback =
+  window.requestIdleCallback ||
+  function requestIdleCallbackPolyfill(cb) {
+    const start = Date.now();
+    return setTimeout(function () {
+      cb({
+        didTimeout: false,
+        timeRemaining: function () {
+          return Math.max(0, 50 - (Date.now() - start));
+        },
+      });
+    }, 1);
+  };
+
 function _extractDomNodes({
   crumbs,
   rrwebEvents,
@@ -82,20 +96,6 @@ function _extractDomNodes({
     }
   });
 }
-
-const requestIdleCallback =
-  window.requestIdleCallback ||
-  function requestIdleCallbackPolyfill(cb) {
-    const start = Date.now();
-    return setTimeout(function () {
-      cb({
-        didTimeout: false,
-        timeRemaining: function () {
-          return Math.max(0, 50 - (Date.now() - start));
-        },
-      });
-    }, 1);
-  };
 
 export default function extractDomNodes(args: Args): Promise<Extraction[]> {
   return new Promise((resolve, reject) => {
