@@ -65,9 +65,6 @@ class IntegrationExtensionConfigurationView(BaseView):
                 "integration-extension-config.view",
                 extra=log_params,
             )
-            # if org does not have the feature flag to show the integration, redirect
-            if not self.is_enabled_for_org(organization, request.user):
-                return self.redirect("/")
 
             # only continue in the pipeline if there is at least one feature we can get
             if self.has_one_required_feature(organization, request.user):
@@ -111,9 +108,6 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def map_params_to_state(self, params):
         return params
-
-    def is_enabled_for_org(self, _org, _user):
-        return True
 
     def has_one_required_feature(self, org, user):
         provider = integrations.get(self.provider)
