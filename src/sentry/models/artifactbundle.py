@@ -105,7 +105,6 @@ class ReleaseArtifactBundle(Model):
         db_table = "sentry_releaseartifactbundle"
 
         unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
-        index_together = (("release_name", "dist_name"),)
 
 
 @region_silo_only_model

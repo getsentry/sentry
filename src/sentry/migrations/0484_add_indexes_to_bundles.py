@@ -38,8 +38,4 @@ class Migration(CheckedMigration):
             name="release_name",
             field=models.CharField(db_index=True, max_length=250),
         ),
-        migrations.AlterIndexTogether(
-            name="releaseartifactbundle",
-            index_together={("release_name", "dist_name")},
-        ),
     ]
