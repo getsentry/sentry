@@ -7,13 +7,16 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
+import {PercentChangeCell} from 'sentry/views/starfish/views/webServiceView/endpointList';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
@@ -30,12 +33,17 @@ const COLUMN_ORDER = [
   {
     key: 'transaction',
     name: t('Endpoint'),
-    width: 400,
+    width: 450,
   },
   {
     key: 'http_error_count()',
     name: t('5xx Responses'),
-    width: 100,
+    width: 150,
+  },
+  {
+    key: 'http_error_count_percent_change()',
+    name: t('Change'),
+    width: 80,
   },
 ];
 
@@ -67,7 +75,7 @@ export default function FailureDetailTable({
     const fieldRenderer = getFieldRenderer(field, tableData.meta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
-    if (column.key === 'transaction') {
+    if (field === 'transaction') {
       const prefix = dataRow['http.method'] ? `${dataRow['http.method']} ` : '';
       const queryParams = {
         start: spike ? new Date(spike.startTimestamp) : undefined,
@@ -79,6 +87,22 @@ export default function FailureDetailTable({
         <Link to={`/starfish/endpoint-overview/?${qs.stringify(queryParams)}`}>
           {prefix}&nbsp;{dataRow.transaction}
         </Link>
+      );
+    }
+
+    if (field === 'http_error_count_percent_change()') {
+      const deltaValue = dataRow[field] as number;
+      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
+
+      return (
+        <NumberContainer>
+          <PercentChangeCell trendDirection={trendDirection}>
+            {tct('[sign][delta]', {
+              sign: deltaValue >= 0 ? '+' : '-',
+              delta: formatPercentage(Math.abs(deltaValue), 2),
+            })}
+          </PercentChangeCell>
+        </NumberContainer>
       );
     }
 

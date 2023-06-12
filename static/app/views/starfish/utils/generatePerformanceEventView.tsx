@@ -125,8 +125,11 @@ export function generateWebServiceEventView(
     'transaction',
     'http.method',
     'tps()',
+    'tps_percent_change()',
     'p95(transaction.duration)',
+    'percentile_percent_change(transaction.duration,0.95)',
     'http_error_count()',
+    'http_error_count_percent_change()',
     'time_spent_percentage()',
     'sum(transaction.duration)',
   ];
@@ -134,7 +137,7 @@ export function generateWebServiceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction has:http.method transaction.op:http.server',
+    query: 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
