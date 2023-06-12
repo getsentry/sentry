@@ -26,7 +26,8 @@ class JoinRequestSerializer(serializers.Serializer):
 
 def create_organization_join_request(organization, email, ip_address=None):
     om = OrganizationMember.objects.filter(
-        Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
+        Q(email__iexact=email)
+        | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
         organization=organization,
     ).first()
     if om:

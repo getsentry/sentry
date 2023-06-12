@@ -116,3 +116,6 @@ class FilterQueryDatabaseImpl(
 
     def get_many(self, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
         return [self.serialize_rpc(o) for o in self._query_many(filter=filter)]
+
+    def get_many_ids(self, filter: FILTER_ARGS) -> List[int]:
+        return [o.id for o in self._query_many(filter=filter)]

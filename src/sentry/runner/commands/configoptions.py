@@ -30,7 +30,19 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
         # channel. Thus, if the laast update channel was already
         # UpdateChannel.AUTOMATOR, and the value we are trying to set
         # is the same as the value already stored we do nothing.
-        if options.get_last_update_channel(key) != options.UpdateChannel.AUTOMATOR:
+        last_update_channel = options.get_last_update_channel(key)
+        if last_update_channel is None:
+            # Here we are trying to set an option with a value that
+            # is equal to its default. There are valid cases for this
+            # behavior: I plan to change the default value of an option
+            # without changing the production behavior. So I would
+            # first set the option to the current default value in
+            # the DB and then change the default value.
+            if not dry_run:
+                options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
+            click.echo(UPDATE_MSG % key)
+
+        elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
             click.echo(CHANNEL_UPDATE_MSG % key)
