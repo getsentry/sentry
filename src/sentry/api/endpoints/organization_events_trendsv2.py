@@ -14,6 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.net.http import connection_from_url
+from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
@@ -30,7 +31,7 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 
 TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
-DAY_GRANULARITY_IN_SECONDS = 86400
+DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -83,8 +84,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             top_event_columns.append("count()")
 
             # Granularity is set to 1d - the highest granularity possible
-            # in order to optimize the top event query since we don't case
-            # about havinbg exact counts.
+            # in order to optimize the top event query since we don't care
+            # about having exact counts.
             return metrics_query(
                 top_event_columns,
                 query=user_query,
