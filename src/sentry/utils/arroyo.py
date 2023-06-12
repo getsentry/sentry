@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Any, Callable, Mapping, Optional, Type, Union
 
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer
@@ -129,7 +129,7 @@ def run_basic_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    strategy_factory: ProcessingStrategyFactory[Any],
+    strategy_factory_cls: Type[ProcessingStrategyFactory[Any]],
 ) -> None:
     from django.conf import settings
 
@@ -157,7 +157,7 @@ def run_basic_consumer(
     processor = StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=strategy_factory,
+        processor_factory=strategy_factory_cls(),
         commit_policy=ONCE_PER_SECOND,
     )
 
