@@ -86,7 +86,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
         },
     },
-    "transaction-subscription-results": {
+    "transactions-subscription-results": {
         "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
