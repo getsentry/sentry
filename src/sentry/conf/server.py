@@ -1529,6 +1529,8 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
     "organizations:device-class-synthesis": False,
+    # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
+    "organizations:getting-started-doc-with-product-selection": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
