@@ -63,7 +63,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self._granularity = granularity
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         # always true if this is being called
@@ -82,6 +81,8 @@ class MetricsQueryBuilder(QueryBuilder):
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
+        if granularity is not None:
+            self._granularity = granularity
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
