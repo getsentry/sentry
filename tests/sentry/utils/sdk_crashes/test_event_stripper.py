@@ -72,20 +72,18 @@ class EventStripperTestMixin(BaseEventStripperMixin):
 
         stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
 
-        contexts = stripped_event_data.get("contexts")
-        assert len(contexts) == 2
-
-        assert contexts.get("os") == {
-            "name": "iOS",
-            "version": "16.3",
-            "build": "20D47",
+        assert stripped_event_data.get("contexts") == {
+            "os": {
+                "name": "iOS",
+                "version": "16.3",
+                "build": "20D47",
+            },
+            "device": {
+                "family": "iOS",
+                "model": "iPhone14,8",
+                "arch": "arm64e",
+            },
         }
-
-        device_context = contexts.get("device")
-        assert len(device_context) == 3
-        assert device_context.get("family") == "iOS"
-        assert device_context.get("model") == "iPhone14,8"
-        assert device_context.get("arch") == "arm64e"
 
     def test_strip_event_data_strips_sdk(self):
         event = self.create_event(
@@ -95,11 +93,10 @@ class EventStripperTestMixin(BaseEventStripperMixin):
 
         stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
 
-        sdk = stripped_event_data.get("sdk")
-
-        assert len(sdk) == 2
-        assert sdk.get("name") == "sentry.cocoa"
-        assert sdk.get("version") == "8.1.0"
+        assert stripped_event_data.get("sdk") == {
+            "name": "sentry.cocoa",
+            "version": "8.1.0",
+        }
 
     def test_strip_event_data_strips_value_if_not_simple_type(self):
         event = self.create_event(
