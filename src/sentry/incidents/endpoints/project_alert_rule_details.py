@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +15,8 @@ from sentry.incidents.logic import (
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.models import RuleSnooze
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 
@@ -25,8 +28,23 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
-        data = serialize(alert_rule, request.user, AlertRuleSerializer())
-        return Response(data)
+        serialized_alert_rule = serialize(alert_rule, request.user, AlertRuleSerializer())
+
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=request.user.id) | Q(user_id=None), alert_rule=alert_rule
+        )
+        if rule_snooze.exists():
+            serialized_alert_rule["snooze"] = True
+            snooze = rule_snooze[0]
+            if request.user.id == snooze.owner_id:
+                created_by = "You"
+            else:
+                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
+                created_by = creator_name
+            serialized_alert_rule["snoozeCreatedBy"] = created_by
+            serialized_alert_rule["snoozeForEveryone"] = snooze.user_id is None
+
+        return Response(serialized_alert_rule)
 
     def put(self, request: Request, project, alert_rule) -> Response:
         data = request.data
