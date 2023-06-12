@@ -1352,6 +1352,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         first_half,
                     ],
                 ),
+                None,
             ],
             alias,
         )
