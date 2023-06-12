@@ -15,7 +15,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import RuleSnooze
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
@@ -39,8 +39,8 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             if request.user.id == snooze.owner_id:
                 created_by = "You"
             else:
-                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
-                created_by = creator_name
+                user = user_service.get_user(snooze.owner_id)
+                created_by = user.get_display_name() if user else None
             serialized_alert_rule["snoozeCreatedBy"] = created_by
             serialized_alert_rule["snoozeForEveryone"] = snooze.user_id is None
 
