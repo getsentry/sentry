@@ -22,8 +22,8 @@ class GitlabRequestParserTest(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = self.create_integration(
-            organization=self.organization,
+        self.integration = self.create_integration(  # type: ignore
+            organization=self.organization,  # type: ignore
             provider="gitlab",
             name="Example Gitlab",
             external_id=EXTERNAL_ID,
@@ -78,16 +78,16 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
-        parser.get_response_from_control_silo = MagicMock()
-        parser.get_response_from_outbox_creation = MagicMock()
+        parser.get_response_from_control_silo = MagicMock()  # type: ignore
+        parser.get_response_from_outbox_creation = MagicMock()  # type: ignore
 
         # No regions identified
-        parser.get_regions_from_organizations = MagicMock(return_value=[])
+        parser.get_regions_from_organizations = MagicMock(return_value=[])  # type: ignore
         parser.get_response()
         assert parser.get_response_from_control_silo.called
 
         # Regions found
-        parser.get_regions_from_organizations = MagicMock(return_value=[self.region])
+        parser.get_regions_from_organizations = MagicMock(return_value=[self.region])  # type: ignore
         parser.get_response()
         assert parser.get_response_from_outbox_creation.called
 
