@@ -5,7 +5,6 @@ import classNames from 'classnames';
 import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {getShortEventId} from 'sentry/utils/events';
@@ -126,6 +125,17 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
     const renderFns = [
       () => (
         <Cell {...columnProps} numeric align="flex-start">
+          {issueUrl ? (
+            <Link to={issueUrl}>
+              <Text>{getShortEventId(eventId || '')}</Text>
+            </Link>
+          ) : (
+            <Text>{getShortEventId(eventId || '')}</Text>
+          )}
+        </Cell>
+      ),
+      () => (
+        <Cell {...columnProps}>
           <QuickContextHoverWrapper
             dataRow={{
               id: eventId,
@@ -134,21 +144,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             contextType={ContextType.EVENT}
             organization={organization}
           >
-            {issueUrl ? (
-              <Link to={issueUrl}>
-                <Text>{getShortEventId(eventId || '')}</Text>
-              </Link>
-            ) : (
-              <Text>{getShortEventId(eventId || '')}</Text>
-            )}
-          </QuickContextHoverWrapper>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps}>
-          <Tooltip isHoverable title={title}>
             <Text>{title ?? EMPTY_CELL}</Text>
-          </Tooltip>
+          </QuickContextHoverWrapper>
         </Cell>
       ),
       () => (

@@ -29,7 +29,7 @@ function mockLocation(query: string = '') {
   } as Location);
 }
 
-function mockOrganiation(props?: {features: string[]}) {
+function mockOrganization(props?: {features: string[]}) {
   const features = props?.features ?? [];
   mockUseOrganization.mockReturnValue(
     TestStubs.Organization({
@@ -41,7 +41,7 @@ function mockOrganiation(props?: {features: string[]}) {
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     mockLocation();
-    mockOrganiation();
+    mockOrganization();
     mockPush.mockReset();
   });
 
@@ -82,7 +82,7 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should allow ISSUES if session-replay-errors-tab is disabled', () => {
-    mockOrganiation({
+    mockOrganization({
       features: [],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
@@ -104,7 +104,7 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should allow ERRORS if session-replay-errors-tab is enabled', () => {
-    mockOrganiation({
+    mockOrganization({
       features: ['session-replay-errors-tab'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
