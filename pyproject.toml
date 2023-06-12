@@ -844,7 +844,6 @@ module = [
     "sentry.monitors.endpoints.organization_monitor_checkin_attachment",
     "sentry.monitors.endpoints.organization_monitor_details",
     "sentry.monitors.endpoints.organization_monitor_index",
-    "sentry.monitors.models",
     "sentry.monitors.utils",
     "sentry.monitors.validators",
     "sentry.monkey",
