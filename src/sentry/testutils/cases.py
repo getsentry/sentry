@@ -31,6 +31,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ProfilesSnubaTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
@@ -1751,6 +1752,82 @@ class OutcomesSnubaTest(TestCase):
             ).status_code
             == 200
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class ProfilesSnubaTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
+
+    def store_functions(
+        self,
+        functions,
+        project,
+        transaction=None,
+        extras=None,
+        timestamp=None,
+    ):
+        if timestamp is None:
+            timestamp = before_now(minutes=10)
+
+        if transaction is None:
+            transaction = load_data("transaction", timestamp=timestamp)
+
+        profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
+        if profile_context.get("profile_id") is None:
+            profile_context["profile_id"] = uuid4().hex
+        profile_id = profile_context.get("profile_id")
+
+        timestamp = transaction["timestamp"]
+
+        self.store_event(transaction, project_id=project.id)
+
+        functions = [
+            {**function, "fingerprint": self.function_fingerprint(function)}
+            for function in functions
+        ]
+
+        functions_payload = {
+            "project_id": project.id,
+            "profile_id": profile_id,
+            "transaction_name": transaction["transaction"],
+            # the transaction platform doesn't quite match the
+            # profile platform, but should be fine for tests
+            "platform": transaction["platform"],
+            "functions": functions,
+            "timestamp": timestamp,
+            # TODO: should reflect the org
+            "retention_days": 90,
+        }
+
+        if extras is not None:
+            functions_payload.update(extras)
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/functions/insert", json=[functions_payload]
+        )
+        assert response.status_code == 200
+
+        return {
+            "transaction": transaction,
+            "functions": functions,
+        }
+
+    def function_fingerprint(self, function):
+        # this is a different hashing algorithm than is used by vroom
+        # but it's not a big deal
+        hasher = hashlib.md5()
+        if function.get("module") is not None:
+            hasher.update(function["module"].encode())
+        elif function.get("package") is not None:
+            hasher.update(function["package"].encode())
+        else:
+            hasher.update(b"")
+        hasher.update(b":")
+        hasher.update(function["function"].encode())
+        return int.from_bytes(hasher.digest()[:16], "big")
 
 
 @pytest.mark.snuba
