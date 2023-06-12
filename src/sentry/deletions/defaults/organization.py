@@ -1,8 +1,8 @@
 from sentry.models import OrganizationStatus
-
-from ...services.hybrid_cloud.organization_actions.impl import (
+from sentry.services.hybrid_cloud.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
+
 from ..base import ModelDeletionTask, ModelRelation
 
 

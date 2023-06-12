@@ -13,6 +13,7 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     upsert_organization_by_org_id_with_outbox_message,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
@@ -31,7 +32,7 @@ def assert_outbox_update_message_exists(org: Organization, expected_count: int):
 
 
 @region_silo_test(stable=True)
-class OrganizationUpdateTest(TestCase):
+class OrganizationUpdateTest(TestCase, BaseTestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
@@ -52,7 +53,8 @@ class OrganizationUpdateTest(TestCase):
         assert_outbox_update_message_exists(org=org, expected_count=2)
 
 
-class OrganizationUpdateWithOutboxTest(TestCase):
+@region_silo_test(stable=True)
+class OrganizationUpdateWithOutboxTest(TestCase, BaseTestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
@@ -72,7 +74,8 @@ class OrganizationUpdateWithOutboxTest(TestCase):
             update_organization_with_outbox_message(org_id=1234, update_data={"name": "foobar"})
 
 
-class OrganizationUpsertWithOutboxTest(TestCase):
+@region_silo_test(stable=True)
+class OrganizationUpsertWithOutboxTest(TestCase, BaseTestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
