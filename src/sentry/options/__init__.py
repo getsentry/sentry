@@ -25,6 +25,7 @@ from .store import OptionsStore
 
 __all__ = (
     "FLAG_AUTOMATOR_MODIFIABLE",
+    "FLAG_CREDENTIAL",
     "NotWritableReason",
     "UnknownOption",
     "UpdateChannel",
