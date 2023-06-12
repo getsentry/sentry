@@ -5,9 +5,6 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class CocoaSDKCrashDetector(SDKCrashDetector):
-    def __init__(self) -> None:
-        self
-
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         if not frames:
             return False
@@ -33,8 +30,8 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             if "SentrySDK crash" in function:
                 return False
 
-            functionsMatchers = ["*sentrycrash*", "**[[]Sentry*"]
-            for matcher in functionsMatchers:
+            function_matchers = ["*sentrycrash*", "**[[]Sentry*"]
+            for matcher in function_matchers:
                 if glob_match(frame.get("function"), matcher, ignorecase=True):
                     return True
 

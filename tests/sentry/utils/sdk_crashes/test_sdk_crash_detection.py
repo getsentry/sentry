@@ -5,6 +5,12 @@ from unittest.mock import patch
 import pytest
 from django.test.utils import override_settings
 
+from fixtures.sdk_crash_detection.crash_event import (
+    IN_APP_FRAME,
+    get_crash_event,
+    get_crash_event_with_frames,
+    get_sentry_frame,
+)
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils import TestCase
@@ -12,12 +18,6 @@ from sentry.testutils.cases import BaseTestCase, SnubaTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
-from tests.sentry.utils.sdk_crashes.test_fixture import (
-    IN_APP_FRAME,
-    get_crash_event,
-    get_crash_event_with_frames,
-    get_sentry_frame,
-)
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
