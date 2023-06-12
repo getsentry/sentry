@@ -13,7 +13,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
         "topic": settings.KAFKA_PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
-    }
+    },
+    "ingest-replay-recordings": {
+        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
+    },
 }
 
 for consumer in KAFKA_CONSUMERS:
