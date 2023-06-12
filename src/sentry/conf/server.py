@@ -3450,4 +3450,4 @@ SENTRY_FILE_COPY_ROLLOUT_RATE = 0.1
 SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
 
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
-SDK_CRASH_DETECTION_PROJECT_ID = None
+SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None

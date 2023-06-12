@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Sequence
+from typing import Any, Collection, Dict, Mapping, Sequence
 
 IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",
@@ -79,13 +79,13 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
     return frames[::-1]
 
 
-def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> Sequence[Mapping[str, Any]]:
+def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> Dict[str, Collection[str]]:
     return get_crash_event_with_frames(get_frames(function), handled=handled, **kwargs)
 
 
 def get_crash_event_with_frames(
     frames: Sequence[Mapping[str, Any]], handled=False, **kwargs
-) -> Sequence[Mapping[str, Any]]:
+) -> Dict[str, Collection[str]]:
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",
         "release": "5.222.5",

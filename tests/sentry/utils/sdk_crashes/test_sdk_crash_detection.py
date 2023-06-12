@@ -1,9 +1,8 @@
 import abc
-from typing import Any, Mapping, Sequence
+from typing import Collection, Dict
 from unittest.mock import patch
 
 import pytest
-from django.test.utils import override_settings
 
 from fixtures.sdk_crash_detection.crash_event import (
     IN_APP_FRAME,
@@ -17,6 +16,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.safe import set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 
 
@@ -32,7 +32,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             project_id=self.project.id,
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event)
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234)
 
         if should_be_reported:
             mock_sdk_crash_reporter.report.assert_called_once()
@@ -44,7 +44,9 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransactionTestMixin):
+class PerformanceEventTestMixin(
+    BaseSDKCrashDetectionMixin, SnubaTestCase, PerfIssueTransactionTestMixin
+):
     def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
@@ -54,7 +56,7 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, PerfIssueTransaction
             fingerprint=[fingerprint],
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event)
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234)
 
         mock_sdk_crash_reporter.report.assert_not_called()
 
@@ -78,7 +80,8 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
     def test_sdk_crash_detected_event_is_not_reported(self, mock_sdk_crash_reporter):
         event = get_crash_event()
-        event["contexts"]["sdk_crash_detection"] = {"detected": True}
+
+        set_path(event, "contexts", "sdk_crash_detection", value={"detected": True})
 
         self.execute_test(event, False, mock_sdk_crash_reporter)
 
@@ -175,7 +178,7 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def _get_crash_event(self, filename) -> Sequence[Mapping[str, Any]]:
+    def _get_crash_event(self, filename) -> Dict[str, Collection[str]]:
         return get_crash_event_with_frames(
             frames=[
                 {
@@ -307,18 +310,19 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with override_settings(SDK_CRASH_DETECTION_PROJECT_ID=cocoa_sdk_crashes_project.id):
-            sdk_crash_event = sdk_crash_detection.detect_sdk_crash(event=event)
+        sdk_crash_event = sdk_crash_detection.detect_sdk_crash(
+            event=event, event_project_id=cocoa_sdk_crashes_project.id
+        )
 
-            assert sdk_crash_event is not None
+        assert sdk_crash_event is not None
 
-            event_store = SnubaEventStorage()
-            fetched_sdk_crash_event = event_store.get_event_by_id(
-                cocoa_sdk_crashes_project.id, sdk_crash_event.event_id
-            )
+        event_store = SnubaEventStorage()
+        fetched_sdk_crash_event = event_store.get_event_by_id(
+            cocoa_sdk_crashes_project.id, sdk_crash_event.event_id
+        )
 
-            assert cocoa_sdk_crashes_project.id == fetched_sdk_crash_event.project_id
-            assert sdk_crash_event.event_id == fetched_sdk_crash_event.event_id
+        assert cocoa_sdk_crashes_project.id == fetched_sdk_crash_event.project_id
+        assert sdk_crash_event.event_id == fetched_sdk_crash_event.event_id
 
 
 @region_silo_test

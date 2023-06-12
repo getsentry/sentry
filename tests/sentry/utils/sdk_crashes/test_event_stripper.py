@@ -31,7 +31,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         keys_removed = {"tags", "user", "threads", "breadcrumbs", "environment"}
         for key in keys_removed:
@@ -52,14 +52,16 @@ class EventStripperTestMixin(BaseEventStripperMixin):
 
     def test_strip_event_data_without_debug_meta(self):
         event_data = get_crash_event()
-        event_data["debug_meta"]["images"] = None
+        debug_meta = dict(get_path(event_data, "debug_meta"))
+        debug_meta.pop("images")
+        event_data["debug_meta"] = debug_meta
 
         event = self.create_event(
             data=event_data,
             project_id=self.project.id,
         )
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         debug_meta_images = get_path(stripped_event_data, "debug_meta", "images")
         assert debug_meta_images is None
@@ -70,7 +72,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         assert stripped_event_data.get("contexts") == {
             "os": {
@@ -91,7 +93,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         assert stripped_event_data.get("sdk") == {
             "name": "sentry.cocoa",
@@ -105,7 +107,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         )
         event.data["type"] = {"foo": "bar"}
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         assert stripped_event_data.get("type") is None
 
@@ -119,7 +121,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         event.data["timestamp"] = 1
         event.data["platform"] = "cocoa"
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         assert stripped_event_data.get("type") is True
         assert stripped_event_data.get("datetime") == 0.1
@@ -132,7 +134,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event_data = strip_event_data(event, Mock())
+        stripped_event_data = strip_event_data(event.data, Mock())
 
         debug_meta_images = get_path(stripped_event_data, "debug_meta", "images")
 
@@ -156,7 +158,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             project_id=self.project.id,
         )
 
-        stripped_event_data = strip_event_data(event, CocoaSDKCrashDetector())
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
 
         stripped_frames = get_path(
             stripped_event_data, "exception", "values", -1, "stacktrace", "frames"

@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import Any, Dict, Mapping, Optional, Sequence
 
-from sentry.eventstore.models import Event
+from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
@@ -54,11 +54,13 @@ EVENT_DATA_ALLOWLIST = {
 }
 
 
-def strip_event_data(event: Event, sdk_crash_detector: SDKCrashDetector) -> Event:
-    new_event_data = _strip_event_data_with_allowlist(event.data, EVENT_DATA_ALLOWLIST)
+def strip_event_data(
+    event_data: NodeData, sdk_crash_detector: SDKCrashDetector
+) -> Mapping[str, Any]:
+    new_event_data = _strip_event_data_with_allowlist(event_data, EVENT_DATA_ALLOWLIST)
 
     if (new_event_data is None) or (new_event_data == {}):
-        return
+        return {}
 
     stripped_frames: Sequence[Mapping[str, Any]] = []
     frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")

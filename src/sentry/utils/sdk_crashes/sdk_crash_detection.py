@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
-
-from django.conf import settings
+from typing import Any, Mapping, Optional
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
@@ -13,10 +11,10 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class SDKCrashReporter:
-    def report(self, event_data: Dict[str, Any], event_project_id: int) -> Event:
+    def report(self, event_data: Mapping[str, Any], event_project_id: int) -> Event:
         from sentry.event_manager import EventManager
 
-        manager = EventManager(event_data)
+        manager = EventManager(dict(event_data))
         manager.normalize()
         return manager.save(project_id=event_project_id)
 
@@ -31,7 +29,7 @@ class SDKCrashDetection:
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
-    def detect_sdk_crash(self, event: Event) -> Optional[Event]:
+    def detect_sdk_crash(self, event: Event, event_project_id: int) -> Optional[Event]:
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR
@@ -61,9 +59,7 @@ class SDKCrashDetection:
                 sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
             )
 
-            return self.sdk_crash_reporter.report(
-                sdk_crash_event_data, settings.SDK_CRASH_DETECTION_PROJECT_ID
-            )
+            return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
 
         return None
 
