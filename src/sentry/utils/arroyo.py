@@ -137,6 +137,8 @@ def run_basic_consumer(
 
     add_global_tags(kafka_topic=topic, group_id=group_id)
 
+    _initialize_arroyo_main()
+
     topic_def = settings.KAFKA_TOPICS[topic]
     assert topic_def is not None
     cluster_name: str = topic_def["cluster"]
