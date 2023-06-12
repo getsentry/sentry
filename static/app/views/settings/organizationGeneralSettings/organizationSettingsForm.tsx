@@ -100,6 +100,15 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
           </PoweredByCodecov>
         ),
       },
+      {
+        name: 'githubPRBot',
+        type: 'boolean',
+        label: t('Github Pull Request Bot'),
+        visible: ({features}) => features.has('pr-comment-bot'),
+        help: t(
+          "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
+        ),
+      },
     ];
 
     return (
