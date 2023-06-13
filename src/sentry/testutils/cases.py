@@ -1834,7 +1834,7 @@ class ProfilesSnubaTestCase(
             hasher.update(b"")
         hasher.update(b":")
         hasher.update(function["function"].encode())
-        return int.from_bytes(hasher.digest()[:8], "big")
+        return int(hasher.hexdigest()[:16], 16)
 
 
 @pytest.mark.snuba
