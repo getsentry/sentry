@@ -85,6 +85,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
         self.new_identity = None
+        self.base_url = self.metadata["base_url"]
         super().__init__(verify_ssl)
 
     @property
@@ -98,7 +99,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         return self.installation.model.metadata
 
     def build_url(self, path: str) -> str:
-        path = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
+        path = GitLabApiClientPath.build_api_url(self.base_url, path)
         path = super().build_url(path=path)
         return path
 
@@ -117,9 +118,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         """
         return self.identity.get_provider().refresh_identity(
             self.identity,
-            refresh_token_url="{}{}".format(
-                self.metadata["base_url"], GitLabApiClientPath.oauth_token
-            ),
+            refresh_token_url="{}{}".format(self.base_url, GitLabApiClientPath.oauth_token),
             verify_ssl=self.metadata["verify_ssl"],
         )
 
@@ -301,7 +300,6 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
         try:
-            self.base_url = self.metadata["base_url"]
             project_id = repo.config["project_id"]
             encoded_path = quote(path, safe="")
 

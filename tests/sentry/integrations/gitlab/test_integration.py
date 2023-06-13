@@ -2,10 +2,12 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import responses
+from django.core.cache import cache
 from django.test import override_settings
 
+from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
-from sentry.integrations.gitlab.client import GitlabProxySetupClient
+from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -18,6 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 
 @control_silo_test
@@ -651,6 +654,79 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
 
             assert (
                 "http://controlserver/api/0/internal/integration-proxy/api/v4/groups/cool-group"
+                == request.url
+            )
+            assert client.base_url not in request.url
+            client.assert_proxy_request(request, is_proxy=True)
+
+
+@override_settings(
+    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_CONTROL_ADDRESS="http://controlserver",
+)
+class GitlabProxyApiClientTest(GitLabTestCase):
+    @responses.activate
+    def test_integration_proxy_is_active(self):
+        gitlab_id = 123
+        commit = "a" * 40
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
+            json=json.loads(GET_COMMIT_RESPONSE),
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
+            json=json.loads(GET_COMMIT_RESPONSE),
+        )
+
+        class GitlabProxyApiTestClient(GitLabProxyApiClient):
+            _use_proxy_url_for_tests = True
+
+            def assert_proxy_request(self, request, is_proxy=True):
+                assert (PROXY_BASE_PATH in request.url) == is_proxy
+                assert (PROXY_OI_HEADER in request.headers) == is_proxy
+                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
+                # The following Gitlab headers don't appear in proxied requests
+                assert ("Authorization" in request.headers) != is_proxy
+                if is_proxy:
+                    assert request.headers[PROXY_OI_HEADER] is not None
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            client = GitlabProxyApiTestClient(self.installation)
+            client.get_commit(gitlab_id, commit)
+            request = responses.calls[0].request
+
+            assert (
+                f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
+                == request.url
+            )
+            assert client.base_url in request.url
+            client.assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        cache.clear()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            client = GitlabProxyApiTestClient(self.installation)
+            client.get_commit(gitlab_id, commit)
+            request = responses.calls[0].request
+
+            assert (
+                f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
+                == request.url
+            )
+            assert client.base_url in request.url
+            client.assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        cache.clear()
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            client = GitlabProxyApiTestClient(self.installation)
+            client.get_commit(gitlab_id, commit)
+            request = responses.calls[0].request
+
+            assert (
+                f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
                 == request.url
             )
             assert client.base_url not in request.url
