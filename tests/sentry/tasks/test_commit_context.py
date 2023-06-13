@@ -447,6 +447,7 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             external_id=1,
             created_at=iso_format(before_now(days=1)),
             updated_at=iso_format(before_now(days=1)),
+            group_ids=[],
         )
 
     @with_feature("organizations:pr-comment-bot")
