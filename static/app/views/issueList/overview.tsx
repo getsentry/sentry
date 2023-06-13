@@ -37,6 +37,7 @@ import {
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
+import {ExperimentAssignment} from 'sentry/types/experiments';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
@@ -45,12 +46,18 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  enablePrioritySortByDefault,
+  getPrioritySortVariant,
+  prioritySortExperimentEnabled,
+} from 'sentry/utils/prioritySort';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withExperiment from 'sentry/utils/withExperiment';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -85,7 +92,9 @@ type Params = {
 
 type Props = {
   api: Client;
+  experimentAssignment: ExperimentAssignment['PrioritySortExperiment'];
   location: Location;
+  logExperiment: () => void;
   organization: Organization;
   params: Params;
   savedSearch: SavedSearch;
@@ -149,6 +158,7 @@ type BetterPriorityEndpointParams = Partial<EndpointParams> & {
   norm?: boolean;
   relativeVolume?: number;
   v2?: boolean;
+  variant?: string;
 };
 
 class IssueListOverview extends Component<Props, State> {
@@ -195,6 +205,7 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchMemberList();
     // let custom analytics take control
     this.props.setDisableRouteAnalytics?.();
+    this.logExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -275,6 +286,12 @@ class IssueListOverview extends Component<Props, State> {
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
+  logExperiment() {
+    if (prioritySortExperimentEnabled(this.props.organization)) {
+      this.props.logExperiment();
+    }
+  }
+
   getQueryFromSavedSearchOrLocation({
     savedSearch,
     location,
@@ -304,9 +321,7 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    const hasBetterPrioritySort = this.props.organization.features.includes(
-      'issue-list-better-priority-sort'
-    );
+    const hasBetterPrioritySort = enablePrioritySortByDefault(this.props.organization);
     return hasBetterPrioritySort
       ? IssueSortOptions.BETTER_PRIORITY
       : DEFAULT_ISSUE_STREAM_SORT;
@@ -340,6 +355,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   getBetterPriorityParams(): BetterPriorityEndpointParams {
+    const variant = getPrioritySortVariant(this.props.organization);
     const query = this.props.location.query ?? {};
     const {
       eventHalflifeHours,
@@ -359,6 +375,7 @@ class IssueListOverview extends Component<Props, State> {
       norm,
       v2,
       relativeVolume,
+      variant,
     };
   }
 
@@ -1274,7 +1291,18 @@ class IssueListOverview extends Component<Props, State> {
 export default withRouteAnalytics(
   withApi(
     withPageFilters(
-      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+      withSavedSearches(
+        withOrganization(
+          withIssueTags(
+            withProfiler(
+              withExperiment(IssueListOverview, {
+                experiment: 'PrioritySortExperiment',
+                injectLogExperiment: true,
+              })
+            )
+          )
+        )
+      )
     )
   )
 );
