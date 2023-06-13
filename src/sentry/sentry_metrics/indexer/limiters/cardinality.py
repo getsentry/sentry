@@ -87,7 +87,7 @@ class TimeseriesCardinalityLimiter:
         self, metric_path_key: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        hash_to_offset = {}
+        hash_to_offset = defaultdict(dict)
         prefix_to_quota = {}
 
         # this works by applying one cardinality limiter rollout option
@@ -113,7 +113,7 @@ class TimeseriesCardinalityLimiter:
                 16,
             )
             prefix = _build_quota_key(message["use_case_id"], org_id)
-            hash_to_offset[prefix, message_hash] = key
+            hash_to_offset[prefix][message_hash] = key
             request_hashes[prefix].add(message_hash)
             configured_quota = _construct_quotas(message["use_case_id"])
 
@@ -149,14 +149,26 @@ class TimeseriesCardinalityLimiter:
 
             for grant in grants:
                 for hash in grant.granted_unit_hashes:
-                    del keys_to_remove[grant.request.prefix, hash]
+                    del keys_to_remove[grant.request.prefix][hash]
+
+                use_case_id = grant.request.prefix.split("-")[3]
+                org_id = grant.request.prefix.split("-")[-1]
+                metrics.incr(
+                    "sentry_metrics.indexer.process_messages.dropped_message",
+                    amount=len(keys_to_remove[grant.request.prefix]),
+                    tags={
+                        "reason": "cardinality_limit",
+                        "use_case_id": use_case_id,
+                        "org_id": org_id,
+                    },
+                )
 
         return CardinalityLimiterState(
             _cardinality_limiter=self.backend,
             _metric_path_key=metric_path_key,
             _grants=grants,
             _timestamp=timestamp,
-            keys_to_remove=list(keys_to_remove.values()),
+            keys_to_remove=[key for grant in keys_to_remove.values() for key in grant.values()],
         )
 
     def apply_cardinality_limits(self, state: CardinalityLimiterState) -> None:
