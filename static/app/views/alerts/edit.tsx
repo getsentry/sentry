@@ -60,8 +60,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, location, organization, project, routes, members} =
-      this.props;
+    const {hasMetricAlerts, organization, project, members} = this.props;
     const alertType = this.getAlertType();
 
     return (
@@ -77,8 +76,6 @@ class ProjectAlertsEditor extends Component<Props, State> {
               organization={organization}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}
-              routes={routes}
-              location={location}
             />
             <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>

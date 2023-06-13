@@ -14,9 +14,8 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import withProjects from 'sentry/utils/withProjects';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -38,7 +37,6 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projectId: string;
-  projects: Project[];
 };
 
 type State = {
@@ -154,7 +152,7 @@ class AlertWizard extends Component<Props, State> {
   }
 
   render() {
-    const {organization, params, projectId: _projectId, routes, location} = this.props;
+    const {organization, params, projectId: _projectId} = this.props;
     const {alertOption} = this.state;
     const projectId = params.projectId ?? _projectId;
     const title = t('Alert Creation Wizard');
@@ -169,9 +167,6 @@ class AlertWizard extends Component<Props, State> {
               organization={organization}
               projectSlug={projectId}
               title={t('Select Alert')}
-              routes={routes}
-              location={location}
-              canChangeProject
             />
             <Layout.Title>{t('Select Alert')}</Layout.Title>
           </StyledHeaderContent>
@@ -317,4 +312,4 @@ const WizardButtonContainer = styled('div')`
   }
 `;
 
-export default withProjects(AlertWizard);
+export default AlertWizard;
