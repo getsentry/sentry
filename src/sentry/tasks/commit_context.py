@@ -21,6 +21,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
+from sentry.tasks.integrations.github.pr_comment import comment_workflow
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -43,8 +44,8 @@ def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
         and group_owner.group_id in pr.comment.issues
     ):
         # TODO: Debouncing Logic
-        # comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
-        pass
+        # TODO: Add new arguments after Cathy's PR is in (pullrequest_id=pr.id, project_id=group_owner.project_id)
+        comment_workflow()
 
 
 @instrumented_task(

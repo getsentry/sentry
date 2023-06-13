@@ -5,7 +5,7 @@ import pytest
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
-from sentry.models import Repository
+from sentry.models import PullRequest, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -16,8 +16,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import get_frame_paths
 
 
-@region_silo_test(stable=True)
-class TestCommitContext(TestCase):
+class TestCommitContextMixin(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.repo = Repository.objects.create(
@@ -72,6 +71,9 @@ class TestCommitContext(TestCase):
             project_id=self.project.id,
         )
 
+
+@region_silo_test(stable=True)
+class TestCommitContext(TestCommitContextMixin):
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
@@ -408,3 +410,50 @@ class TestCommitContext(TestCase):
                 )
 
             assert mock_suspect_commits.called
+
+
+@region_silo_test(stable=True)
+class TestGHCommentQueuing(TestCommitContextMixin):
+    def setUp(self):
+        super().setUp()
+        self.pull_request = PullRequest.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key=str(self.pr_key),
+            author=self.commit.author,
+            message="foo",
+            title="bar",
+            merge_commit_sha=self.commit.key,
+            date_added=iso_format(before_now(minutes=1)),
+        )
+
+    def test_gh_comment_not_github(self):
+        """Non github repos shouldn't be commented on"""
+        pass
+
+    def test_gh_comment_feature_flag(self):
+        """No comments on org with feature flag disabled"""
+        pass
+
+    def test_gh_comment_no_pr(self):
+        """No comments on suspect commit with no pr"""
+        pass
+
+    def test_gh_comment_org_settings(self):
+        """No comments on org who disabled feature"""
+
+    def test_gh_comment_pr_too_old(self):
+        """No comment on pr that's older than 30 days"""
+        pass
+
+    def test_gh_comment_repeat_issue(self):
+        """No comment on a pr that has a comment with the issue in the same pr list"""
+        pass
+
+    def test_gh_comment_create_queued(self):
+        """Task queued if no prior comment exists"""
+        pass
+
+    def test_gh_comment_update_queue(self):
+        """Task queued if new issue for prior comment"""
+        pass
