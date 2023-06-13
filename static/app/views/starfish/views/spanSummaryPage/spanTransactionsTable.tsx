@@ -25,6 +25,7 @@ type Row = {
 
 type Props = {
   span: Pick<IndexedSpan, 'group'>;
+  endpoint?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -36,10 +37,18 @@ export type Keys =
   | 'sps()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
-export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
+export function SpanTransactionsTable({
+  span,
+  openSidebar,
+  onClickTransaction,
+  endpoint,
+}: Props) {
   const location = useLocation();
 
-  const {data: spanTransactionMetrics, isLoading} = useSpanTransactionMetrics(span);
+  const {data: spanTransactionMetrics, isLoading} = useSpanTransactionMetrics(
+    span,
+    endpoint ? [endpoint] : undefined
+  );
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
@@ -60,6 +69,7 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
         row={row}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
+        endpoint={endpoint}
       />
     );
   };
@@ -83,14 +93,23 @@ type CellProps = {
   column: TableColumnHeader;
   row: Row;
   span: Pick<IndexedSpan, 'group'>;
+  endpoint?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-function BodyCell({span, column, row, openSidebar, onClickTransactionName}: CellProps) {
+function BodyCell({
+  span,
+  column,
+  row,
+  openSidebar,
+  onClickTransactionName,
+  endpoint,
+}: CellProps) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
+        endpoint={endpoint}
         span={span}
         row={row}
         column={column}
@@ -101,11 +120,21 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   }
 
   if (column.key === 'p95(transaction.duration)') {
-    return <DurationCell milliseconds={row.metrics?.['p95(span.duration)']} />;
+    return (
+      <DurationCell
+        milliseconds={row.metrics?.['p95(span.duration)']}
+        delta={row.metrics?.['percentile_percent_change(span.duration, 0.95)']}
+      />
+    );
   }
 
   if (column.key === 'sps()') {
-    return <ThroughputCell throughputPerSecond={row.metrics?.['sps()']} />;
+    return (
+      <ThroughputCell
+        throughputPerSecond={row.metrics?.['sps()']}
+        delta={row.metrics?.['sps_percent_change()']}
+      />
+    );
   }
 
   if (column.key === 'time_spent_percentage(local)') {
@@ -120,11 +149,12 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   return <span>{row[column.key]}</span>;
 }
 
-function TransactionCell({span, column, row}: CellProps) {
+function TransactionCell({span, column, row, endpoint}: CellProps) {
   return (
     <Fragment>
       <Link
         to={`/starfish/span/${encodeURIComponent(span.group)}?${qs.stringify({
+          endpoint,
           transaction: row.transaction,
         })}`}
       >
@@ -137,18 +167,18 @@ function TransactionCell({span, column, row}: CellProps) {
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction',
-    name: 'In Endpoint',
-    width: 500,
+    name: 'Found In Endpoints',
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'sps()',
     name: DataTitles.throughput,
-    width: COL_WIDTH_UNDEFINED,
+    width: 175,
   },
   {
     key: 'p95(transaction.duration)',
     name: DataTitles.p95,
-    width: COL_WIDTH_UNDEFINED,
+    width: 175,
   },
   {
     key: 'time_spent_percentage(local)',
