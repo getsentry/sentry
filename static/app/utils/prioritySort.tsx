@@ -7,7 +7,7 @@ export function prioritySortExperimentEnabled(organization: Organization) {
    */
   return (
     organization.isEarlyAdopter &&
-    organization.features.includes('better-priority-sort-experiment') &&
+    // organization.features.includes('better-priority-sort-experiment') &&
     !organization.features.includes('issue-list-better-priority-sort') // exclude orgs explicitly on
   );
 }

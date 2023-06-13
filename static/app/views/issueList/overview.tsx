@@ -47,6 +47,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {
+  enablePrioritySortByDefault,
   getPrioritySortVariant,
   prioritySortExperimentEnabled,
 } from 'sentry/utils/prioritySort';
@@ -320,9 +321,7 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    const hasBetterPrioritySort = this.props.organization.features.includes(
-      'issue-list-better-priority-sort'
-    );
+    const hasBetterPrioritySort = enablePrioritySortByDefault(this.props.organization);
     return hasBetterPrioritySort
       ? IssueSortOptions.BETTER_PRIORITY
       : DEFAULT_ISSUE_STREAM_SORT;
