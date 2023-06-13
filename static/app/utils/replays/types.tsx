@@ -108,6 +108,18 @@ export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 
+// This list should match each of the categories used in `HydratedBreadcrumb` above.
+export const BreadcrumbCategories = [
+  'console',
+  'ui.click',
+  'ui.input',
+  'replay.mutations',
+  'ui.keyDown',
+  'ui.blur',
+  'ui.focus',
+  'ui.slowClickDetected',
+];
+
 // Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
 export type HistoryFrame = HydratedSpan<'navigation.push'>;
@@ -126,6 +138,25 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.other'
   | 'resource.script'
 >;
+
+// This list should match each of the operations used in `HydratedSpan` above.
+export const SpanOps = [
+  'navigation.push',
+  'largest-contentful-paint',
+  'memory',
+  'navigation.navigate',
+  'navigation.reload',
+  'navigation.back_forward',
+  'paint',
+  'resource.fetch',
+  'resource.xhr',
+  'resource.css',
+  'resource.iframe',
+  'resource.img',
+  'resource.link',
+  'resource.other',
+  'resource.script',
+];
 
 /**
  * This is a result of a custom discover query

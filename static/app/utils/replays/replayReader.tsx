@@ -29,7 +29,7 @@ import type {
   RecordingFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {EventType} from 'sentry/utils/replays/types';
+import {BreadcrumbCategories, EventType} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -211,10 +211,11 @@ export default class ReplayReader {
   );
 
   _getChapters = () => [
-    ...this._breadcrumbFrames.filter(frame =>
-      ['replay.init', 'ui.click', 'replay.mutations', 'ui.slowClickDetected'].includes(
-        frame.category
-      )
+    ...this._breadcrumbFrames.filter(
+      frame =>
+        ['replay.init', 'ui.click', 'replay.mutations', 'ui.slowClickDetected'].includes(
+          frame.category
+        ) || !BreadcrumbCategories.includes(frame.category)
     ),
     ...this._spanFrames.filter(frame =>
       ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
