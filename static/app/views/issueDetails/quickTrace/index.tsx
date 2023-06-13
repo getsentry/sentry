@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useMedia from 'sentry/utils/useMedia';
@@ -14,12 +14,11 @@ import IssueQuickTrace from './issueQuickTrace';
 
 type Props = {
   event: Event;
-  group: Group;
   location: Location;
   organization: Organization;
 };
 
-function QuickTrace({group, event, organization, location}: Props) {
+function QuickTrace({event, organization, location}: Props) {
   const theme = useTheme();
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
@@ -40,7 +39,6 @@ function QuickTrace({group, event, organization, location}: Props) {
       organization={organization}
       event={event}
       location={location}
-      group={group}
       quickTrace={quickTrace}
     />
   );
