@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Generator
 
 import pytest
 
@@ -19,7 +20,7 @@ class ConfigOptionsTest(CliTestCase):
     command = configoptions
 
     @pytest.fixture(autouse=True, scope="class")
-    def register_options(self) -> None:
+    def register_options(self) -> Generator[None, None, None]:
         options.register("readonly_option", default=10, flags=FLAG_IMMUTABLE)
         options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -28,6 +29,17 @@ class ConfigOptionsTest(CliTestCase):
         options.register("drifted_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+        yield
+
+        options.unregister("readonly_option")
+        options.unregister("int_option")
+        options.unregister("str_option")
+        options.unregister("map_option")
+        options.unregister("list_option")
+        options.unregister("drifted_option")
+        options.unregister("change_channel_option")
+        options.unregister("to_unset_option")
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
