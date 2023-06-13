@@ -8,7 +8,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from pytest import raises
 
 from sentry import options
-from sentry.monitoring.queues import (
+from sentry.processing.backpressure.rabbitmq import (
     _list_queues_over_threshold,
     _unhealthy_consumer_key,
     queue_monitoring_cluster,

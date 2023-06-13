@@ -798,6 +798,6 @@ def last_seen_updater(**options):
 @log_options()
 @configuration
 def backpressure_monitor():
-    from sentry.monitoring.queues import run_queue_stats_updater
+    from sentry.processing.backpressure.rabbitmq import run_queue_stats_updater
 
     run_queue_stats_updater()
