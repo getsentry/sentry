@@ -116,7 +116,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -139,7 +139,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -157,7 +157,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -175,7 +175,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -203,7 +203,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -248,7 +248,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=["span.duration"],
+                            allowed_columns=["span.duration", "span.self_time"],
                             allow_custom_measurements=False,
                         ),
                         fields.NumberRange("percentile", 0, 1),
@@ -277,7 +277,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=["span.duration"],
+                            allowed_columns=["span.duration", "span.self_time"],
                             allow_custom_measurements=False,
                         ),
                         fields.NumberRange("percentile", 0, 1),
