@@ -68,6 +68,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
+        if granularity is not None:
+            self._granularity = granularity
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
             # PerformanceMetrics
@@ -81,8 +83,6 @@ class MetricsQueryBuilder(QueryBuilder):
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
-        if granularity is not None:
-            self._granularity = granularity
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
@@ -188,7 +188,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         In special cases granularity can be set manually bypassing the granularity calculation below.
         """
-        if hasattr(self, "_granularity"):
+        if hasattr(self, "_granularity") and getattr(self, "_granularity") is not None:
             return Granularity(self._granularity)
 
         if self.end is None or self.start is None:
