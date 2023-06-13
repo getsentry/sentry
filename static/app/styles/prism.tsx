@@ -22,6 +22,11 @@ export const prismStyles = (theme: Theme) => css`
     padding: ${space(1)} ${space(2)};
     border-radius: ${theme.borderRadius};
     box-shadow: none;
+
+    code {
+      background: unset;
+      vertical-align: middle;
+    }
   }
 
   pre[class*='language-'],
@@ -106,10 +111,8 @@ export const prismStyles = (theme: Theme) => css`
     }
     .line-highlight {
       position: absolute;
-      left: 0;
+      left: -${space(2)};
       right: 0;
-      padding: inherit 0;
-      margin-top: 1em;
       background: var(--prism-highlight-background);
       box-shadow: inset 5px 0 0 var(--prism-highlight-accent);
       z-index: 0;
