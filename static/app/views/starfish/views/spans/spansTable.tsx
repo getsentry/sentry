@@ -6,7 +6,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -116,7 +115,7 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
   if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(row['time_spent_percentage()'])}
+        timeSpentPercentage={row['time_spent_percentage()']}
         totalSpanTime={row['sum(span.duration)']}
       />
     );

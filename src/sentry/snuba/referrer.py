@@ -348,7 +348,7 @@ class ReferrerBase(Enum):
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
-        "api.trends.get-event-statsv2.top-events.primary"
+        "api.trends.get-event-statsv2.top-events.metrics-enhanced.primary"
     )
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_METRICS_ENHANCED = (
         "api.trends.get-event-statsv2.top-events.metrics-enhanced"

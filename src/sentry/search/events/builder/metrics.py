@@ -54,6 +54,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
+        granularity: Optional[int] = None,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -67,6 +68,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
+        if granularity is not None:
+            self._granularity = granularity
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
             # PerformanceMetrics
@@ -182,7 +185,12 @@ class MetricsQueryBuilder(QueryBuilder):
         - if duration is between 3d to 30d we allow 30 minutes on the day boundaries for daily granularities
             and will fallback to hourly granularity
         - If the duration is over 30d we always use the daily granularities
+
+        In special cases granularity can be set manually bypassing the granularity calculation below.
         """
+        if hasattr(self, "_granularity") and getattr(self, "_granularity") is not None:
+            return Granularity(self._granularity)
+
         if self.end is None or self.start is None:
             raise ValueError("skip_time_conditions must be False when calling this method")
         duration = (self.end - self.start).total_seconds()

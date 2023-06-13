@@ -171,3 +171,13 @@ class IssueOccurrence:
         if results:
             return IssueOccurrence.from_dict(results)
         return None
+
+    @classmethod
+    def fetch_multi(
+        cls, ids: Sequence[str], project_id: int
+    ) -> Sequence[Optional[IssueOccurrence]]:
+        ids = [cls.build_storage_identifier(id, project_id) for id in ids]
+        results = nodestore.get_multi(ids)
+        return [
+            IssueOccurrence.from_dict(results[_id]) if results.get(_id) else None for _id in ids
+        ]
