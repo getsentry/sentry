@@ -432,7 +432,7 @@ def _process_symbolicator_results_for_sample(
             stack: List[Any],
         ) -> List[Any]:
             # remove bottom frames we can't symbolicate
-            if frames[-1].get("instruction_addr", "") == "0xffffffffc":
+            if frames[stack[-1]].get("instruction_addr", "") == "0xffffffffc":
                 return stack[:-2]
             return stack
 
@@ -470,8 +470,8 @@ def _process_symbolicator_results_for_sample(
 
         new_frames_count = (
             len(raw_frames)
-            - len(symbolicated_frames_dict)
             + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            - len(symbolicated_frames_dict)
         )
 
         assert len(new_frames) == new_frames_count
