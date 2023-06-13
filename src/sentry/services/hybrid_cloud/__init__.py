@@ -54,7 +54,6 @@ def report_pydantic_type_validation_error(
     model_class: Optional[Type[Any]],
 ) -> None:
     with sentry_sdk.push_scope() as scope:
-        scope.set_level("warning")
         scope.set_context(
             "pydantic_validation",
             {
@@ -64,7 +63,7 @@ def report_pydantic_type_validation_error(
                 "model_class": str(model_class),
             },
         )
-        sentry_sdk.capture_exception(TypeError("Pydantic type validation error"))
+        logger.warning("Pydantic type validation error", exc_info=True)
 
 
 def _hack_pydantic_type_validation() -> None:
