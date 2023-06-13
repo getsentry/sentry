@@ -156,7 +156,7 @@ export function useWrappedDiscoverQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data} = useDiscoverQuery({
+  const {isLoading, data, pageLinks} = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
@@ -166,7 +166,7 @@ export function useWrappedDiscoverQuery({
   return {
     isLoading,
     data: isLoading && initialData ? initialData : data?.data,
-    pageLinks: data?.pageLinks,
+    pageLinks,
   };
 }
 
