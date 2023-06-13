@@ -63,7 +63,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "count_unique",
                     required_args=[
                         fields.MetricArg(
-                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                            "column",
+                            allowed_columns=["user", "transaction"],
+                            allow_custom_measurements=False,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
