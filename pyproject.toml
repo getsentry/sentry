@@ -1732,7 +1732,6 @@ module = [
     "tests.sentry.tasks.test_check_auth",
     "tests.sentry.tasks.test_derive_code_mappings",
     "tests.sentry.tasks.test_groupowner",
-    "tests.sentry.tasks.test_low_priority_symbolication",
     "tests.sentry.tasks.test_merge",
     "tests.sentry.tasks.test_post_process",
     "tests.sentry.tasks.test_relay",
