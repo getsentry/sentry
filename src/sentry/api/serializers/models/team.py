@@ -167,14 +167,14 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     name: str
     dateCreated: datetime
     isMember: bool
-    teamRole: str
+    teamRole: Optional[str]
     flags: Dict[str, Any]
     access: FrozenSet[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
     memberCount: int
     avatar: SerializedAvatarFields
-    orgRole: str  # TODO(cathy): Change to new key
+    orgRole: Optional[str]  # TODO(cathy): Change to new key
 
 
 @register(Team)

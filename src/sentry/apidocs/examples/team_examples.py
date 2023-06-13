@@ -4,28 +4,39 @@ from drf_spectacular.utils import OpenApiExample
 class TeamExamples:
     CREATE_TEAM = [
         OpenApiExample(
-            "List an Organization's Members",
+            "Create a new team",
             value={
-                "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-                "totalResults": 1,
-                "startIndex": 1,
-                "itemsPerPage": 1,
-                "Resources": [
-                    {
-                        "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                        "id": "102",
-                        "userName": "test.user@okta.local",
-                        "emails": [
-                            {"primary": True, "value": "test.user@okta.local", "type": "work"}
-                        ],
-                        "name": {"familyName": "N/A", "givenName": "N/A"},
-                        "active": True,
-                        "meta": {"resourceType": "User"},
-                        "sentryOrgRole": "member",
-                    }
+                "id": "5151492858",
+                "slug": "ancient-gabelers",
+                "name": "Ancient Gabelers",
+                "dateCreated": "2021-06-12T23:38:54.168307Z",
+                "isMember": True,
+                "teamRole": "admin",
+                "flags": {"idp:provisioned": False},
+                "access": [
+                    "project:write",
+                    "member:read",
+                    "event:write",
+                    "team:admin",
+                    "alerts:read",
+                    "project:releases",
+                    "alerts:write",
+                    "org:read",
+                    "team:read",
+                    "project:admin",
+                    "project:read",
+                    "org:integrations",
+                    "event:read",
+                    "event:admin",
+                    "team:write",
                 ],
+                "hasAccess": True,
+                "isPending": False,
+                "memberCount": 1,
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "orgRole": None,
             },
-            status_codes=["200"],
+            status_codes=["201"],
             response_only=True,
         ),
     ]
