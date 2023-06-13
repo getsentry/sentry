@@ -181,6 +181,7 @@ function generateReleaseMarkLine(
         font: 'Rubik',
         fontSize: 14,
         color: theme.chartLabel,
+        backgroundColor: theme.chartOther,
       },
       data: [
         {
