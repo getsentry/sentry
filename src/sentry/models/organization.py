@@ -165,17 +165,11 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
 
     __include_in_export__ = True
     name = models.CharField(max_length=64)
-    slug = models.SlugField(unique=True)
+    slug: models.SlugField[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="sentry.OrganizationMember",
-        related_name="org_memberships",
-        through_fields=("organization", "user"),
-    )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
 
     flags = BitField(

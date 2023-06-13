@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, NamedTuple
+from typing import Any, Mapping, MutableMapping
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -24,37 +24,43 @@ from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils import kafka_config
 
 
-class MultiProcessConfig(NamedTuple):
-    num_processes: int
-    max_batch_size: int
-    max_batch_time: int
-    input_block_size: int
-    output_block_size: int
-
-
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        health_checker: HealthChecker,
-        multi_process: MultiProcessConfig | None = None,
+        consumer_type: str,
+        num_processes: int,
+        max_batch_size: int,
+        max_batch_time: int,
+        input_block_size: int,
+        output_block_size: int,
     ):
-        self.health_checker = health_checker
-        self.multi_process = multi_process
+        self.consumer_type = consumer_type
+        self.num_processes = num_processes
+        self.max_batch_size = max_batch_size
+        self.max_batch_time = max_batch_time
+        self.input_block_size = input_block_size
+        self.output_block_size = output_block_size
+        self.health_checker = HealthChecker()
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if (mp := self.multi_process) is not None:
+
+        # The attachments consumer that is used for multiple message types needs
+        # ordering guarantees: Attachments have to be written before the event using
+        # them is being processed. We will use a simple serial `RunTask` for those
+        # for now.
+        if self.num_processes > 1 and self.consumer_type != ConsumerType.Attachments:
             next_step = RunTaskWithMultiprocessing(
                 process_ingest_message,
                 CommitOffsets(commit),
-                mp.num_processes,
-                mp.max_batch_size,
-                mp.max_batch_time,
-                mp.input_block_size,
-                mp.output_block_size,
+                num_processes=self.num_processes,
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
                 initializer=initialize_consumer_state,
             )
         else:
@@ -73,7 +79,7 @@ def get_ingest_consumer(
     strict_offset_reset: bool,
     max_batch_size: int,
     max_batch_time: int,
-    processes: int,
+    num_processes: int,
     input_block_size: int,
     output_block_size: int,
     force_topic: str | None,
@@ -89,27 +95,16 @@ def get_ingest_consumer(
     )
     consumer = KafkaConsumer(consumer_config)
 
-    # The attachments consumer that is used for multiple message types needs
-    # ordering guarantees: Attachments have to be written before the event using
-    # them is being processed. We will use a simple serial `RunTask` for those
-    # for now.
-    multi_process = None
-    if processes > 1 and consumer_type != ConsumerType.Attachments:
-        multi_process = MultiProcessConfig(
-            num_processes=processes,
-            max_batch_size=max_batch_size,
-            max_batch_time=max_batch_time,
-            input_block_size=input_block_size,
-            output_block_size=output_block_size,
-        )
-
-    health_checker = HealthChecker()
-
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=IngestStrategyFactory(
-            health_checker=health_checker, multi_process=multi_process
+            consumer_type=consumer_type,
+            num_processes=num_processes,
+            max_batch_size=max_batch_size,
+            max_batch_time=max_batch_time,
+            input_block_size=input_block_size,
+            output_block_size=output_block_size,
         ),
         commit_policy=ONCE_PER_SECOND,
     )

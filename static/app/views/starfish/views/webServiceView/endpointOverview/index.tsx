@@ -299,10 +299,9 @@ function SpanMetricsTable({
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
-      transaction={transaction}
       orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
-      limit={SPANS_TABLE_LIMIT}
+      endpoint={transaction}
     />
   );
 }
