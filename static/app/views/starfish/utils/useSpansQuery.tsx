@@ -142,9 +142,11 @@ export function useWrappedDiscoverTimeseriesQuery({
 export function useWrappedDiscoverQuery({
   eventView,
   initialData,
+  enabled,
   referrer,
   limit,
 }: {
+  enabled: boolean;
   eventView: EventView;
   initialData?: any;
   limit?: number;
@@ -158,6 +160,10 @@ export function useWrappedDiscoverQuery({
     location,
     referrer,
     limit,
+    options: {
+      enabled,
+      refetchOnWindowFocus: false,
+    },
   });
   return {isLoading, data: isLoading && initialData ? initialData : data?.data};
 }
