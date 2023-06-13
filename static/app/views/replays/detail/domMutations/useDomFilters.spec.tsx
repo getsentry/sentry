@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useDomFilters, {FilterFields} from './useDomFilters';
