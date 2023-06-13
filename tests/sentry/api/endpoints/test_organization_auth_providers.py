@@ -5,10 +5,6 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.silo import region_silo_test
 
-from sentry import auth
-
-from sentry.auth.providers.fly.provider import FlyOAuth2Provider
-
 
 @region_silo_test
 class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
@@ -27,19 +23,6 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
             self.assert_member_can_access(self.path)
 
 
-class TestBillingHistory:
-    sponsored_type = None
-
-    def __init__(self, sponsorship) -> None:
-        self.sponsored_type = sponsorship
-
-
-class TestSubscription:
-
-    def current_history(self) -> TestBillingHistory:
-        return TestBillingHistory(4)
-
-
 @region_silo_test
 class OrganizationAuthProviders(APITestCase):
     endpoint = "sentry-api-0-organization-auth-providers"
@@ -54,6 +37,7 @@ class OrganizationAuthProviders(APITestCase):
         with self.feature("organizations:sso-basic"):
             response = self.get_success_response(self.organization.slug)
         assert any(d["key"] == "dummy" for d in response.data)
+<<<<<<< HEAD
 <<<<<<< HEAD
         assert any(d["key"] == "Fly IO" for d in response.data) is False
 =======
@@ -71,3 +55,6 @@ class OrganizationAuthProviders(APITestCase):
             response = self.get_success_response(self.organization.slug)
         assert any(d["key"] == "Fly IO" for d in response.data)
 >>>>>>> aef2fff949 ([WIP]feat(fly-auth): remove fly auth from list)
+=======
+        assert any(d["key"] == "Fly IO" for d in response.data) is False
+>>>>>>> dfedb6f768 (feat(fly-auth): remove check for partner orgs)

@@ -6,8 +6,6 @@ from sentry.api.bases.organization import OrganizationAuthProviderPermission, Or
 from sentry.api.serializers import serialize
 from sentry.auth import manager
 
-from sentry.auth.partnership_config import SPONSOR_OAUTH_NAME, SPONSORSHIP_TO_CHANNEL_MAP
-
 
 @region_silo_endpoint
 class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
@@ -22,6 +20,7 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         :auth: required
         """
         provider_list = []
+<<<<<<< HEAD
 <<<<<<< HEAD
 
         for k, v in manager:
@@ -41,5 +40,13 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
             if (v.is_partner is False or (channel and SPONSOR_OAUTH_NAME[channel] == v.name)):
                 provider_list.append({"key": k, "name": v.name, "requiredFeature": v.required_feature})
 >>>>>>> aef2fff949 ([WIP]feat(fly-auth): remove fly auth from list)
+=======
+
+        for k, v in manager:
+            if v.is_partner is False:
+                provider_list.append(
+                    {"key": k, "name": v.name, "requiredFeature": v.required_feature}
+                )
+>>>>>>> dfedb6f768 (feat(fly-auth): remove check for partner orgs)
 
         return Response(serialize(provider_list, request.user))
