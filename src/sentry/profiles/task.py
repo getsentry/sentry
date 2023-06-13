@@ -23,7 +23,6 @@ from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.sdk import set_measurement
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
@@ -92,9 +91,6 @@ def process_profile_task(
 
     sentry_sdk.set_tag("platform", profile["platform"])
     sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
-    set_measurement("profile.samples", len(profile["profile"]["samples"]))
-    set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
-    set_measurement("profile.frames", len(profile["profile"]["frames"]))
 
     if not _symbolicate_profile(profile, project):
         return
@@ -104,10 +100,6 @@ def process_profile_task(
 
     if not _normalize_profile(profile, organization, project):
         return
-
-    set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
-    set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
-    set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if not _push_profile_to_vroom(profile, project):
         return

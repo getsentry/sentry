@@ -99,7 +99,7 @@ export function CheckInTimeline(props: Props) {
 const TimelineContainer = styled('div')`
   position: relative;
   height: 14px;
-  margin: ${space(4)} 0;
+  margin: ${space(2)} 0;
 `;
 
 const JobTickContainer = styled('div')`
