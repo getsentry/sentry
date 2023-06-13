@@ -146,8 +146,8 @@ export function useWrappedDiscoverQuery({
   referrer,
   limit,
 }: {
-  enabled: boolean;
   eventView: EventView;
+  enabled?: boolean;
   initialData?: any;
   limit?: number;
   referrer?: string;
