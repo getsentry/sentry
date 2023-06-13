@@ -703,15 +703,15 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                         event.group.substatus = GroupSubStatus.NEW
                         add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
-                    updated = (
-                        Group.objects.filter(id=event.group.id)
-                        .exclude(substatus=GroupSubStatus.REGRESSED)
-                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
-                    )
-                    if updated:
-                        event.group.status = GroupStatus.UNRESOLVED
-                        event.group.substatus = GroupSubStatus.REGRESSED
-                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+                    # updated = (
+                    #     Group.objects.filter(id=event.group.id)
+                    #     .exclude(substatus=GroupSubStatus.REGRESSED)
+                    #     .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+                    # )
+
+                    event.group.status = GroupStatus.UNRESOLVED
+                    event.group.substatus = GroupSubStatus.REGRESSED
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
 def process_snoozes(job: PostProcessJob) -> None:
