@@ -369,13 +369,13 @@
               <td width="{% widthratio issue_summary.new_substatus_count issue_summary.total_substatus_count 100 %}%" title="New: {{ issue_summary.new_substatus_count }} events" style="background-color: #F2B712">
                 &nbsp;
               </td>
-              <td width="{% widthratio issue_summary.escalating_substatus_count issue_summary.total_substatus_count 100 %}%" title="Reopened: {{ issue_summary.escalating_substatus_count }} events" style="background-color: #E9626E">
+              <td width="{% widthratio issue_summary.escalating_substatus_count issue_summary.total_substatus_count 100 %}%" title="Escalating: {{ issue_summary.escalating_substatus_count }} events" style="background-color: #E9626E">
                 &nbsp;
               </td>
-              <td width="{% widthratio issue_summary.regression_substatus_count issue_summary.total_substatus_count 100 %}%" title="Existing: {{ issue_summary.regression_substatus_count }} events" style="background-color: #444674">
+              <td width="{% widthratio issue_summary.regression_substatus_count issue_summary.total_substatus_count 100 %}%" title="Regressed: {{ issue_summary.regression_substatus_count }} events" style="background-color: #444674">
                 &nbsp;
               </td>
-              <td width="{% widthratio issue_summary.ongoing_substatus_count issue_summary.total_substatus_count 100 %}%" title="Existing: {{ issue_summary.ongoing_substatus_count }} events" style="background-color: #DBD6E1">
+              <td width="{% widthratio issue_summary.ongoing_substatus_count issue_summary.total_substatus_count 100 %}%" title="Ongoing: {{ issue_summary.ongoing_substatus_count }} events" style="background-color: #DBD6E1">
                 &nbsp;
               </td>
             </tr>

@@ -71,10 +71,10 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
-    Dataset,
     QueryOutsideRetentionError,
     is_duration_measurement,
     is_measurement,
@@ -978,7 +978,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         return flattened
 
-    @cached_property  # type: ignore
+    @cached_property
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
         if self.organization_id is None or not self.has_metrics:
@@ -1443,7 +1443,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         ie. any_user_display -> any(user_display)
         """
-        return self.function_alias_map[function.alias].field  # type: ignore
+        return self.function_alias_map[function.alias].field
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()

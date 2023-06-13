@@ -63,7 +63,7 @@ def test_similarity_extract_grouping_input(grouping_input, insta_snapshot):
     snapshot = []
     for label, features in similarity.extract(evt).items():
         for feature in features:
-            snapshot.append("{}: {}".format(":".join(label), json.dumps(feature, sort_keys=True)))
+            snapshot.append("{}: {}".format(":".join(label), json.dumps(feature)))
 
     insta_snapshot("\n".join(sorted(snapshot)))
 
@@ -79,7 +79,7 @@ def test_similarity_extract_fingerprinting(fingerprint_input, insta_snapshot):
     snapshot = []
     for label, features in similarity.extract(evt).items():
         for feature in features:
-            snapshot.append("{}: {}".format(":".join(label), json.dumps(feature, sort_keys=True)))
+            snapshot.append("{}: {}".format(":".join(label), json.dumps(feature)))
 
     insta_snapshot("\n".join(sorted(snapshot)))
 

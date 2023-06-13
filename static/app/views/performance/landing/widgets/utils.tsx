@@ -7,7 +7,7 @@ import {
   MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
 
@@ -81,7 +81,7 @@ export function getMEPParamsIfApplicable(
 const getContainerLocalStorageObjectKey = 'landing-chart-container';
 const getContainerKey = (
   index: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   height: number
 ) => `landing-chart-container#${performanceType}#${height}#${index}`;
 
@@ -95,7 +95,7 @@ function getWidgetStorageObject() {
 export const getChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   defaultType: PerformanceWidgetSetting,
   forceDefaultChartSetting?: boolean // Used for testing.
 ): PerformanceWidgetSetting => {
@@ -118,7 +118,7 @@ export const getChartSetting = (
 export const _setChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   setting: PerformanceWidgetSetting
 ) => {
   const key = getContainerKey(index, performanceType, height);
