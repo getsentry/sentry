@@ -40,6 +40,7 @@ from sentry.dynamic_sampling.rules.utils import (
 from sentry.dynamic_sampling.tasks.common import (
     are_equal_with_epsilon,
     compute_guarded_sliding_window_sample_rate,
+    get_active_orgs_with_projects_counts,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
@@ -49,16 +50,54 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
-from sentry.dynamic_sampling.tasks.sliding_window_org.utils import (
+from sentry.dynamic_sampling.tasks.sliding_window_org import (
     fetch_orgs_with_total_root_transactions_count,
 )
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.snuba import raw_snql_query
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,
+    time_limit=2 * 60 * 60 + 5,
+)
+@dynamic_sampling_task()
+def boost_low_volume_projects() -> None:
+    for orgs in get_active_orgs_with_projects_counts():
+        for (
+            org_id,
+            projects_with_tx_count_and_rates,
+        ) in fetch_projects_with_total_root_transaction_count_and_rates(org_ids=orgs).items():
+            boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,
+    time_limit=2 * 60 + 5,
+)
+@dynamic_sampling_task()
+def boost_low_volume_projects_of_org(
+    org_id: OrganizationId,
+    projects_with_tx_count_and_rates: Sequence[
+        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+    ],
+) -> None:
+    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(

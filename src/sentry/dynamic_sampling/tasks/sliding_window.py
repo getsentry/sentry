@@ -19,21 +19,66 @@ from snuba_sdk import (
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
     generate_sliding_window_cache_key,
+    get_sliding_window_size,
+    mark_sliding_window_executed,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId, get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     are_equal_with_epsilon,
     compute_guarded_sliding_window_sample_rate,
+    get_active_orgs_with_projects_counts,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL, CHUNK_SIZE, MAX_SECONDS
 from sentry.dynamic_sampling.tasks.logging import log_query_timeout
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.sliding_window",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2 hours
+    time_limit=2 * 60 * 60 + 5,
+)
+@dynamic_sampling_task()
+def sliding_window() -> None:
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        # It is important to note that this query will return orgs that in the last hour have had at least 1
+        # transaction.
+        for orgs in get_active_orgs_with_projects_counts():
+            # This query on the other hand, fetches with a dynamic window size because we care about being able
+            # to extrapolate monthly volume with a bigger window than the hour used in the orgs query. Thus, it can
+            # be that an org is not detected because it didn't have traffic for this hour but its projects have
+            # traffic in the last window_size, however this isn't a big deal since we cache the sample rate and if
+            # not found we fall back to 100% (only if the sliding window has run).
+            for (
+                org_id,
+                projects_with_total_root_count,
+            ) in fetch_projects_with_total_root_transactions_count(
+                org_ids=orgs, window_size=window_size
+            ).items():
+                with metrics.timer(
+                    "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
+                ):
+                    adjust_base_sample_rates_of_projects(
+                        org_id, projects_with_total_root_count, window_size
+                    )
+
+        # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+        # execution of the sliding window was successful. We will keep this state for 1 hour.
+        mark_sliding_window_executed()
 
 
 def adjust_base_sample_rates_of_projects(
