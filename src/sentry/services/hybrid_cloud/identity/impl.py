@@ -101,7 +101,7 @@ class DatabaseBackedIdentityService(IdentityService):
                 query = query.filter(idp__type=filters["provider_type"])
             return query
 
-        def base_query(self) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet:
             return Identity.objects
 
         def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:
