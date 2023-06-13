@@ -73,18 +73,18 @@ function FocusArea({}: Props) {
         return (
           <Console
             breadcrumbs={replay?.getConsoleCrumbs()}
-            startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+            startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
           />
         );
       }
 
-      const breadcrumbs = !replay
-        ? undefined
-        : [...replay.getConsoleCrumbs(), ...replay.getIssueCrumbs()];
+      const breadcrumbs = replay
+        ? [...replay.getConsoleCrumbs(), ...replay.getIssueCrumbs()]
+        : undefined;
       return (
         <Console
           breadcrumbs={breadcrumbs}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+          startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
         />
       );
     }
