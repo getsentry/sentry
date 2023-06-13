@@ -2,7 +2,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -41,9 +40,6 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
     def get(self, request: Request, organization) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
         projects = self.get_projects(request, organization)
 
         metrics = get_metrics(projects, use_case_id=get_use_case_id(request))
@@ -56,8 +52,6 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
 
         projects = self.get_projects(request, organization)
         try:
@@ -88,9 +82,6 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
 
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
         try:
@@ -110,9 +101,6 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
     def get(self, request: Request, organization, tag_name) -> Response:
-
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
 
         metric_names = request.GET.getlist("metric") or None
 
