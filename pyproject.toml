@@ -919,7 +919,6 @@ module = [
     "sentry.replays.lib.consumer",
     "sentry.replays.lib.query",
     "sentry.replays.lib.storage",
-    "sentry.replays.models",
     "sentry.replays.query",
     "sentry.replays.serializers",
     "sentry.replays.tasks",
