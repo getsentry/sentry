@@ -48,8 +48,7 @@ def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
         )
     ):
         # TODO: Debouncing Logic
-        # TODO: Add new arguments after Cathy's PR is in (pullrequest_id=pr.id, project_id=group_owner.project_id)
-        comment_workflow()
+        comment_workflow.delay(pullrequest_id=pr[0].id, project_id=group_owner.project_id)
 
 
 @instrumented_task(

@@ -426,7 +426,7 @@ class TestCommitContext(TestCommitContextMixin):
         }
     ),
 )
-@patch("sentry.tasks.integrations.github.pr_comment.comment_workflow")
+@patch("sentry.tasks.integrations.github.pr_comment.comment_workflow.delay")
 class TestGHCommentQueuing(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
