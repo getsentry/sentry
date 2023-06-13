@@ -250,7 +250,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
         organization = pipeline.organization
         projects = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE
+            organization_id=organization.id, status=ObjectStatus.ACTIVE
         ).order_by("slug")
 
         # if only one project, automatically use that
