@@ -271,7 +271,7 @@ METRICS_MAP = {
 SPAN_METRICS_MAP = {
     "user": "s:transactions/span.user@none",
     "span.duration": "d:transactions/span.duration@millisecond",
-    "span.exclusive_time": "d:transactions/span.exclusive_time@millisecond",
+    "span.self_time": "d:transactions/span.exclusive_time@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
