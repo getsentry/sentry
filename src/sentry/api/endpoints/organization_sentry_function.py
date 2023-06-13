@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from django.template.defaultfilters import slugify
+from django.utils.text import slugify
 from rest_framework import serializers
 from rest_framework.response import Response
 
