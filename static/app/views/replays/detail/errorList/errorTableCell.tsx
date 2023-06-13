@@ -1,11 +1,15 @@
-import {CSSProperties, forwardRef, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {ComponentProps, CSSProperties, forwardRef, useMemo} from 'react';
 import classNames from 'classnames';
 
 import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {space} from 'sentry/styles/space';
+import {
+  AvatarWrapper,
+  Cell,
+  StyledTimestampButton,
+  Text,
+} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,7 +18,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
@@ -30,15 +33,6 @@ type Props = {
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
-};
-
-type CellProps = {
-  hasOccurred: boolean | undefined;
-  align?: 'flex-start' | 'flex-end';
-  className?: string;
-  gap?: Parameters<typeof space>[0];
-  numeric?: boolean;
-  onClick?: undefined | (() => void);
 };
 
 const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
@@ -120,7 +114,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       onMouseLeave: () => handleMouseLeave(crumb),
       ref,
       style,
-    } as CellProps;
+    } as ComponentProps<typeof Cell>;
 
     const renderFns = [
       () => (
@@ -136,16 +130,18 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <QuickContextHoverWrapper
-            dataRow={{
-              id: eventId,
-              'project.name': projectSlug,
-            }}
-            contextType={ContextType.EVENT}
-            organization={organization}
-          >
-            <Text>{title ?? EMPTY_CELL}</Text>
-          </QuickContextHoverWrapper>
+          <Text>
+            <QuickContextHoverWrapper
+              dataRow={{
+                id: eventId,
+                'project.name': projectSlug,
+              }}
+              contextType={ContextType.EVENT}
+              organization={organization}
+            >
+              {title ?? EMPTY_CELL}
+            </QuickContextHoverWrapper>
+          </Text>
         </Cell>
       ),
       () => (
@@ -186,50 +182,5 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
     return renderFns[columnIndex]();
   }
 );
-
-const cellBackground = p => {
-  if (p.hasOccurred === undefined && !p.isStatusError) {
-    const color = p.isHovered ? p.theme.hover : 'inherit';
-    return `background-color: ${color};`;
-  }
-  return `background-color: inherit;`;
-};
-
-const cellColor = p => {
-  return `color: ${p.hasOccurred !== false ? 'inherit' : p.theme.gray300};`;
-};
-
-const Cell = styled('div')<CellProps>`
-  display: flex;
-  gap: ${p => space(p.gap ?? 0)};
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
-
-  ${cellBackground}
-  ${cellColor}
-
-  ${p =>
-    p.numeric &&
-    `
-    font-variant-numeric: tabular-nums;
-    justify-content: ${p.align ?? 'flex-end'};
-  `};
-`;
-
-const Text = styled('div')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  padding: ${space(0.75)} ${space(1.5)};
-`;
-
-const AvatarWrapper = styled('div')`
-  align-self: center;
-`;
-
-const StyledTimestampButton = styled(TimestampButton)`
-  padding-inline: ${space(1.5)};
-`;
 
 export default ErrorTableCell;
