@@ -16,7 +16,9 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypeVar,
     cast,
+    TYPE_CHECKING
 )
 
 from django.utils.functional import LazyObject, empty
@@ -58,7 +60,14 @@ class Service:
         """
 
 
-class LazyServiceWrapper(LazyObject):
+if TYPE_CHECKING:
+    Proxied = TypeVar("Proxied", bound=Service)
+else:
+    Proxied = object
+
+
+
+class LazyServiceWrapper(LazyObject, Proxied):
     """
     Lazyily instantiates a standard Sentry service class.
 
@@ -73,7 +82,7 @@ class LazyServiceWrapper(LazyObject):
 
     def __init__(
         self,
-        backend_base: Type[Service],
+        backend_base: Type[Proxied],
         backend_path: str,
         options: Mapping[str, Any],
         dangerous: Optional[Sequence[Type[Service]]] = (),
@@ -127,6 +136,7 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
                 context[key] = getattr(base_instance, key)
+
 
 
 def resolve_callable(value: str | AnyCallable) -> AnyCallable:
