@@ -9,13 +9,12 @@ from sentry.middleware.integrations.integration_control import IntegrationContro
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
 @control_silo_test(stable=True)
-class GitlabRequestParserTest(TestCase, BaseTestCase):
+class GitlabRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
