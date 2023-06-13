@@ -149,7 +149,7 @@ export function DocWithProductSelection({
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
-  const hasRightsToUgradePlan = organization.orgRole === 'owner' ;
+  const hasRightsToUgradePlan = organization.orgRole === 'owner';
 
   const defaultSelectedProducts: PRODUCT[] = getDefaultSelectedProducts({
     hasSessionReplay,
