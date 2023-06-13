@@ -15,6 +15,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {DocWithProductSelection} from 'sentry/components/onboarding/docWithProductSelection';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -40,7 +41,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 // in this case, the default is rendered inside the hook
-const SetUpSdkDoc = HookOrDefault({
+const SetUpSdkDocHook = HookOrDefault({
   hookName: 'component:set-up-sdk-doc',
 });
 
@@ -187,6 +188,13 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     'onboarding-project-deletion-on-back-click'
   );
 
+  // This is a feature flag that is currently only enabled for a subset of internal users until the feature is fully implemented,
+  // but the purpose of the feature is to make the product selection feature in documents available to all users
+  // and guide them to upgrade to a plan if one of the products is not available on their current plan.
+  const gettingStartedDocWithProductSelection = !!organization?.features.includes(
+    'getting-started-doc-with-product-selection'
+  );
+
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug: project?.slug,
@@ -290,6 +298,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
 
+  const showDocsWithProductSelection =
+    gettingStartedDocWithProductSelection &&
+    (platform.key === 'javascript' || platform.key.match('^javascript-([A-Za-z]+)$'));
+
   return (
     <Fragment>
       <StyledPageHeader>
@@ -340,8 +352,15 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
             projectSlug={project.slug}
             platform={platform}
           />
+        ) : showDocsWithProductSelection ? (
+          <DocWithProductSelection
+            organization={organization}
+            project={project}
+            location={location}
+            currentPlatform={platform.key}
+          />
         ) : (
-          <SetUpSdkDoc
+          <SetUpSdkDocHook
             organization={organization}
             project={project}
             location={location}
