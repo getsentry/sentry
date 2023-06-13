@@ -1012,7 +1012,6 @@ module = [
     "sentry.shared_integrations.client.internal",
     "sentry.shared_integrations.client.proxy",
     "sentry.signals",
-    "sentry.silo.base",
     "sentry.silo.client",
     "sentry.similarity.backends.dummy",
     "sentry.similarity.features",

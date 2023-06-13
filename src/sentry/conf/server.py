@@ -12,6 +12,7 @@ import sys
 import tempfile
 from datetime import datetime, timedelta
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -27,10 +28,12 @@ from typing import (
 from urllib.parse import urlparse
 
 import sentry
-from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
+
+if TYPE_CHECKING:
+    from sentry.types.region import Region
 
 T = TypeVar("T")
 
