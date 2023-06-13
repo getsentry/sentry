@@ -135,6 +135,8 @@ export default class ReplayReader {
     this._rrwebEvents.push(recordingEndFrame(replayRecord));
 
     // Sort what needs sorting
+    // TODO(replay): We could remove this sort call if useReplayData was more
+    // careful about maintaining cursor order when calling setAttachments()
     this._rrwebEvents.sort((a, b) => a.timestamp - b.timestamp);
 
     /*********************/
