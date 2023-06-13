@@ -5,7 +5,7 @@ In other words, which service (consumer) depends on which other services (queues
 """
 
 from dataclasses import dataclass
-from typing import Mapping, Sequence, Union
+from typing import Mapping, Set, Union
 
 from django.conf import settings
 
@@ -51,7 +51,7 @@ ALL_REDIS_STORES = {
 }
 
 
-Services = Sequence[Union[Queue, Redis]]
+Services = Set[Union[Queue, Redis]]
 
 CONSUMERS: Mapping[str, Services] = {
     # fallback if no explicit consumer was defined
