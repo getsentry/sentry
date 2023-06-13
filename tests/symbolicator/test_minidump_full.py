@@ -82,8 +82,9 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                         "upload_file_minidump": f,
                         "some_file": ("hello.txt", BytesIO(b"Hello World!")),
                     },
-                    {"sentry[logger]": "test-logger",
-                     "sentry[level]": "error",
+                    {
+                        "sentry[logger]": "test-logger",
+                        "sentry[level]": "error",
                     },
                 )
 
