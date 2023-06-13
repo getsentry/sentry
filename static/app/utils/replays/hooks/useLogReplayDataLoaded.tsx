@@ -35,6 +35,7 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       total_errors: allErrors.length,
       started_at_delta: replay.timestampDeltas.startedAtDelta,
       finished_at_delta: replay.timestampDeltas.finishedAtDelta,
+      replay_id: replay.getReplay().id,
     });
   }, [organization, project, fetchError, fetching, projectSlug, replay]);
 }
