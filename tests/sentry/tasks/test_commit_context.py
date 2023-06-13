@@ -5,7 +5,7 @@ import pytest
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
-from sentry.models import PullRequest, Repository
+from sentry.models import PullRequest, PullRequestComment, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -426,6 +426,7 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             merge_commit_sha=self.commit.key,
             date_added=iso_format(before_now(minutes=1)),
         )
+        self.pull_request_comment = PullRequestComment.objects.create(pullrequest=self.pull_request)
 
     def test_gh_comment_not_github(self):
         """Non github repos shouldn't be commented on"""
@@ -437,6 +438,7 @@ class TestGHCommentQueuing(TestCommitContextMixin):
 
     def test_gh_comment_no_pr(self):
         """No comments on suspect commit with no pr"""
+        self.pull_request.delete()
         pass
 
     def test_gh_comment_org_settings(self):
