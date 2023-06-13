@@ -511,6 +511,7 @@ class MonitorEnvironment(Model):
             pass
 
         if use_issue_platform:
+            from sentry.grouping.utils import hash_from_values
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
 
@@ -519,7 +520,7 @@ class MonitorEnvironment(Model):
                 resource_id=None,
                 project_id=self.monitor.project_id,
                 event_id=uuid.uuid4().hex,
-                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
+                fingerprint=hash_from_values(["monitor", str(self.monitor.guid), reason]),
                 type=group_type,
                 issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
                 subtitle="",
