@@ -1,16 +1,17 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
-from sentry.models import PullRequest, PullRequestComment, Repository
+from sentry.models import PullRequest, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import get_frame_paths
@@ -413,23 +414,40 @@ class TestCommitContext(TestCommitContextMixin):
 
 
 @region_silo_test(stable=True)
+@patch(
+    "sentry.integrations.github.GitHubIntegration.get_commit_context",
+    Mock(
+        return_value={
+            "commitId": "asdfwreqr",
+            "committedDate": "2023-02-14T11:11Z",
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "admin@localhost",
+        }
+    ),
+)
 class TestGHCommentQueuing(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
         self.pull_request = PullRequest.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
-            key=str(self.pr_key),
+            key="99",
             author=self.commit.author,
             message="foo",
             title="bar",
             merge_commit_sha=self.commit.key,
-            date_added=iso_format(before_now(minutes=1)),
+            date_added=iso_format(before_now(days=1)),
         )
-        self.pull_request_comment = PullRequestComment.objects.create(pullrequest=self.pull_request)
+        self.repo.provider = "integrations:github"
+        self.repo.save()
+        # self.pull_request_comment = PullRequestComment.objects.create(pull_request=self.pull_request)
 
-    def test_gh_comment_not_github(self):
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_not_github(self, _, mock_comment_workflow):
         """Non github repos shouldn't be commented on"""
+        self.repo.provider = "integrations:gitlab"
+        self.repo.save()
         pass
 
     def test_gh_comment_feature_flag(self):
@@ -452,9 +470,23 @@ class TestGHCommentQueuing(TestCommitContextMixin):
         """No comment on a pr that has a comment with the issue in the same pr list"""
         pass
 
-    def test_gh_comment_create_queued(self):
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.tasks.integrations.github.pr_comment.comment_workflow")
+    def test_gh_comment_create_queued(self, mock_comment_workflow):
         """Task queued if no prior comment exists"""
-        pass
+        # self.pull_request_comment.delete()
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.called
 
     def test_gh_comment_update_queue(self):
         """Task queued if new issue for prior comment"""

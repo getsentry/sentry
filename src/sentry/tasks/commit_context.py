@@ -35,13 +35,16 @@ logger = logging.getLogger(__name__)
 
 
 def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
-    pr = PullRequest.objects.get(
+    pr = PullRequest.objects.filter(
         organization_id=commit.organization_id, merge_commit_sha=commit.key
     )
     if (
-        pr is not None
-        and pr.date_added >= datetime.now() - timedelta(days=30)
-        and group_owner.group_id in pr.comment.issues
+        pr.exists()
+        and pr[0].date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30)
+        and (
+            not pr[0].pullrequestcomment_set.exists()
+            or group_owner.group_id not in pr[0].pullrequestcomment_set.get().issues
+        )
     ):
         # TODO: Debouncing Logic
         # TODO: Add new arguments after Cathy's PR is in (pullrequest_id=pr.id, project_id=group_owner.project_id)
@@ -295,7 +298,7 @@ def process_commit_context(
 
             if features.has("organizations:pr-comment-bot", project.organization):
                 repo = Repository.objects.get(id=commit.repository_id)
-                if repo is not None and Repository.provider == "integrations:github":
+                if repo is not None and repo.provider == "integrations:github":
                     queue_comment_task_if_needed(commit, group_owner)
 
             if created:
