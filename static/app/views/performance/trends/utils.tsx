@@ -236,13 +236,12 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  organization: OrganizationSummary,
-  isProjectOnly?: boolean
+  organization: OrganizationSummary
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
-  const transactionField = isProjectOnly ? [] : ['transaction'];
+  const transactionField = ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({
     field,
   })) as Field[];
