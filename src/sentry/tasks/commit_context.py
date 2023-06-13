@@ -42,7 +42,8 @@ def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
         and pr.date_added >= datetime.now() - timedelta(days=30)
         and group_owner.group_id in pr.comment.issues
     ):
-        # gh_comment_task.delay(pr.id)
+        # TODO: Debouncing Logic
+        # comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
         pass
 
 
