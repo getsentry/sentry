@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Type
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -71,9 +71,6 @@ audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
 
-RateLimitConfigDictType = Dict[str, Dict[RateLimitCategory, RateLimit]]
-
-
 def allow_cors_options(func):
     """
     Decorator that adds automatic handling of OPTIONS requests for CORS
@@ -136,7 +133,9 @@ class Endpoint(APIView):
 
     public: Optional[HTTP_METHODS_SET] = None
 
-    rate_limits: RateLimitConfig | RateLimitConfigDictType = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig | dict[
+        str, dict[RateLimitCategory, RateLimit]
+    ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def get_authenticators(self) -> List[BaseAuthentication]:
