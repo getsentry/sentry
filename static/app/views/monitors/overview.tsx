@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -13,6 +14,7 @@ import OnboardingPanel from 'sentry/components/onboardingPanel';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import Pagination from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -123,17 +125,14 @@ export default function Monitors() {
             {isLoading ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (
-              monitorsTimelineView ? (
-                <OverviewTimeline
-                  monitorList={monitorList}
-                  monitorListPageLinks={monitorListPageLinks}
-                />
-              ) : (
-                <OverviewTable
-                  monitorList={monitorList}
-                  monitorListPageLinks={monitorListPageLinks}
-                />
-              )
+              <Fragment>
+                {monitorsTimelineView ? (
+                  <OverviewTimeline monitorList={monitorList} />
+                ) : (
+                  <OverviewTable monitorList={monitorList} />
+                )}
+                {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
+              </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
                 <h3>{t('Let Sentry monitor your recurring jobs')}</h3>

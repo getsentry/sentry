@@ -27,7 +27,6 @@ import {getStartFromTimeWindow, timeWindowData} from './utils';
 
 interface Props {
   monitorList: Monitor[];
-  monitorListPageLinks?: string | null;
 }
 
 export function OverviewTimeline({monitorList}: Props) {
