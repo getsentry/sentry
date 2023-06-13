@@ -118,7 +118,9 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         """
         return self.identity.get_provider().refresh_identity(
             self.identity,
-            refresh_token_url="{}{}".format(self.base_url, GitLabApiClientPath.oauth_token),
+            refresh_token_url="{}{}".format(
+                self.base_url.rstrip("/"), GitLabApiClientPath.oauth_token
+            ),
             verify_ssl=self.metadata["verify_ssl"],
         )
 
