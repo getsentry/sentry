@@ -16,7 +16,7 @@ from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.tasks.prioritise_projects",
+    name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
@@ -34,7 +34,7 @@ def boost_low_volume_projects() -> None:
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.process_projects_sample_rates",
+    name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,

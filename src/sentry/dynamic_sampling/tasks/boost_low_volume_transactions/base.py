@@ -30,7 +30,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.tasks.prioritise_transactions",
+    name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
@@ -65,7 +65,7 @@ def boost_low_volume_transactions() -> None:
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.process_transaction_biases",
+    name="sentry.dynamic_sampling.boost_low_volume_transactions_of_project",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,

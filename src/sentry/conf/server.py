@@ -715,7 +715,12 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.dynamic_sampling.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects.base",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions.base",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs.base",
+    "sentry.dynamic_sampling.tasks.sliding_window.base",
+    "sentry.dynamic_sampling.tasks.sliding_window_org.base",
+    "sentry.dynamic_sampling.tasks.utils",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
@@ -997,13 +1002,18 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=30, hour="0"),
         "options": {"expires": 3600},
     },
-    "dynamic-sampling-prioritize-projects": {
+    "dynamic-sampling-boost-low-volume-projects": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-prioritize-transactions": {
+    "dynamic-sampling-boost-low-volume-transactions": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+    },
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
@@ -1023,11 +1033,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
