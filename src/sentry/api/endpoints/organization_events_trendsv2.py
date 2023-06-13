@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 IMPROVED = "improved"
 REGRESSION = "regression"
-TREND_TYPES = [IMPROVED, REGRESSION]
+ANY = "any"
+TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 
 TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
@@ -201,7 +202,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "trendFunction": None,
             }
 
-            trends_request["sort"] = request.GET.get("sort", "trend_percentage()")
+            trends_request["sort"] = (
+                "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
+            )
             trends_request["trendFunction"] = trend_function
             trends_request["data"] = stats_data
 
@@ -217,17 +220,20 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         def get_stats_data_for_trending_events(results):
             trending_transaction_names_stats = {}
-            for t in results["data"]:
-                transaction_name = t["transaction"]
-                project = t["project"]
-                t_p_key = project + "," + transaction_name
-                if t_p_key in stats_data:
-                    trending_transaction_names_stats[t_p_key] = stats_data[t_p_key]
-                else:
-                    logger.warning(
-                        "trends.trends-request.timeseries.key-mismatch",
-                        extra={"result_key": t_p_key, "timeseries_keys": stats_data.keys()},
-                    )
+            if request.GET.get("withTimeseries", False):
+                trending_transaction_names_stats = stats_data
+            else:
+                for t in results["data"]:
+                    transaction_name = t["transaction"]
+                    project = t["project"]
+                    t_p_key = project + "," + transaction_name
+                    if t_p_key in stats_data:
+                        trending_transaction_names_stats[t_p_key] = stats_data[t_p_key]
+                    else:
+                        logger.warning(
+                            "trends.trends-request.timeseries.key-mismatch",
+                            extra={"result_key": t_p_key, "timeseries_keys": stats_data.keys()},
+                        )
 
             return {
                 "events": self.handle_results_with_meta(
