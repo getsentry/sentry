@@ -11,8 +11,11 @@ MAX_VALUE = 2147483647
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
-RateField = serializers.FloatField(required=False, min_value=0, max_value=1)
-EnabledField = serializers.BooleanField(required=False)
+class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
+    def has_object_permission(self, request: Request, view, project):
+        return super().has_object_permission(
+            request, view, project
+        ) or SuperuserPermission().has_permission(request, view)
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
@@ -30,8 +33,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    # TODO: Remove after EA.
-    permission_classes = [ProjectSettingPermission | SuperuserPermission]
+    permission_classes = (ProjectOwnerOrSuperUserPermissions,)
 
     def has_feature(self, project, request) -> bool:
         return features.has(
