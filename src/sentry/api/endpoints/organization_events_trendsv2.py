@@ -237,9 +237,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if trends_request["sort"] == "trend_percentage()":
                 trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
             elif trends_request["sort"] == "-trend_percentage()":
-                trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"], reverse=True)
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["trend_percentage"], reverse=True
+                )
             else:
-                trending_events = sorted(trend_results, key=lambda d: d["absolute_percentage_change"], reverse=True)
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["absolute_percentage_change"], reverse=True
+                )
 
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trending_events) > 0)
 
