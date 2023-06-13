@@ -4,7 +4,8 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux

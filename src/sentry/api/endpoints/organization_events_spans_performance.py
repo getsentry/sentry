@@ -24,8 +24,9 @@ from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset, SnubaTSResult, raw_snql_query
+from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 

@@ -7,7 +7,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -34,7 +33,7 @@ export type Keys =
   | 'transaction'
   | 'p95(transaction.duration)'
   | 'time_spent_percentage(local)'
-  | 'spm()';
+  | 'sps()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
@@ -105,16 +104,14 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
     return <DurationCell milliseconds={row.metrics?.['p95(span.duration)']} />;
   }
 
-  if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row.metrics?.['spm()']} />;
+  if (column.key === 'sps()') {
+    return <ThroughputCell throughputPerSecond={row.metrics?.['sps()']} />;
   }
 
   if (column.key === 'time_spent_percentage(local)') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(
-          row.metrics?.['time_spent_percentage(local)']
-        )}
+        timeSpentPercentage={row.metrics?.['time_spent_percentage(local)']}
         totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );
@@ -144,7 +141,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 500,
   },
   {
-    key: 'spm()',
+    key: 'sps()',
     name: DataTitles.throughput,
     width: COL_WIDTH_UNDEFINED,
   },

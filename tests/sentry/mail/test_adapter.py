@@ -31,12 +31,12 @@ from sentry.models import (
     ProjectOwnership,
     Repository,
     Rule,
-    RuleSnooze,
     User,
     UserEmail,
     UserOption,
     UserReport,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -97,7 +97,9 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
         project = self.create_project(name="Test", teams=[team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            organizationmember=OrganizationMember.objects.get(
+                user_id=user.id, organization=organization
+            ),
             team=team,
         )
         self.create_member(user=user2, organization=organization, teams=[team])
@@ -119,7 +121,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
         user4 = User.objects.create(username="baz4", email="bar@example.com", is_active=True)
         self.create_member(user=user4, organization=organization, teams=[team])
-        assert user4 in self.adapter.get_sendable_user_objects(project)
+        assert user4.id in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
         # disabled by default user4
         NotificationSetting.objects.update_settings(
@@ -152,7 +154,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             user=user4,
         )
 
-        assert user4 not in self.adapter.get_sendable_user_objects(project)
+        assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
@@ -185,7 +187,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
 
-    @with_feature("organizations:mute-alerts")
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
         event = self.store_event(
@@ -203,7 +204,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     def test_snooze_for_all(self):
         """Test that notification for alert snoozed for everyone is not send to user."""
         event = self.store_event(
@@ -221,7 +221,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_themself(self):
         """Test that notification for alert snoozed by user2 for themself is sent to user"""
         event = self.store_event(
@@ -242,7 +241,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
 
-    @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_everyone(self):
         """Test that notification for alert snoozed by user2 for everyone is not sent to user"""
         event = self.store_event(
@@ -730,7 +728,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         team = self.create_team(organization=organization)
         project = self.create_project(name="Test", teams=[team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            organizationmember=OrganizationMember.objects.get(
+                user_id=user.id, organization=organization
+            ),
             team=team,
         )
         self.create_member(user=user2, organization=organization, teams=[team])
@@ -1166,7 +1166,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed(self, notify):
         """Test that a digest for an alert snoozed by user is not sent."""
@@ -1194,7 +1193,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert notify.call_count == 0
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_snooze_one_rule(self, notify):
         """Test that a digest is sent containing only notifications about an unsnoozed alert."""
@@ -1239,7 +1237,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert message2.to[0] == user2.email
         assert "2 new alerts since" in message2.subject
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
         """Test that a digest is only sent to the user who hasn't snoozed the rules."""
@@ -1278,7 +1275,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert message.to[0] == user2.email
         assert "2 new alerts since" in message.subject
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(self, notify):
         """Test that a digest with only one rule is only sent to the user who didn't snooze one rule."""
@@ -1500,7 +1496,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             data={"text": "sup guise"},
         )
 
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
 
         with self.tasks():
             self.adapter.notify_about_activity(activity)
@@ -1516,7 +1512,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
 
         return UserReport.objects.create(
             project_id=self.project.id,
