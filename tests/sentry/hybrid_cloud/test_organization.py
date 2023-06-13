@@ -15,12 +15,12 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
-    RpcProject,
     RpcTeam,
     RpcTeamMember,
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
