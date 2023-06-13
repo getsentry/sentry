@@ -1259,32 +1259,6 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _get_middle(self):
-        """Get the middle for percent change functions"""
-        if self.builder.start is None or self.builder.end is None:
-            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
-        return self.builder.start + (self.builder.end - self.builder.start) / 2
-
-    def _first_half_condition(self):
-        """Create the first half condition for percent_change functions"""
-        return Function(
-            "less",
-            [
-                Function("toDateTime", [self._get_middle()]),
-                self.builder.column("timestamp"),
-            ],
-        )
-
-    def _second_half_condition(self):
-        """Create the second half condition for percent_change functions"""
-        return Function(
-            "greaterOrEquals",
-            [
-                Function("toDateTime", [self._get_middle()]),
-                self.builder.column("timestamp"),
-            ],
-        )
-
     def _resolve_http_error_count_percent_change(
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],

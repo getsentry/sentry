@@ -5,7 +5,7 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -476,32 +476,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 else Function("divide", [args["interval"], interval]),
             ],
             alias,
-        )
-
-    def _get_middle(self):
-        """Get the middle for percent change functions"""
-        if self.builder.start is None or self.builder.end is None:
-            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
-        return self.builder.start + (self.builder.end - self.builder.start) / 2
-
-    def _first_half_condition(self):
-        """Create the first half condition for percent_change functions"""
-        return Function(
-            "less",
-            [
-                self.builder.column("timestamp"),
-                Function("toDateTime", [self._get_middle()]),
-            ],
-        )
-
-    def _second_half_condition(self):
-        """Create the second half condition for percent_change functions"""
-        return Function(
-            "greaterOrEquals",
-            [
-                self.builder.column("timestamp"),
-                Function("toDateTime", [self._get_middle()]),
-            ],
         )
 
     def _resolve_http_error_count_percent_change(
