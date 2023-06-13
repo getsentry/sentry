@@ -12,7 +12,7 @@ from sentry.grouping.strategies.base import (
 )
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 from sentry.interfaces.message import Message
-from sentry.metrics import metrics
+from sentry.utils import metrics
 
 _irrelevant_re = re.compile(
     r"""(?x)
