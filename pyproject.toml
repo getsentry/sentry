@@ -304,7 +304,6 @@ module = [
     "sentry.api.endpoints.organization_sessions",
     "sentry.api.endpoints.organization_slugs",
     "sentry.api.endpoints.organization_stats",
-    "sentry.api.endpoints.organization_stats_v2",
     "sentry.api.endpoints.organization_tagkey_values",
     "sentry.api.endpoints.organization_tags",
     "sentry.api.endpoints.organization_teams",
