@@ -81,12 +81,16 @@ export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'child
     };
   };
 
-  return useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
+  const res = useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
     route: 'events',
     shouldRefetchData,
     afterFetch,
     ...props,
   });
+
+  const pageLinks = res.response?.getResponseHeader('Link') ?? undefined;
+
+  return {...res, pageLinks};
 }
 
 export default DiscoverQuery;

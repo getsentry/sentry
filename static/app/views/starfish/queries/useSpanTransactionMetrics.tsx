@@ -36,14 +36,14 @@ export const useSpanTransactionMetrics = (
     : '';
   const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
 
-  const {isLoading, data} = useSpansQuery<SpanTransactionMetrics[]>({
+  const {isLoading, data, pageLinks} = useSpansQuery<SpanTransactionMetrics[]>({
     eventView,
     queryString: query,
     initialData: [],
     enabled: Boolean(query),
   });
 
-  return {isLoading, data};
+  return {isLoading, data, pageLinks};
 };
 
 function getQuery(

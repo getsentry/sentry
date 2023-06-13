@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import keyBy from 'lodash/keyBy';
 
+import Pagination from 'sentry/components/pagination';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
@@ -19,7 +21,11 @@ function SampleTable({groupId, transactionName}: Props) {
     'span-summary-panel-samples-table-p95'
   );
 
-  const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
+  const {
+    data: spans,
+    isLoading: areSpanSamplesLoading,
+    pageLinks,
+  } = useSpanSamples(
     groupId,
     transactionName,
     undefined,
@@ -35,16 +41,19 @@ function SampleTable({groupId, transactionName}: Props) {
   const transactionsById = keyBy(transactions, 'id');
 
   return (
-    <SpanSamplesTable
-      data={spans.map(sample => {
-        return {
-          ...sample,
-          transaction: transactionsById[sample.transaction_id],
-        };
-      })}
-      isLoading={areSpanSamplesLoading || areTransactionsLoading}
-      p95={spanMetrics?.['p95(span.duration)']}
-    />
+    <Fragment>
+      <SpanSamplesTable
+        data={spans.map(sample => {
+          return {
+            ...sample,
+            transaction: transactionsById[sample.transaction_id],
+          };
+        })}
+        isLoading={areSpanSamplesLoading || areTransactionsLoading}
+        p95={spanMetrics?.['p95(span.duration)']}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 

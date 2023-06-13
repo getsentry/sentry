@@ -6,6 +6,7 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -45,10 +46,11 @@ export function SpanTransactionsTable({
 }: Props) {
   const location = useLocation();
 
-  const {data: spanTransactionMetrics, isLoading} = useSpanTransactionMetrics(
-    span,
-    endpoint ? [endpoint] : undefined
-  );
+  const {
+    data: spanTransactionMetrics,
+    isLoading,
+    pageLinks,
+  } = useSpanTransactionMetrics(span, endpoint ? [endpoint] : undefined);
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
@@ -75,17 +77,20 @@ export function SpanTransactionsTable({
   };
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={spanTransactionsWithMetrics}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={spanTransactionsWithMetrics}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 

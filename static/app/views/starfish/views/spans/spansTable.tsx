@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
@@ -7,22 +8,24 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
-  isLoading: boolean;
   moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  spansData: SpanDataRow[];
   columnOrder?: TableColumnHeader[];
   endpoint?: string;
+  limit?: number;
+  spanCategory?: string;
 };
 
 export type SpanDataRow = {
@@ -51,29 +54,39 @@ export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
   moduleName,
-  spansData,
   orderBy,
   onSetOrderBy,
-  isLoading,
   columnOrder,
+  spanCategory,
   endpoint,
+  limit = 25,
 }: Props) {
   const location = useLocation();
+  const {isLoading, data, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    undefined,
+    spanCategory,
+    orderBy,
+    limit
+  );
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={spansData}
-      columnOrder={columnOrder ?? getColumns(moduleName)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={columnOrder ?? getColumns(moduleName)}
+        columnSortBy={
+          orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
+        }
+        grid={{
+          renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
+          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 
