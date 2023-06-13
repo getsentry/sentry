@@ -13,7 +13,7 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 export type SpanTransactionMetrics = {
   'p50(span.duration)': number;
   'p95(span.duration)': number;
-  'spm()': number;
+  'sps()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
@@ -79,7 +79,7 @@ function getEventView(span: {group: string}, location: Location, transactions: s
       }`,
       fields: [
         'transaction',
-        'spm()',
+        'sps()',
         'sum(span.duration)',
         'p95(span.duration)',
         'time_spent_percentage(local)',

@@ -1,17 +1,18 @@
 import datetime
 
 from rest_framework import serializers, status
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, features
+from sentry import analytics, audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
-from sentry.models import Organization, OrganizationMember, Rule, RuleSnooze
+from sentry.models import Organization, OrganizationMember, Rule
+from sentry.models.rulesnooze import RuleSnooze
 
 
 class RuleSnoozeValidator(CamelSnakeSerializer):
@@ -64,12 +65,6 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         return rule
 
     def post(self, request: Request, project, rule_id) -> Response:
-        if not features.has("organizations:mute-alerts", project.organization, actor=request.user):
-            raise AuthenticationFailed(
-                detail="This feature is not available for this organization.",
-                code=status.HTTP_401_UNAUTHORIZED,
-            )
-
         serializer = RuleSnoozeValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -130,11 +125,6 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         )
 
     def delete(self, request: Request, project, rule_id) -> Response:
-        if not features.has("organizations:mute-alerts", project.organization, actor=request.user):
-            raise AuthenticationFailed(
-                detail="This feature is not available for this organization.",
-                code=status.HTTP_401_UNAUTHORIZED,
-            )
         rule = self.get_rule(rule_id)
 
         # find if there is a mute for all that I can remove

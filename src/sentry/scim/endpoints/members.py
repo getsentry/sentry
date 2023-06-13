@@ -6,12 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from drf_spectacular.utils import (
-    OpenApiExample,
-    extend_schema,
-    extend_schema_field,
-    inline_serializer,
-)
+from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.fields import Field
@@ -35,9 +30,11 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
+from sentry.apidocs.examples.scim_examples import SCIMExamples
+from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
@@ -168,7 +165,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization_id=organization.id
+                user_id=member.user_id, auth_provider__organization_id=organization.id
             ).delete()
             member.delete()
             self.create_audit_entry(
@@ -198,7 +195,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Organization Member",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=None,
         responses={
             200: OrganizationMemberSCIMSerializer,
@@ -206,22 +203,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "Successful response",
-                value={
-                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": "102",
-                    "userName": "test.user@okta.local",
-                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
-                    "name": {"familyName": "N/A", "givenName": "N/A"},
-                    "active": True,
-                    "meta": {"resourceType": "User"},
-                    "sentryOrgRole": "member",
-                },
-                status_codes=["200"],
-            ),
-        ],
+        examples=SCIMExamples.QUERY_ORG_MEMBER,
     )
     def get(self, request: Request, organization, member) -> Response:
         """
@@ -237,7 +219,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=SCIMPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -245,16 +227,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "Set member inactive",
-                value={
-                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                    "Operations": [{"op": "replace", "value": {"active": False}}],
-                },
-                status_codes=["204"],
-            ),
-        ],
+        examples=SCIMExamples.UPDATE_ORG_MEMBER_ATTRIBUTES,
     )
     def patch(self, request: Request, organization, member):
         """
@@ -289,7 +262,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Delete an Organization Member via SCIM",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=None,
         responses={
             204: RESPONSE_SUCCESS,
@@ -308,7 +281,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=inline_serializer(
             "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
         ),
@@ -318,22 +291,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "Update a user",
-                response_only=True,
-                value={
-                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": "242",
-                    "userName": "test.user@okta.local",
-                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
-                    "active": True,
-                    "name": {"familyName": "N/A", "givenName": "N/A"},
-                    "meta": {"resourceType": "User"},
-                },
-                status_codes=["201"],
-            ),
-        ],
+        examples=SCIMExamples.UPDATE_USER_ROLE,
     )
     def put(self, request: Request, organization, member):
         """
@@ -402,7 +360,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Members",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIMQueryParamSerializer],
+        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
             200: scim_response_envelope(
@@ -412,32 +370,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "List an Organization's Members",
-                value={
-                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-                    "totalResults": 1,
-                    "startIndex": 1,
-                    "itemsPerPage": 1,
-                    "Resources": [
-                        {
-                            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                            "id": "102",
-                            "userName": "test.user@okta.local",
-                            "emails": [
-                                {"primary": True, "value": "test.user@okta.local", "type": "work"}
-                            ],
-                            "name": {"familyName": "N/A", "givenName": "N/A"},
-                            "active": True,
-                            "meta": {"resourceType": "User"},
-                            "sentryOrgRole": "member",
-                        }
-                    ],
-                },
-                status_codes=["200"],
-            ),
-        ],
+        examples=SCIMExamples.LIST_ORG_MEMBERS,
     )
     def get(self, request: Request, organization) -> Response:
         """
@@ -447,19 +380,18 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         query_params = self.get_query_parameters(request)
 
-        queryset = (
-            OrganizationMember.objects.filter(
-                Q(invite_status=InviteStatus.APPROVED.value),
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-            )
-            .select_related("user")
-            .order_by("email", "user__email")
-        )
+        queryset = OrganizationMember.objects.filter(
+            Q(invite_status=InviteStatus.APPROVED.value),
+            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+            organization=organization,
+        ).order_by("email", "id")
         if query_params["filter"]:
+            filtered_users = user_service.get_many_by_email(
+                emails=query_params["filter"], organization_id=organization.id
+            )
             queryset = queryset.filter(
                 Q(email__iexact=query_params["filter"])
-                | Q(user__email__iexact=query_params["filter"])
+                | Q(user_id__in=[u.id for u in filtered_users])
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
@@ -484,7 +416,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="Provision a New Organization Member",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        parameters=[GlobalParams.ORG_SLUG],
         request=inline_serializer(
             name="SCIMMemberProvision",
             fields={
@@ -498,23 +430,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[  # TODO: see if this can go on serializer object instead
-            OpenApiExample(
-                "Provision new member",
-                response_only=True,
-                value={
-                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": "242",
-                    "userName": "test.user@okta.local",
-                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
-                    "active": True,
-                    "name": {"familyName": "N/A", "givenName": "N/A"},
-                    "meta": {"resourceType": "User"},
-                    "sentryOrgRole": "member",
-                },
-                status_codes=["201"],
-            ),
-        ],
+        examples=SCIMExamples.PROVISION_NEW_MEMBER,
     )
     def post(self, request: Request, organization) -> Response:
         """

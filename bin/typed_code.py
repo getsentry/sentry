@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import annotations
 
 import argparse
 import configparser
@@ -185,9 +186,9 @@ def analyze_files(
     total = total_lines(files, cache, status)
     files_by_codeowner = split_files_by_codeowner(files, codeowners)
 
-    count_by_team = defaultdict(int)
+    count_by_team: defaultdict[str, int] = defaultdict(int)
     for team in teams:
-        subset_of_files = files_by_codeowner.get(team, [])
+        subset_of_files: set[str] = files_by_codeowner.get(team, set())
         logger.debug(f"{team} {len(subset_of_files)}")
         for file in subset_of_files:
             value = analyze_file(file, cache)

@@ -486,7 +486,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_get_allowed_org_roles_to_invite(self):
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         with in_test_psql_role_override("postgres"):
             member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
