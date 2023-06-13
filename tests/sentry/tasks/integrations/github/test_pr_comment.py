@@ -349,7 +349,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment.refresh_from_db()
-        assert pull_request_comment.group_ids == [str(g.id) for g in Group.objects.all()]
+        assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
