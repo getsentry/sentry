@@ -3,7 +3,7 @@ import re
 
 import sentry_sdk
 from django.db import IntegrityError, transaction
-from django.template.defaultfilters import slugify
+from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
