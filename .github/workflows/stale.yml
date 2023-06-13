@@ -7,7 +7,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@87c2b794b9b47a9bec68ae03c01aeb572ffebdb1
+      - uses: actions/stale@1160a2240286f5da8ec72b1c0816ce2481aabf84
         with:
           repo-token: ${{ github.token }}
           days-before-stale: 21
@@ -28,7 +28,6 @@ jobs:
             ----
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
-          skip-stale-issue-message: false
           close-issue-label: ""
           close-issue-message: ""
 
@@ -42,6 +41,5 @@ jobs:
             ----
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
-          skip-stale-pr-message: false
           close-pr-label: ""
           close-pr-message: ""
