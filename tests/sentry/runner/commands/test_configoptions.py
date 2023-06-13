@@ -6,6 +6,7 @@ from sentry import options
 from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
 from sentry.runner.commands.configoptions import (
     CHANNEL_UPDATE_MSG,
+    DB_VALUE,
     DRIFT_MSG,
     UNSET_MSG,
     UPDATE_MSG,
@@ -76,6 +77,11 @@ class ConfigOptionsTest(CliTestCase):
                     UPDATE_MSG % "map_option",
                     UPDATE_MSG % "list_option",
                     DRIFT_MSG % "drifted_option",
+                    DB_VALUE % "drifted_option",
+                    "- 1",
+                    "- 2",
+                    "- 3",
+                    "",
                     CHANNEL_UPDATE_MSG % "change_channel_option",
                 ]
             )
@@ -138,6 +144,11 @@ class ConfigOptionsTest(CliTestCase):
                 UPDATE_MSG % "map_option",
                 UPDATE_MSG % "list_option",
                 DRIFT_MSG % "drifted_option",
+                DB_VALUE % "drifted_option",
+                "- 1",
+                "- 2",
+                "- 3",
+                "",
                 CHANNEL_UPDATE_MSG % "change_channel_option",
                 UNSET_MSG % "to_unset_option",
             ]
