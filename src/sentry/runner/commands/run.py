@@ -792,3 +792,12 @@ def last_seen_updater(**options):
 
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
         run_processor_with_signals(consumer)
+
+
+@run.command("backpressure-monitor")
+@log_options()  # type: ignore[misc]  # needs this decorator to be typed
+@configuration  # type: ignore[misc]  # needs this decorator to be typed
+def backpressure_monitor():
+    from sentry.monitoring.queues import run_queue_stats_updater
+
+    run_queue_stats_updater()
