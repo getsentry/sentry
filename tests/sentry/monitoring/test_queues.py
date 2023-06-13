@@ -26,7 +26,7 @@ class TestMonitoringQueues(TestCase):
 
     def test_list_queues_over_theshold(self):
         strike_threshold = 10
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.strike_threshold": strike_threshold,
             }
@@ -48,9 +48,10 @@ class TestMonitoringQueues(TestCase):
 
         # Set the queue as unhealthy so it shouldn't process messages
         queue_monitoring_cluster.set(queue_name, "1")
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.enable_check": True,
+                "backpressure.monitor_queues.check_interval_in_seconds": 0,
                 "backpressure.monitor_queues.unhealthy_threshold": 0,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -64,9 +65,10 @@ class TestMonitoringQueues(TestCase):
 
         # Set the queue as healthy
         queue_monitoring_cluster.delete(queue_name)
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.enable_check": True,
+                "backpressure.monitor_queues.check_interval_in_seconds": 0,
                 "backpressure.monitor_queues.unhealthy_threshold": 1000,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -77,7 +79,7 @@ class TestMonitoringQueues(TestCase):
 
     @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
     def test_backpressure_not_enabled(self, process_profile_task):
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.enable_check": False,
             }

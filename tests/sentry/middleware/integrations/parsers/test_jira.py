@@ -15,7 +15,7 @@ class JiraRequestParserTest(TestCase, BaseTestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path_base = f"{IntegrationControlMiddleware.webhook_prefix}jira"
+    path_base = f"{IntegrationControlMiddleware.integration_prefix}jira"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
