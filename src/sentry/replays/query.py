@@ -989,7 +989,7 @@ def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 
-def _extract_children(expression: ParenExpression) -> Generator[None, None, str]:
+def _extract_children(expression: ParenExpression) -> Generator[str, None, None]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child
