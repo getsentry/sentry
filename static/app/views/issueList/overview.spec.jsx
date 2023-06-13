@@ -1470,7 +1470,6 @@ describe('IssueList', function () {
         logExperiment,
       });
 
-      jest.spyOn;
       ConfigStore.config.user = TestStubs.User({
         experiments: {
           PrioritySortExperiment: 'variant2',
@@ -1494,7 +1493,6 @@ describe('IssueList', function () {
         logExperiment,
       });
 
-      jest.spyOn;
       ConfigStore.config.user = TestStubs.User({
         experiments: {
           PrioritySortExperiment: 'variant2',

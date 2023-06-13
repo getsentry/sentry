@@ -36,5 +36,5 @@ export function enablePrioritySortByDefault(organization: Organization) {
   /**
    * Returns true if the new priority sort should be enabled by default
    */
-  return !!getPrioritySortVariant(organization);
+  return getPrioritySortVariant(organization) !== undefined;
 }
