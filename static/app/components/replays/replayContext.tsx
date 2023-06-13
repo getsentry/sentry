@@ -350,7 +350,7 @@ export function Provider({
       replayerRef.current
     ) {
       const {highlight: highlightArgs, offsetMs} = initialTimeOffsetMs;
-      if (offsetMs) {
+      if (offsetMs > 0) {
         privateSetCurrentTime(offsetMs);
       }
       if (highlightArgs) {
