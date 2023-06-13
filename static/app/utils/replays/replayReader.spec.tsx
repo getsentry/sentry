@@ -1,5 +1,6 @@
 import {EventType} from '@sentry-internal/rrweb';
 
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 describe('ReplayReader', () => {
@@ -86,6 +87,20 @@ describe('ReplayReader', () => {
       endTimestamp: new Date('2023-12-25T00:03:30'),
     });
     const consoleEvent = TestStubs.Replay.ConsoleEvent({timestamp});
+    const customEvent = TestStubs.Replay.BreadcrumbFrameEvent({
+      timestamp: new Date('2023-12-25T00:02:30'),
+      data: {
+        payload: {
+          category: 'redux.action',
+          data: {
+            action: 'save.click',
+          },
+          message: '',
+          timestamp: new Date('2023-12-25T00:02:30').getTime() / 1000,
+          type: BreadcrumbType.DEFAULT,
+        },
+      },
+    });
     const attachments = [
       clickEvent,
       consoleEvent,
@@ -95,6 +110,7 @@ describe('ReplayReader', () => {
       optionsEvent,
       secondDiv,
       secondMemory,
+      customEvent,
     ];
 
     it.each([
@@ -139,6 +155,7 @@ describe('ReplayReader', () => {
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.click'}),
+          expect.objectContaining({category: 'redux.action'}),
           expect.objectContaining({op: 'navigation.navigate'}),
         ],
       },
