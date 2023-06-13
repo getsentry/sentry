@@ -16,7 +16,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.models import AuditLogEntry, OrganizationMemberTeam
+from sentry.models import AuditLogEntry, OrganizationMemberTeam, RuleSnooze
 from sentry.testutils import APITestCase
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
@@ -170,6 +170,42 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             == self.installation.uuid
         )
         assert resp.data["triggers"][0]["actions"][0]["disabled"] is True
+
+    def test_with_snooze_rule(self):
+        self.login_as(self.member_user)
+
+        RuleSnooze.objects.create(
+            user_id=self.member_user.id,
+            owner_id=self.member_user.id,
+            alert_rule=self.alert_rule,
+            until=None,
+        )
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id
+            )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == "You"
+
+    def test_with_snooze_rule_everyone(self):
+        user2 = self.create_user("user2@example.com")
+        self.login_as(self.member_user)
+
+        RuleSnooze.objects.create(
+            owner_id=user2.id,
+            alert_rule=self.alert_rule,
+            until=None,
+        )
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id
+            )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
