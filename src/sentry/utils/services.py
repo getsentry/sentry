@@ -7,6 +7,7 @@ import logging
 import threading
 from concurrent import futures
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -18,7 +19,6 @@ from typing import (
     Type,
     TypeVar,
     cast,
-    TYPE_CHECKING
 )
 
 from django.utils.functional import LazyObject, empty
@@ -64,7 +64,6 @@ if TYPE_CHECKING:
     Proxied = TypeVar("Proxied", bound=Service)
 else:
     Proxied = object
-
 
 
 class LazyServiceWrapper(LazyObject, Proxied):
@@ -136,7 +135,6 @@ class LazyServiceWrapper(LazyObject, Proxied):
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
                 context[key] = getattr(base_instance, key)
-
 
 
 def resolve_callable(value: str | AnyCallable) -> AnyCallable:
