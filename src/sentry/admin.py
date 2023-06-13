@@ -4,7 +4,9 @@ from django import forms
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib import admin, messages
-from django.contrib.auth.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
+from django.contrib.auth.forms import AdminPasswordChangeForm
+from django.contrib.auth.forms import UserChangeForm as DjangoUserChangeForm
+from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
@@ -128,7 +130,7 @@ class TeamAdmin(admin.ModelAdmin):
 admin.site.register(Team, TeamAdmin)
 
 
-class UserChangeForm(UserChangeForm):
+class UserChangeForm(DjangoUserChangeForm):
     username = forms.RegexField(
         label=_("Username"),
         max_length=128,
@@ -142,7 +144,7 @@ class UserChangeForm(UserChangeForm):
     )
 
 
-class UserCreationForm(UserCreationForm):
+class UserCreationForm(DjangoUserCreationForm):
     username = forms.RegexField(
         label=_("Username"),
         max_length=128,

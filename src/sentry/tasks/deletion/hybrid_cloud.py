@@ -190,7 +190,7 @@ def _process_tombstone_reconciliation(
     watermark_target = "t"
     if row_after_tombstone:
         prefix = "row"
-        watermark_manager: Manager = field.model.objects
+        watermark_manager = field.model.objects
         watermark_target = "r"
 
     watermark_batch = chunk_watermark_batch(

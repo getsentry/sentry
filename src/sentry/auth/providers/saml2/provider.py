@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
+from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,28 +21,6 @@ from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
-
-try:
-    from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
-    from onelogin.saml2.constants import OneLogin_Saml2_Constants
-
-    HAS_SAML2 = True
-except ImportError:
-    HAS_SAML2 = False
-
-    def OneLogin_Saml2_Auth(*args, **kwargs):
-        raise NotImplementedError("Missing SAML libraries")
-
-    def OneLogin_Saml2_Settings(*args, **kwargs):
-        raise NotImplementedError("Missing SAML libraries")
-
-    class OneLogin_Saml2_ConstantsType(type):
-        def __getattr__(self, attr):
-            raise NotImplementedError("Missing SAML libraries")
-
-    class OneLogin_Saml2_Constants(metaclass=OneLogin_Saml2_ConstantsType):
-        pass
-
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")

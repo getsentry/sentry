@@ -228,7 +228,7 @@ class OutboxBase(Model):
         ):
             runs += 1
             next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+            next_row = self.selected_messages_in_shard().first()
 
         if next_row is not None:
             raise OutboxFlushError(

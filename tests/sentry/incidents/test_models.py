@@ -460,7 +460,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
         assert trigger.target == email
 
 
-class AlertRuleTriggerActionActivateTest:
+class AlertRuleTriggerActionActivateBaseTest:
     method = None
 
     def setUp(self):
@@ -487,11 +487,11 @@ class AlertRuleTriggerActionActivateTest:
         )
 
 
-class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
+class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
     method = "fire"
 
 
-class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
+class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
     method = "resolve"
 
 

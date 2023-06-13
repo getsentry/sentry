@@ -3,7 +3,7 @@ from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
 
 
-class AssignedToFilter(RuleTestCase):
+class AssignedToFilterTest(RuleTestCase):
     rule_cls = AssignedToFilter
 
     def test_assigned_to_member_passes(self):

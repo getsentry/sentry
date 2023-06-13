@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -110,10 +112,10 @@ def resolved_in_commit(instance, created, **kwargs):
                 else:
                     user_list = ()
 
-                acting_user = None
+                acting_user: Optional[RpcUser] = None
 
                 if user_list:
-                    acting_user: RpcUser = user_list[0]
+                    acting_user = user_list[0]
                     self_assign_issue: str = get_option_from_list(
                         user_option_service.get_many(
                             filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
@@ -220,9 +222,9 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     user_list = list(instance.author.find_users())
                 else:
                     user_list = ()
-                acting_user = None
+                acting_user: Optional[RpcUser] = None
                 if user_list:
-                    acting_user: RpcUser = user_list[0]
+                    acting_user = user_list[0]
                     GroupAssignee.objects.assign(
                         group=group, assigned_to=acting_user, acting_user=acting_user
                     )
