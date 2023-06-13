@@ -540,7 +540,7 @@ class SubscriptionProcessor:
 
     def trigger_alert_threshold(
         self, trigger: AlertRuleTrigger, metric_value: float
-    ) -> IncidentTrigger:
+    ) -> IncidentTrigger | None:
         """
         Called when a subscription update exceeds the value defined in the
         `trigger.alert_threshold`, and the trigger hasn't already been activated.
@@ -588,6 +588,8 @@ class SubscriptionProcessor:
             # once we've triggered an incident.
             self.trigger_alert_counts[trigger.id] = 0
             return incident_trigger
+        else:
+            return None
 
     def check_triggers_resolved(self) -> bool:
         """
@@ -603,7 +605,7 @@ class SubscriptionProcessor:
 
     def trigger_resolve_threshold(
         self, trigger: AlertRuleTrigger, metric_value: float
-    ) -> IncidentTrigger:
+    ) -> IncidentTrigger | None:
         """
         Called when a subscription update exceeds the trigger resolve threshold and the
         trigger is currently ACTIVE.
@@ -630,6 +632,8 @@ class SubscriptionProcessor:
                 self.handle_incident_severity_update()
 
             return incident_trigger
+        else:
+            return None
 
     def handle_trigger_actions(
         self, incident_triggers: List[IncidentTrigger], metric_value: float
