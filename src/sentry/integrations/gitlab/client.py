@@ -239,7 +239,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
             "push_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
-        resp = self.post(path, data)
+        resp = self.post(path, data=data)
 
         return resp["id"]
 
