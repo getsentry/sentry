@@ -747,7 +747,7 @@ def last_seen_updater(**options):
         run_processor_with_signals(consumer)
 
 
-@run.command()
+@run.command("backpressure-monitor")
 @log_options()  # type: ignore[misc]  # needs this decorator to be typed
 @configuration  # type: ignore[misc]  # needs this decorator to be typed
 def backpressure_monitor():
