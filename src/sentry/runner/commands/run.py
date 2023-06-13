@@ -424,7 +424,7 @@ def post_process_forwarder(**options):
 
     try:
         # TODO(markus): convert to use run_processor_with_signals -- can't yet because there's a custom shutdown handler
-        eventstream.run_post_process_forwarder(
+        eventstream.backend.run_post_process_forwarder(
             entity=options["entity"],
             consumer_group=options["group_id"],
             topic=options["topic"],
@@ -608,7 +608,7 @@ def metrics_parallel_consumer(**options):
         IndexerStorage,
         UseCaseKey,
         get_ingest_config,
-        initialize_global_consumer_state,
+        initialize_main_process_state,
     )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
@@ -617,7 +617,7 @@ def metrics_parallel_consumer(**options):
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
-    initialize_global_consumer_state(ingest_config)
+    initialize_main_process_state(ingest_config)
 
     streamer = get_parallel_metrics_consumer(
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
@@ -795,8 +795,8 @@ def last_seen_updater(**options):
 
 
 @run.command("backpressure-monitor")
-@log_options()  # type: ignore[misc]  # needs this decorator to be typed
-@configuration  # type: ignore[misc]  # needs this decorator to be typed
+@log_options()
+@configuration
 def backpressure_monitor():
     from sentry.monitoring.queues import run_queue_stats_updater
 
