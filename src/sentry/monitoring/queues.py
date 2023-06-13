@@ -1,7 +1,10 @@
+from dataclasses import dataclass
+from datetime import datetime
 from time import sleep
-from typing import Dict
+from typing import Dict, List
 from urllib.parse import urlparse
 
+import requests
 import sentry_sdk
 from django.conf import settings
 from django.utils.functional import cached_property
@@ -108,6 +111,24 @@ except KeyError:
 queue_monitoring_cluster = redis.redis_clusters.get(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER)
 
 
+@dataclass
+class RabbitMqHost:
+    hostname: str
+    port: int
+    vhost: str
+    username: str
+    password: str
+
+
+def _parse_rabbitmq(url: str, vhost: str) -> RabbitMqHost:
+    dsn = urlparse(url)
+    host, port = dsn.hostname, dsn.port
+    if port is None:
+        port = 15672
+
+    return RabbitMqHost(host, port, vhost, dsn.username, dsn.password)
+
+
 def _prefix_key(key_name: str) -> str:
     return f"bp1:{key_name}"
 
@@ -136,6 +157,27 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         # By default it's considered healthy
         healthy = True
     return healthy
+
+
+def _get_queue_sizes(hosts: List[RabbitMqHost], queues: List[str]) -> Dict[str, int]:
+    new_sizes = {queue: 0 for queue in queues}
+
+    for host in hosts:
+        url = f"http://{host.hostname}:{host.port}/api/queues/{host.vhost}"
+        response = requests.get(url, auth=(host.username, host.password))
+        response.raise_for_status()
+
+        for queue in response.json():
+            name = queue["name"]
+            size = queue["messages"]
+            if name in queues:
+                new_sizes[name] = max(new_sizes[name], size)
+
+    return new_sizes
+
+
+def _is_healthy(queue_size) -> bool:
+    return queue_size < options.get("backpressure.monitor_queues.unhealthy_threshold")
 
 
 def _update_queue_stats(queue_history: Dict[str, int]) -> None:
@@ -182,6 +224,10 @@ def _is_healthy(queue_size) -> bool:
 
 
 def run_queue_stats_updater() -> None:
+    hosts = [
+        _parse_rabbitmq(host["url"], host["vhost"])
+        for host in options.get("backpressure.monitor_queues.rabbitmq_hosts")
+    ]
     queue_history = {queue: 0 for queue in ALL_QUEUES}
     while True:
         if not options.get("backpressure.monitor_queues.enable_status"):
@@ -189,8 +235,8 @@ def run_queue_stats_updater() -> None:
             continue
 
         try:
-            new_sizes = backend.bulk_get_sizes(ALL_QUEUES)
-            for (queue, size) in new_sizes:
+            new_sizes = _get_queue_sizes(hosts, ALL_QUEUES)
+            for (queue, size) in new_sizes.items():
                 if _is_healthy(size):
                     queue_history[queue] = 0
                 else:

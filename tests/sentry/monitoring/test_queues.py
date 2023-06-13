@@ -23,7 +23,7 @@ class TestMonitoringQueues(TestCase):
     def processing_factory():
         return ProcessProfileStrategyFactory()
 
-    def test_list_queues_over_theshold(self):
+    def test_list_queues_over_threshold(self):
         strike_threshold = 10
         with self.options(
             {
