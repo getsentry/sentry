@@ -76,6 +76,7 @@ class OrganizationSerializerTest(TestCase):
             "project-stats",
             "relay",
             "shared-issues",
+            "source-maps-debug-ids",
             "session-replay-ui",
             "sso-basic",
             "sso-saml2",

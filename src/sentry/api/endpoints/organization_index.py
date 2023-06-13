@@ -24,6 +24,9 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
@@ -208,7 +211,9 @@ class OrganizationIndexEndpoint(Endpoint):
             try:
 
                 with transaction.atomic():
-                    org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
+                    org = create_organization_with_outbox_message(
+                        create_options={"name": result["name"], "slug": result.get("slug")}
+                    )
                     om = OrganizationMember.objects.create(
                         organization_id=org.id,
                         user_id=request.user.id,

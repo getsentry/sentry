@@ -1508,7 +1508,7 @@ SENTRY_FEATURES = {
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": False,
+    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
