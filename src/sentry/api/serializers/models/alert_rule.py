@@ -164,6 +164,7 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
+            "snooze": False,
         }
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
