@@ -256,7 +256,7 @@ class SentryAppInstallationsPermission(SentryPermission):
             return True
 
         organizations = (
-            [org.id for org in user_service.get_organizations(user_id=request.user.id)]
+            user_service.get_organizations(user_id=request.user.id)
             if request.user.id is not None
             else ()
         )
