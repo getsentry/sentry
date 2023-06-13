@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOTFOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthProvider,
@@ -90,7 +90,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
+            GlobalParams.ORG_SLUG,
             MEMBER_ID_PARAM,
         ],
         responses={
@@ -302,7 +302,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
+            GlobalParams.ORG_SLUG,
             MEMBER_ID_PARAM,
         ],
         responses={

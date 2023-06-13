@@ -7,7 +7,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Truncate from 'sentry/components/truncate';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -112,9 +111,7 @@ function BodyCell({span, column, row, openSidebar, onClickTransactionName}: Cell
   if (column.key === 'time_spent_percentage(local)') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(
-          row.metrics?.['time_spent_percentage(local)']
-        )}
+        timeSpentPercentage={row.metrics?.['time_spent_percentage(local)']}
         totalSpanTime={row.metrics?.['sum(span.duration)']}
       />
     );

@@ -8,7 +8,7 @@ from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, R
 from sentry.models import Project
 
 
-class RareTransactionsRulesBias(Bias):
+class BoostLowVolumeTransactionsBias(Bias):
     def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
         proj_id = project.id
         org_id = project.organization.id
@@ -52,7 +52,7 @@ class RareTransactionsRulesBias(Bias):
                                 }
                             ],
                         },
-                        "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
+                        "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE] + idx,
                     }
                 )
                 idx += 1
@@ -68,7 +68,7 @@ class RareTransactionsRulesBias(Bias):
                         "op": "and",
                         "inner": [],
                     },
-                    "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
+                    "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE] + idx,
                 }
             )
 
