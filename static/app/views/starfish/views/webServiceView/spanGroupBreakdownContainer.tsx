@@ -86,7 +86,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     return <Placeholder height="285px" />;
   }
 
-  const totalValues = cumulativeTime.data[0]['sum(span.duration)']
+  const totalValues = cumulativeTime.data[0]?.['sum(span.duration)']
     ? parseInt(cumulativeTime?.data[0]['sum(span.duration)'] as string, 10)
     : 0;
   const totalSegments =

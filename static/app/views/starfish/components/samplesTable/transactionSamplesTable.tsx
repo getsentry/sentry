@@ -36,7 +36,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'id',
     name: 'Event ID',
-    width: 140,
+    width: 100,
   },
   {
     key: 'profile_id',
@@ -46,12 +46,12 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
     name: 'Operation Duration',
-    width: 200,
+    width: 180,
   },
   {
     key: 'timestamp',
     name: 'Timestamp',
-    width: 300,
+    width: 230,
   },
   {
     key: 'transaction.duration',
