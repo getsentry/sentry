@@ -41,18 +41,13 @@ type AlertWizardProps = RouteComponentProps<RouteParams, {}> & {
 
 const DEFAULT_ALERT_OPTION = 'issues';
 
-function AlertWizard({
-  organization,
-  params,
-  location,
-  projectId: _projectId,
-}: AlertWizardProps) {
+function AlertWizard({organization, params, location, projectId}: AlertWizardProps) {
   const [alertOption, setAlertOption] = useState<AlertType>(
     location.query.alert_option in AlertWizardAlertNames
       ? location.query.alert_option
       : DEFAULT_ALERT_OPTION
   );
-  const projectSlug = params.projectId ?? _projectId;
+  const projectSlug = params.projectId ?? projectId;
 
   const handleChangeAlertOption = (option: AlertType) => {
     setAlertOption(option);
