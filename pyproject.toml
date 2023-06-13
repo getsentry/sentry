@@ -670,7 +670,6 @@ module = [
     "sentry.integrations.slack.unfurl.issues",
     "sentry.integrations.slack.utils.channel",
     "sentry.integrations.slack.utils.users",
-    "sentry.integrations.slack.views",
     "sentry.integrations.slack.views.link_identity",
     "sentry.integrations.slack.views.link_team",
     "sentry.integrations.slack.views.unlink_identity",
