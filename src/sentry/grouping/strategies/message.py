@@ -11,6 +11,7 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.interfaces.message import Message
+from sentry.utils import metrics
 
 _irrelevant_re = re.compile(
     r"""(?x)
@@ -98,6 +99,9 @@ _irrelevant_re = re.compile(
 
 
 def trim_message_for_grouping(string: str) -> str:
+    """Replace values from a group's message to hide P.I.I. and improve grouping when no
+    stacktrace available.
+    """
     s = "\n".join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
     if s != string:
         s += "..."
@@ -105,7 +109,10 @@ def trim_message_for_grouping(string: str) -> str:
     def _handle_match(match: Match[str]) -> str:
         for key, value in match.groupdict().items():
             if value is not None:
-                return "<%s>" % key
+                # key can be one of the keys from _irrelevant_re, thus, not a large cardinality
+                # tracking the key helps distinguish what kinds of replacements are happening
+                metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
+                return f"<{key}>"
         return ""
 
     return _irrelevant_re.sub(_handle_match, s)
