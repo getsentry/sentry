@@ -246,6 +246,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     choice = expt_manager.get(
                         "PrioritySortExperiment", org=organization, actor=request.user
                     )
+                    # force into variant1 for internal testing
+                    if features.has(
+                        "organizations:issue-list-better-priority-sort",
+                        org=organization,
+                        actor=request.user,
+                    ):
+                        choice = "variant1"
+
                     if choice == "baseline":
                         query_kwargs["sort_by"] = "date"
                     else:
