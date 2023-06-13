@@ -35,11 +35,8 @@ class CardinalityLimiterState:
     keys_to_remove: Sequence[PartitionIdxOffset]
 
 
-def _build_quota_key(use_case_id: UseCaseID, org_id: Optional[OrgId]) -> str:
-    if org_id is not None:
-        return f"metrics-indexer-cardinality-{use_case_id.value}-org-{org_id}"
-    else:
-        return f"metrics-indexer-cardinality-{use_case_id.value}-global"
+def _build_quota_key(use_case_id: UseCaseID, org_id: OrgId) -> str:
+    return f"metrics-indexer-cardinality-{use_case_id.value}-org-{org_id}"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
@@ -87,7 +84,7 @@ class TimeseriesCardinalityLimiter:
         self, metric_path_key: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        hash_to_offset = defaultdict(dict)
+        hash_to_offset: Mapping[str, Dict[int, PartitionIdxOffset]] = defaultdict(dict)
         prefix_to_quota = {}
 
         # this works by applying one cardinality limiter rollout option
@@ -130,38 +127,43 @@ class TimeseriesCardinalityLimiter:
 
         # if none of the use cases are covered by a quota
         if len(prefix_to_quota) == 0:
-            keys_to_remove = {}
+            return CardinalityLimiterState(
+                _cardinality_limiter=self.backend,
+                _metric_path_key=metric_path_key,
+                _grants=grants,
+                _timestamp=timestamp,
+                keys_to_remove=[],
+            )
 
-        else:
-            for prefix, hashes in request_hashes.items():
-                quota = prefix_to_quota[prefix]
+        for prefix, hashes in request_hashes.items():
+            quota = prefix_to_quota[prefix]
 
-                requested_quotas.append(
-                    RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=quota)
-                )
+            requested_quotas.append(RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=quota))
 
-            timestamp, grants = self.backend.check_within_quotas(requested_quotas)
+        timestamp, grants = self.backend.check_within_quotas(requested_quotas)
 
-            keys_to_remove = hash_to_offset
-            # make sure that hash_to_offset is no longer used, as the underlying
-            # dict will be mutated
-            del hash_to_offset
+        keys_to_remove = hash_to_offset
+        # make sure that hash_to_offset is no longer used, as the underlying
+        # dict will be mutated
+        del hash_to_offset
 
-            for grant in grants:
-                for hash in grant.granted_unit_hashes:
-                    del keys_to_remove[grant.request.prefix][hash]
+        for grant in grants:
+            for hash in grant.granted_unit_hashes:
+                del keys_to_remove[grant.request.prefix][hash]
 
-                use_case_id = grant.request.prefix.split("-")[3]
-                org_id = grant.request.prefix.split("-")[-1]
-                metrics.incr(
-                    "sentry_metrics.indexer.process_messages.dropped_message",
-                    amount=len(keys_to_remove[grant.request.prefix]),
-                    tags={
-                        "reason": "cardinality_limit",
-                        "use_case_id": use_case_id,
-                        "org_id": org_id,
-                    },
-                )
+            substrings = grant.request.prefix.split("-")
+            grant_use_case_id = substrings[3]
+            grant_org_id = substrings[-1]
+
+            metrics.incr(
+                "sentry_metrics.indexer.process_messages.dropped_message",
+                amount=len(keys_to_remove[grant.request.prefix]),
+                tags={
+                    "reason": "cardinality_limit",
+                    "use_case_id": grant_use_case_id,
+                    "org_id": grant_org_id,
+                },
+            )
 
         return CardinalityLimiterState(
             _cardinality_limiter=self.backend,
