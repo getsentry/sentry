@@ -12,7 +12,8 @@ from sentry.models import Group, GroupOwnerType, Project
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 

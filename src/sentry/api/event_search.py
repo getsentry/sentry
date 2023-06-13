@@ -10,6 +10,7 @@ from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
     DURATION_UNITS,
     OPERATOR_NEGATION_MAP,
@@ -20,7 +21,7 @@ from sentry.search.events.constants import (
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -31,12 +32,8 @@ from sentry.search.utils import (
     parse_percentage,
     parse_size,
 )
-from sentry.utils.snuba import (
-    Dataset,
-    is_duration_measurement,
-    is_measurement,
-    is_span_op_breakdown,
-)
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id, is_span_id
 
 # A wildcard is an asterisk prefixed by an even number of back slashes.

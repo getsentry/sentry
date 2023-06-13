@@ -68,7 +68,7 @@ class U2fRestSerializer(serializers.Serializer):
         allow_blank=True,
         max_length=60,
         trim_whitespace=False,
-        default=lambda: petname.Generate(2, " ", letters=10).title(),
+        default=lambda: petname.generate(2, " ", letters=10).title(),
     )
     challenge = serializers.CharField(required=True, trim_whitespace=False)
     response = serializers.CharField(required=True, trim_whitespace=False)

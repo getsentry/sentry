@@ -36,9 +36,10 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, Dataset, bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -53,6 +54,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
+        granularity: Optional[int] = None,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -79,6 +81,8 @@ class MetricsQueryBuilder(QueryBuilder):
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
+        if granularity is not None:
+            self._granularity = granularity
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
@@ -181,7 +185,12 @@ class MetricsQueryBuilder(QueryBuilder):
         - if duration is between 3d to 30d we allow 30 minutes on the day boundaries for daily granularities
             and will fallback to hourly granularity
         - If the duration is over 30d we always use the daily granularities
+
+        In special cases granularity can be set manually bypassing the granularity calculation below.
         """
+        if hasattr(self, "_granularity"):
+            return Granularity(self._granularity)
+
         if self.end is None or self.start is None:
             raise ValueError("skip_time_conditions must be False when calling this method")
         duration = (self.end - self.start).total_seconds()
