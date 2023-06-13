@@ -609,8 +609,6 @@ class ReplaySubqueryConfig(QueryConfig):
     sdk_version = String(field_alias="sdk.version")
     started_at = String(is_filterable=False)
 
-    tags = Tag(field_alias="*", tag_key_alias="tags.key", tag_value_alias="tags.value")
-
     # we have to explicitly define the rest of the fields as invalid fields or else
     # they will be parsed as tags for the subquery
     releases = InvalidField()
