@@ -76,22 +76,30 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     location,
   });
 
+  const topDataEventView = getEventView(
+    selection,
+    `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
+      transactionMethod ? `http.method:${transactionMethod}` : ''
+    }`,
+    ['span.category'],
+    true
+  );
+
   const {isLoading: isTopDataLoading, data: topData} = useGenericDiscoverQuery<
     MultiSeriesEventsStats,
     DiscoverQueryProps
   >({
     route: 'events-stats',
-    eventView: getEventView(
-      selection,
-      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
-        transactionMethod ? `http.method:${transactionMethod}` : ''
-      }`,
-      ['span.category'],
-      true
-    ),
+    eventView: topDataEventView,
     location,
     referrer: 'starfish-web-service.span-category-breakdown-timeseries',
     orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...topDataEventView.getEventsAPIPayload(location),
+      yAxis: ['p95(span.duration)'],
+      topEvents: 4,
+      excludeOther: 0,
+    }),
   });
 
   if (

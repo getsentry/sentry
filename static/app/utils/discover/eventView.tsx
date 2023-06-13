@@ -1168,8 +1168,6 @@ class EventView {
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
-    const yAxis = typeof this.yAxis === 'string' ? [this.yAxis] : this.yAxis;
-    const topEvents = this.topEvents;
 
     let queryString = this.getQueryWithAdditionalConditions();
     if (forceAppendRawQueryString) {
@@ -1185,8 +1183,6 @@ class EventView {
         project,
         environment,
         field: [...new Set(fields)],
-        yAxis,
-        topEvents,
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
