@@ -314,6 +314,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   projectSlug={projectSlug}
                   ruleActionCategory={ruleActionCategory}
                   hasAccess={hasAccess}
+                  type="issue"
                 />
               )}
             </Access>
