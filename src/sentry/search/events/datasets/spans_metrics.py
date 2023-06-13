@@ -489,8 +489,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         return Function(
             "less",
             [
-                Function("toDateTime", [self._get_middle()]),
                 self.builder.column("timestamp"),
+                Function("toDateTime", [self._get_middle()]),
             ],
         )
 
@@ -499,8 +499,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         return Function(
             "greaterOrEquals",
             [
-                Function("toDateTime", [self._get_middle()]),
                 self.builder.column("timestamp"),
+                Function("toDateTime", [self._get_middle()]),
             ],
         )
 

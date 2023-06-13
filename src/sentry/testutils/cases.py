@@ -132,6 +132,7 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
+    SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -1595,6 +1596,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
+        "span.duration": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1641,6 +1643,46 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
+        if tags is None:
+            tags = {}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
+
+        if not isinstance(value, list):
+            value = [value]
+        for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                self.TYPE_MAP[entity],
+                internal_metric,
+                tags,
+                int(metric_timestamp),
+                subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    def store_span_metric(
+        self,
+        value: List[int] | int,
+        metric: str = "span.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+        project: Optional[id] = None,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,  # TODO(wmak): this needs to be the span id
+    ):
+        internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
