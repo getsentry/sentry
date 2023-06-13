@@ -227,10 +227,10 @@ const GroupLevel = styled('div')<{level: Level}>`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: flex;
+  display: inline-flex;
 `;
 const TitleWithoutLink = styled('span')`
-  display: flex;
+  display: inline-flex;
 `;
 
 export default withOrganization(EventOrGroupHeader);
