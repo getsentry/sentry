@@ -133,10 +133,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndDuration(
-      tableData.map(d => d.transaction).splice(0, 5),
-      24
-    );
+    useQueryTransactionByTPMAndDuration(tableData.map(d => d.transaction).splice(0, 5));
 
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,

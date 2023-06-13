@@ -1,5 +1,6 @@
 import {Moment, unix} from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {EventTransaction, NewQuery} from 'sentry/types';
 import {
   DiscoverQueryComponentProps,
@@ -187,8 +188,7 @@ type TopTransactionData = {
 };
 
 export const useGetTransactionsForTables = (
-  tableNames: string[],
-  interval: number
+  tableNames: string[]
 ): DefinedUseQueryResult<TopTransactionData[]> => {
   const pageFilter = usePageFilters();
   const location = useLocation();
@@ -219,7 +219,7 @@ export const useGetTransactionsForTables = (
     start: start?.toString(),
     end: end?.toString(),
     dataset: DiscoverDatasets.METRICS_ENHANCED,
-    interval: `${interval}h`,
+    interval: getInterval(pageFilter.selection.datetime, 'low'),
     yAxis: ['epm()', 'p75(transaction.duration)'],
   };
 
@@ -232,7 +232,7 @@ export const useGetTransactionsForTables = (
     location,
     orgSlug: 'sentry',
     queryExtras: {
-      interval: `${interval}h`, // This interval isn't being propogated from eventView
+      interval: getInterval(pageFilter.selection.datetime, 'low'), // This interval isn't being propogated from eventView
       yAxis: ['epm()', 'p75(transaction.duration)'], // workaround - eventView actually doesn't support multiple yAxis
       excludeOther: '1',
       topEvents: '5',
@@ -605,8 +605,7 @@ type QueryTransactionByTPMAndP75ReturnType = {
   transaction: string;
 }[];
 export const useQueryTransactionByTPMAndDuration = (
-  transactionNames: string[],
-  interval: number
+  transactionNames: string[]
 ): UseSpansQueryReturnType<QueryTransactionByTPMAndP75ReturnType> => {
   const {
     selection: {datetime},
@@ -629,7 +628,7 @@ export const useQueryTransactionByTPMAndDuration = (
       end: datetime.end as string,
       range: datetime.period as string,
       dataset: DiscoverDatasets.METRICS,
-      interval: `${interval}h`,
+      interval: getInterval(datetime, 'low'),
       projects: [1],
       version: 2,
     }),

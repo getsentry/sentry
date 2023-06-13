@@ -1,5 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -46,6 +47,7 @@ export const getHostListEventView = ({datetime}) => {
     dataset: DiscoverDatasets.SPANS_INDEXED,
     projects: [1],
     version: 2,
+    interval: getInterval(datetime, 'low'),
   });
 };
 
@@ -188,6 +190,7 @@ export const getEndpointGraphEventView = ({datetime}) => {
     dataset: DiscoverDatasets.SPANS_INDEXED,
     projects: [1],
     version: 2,
+    interval: getInterval(datetime, 'low'),
   });
 };
 
