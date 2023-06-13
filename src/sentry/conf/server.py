@@ -705,7 +705,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
@@ -836,12 +835,6 @@ CELERYBEAT_SCHEDULE = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
-    },
-    "enqueue-scheduled-jobs": {
-        "task": "sentry.tasks.enqueue_scheduled_jobs",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
     },
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
