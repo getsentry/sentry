@@ -5,19 +5,16 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
-import {MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
@@ -76,30 +73,18 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     location,
   });
 
-  const topDataEventView = getEventView(
-    selection,
-    `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
-      transactionMethod ? `http.method:${transactionMethod}` : ''
-    }`,
-    ['span.category'],
-    true
-  );
-
-  const {isLoading: isTopDataLoading, data: topData} = useGenericDiscoverQuery<
-    MultiSeriesEventsStats,
-    DiscoverQueryProps
-  >({
-    route: 'events-stats',
-    eventView: topDataEventView,
-    location,
+  const {isLoading: isTopDataLoading, data: topData} = useEventsStatsQuery({
+    eventView: getEventView(
+      selection,
+      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
+        transactionMethod ? `http.method:${transactionMethod}` : ''
+      }`,
+      ['span.category'],
+      true
+    ),
+    enabled: true,
     referrer: 'starfish-web-service.span-category-breakdown-timeseries',
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...topDataEventView.getEventsAPIPayload(location),
-      yAxis: ['p95(span.duration)'],
-      topEvents: 4,
-      excludeOther: 0,
-    }),
+    initialData: [],
   });
 
   if (
