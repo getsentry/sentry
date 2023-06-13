@@ -384,7 +384,7 @@ class Rule:
 
 
 class FingerprintingVisitor(NodeVisitor):
-    visit_comment = visit_empty = lambda *a: None
+    visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
     def visit_comment(self, node, children):

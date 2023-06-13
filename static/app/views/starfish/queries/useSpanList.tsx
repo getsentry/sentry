@@ -64,7 +64,7 @@ export const useSpanList = (
   );
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
     queryString: query,
     initialData: [],
@@ -73,7 +73,7 @@ export const useSpanList = (
     referrer,
   });
 
-  return {isLoading, data};
+  return {isLoading, data, pageLinks};
 };
 
 function getQuery(
