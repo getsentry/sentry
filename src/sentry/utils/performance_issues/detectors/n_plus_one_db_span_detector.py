@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import random
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -74,7 +73,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return True  # This detector is fully rolled out
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)

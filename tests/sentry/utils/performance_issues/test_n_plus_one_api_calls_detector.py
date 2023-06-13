@@ -170,7 +170,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ProjectOption.objects.set_value(
             project=project,
             key="sentry:performance_issue_settings",
-            value={"n_plus_one_api_calls_detection_rate": 0.0},
+            value={"n_plus_one_api_calls_detection_enabled": False},
         )
 
         settings = get_detection_settings(project.id)
