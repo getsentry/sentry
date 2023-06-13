@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -28,10 +27,9 @@ import {getStartFromTimeWindow, timeWindowData} from './utils';
 
 interface Props {
   monitorList: Monitor[];
-  monitorListPageLinks?: string | null;
 }
 
-export function OverviewTimeline({monitorList, monitorListPageLinks}: Props) {
+export function OverviewTimeline({monitorList}: Props) {
   const {replace, location} = useRouter();
   const organization = useOrganization();
 
@@ -71,56 +69,49 @@ export function OverviewTimeline({monitorList, monitorListPageLinks}: Props) {
   );
 
   return (
-    <Fragment>
-      <MonitorListPanel>
-        <ListFilters>
-          <Button
-            size="xs"
-            icon={<IconSort size="xs" />}
-            aria-label={t('Reverse sort')}
-          />
-          <SegmentedControl<TimeWindow>
-            value={timeWindow}
-            onChange={handleResolutionChange}
-            size="xs"
-            aria-label={t('Time Scale')}
-          >
-            <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
-            <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
-            <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
-            <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
-          </SegmentedControl>
-        </ListFilters>
-        <TimelineWidthTracker ref={elementRef} />
-        <GridLineTimeLabels
-          timeWindow={timeWindow}
-          end={nowRef.current}
-          width={timelineWidth}
-        />
-        <GridLineOverlay
-          timeWindow={timeWindow}
-          end={nowRef.current}
-          width={timelineWidth}
-        />
+    <MonitorListPanel>
+      <ListFilters>
+        <Button size="xs" icon={<IconSort size="xs" />} aria-label={t('Reverse sort')} />
+        <SegmentedControl<TimeWindow>
+          value={timeWindow}
+          onChange={handleResolutionChange}
+          size="xs"
+          aria-label={t('Time Scale')}
+        >
+          <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </ListFilters>
+      <TimelineWidthTracker ref={elementRef} />
+      <GridLineTimeLabels
+        timeWindow={timeWindow}
+        end={nowRef.current}
+        width={timelineWidth}
+      />
+      <GridLineOverlay
+        timeWindow={timeWindow}
+        end={nowRef.current}
+        width={timelineWidth}
+      />
 
-        {monitorList.map(monitor => (
-          <Fragment key={monitor.id}>
-            <MonitorDetails monitor={monitor} />
-            {isLoading || !monitorStats ? (
-              <Placeholder />
-            ) : (
-              <CheckInTimeline
-                bucketedData={monitorStats[monitor.slug]}
-                end={nowRef.current}
-                start={start}
-                width={timelineWidth}
-              />
-            )}
-          </Fragment>
-        ))}
-      </MonitorListPanel>
-      {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
-    </Fragment>
+      {monitorList.map(monitor => (
+        <Fragment key={monitor.id}>
+          <MonitorDetails monitor={monitor} />
+          {isLoading || !monitorStats ? (
+            <Placeholder />
+          ) : (
+            <CheckInTimeline
+              bucketedData={monitorStats[monitor.slug]}
+              end={nowRef.current}
+              start={start}
+              width={timelineWidth}
+            />
+          )}
+        </Fragment>
+      ))}
+    </MonitorListPanel>
   );
 }
 
