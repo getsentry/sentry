@@ -49,6 +49,13 @@ interface ReplayReaderParams {
    * All three types are mixed together.
    */
   attachments: unknown[] | undefined;
+
+  /**
+   * Error objects related to this replay
+   *
+   * Error instances could be frontend, backend, or come from the error platform
+   * like performance-errors or replay-errors
+   */
   errors: ReplayError[] | undefined;
 
   /**
@@ -62,13 +69,13 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({attachments, replayRecord, errors}: ReplayReaderParams) {
+  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, replayRecord, errors});
+      return new ReplayReader({attachments, errors, replayRecord});
     } catch (err) {
       Sentry.captureException(err);
 
@@ -86,8 +93,8 @@ export default class ReplayReader {
 
   private constructor({
     attachments,
-    replayRecord,
     errors,
+    replayRecord,
   }: RequiredNotNull<ReplayReaderParams>) {
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
       hydrateFrames(attachments);
@@ -101,6 +108,12 @@ export default class ReplayReader {
         breadcrumbFrames,
         spanFrames
       );
+
+      this.timestampDeltas = {
+        startedAtDelta: startTimestampMs - replayRecord.started_at.getTime(),
+        finishedAtDelta: endTimestampMs - replayRecord.finished_at.getTime(),
+      };
+
       replayRecord.started_at = new Date(startTimestampMs);
       replayRecord.finished_at = new Date(endTimestampMs);
       replayRecord.duration = duration(
@@ -162,6 +175,8 @@ export default class ReplayReader {
 
     this.replayRecord = replayRecord;
   }
+
+  public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
   private _breadcrumbFrames: BreadcrumbFrame[];
   private _errors: ErrorFrame[];
