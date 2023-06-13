@@ -958,7 +958,6 @@ module = [
     "sentry.runner.commands.files",
     "sentry.runner.commands.migrations",
     "sentry.runner.commands.plugins",
-    "sentry.runner.commands.run",
     "sentry.runner.commands.tsdb",
     "sentry.runner.commands.upgrade",
     "sentry.runner.importer",
