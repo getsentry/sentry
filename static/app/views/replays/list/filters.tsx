@@ -10,7 +10,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import ReplaySearchBar from 'sentry/views/replays/replaySearchBar';
+import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
 
 function ReplaysFilters() {
   const {selection} = usePageFilters();

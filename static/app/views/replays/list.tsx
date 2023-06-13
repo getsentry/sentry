@@ -5,7 +5,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplaysFilters from 'sentry/views/replays/filters';
+import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 
 function ReplaysListContainer() {
