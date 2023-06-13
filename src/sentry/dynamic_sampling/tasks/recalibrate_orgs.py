@@ -87,7 +87,9 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     redis_client = get_redis_client_for_ds()
     factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
 
-    desired_sample_rate = quotas.get_blended_sample_rate(organization_id=org_volume.org_id)
+    desired_sample_rate = quotas.get_blended_sample_rate(
+        organization_id=org_volume.org_id
+    )  # type:ignore
     if desired_sample_rate is None:
         return f"Organisation with desired_sample_rate==None org_id={org_volume.org_id}"
 
@@ -158,7 +160,7 @@ def get_active_orgs(max_orgs: int, time_interval: timedelta) -> Generator[List[i
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS.value,  # type:ignore
         )["data"]
         count = len(data)
         more_results = count > max_orgs
@@ -227,7 +229,7 @@ def fetch_org_volumes(
     )
     data = raw_snql_query(
         request,
-        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
+        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,  # type:ignore
     )["data"]
 
     for row in data:

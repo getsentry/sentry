@@ -79,7 +79,7 @@ def get_active_orgs_with_projects_counts(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -173,7 +173,9 @@ def compute_sliding_window_sample_rate(
         org_id, project_id, total_root_count, extrapolated_volume, window_size
     )
 
-    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(org_id, extrapolated_volume)
+    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(
+        org_id, extrapolated_volume
+    )  # type:ignore
     if sampling_tier is None:
         return None
 

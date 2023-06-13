@@ -61,7 +61,7 @@ def can_boost_new_projects(organization: Organization) -> bool:
 
 
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
-    sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)
+    sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)  # type:ignore
 
     # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
     if sample_rate is None:

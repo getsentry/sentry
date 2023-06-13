@@ -188,7 +188,7 @@ def fetch_projects_with_total_root_transactions_count(
 
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,  # type:ignore
         )["data"]
 
         count = len(data)

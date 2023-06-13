@@ -185,7 +185,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,  # type:ignore
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -231,7 +231,7 @@ def adjust_sample_rates_of_projects(
             org_id, None, "prioritise_by_project", "sliding_window_org", sample_rate
         )
     else:
-        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)
+        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
         log_sample_rate_source(
             org_id, None, "prioritise_by_project", "blended_sample_rate", sample_rate
         )
@@ -297,7 +297,7 @@ def adjust_sample_rates_of_projects(
             if not are_equal_with_epsilon(old_sample_rate, rebalanced_project.new_sample_rate):
                 schedule_invalidate_project_config(
                     project_id=rebalanced_project.id,
-                    trigger="dynamic_sampling_prioritise_project_bias",
+                    trigger="dynamic_sampling_boost_low_volume_projects",
                 )
 
         pipeline.execute()

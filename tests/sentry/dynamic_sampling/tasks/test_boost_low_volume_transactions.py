@@ -6,6 +6,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     ProjectIdentity,
+    ProjectTransactions,
     ProjectTransactionsTotals,
     fetch_project_transaction_totals,
     fetch_transactions_with_total_volumes,
@@ -17,7 +18,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     transactions_zip,
 )
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import fetch_org_volumes, get_active_orgs
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
@@ -144,21 +145,26 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
 
 def test_merge_transactions_full():
-    t1 = {
+    t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100)],
         "total_num_transactions": None,
         "total_num_classes": None,
     }
-    t2 = {
+    t2: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("tm2", 100), ("tl3", 1000)],
         "total_num_transactions": None,
         "total_num_classes": None,
     }
-    counts = {"project_id": 1, "org_id": 2, "total_num_transactions": 5555, "total_num_classes": 20}
+    counts: ProjectTransactionsTotals = {
+        "project_id": 1,
+        "org_id": 2,
+        "total_num_transactions": 5555,
+        "total_num_classes": 20,
+    }
     actual = merge_transactions(t1, t2, counts)
 
     expected = {
@@ -173,14 +179,14 @@ def test_merge_transactions_full():
 
 
 def test_merge_transactions_missing_totals():
-    t1 = {
+    t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100)],
         "total_num_transactions": None,
         "total_num_classes": None,
     }
-    t2 = {
+    t2: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("tm2", 100), ("tl3", 1000)],
@@ -190,7 +196,7 @@ def test_merge_transactions_missing_totals():
 
     actual = merge_transactions(t1, t2, None)
 
-    expected = {
+    expected: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
@@ -202,17 +208,22 @@ def test_merge_transactions_missing_totals():
 
 
 def test_merge_transactions_missing_right():
-    t1 = {
+    t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100)],
         "total_num_transactions": None,
         "total_num_classes": None,
     }
-    counts = {"project_id": 1, "org_id": 2, "total_num_transactions": 5555, "total_num_classes": 20}
+    counts: ProjectTransactionsTotals = {
+        "project_id": 1,
+        "org_id": 2,
+        "total_num_transactions": 5555,
+        "total_num_classes": 20,
+    }
     actual = merge_transactions(t1, None, counts)
 
-    expected = {
+    expected: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100)],
@@ -274,11 +285,11 @@ def test_transactions_zip():
 
 
 def test_same_project():
-    p1 = {"project_id": 1, "org_id": 2}
-    p1bis = {"project_id": 1, "org_id": 2}
-    p2 = {"project_id": 1, "org_id": 3}
-    p3 = {"project_id": 2, "org_id": 1}
-    p4 = {"project_id": 3, "org_id": 4}
+    p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
+    p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
+    p2: ProjectIdentity = {"project_id": 1, "org_id": 3}
+    p3: ProjectIdentity = {"project_id": 2, "org_id": 1}
+    p4: ProjectIdentity = {"project_id": 3, "org_id": 4}
 
     assert is_same_project(p1, p1bis)
     assert not is_same_project(p1, p2)
@@ -287,11 +298,11 @@ def test_same_project():
 
 
 def test_project_before():
-    p1 = {"project_id": 1, "org_id": 2}
-    p1bis = {"project_id": 1, "org_id": 2}
-    p2 = {"project_id": 1, "org_id": 3}
-    p3 = {"project_id": 2, "org_id": 2}
-    p4 = {"project_id": 2, "org_id": 1}
+    p1: ProjectIdentity = {"project_id": 1, "org_id": 2}
+    p1bis: ProjectIdentity = {"project_id": 1, "org_id": 2}
+    p2: ProjectIdentity = {"project_id": 1, "org_id": 3}
+    p3: ProjectIdentity = {"project_id": 2, "org_id": 2}
+    p4: ProjectIdentity = {"project_id": 2, "org_id": 1}
 
     # same project
     assert not is_project_identity_before(p1, p1bis)

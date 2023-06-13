@@ -130,7 +130,7 @@ def fetch_orgs_with_total_root_transactions_count(
 
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT.value,  # type:ignore
         )["data"]
 
         count = len(data)

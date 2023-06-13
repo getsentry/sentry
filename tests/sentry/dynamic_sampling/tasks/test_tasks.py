@@ -29,7 +29,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
 from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
 from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(

@@ -6,7 +6,7 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
