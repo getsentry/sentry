@@ -666,9 +666,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
-        # TODO: Uncomment this once perf issues are fixed here
-        # assert len(root["performance_issues"]) == 1
-        # assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
+        assert len(root["performance_issues"]) == 1
+        assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
@@ -751,13 +750,12 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
-        # TODO: Uncomment this once perf issues are fixed here
-        # assert "issue_short_id" in response.data[0]["performance_issues"][0]
-        # assert response.data[0]["performance_issues"][0]["culprit"] == "/country_by_code/"
-        # assert (
-        #     response.data[0]["performance_issues"][0]["type"]
-        #     == PerformanceFileIOMainThreadGroupType.type_id
-        # )
+        assert "issue_short_id" in response.data[0]["performance_issues"][0]
+        assert response.data[0]["performance_issues"][0]["culprit"] == "root"
+        assert (
+            response.data[0]["performance_issues"][0]["type"]
+            == PerformanceFileIOMainThreadGroupType.type_id
+        )
 
     def test_detailed_trace_with_bad_tags(self):
         """Basically test that we're actually using the event serializer's method for tags"""
