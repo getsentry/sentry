@@ -20,7 +20,7 @@ function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.PRIORITY:
       return t('Recent issues trending upward.');
     case IssueSortOptions.BETTER_PRIORITY:
-      return t('Issues you care about.');
+      return t('Recent issues trending upward.');
     case IssueSortOptions.FREQ:
       return t('Number of events.');
     case IssueSortOptions.USER:
@@ -36,11 +36,11 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.PRIORITY,
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
