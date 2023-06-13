@@ -121,7 +121,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
