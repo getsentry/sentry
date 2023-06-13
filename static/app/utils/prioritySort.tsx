@@ -14,8 +14,8 @@ export function prioritySortExperimentEnabled(organization: Organization) {
 
 export function getPrioritySortVariant(organization: Organization) {
   /**
-   * Return the priority variant for this organization
-   * basline is the default behavior
+   * Return the priority variant for this organization.
+   * If the experiment is not enabled, return undefined
    */
   const user = ConfigStore.get('user');
   const _variant = user.experiments?.PrioritySortExperiment || 'baseline';
@@ -25,17 +25,16 @@ export function getPrioritySortVariant(organization: Organization) {
 
   // feature flag override to force variant1
   // otherwise let the experiment decide
-  const isVariant1 =
-    organization.features.includes('issue-list-better-priority-sort') ||
-    (isInExperiment && _variant === 'variant1');
-  const isVariant2 = isInExperiment && _variant === 'variant2';
-
-  return isVariant1 ? 'variant1' : isVariant2 ? 'variant2' : 'baseline';
+  return organization.features.includes('issue-list-better-priority-sort')
+    ? 'variant1'
+    : isInExperiment
+    ? _variant
+    : undefined;
 }
 
 export function enablePrioritySortByDefault(organization: Organization) {
   /**
    * Returns true if the new priority sort should be enabled by default
    */
-  return getPrioritySortVariant(organization) !== 'baseline';
+  return !!getPrioritySortVariant(organization);
 }
