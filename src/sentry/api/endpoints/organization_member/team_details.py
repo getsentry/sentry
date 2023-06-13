@@ -145,7 +145,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @extend_schema(
-        operation_id="Join, Request Access to, or Add a Member to a Team",
+        operation_id="Add a Member to a Team",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
@@ -172,13 +172,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         team_slug: str,
     ) -> Response:
         """
-        Join, request access to or add a member to a team.
+        If the member needs permission to join the team, an access request will be generated and the returned status code will be 202.
 
-        If the user needs permission to join the team, an access request will be generated and the returned status code will be 202.
+        If the member is already on the team, this will return a 204.
 
-        If the user is already a member of the team, this will return a 204.
-
-        If the team is provisioned through an identity provider, then the user cannot join or request to join the team through Sentry.
+        If the team is provisioned through an identity provider, then the member cannot join the team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
