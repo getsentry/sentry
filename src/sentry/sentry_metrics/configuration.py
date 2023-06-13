@@ -113,29 +113,27 @@ def get_ingest_config(
     return _METRICS_INGEST_CONFIG_BY_USE_CASE[(use_case_key, db_backend)]
 
 
-def initialize_subprocess_state(config: MetricsIngestConfiguration) -> None:
+def initialize_sentry_and_global_consumer_state(config: MetricsIngestConfiguration) -> None:
     """
-    Initialization function for the subprocesses of the metrics indexer.
+    Initialization function for subprocesses spawned by the parallel indexer.
+
+    It does the same thing as `initialize_global_consumer_state` except it
+    initializes the Sentry Django app from scratch as well.
 
     `config` is pickleable, and this function lives in a module that can be
     imported without any upfront initialization of the Django app. Meaning that
     an object like
     `functools.partial(initialize_sentry_and_global_consumer_state, config)` is
     pickleable as well (which we pass as initialization callback to arroyo).
-
-    This function should ideally be kept minimal and not contain too much
-    logic. Commonly reusable bits should be added to
-    sentry.utils.arroyo.RunTaskWithMultiprocessing.
-
-    We already rely on sentry.utils.arroyo.RunTaskWithMultiprocessing to copy
-    statsd tags into the subprocess, eventually we should do the same for
-    Sentry tags.
     """
+    from sentry.runner import configure
 
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
+    configure()
+
+    initialize_global_consumer_state(config)
 
 
-def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
+def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None:
     """
     Initialization function for the main process of the metrics indexer.
 
@@ -153,5 +151,5 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
 
     from sentry.utils.arroyo import MetricsWrapper
 
-    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer")
+    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer", tags=global_tag_map)
     configure_metrics(metrics_wrapper)
