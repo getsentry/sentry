@@ -370,7 +370,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
+        # We return the latest n releases bound to this project.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
@@ -382,6 +382,59 @@ class ArtifactBundlesEndpointTest(APITestCase):
                     {
                         "release": "1.0",
                         "dist": ["android"],
+                    },
+                ],
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+            },
+        ]
+
+    @patch("sentry.models.artifactbundle.DISTS_LIMIT", 2)
+    def test_get_artifact_bundles_with_more_dists_on_the_same_release_to_same_bundle_than_limit(
+        self,
+    ):
+        project = self.create_project(name="foo")
+
+        artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        for time_shift, release, dist in (
+            (0, "1.0", "ios"),
+            (1, "1.0", "android"),
+            (2, "1.0", "windows"),
+        ):
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                release_name=release,
+                dist_name=dist,
+                artifact_bundle=artifact_bundle,
+                date_added=datetime.now() + timedelta(hours=time_shift),
+            )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        # We test without search.
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # We return the latest n dists bound to the 1.0 release.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [
+                    {
+                        "release": "1.0",
+                        "dist": ["windows", "android"],
                     },
                 ],
                 "date": "2023-03-15T00:00:00Z",

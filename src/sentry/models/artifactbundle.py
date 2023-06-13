@@ -23,6 +23,7 @@ NULL_STRING = ""
 
 # We want to limit the amount of associations that are returned in order to not overwhelm the frontend.
 RELEASES_LIMIT = 10
+DISTS_LIMIT = 5
 
 
 class SourceFileType(Enum):
@@ -68,7 +69,7 @@ class ArtifactBundle(Model):
     @classmethod
     def get_grouped_releases(
         cls, organization_id: int, artifact_bundle_ids: List[int]
-    ) -> Mapping[int, Mapping[str, Set[str]]]:
+    ) -> Mapping[int, Mapping[str, List[str]]]:
         release_artifact_bundles = list(
             ReleaseArtifactBundle.objects.filter(
                 organization_id=organization_id, artifact_bundle_id__in=artifact_bundle_ids
@@ -93,11 +94,17 @@ class ArtifactBundle(Model):
             # has dists or not. In addition, we check if we have already reached `limit` number of release in this
             # dictionary.
             if len(bundle_releases) < RELEASES_LIMIT and release not in bundle_releases:
-                bundle_releases[release] = set()
+                # We use a list since we also want to preserve ordering in the dists, since they are also limited. We
+                # also don't need any de-duplication using sets, since we have a db level constraint that protects
+                # us from that.
+                bundle_releases[release] = list()
 
-            # We want to add the dist only if it is a non-empty string.
+            # We want to add the dist only if it is a non-empty string and if we have a bucket for this release, since
+            # if we don't it means that the check above failed.
             if dist and release in bundle_releases:
-                bundle_releases[release].add(dist)
+                dists_set = bundle_releases[release]
+                if len(dists_set) < DISTS_LIMIT:
+                    dists_set.append(dist)
 
         return grouped_bundles
 
@@ -123,10 +130,8 @@ class ArtifactBundle(Model):
 def format_grouped_releases(
     grouped_releases: OrderedDict[str, Set[str]]
 ) -> List[Mapping[str, List[str]]]:
-    # We sort both releases and dists since we want to keep ordering consistent in the UI.
     return [
-        {"release": release, "dist": sorted(dists) or []}
-        for release, dists in grouped_releases.items()
+        {"release": release, "dist": dists or []} for release, dists in grouped_releases.items()
     ]
 
 

@@ -64,7 +64,6 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 # We want to use the more efficient DISTINCT ON.
                 .distinct("id", "bundle_id", "artifact_count", "date_uploaded")
             )
-
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
 
