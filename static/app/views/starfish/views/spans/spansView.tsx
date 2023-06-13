@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
@@ -11,6 +12,8 @@ import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import SpansTable from './spansTable';
+
+const LIMIT: number = 25;
 
 type Props = {
   moduleName?: ModuleName;
@@ -34,6 +37,14 @@ export default function SpansView(props: Props) {
   const [state, setState] = useState<State>({orderBy: '-time_spent_percentage'});
 
   const {orderBy} = state;
+
+  const {isLoading: areSpansLoading, data: spansData} = useSpanList(
+    props.moduleName ?? ModuleName.ALL,
+    undefined,
+    props.spanCategory,
+    orderBy,
+    LIMIT
+  );
 
   return (
     <Fragment>
@@ -66,6 +77,8 @@ export default function SpansView(props: Props) {
       <PaddedContainer>
         <SpansTable
           moduleName={props.moduleName || ModuleName.ALL}
+          isLoading={areSpansLoading}
+          spansData={spansData}
           orderBy={orderBy}
           onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
         />

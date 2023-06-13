@@ -6,7 +6,6 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -76,20 +75,17 @@ export function SpanTransactionsTable({
   };
 
   return (
-    <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={spanTransactionsWithMetrics}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location}
-      />
-      <Pagination pageLinks={pageLinks} />
-    </Fragment>
+    <GridEditable
+      isLoading={isLoading}
+      data={spanTransactionsWithMetrics}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+      location={location}
+    />
   );
 }
 
