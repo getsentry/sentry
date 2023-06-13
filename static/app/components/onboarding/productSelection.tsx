@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -19,14 +18,21 @@ export enum PRODUCT {
   SESSION_REPLAY = 'session-replay',
 }
 
+export type DisabledProduct = {
+  product: PRODUCT;
+  reason: string;
+};
+
 type Props = {
   defaultSelectedProducts?: PRODUCT[];
+  disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
   skipLazyLoader?: () => void;
 };
 
 export function ProductSelection({
   defaultSelectedProducts,
+  disabledProducts,
   lazyLoader,
   skipLazyLoader,
 }: Props) {
@@ -62,6 +68,15 @@ export function ProductSelection({
     },
     [router, products]
   );
+
+  const performanceProductDisabled = disabledProducts?.find(
+    disabledProduct => disabledProduct.product === PRODUCT.PERFORMANCE_MONITORING
+  );
+
+  const sessionReplayProductDisabled = disabledProducts?.find(
+    disabledProduct => disabledProduct.product === PRODUCT.SESSION_REPLAY
+  );
+
   return (
     <Fragment>
       <TextBlock>
@@ -76,33 +91,38 @@ export function ProductSelection({
       </TextBlock>
       <Products>
         <Tooltip title={t("Let's admit it, we all have errors.")}>
-          <Product
-            disabled
-            data-test-id={`product-${PRODUCT.ERROR_MONITORING}-${PRODUCT.PERFORMANCE_MONITORING}-${PRODUCT.SESSION_REPLAY}`}
-          >
-            <Checkbox checked readOnly size="xs" disabled />
+          <Product disabled permanentDisabled>
+            <Checkbox checked readOnly size="xs" aria-label={t('Error Monitoring')} />
             <div>{t('Error Monitoring')}</div>
           </Product>
         </Tooltip>
         <Tooltip
           title={
-            <TooltipDescription>
-              {t(
-                'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
-              )}
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
-                {t('Read the Docs')}
-              </ExternalLink>
-            </TooltipDescription>
+            performanceProductDisabled?.reason ?? (
+              <TooltipDescription>
+                {t(
+                  'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
+                )}
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </TooltipDescription>
+            )
           }
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
-            data-test-id={`product-${PRODUCT.PERFORMANCE_MONITORING}`}
+            onClick={
+              performanceProductDisabled
+                ? undefined
+                : () => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
+            }
+            disabled={!!performanceProductDisabled}
           >
             <Checkbox
               checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
+              disabled={!!performanceProductDisabled}
+              aria-label={t('Performance Monitoring')}
               size="xs"
               readOnly
             />
@@ -111,23 +131,31 @@ export function ProductSelection({
         </Tooltip>
         <Tooltip
           title={
-            <TooltipDescription>
-              {t(
-                'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-              )}
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
-                {t('Read the Docs')}
-              </ExternalLink>
-            </TooltipDescription>
+            sessionReplayProductDisabled?.reason ?? (
+              <TooltipDescription>
+                {t(
+                  'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+                )}
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </TooltipDescription>
+            )
           }
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
-            data-test-id={`product-${PRODUCT.SESSION_REPLAY}`}
+            onClick={
+              sessionReplayProductDisabled
+                ? undefined
+                : () => handleClickProduct(PRODUCT.SESSION_REPLAY)
+            }
+            disabled={!!sessionReplayProductDisabled}
           >
             <Checkbox
               checked={products.includes(PRODUCT.SESSION_REPLAY)}
+              disabled={!!sessionReplayProductDisabled}
+              aria-label={t('Session Replay')}
               size="xs"
               readOnly
             />
@@ -159,23 +187,26 @@ const Products = styled('div')`
   gap: ${space(1)};
 `;
 
-const Product = styled('div')<{disabled?: boolean}>`
+const Product = styled('div')<{disabled?: boolean; permanentDisabled?: boolean}>`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
   ${p => p.theme.buttonPadding.xs};
-  background: ${p => p.theme.purple100};
-  border: 1px solid ${p => p.theme.purple300};
+  background: ${p =>
+    p.disabled && !p.permanentDisabled ? p.theme.background : p.theme.purple100};
+  border: 1px solid
+    ${p =>
+      p.disabled && !p.permanentDisabled ? p.theme.disabledBorder : p.theme.purple300};
   border-radius: 6px;
-  cursor: pointer;
-  ${p =>
-    p.disabled &&
-    css`
-      > *:not(:last-child) {
-        opacity: 0.5;
-      }
-    `};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  font-weight: 500;
+  opacity: ${p => (p.disabled ? 0.5 : 1)};
+  color: ${p =>
+    p.disabled && !p.permanentDisabled ? p.theme.textColor : p.theme.purple300};
+  input {
+    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  }
 `;
 
 const Divider = styled('hr')`

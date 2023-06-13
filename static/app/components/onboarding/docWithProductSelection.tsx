@@ -8,20 +8,84 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  DisabledProduct,
+  PRODUCT,
+  ProductSelection,
+} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {OnboardingPlatformDoc} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
+function getDefaultSelectedProducts({
+  hasSessionReplay,
+  hasPerformance,
+}: {
+  hasPerformance: boolean;
+  hasSessionReplay: boolean;
+}) {
+  const defaultSelectedProducts: PRODUCT[] = [];
+
+  if (hasSessionReplay) {
+    defaultSelectedProducts.push(PRODUCT.SESSION_REPLAY);
+  }
+
+  if (hasPerformance) {
+    defaultSelectedProducts.push(PRODUCT.PERFORMANCE_MONITORING);
+  }
+
+  return defaultSelectedProducts;
+}
+
+function getDisabledProducts({
+  hasSessionReplay,
+  hasPerformance,
+  hasRightsToUgradePlan,
+}: {
+  hasPerformance: boolean;
+  hasRightsToUgradePlan: boolean;
+  hasSessionReplay: boolean;
+}) {
+  const disabledProducts: DisabledProduct[] = [];
+
+  if (!hasSessionReplay) {
+    const reason = hasRightsToUgradePlan
+      ? t('To use Session Replay, update your organizations plan to its latest version.')
+      : t(
+          'To use Session Replay, request an owner in your organization to update its plan to the latest version.'
+        );
+
+    disabledProducts.push({
+      product: PRODUCT.SESSION_REPLAY,
+      reason,
+    });
+  }
+
+  if (!hasPerformance) {
+    const reason = hasRightsToUgradePlan
+      ? t('To use Performance, update your organizations plan to its latest version.')
+      : t(
+          'To use Performance, request an owner in your organization to update its plan to the latest version.'
+        );
+
+    disabledProducts.push({
+      product: PRODUCT.PERFORMANCE_MONITORING,
+      reason,
+    });
+  }
+
+  return disabledProducts;
+}
+
 export function DocWithProductSelection({
-  organization,
   location,
   newOrg,
   currentPlatform,
@@ -29,10 +93,10 @@ export function DocWithProductSelection({
 }: {
   currentPlatform: PlatformKey;
   location: Location;
-  organization: Organization;
   project: Project;
   newOrg?: boolean;
 }) {
+  const organization = useOrganization();
   const [showLoaderDocs, setShowLoaderDocs] = useState(currentPlatform === 'javascript');
 
   const loadPlatform = useMemo(() => {
@@ -83,6 +147,24 @@ export function DocWithProductSelection({
     );
   }
 
+  const hasSessionReplay = organization.features.includes('session-replay');
+  const hasPerformance = organization.features.includes('performance-view');
+  const hasRightsToUgradePlan =
+    organization.orgRole === 'owner' ||
+    organization.orgRole === 'manager' ||
+    organization.orgRole === 'admin';
+
+  const defaultSelectedProducts: PRODUCT[] = getDefaultSelectedProducts({
+    hasSessionReplay,
+    hasPerformance,
+  });
+
+  const disabledProducts: DisabledProduct[] = getDisabledProducts({
+    hasSessionReplay,
+    hasPerformance,
+    hasRightsToUgradePlan,
+  });
+
   return (
     <Fragment>
       {newOrg && (
@@ -92,7 +174,8 @@ export function DocWithProductSelection({
         />
       )}
       <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+        defaultSelectedProducts={defaultSelectedProducts}
+        disabledProducts={disabledProducts}
       />
       {isLoading ? (
         <LoadingIndicator />
