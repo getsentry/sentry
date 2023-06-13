@@ -28,6 +28,17 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+        yield
+
+        options.unregister("readonly_option")
+        options.unregister("int_option")
+        options.unregister("str_option")
+        options.unregister("map_option")
+        options.unregister("list_option")
+        options.unregister("drifted_option")
+        options.unregister("change_channel_option")
+        options.unregister("to_unset_option")
+
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
         options.delete("int_option")

@@ -22,6 +22,17 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+        yield
+
+        options.unregister("readonly_option")
+        options.unregister("int_option")
+        options.unregister("str_option")
+        options.unregister("map_option")
+        options.unregister("list_option")
+        options.unregister("drifted_option")
+        options.unregister("change_channel_option")
+        options.unregister("to_unset_option")
+
     def test_dump(self) -> None:
         options.set("int_option", 30, channel=UpdateChannel.AUTOMATOR)
         options.set("str_option", "blabla2", channel=UpdateChannel.CLI)
