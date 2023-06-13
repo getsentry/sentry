@@ -1478,7 +1478,6 @@ module = [
     "tests.sentry.db.models.fields.bitfield.test_bitfield",
     "tests.sentry.db.models.fields.test_jsonfield",
     "tests.sentry.db.models.fields.test_picklefield",
-    "tests.sentry.db.models.test_utils",
     "tests.sentry.db.postgres.schema.safe_migrations.integration.test_migrations",
     "tests.sentry.db.test_deletion",
     "tests.sentry.db.test_mixin",
