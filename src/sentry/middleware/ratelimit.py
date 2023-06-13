@@ -104,6 +104,7 @@ class RatelimitMiddleware:
                 logging.exception(
                     "Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN"
                 )
+        return None
 
     def process_response(self, request: Request, response: Response) -> Response:
         with metrics.timer("middleware.ratelimit.process_response"):

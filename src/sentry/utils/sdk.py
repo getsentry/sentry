@@ -552,6 +552,8 @@ def check_current_scope_transaction(
                 "scope_transaction": scope._transaction,
                 "request_transaction": transaction_from_request,
             }
+        else:
+            return None
 
 
 def capture_exception_with_scope_check(

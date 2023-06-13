@@ -1,10 +1,9 @@
-from typing import List
+from __future__ import annotations
 
 from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models.organization import Organization
 
 from .organization import OrganizationEndpoint
 
@@ -18,14 +17,14 @@ class FlaggedOrganizationEndpoint(OrganizationEndpoint):
     require_all_feature_flags = True
 
     @property
-    def feature_flags(self) -> List[str]:
+    def feature_flags(self) -> list[str]:
         raise NotImplementedError(
             "Requires set 'feature_flags' property to restrict this endpoint."
         )
 
     def convert_args(self, request: Request, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
-        organization: Organization = parsed_kwargs.get("organization")
+        organization = parsed_kwargs.get("organization")
         feature_gate = [
             features.has(feature, organization, actor=request.user)
             for feature in self.feature_flags

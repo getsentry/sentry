@@ -24,7 +24,7 @@ class DummyNotification(BaseNotification):
     reference = None
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        pass
+        return "My Subject"
 
     def determine_recipients(self) -> Iterable[Team | RpcUser]:
         return []
