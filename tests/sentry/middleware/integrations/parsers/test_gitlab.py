@@ -19,7 +19,7 @@ class GitlabRequestParserTest(TestCase, BaseTestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path = f"{IntegrationControlMiddleware.webhook_prefix}gitlab/webhook/"
+    path = f"{IntegrationControlMiddleware.integration_prefix}gitlab/webhook/"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
