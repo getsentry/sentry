@@ -494,12 +494,20 @@ class EnvironmentMixin:
 
 
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None):
+    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+        """
+        Parse common stats parameters from the query string. This includes
+        `since`, `until`, and `resolution`.
+
+        :param boolean restrict_rollups: When False allows any rollup value to
+        be specified. Be careful using this as this allows for fine grain
+        rollups that may put strain on the system.
+        """
         try:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
