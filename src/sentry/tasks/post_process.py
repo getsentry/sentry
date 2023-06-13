@@ -1073,8 +1073,10 @@ def sdk_crash_monitoring(job: PostProcessJob):
         )
         return None
 
-    with metrics.timer("post_process.sdk_crash_monitoring.duration"), sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
-            sdk_crash_detection.detect_sdk_crash()
+    with metrics.timer("post_process.sdk_crash_monitoring.duration"), sentry_sdk.start_span(
+        op="tasks.post_process_group.sdk_crash_monitoring"
+    ):
+        sdk_crash_detection.detect_sdk_crash()
 
 
 def plugin_post_process_group(plugin_slug, event, **kwargs):
