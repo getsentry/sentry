@@ -204,7 +204,7 @@ const getEventView = (
   });
 };
 
-const getCummulativeTimeEventView = (
+const getCumulativeTimeEventView = (
   pageFilters: PageFilters,
   query: string,
   groups: string[]
