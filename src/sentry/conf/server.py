@@ -3446,4 +3446,6 @@ SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
 
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
+# Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
+# Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
