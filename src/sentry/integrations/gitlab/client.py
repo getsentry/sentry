@@ -4,9 +4,12 @@ from typing import Any, Mapping, Sequence
 from urllib.parse import quote
 
 from django.urls import reverse
+from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
 from sentry.models import Repository
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
 
@@ -40,7 +43,7 @@ class GitLabApiClientPath:
         return f"{base_url}{API_VERSION}{path}"
 
 
-class GitLabSetupClient(ApiClient):
+class GitlabProxySetupClient(IntegrationProxyClient):
     """
     API Client that doesn't require an installation.
     This client is used during integration setup to fetch data
@@ -50,9 +53,19 @@ class GitLabSetupClient(ApiClient):
     integration_name = "gitlab_setup"
 
     def __init__(self, base_url, access_token, verify_ssl):
-        super().__init__(verify_ssl)
+        super().__init__(verify_ssl=verify_ssl)
         self.base_url = base_url
         self.token = access_token
+
+    def build_url(self, path: str) -> str:
+        path = GitLabApiClientPath.build_api_url(self.base_url, path)
+        path = super().build_url(path=path)
+        return path
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        prepared_request.headers["Authorization"] = f"Bearer {self.token}"
+        return prepared_request
 
     def get_group(self, group):
         """Get a group based on `path` which is a slug.
@@ -63,16 +76,6 @@ class GitLabSetupClient(ApiClient):
         group = quote(group, safe="")
         path = GitLabApiClientPath.group.format(group=group)
         return self.get(path)
-
-    def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": f"Bearer {self.token}"}
-        return self._request(
-            method,
-            GitLabApiClientPath.build_api_url(self.base_url, path),
-            headers=headers,
-            data=data,
-            params=params,
-        )
 
 
 class GitLabApiClient(ApiClient):

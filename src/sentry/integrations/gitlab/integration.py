@@ -28,7 +28,7 @@ from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitLabApiClient, GitLabSetupClient
+from .client import GitLabApiClient, GitlabProxySetupClient
 from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
@@ -359,7 +359,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         )
 
     def get_group_info(self, access_token, installation_data):
-        client = GitLabSetupClient(
+        client = GitlabProxySetupClient(
             installation_data["url"], access_token, installation_data["verify_ssl"]
         )
         try:
