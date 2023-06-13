@@ -220,9 +220,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         # XXX(CEO): these are based on the current sort D and E and are subject to change
         if choice:
-            aggregate_kwargs["betterPriority"]["issueHalflifeHours"] = 12
+            aggregate_kwargs["better_priority"]["issue_halflife_hours"] = 12
         if choice == "variant1":
-            aggregate_kwargs["betterPriority"]["relative_volume"] = 0
+            aggregate_kwargs["better_priority"]["relative_volume"] = 0
 
         return aggregate_kwargs
 
@@ -249,7 +249,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     # force into variant1 for internal testing
                     if features.has(
                         "organizations:issue-list-better-priority-sort",
-                        org=organization,
+                        organization,
                         actor=request.user,
                     ):
                         choice = "variant1"
