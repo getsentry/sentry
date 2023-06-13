@@ -22,7 +22,8 @@ function getGraphQlErrorsFromResponseContext(event: Event): GraphQlErrors {
     responseData &&
     typeof responseData === 'object' &&
     'errors' in responseData &&
-    Array.isArray(responseData.errors)
+    Array.isArray(responseData.errors) &&
+    responseData.errors.every(error => typeof error === 'object')
   ) {
     return responseData.errors;
   }
@@ -34,7 +35,7 @@ function getErrorLineNumbers(errors: GraphQlErrors): number[] {
   return uniq(
     errors.flatMap(
       error =>
-        error.locations?.map(loc => loc.line).filter(line => typeof line === 'number') ??
+        error.locations?.map(loc => loc?.line).filter(line => typeof line === 'number') ??
         []
     )
   );
