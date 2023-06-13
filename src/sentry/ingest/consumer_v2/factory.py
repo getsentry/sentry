@@ -53,7 +53,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # them is being processed. We will use a simple serial `RunTask` for those
         # for now.
         if self.num_processes > 1 and self.consumer_type != ConsumerType.Attachments:
-            return RunTaskWithMultiprocessing(
+            next_step = RunTaskWithMultiprocessing(
                 process_ingest_message,
                 CommitOffsets(commit),
                 num_processes=self.num_processes,
