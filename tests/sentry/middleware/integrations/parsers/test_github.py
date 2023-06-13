@@ -34,6 +34,7 @@ class GithubRequestParserTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
+        assert response.status_code == 200
         assert response.content == b"no-error"
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
