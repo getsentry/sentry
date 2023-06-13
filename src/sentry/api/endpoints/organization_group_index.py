@@ -283,14 +283,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
         """
-
-        if request.GET.get("sort") == "betterPriority" and not features.has(
-            "organizations:issue-list-better-priority-sort", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "This organization does not have the better priority sort feature."},
-                status=400,
-            )
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_stats_period(request.GET)
