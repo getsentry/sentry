@@ -3113,19 +3113,6 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
-
-# The grouping strategy to use for driving similarity-v2. You can add multiple
-# strategies here to index them all. This is useful for transitioning a
-# similarity dataset to newer grouping configurations.
-#
-# The dictionary value represents the redis prefix to use.
-#
-# Check out `test_similarity_config_migration` to understand the procedure and risks.
-SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
-    "similarity:2020-07-23": "a",
-}
 
 # If this is turned on, then sentry will perform automatic grouping updates.
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False

@@ -10,7 +10,6 @@ from sentry.grouping.strategies.base import (
     produces_variants,
     strategy,
 )
-from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 from sentry.interfaces.message import Message
 
 _irrelevant_re = re.compile(
@@ -126,7 +125,6 @@ def message_v1(
                 id="message",
                 values=[message_trimmed],
                 hint=hint,
-                similarity_encoder=text_shingle_encoder(5),
             )
         }
     else:
@@ -134,6 +132,5 @@ def message_v1(
             context["variant"]: GroupingComponent(
                 id="message",
                 values=[interface.message or interface.formatted or ""],
-                similarity_encoder=text_shingle_encoder(5),
             )
         }
