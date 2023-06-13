@@ -7,7 +7,7 @@ import pytz
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling import generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
@@ -21,7 +21,7 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     generate_sliding_window_cache_key,
     mark_sliding_window_org_executed,
 )
-from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
+from sentry.dynamic_sampling.rules.utils import generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     boost_low_volume_transactions,
@@ -284,7 +284,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
     @patch(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects.utils.schedule_invalidate_project_config"
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
@@ -317,7 +317,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert schedule_invalidate_project_config.call_count == 2
 
     @patch(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects.utils.schedule_invalidate_project_config"
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
@@ -1029,7 +1029,7 @@ class TestSlidingWindowTasks(TasksTestCase):
                     "value": 0.5,
                 }
 
-    @patch("sentry.dynamic_sampling.tasks.sliding_window.utils.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
@@ -1062,7 +1062,7 @@ class TestSlidingWindowTasks(TasksTestCase):
 
         assert schedule_invalidate_project_config.call_count == 2
 
-    @patch("sentry.dynamic_sampling.tasks.sliding_window.utils.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
@@ -1095,7 +1095,7 @@ class TestSlidingWindowTasks(TasksTestCase):
 
         schedule_invalidate_project_config.assert_not_called()
 
-    @patch("sentry.dynamic_sampling.tasks.sliding_window.utils.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
