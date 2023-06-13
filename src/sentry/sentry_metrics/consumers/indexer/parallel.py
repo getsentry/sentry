@@ -10,11 +10,12 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
+from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
-    initialize_subprocess_state,
+    initialize_sentry_and_global_consumer_state,
 )
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
@@ -28,7 +29,6 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -124,10 +124,10 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             slicing_router=self.__slicing_router,
         )
-        parallel_strategy = RunTaskWithMultiprocessing(
-            function=MessageProcessor(self.__config).process_messages,
-            next_step=Unbatcher(next_step=producer),
-            num_processes=self.__processes,
+        parallel_strategy = ParallelTransformStep(
+            MessageProcessor(self.__config).process_messages,
+            Unbatcher(next_step=producer),
+            self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
             max_batch_time=self.__max_parallel_batch_time / 1000,
@@ -140,7 +140,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             # this module, and pass that function here, it would attempt to
             # pull in a bunch of modules that try to read django settings at
             # import time
-            initializer=functools.partial(initialize_subprocess_state, self.__config),
+            initializer=functools.partial(
+                initialize_sentry_and_global_consumer_state, self.__config
+            ),
         )
 
         strategy = BatchMessages(

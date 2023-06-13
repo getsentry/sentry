@@ -7,12 +7,9 @@ from arroyo.backends.kafka.configuration import build_kafka_consumer_configurati
 from arroyo.backends.kafka.consumer import KafkaConsumer
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
-from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
-from arroyo.processing.strategies.run_task_with_multiprocessing import (
-    RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
-)
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
-from arroyo.types import Topic, TStrategyPayload
+from arroyo.types import FilteredPayload, Message, Topic, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 
 from sentry.metrics.base import MetricsBackend
@@ -102,30 +99,19 @@ def _initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
-class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
-    """
-    A variant of arroyo's RunTaskWithMultiprocessing that initializes Sentry
-    for you, and ensures global metric tags in the subprocess are inherited
-    from the main process.
-    """
-
+class RunTaskWithMultiprocessing(ProcessingStrategy[Union[FilteredPayload, TStrategyPayload]]):
     def __new__(
         cls,
-        *,
+        *function: Callable[[Message[TStrategyPayload]], TResult],
+        next_step: ProcessingStrategy[Union[FilteredPayload, TResult]],
         initializer: Optional[Callable[[], None]] = None,
         **kwargs: Any,
-    ) -> RunTaskWithMultiprocessing:
+    ) -> RunTaskWithMultiprocessing[Union[FilteredPayload, TStrategyPayload]]:
 
         from django.conf import settings
 
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
             from arroyo.processing.strategies.run_task import RunTask
-
-            kwargs.pop("num_processes", None)
-            kwargs.pop("input_block_size", None)
-            kwargs.pop("output_block_size", None)
-            kwargs.pop("max_batch_size", None)
-            kwargs.pop("max_batch_time", None)
 
             return RunTask(**kwargs)  # type: ignore[return-value]
         else:
