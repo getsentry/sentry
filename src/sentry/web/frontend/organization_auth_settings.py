@@ -32,12 +32,14 @@ OK_REMINDERS_SENT = _(
 
 def auth_provider_settings_form(provider, auth_provider, organization, request):
     class AuthProviderSettingsForm(forms.Form):
+        disabled = provider.is_partner
         require_link = forms.BooleanField(
             label=_("Require SSO"),
             help_text=_(
                 "Require members use a valid linked SSO account to access this organization"
             ),
             required=False,
+            disabled=disabled,
         )
 
         enable_scim = (
@@ -45,6 +47,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
                 label=_("Enable SCIM"),
                 help_text=_("Enable SCIM to manage Memberships and Teams via your Provider"),
                 required=False,
+                disabled=disabled,
             )
             if provider.can_use_scim(organization.id, request.user)
             else None
@@ -56,6 +59,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             help_text=_(
                 "The default role new members will receive when logging in for the first time."
             ),
+            disabled=disabled,
         )
 
     initial = {
@@ -113,6 +117,8 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         if request.method == "POST":
             op = request.POST.get("op")
             if op == "disable":
+                if provider.is_partner:
+                    return HttpResponse("Can't disable partner authentication provider", status=405)
                 self._disable_provider(request, organization, auth_provider)
 
                 messages.add_message(request, messages.SUCCESS, OK_PROVIDER_DISABLED)
@@ -192,6 +198,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             "scim_api_token": auth_provider.get_scim_token(),
             "scim_url": get_scim_url(auth_provider, organization),
             "content": response,
+            "disabled": provider.is_partner,
         }
 
         return self.respond("sentry/organization-auth-provider-settings.html", context)
