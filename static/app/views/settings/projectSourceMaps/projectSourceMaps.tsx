@@ -19,9 +19,10 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
+import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
@@ -73,11 +74,14 @@ function SourceMapsTableRow({
       </IDColumn>
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
-          <Tooltip title={t('No bundle connected to this release')}>
-            <IconWrapper>
-              <IconWarning color="warning" size="sm" />
-            </IconWrapper>
-          </Tooltip>
+          <NoArtifactsUploadedWrapper>
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t('A Release was created, but no artifacts were uploaded')}
+            />
+            {'0'}
+          </NoArtifactsUploadedWrapper>
         ) : (
           <Count value={fileCount} />
         )}
@@ -435,6 +439,8 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
-const IconWrapper = styled('div')`
+const NoArtifactsUploadedWrapper = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
