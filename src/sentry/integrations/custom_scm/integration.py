@@ -79,8 +79,8 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
         """
         repos = repository_service.get_repositories(
             organization_id=self.organization_id,
-            provider__isnull=True,
-            integration_id__isnull=True,
+            has_provider=False,
+            has_integration=False,
             status=ObjectStatus.ACTIVE,
         )
         return [{"name": repo.name, "identifier": str(repo.id)} for repo in repos]
