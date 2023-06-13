@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from enum import Enum
 from typing import Any
 
@@ -13,10 +14,12 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
 
 ads_connection_pool = connection_from_url(
@@ -35,7 +38,6 @@ FUNCTIONS_PER_QUERY = 10
 class TrendType(Enum):
     REGRESSION = "regression"
     IMPROVEMENT = "improvement"
-    NONE = "none"
 
     def as_sort(self):
         if self is TrendType.REGRESSION:
@@ -43,9 +45,6 @@ class TrendType(Enum):
 
         if self is TrendType.IMPROVEMENT:
             return "trend_percentage()"
-
-        if self is TrendType.NONE:
-            return "no_sort"
 
         raise ValueError(f"Cannot sort by TrendType: {self.value}")
 
@@ -90,9 +89,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        def get_event_stats(columns, query, params, rollup, zerofill_results, comparison_delta):
-            # TODO: need to check how many buckets this creates per group for various periods
-            rollup = max(rollup, 60 * 60)  # ensure minimum roll up of 1 hour
+        def get_event_stats(columns, query, params, _rollup, zerofill_results, comparison_delta):
+            rollup = get_rollup_from_range(params["end"] - params["start"])
 
             top_functions = functions.query(
                 selected_columns=["project.id", "fingerprint", "package", "function", "count()"],
@@ -105,8 +103,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
             set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
 
-            # TODO: does this fit within in a single query, if not,
-            # do we need to break this into multiple queries
             results = functions.top_events_timeseries(
                 timeseries_columns=columns,
                 selected_columns=["project.id", "fingerprint"],
@@ -133,14 +129,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 "trendFunction": data["function"],
             }
 
-            response = ads_connection_pool.urlopen(
-                "POST",
-                "/trends/breakpoint-detector",
-                body=json.dumps(trends_request),
-                headers={"content-type": "application/json;charset=utf-8"},
-            )
-
-            return json.loads(response.data)["data"]
+            return trends_query(trends_request)
 
         stats_data = self.get_event_stats_data(
             request,
@@ -180,3 +169,47 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 default_per_page=5,
                 max_per_page=5,
             )
+
+
+def get_rollup_from_range(date_range: timedelta, top_functions=TOP_FUNCTIONS_LIMIT) -> int:
+    interval = parse_stats_period(get_interval_from_range(date_range))
+    if interval is None:
+        interval = timedelta(hours=1)
+    validate_interval(interval, InvalidSearchQuery(), date_range, top_functions)
+    return int(interval.total_seconds())
+
+
+def get_interval_from_range(date_range: timedelta) -> str:
+    """
+    This is a specialized variant of the generic `get_interval_from_range`
+    function tailored for the function trends use case.
+
+    We have a limit of 10,000 from snuba, and if we limit ourselves to 50
+    unique functions, this gives us room for 200 data points per function.
+    The default `get_interval_from_range` is fairly close to this already
+    so this implementation provides this additional guarantee.
+    """
+    if date_range > timedelta(days=60):
+        return "12h"
+
+    if date_range > timedelta(days=30):
+        return "8h"
+
+    if date_range > timedelta(days=14):
+        return "4h"
+
+    if date_range > timedelta(days=7):
+        return "2h"
+
+    return "1h"
+
+
+def trends_query(trends_request):
+    response = ads_connection_pool.urlopen(
+        "POST",
+        "/trends/breakpoint-detector",
+        body=json.dumps(trends_request),
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
+
+    return json.loads(response.data)["data"]

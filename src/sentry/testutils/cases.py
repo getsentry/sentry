@@ -1762,7 +1762,10 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
-class ProfilesSnubaTestCase(TestCase, BaseTestCase):
+class ProfilesSnubaTestCase(
+    TestCase,
+    BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
+):
     def setUp(self):
         super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
@@ -1825,15 +1828,13 @@ class ProfilesSnubaTestCase(TestCase, BaseTestCase):
         # this is a different hashing algorithm than is used by vroom
         # but it's not a big deal
         hasher = hashlib.md5()
-        if function.get("module") is not None:
-            hasher.update(function["module"].encode())
-        elif function.get("package") is not None:
+        if function.get("package") is not None:
             hasher.update(function["package"].encode())
         else:
             hasher.update(b"")
         hasher.update(b":")
         hasher.update(function["function"].encode())
-        return int.from_bytes(hasher.digest()[:16], "big")
+        return int.from_bytes(hasher.digest()[:8], "big")
 
 
 @pytest.mark.snuba
