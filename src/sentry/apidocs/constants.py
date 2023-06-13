@@ -3,11 +3,11 @@ from drf_spectacular.utils import OpenApiResponse
 # 200
 RESPONSE_SUCCESS = OpenApiResponse(description="Success")
 
-# 201 - Created
-RESPONSE_NO_CONTENT = OpenApiResponse(description="No Content")
-
 # 202 - Accepted (not yet acted on fully)
 RESPONSE_ACCEPTED = OpenApiResponse(description="Accepted")
+
+# 204 - No Content
+RESPONSE_NO_CONTENT = OpenApiResponse(description="No Content")
 
 # 208
 RESPONSE_ALREADY_REPORTED = OpenApiResponse(description="Already Reported")

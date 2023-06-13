@@ -1,5 +1,6 @@
 from typing import Any, Mapping, MutableMapping
 
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +12,14 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamWithProjectsSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOTFOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Organization,
@@ -62,8 +71,10 @@ class RelaxedOrganizationPermission(OrganizationPermission):
     }
 
 
+@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
+    public = {"POST"}
     permission_classes = [RelaxedOrganizationPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
@@ -133,6 +144,26 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
         )
 
+    @extend_schema(
+        operation_id="Join, Request Access to, or Add a Member to a Team",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.member_id("The ID of the organization member to add to the team"),
+            GlobalParams.TEAM_SLUG,
+        ],
+        request=None,
+        responses={
+            201: TeamSerializer,
+            202: RESPONSE_ACCEPTED,
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: OpenApiResponse(
+                description="This team is managed through your organization's identity provider"
+            ),
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=TeamExamples.ADD_TO_TEAM,
+    )
     def post(
         self,
         request: Request,
@@ -143,14 +174,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Join, request access to or add a member to a team.
 
-        If the user needs permission to join the team, an access request will
-        be generated and the returned status code will be 202.
+        If the user needs permission to join the team, an access request will be generated and the returned status code will be 202.
 
-        If the user is already a member of the team, this will simply return
-        a 204.
+        If the user is already a member of the team, this will return a 204.
 
-        If the team is provisioned through an identity provider, then the user
-        cannot join or request to join the team through Sentry.
+        If the team is provisioned through an identity provider, then the user cannot join or request to join the team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
