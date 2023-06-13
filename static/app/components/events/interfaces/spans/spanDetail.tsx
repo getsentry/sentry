@@ -99,7 +99,7 @@ function SpanDetail(props: Props) {
     // Run on mount.
 
     const {span, organization, event} = props;
-    if ('type' in span) {
+    if (!('op' in span)) {
       return;
     }
 
