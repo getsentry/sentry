@@ -7,7 +7,7 @@ from arroyo.processing.strategies import MessageRejected, ProcessingStrategy, Ru
 from arroyo.types import FilteredPayload, Message
 
 from sentry import options
-from sentry.monitoring.queues import is_queue_healthy, monitor_queues
+from sentry.monitoring.queues import is_queue_healthy
 
 # As arroyo would otherwise busy-wait, we will sleep for a short time
 # when a message is rejected.
@@ -19,9 +19,6 @@ class HealthChecker:
         self.last_check: float = 0
         # Queue is healthy by default
         self.is_queue_healthy = True
-
-        # TODO: this will eventually move to the monitor command
-        monitor_queues()
 
     def is_healthy(self) -> bool:
         now = time.time()

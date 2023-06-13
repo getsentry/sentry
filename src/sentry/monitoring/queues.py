@@ -1,5 +1,4 @@
 from datetime import datetime
-from threading import Thread
 from time import sleep
 from typing import Dict, List, Tuple
 from urllib.parse import urlparse
@@ -170,7 +169,7 @@ def _update_queue_stats(queue_history: Dict[str, int]) -> None:
         pipeline.execute()
 
 
-def _run_queue_stats_updater() -> None:
+def run_queue_stats_updater() -> None:
     queue_history = {queue: 0 for queue in QUEUES}
     while True:
         if not options.get("backpressure.monitor_queues.enable_status"):
@@ -203,12 +202,3 @@ def _list_queues_over_threshold(
     strike_threshold: int, queue_history: Dict[str, int]
 ) -> List[Tuple[str, int]]:
     return [(queue, count >= strike_threshold) for (queue, count) in queue_history.items()]
-
-
-def monitor_queues():
-    if backend is None:
-        return
-    queue_stats_updater_process = Thread(
-        target=_run_queue_stats_updater,
-    )
-    queue_stats_updater_process.start()
