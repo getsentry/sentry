@@ -15,7 +15,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import AuditLogEntry, Integration
+from sentry.models import AuditLogEntry, Integration, RuleSnooze
 from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
@@ -132,6 +132,42 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
             assert resp.data["aggregate"] == "count_unique(user)"
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
+
+    def test_with_snooze_rule(self):
+        self.login_as(self.member_user)
+
+        RuleSnooze.objects.create(
+            user_id=self.member_user.id,
+            owner_id=self.member_user.id,
+            alert_rule=self.alert_rule,
+            until=None,
+        )
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id
+            )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == "You"
+
+    def test_with_snooze_rule_everyone(self):
+        user2 = self.create_user("user2@example.com")
+        self.login_as(self.member_user)
+
+        RuleSnooze.objects.create(
+            owner_id=user2.id,
+            alert_rule=self.alert_rule,
+            until=None,
+        )
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id
+            )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
