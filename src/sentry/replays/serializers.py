@@ -1,9 +1,8 @@
 from sentry.api.serializers import Serializer
-from sentry.replays.models import ReplayRecordingSegment
 
 
 class ReplayRecordingSegmentSerializer(Serializer):
-    def serialize(self, obj: ReplayRecordingSegment, attrs, user):
+    def serialize(self, obj, attrs, user):
         return {
             "replayId": obj.replay_id,
             "segmentId": obj.segment_id,

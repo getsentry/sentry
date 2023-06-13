@@ -921,7 +921,6 @@ module = [
     "sentry.replays.lib.storage",
     "sentry.replays.models",
     "sentry.replays.query",
-    "sentry.replays.serializers",
     "sentry.replays.tasks",
     "sentry.replays.testutils",
     "sentry.replays.usecases.ingest.dom_index",
