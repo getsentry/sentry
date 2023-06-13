@@ -23,7 +23,7 @@ class _DefaultEnumHelpers:
     def get_default_team_status_value() -> int:
         from sentry.models import TeamStatus
 
-        return TeamStatus.ACTIVE.value
+        return TeamStatus.ACTIVE
 
     @staticmethod
     def get_default_invite_status_value() -> int:

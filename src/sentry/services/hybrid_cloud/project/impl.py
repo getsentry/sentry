@@ -20,7 +20,7 @@ class DatabaseBackedProjectService(ProjectService):
 
     def update_option(self, *, project: RpcProject, key: str, value: OptionValue) -> bool:
         orm_project = Project.objects.get(id=project.id)
-        return ProjectOption.objects.set_value(orm_project, key, value)  # type: ignore[no-any-return]
+        return ProjectOption.objects.set_value(orm_project, key, value)
 
     def delete_option(self, *, project: RpcProject, key: str) -> None:
         orm_project = Project.objects.get(id=project.id)
