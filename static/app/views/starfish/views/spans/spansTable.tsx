@@ -48,8 +48,7 @@ export type Keys =
   | 'p95(span.duration)'
   | 'sps_percent_change()'
   | 'sum(span.duration)'
-  | 'time_spent_percentage()'
-  | 'percentile_percent_change(span.duration, 0.95)';
+  | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({

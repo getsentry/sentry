@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {ComparisonLabel} from 'sentry/views/starfish/components/samplesTable/common';
 
 type Props = {
@@ -14,7 +14,7 @@ export default function ThroughputCell({throughputPerSecond, delta}: Props) {
   const throughput = throughputPerSecond ? throughputPerSecond.toFixed(2) : '--';
   return (
     <Container>
-      <span>{`${throughput}/${t('s')}`}</span>
+      <span>{`${formatAbbreviatedNumber(throughput)}/${t('s')}`}</span>
       {delta ? (
         <ComparisonLabel value={delta * -1}>
           {delta > 0 ? '+' : ''}
