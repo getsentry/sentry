@@ -13,9 +13,9 @@ export default function hydrateSpans(
     return {
       ...frame,
       endTimestamp: end,
-      offsetMS: Math.abs(start.getTime() - startTimestampMs),
+      offsetMs: Math.abs(start.getTime() - startTimestampMs),
       startTimestamp: start,
-      timestampMS: start.getTime(),
+      timestampMs: start.getTime(),
 
       // TODO: do we need this added as well?
       // id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,

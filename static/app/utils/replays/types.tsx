@@ -52,9 +52,18 @@ export function isOptionFrameEvent(
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type HydratedTimestamp = {
-  offsetMS: number;
+  /**
+   * The difference in timestamp and replay.started_at, in millieseconds
+   */
+  offsetMs: number;
+  /**
+   * The Date when the breadcrumb happened
+   */
   timestamp: Date;
-  timestampMS: number;
+  /**
+   * Alias of timestamp, in milliseconds
+   */
+  timestampMs: number;
 };
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame, {category: Category}>,
@@ -62,10 +71,26 @@ type HydratedBreadcrumb<Category extends string> = Overwrite<
 >;
 
 type HydratedStartEndDate = {
+  /**
+   * The end Date of the span
+   */
   endTimestamp: Date;
-  offsetMS: number;
+  /**
+   * The difference in startTimestamp and replay.started_at, in millieseconds
+   */
+  offsetMs: number;
+  /**
+   * The start Date of the span
+   *
+   * See also timestampMs
+   */
   startTimestamp: Date;
-  timestampMS: number; // Included to make sorting with `HydratedBreadcrumb` easier
+  /**
+   * Alias of startTimestamp, in milliseconds
+   *
+   * Included to make sorting with `HydratedBreadcrumb` easier
+   */
+  timestampMs: number;
 };
 type HydratedSpan<Op extends string> = Overwrite<
   Extract<TRawSpanFrame, {op: Op}>,

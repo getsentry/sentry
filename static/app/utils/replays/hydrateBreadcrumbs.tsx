@@ -12,9 +12,9 @@ export default function hydrateBreadcrumbs(
     const time = new Date(frame.timestamp * 1000);
     return {
       ...frame,
-      offsetMS: Math.abs(time.getTime() - startTimestampMs),
+      offsetMs: Math.abs(time.getTime() - startTimestampMs),
       timestamp: time,
-      timestampMS: time.getTime(),
+      timestampMs: time.getTime(),
     };
   });
 }
@@ -25,9 +25,9 @@ export function replayInitBreadcrumb(replayRecord: ReplayRecord): BreadcrumbFram
   return {
     category: 'replay.init',
     message: initialUrl,
-    offsetMS: 0,
+    offsetMs: 0,
     timestamp: replayRecord.started_at,
-    timestampMS: replayRecord.started_at.getTime(),
+    timestampMs: replayRecord.started_at.getTime(),
     type: BreadcrumbType.INIT, // For compatibility reasons. See BreadcrumbType
   };
 }

@@ -23,9 +23,9 @@ export default function hydrateErrors(
         projectSlug: error['project.name'],
       },
       message: error.title,
-      offsetMS: Math.abs(time.getTime() - startTimestampMs),
+      offsetMs: Math.abs(time.getTime() - startTimestampMs),
       timestamp: time,
-      timestampMS: time.getTime(),
+      timestampMs: time.getTime(),
       type: BreadcrumbType.ERROR, // For compatibility reasons. See BreadcrumbType
     };
   });

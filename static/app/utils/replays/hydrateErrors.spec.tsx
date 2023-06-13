@@ -3,7 +3,7 @@ import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
 describe('hydrateErrors', () => {
-  it('should set the timestamp & offsetMS for each span in the list', () => {
+  it('should set the timestamp & offsetMs for each span in the list', () => {
     const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
     const errors = [
       TestStubs.Replay.RawReplayError({timestamp: new Date('2023/12/23')}),
@@ -22,9 +22,9 @@ describe('hydrateErrors', () => {
           projectSlug: 'javascript',
         },
         message: 'A Redirect with :orgId param on customer domain',
-        offsetMS: 0,
+        offsetMs: 0,
         timestamp: new Date('2023/12/23'),
-        timestampMS: 1703307600000,
+        timestampMs: 1703307600000,
         type: 'error',
       },
       {
@@ -37,9 +37,9 @@ describe('hydrateErrors', () => {
           projectSlug: 'javascript',
         },
         message: 'A Redirect with :orgId param on customer domain',
-        offsetMS: ONE_DAY_MS,
+        offsetMs: ONE_DAY_MS,
         timestamp: new Date('2023/12/24'),
-        timestampMS: 1703307600000 + ONE_DAY_MS,
+        timestampMs: 1703307600000 + ONE_DAY_MS,
         type: 'error',
       },
       {
@@ -52,9 +52,9 @@ describe('hydrateErrors', () => {
           projectSlug: 'javascript',
         },
         message: 'A Redirect with :orgId param on customer domain',
-        offsetMS: ONE_DAY_MS * 2,
+        offsetMs: ONE_DAY_MS * 2,
         timestamp: new Date('2023/12/25'),
-        timestampMS: 1703307600000 + ONE_DAY_MS * 2,
+        timestampMs: 1703307600000 + ONE_DAY_MS * 2,
         type: 'error',
       },
     ]);

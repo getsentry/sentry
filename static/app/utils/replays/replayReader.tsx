@@ -226,7 +226,7 @@ export default class ReplayReader {
 
   // Sort and memoize the chapters, so the Breadcrumbs UI Component has an easier time
   getSortedChapters = memoize(() =>
-    this._getChapters().sort((a, b) => a.timestampMS - b.timestampMS)
+    this._getChapters().sort((a, b) => a.timestampMs - b.timestampMs)
   );
 
   getTimelineEvents = memoize(() => [

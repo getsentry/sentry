@@ -3,7 +3,7 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
 describe('hydrateSpans', () => {
-  it('should set the start & end timestamps, & offsetMS for each span in the list', () => {
+  it('should set the start & end timestamps, & offsetMs for each span in the list', () => {
     const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
     const spans = [
       TestStubs.Replay.MemoryFrame({
@@ -27,8 +27,8 @@ describe('hydrateSpans', () => {
         description: '',
         startTimestamp: new Date('2023/12/23'),
         endTimestamp: new Date('2023/12/23 23:00'),
-        timestampMS: 1703307600000,
-        offsetMS: 0,
+        timestampMs: 1703307600000,
+        offsetMs: 0,
       },
       {
         op: 'memory',
@@ -36,8 +36,8 @@ describe('hydrateSpans', () => {
         description: '',
         startTimestamp: new Date('2023/12/24'),
         endTimestamp: new Date('2023/12/24 23:00'),
-        timestampMS: 1703307600000 + ONE_DAY_MS,
-        offsetMS: ONE_DAY_MS,
+        timestampMs: 1703307600000 + ONE_DAY_MS,
+        offsetMs: ONE_DAY_MS,
       },
       {
         op: 'memory',
@@ -45,8 +45,8 @@ describe('hydrateSpans', () => {
         description: '',
         startTimestamp: new Date('2023/12/25'),
         endTimestamp: new Date('2023/12/25 23:00'),
-        timestampMS: 1703307600000 + ONE_DAY_MS * 2,
-        offsetMS: ONE_DAY_MS * 2,
+        timestampMs: 1703307600000 + ONE_DAY_MS * 2,
+        offsetMs: ONE_DAY_MS * 2,
       },
     ]);
   });

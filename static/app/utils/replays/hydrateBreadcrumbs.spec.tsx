@@ -6,7 +6,7 @@ import {BreadcrumbFrame} from 'sentry/utils/replays/types';
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
 describe('hydrateBreadcrumbs', () => {
-  it('should set the timestampMS and offsetMS for each breadcrumb in the list', () => {
+  it('should set the timestampMs and offsetMs for each breadcrumb in the list', () => {
     const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
     const breadcrumbs = [
       TestStubs.Replay.ConsoleFrame({timestamp: new Date('2023/12/23')}),
@@ -22,8 +22,8 @@ describe('hydrateBreadcrumbs', () => {
         message: '',
         type: 'debug',
         timestamp: new Date('2023/12/23'),
-        timestampMS: 1703307600000,
-        offsetMS: 0,
+        timestampMs: 1703307600000,
+        offsetMs: 0,
       },
       {
         category: 'console',
@@ -32,8 +32,8 @@ describe('hydrateBreadcrumbs', () => {
         message: '',
         type: 'debug',
         timestamp: new Date('2023/12/24'),
-        timestampMS: 1703307600000 + ONE_DAY_MS,
-        offsetMS: ONE_DAY_MS,
+        timestampMs: 1703307600000 + ONE_DAY_MS,
+        offsetMs: ONE_DAY_MS,
       },
       {
         category: 'console',
@@ -42,8 +42,8 @@ describe('hydrateBreadcrumbs', () => {
         message: '',
         type: 'debug',
         timestamp: new Date('2023/12/25'),
-        timestampMS: 1703307600000 + ONE_DAY_MS * 2,
-        offsetMS: ONE_DAY_MS * 2,
+        timestampMs: 1703307600000 + ONE_DAY_MS * 2,
+        offsetMs: ONE_DAY_MS * 2,
       },
     ]);
   });
@@ -56,9 +56,9 @@ describe('hydrateBreadcrumbs', () => {
       expect(frame).toStrictEqual({
         category: 'replay.init',
         message: 'http://localhost:3000/',
-        offsetMS: 0,
+        offsetMs: 0,
         timestamp: replayRecord.started_at,
-        timestampMS: 1663865919000,
+        timestampMs: 1663865919000,
         type: 'init',
       });
     });
