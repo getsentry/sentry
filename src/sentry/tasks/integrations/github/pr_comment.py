@@ -196,5 +196,11 @@ def comment_workflow(pullrequest_id: int, project_id: int):
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
     create_or_update_comment(
-        pr_comment, client, repo, pr_key, comment_body, pullrequest_id, top_24_issues
+        pr_comment=pr_comment,
+        client=client,
+        repo=repo,
+        pr_key=pr_key,
+        comment_body=comment_body,
+        pullrequest_id=pullrequest_id,
+        issue_list=top_24_issues,
     )
