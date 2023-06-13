@@ -1,7 +1,5 @@
-import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
@@ -18,19 +16,13 @@ import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {insertClickableAreasIntoSeries} from 'sentry/views/starfish/utils/insertClickableAreasIntoSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
-import FailureDetailPanel from 'sentry/views/starfish/views/webServiceView/failureDetailPanel';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
-import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 import EndpointList from './endpointList';
 
@@ -45,28 +37,6 @@ type BasePerformanceViewProps = {
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
-  const [selectedSpike, setSelectedSpike] = useState<FailureSpike>(null);
-  const router = useRouter();
-
-  const pageFilters = usePageFilters();
-  const {selection} = pageFilters;
-  const {projects, environments} = selection;
-
-  useApiQuery<null>(
-    [
-      `/organizations/${organization.slug}/events-starfish/`,
-      {
-        query: {
-          environment: environments,
-          project: projects.map(proj => String(proj)),
-          statsPeriod: '7d',
-        },
-      },
-    ],
-    {
-      staleTime: 10,
-    }
-  );
 
   function renderFailureRateChart() {
     const query = new MutableSearch(['event.type:transaction']);
@@ -103,59 +73,25 @@ export function StarfishView(props: BasePerformanceViewProps) {
             return null;
           }
 
-          insertClickableAreasIntoSeries(transformedData, theme.red300);
-
           return (
-            <Fragment>
-              <FailureDetailPanel
-                onClose={() => {
-                  setSelectedSpike(null);
-                  router.push({
-                    pathname: router.location.pathname,
-                    query: omit(router.location.query, [
-                      'startTimestamp',
-                      'endTimestamp',
-                    ]),
-                  });
-                }}
-                chartData={transformedData}
-                spike={selectedSpike}
-              />
-              <Chart
-                statsPeriod={eventView.statsPeriod}
-                height={80}
-                data={transformedData}
-                start={eventView.start as string}
-                end={eventView.end as string}
-                loading={eventData.loading}
-                utc={false}
-                grid={{
-                  left: '0',
-                  right: '0',
-                  top: '8px',
-                  bottom: '0',
-                }}
-                definedAxisTicks={2}
-                isLineChart
-                chartColors={theme.charts.getColorPalette(2)}
-                onClick={e => {
-                  if (e.componentType === 'markArea') {
-                    setSelectedSpike({
-                      startTimestamp: e.data.coord[0][0],
-                      endTimestamp: e.data.coord[1][0],
-                    });
-                    router.push({
-                      pathname: router.location.pathname,
-                      query: {
-                        ...router.location.query,
-                        startTimestamp: e.data.coord[0][0],
-                        endTimestamp: e.data.coord[1][0],
-                      },
-                    });
-                  }
-                }}
-              />
-            </Fragment>
+            <Chart
+              statsPeriod={eventView.statsPeriod}
+              height={80}
+              data={transformedData}
+              start={eventView.start as string}
+              end={eventView.end as string}
+              loading={eventData.loading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '8px',
+                bottom: '0',
+              }}
+              definedAxisTicks={2}
+              isLineChart
+              chartColors={theme.charts.getColorPalette(2)}
+            />
           );
         }}
       </EventsRequest>
