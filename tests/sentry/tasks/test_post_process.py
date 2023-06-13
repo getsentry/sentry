@@ -1517,6 +1517,61 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
 
+class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:sdk-crash-detection")
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
+    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
+    def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_called_once()
+
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
+    def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
+        self, mock_sdk_crash_detection
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
+
+    @with_feature("organizations:sdk-crash-detection")
+    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
+    def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
+
+
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
@@ -1529,6 +1584,7 @@ class PostProcessGroupErrorTest(
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
+    SDKCrashMonitoringTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
