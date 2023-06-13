@@ -15,10 +15,7 @@ import {
 import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
-import {
-  generateIssueWidgetFieldOptions,
-  ISSUE_WIDGET_SORT_OPTIONS,
-} from '../widgetBuilder/issueWidget/utils';
+import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
 import {DatasetConfig} from './base';
 
@@ -76,10 +73,14 @@ function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQue
   const hasBetterPrioritySort = organization.features.includes(
     'issue-list-better-priority-sort'
   );
-  const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
-  if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
-  }
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,

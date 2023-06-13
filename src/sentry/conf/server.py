@@ -705,7 +705,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
@@ -836,12 +835,6 @@ CELERYBEAT_SCHEDULE = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
-    },
-    "enqueue-scheduled-jobs": {
-        "task": "sentry.tasks.enqueue_scheduled_jobs",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
     },
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
@@ -1237,8 +1230,6 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute issue alerts feature
-    "organizations:mute-alerts": False,
     # Enable the mute metric alerts feature
     "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
@@ -1510,7 +1501,7 @@ SENTRY_FEATURES = {
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": False,
+    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
@@ -3439,7 +3430,7 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.1
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 
 # The Redis cluster to use for monitoring the health of
 # Celery queues.

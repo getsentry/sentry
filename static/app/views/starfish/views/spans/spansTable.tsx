@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -6,9 +7,9 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -21,15 +22,18 @@ type Props = {
   orderBy: string;
   spansData: SpanDataRow[];
   columnOrder?: TableColumnHeader[];
+  endpoint?: string;
 };
 
 export type SpanDataRow = {
   'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'spm()': number;
+  'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
 
@@ -39,8 +43,10 @@ export type Keys =
   | 'span.domain'
   | 'spm()'
   | 'p95(span.duration)'
+  | 'sps_percent_change()'
   | 'sum(span.duration)'
-  | 'time_spent_percentage()';
+  | 'time_spent_percentage()'
+  | 'percentile_percent_change(span.duration, 0.95)';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
@@ -50,6 +56,7 @@ export default function SpansTable({
   onSetOrderBy,
   isLoading,
   columnOrder,
+  endpoint,
 }: Props) {
   const location = useLocation();
 
@@ -63,7 +70,7 @@ export default function SpansTable({
       }
       grid={{
         renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row),
+        renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
       }}
       location={location}
     />
@@ -93,12 +100,20 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.ReactNode {
+function renderBodyCell(
+  column: TableColumnHeader,
+  row: SpanDataRow,
+  endpoint?: string
+): React.ReactNode {
   if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
-          <Link to={`/starfish/span/${row['span.group']}`}>
+          <Link
+            to={`/starfish/span/${row['span.group']}${
+              endpoint ? `?${urlEncode({endpoint})}` : ''
+            }`}
+          >
             {row['span.description'] || '<null>'}
           </Link>
         ) : (
@@ -111,14 +126,28 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
   if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(row['time_spent_percentage()'])}
+        timeSpentPercentage={row['time_spent_percentage()']}
         totalSpanTime={row['sum(span.duration)']}
       />
     );
   }
 
   if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row[column.key]} />;
+    return (
+      <ThroughputCell
+        throughputPerSecond={row['spm()']}
+        delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.duration)']}
+        delta={row['percentile_percent_change(span.duration, 0.95)']}
+      />
+    );
   }
 
   return row[column.key];

@@ -185,7 +185,7 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.PRIORITY:
       return t('Priority');
     case IssueSortOptions.BETTER_PRIORITY:
-      return t('Better Priority');
+      return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:

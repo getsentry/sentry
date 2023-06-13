@@ -187,7 +187,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
 
-    @with_feature("organizations:mute-alerts")
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
         event = self.store_event(
@@ -205,7 +204,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     def test_snooze_for_all(self):
         """Test that notification for alert snoozed for everyone is not send to user."""
         event = self.store_event(
@@ -223,7 +221,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_themself(self):
         """Test that notification for alert snoozed by user2 for themself is sent to user"""
         event = self.store_event(
@@ -244,7 +241,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
 
-    @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_everyone(self):
         """Test that notification for alert snoozed by user2 for everyone is not sent to user"""
         event = self.store_event(
@@ -1170,7 +1166,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed(self, notify):
         """Test that a digest for an alert snoozed by user is not sent."""
@@ -1198,7 +1193,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert notify.call_count == 0
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_snooze_one_rule(self, notify):
         """Test that a digest is sent containing only notifications about an unsnoozed alert."""
@@ -1243,7 +1237,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert message2.to[0] == user2.email
         assert "2 new alerts since" in message2.subject
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
         """Test that a digest is only sent to the user who hasn't snoozed the rules."""
@@ -1282,7 +1275,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert message.to[0] == user2.email
         assert "2 new alerts since" in message.subject
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(self, notify):
         """Test that a digest with only one rule is only sent to the user who didn't snooze one rule."""

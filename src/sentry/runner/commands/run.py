@@ -424,7 +424,7 @@ def post_process_forwarder(**options):
 
     try:
         # TODO(markus): convert to use run_processor_with_signals -- can't yet because there's a custom shutdown handler
-        eventstream.run_post_process_forwarder(
+        eventstream.backend.run_post_process_forwarder(
             entity=options["entity"],
             consumer_group=options["group_id"],
             topic=options["topic"],
@@ -478,7 +478,17 @@ def post_process_forwarder(**options):
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+    from sentry.snuba.query_subscriptions.constants import (
+        dataset_to_logical_topic,
+        topic_to_dataset,
+    )
     from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
+
+    dataset = topic_to_dataset[options["topic"]]
+    logical_topic = dataset_to_logical_topic[dataset]
+    # name of new consumer == name of logical topic
+    print_deprecation_warning(logical_topic, options["group_id"])
 
     subscriber = get_query_subscription_consumer(
         topic=options["topic"],
@@ -488,7 +498,7 @@ def query_subscription_consumer(**options):
         max_batch_size=options["max_batch_size"],
         # Our batcher expects the time in seconds
         max_batch_time=int(options["max_batch_time"] / 1000),
-        processes=options["processes"],
+        num_processes=options["processes"],
         input_block_size=options["input_block_size"],
         output_block_size=options["output_block_size"],
         multi_proc=True,
@@ -510,6 +520,7 @@ def query_subscription_consumer(**options):
 @configuration
 @click.option(
     "--processes",
+    "num_processes",
     default=1,
     type=int,
 )
@@ -522,6 +533,10 @@ def ingest_consumer(consumer_type, **options):
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning(f"ingest-{consumer_type}", options["group_id"])
+
     from arroyo import configure_metrics
 
     from sentry.ingest.consumer_v2.factory import get_ingest_consumer
@@ -546,12 +561,16 @@ def ingest_consumer(consumer_type, **options):
 @configuration
 @click.option(
     "--processes",
+    "num_processes",
     default=1,
     type=int,
 )
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-occurrences", options["group_id"])
     from django.conf import settings
 
     from sentry.utils import metrics
@@ -589,7 +608,7 @@ def metrics_parallel_consumer(**options):
         IndexerStorage,
         UseCaseKey,
         get_ingest_config,
-        initialize_global_consumer_state,
+        initialize_main_process_state,
     )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
@@ -598,7 +617,7 @@ def metrics_parallel_consumer(**options):
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
-    initialize_global_consumer_state(ingest_config)
+    initialize_main_process_state(ingest_config)
 
     streamer = get_parallel_metrics_consumer(
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
@@ -613,6 +632,9 @@ def metrics_parallel_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("billing-metrics-consumer", options["group_id"])
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
 
     consumer = get_metrics_billing_consumer(**options)
@@ -626,6 +648,9 @@ def metrics_billing_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-profiles", options["group_id"])
     from sentry.profiles.consumers import get_profiles_process_consumer
 
     consumer = get_profiles_process_consumer(**options)
@@ -637,6 +662,7 @@ def profiles_consumer(**options):
 @click.argument(
     "consumer_name",
 )
+@click.argument("consumer_args", nargs=-1)
 @click.option(
     "--topic",
     type=str,
@@ -657,7 +683,7 @@ def profiles_consumer(**options):
 )
 @strict_offset_reset_option()
 @configuration
-def basic_consumer(consumer_name, topic, **options):
+def basic_consumer(consumer_name, consumer_args, topic, **options):
     """
     Launch a "new-style" consumer based on its "consumer name".
 
@@ -666,6 +692,15 @@ def basic_consumer(consumer_name, topic, **options):
         sentry run consumer ingest-profiles --consumer-group ingest-profiles
 
     runs the ingest-profiles consumer with the consumer group ingest-profiles.
+
+    Consumers are defined in 'sentry.consumers'. Each consumer can take
+    additional CLI options. Those can be passed after '--':
+
+        sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --processes 1
+
+    Consumer-specific arguments can be viewed with:
+
+        sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --help
     """
     from sentry.consumers import KAFKA_CONSUMERS
 
@@ -686,11 +721,17 @@ def basic_consumer(consumer_name, topic, **options):
             f"responsible for this consumer"
         )
 
+    cmd = click.Command(
+        name=consumer_name, params=list(consumer_definition.get("click_options") or ())
+    )
+    cmd_context = cmd.make_context(consumer_name, list(consumer_args))
+    strategy_factory = cmd_context.invoke(
+        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+    )
+
     from sentry.utils.arroyo import run_basic_consumer
 
-    run_basic_consumer(
-        topic=topic or default_topic, **options, strategy_factory_cls=strategy_factory_cls
-    )
+    run_basic_consumer(topic=topic or default_topic, **options, strategy_factory=strategy_factory)
 
 
 @run.command("ingest-replay-recordings")
@@ -701,6 +742,9 @@ def basic_consumer(consumer_name, topic, **options):
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
 def replays_recordings_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-replay-recordings", options["group_id"])
     from sentry.replays.consumers import get_replays_recordings_consumer
 
     consumer = get_replays_recordings_consumer(**options)
@@ -714,6 +758,9 @@ def replays_recordings_consumer(**options):
 @strict_offset_reset_option()
 @configuration
 def monitors_consumer(**options):
+    from sentry.consumers import print_deprecation_warning
+
+    print_deprecation_warning("ingest-monitors", options["group_id"])
     from sentry.monitors.consumers import get_monitor_check_ins_consumer
 
     consumer = get_monitor_check_ins_consumer(**options)
@@ -745,3 +792,12 @@ def last_seen_updater(**options):
 
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
         run_processor_with_signals(consumer)
+
+
+@run.command("backpressure-monitor")
+@log_options()
+@configuration
+def backpressure_monitor():
+    from sentry.monitoring.queues import run_queue_stats_updater
+
+    run_queue_stats_updater()

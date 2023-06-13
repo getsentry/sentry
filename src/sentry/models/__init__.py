@@ -101,7 +101,6 @@ from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
-from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
