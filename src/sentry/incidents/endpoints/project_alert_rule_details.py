@@ -32,17 +32,16 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=request.user.id) | Q(user_id=None), alert_rule=alert_rule
-        )
-        if rule_snooze.exists():
+        ).first()
+        if rule_snooze:
             serialized_alert_rule["snooze"] = True
-            snooze = rule_snooze[0]
-            if request.user.id == snooze.owner_id:
+            if request.user.id == rule_snooze.owner_id:
                 serialized_alert_rule["snoozeCreatedBy"] = "You"
             else:
-                user = user_service.get_user(snooze.owner_id)
+                user = user_service.get_user(rule_snooze.owner_id)
                 if user:
                     serialized_alert_rule["snoozeCreatedBy"] = user.get_display_name()
-            serialized_alert_rule["snoozeForEveryone"] = snooze.user_id is None
+            serialized_alert_rule["snoozeForEveryone"] = rule_snooze.user_id is None
 
         return Response(serialized_alert_rule)
 
