@@ -12,6 +12,7 @@ from urllib3 import Retry
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.endpoints.organization_events import DEFAULT_EVENTS_RATE_LIMIT_CONFIG
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.net.http import connection_from_url
 from sentry.search.events.constants import METRICS_GRANULARITIES
@@ -56,6 +57,9 @@ def get_trends(snuba_io):
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    enforce_rate_limit = True
+    rate_limits = DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
