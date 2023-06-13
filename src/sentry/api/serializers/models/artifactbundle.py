@@ -1,4 +1,5 @@
 import base64
+from collections import OrderedDict
 
 from sentry.api.serializers import Serializer
 from sentry.models import ArtifactBundle, SourceFileType, format_grouped_releases
@@ -18,7 +19,9 @@ class ArtifactBundlesSerializer(Serializer):
         return {
             item: {
                 "bundle_id": item[1],
-                "associations": format_grouped_releases(grouped_releases.get(item[0], {})),
+                "associations": format_grouped_releases(
+                    grouped_releases.get(item[0], OrderedDict())
+                ),
                 "file_count": item[2],
                 "date": item[3],
             }

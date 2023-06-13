@@ -1,7 +1,7 @@
 import zipfile
 from collections import defaultdict
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, OrderedDict, Set, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, OrderedDict, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -69,7 +69,7 @@ class ArtifactBundle(Model):
     @classmethod
     def get_grouped_releases(
         cls, organization_id: int, artifact_bundle_ids: List[int]
-    ) -> Mapping[int, Mapping[str, List[str]]]:
+    ) -> Mapping[int, OrderedDict[str, List[str]]]:
         release_artifact_bundles = list(
             ReleaseArtifactBundle.objects.filter(
                 organization_id=organization_id, artifact_bundle_id__in=artifact_bundle_ids
@@ -128,7 +128,7 @@ class ArtifactBundle(Model):
 
 
 def format_grouped_releases(
-    grouped_releases: OrderedDict[str, Set[str]]
+    grouped_releases: OrderedDict[str, List[str]]
 ) -> List[Mapping[str, List[str]]]:
     return [
         {"release": release, "dist": dists or []} for release, dists in grouped_releases.items()
