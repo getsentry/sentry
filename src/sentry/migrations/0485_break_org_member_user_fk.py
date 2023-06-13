@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0483_backfill_organization_member_user_email"),
+        ("sentry", "0484_add_indexes_to_bundles"),
     ]
 
     database_operations = [
