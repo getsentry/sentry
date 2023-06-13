@@ -1,5 +1,4 @@
 from datetime import datetime
-from threading import Thread
 from time import sleep
 from typing import Dict, List, Tuple
 from urllib.parse import urlparse
@@ -203,12 +202,3 @@ def _list_queues_over_threshold(
     strike_threshold: int, queue_history: Dict[str, int]
 ) -> List[Tuple[str, int]]:
     return [(queue, count >= strike_threshold) for (queue, count) in queue_history.items()]
-
-
-def monitor_queues():
-    if backend is None:
-        return
-    queue_stats_updater_process = Thread(
-        target=run_queue_stats_updater,
-    )
-    queue_stats_updater_process.start()
