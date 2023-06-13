@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -24,17 +25,28 @@ type Props = {
 
 function ReplayMetaData({replayRecord, replayErrors}: Props) {
   const {pathname, query} = useLocation();
+  const organization = useOrganization();
   const {projects} = useProjects();
 
-  const errorsTabHref = {
-    pathname,
-    query: {
-      ...query,
-      t_main: 'console',
-      f_c_logLevel: 'issue',
-      f_c_search: undefined,
-    },
-  };
+  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+
+  const errorsTabHref = hasErrorTab
+    ? {
+        pathname,
+        query: {
+          ...query,
+          t_main: 'errors',
+        },
+      }
+    : {
+        pathname,
+        query: {
+          ...query,
+          t_main: 'console',
+          f_c_logLevel: 'issue',
+          f_c_search: undefined,
+        },
+      };
 
   const errorCountByProject = useMemo(
     () =>
