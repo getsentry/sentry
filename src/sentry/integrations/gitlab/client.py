@@ -6,7 +6,6 @@ from urllib.parse import quote
 from django.urls import reverse
 from requests import PreparedRequest
 
-from sentry.integrations.client import ApiClient
 from sentry.models import Repository
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -78,48 +77,38 @@ class GitlabProxySetupClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabApiClient(ApiClient):
+class GitLabProxyApiClient(IntegrationProxyClient):
     integration_name = "gitlab"
 
     def __init__(self, installation):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
+        self.new_identity = None
         super().__init__(verify_ssl)
 
     @property
     def identity(self):
-        return self.installation.default_identity
+        if self.new_identity:
+            return self.new_identity
+        return self.installation.get_default_identity()
 
     @property
     def metadata(self):
         return self.installation.model.metadata
 
-    def request_headers(self, identity):
-        access_token = identity.data["access_token"]
-        return {"Authorization": f"Bearer {access_token}"}
+    def build_url(self, path: str) -> str:
+        path = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
+        path = super().build_url(path=path)
+        return path
 
-    def request(self, method, path, data=None, params=None):
-        headers = self.request_headers(self.identity)
-        url = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
-        try:
-            return self._request(method, url, headers=headers, data=data, params=params)
-        except ApiUnauthorized as e:
-            if self.is_refreshing_token:
-                raise e
-            self.is_refreshing_token = True
-            new_identity = self.refresh_auth()
-            resp = self._request(
-                method,
-                url,
-                headers=self.request_headers(new_identity),
-                data=data,
-                params=params,
-            )
-            self.is_refreshing_token = False
-            return resp
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        access_token = self.identity.data["access_token"]
+        prepared_request.headers["Authorization"] = f"Bearer {access_token}"
+        return prepared_request
 
-    def refresh_auth(self):
+    def _refresh_auth(self):
         """
         Modeled after Doorkeeper's docs
         where Doorkeeper is a dependency for GitLab that handles OAuth
@@ -133,6 +122,23 @@ class GitLabApiClient(ApiClient):
             ),
             verify_ssl=self.metadata["verify_ssl"],
         )
+
+    def request(self, *args: Any, **kwargs: Any):
+        try:
+            return super().request(*args, **kwargs)
+        except ApiUnauthorized as e:
+            if self.is_refreshing_token:
+                raise e
+
+            self.is_refreshing_token = True
+            self.new_identity = self._refresh_auth()
+
+            response = super().request(*args, **kwargs)
+
+            self.is_refreshing_token = False
+            self.new_identity = None
+
+            return response
 
     def get_user(self):
         """Get a user
