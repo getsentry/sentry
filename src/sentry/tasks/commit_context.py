@@ -21,7 +21,6 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
-from sentry.tasks.integrations.github.pr_comment import comment_workflow
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -35,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
+    from sentry.tasks.integrations.github.pr_comment import comment_workflow
+
     pr = PullRequest.objects.filter(
         organization_id=commit.organization_id, merge_commit_sha=commit.key
     )
@@ -43,7 +44,7 @@ def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
         and pr[0].date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30)
         and (
             not pr[0].pullrequestcomment_set.exists()
-            or group_owner.group_id not in pr[0].pullrequestcomment_set.get().issues
+            or group_owner.group_id not in pr[0].pullrequestcomment_set.get().group_ids
         )
     ):
         # TODO: Debouncing Logic

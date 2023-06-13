@@ -5,7 +5,7 @@ import pytest
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
-from sentry.models import PullRequest, Repository
+from sentry.models import PullRequest, PullRequestComment, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -426,6 +426,7 @@ class TestCommitContext(TestCommitContextMixin):
         }
     ),
 )
+@patch("sentry.tasks.integrations.github.pr_comment.comment_workflow")
 class TestGHCommentQueuing(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
@@ -441,40 +442,116 @@ class TestGHCommentQueuing(TestCommitContextMixin):
         )
         self.repo.provider = "integrations:github"
         self.repo.save()
-        # self.pull_request_comment = PullRequestComment.objects.create(pull_request=self.pull_request)
+        self.pull_request_comment = PullRequestComment.objects.create(
+            pull_request=self.pull_request,
+            external_id=1,
+            created_at=iso_format(before_now(days=1)),
+            updated_at=iso_format(before_now(days=1)),
+        )
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_not_github(self, _, mock_comment_workflow):
+    def test_gh_comment_not_github(self, mock_comment_workflow):
         """Non github repos shouldn't be commented on"""
         self.repo.provider = "integrations:gitlab"
         self.repo.save()
-        pass
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
 
-    def test_gh_comment_feature_flag(self):
+    def test_gh_comment_feature_flag(self, mock_comment_workflow):
         """No comments on org with feature flag disabled"""
-        pass
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
 
-    def test_gh_comment_no_pr(self):
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_no_pr(self, mock_comment_workflow):
         """No comments on suspect commit with no pr"""
         self.pull_request.delete()
-        pass
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
 
-    def test_gh_comment_org_settings(self):
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_org_settings(self, mock_comment_workflow):
         """No comments on org who disabled feature"""
-
-    def test_gh_comment_pr_too_old(self):
-        """No comment on pr that's older than 30 days"""
-        pass
-
-    def test_gh_comment_repeat_issue(self):
-        """No comment on a pr that has a comment with the issue in the same pr list"""
+        # TODO(Cathy or Aniket): implement once the toggle is merged
         pass
 
     @with_feature("organizations:pr-comment-bot")
-    @patch("sentry.tasks.integrations.github.pr_comment.comment_workflow")
+    def test_gh_comment_pr_too_old(self, mock_comment_workflow):
+        """No comment on pr that's older than 30 days"""
+        self.pull_request.date_added = iso_format(before_now(days=31))
+        self.pull_request.save()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_repeat_issue(self, mock_comment_workflow):
+        """No comment on a pr that has a comment with the issue in the same pr list"""
+        self.pull_request_comment.group_ids.append(self.event.group_id)
+        self.pull_request_comment.save()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_create_queued(self, mock_comment_workflow):
         """Task queued if no prior comment exists"""
-        # self.pull_request_comment.delete()
+        self.pull_request_comment.delete()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_update_queue(self, mock_comment_workflow):
+        """Task queued if new issue for prior comment"""
 
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
@@ -487,7 +564,3 @@ class TestGHCommentQueuing(TestCommitContextMixin):
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
-
-    def test_gh_comment_update_queue(self):
-        """Task queued if new issue for prior comment"""
-        pass
