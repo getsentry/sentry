@@ -39,7 +39,7 @@ class GitLabApiClientPath:
 
     @staticmethod
     def build_api_url(base_url, path):
-        return f"{base_url}{API_VERSION}{path}"
+        return f"{base_url.rstrip('/')}{API_VERSION}{path}"
 
 
 class GitlabProxySetupClient(IntegrationProxyClient):
