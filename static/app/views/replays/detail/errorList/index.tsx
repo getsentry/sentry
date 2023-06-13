@@ -85,8 +85,8 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              handleMouseEnter={handleMouseEnter}
-              handleMouseLeave={handleMouseLeave}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
               onClickTimestamp={handleClick}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}

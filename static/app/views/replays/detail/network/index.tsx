@@ -154,8 +154,8 @@ function NetworkList({
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              handleMouseEnter={handleMouseEnter}
-              handleMouseLeave={handleMouseLeave}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
               onClickTimestamp={handleClick}
               onClickCell={onClickCell}
               ref={e => e && registerChild?.(e)}

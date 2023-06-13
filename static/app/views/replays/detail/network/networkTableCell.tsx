@@ -18,10 +18,10 @@ type Props = {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
-  handleMouseEnter: (span: NetworkSpan) => void;
-  handleMouseLeave: (span: NetworkSpan) => void;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   onClickTimestamp: (crumb: NetworkSpan) => void;
+  onMouseEnter: (span: NetworkSpan) => void;
+  onMouseLeave: (span: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
@@ -44,8 +44,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      handleMouseEnter,
-      handleMouseLeave,
+      onMouseEnter,
+      onMouseLeave,
       onClickCell,
       onClickTimestamp,
       rowIndex,
@@ -107,8 +107,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isDetailsOpen,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
       onClick: () => onClickCell({dataIndex, rowIndex}),
-      onMouseEnter: () => handleMouseEnter(span),
-      onMouseLeave: () => handleMouseLeave(span),
+      onMouseEnter: () => onMouseEnter(span),
+      onMouseLeave: () => onMouseLeave(span),
       ref,
       style,
     } as CellProps;
