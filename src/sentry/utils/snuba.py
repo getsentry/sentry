@@ -91,6 +91,12 @@ ISSUE_PLATFORM_MAP = {
 }
 
 SPAN_COLUMN_MAP = {
+    # These are deprecated, keeping them for now while we migrate the frontend
+    "action": "action",
+    "description": "description",
+    "domain": "domain",
+    "group": "group",
+    "module": "module",
     "id": "span_id",
     "parent_span": "parent_span_id",
     "platform": "platform",
