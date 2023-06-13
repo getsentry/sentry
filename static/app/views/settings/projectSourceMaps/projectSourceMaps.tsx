@@ -19,9 +19,10 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
+import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
@@ -32,6 +33,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
 import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum SortBy {
@@ -72,11 +74,14 @@ function SourceMapsTableRow({
       </IDColumn>
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
-          <Tooltip title={t('No bundle connected to this release')}>
-            <IconWrapper>
-              <IconWarning color="warning" size="sm" />
-            </IconWrapper>
-          </Tooltip>
+          <NoArtifactsUploadedWrapper>
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t('A Release was created, but no artifacts were uploaded')}
+            />
+            {'0'}
+          </NoArtifactsUploadedWrapper>
         ) : (
           <Count value={fileCount} />
         )}
@@ -321,12 +326,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           query
             ? tct('No [tabName] match your search query.', {
                 tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
+                  ? t('artifact bundles')
                   : t('release bundles'),
               })
             : tct('No [tabName] found for this project.', {
                 tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
+                  ? t('artifact bundles')
                   : t('release bundles'),
               })
         }
@@ -349,7 +354,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   project.slug
                 }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
-                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                  // TODO(Pri): Move the loading to the component once fully transitioned to associations.
+                  !debugIdBundlesLoading &&
+                  (data.associations ? (
+                    <Associations associations={data.associations} />
+                  ) : (
+                    <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                  ))
                 }
               />
             ))
@@ -428,6 +439,8 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
-const IconWrapper = styled('div')`
+const NoArtifactsUploadedWrapper = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
