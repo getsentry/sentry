@@ -19,18 +19,11 @@ class FlyOAuth2Login(OAuth2Login):
         self.domains = domains
         super().__init__(client_id=client_id)
 
-    def get_authorize_params(self, state, redirect_uri):
-        params = super().get_authorize_params(state, redirect_uri)
-        # TODO(dcramer): ideally we could look at the current resulting state
-        # when an existing auth happens, and if they're missing a refresh_token
-        # we should re-prompt them a second time with ``approval_prompt=force``
-        params["approval_prompt"] = "force"
-        params["access_type"] = "offline"
-        return params
-
 
 class FlyOAuth2Provider(OAuth2Provider):
     name = "Fly"
+    access_token_url = ACCESS_TOKEN_URL
+    authorize_url = AUTHORIZE_URL
 
     def __init__(self, domain=None, domains=None, version=None, **config):
         if domain:
@@ -57,6 +50,8 @@ class FlyOAuth2Provider(OAuth2Provider):
         return options.get("auth-fly.client-secret")
 
     def get_configure_view(self):
+        # Utilized from organization_auth_settings.py when configuring the app
+        # Injected into the configuration form
         return FlyConfigureView.as_view()
 
     def get_auth_pipeline(self):
@@ -68,6 +63,7 @@ class FlyOAuth2Provider(OAuth2Provider):
                 client_secret=self.get_client_secret(),
             ),
             FetchUser(domains=self.domains, version=self.version),
+            # ConfirmEmail(),
         ]
 
     def get_refresh_token_url(self):
