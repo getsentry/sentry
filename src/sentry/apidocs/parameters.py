@@ -214,12 +214,59 @@ class EventParams:
 
 
 class ProjectParams:
+    ACTIONS = OpenApiParameter(
+        name="actions",
+        location="query",
+        required=False,
+        type=str,
+        description="The actions to filter by. See [actions](/product/discover-queries/actions/) for more details.",
+    )
+
+    ACTION_MATCH = OpenApiParameter(
+        name="actionMatch",
+        required=False,
+        type=str,
+        description="The action match to filter by. See [action match](/product/discover-queries/action-match/) for more details.",
+    )
+
+    CONDITIONS = OpenApiParameter(
+        name="conditions",
+        location="query",
+        required=False,
+        type=str,
+        description="The conditions to filter by. See [conditions](/product/discover-queries/conditions/) for more details.",
+    )
+
     DEFAULT_RULES = OpenApiParameter(
         name="default_rules",
         location="query",
         required=False,
         type=bool,
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
+    )
+
+    FILTERS = OpenApiParameter(
+        name="filters",
+        location="query",
+        required=False,
+        type=str,
+        description="The filters to filter by. See [filters](/product/discover-queries/filters/) for more details.",
+    )
+
+    FILTER_MATCH = OpenApiParameter(
+        name="filterMatch",
+        location="query",
+        required=False,
+        type=str,
+        description="The filter match to filter by. See [filter match](/product/discover-queries/filter-match/) for more details.",
+    )
+
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner to filter by. See [owner](/product/discover-queries/owner/) for more details.",
     )
 
     @staticmethod

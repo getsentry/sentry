@@ -1,4 +1,5 @@
 from django.conf import settings
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +9,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
@@ -17,8 +21,10 @@ from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
+    public = {"POST"}
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRulesEndpoint")
@@ -42,6 +48,27 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    @extend_schema(
+        operation_id="List a Project's Issue Alerts",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            GlobalParams.name("The name of the alert.", required=True),
+            ProjectParams.OWNER,
+            ProjectParams.CONDITIONS,
+            ProjectParams.FILTERS,
+            ProjectParams.ACTIONS,
+            ProjectParams.ACTION_MATCH,
+            ProjectParams.FILTER_MATCH,
+        ],
+        request=RuleSerializer,
+        responses={
+            201: OpenApiResponse("What to put here?"),
+            202: OpenApiResponse("What to put here?"),
+            400: RESPONSE_BAD_REQUEST,
+        },
+        examples=ProjectExamples.CREATE_PROJECT,
+    )
     @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
