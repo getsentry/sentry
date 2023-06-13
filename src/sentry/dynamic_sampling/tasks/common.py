@@ -173,9 +173,9 @@ def compute_sliding_window_sample_rate(
         org_id, project_id, total_root_count, extrapolated_volume, window_size
     )
 
-    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(
+    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
         org_id, extrapolated_volume
-    )  # type:ignore
+    )
     if sampling_tier is None:
         return None
 

@@ -87,9 +87,9 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     redis_client = get_redis_client_for_ds()
     factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
 
-    desired_sample_rate = quotas.get_blended_sample_rate(
+    desired_sample_rate = quotas.get_blended_sample_rate(  # type:ignore
         organization_id=org_volume.org_id
-    )  # type:ignore
+    )
     if desired_sample_rate is None:
         return f"Organisation with desired_sample_rate==None org_id={org_volume.org_id}"
 
