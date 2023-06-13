@@ -215,8 +215,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             # split the txns data into multiple dictionaries
             split_transactions_data = [
-                dict(list(stats_data.items())[i : i + events_per_query])
-                for i in range(0, len(stats_data), events_per_query)
+                dict(list(stats_data.items())[i : i + EVENTS_PER_QUERY])
+                for i in range(0, len(stats_data), EVENTS_PER_QUERY)
             ]
 
             for i in range(len(split_transactions_data)):
@@ -230,16 +230,16 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             # append all the results
             for result in results:
-                output_dicts = result["data"]
-                trend_results += output_dicts
+                output_dict = result["data"]
+                trend_results += output_dict
 
             # sort the results into trending events list
             if trends_request["sort"] == "trend_percentage()":
                 trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
+            elif trends_request["sort"] == "-trend_percentage()":
+                trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"], reverse=True)
             else:
-                trending_events = sorted(
-                    trend_results, key=lambda d: d["trend_percentage"], reverse=True
-                )
+                trending_events = sorted(trend_results, key=lambda d: d["absolute_percentage_change"], reverse=True)
 
             sentry_sdk.set_tag("performance.trendsv2.trends", len(trending_events) > 0)
 
