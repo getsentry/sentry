@@ -11,7 +11,8 @@ from sentry.runner.decorators import configuration
 DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
 DB_VALUE = "Value of option %s on DB:"
 CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
-UPDATE_MSG = "[UPDATE] Option %s updated."
+UPDATE_MSG = "[UPDATE] Option %s updated. Old value:"
+SET_MSG = "[SET] Option %s set."
 UNSET_MSG = "[UNSET] Option %s unset."
 
 
@@ -32,12 +33,12 @@ def _attempt_update(
             click.echo(safe_dump(db_value))
         return
 
+    last_update_channel = options.get_last_update_channel(key)
     if db_value == value:
         # This script is making changes with UpdateChannel.AUTOMATOR
         # channel. Thus, if the laast update channel was already
         # UpdateChannel.AUTOMATOR, and the value we are trying to set
         # is the same as the value already stored we do nothing.
-        last_update_channel = options.get_last_update_channel(key)
         if last_update_channel is None:
             # Here we are trying to set an option with a value that
             # is equal to its default. There are valid cases for this
@@ -47,7 +48,7 @@ def _attempt_update(
             # the DB and then change the default value.
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            click.echo(UPDATE_MSG % key)
+            click.echo(SET_MSG % key)
 
         elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
@@ -57,7 +58,11 @@ def _attempt_update(
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-    click.echo(UPDATE_MSG % key)
+    if last_update_channel is not None:
+        click.echo(UPDATE_MSG % key)
+        click.echo(safe_dump(db_value))
+    else:
+        click.echo(SET_MSG % key)
 
 
 @click.group()
