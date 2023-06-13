@@ -22,13 +22,13 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
-from sentry.dynamic_sampling.tasks.boost_low_volume_projects.base import boost_low_volume_projects
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions.base import (
+from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
+from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     boost_low_volume_transactions,
 )
-from sentry.dynamic_sampling.tasks.recalibrate_orgs.base import recalibrate_orgs
-from sentry.dynamic_sampling.tasks.sliding_window.base import sliding_window
-from sentry.dynamic_sampling.tasks.sliding_window_org.base import sliding_window_org
+from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
+from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
+from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
