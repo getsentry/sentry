@@ -47,7 +47,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const theme = useTheme();
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
-    eventView: getCummulativeTimeEventView(
+    eventView: getCumulativeTimeEventView(
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
@@ -61,7 +61,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   });
 
   const {data: cumulativeTime, isLoading: isCumulativeDataLoading} = useDiscoverQuery({
-    eventView: getCummulativeTimeEventView(
+    eventView: getCumulativeTimeEventView(
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
