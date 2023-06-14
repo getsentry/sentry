@@ -1,6 +1,7 @@
 import logging
 import random
 import re
+import time
 from collections import defaultdict
 from typing import (
     Any,
@@ -105,6 +106,7 @@ class IndexerBatch:
         self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         self._extract_messages()
+        self.__last_logged_time_cardinality = time.time()
 
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
@@ -181,19 +183,23 @@ class IndexerBatch:
 
         # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
         for offset in keys_to_remove:
-            sentry_sdk.set_tag(
-                "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
-            )
-            sentry_sdk.set_tag(
-                "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
-            )
-            if _should_sample_debug_log():
+            # Log once per second at most since we are getting too many dropped messages because
+            # of cardinality
+            if self.__last_logged_time_cardinality + 1 < time.time():
+                sentry_sdk.set_tag(
+                    "sentry_metrics.organization_id",
+                    self.parsed_payloads_by_offset[offset]["org_id"],
+                )
+                sentry_sdk.set_tag(
+                    "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
+                )
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
                         "reason": "cardinality_limit",
                     },
                 )
+                self.__last_logged_time_cardinality = time.time()
 
         self.skipped_offsets.update(keys_to_remove)
 
