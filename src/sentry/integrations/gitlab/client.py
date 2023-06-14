@@ -51,7 +51,7 @@ class GitlabProxySetupClient(IntegrationProxyClient):
 
     integration_name = "gitlab_setup"
 
-    def __init__(self, base_url, access_token, verify_ssl):
+    def __init__(self, base_url: str, access_token: str, verify_ssl: bool):
         super().__init__(verify_ssl=verify_ssl)
         self.base_url = base_url
         self.token = access_token
