@@ -1,10 +1,13 @@
-from sentry.processing.backpressure.redis import RedisMemoryUsageMetrics
+from sentry.processing.backpressure.redis import iter_cluster_memory_usage
 from sentry.utils import redis
 
 
 def test_returns_some_usage() -> None:
-    client = redis.redis_clusters.get("default")
-    metrics = RedisMemoryUsageMetrics([client])
+    cluster = redis.redis_clusters.get("default")
 
-    usage = metrics.query_usage_percentage()
-    assert 0 < usage < 1
+    usage = [usage for usage in iter_cluster_memory_usage(cluster)]
+    assert len(usage) > 0
+    used, available = usage[0]
+    assert used > 0
+    assert available > 0
+    assert used < available

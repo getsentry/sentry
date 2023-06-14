@@ -1305,24 +1305,29 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Enables reporting status of queues for backpressure management.
+
+# === Backpressure related runtime options ===
+
+# Enables monitoring of services for backpressure management.
+register("backpressure.monitoring_enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# How often the monitor will check service health.
+register("backpressure.monitoring_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Enables checking consumer health for backpressure management.
+register("backpressure.checking_enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# How often a consumer will check for its health in a debounced fassion.
+register("backpressure.checking_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# The high-watermark levels per-service which will mark a service as unhealthy.
+# This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(
-    "backpressure.monitor_queues.enable_status", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-# Enables checking queue health in consumers for backpressure management.
-register("backpressure.monitor_queues.enable_check", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "backpressure.monitor_queues.check_interval_in_seconds",
-    default=5,
+    "backpressure.high_watermarks",
+    default={
+        "celery": 0.5,
+        "attachments-store": 0.5,
+        "processing-store": 0.5,
+        "processing-locks": 0.5,
+        "post-process-locks": 0.5,
+    },
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "backpressure.monitor_queues.unhealthy_threshold", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-# How often we check queue health.
-register("backpressure.monitor_queues.check_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# How many times in a row a queue must be unhealthy before it is
-# recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
-register(
-    "backpressure.monitor_queues.strike_threshold", default=12, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
