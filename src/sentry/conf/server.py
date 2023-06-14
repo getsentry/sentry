@@ -1562,6 +1562,8 @@ SENTRY_FEATURES = {
     "organizations:slack-escape-messages": False,
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
+    # Enable detecting SDK crashes during event processing
+    "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3436,6 +3438,11 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
 SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
+
+# The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
+# Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
+# Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
+SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
 
 # The Redis cluster to use for monitoring the health of
 # Celery queues.
