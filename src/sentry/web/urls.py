@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 
 from django.conf import settings
 from django.conf.urls import include, url
 from django.http import HttpResponse
+from django.urls import URLPattern, URLResolver
 from django.views.generic import RedirectView
 
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
@@ -58,7 +61,7 @@ __all__ = ("urlpatterns",)
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
-urlpatterns = []
+urlpatterns: list[URLResolver | URLPattern] = []
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
