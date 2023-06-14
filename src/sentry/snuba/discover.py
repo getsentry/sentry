@@ -563,7 +563,7 @@ def get_facets(
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
     per_page (int) The number of records to fetch.
-    cursor (int) The number of records to skip.
+    cursor (int) Multiplied by per_page to determine the number of records to skip.
 
     Returns Sequence[FacetResult]
     """
