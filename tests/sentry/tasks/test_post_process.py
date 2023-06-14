@@ -1517,9 +1517,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
     @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
@@ -1536,7 +1536,6 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_called_once()
 
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
     ):
@@ -1555,7 +1554,6 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
     @with_feature("organizations:sdk-crash-detection")
-    @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
     def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},

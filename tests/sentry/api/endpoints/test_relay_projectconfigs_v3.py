@@ -67,7 +67,8 @@ def call_endpoint(client, relay, private_key, default_projectkey):
 @pytest.fixture
 def projectconfig_cache_get_mock_config(monkeypatch):
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_cache.get", lambda *args, **kwargs: {"is_mock_config": True}
+        "sentry.relay.projectconfig_cache.backend.get",
+        lambda *args, **kwargs: {"is_mock_config": True},
     )
 
 
@@ -78,13 +79,14 @@ def single_mock_proj_cached(monkeypatch):
             return {"is_mock_config": True}
         return None
 
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.get", cache_get)
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.get", cache_get)
 
 
 @pytest.fixture
 def projectconfig_debounced_cache(monkeypatch):
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced", lambda *args, **kargs: True
+        "sentry.relay.projectconfig_debounce_cache.backend.is_debounced",
+        lambda *args, **kargs: True,
     )
 
 
@@ -170,7 +172,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     assert task_mock.call_count == 0
 
 
-@patch("sentry.relay.projectconfig_cache.set_many")
+@patch("sentry.relay.projectconfig_cache.backend.set_many")
 @pytest.mark.django_db
 def test_task_writes_config_into_cache(
     cache_set_many_mock,
