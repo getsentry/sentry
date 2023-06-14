@@ -669,3 +669,40 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             {"count": 1, "name": "low", "value": "low"},
         ]
         self.assert_facet(response, "device.class", expected)
+
+    def test_with_page_offset_parameter(self):
+        test_project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {
+                    "a": "one",
+                    "b": "two",
+                    "c": "three",
+                    "d": "four",
+                    "e": "five",
+                    "f": "six",
+                    "g": "seven",
+                    "h": "eight",
+                    "i": "nine",
+                    "j": "ten",
+                    "k": "eleven",
+                },
+            },
+            project_id=test_project.id,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": test_project.id, "page_offset": 5, "page_size": 1},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        expected = [
+            {"count": 1, "name": "six", "value": "six"},
+        ]
+        self.assert_facet(response, "f", expected)
