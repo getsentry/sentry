@@ -258,7 +258,7 @@ function useOverlay({
           // Check if the target is inside a different overlay trigger. If yes, then we
           // should activate that trigger after this overlay has closed (see the onClose
           // prop above). This allows users to quickly jump between adjacent overlays.
-          const closestOverlayTrigger = target.closest<HTMLButtonElement>(
+          const closestOverlayTrigger = target.closest?.<HTMLButtonElement>(
             'button[aria-expanded="false"]'
           );
           if (closestOverlayTrigger && closestOverlayTrigger !== triggerRef.current) {
