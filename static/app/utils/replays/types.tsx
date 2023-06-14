@@ -1,7 +1,10 @@
-import type {
-  eventWithTime as TEventWithTime,
-  fullSnapshotEvent as TFullSnapshotEvent,
-} from '@sentry-internal/rrweb';
+import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+
+export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
+export type {fullSnapshotEvent as TFullSnapshotEvent} from '@sentry-internal/rrweb';
+
+export {NodeType} from '@sentry-internal/rrweb-snapshot';
+export {EventType} from '@sentry-internal/rrweb';
 
 import type {
   BreadcrumbFrame as TRawBreadcrumbFrame,
@@ -11,15 +14,9 @@ import type {
   SpanFrameEvent as TSpanFrameEvent,
 } from './replayFrame';
 
-export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-
-export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType} from '@sentry-internal/rrweb';
-
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
-export type fullSnapshotEvent = TFullSnapshotEvent;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
 export type OptionFrameEvent = TOptionFrameEvent;
 export type RawSpanFrame = TRawSpanFrame;
