@@ -1,161 +1,91 @@
-import {Theme, useTheme} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import {urlEncode} from '@sentry/utils';
 
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
-import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {
-  DurationTrendCell,
-  TimeSpentCell,
-} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
 
 type Props = {
-  isLoading: boolean;
   moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  spansData: SpanDataRow[];
-  spansTrendsData: SpanTrendDataRow[];
   columnOrder?: TableColumnHeader[];
+  endpoint?: string;
+  limit?: number;
+  spanCategory?: string;
 };
 
 export type SpanDataRow = {
-  count: number;
-  description: string;
-  domain: string;
-  epm: number;
-  formatted_desc: string;
-  group_id: string;
-  p50: number;
-  p95: number;
-  span_operation: string;
-  total_exclusive_time: number;
-};
-
-export type SpanTrendDataRow = {
-  group_id: string;
-  interval: string;
-  percentile_value: string;
-  span_operation: string;
+  'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
+  'span.description': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  'spm()': number;
+  'sps_percent_change()': number;
+  'time_spent_percentage()': number;
 };
 
 export type Keys =
-  | 'description'
-  | 'p50_trend'
-  | 'p95_trend'
-  | 'throughput_trend'
-  | 'span_operation'
-  | 'domain'
-  | 'epm()'
-  | 'p95(span.self_time)'
-  | 'timeSpent'
-  | 'total_exclusive_time';
+  | 'span.description'
+  | 'span.op'
+  | 'span.domain'
+  | 'spm()'
+  | 'p95(span.duration)'
+  | 'sps_percent_change()'
+  | 'sum(span.duration)'
+  | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
   moduleName,
-  spansData,
   orderBy,
   onSetOrderBy,
-  spansTrendsData,
-  isLoading,
   columnOrder,
+  spanCategory,
+  endpoint,
+  limit = 25,
 }: Props) {
   const location = useLocation();
-  const theme = useTheme();
-  const {data: applicationMetrics} = useApplicationMetrics();
-
-  const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
-
-  spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
-    ['p50_trend', 'p95_trend', 'throughput'].forEach(trend => {
-      if (span_operation in spansTrendsGrouped[trend]) {
-        if (group_id in spansTrendsGrouped[trend][span_operation]) {
-          return spansTrendsGrouped[trend][span_operation][group_id].push({
-            name: interval,
-            value: rest[trend],
-          });
-        }
-        return (spansTrendsGrouped[trend][span_operation][group_id] = [
-          {name: interval, value: rest[trend]},
-        ]);
-      }
-      return (spansTrendsGrouped[trend][span_operation] = {
-        [group_id]: [{name: interval, value: rest[trend]}],
-      });
-    });
-  });
-
-  const combinedSpansData = spansData?.map(spanData => {
-    const {group_id, span_operation} = spanData;
-    if (spansTrendsGrouped.p50_trend?.[span_operation] === undefined) {
-      return spanData;
-    }
-    const p50_trend: Series = {
-      seriesName: 'p50_trend',
-      data: spansTrendsGrouped.p50_trend[span_operation][group_id],
-    };
-    const p95_trend: Series = {
-      seriesName: 'p95_trend',
-      data: spansTrendsGrouped.p95_trend[span_operation][group_id],
-    };
-    const throughput_trend: Series = {
-      seriesName: 'throughput_trend',
-      data: spansTrendsGrouped.throughput[span_operation][group_id],
-    };
-
-    const zeroFilledP50 = zeroFillSeries(p50_trend, moment.duration(1, 'day'));
-    const zeroFilledP95 = zeroFillSeries(p95_trend, moment.duration(1, 'day'));
-    const zeroFilledThroughput = zeroFillSeries(
-      throughput_trend,
-      moment.duration(1, 'day')
-    );
-    return {
-      ...spanData,
-      timeSpent: formatPercentage(
-        spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
-      ),
-      p50_trend: zeroFilledP50,
-      p95_trend: zeroFilledP95,
-      throughput_trend: zeroFilledThroughput,
-    };
-  });
+  const {isLoading, data, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    undefined,
+    spanCategory,
+    orderBy,
+    limit
+  );
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={combinedSpansData}
-      columnOrder={columnOrder ?? getColumns(moduleName)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, theme, applicationMetrics),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={columnOrder ?? getColumns(moduleName)}
+        columnSortBy={
+          orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
+        }
+        grid={{
+          renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
+          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 
@@ -185,83 +115,55 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: TableColumnHeader,
   row: SpanDataRow,
-  theme: Theme,
-  applicationMetrics: ApplicationMetrics
+  endpoint?: string
 ): React.ReactNode {
-  if (column.key === 'throughput_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${row.epm.toFixed(2)}`,
-      row.epm,
-      theme
-    );
-    return (
-      <Sparkline
-        color={THROUGHPUT_COLOR}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
-      />
-    );
-  }
-
-  if (column.key === 'p95_trend' && row[column.key]) {
-    return (
-      <DurationTrendCell
-        color={P95_COLOR}
-        duration={row.p95}
-        durationSeries={row[column.key]}
-      />
-    );
-  }
-
-  if (column.key === 'description') {
-    const description = row.description;
+  if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span/${row.group_id}`}>{description || '<null>'}</Link>
+        {row['span.group'] ? (
+          <Link
+            to={`/starfish/span/${row['span.group']}${
+              endpoint ? `?${urlEncode({endpoint})}` : ''
+            }`}
+          >
+            {row['span.description'] || '<null>'}
+          </Link>
+        ) : (
+          row['span.description'] || '<null>'
+        )}
       </OverflowEllipsisTextContainer>
     );
   }
 
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
-  }
-
-  if (column.key === 'timeSpent') {
+  if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
-        totalSpanTime={row.total_exclusive_time}
+        timeSpentPercentage={row['time_spent_percentage()']}
+        totalSpanTime={row['sum(span.duration)']}
+      />
+    );
+  }
+
+  if (column.key === 'spm()') {
+    return (
+      <ThroughputCell
+        throughputPerSecond={row['spm()']}
+        delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.duration)']}
+        delta={row['percentile_percent_change(span.duration, 0.95)']}
       />
     );
   }
 
   return row[column.key];
 }
-
-// We use different named column keys for the same columns in db and api module
-// So we need to map them to the appropriate keys for the module details drawer
-// Not ideal, but this is a temporary fix until we match the column keys.
-// Also the type for this is not very consistent. We should fix that too.
-export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
-  switch (spanOperation) {
-    case 'http.client':
-      return {
-        ...row,
-        'p50(span.self_time)': row.p50,
-        'p95(span.self_time)': row.p95,
-      };
-    case 'db':
-      return {
-        ...row,
-        total_time: row.total_exclusive_time,
-      };
-
-    default:
-      return row;
-  }
-};
 
 function getDomainHeader(moduleName: ModuleName) {
   if (moduleName === ModuleName.HTTP) {
@@ -289,36 +191,36 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
 
   const order: TableColumnHeader[] = [
     {
-      key: 'span_operation',
+      key: 'span.op',
       name: 'Operation',
       width: 120,
     },
     {
-      key: 'description',
+      key: 'span.description',
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName !== ModuleName.ALL
       ? [
           {
-            key: 'domain',
+            key: 'span.domain',
             name: domain,
             width: COL_WIDTH_UNDEFINED,
           } as TableColumnHeader,
         ]
       : []),
     {
-      key: 'throughput_trend',
+      key: 'spm()',
       name: 'Throughput',
       width: 175,
     },
     {
-      key: 'p95_trend',
+      key: 'p95(span.duration)',
       name: DataTitles.p95,
       width: 175,
     },
     {
-      key: 'timeSpent',
+      key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
     },

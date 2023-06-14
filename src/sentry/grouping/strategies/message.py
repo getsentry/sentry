@@ -12,6 +12,7 @@ from sentry.grouping.strategies.base import (
 )
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 from sentry.interfaces.message import Message
+from sentry.utils import metrics
 
 _irrelevant_re = re.compile(
     r"""(?x)
@@ -103,6 +104,9 @@ _irrelevant_re = re.compile(
 
 
 def trim_message_for_grouping(string: str) -> str:
+    """Replace values from a group's message to hide P.I.I. and improve grouping when no
+    stacktrace available.
+    """
     s = "\n".join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
     if s != string:
         s += "..."
@@ -111,6 +115,9 @@ def trim_message_for_grouping(string: str) -> str:
         # e.g. hex, 0x40000015
         for key, value in match.groupdict().items():
             if value is not None:
+                # key can be one of the keys from _irrelevant_re, thus, not a large cardinality
+                # tracking the key helps distinguish what kinds of replacements are happening
+                metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
                 # For quoted_str we want to preserver the = symbol
                 return f"=<{key}>" if key == "quoted_str" else f"<{key}>"
         return ""

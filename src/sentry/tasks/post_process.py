@@ -264,9 +264,22 @@ def handle_owner_assignment(job):
                                 handle_group_owners(project, group, issue_owners)
                             except Exception:
                                 logger.exception("Failed to store group owners")
+                        else:
+                            handle_invalid_group_owners(group)
 
         except Exception:
             logger.exception("Failed to handle owner assignments")
+
+
+def handle_invalid_group_owners(group):
+    from sentry.models.groupowner import GroupOwner, GroupOwnerType
+
+    invalid_group_owners = GroupOwner.objects.filter(
+        group=group,
+        type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
+    )
+    for owner in invalid_group_owners:
+        owner.delete()
 
 
 def handle_group_owners(project, group, issue_owners):
@@ -712,7 +725,8 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.escalating import is_escalating, manage_issue_states
-    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, GroupSubStatus
+    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus
+    from sentry.types.group import GroupSubStatus
 
     event = job["event"]
     group = event.group
@@ -1042,6 +1056,30 @@ def fire_error_processed(job: PostProcessJob):
         )
 
 
+def sdk_crash_monitoring(job: PostProcessJob):
+    from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:sdk-crash-detection", event.project.organization):
+        return
+
+    if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
+        logger.warning(
+            "SDK crash detection is enabled but SDK_CRASH_DETECTION_PROJECT_ID is not set."
+        )
+        return None
+
+    with metrics.timer("post_process.sdk_crash_monitoring.duration"):
+        with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
+            sdk_crash_detection.detect_sdk_crash(
+                event=event, event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID
+            )
+
+
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -1077,6 +1115,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
+        sdk_crash_monitoring,
     ],
     GroupCategory.PERFORMANCE: [
         process_snoozes,

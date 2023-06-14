@@ -231,6 +231,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: List[str]
     hasAccess: bool
+    hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasProfiles: bool
     hasReplays: bool
@@ -246,7 +247,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
 
 
 @register(Project)
-class ProjectSerializer(Serializer):  # type: ignore
+class ProjectSerializer(Serializer):
     """
     This is primarily used to summarize projects. We utilize it when doing bulk loads for things
     such as "show all projects for this organization", and its attributes be kept to a minimum.

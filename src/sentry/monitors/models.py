@@ -286,8 +286,12 @@ class Monitor(Model):
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
-        # Only update keys that were specified in the payload
-        for key in config_payload.keys():
+        keys = set(config_payload.keys())
+
+        # Always update schedule and schedule_type
+        keys.update({"schedule", "schedule_type"})
+        # Otherwise, only update keys that were specified in the payload
+        for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
         self.save()
@@ -373,6 +377,8 @@ class MonitorCheckIn(Model):
     attachment_id = BoundedBigIntegerField(null=True)
     # Holds the time we expected to receive this check-in without factoring in margin
     expected_time = models.DateTimeField(null=True)
+    # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
+    timeout_at = models.DateTimeField(null=True)
     monitor_config = JSONField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
@@ -487,6 +493,10 @@ class MonitorEnvironment(Model):
         )
         if not affected:
             return False
+
+        # Do not create event if monitor is disabled
+        if self.monitor.status == ObjectStatus.DISABLED:
+            return True
 
         group_type, level = get_group_type_and_level(reason)
         current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)

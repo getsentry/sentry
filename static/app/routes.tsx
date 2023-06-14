@@ -1293,7 +1293,7 @@ function buildRoutes() {
   const cronsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
     return (
       <Fragment>
-        <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
+        <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
         <Route
           path={
             forCustomerDomain ? '/crons/create/' : '/organizations/:orgId/crons/create/'
@@ -1347,7 +1347,7 @@ function buildRoutes() {
 
   const replayChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/replays/list/container'))} />
+      <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
@@ -1359,7 +1359,7 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/replays/"
-          component={withDomainRequired(make(() => import('sentry/views/replays')))}
+          component={withDomainRequired(make(() => import('sentry/views/replays/index')))}
           key="orgless-replays-route"
         >
           {replayChildRoutes}
@@ -1367,7 +1367,7 @@ function buildRoutes() {
       )}
       <Route
         path="/organizations/:orgId/replays/"
-        component={withDomainRedirect(make(() => import('sentry/views/replays')))}
+        component={withDomainRedirect(make(() => import('sentry/views/replays/index')))}
         key="org-replays"
       >
         {replayChildRoutes}
@@ -1677,6 +1677,10 @@ function buildRoutes() {
       <Route
         path="database/"
         component={make(() => import('sentry/views/starfish/modules/DBModule'))}
+      />
+      <Route
+        path="definitions/"
+        component={make(() => import('sentry/views/starfish/views/definitionsView'))}
       />
       <Route
         path="api/"

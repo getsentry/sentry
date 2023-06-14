@@ -35,6 +35,8 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
+OptionValue = Union[str, int, bool, None]
+
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
@@ -54,7 +56,6 @@ def report_pydantic_type_validation_error(
     model_class: Optional[Type[Any]],
 ) -> None:
     with sentry_sdk.push_scope() as scope:
-        scope.set_level("warning")
         scope.set_context(
             "pydantic_validation",
             {
@@ -64,7 +65,7 @@ def report_pydantic_type_validation_error(
                 "model_class": str(model_class),
             },
         )
-        sentry_sdk.capture_exception(TypeError("Pydantic type validation error"))
+        logger.warning("Pydantic type validation error", exc_info=True)
 
 
 def _hack_pydantic_type_validation() -> None:
@@ -316,7 +317,7 @@ def coerce_id_from(m: object | int | None) -> int | None:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot coerce {m!r} into id!")
 
 
@@ -324,5 +325,5 @@ def extract_id_from(m: object | int) -> int:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot extract {m!r} from id!")

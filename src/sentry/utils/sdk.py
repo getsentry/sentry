@@ -546,6 +546,8 @@ def check_current_scope_transaction(
                 "scope_transaction": scope._transaction,
                 "request_transaction": transaction_from_request,
             }
+        else:
+            return None
 
 
 def capture_exception_with_scope_check(
@@ -653,3 +655,37 @@ def merge_context_into_scope(
 
     existing_context = scope._contexts.setdefault(context_name, {})
     existing_context.update(context_data)
+
+
+__all__ = (
+    "EXPERIMENT_TAG",
+    "LEGACY_RESOLVER",
+    "RavenShim",
+    "Scope",
+    "UNSAFE_FILES",
+    "UNSAFE_TAG",
+    "before_send_transaction",
+    "bind_ambiguous_org_context",
+    "bind_organization_context",
+    "capture_exception",
+    "capture_exception_with_scope_check",
+    "capture_message",
+    "check_current_scope_transaction",
+    "check_tag",
+    "configure_scope",
+    "configure_sdk",
+    "get_options",
+    "get_project_key",
+    "get_transaction_name_from_request",
+    "is_current_event_experimental",
+    "is_current_event_safe",
+    "make_transport",
+    "mark_scope_as_experimental",
+    "mark_scope_as_unsafe",
+    "merge_context_into_scope",
+    "patch_transport_for_instrumentation",
+    "push_scope",
+    "set_current_event_project",
+    "set_measurement",
+    "traces_sampler",
+)

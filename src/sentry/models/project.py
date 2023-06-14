@@ -25,12 +25,15 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    OptionManager,
+    Value,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -55,7 +58,9 @@ class ProjectManager(BaseManager):
             projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
                 lambda u: u.id, users
             ),
-        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
+        ).values_list(
+            "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
+        )
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
@@ -64,8 +69,6 @@ class ProjectManager(BaseManager):
 
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
-        from sentry.models import ObjectStatus
-
         return self.filter(
             status=ObjectStatus.ACTIVE,
             teams__organizationmember__user_id__in=user_ids,
@@ -103,7 +106,7 @@ class ProjectManager(BaseManager):
 
 
 @region_silo_only_model
-class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
+class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -222,15 +225,19 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 return True
         return False
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
-        return projectoptions.set(self, *args, **kwargs)
+    @property
+    def option_manager(self) -> OptionManager:
+        from sentry.models import ProjectOption
 
-    def get_option(self, *args, **kwargs):
-        return projectoptions.get(self, *args, **kwargs)
+        return ProjectOption.objects
 
-    def delete_option(self, *args, **kwargs):
-        return projectoptions.delete(self, *args, **kwargs)
+    def update_option(self, key: str, value: Value) -> bool:
+        projectoptions.update_rev_for_option(self)
+        return super().update_option(key, value)
+
+    def delete_option(self, key: str) -> None:
+        projectoptions.update_rev_for_option(self)
+        super().delete_option(key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)
@@ -251,7 +258,8 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 organizationmemberteam__is_active=True,
                 organizationmemberteam__team__in=self.teams.all(),
             ).values("id"),
-            user__is_active=True,
+            user_is_active=True,
+            user_id__isnull=False,
         ).distinct()
 
     def get_members_as_rpc_users(self) -> Iterable[RpcUser]:

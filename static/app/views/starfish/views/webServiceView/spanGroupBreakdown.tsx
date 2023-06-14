@@ -1,21 +1,21 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Link} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Checkbox from 'sentry/components/checkbox';
-import Duration from 'sentry/components/duration';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -27,6 +27,7 @@ type Props = {
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
+  transaction?: string;
 };
 
 export function SpanGroupBreakdown({
@@ -34,8 +35,10 @@ export function SpanGroupBreakdown({
   totalCumulativeTime: totalValues,
   topSeriesData: data,
   initialShowSeries,
+  transaction,
 }: Props) {
   const {selection} = usePageFilters();
+  const theme = useTheme();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
 
   useEffect(() => {
@@ -50,16 +53,21 @@ export function SpanGroupBreakdown({
       visibleSeries.push(series);
     }
   }
+  const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
   return (
-    <Fragment>
+    <FlexRowContainer>
       <ChartPadding>
         <Header>
-          <ChartLabel>{t('App Time Breakdown (p95)')}</ChartLabel>
+          <ChartLabel>
+            {transaction
+              ? t('Endpoint Time Breakdown (P95)')
+              : t('App Time Breakdown (P95)')}
+          </ChartLabel>
         </Header>
         <Chart
           statsPeriod="24h"
-          height={175}
+          height={210}
           data={visibleSeries}
           start=""
           end=""
@@ -89,25 +97,21 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          ['span.module'].forEach(key => {
-            if (group[key] !== undefined && group[key] !== null) {
-              spansLinkQueryParams[key] = group[key];
-            }
-          });
+          if (['db', 'http'].includes(group['span.category'])) {
+            spansLinkQueryParams['span.module'] = group['span.category'];
+          } else {
+            spansLinkQueryParams['span.module'] = 'Other';
+          }
+          spansLinkQueryParams['span.category'] = group['span.category'];
 
-          const spansLink =
-            group['span.module'] === 'other'
-              ? `/starfish/spans/`
-              : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
-            <StyledLineItem key={`${group['span.module']}`}>
+            <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
-                <StyledTopResultsIndicator
-                  count={Math.max(transformedData.length - 1, 1)}
-                  index={index}
-                />
                 <Checkbox
                   size="sm"
+                  checkboxColor={colorPalette[index]}
+                  inputCss={{backgroundColor: 'red'}}
                   checked={checkedValue}
                   onChange={() => {
                     const updatedSeries = [...showSeriesArray];
@@ -116,34 +120,28 @@ export function SpanGroupBreakdown({
                   }}
                 />
                 <TextAlignLeft>
-                  <Link to={spansLink}>
-                    <TextOverflow>{group['span.module']}</TextOverflow>
-                  </Link>
+                  {defined(transaction) ? (
+                    <TextOverflow>{group['span.category']}</TextOverflow>
+                  ) : (
+                    <Link to={spansLink}>
+                      <TextOverflow>{group['span.category']}</TextOverflow>
+                    </Link>
+                  )}
                 </TextAlignLeft>
                 <RightAlignedCell>
                   <Tooltip
                     title={t(
                       '%s time spent on %s',
                       formatPercentage(row.cumulativeTime / totalValues, 1),
-                      group['span.module']
+                      group['span.category']
                     )}
                     containerDisplayMode="block"
                     position="top"
                   >
-                    <NumberContainer>
-                      {tct('[cumulativeTime] ([cumulativeTimePercentage])', {
-                        cumulativeTime: (
-                          <Duration
-                            seconds={row.cumulativeTime / 1000}
-                            fixedDigits={1}
-                            abbreviation
-                          />
-                        ),
-                        cumulativeTimePercentage: formatPercentage(
-                          row.cumulativeTime / totalValues,
-                          1
-                        ),
-                      })}
+                    <NumberContainer
+                      style={{textDecoration: 'underline', textDecorationStyle: 'dotted'}}
+                    >
+                      {formatPercentage(row.cumulativeTime / totalValues, 1)}
                     </NumberContainer>
                   </Tooltip>
                 </RightAlignedCell>
@@ -152,7 +150,7 @@ export function SpanGroupBreakdown({
           );
         })}
       </ListContainer>
-    </Fragment>
+    </FlexRowContainer>
   );
 }
 
@@ -162,7 +160,6 @@ const StyledLineItem = styled('li')`
 
 const ListItemContainer = styled('div')`
   display: flex;
-  border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -170,6 +167,7 @@ const ListItemContainer = styled('div')`
 const ListContainer = styled('ul')`
   padding: ${space(1)} 0 0 0;
   margin: 0;
+  border-left: 1px solid ${p => p.theme.border};
   list-style-type: none;
 `;
 
@@ -181,6 +179,7 @@ const TextAlignLeft = styled('span')`
 
 const ChartPadding = styled('div')`
   padding: 0 ${space(2)};
+  flex: 2;
 `;
 
 const ChartLabel = styled('p')`
@@ -196,6 +195,8 @@ const Header = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledTopResultsIndicator = styled(TopResultsIndicator)`
-  margin-top: 0px;
+const FlexRowContainer = styled('div')`
+  display: flex;
+  min-height: 200px;
+  padding-bottom: ${space(2)};
 `;

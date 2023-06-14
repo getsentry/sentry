@@ -17,8 +17,8 @@ class SortOptions:
     PRIORITY = "priority"
     FREQ = "freq"
     USER = "user"
-    TREND = "trend"
     INBOX = "inbox"
+    BETTER_PRIORITY = "betterPriority"
 
     @classmethod
     def as_choices(cls):
@@ -28,8 +28,8 @@ class SortOptions:
             (cls.PRIORITY, _("Priority")),
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
-            (cls.TREND, _("Relative Change")),
             (cls.INBOX, _("Date Added")),
+            (cls.BETTER_PRIORITY, _("Better Priority")),
         )
 
 

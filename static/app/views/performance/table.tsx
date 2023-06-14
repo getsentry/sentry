@@ -41,6 +41,7 @@ import {
 } from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 import {
+  areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
   getProjectID,
   getSelectedProjectPlatforms,
@@ -64,6 +65,19 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
+
+function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
+  const fourteen_days_ago = new Date(+new Date() - 12096e5);
+  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const firstEventDate = new Date(project?.firstEvent ?? '');
+  if (firstEventDate > fourteen_days_ago) {
+    return '14d';
+  }
+  if (firstEventDate > thirty_days_ago) {
+    return '30d';
+  }
+  return '>30d';
+}
 class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
@@ -71,6 +85,63 @@ class _Table extends Component<Props, State> {
     transactionThreshold: undefined,
     transactionThresholdMetric: undefined,
   };
+
+  componentDidMount(): void {
+    const {organization} = this.props;
+    if (!this.tableMetricSet) {
+      this.tableMetricSet = true;
+      trackAnalytics('performance_views.landing.table.seen', {
+        organization,
+      });
+    }
+  }
+  unparameterizedMetricSet = false;
+  tableMetricSet = false;
+
+  sendUnparameterizedAnalytic() {
+    const {organization, eventView} = this.props;
+    const statsPeriod = eventView.statsPeriod ?? 'other';
+    const firstEventData = this.getFirstEventData();
+
+    trackAnalytics('performance_views.landing.table.unparameterized', {
+      organization,
+      first_event: firstEventData.firstEventWithin,
+      sent_transaction: firstEventData.singleProject?.firstTransactionEvent ?? false,
+      single_project: firstEventData.isSingleProject,
+      stats_period: statsPeriod,
+      hit_multi_project_cap: firstEventData.isAtMultiCap,
+    });
+  }
+
+  /**
+   * Used for cluster warning and analytics.
+   */
+  getFirstEventData() {
+    const {eventView, projects} = this.props;
+    const isSingleProject = !areMultipleProjectsSelected(eventView);
+
+    const selectedProjects = eventView.getFullSelectedProjects(projects);
+    const isAtMultiCap = selectedProjects.length > 1000;
+    const singleProject = selectedProjects[0];
+    let firstEventWithin: 'none' | '14d' | '30d' | '>30d' = '>30d';
+    if (isSingleProject) {
+      firstEventWithin = getProjectFirstEventGroup(singleProject);
+    } else if (!isAtMultiCap) {
+      const dateGroups = selectedProjects.map(getProjectFirstEventGroup);
+      if (dateGroups.every(g => g === '14d')) {
+        firstEventWithin = '14d';
+      }
+      if (dateGroups.every(g => g === '14d' || g === '30d')) {
+        firstEventWithin = '30d';
+      }
+    }
+    return {
+      firstEventWithin,
+      isSingleProject,
+      singleProject,
+      isAtMultiCap,
+    };
+  }
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
@@ -162,6 +233,7 @@ class _Table extends Component<Props, State> {
     ];
 
     const cellActions = withStaticFilters ? [] : allowActions;
+    const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -172,7 +244,10 @@ class _Table extends Component<Props, State> {
         ]);
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
+      if (isUnparameterizedRow && !this.unparameterizedMetricSet) {
+        this.sendUnparameterizedAnalytic();
+        this.unparameterizedMetricSet = true;
+      }
       const target = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
             organization,

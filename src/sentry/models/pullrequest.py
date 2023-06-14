@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -87,3 +88,18 @@ class PullRequestCommit(Model):
         app_label = "sentry"
         db_table = "sentry_pullrequest_commit"
         unique_together = (("pull_request", "commit"),)
+
+
+@region_silo_only_model
+class PullRequestComment(Model):
+    __include_in_export__ = False
+
+    external_id = BoundedBigIntegerField()
+    pull_request = FlexibleForeignKey("sentry.PullRequest", unique=True)
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+    group_ids = DjangoArrayField(BoundedBigIntegerField())
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_comment"
