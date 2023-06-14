@@ -21,7 +21,7 @@ DEBUG_KEY_NAME = "queue-debug"
 queue_monitoring_cluster = redis.redis_clusters.get(settings.SENTRY_QUEUE_MONITORING_REDIS_CLUSTER)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RabbitMqHost:
     hostname: str
     port: int
@@ -30,13 +30,31 @@ class RabbitMqHost:
     password: str
 
 
-def _parse_rabbitmq(url: str, vhost: str) -> RabbitMqHost:
+def _parse_rabbitmq(host: Dict[str, str]) -> RabbitMqHost:
+    if "url" not in host:
+        raise ValueError("missing url")
+
+    if "vhost" not in host:
+        raise ValueError("missing vhost")
+
+    url = host["url"]
+    vhost = host["vhost"]
     dsn = urlparse(url)
     host, port = dsn.hostname, dsn.port
+    username, password = dsn.username, dsn.password
     if port is None:
         port = 15672
 
-    return RabbitMqHost(host, port, vhost, dsn.username, dsn.password)
+    if host is None:
+        raise ValueError("missing hostname")
+
+    if username is None:
+        raise ValueError("missing username")
+
+    if password is None:
+        raise ValueError("missing password")
+
+    return RabbitMqHost(host, port, vhost, username, password)
 
 
 def _prefix_key(key_name: str) -> str:
@@ -134,11 +152,17 @@ def _is_healthy(queue_size) -> bool:
 
 
 def run_queue_stats_updater() -> None:
-    hosts = [
-        _parse_rabbitmq(host["url"], host["vhost"])
-        for host in options.get("backpressure.monitor_queues.rabbitmq_hosts")
-    ]
+    hosts = []
+    for host in options.get("backpressure.monitor_queues.rabbitmq_hosts"):
+        try:
+            hosts.append(_parse_rabbitmq(host))
+        except ValueError as e:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("invalid_host", host)
+                sentry_sdk.capture_exception(e)
+
     queue_history = {queue: 0 for queue in ALL_QUEUES}
+
     while True:
         if not options.get("backpressure.monitor_queues.enable_status"):
             sleep(10)
