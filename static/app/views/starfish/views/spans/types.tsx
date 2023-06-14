@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 
 export type DataKey =
   | 'timeSpent'
@@ -16,7 +17,7 @@ export const DataTitles: Record<DataKey, string> = {
   p50p95: t('Duration (P50, P95)'),
   p50: t('Duration (P50)'),
   p95: t('Duration (P95)'),
-  errorCount: t('5xx Responses'),
+  errorCount: t('5XX Responses'),
   throughput: t('Throughput'),
 };
 
@@ -25,10 +26,11 @@ export const getTooltip = (
   ...options: (string | number)[]
 ): React.ReactNode => {
   if (key === 'timeSpent') {
-    const spanTime = `${(Number(options[0]) / 1000).toFixed(2)}s`;
     return (
       <Fragment>
-        <div>{spanTime}</div>
+        <div>
+          <DurationCell milliseconds={options[0] as number} />
+        </div>
         <Link to="/starfish/definitions/">How was this calculated?</Link>
       </Fragment>
     );

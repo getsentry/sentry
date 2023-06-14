@@ -32,9 +32,15 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     height: 100%;
     width: 100%;
     min-height: auto;
-    border-color: transparent !important;
+    border-color: transparent;
     box-shadow: none;
     z-index: 0;
+  }
+
+  & button[aria-haspopup].focus-visible {
+    border-color: ${p => p.theme.focusBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+    z-index: 1;
   }
 
   & > * {

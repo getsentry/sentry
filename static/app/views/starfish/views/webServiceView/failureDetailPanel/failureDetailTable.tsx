@@ -37,7 +37,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'http_error_count()',
-    name: t('5xx Responses'),
+    name: t('5XX Responses'),
     width: 150,
   },
   {

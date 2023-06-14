@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
@@ -38,14 +37,6 @@ export default function SpansView(props: Props) {
 
   const {orderBy} = state;
 
-  const {isLoading: areSpansLoading, data: spansData} = useSpanList(
-    props.moduleName ?? ModuleName.ALL,
-    undefined,
-    props.spanCategory,
-    orderBy,
-    LIMIT
-  );
-
   return (
     <Fragment>
       <FilterOptionsContainer>
@@ -54,16 +45,19 @@ export default function SpansView(props: Props) {
         <SpanOperationSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.op'] || ''}
+          spanCategory={props.spanCategory}
         />
 
         <DomainSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.domain'] || ''}
+          spanCategory={props.spanCategory}
         />
 
         <ActionSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.action'] || ''}
+          spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>
 
@@ -71,16 +65,17 @@ export default function SpansView(props: Props) {
         <SpanTimeCharts
           moduleName={props.moduleName || ModuleName.ALL}
           appliedFilters={appliedFilters}
+          spanCategory={props.spanCategory}
         />
       </PaddedContainer>
 
       <PaddedContainer>
         <SpansTable
           moduleName={props.moduleName || ModuleName.ALL}
-          isLoading={areSpansLoading}
-          spansData={spansData}
           orderBy={orderBy}
+          spanCategory={props.spanCategory}
           onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
+          limit={LIMIT}
         />
       </PaddedContainer>
     </Fragment>

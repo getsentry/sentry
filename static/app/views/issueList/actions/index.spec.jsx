@@ -248,7 +248,7 @@ describe('IssueListActions', function () {
 
   it('can archive an issue until escalating', async () => {
     const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const org_escalating = {...organization, features: ['escalating-issues-ui']};
+    const org_escalating = {...organization, features: ['escalating-issues']};
     const apiMock = MockApiClient.addMockResponse({
       url: `/organizations/${org_escalating.slug}/issues/`,
       method: 'PUT',
@@ -343,9 +343,9 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
 
-    it('hides mark reviewed button with escalating-issues-ui flag', function () {
+    it('hides mark reviewed button with escalating-issues flag', function () {
       render(<WrappedComponent {...defaultProps} />, {
-        organization: {...organization, features: ['escalating-issues-ui']},
+        organization: {...organization, features: ['escalating-issues']},
       });
 
       expect(
