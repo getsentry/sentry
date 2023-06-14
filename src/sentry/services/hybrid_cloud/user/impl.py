@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, List, Optional
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from sentry.api.serializers import (
     DetailedSelfUserSerializer,
@@ -42,29 +42,29 @@ class DatabaseBackedUserService(UserService):
     def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
         return self._FQ.get_many(filter)
 
+    def get_many_ids(self, *, filter: UserFilterArgs) -> List[int]:
+        return self._FQ.get_many_ids(filter)
+
     def get_many_by_email(
         self,
         emails: List[str],
         is_active: bool = True,
         is_verified: bool = True,
-        is_project_member: bool = False,
-        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
     ) -> List[RpcUser]:
         query = self._FQ.base_query()
         if is_verified:
             query = query.filter(emails__is_verified=is_verified)
         if is_active:
             query = query.filter(is_active=is_active)
-        if is_project_member:
-            query = query.filter(
-                sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id__in=[
-                    project_id
-                ]
-            )
-        return [
+        if organization_id is not None:
+            query = query.filter(orgmembermapping_set__organization_id=organization_id)
+
+        users = [
             self._FQ.serialize_rpc(user)
             for user in query.filter(in_iexact("emails__email", emails))
         ]
+        return [user.by_email(email) for user in users for email in user.emails]
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
@@ -103,6 +103,18 @@ class DatabaseBackedUserService(UserService):
             User.objects.filter(id=user_id).update(**attrs)
         return self.serialize_many(filter=dict(user_ids=[user_id]))[0]
 
+    def get_user_by_social_auth(
+        self, *, organization_id: int, provider: str, uid: str
+    ) -> Optional[RpcUser]:
+        user = User.objects.filter(
+            social_auth__provider=provider,
+            social_auth__uid=uid,
+            orgmembermapping_set__organization_id=organization_id,
+        ).first()
+        if user is None:
+            return None
+        return serialize_rpc_user(user)
+
     def close(self) -> None:
         pass
 
@@ -120,30 +132,30 @@ class DatabaseBackedUserService(UserService):
                 query = query.filter(is_active=filters["is_active"])
             if "organization_id" in filters:
                 query = query.filter(
-                    sentry_orgmember_set__organization_id=filters["organization_id"]
+                    orgmembermapping_set__organization_id=filters["organization_id"]
                 )
-            if "is_active_memberteam" in filters:
-                query = query.filter(
-                    sentry_orgmember_set__organizationmemberteam__is_active=filters[
-                        "is_active_memberteam"
-                    ],
-                )
-            if "project_ids" in filters:
-                query = query.filter(
-                    sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id__in=filters[
-                        "project_ids"
-                    ]
-                )
-            if "team_ids" in filters:
-                query = query.filter(
-                    sentry_orgmember_set__organizationmemberteam__team_id__in=filters["team_ids"],
-                )
+            if "email_verified" in filters:
+                query = query.filter(emails__is_verified=filters["email_verified"])
             if "emails" in filters:
                 query = query.filter(in_iexact("emails__email", filters["emails"]))
+            if "query" in filters:
+                query = query.filter(
+                    Q(emails__email__icontains=filters["query"])
+                    | Q(name__icontains=filters["query"])
+                )
+            if "authenticator_types" in filters:
+                at = filters["authenticator_types"]
+                if at is None:
+                    query = query.filter(authenticator__isnull=True)
+                else:
+                    query = query.filter(authenticator__isnull=False, authenticator__type__in=at)
 
             return list(query)
 
-        def base_query(self) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet:
+            if ids_only:
+                return User.objects
+
             return User.objects.extra(
                 select={
                     "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
@@ -160,9 +172,7 @@ class DatabaseBackedUserService(UserService):
             )
 
         def filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
-            return self._filter_has_any_key_validator(
-                "user_ids", "organization_id", "team_ids", "project_ids", "emails"
-            )
+            return self._filter_has_any_key_validator("user_ids", "organization_id", "emails")
 
         def serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
             serializer: Serializer = UserSerializer()

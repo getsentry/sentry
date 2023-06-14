@@ -36,3 +36,8 @@ def crossdomain_xml(request, project_id):
     response["Content-Type"] = "application/xml"
 
     return response
+
+
+@cache_control(max_age=3600, public=True)
+def not_found(request):
+    return HttpResponse(status=404)

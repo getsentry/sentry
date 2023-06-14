@@ -11,11 +11,13 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.db import transaction
+from django.utils.text import slugify
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.monitors.models import (
+    MAX_SLUG_LENGTH,
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -43,6 +45,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
+    monitor_slug_from_param: str,
     config: Optional[Dict],
 ):
     try:
@@ -53,6 +56,21 @@ def _ensure_monitor_with_config(
         )
     except Monitor.DoesNotExist:
         monitor = None
+
+    # XXX(epurkhiser): Temporary dual-read logic to handle some monitors
+    # that were created before we correctly slugified slugs on upsert in
+    # this consumer.
+    #
+    # Once all slugs are correctly slugified we can remove this.
+    if not monitor:
+        try:
+            monitor = Monitor.objects.get(
+                slug=monitor_slug_from_param,
+                project_id=project.id,
+                organization_id=project.organization_id,
+            )
+        except Monitor.DoesNotExist:
+            pass
 
     if not config:
         return monitor
@@ -94,10 +112,14 @@ def _process_message(wrapper: Dict) -> None:
     project_id = int(wrapper["project_id"])
     source_sdk = wrapper["sdk"]
 
+    # Ensure the monitor_slug is slugified, since we are not running this
+    # through the MonitorValidator we must do this here.
+    monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
+
     environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
 
-    ratelimit_key = f"{project.organization_id}:{params['monitor_slug']}:{environment}"
+    ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
     metric_kwargs = {
         "source": "consumer",
@@ -113,7 +135,7 @@ def _process_message(wrapper: Dict) -> None:
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in rate limited: %s", params["monitor_slug"])
+        logger.debug("monitor check in rate limited: %s", monitor_slug)
         return
 
     def update_existing_check_in(
@@ -197,7 +219,10 @@ def _process_message(wrapper: Dict) -> None:
 
             try:
                 monitor = _ensure_monitor_with_config(
-                    project, params["monitor_slug"], monitor_config
+                    project,
+                    monitor_slug,
+                    params["monitor_slug"],
+                    monitor_config,
                 )
 
                 if not monitor:
@@ -224,10 +249,7 @@ def _process_message(wrapper: Dict) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.debug(
-                    "monitor environment exceeds limits for monitor: %s",
-                    params["monitor_slug"],
-                )
+                logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())

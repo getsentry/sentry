@@ -23,10 +23,6 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
-
-    is_modifier = False
-    is_updater = False
-
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
 

@@ -20,7 +20,7 @@ from sentry.models import (
     Team,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.services.hybrid_cloud import logger
+from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationInvite,
@@ -94,7 +94,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, email__iexact=email
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
@@ -168,7 +170,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = OrganizationMember.objects.filter(organization_id=org.id, email=email).first()
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, email__iexact=email
+            ).first()
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, id=organization_member_id
@@ -299,6 +303,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         ), "Must set either user_id or email"
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
+
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:
@@ -461,3 +466,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
+
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        value = orm_organization.get_option(key)
+        if value is not None and not isinstance(value, (str, int, bool)):
+            raise TypeError
+        return value
+
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+
+    def delete_option(self, *, organization_id: int, key: str) -> None:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        orm_organization.delete_option(key)
