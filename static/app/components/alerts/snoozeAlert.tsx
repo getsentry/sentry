@@ -42,14 +42,14 @@ function SnoozeAlert({
 
   const [disabled, setDisabled] = useState(false);
 
-  const endpoint = type === 'issue' ? 'rules' : 'alert-rules';
+  const alertPath = type === 'issue' ? 'rules' : 'alert-rules';
 
   const handleMute = useCallback(
     async (target: 'me' | 'everyone', autoMute = false) => {
       setDisabled(true);
       try {
         await api.requestPromise(
-          `/projects/${organization.slug}/${projectSlug}/${endpoint}/${ruleId}/snooze/`,
+          `/projects/${organization.slug}/${projectSlug}/${alertPath}/${ruleId}/snooze/`,
           {
             method: 'POST',
             data: {
@@ -91,7 +91,7 @@ function SnoozeAlert({
       organization.slug,
       projectSlug,
       ruleId,
-      endpoint,
+      alertPath,
     ]
   );
 
@@ -100,7 +100,7 @@ function SnoozeAlert({
 
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/${endpoint}/${ruleId}/snooze/`,
+        `/projects/${organization.slug}/${projectSlug}/${alertPath}/${ruleId}/snooze/`,
         {
           method: 'DELETE',
         }
