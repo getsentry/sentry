@@ -1639,8 +1639,11 @@ SENTRY_FRONTEND_DSN = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
-# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+# Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
+
+# Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
+SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS = None
 
 # ----
 # APM config
