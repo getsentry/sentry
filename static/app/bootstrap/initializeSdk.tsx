@@ -20,6 +20,13 @@ const SPA_MODE_ALLOW_URLS = [
   'webpack-internal://',
 ];
 
+const SPA_MODE_TRACE_PROPAGATION_TARGETS = [
+  'localhost',
+  'dev.getsentry.net',
+  'sentry.dev',
+  'webpack-internal://',
+];
+
 // We don't care about recording breadcrumbs for these hosts. These typically
 // pollute our breadcrumbs since they may occur a LOT.
 //
@@ -40,12 +47,9 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * (e.g.  `static/views/integrationPipeline`)
  */
 function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Function) {
-  const extraTracingOrigins = SPA_DSN
-    ? SPA_MODE_ALLOW_URLS
-    : [...sentryConfig?.whitelistUrls];
-  const partialTracingOptions: Partial<BrowserTracing['options']> = {
-    tracingOrigins: ['localhost', /^\//, ...extraTracingOrigins],
-  };
+  const extraTracePropagationTargets = SPA_DSN
+    ? SPA_MODE_TRACE_PROPAGATION_TARGETS
+    : [...sentryConfig?.tracePropagationTargets];
 
   const integrations = [
     new ExtraErrorData({
@@ -66,7 +70,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
         enableInteractions: true,
         onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
-      ...partialTracingOptions,
+      tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     }),
     new Sentry.BrowserProfilingIntegration(),
     new HTTPTimingIntegration(),
@@ -89,7 +93,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     ...sentryConfig,
     /**
      * For SPA mode, we need a way to overwrite the default DSN from backend
-     * as well as `whitelistUrls`
+     * as well as `allowUrls`
      */
     dsn: SPA_DSN || sentryConfig?.dsn,
     /**
@@ -98,7 +102,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * from backend.
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
-    allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
+    allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
     // @ts-expect-error not part of browser SDK types yet

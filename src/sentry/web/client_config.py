@@ -214,10 +214,15 @@ def get_client_config(request=None):
             "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
             "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
-            "whitelistUrls": (
+            "allowUrls": (
                 settings.SENTRY_FRONTEND_WHITELIST_URLS
                 if settings.SENTRY_FRONTEND_WHITELIST_URLS
                 else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
+            ),
+            "tracePropagationTargets": (
+                settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
+                if settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
+                else []
             ),
         },
         "demoMode": settings.DEMO_MODE,
