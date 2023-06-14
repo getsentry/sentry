@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -43,6 +45,49 @@ describe('CompactSelect', function () {
     await userEvent.click(screen.getByRole('button'));
 
     expect(screen.getByText('Menu title')).toBeInTheDocument();
+  });
+
+  it('can be dismissed', async function () {
+    render(
+      <Fragment>
+        <CompactSelect
+          value="opt_one"
+          menuTitle="Menu A"
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+        />
+        <CompactSelect
+          value="opt_three"
+          menuTitle="Menu B"
+          options={[
+            {value: 'opt_three', label: 'Option Three'},
+            {value: 'opt_four', label: 'Option Four'},
+          ]}
+        />
+      </Fragment>
+    );
+
+    // Can be dismissed by clicking outside
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await userEvent.click(document.body);
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+    // Can be dismissed by pressing Escape
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+    // When menu A is open, clicking once on menu B's trigger button closes menu A and
+    // then opens menu B
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Option Three'}));
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
   describe('ListBox', function () {
