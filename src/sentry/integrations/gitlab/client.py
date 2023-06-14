@@ -66,6 +66,7 @@ class GitlabProxySetupClient(IntegrationProxyClient):
         prepared_request.headers["Authorization"] = f"Bearer {self.token}"
         return prepared_request
 
+    @control_silo_function
     def get_group(self, group):
         """Get a group based on `path` which is a slug.
 
