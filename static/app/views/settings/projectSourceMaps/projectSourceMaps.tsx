@@ -8,7 +8,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
@@ -19,9 +18,10 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
+import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
@@ -73,11 +73,14 @@ function SourceMapsTableRow({
       </IDColumn>
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
-          <Tooltip title={t('No bundle connected to this release')}>
-            <IconWrapper>
-              <IconWarning color="warning" size="sm" />
-            </IconWrapper>
-          </Tooltip>
+          <NoArtifactsUploadedWrapper>
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t('A Release was created, but no artifacts were uploaded')}
+            />
+            {'0'}
+          </NoArtifactsUploadedWrapper>
         ) : (
           <Count value={fileCount} />
         )}
@@ -267,24 +270,6 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         </ListLink>
         <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
           {t('Release Bundles')}
-          <Tooltip
-            title={tct(
-              'Release Bundles have been deprecated in favor of Artifact Bundles. Learn more about [link:Artifact Bundles].',
-              {
-                link: (
-                  <ExternalLink
-                    href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/"
-                    onClick={event => {
-                      event.stopPropagation();
-                    }}
-                  />
-                ),
-              }
-            )}
-            isHoverable
-          >
-            <Badge type="warning" text={t('Deprecated')} />
-          </Tooltip>
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
@@ -435,6 +420,8 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
-const IconWrapper = styled('div')`
+const NoArtifactsUploadedWrapper = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

@@ -15,8 +15,8 @@ class RelayHealthCheck(Endpoint):
     Relay doesn't need to care if it connects to another Relay or directly to sentry.
     """
 
-    authentication_classes = []
-    permission_classes = []
+    authentication_classes = ()
+    permission_classes = ()
 
     def get(self, request: Request) -> Response:
         return Response({"is_healthy": True}, status=200)

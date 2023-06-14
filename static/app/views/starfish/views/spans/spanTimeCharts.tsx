@@ -12,7 +12,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -24,10 +23,12 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   appliedFilters: AppliedFilters;
   moduleName: ModuleName;
+  spanCategory?: string;
 };
 
 type AppliedFilters = {
@@ -42,11 +43,27 @@ type ChartProps = {
   moduleName: ModuleName;
 };
 
-export function SpanTimeCharts({moduleName, appliedFilters}: Props) {
+function getSegmentLabel(span_operation, action, domain) {
+  if (span_operation === 'http.client') {
+    return t('%s requests to %s', action, domain);
+  }
+  if (span_operation === 'db') {
+    return t('%s queries on %s', action, domain);
+  }
+  return span_operation || domain || undefined;
+}
+
+export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
 
-  const eventView = getEventView(moduleName, location, selection, appliedFilters);
+  const eventView = getEventView(
+    moduleName,
+    location,
+    selection,
+    appliedFilters,
+    spanCategory
+  );
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -299,9 +316,10 @@ const getEventView = (
   moduleName: ModuleName,
   location: Location,
   pageFilters: PageFilters,
-  appliedFilters: AppliedFilters
+  appliedFilters: AppliedFilters,
+  spanCategory?: string
 ) => {
-  const query = buildDiscoverQueryConditions(moduleName, appliedFilters);
+  const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
 
   return EventView.fromNewQueryWithLocation(
     {
@@ -320,7 +338,8 @@ const getEventView = (
 
 const buildDiscoverQueryConditions = (
   moduleName: ModuleName,
-  appliedFilters: AppliedFilters
+  appliedFilters: AppliedFilters,
+  spanCategory?: string
 ) => {
   const result = Object.keys(appliedFilters)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
@@ -331,6 +350,14 @@ const buildDiscoverQueryConditions = (
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
+  }
+
+  if (spanCategory) {
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      result.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      result.push(`span.category:${spanCategory}`);
+    }
   }
 
   return result.join(' ');

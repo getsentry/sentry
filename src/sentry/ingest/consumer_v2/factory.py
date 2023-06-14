@@ -12,7 +12,6 @@ from arroyo.processing.strategies import (
     ProcessingStrategy,
     ProcessingStrategyFactory,
     RunTask,
-    RunTaskWithMultiprocessing,
 )
 from arroyo.types import Commit, Partition
 from django.conf import settings
@@ -20,8 +19,8 @@ from django.conf import settings
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
-from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils import kafka_config
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -40,7 +39,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        self.health_checker = HealthChecker()
+        self.health_checker = HealthChecker("ingest")
 
     def create_with_partitions(
         self,
@@ -53,15 +52,14 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # them is being processed. We will use a simple serial `RunTask` for those
         # for now.
         if self.num_processes > 1 and self.consumer_type != ConsumerType.Attachments:
-            return RunTaskWithMultiprocessing(
-                process_ingest_message,
-                CommitOffsets(commit),
+            next_step = RunTaskWithMultiprocessing(
+                function=process_ingest_message,
+                next_step=CommitOffsets(commit),
                 num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
-                initializer=initialize_consumer_state,
             )
         else:
             next_step = RunTask(

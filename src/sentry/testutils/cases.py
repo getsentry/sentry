@@ -31,6 +31,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ProfilesSnubaTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
@@ -62,7 +63,8 @@ from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import TestCase as DjangoTestCase
-from django.test import TransactionTestCase, override_settings
+from django.test import TransactionTestCase as DjangoTransactionTestCase
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -164,14 +166,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import (
-    AuthProvider,
-    Feature,
-    TaskRunner,
-    apply_feature_flag_on_cls,
-    override_options,
-    parse_queries,
-)
+from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 from .silo import exempt_from_silo_limits
 from .skips import requires_snuba
 
@@ -494,7 +489,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
             yield
 
 
-class TransactionTestCase(BaseTestCase, TransactionTestCase):
+class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     pass
 
 
@@ -1426,6 +1421,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         if (parsed_mri := parse_mri(mri_string)) is not None:
             return self.ENTITY_SHORTHANDS[parsed_mri.entity]
+        else:
+            return None
 
     def _store_metric(
         self,
@@ -1758,6 +1755,83 @@ class OutcomesSnubaTest(TestCase):
             ).status_code
             == 200
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class ProfilesSnubaTestCase(
+    TestCase,
+    BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
+):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
+
+    def store_functions(
+        self,
+        functions,
+        project,
+        transaction=None,
+        extras=None,
+        timestamp=None,
+    ):
+        if timestamp is None:
+            timestamp = before_now(minutes=10)
+
+        if transaction is None:
+            transaction = load_data("transaction", timestamp=timestamp)
+
+        profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
+        if profile_context.get("profile_id") is None:
+            profile_context["profile_id"] = uuid4().hex
+        profile_id = profile_context.get("profile_id")
+
+        timestamp = transaction["timestamp"]
+
+        self.store_event(transaction, project_id=project.id)
+
+        functions = [
+            {**function, "fingerprint": self.function_fingerprint(function)}
+            for function in functions
+        ]
+
+        functions_payload = {
+            "project_id": project.id,
+            "profile_id": profile_id,
+            "transaction_name": transaction["transaction"],
+            # the transaction platform doesn't quite match the
+            # profile platform, but should be fine for tests
+            "platform": transaction["platform"],
+            "functions": functions,
+            "timestamp": timestamp,
+            # TODO: should reflect the org
+            "retention_days": 90,
+        }
+
+        if extras is not None:
+            functions_payload.update(extras)
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/functions/insert", json=[functions_payload]
+        )
+        assert response.status_code == 200
+
+        return {
+            "transaction": transaction,
+            "functions": functions,
+        }
+
+    def function_fingerprint(self, function):
+        # this is a different hashing algorithm than is used by vroom
+        # but it's not a big deal
+        hasher = hashlib.md5()
+        if function.get("package") is not None:
+            hasher.update(function["package"].encode())
+        else:
+            hasher.update(b"")
+        hasher.update(b":")
+        hasher.update(function["function"].encode())
+        return int(hasher.hexdigest()[:16], 16)
 
 
 @pytest.mark.snuba
@@ -2290,7 +2364,6 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     def build_and_store_session(
