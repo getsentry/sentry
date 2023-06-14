@@ -48,15 +48,6 @@ class TrendType(Enum):
 
         raise ValueError(f"Unknown TrendType: {self.value}")
 
-    def slope_condition(self):
-        if self is TrendType.REGRESSION:
-            return "slope():>0"
-
-        if self is TrendType.IMPROVEMENT:
-            return "slope():<0"
-
-        raise ValueError(f"Unknown TrendType: {self.value}")
-
 
 class TrendTypeField(serializers.Field):
     def to_representation(self, trend_type: TrendType):
@@ -112,9 +103,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
-                    "slope()",
                 ],
-                query=f"{query} {data['trend'].slope_condition()}",
+                query=query,
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
@@ -199,7 +189,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()", "slope()"]
+                        for k in ["fingerprint", "package", "function", "count()"]
                     }
                 )
                 formatted_results.append(formatted_result)

@@ -315,24 +315,6 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
-                SnQLFunction(
-                    "slope",
-                    snql_aggregate=lambda args, alias: Function(
-                        "tupleElement",
-                        [
-                            Function(
-                                "simpleLinearRegression",
-                                [
-                                    Function("toUInt32", [SnQLColumn("timestamp")]),
-                                    Function("finalizeAggregation", [SnQLColumn("avg")]),
-                                ],
-                            ),
-                            1,
-                        ],
-                        alias,
-                    ),
-                    default_result_type="number",
-                ),
             ]
         }
 
