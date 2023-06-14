@@ -87,33 +87,6 @@ export const useQueryGetSpanSamples = (options: {
   return results;
 };
 
-export const useQueryGetFacetsBreakdown = (options: {
-  groupId: string;
-  transactionName: string;
-}): DefinedUseQueryResult<{domain: string; user: string}[]> => {
-  const {groupId, transactionName} = options;
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
-
-  const query = `
-      SELECT
-      user, domain
-    FROM spans_experimental_starfish
-    WHERE
-    group_id = '${groupId}'
-    AND transaction = '${transactionName}'
-    ${dateFilters}
-  `;
-
-  return useQuery({
-    queryKey: ['facetBreakdown', groupId, transactionName],
-    queryFn: () => fetch(`${HOST}/?query=${query}`).then(res => res.json()),
-    retry: false,
-    initialData: [],
-  });
-};
-
 export const useQuerySpansInTransaction = (options: {
   groupId: string;
 }): DefinedUseQueryResult<
