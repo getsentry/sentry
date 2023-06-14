@@ -172,7 +172,7 @@ class ConfigValidator(serializers.Serializer):
 
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
-    name = serializers.CharField()
+    name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
         r"^[a-zA-Z0-9_-]+$",
         max_length=50,
