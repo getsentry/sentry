@@ -126,8 +126,8 @@ def allow_cors_options(func):
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[permissions.BasePermission]] = (NoPermission,)
+    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: Tuple[Type[permissions.BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 

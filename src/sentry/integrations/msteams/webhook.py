@@ -12,12 +12,12 @@ from sentry.api import client
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Rule
 from sentry.models.activity import ActivityIntegration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from ...services.hybrid_cloud.integration import integration_service
 from .card_builder import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,

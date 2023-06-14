@@ -11,7 +11,13 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import (
+    MAX_SLUG_LENGTH,
+    CheckInStatus,
+    Monitor,
+    MonitorType,
+    ScheduleType,
+)
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -175,7 +181,7 @@ class MonitorValidator(CamelSnakeSerializer):
     name = serializers.CharField()
     slug = serializers.RegexField(
         r"^[a-zA-Z0-9_-]+$",
-        max_length=50,
+        max_length=MAX_SLUG_LENGTH,
         required=False,
         error_messages={
             "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
