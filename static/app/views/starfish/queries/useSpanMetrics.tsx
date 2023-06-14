@@ -31,7 +31,7 @@ export const useSpanMetrics = (
   const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView),
+    enabled: Boolean(span),
     referrer,
   });
 

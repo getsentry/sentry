@@ -33,7 +33,6 @@ export function DomainSelector({
   const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView),
   });
 
   const options = [

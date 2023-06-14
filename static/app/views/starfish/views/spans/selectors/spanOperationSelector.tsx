@@ -32,7 +32,6 @@ export function SpanOperationSelector({
   const {data: operations} = useSpansQuery<[{'span.op': string}]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView),
   });
 
   const options = [

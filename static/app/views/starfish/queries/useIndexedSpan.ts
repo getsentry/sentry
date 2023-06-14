@@ -19,7 +19,6 @@ export const useIndexedSpan = (
     eventView,
     limit: 1,
     initialData: [],
-    enabled: Boolean(eventView),
   });
 
   return {

@@ -14,7 +14,6 @@ export const useApplicationMetrics = (_referrer = 'application-metrics') => {
   const {isLoading, data} = useSpansQuery<ApplicationMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView),
   });
 
   return {isLoading, data: data[0] ?? {}};

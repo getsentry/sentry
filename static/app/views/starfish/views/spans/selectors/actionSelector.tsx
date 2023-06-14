@@ -35,7 +35,7 @@ export function ActionSelector({
   const {data: actions} = useSpansQuery<[{'span.action': string}]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView && !useHTTPActions),
+    enabled: !useHTTPActions,
   });
 
   const options = useHTTPActions
