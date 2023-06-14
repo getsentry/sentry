@@ -68,6 +68,8 @@ MONITOR_CONFIG = {
     "additionalProperties": False,
 }
 
+MAX_SLUG_LENGTH = 50
+
 
 class MonitorLimitsExceeded(Exception):
     pass
@@ -262,7 +264,7 @@ class Monitor(Model):
                     self,
                     self.name,
                     organization_id=self.organization_id,
-                    max_length=50,
+                    max_length=MAX_SLUG_LENGTH,
                 )
         return super().save(*args, **kwargs)
 
