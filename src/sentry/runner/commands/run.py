@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import signal
 import sys
 from multiprocessing import cpu_count
 from typing import Optional
@@ -10,8 +11,6 @@ from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
-from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
-from sentry.utils.imports import import_string
 from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -424,7 +423,7 @@ def post_process_forwarder(**options):
 
     try:
         # TODO(markus): convert to use run_processor_with_signals -- can't yet because there's a custom shutdown handler
-        eventstream.run_post_process_forwarder(
+        eventstream.backend.run_post_process_forwarder(
             entity=options["entity"],
             consumer_group=options["group_id"],
             topic=options["topic"],
@@ -535,7 +534,7 @@ def ingest_consumer(consumer_type, **options):
     """
     from sentry.consumers import print_deprecation_warning
 
-    print_deprecation_warning(ConsumerType.get_topic_name(consumer_type), options["group_id"])
+    print_deprecation_warning(f"ingest-{consumer_type}", options["group_id"])
 
     from arroyo import configure_metrics
 
@@ -604,24 +603,17 @@ def occurrences_ingest_consumer(**options):
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
 @click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
 def metrics_parallel_consumer(**options):
-    from sentry.sentry_metrics.configuration import (
-        IndexerStorage,
-        MetricPathKey,
-        get_ingest_config,
-        initialize_global_consumer_state,
-    )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
-    use_case = MetricPathKey(options.pop("ingest_profile"))
-    db_backend = IndexerStorage(options.pop("indexer_db"))
-    ingest_config = get_ingest_config(use_case, db_backend)
-    slicing_router = get_slicing_router(ingest_config)
+    streamer = get_parallel_metrics_consumer(**options)
 
-    initialize_global_consumer_state(ingest_config)
+    from arroyo import configure_metrics
 
-    streamer = get_parallel_metrics_consumer(
-        indexer_profile=ingest_config, slicing_router=slicing_router, **options
-    )
+    from sentry.utils.arroyo import MetricsWrapper
+    from sentry.utils.metrics import backend
+
+    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer")
+    configure_metrics(metrics_wrapper)
 
     run_processor_with_signals(streamer)
 
@@ -666,7 +658,10 @@ def profiles_consumer(**options):
 @click.option(
     "--topic",
     type=str,
-    help="Main topic with messages for processing",
+    help="Which physical topic to use for this consumer. This can be a topic name that is not specified in settings. The logical topic is still hardcoded in sentry.consumers.",
+)
+@click.option(
+    "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
 )
 @click.option(
     "--consumer-group",
@@ -681,6 +676,7 @@ def profiles_consumer(**options):
     type=click.Choice(["earliest", "latest", "error"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
+@click.option("--join-timeout", type=float, help="Join timeout in seconds.", default=None)
 @strict_offset_reset_option()
 @configuration
 def basic_consumer(consumer_name, consumer_args, topic, **options):
@@ -702,36 +698,58 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
 
         sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --help
     """
-    from sentry.consumers import KAFKA_CONSUMERS
+    from sentry.consumers import get_stream_processor
+    from sentry.metrics.middleware import add_global_tags
+    from sentry.utils.arroyo import initialize_arroyo_main
 
-    try:
-        consumer_definition = KAFKA_CONSUMERS[consumer_name]
-    except KeyError:
-        raise click.ClickException(
-            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
+    add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
+    initialize_arroyo_main()
+
+    processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
+    run_processor_with_signals(processor)
+
+
+@run.command("dev-consumer")
+@click.argument("consumer_names", nargs=-1)
+@log_options()
+@configuration
+def dev_consumer(consumer_names):
+    """
+    Launch multiple "new-style" consumers in the same thread.
+
+    This does the same thing as 'sentry run consumer', but is not configurable,
+    hardcodes consumer groups and is highly imperformant.
+    """
+
+    from sentry.consumers import get_stream_processor
+    from sentry.utils.arroyo import initialize_arroyo_main
+
+    initialize_arroyo_main()
+
+    processors = [
+        get_stream_processor(
+            consumer_name,
+            [],
+            topic=None,
+            cluster=None,
+            group_id="sentry-consumer",
+            auto_offset_reset="latest",
+            strict_offset_reset=False,
+            join_timeout=None,
         )
+        for consumer_name in consumer_names
+    ]
 
-    try:
-        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-        default_topic = consumer_definition["topic"]
-    except KeyError:
-        raise click.ClickException(
-            f"The consumer group {consumer_name} does not have a strategy factory"
-            f"registered. Most likely there is another subcommand in 'sentry run' "
-            f"responsible for this consumer"
-        )
+    def handler(signum, frame):
+        for processor in processors:
+            processor.signal_shutdown()
 
-    cmd = click.Command(
-        name=consumer_name, params=list(consumer_definition.get("click_options") or ())
-    )
-    cmd_context = cmd.make_context(consumer_name, list(consumer_args))
-    strategy_factory = cmd_context.invoke(
-        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
-    )
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
 
-    from sentry.utils.arroyo import run_basic_consumer
-
-    run_basic_consumer(topic=topic or default_topic, **options, strategy_factory=strategy_factory)
+    while True:
+        for processor in processors:
+            processor._run_once()
 
 
 @run.command("ingest-replay-recordings")
@@ -792,3 +810,12 @@ def last_seen_updater(**options):
 
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
         run_processor_with_signals(consumer)
+
+
+@run.command("backpressure-monitor")
+@log_options()
+@configuration
+def backpressure_monitor():
+    from sentry.processing.backpressure.rabbitmq import run_queue_stats_updater
+
+    run_queue_stats_updater()

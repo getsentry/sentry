@@ -3,14 +3,19 @@ from __future__ import annotations
 from typing import Any, Mapping, Optional, Sequence, TypedDict
 
 import click
+from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 from typing_extensions import Required
+
+from sentry.utils.imports import import_string
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 class ConsumerDefinition(TypedDict, total=False):
+    # Which logical topic from settings to use.
     topic: Required[str]
+
     strategy_factory: Required[str]
 
     # Additional CLI options the consumer should accept. These arguments are
@@ -50,6 +55,24 @@ def multiprocessing_options(
             help="Maximum time (in seconds) to wait before flushing a batch.",
         ),
     ]
+
+
+_METRICS_INDEXER_OPTIONS = [
+    click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--indexer-db"], default="postgres"),
+    click.Option(["max_msg_batch_size", "--max-msg-batch-size"], type=int, default=50),
+    click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
+    click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
+    click.Option(
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
+    ),
+    click.Option(
+        ["--processes"],
+        default=1,
+        type=int,
+    ),
+]
 
 
 # consumer name -> consumer definition
@@ -142,15 +165,101 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": "transactions",
         },
     },
+    "ingest-metrics": {
+        "topic": settings.KAFKA_INGEST_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
+        "click_options": _METRICS_INDEXER_OPTIONS,
+        "static_args": {
+            "ingest_profile": "release-health",
+        },
+    },
+    "ingest-generic-metrics": {
+        "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
+        "click_options": _METRICS_INDEXER_OPTIONS,
+        "static_args": {
+            "ingest_profile": "performance",
+        },
+    },
 }
 
 
 def print_deprecation_warning(name, group_id):
-    assert name in KAFKA_CONSUMERS, name
-
     import click
 
     click.echo(
         f"WARNING: Deprecated command, use sentry run consumer {name} "
         f"--consumer-group {group_id} ..."
+    )
+
+
+def get_stream_processor(
+    consumer_name: str,
+    consumer_args: Sequence[str],
+    topic: Optional[str],
+    cluster: Optional[str],
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    join_timeout: Optional[float],
+    **options,
+) -> StreamProcessor:
+    try:
+        consumer_definition = KAFKA_CONSUMERS[consumer_name]
+    except KeyError:
+        raise click.ClickException(
+            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
+        )
+
+    try:
+        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+        logical_topic = consumer_definition["topic"]
+    except KeyError:
+        raise click.ClickException(
+            f"The consumer group {consumer_name} does not have a strategy factory"
+            f"registered. Most likely there is another subcommand in 'sentry run' "
+            f"responsible for this consumer"
+        )
+
+    if topic is None:
+        topic = logical_topic
+
+    cmd = click.Command(
+        name=consumer_name, params=list(consumer_definition.get("click_options") or ())
+    )
+    cmd_context = cmd.make_context(consumer_name, list(consumer_args))
+    strategy_factory = cmd_context.invoke(
+        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+    )
+
+    from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+    from arroyo.backends.kafka.consumer import KafkaConsumer
+    from arroyo.commit import ONCE_PER_SECOND
+    from arroyo.types import Topic
+    from django.conf import settings
+
+    from sentry.utils import kafka_config
+
+    topic_def = settings.KAFKA_TOPICS[logical_topic]
+    assert topic_def is not None
+    if cluster is None:
+        cluster = topic_def["cluster"]
+
+    consumer_config = build_kafka_consumer_configuration(
+        kafka_config.get_kafka_consumer_cluster_options(
+            cluster,
+        ),
+        group_id=group_id,
+        auto_offset_reset=auto_offset_reset,
+        strict_offset_reset=strict_offset_reset,
+    )
+
+    consumer = KafkaConsumer(consumer_config)
+
+    return StreamProcessor(
+        consumer=consumer,
+        topic=Topic(topic),
+        processor_factory=strategy_factory,
+        commit_policy=ONCE_PER_SECOND,
+        join_timeout=join_timeout,
     )

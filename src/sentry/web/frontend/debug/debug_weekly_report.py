@@ -2,8 +2,8 @@ import time
 from datetime import datetime, timedelta
 from random import Random
 
-from django.template.defaultfilters import slugify
 from django.utils import timezone
+from django.utils.text import slugify
 
 from sentry.models import Group, Organization, Project
 from sentry.tasks.weekly_reports import (

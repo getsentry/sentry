@@ -395,12 +395,6 @@ def configure_sdk():
                     args_list = list(args)
                     envelope = args_list[0]
                     relay_envelope = copy.copy(envelope)
-
-                    # fix DSC public_key since SDK assumes everything is upstream_dsn
-                    dsc = relay_envelope.headers.get("trace")
-                    if dsc and relay_transport.parsed_dsn:
-                        dsc["public_key"] = relay_transport.parsed_dsn.public_key
-
                     relay_envelope.items = envelope.items.copy()
                     args = [relay_envelope, *args_list[1:]]
 
@@ -552,6 +546,8 @@ def check_current_scope_transaction(
                 "scope_transaction": scope._transaction,
                 "request_transaction": transaction_from_request,
             }
+        else:
+            return None
 
 
 def capture_exception_with_scope_check(
