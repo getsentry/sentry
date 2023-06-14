@@ -24,7 +24,6 @@ const SPA_MODE_TRACE_PROPAGATION_TARGETS = [
   'localhost',
   'dev.getsentry.net',
   'sentry.dev',
-  'webpack-internal://',
 ];
 
 // We don't care about recording breadcrumbs for these hosts. These typically
