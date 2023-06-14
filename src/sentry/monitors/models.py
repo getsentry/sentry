@@ -399,6 +399,7 @@ class MonitorCheckIn(Model):
         db_table = "sentry_monitorcheckin"
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
+            models.Index(fields=["timeout_at", "status"]),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")
