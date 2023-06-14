@@ -24,17 +24,13 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
             with self.handle_query_errors():
-                page_size = (
-                    int(request.GET.get("page_size")) if request.GET.get("page_size") else None
-                )
-                page_offset = (
-                    int(request.GET.get("page_offset")) if request.GET.get("page_offset") else None
-                )
+                per_page = int(request.GET.get("per_page")) if request.GET.get("per_page") else None
+                cursor = int(request.GET.get("cursor")) if request.GET.get("cursor") else None
                 pagination_data = {}
-                if page_size:
-                    pagination_data["page_size"] = page_size
-                if page_offset:
-                    pagination_data["page_offset"] = page_offset
+                if per_page:
+                    pagination_data["page_size"] = per_page
+                if cursor:
+                    pagination_data["cursor"] = cursor
                 facets = discover.get_facets(
                     query=request.GET.get("query"),
                     params=params,

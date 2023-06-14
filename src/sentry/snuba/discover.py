@@ -549,8 +549,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    page_size: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
-    page_offset: Optional[int] = 0,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -562,8 +562,8 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    page_size (int) The number of records to fetch.
-    page_offset (int) The number of records to skip.
+    per_page (int) The number of records to fetch.
+    cursor (int) The number of records to skip.
 
     Returns Sequence[FacetResult]
     """
@@ -576,8 +576,8 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=page_size,
-            offset=page_offset * page_size,
+            limit=per_page,
+            offset=cursor * per_page,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -597,7 +597,7 @@ def get_facets(
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == page_size:
+        if len(top_tags) == per_page:
             top_tags.pop()
         fetch_projects = True
 
