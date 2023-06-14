@@ -33,8 +33,8 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
-from sentry.models.grouplink import GroupLink
 from sentry.models import OptionMixin
+from sentry.models.grouplink import GroupLink
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
