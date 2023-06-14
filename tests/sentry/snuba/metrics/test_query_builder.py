@@ -257,6 +257,7 @@ def test_parse_query(query_string, expected):
         use_case_id,
         org_id,
         parse_query(query_string, []),
+        [],
     )
     assert parsed == expected()
 
@@ -1544,6 +1545,7 @@ class ResolveTagsTestCase(TestCase):
                     parameters=[(transaction,) for transaction in transactions],
                 ),
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1612,6 +1614,7 @@ class ResolveTagsTestCase(TestCase):
                     parameters=[(transaction, platform) for transaction, platform in tags],
                 ),
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1675,6 +1678,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.EQ,
                 rhs=1,
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1714,6 +1718,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.EQ,
                 rhs=1,
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1758,6 +1763,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.EQ,
                 rhs=1,
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1802,6 +1808,7 @@ class ResolveTagsTestCase(TestCase):
                     op=Op.EQ,
                     rhs=1,
                 ),
+                [],
             )
 
     def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
@@ -1837,6 +1844,7 @@ class ResolveTagsTestCase(TestCase):
                     op=Op.EQ,
                     rhs=1,
                 ),
+                [],
             )
 
 
