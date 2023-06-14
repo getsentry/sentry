@@ -27,6 +27,7 @@ from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -125,14 +126,16 @@ def allow_cors_options(func):
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[permissions.BasePermission]] = (NoPermission,)
+    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: Tuple[Type[permissions.BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
     public: Optional[HTTP_METHODS_SET] = None
 
-    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig | dict[
+        str, dict[RateLimitCategory, RateLimit]
+    ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def get_authenticators(self) -> List[BaseAuthentication]:

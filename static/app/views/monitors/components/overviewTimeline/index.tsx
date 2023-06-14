@@ -17,7 +17,7 @@ import {CheckInTimeline} from 'sentry/views/monitors/components/checkInTimeline'
 import {
   GridLineOverlay,
   GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/timelineScrubber';
+} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 
 import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
@@ -27,7 +27,6 @@ import {getStartFromTimeWindow, timeWindowData} from './utils';
 
 interface Props {
   monitorList: Monitor[];
-  monitorListPageLinks?: string | null;
 }
 
 export function OverviewTimeline({monitorList}: Props) {

@@ -6,6 +6,7 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -15,10 +16,7 @@ import {
 import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
-import {
-  generateIssueWidgetFieldOptions,
-  ISSUE_WIDGET_SORT_OPTIONS,
-} from '../widgetBuilder/issueWidget/utils';
+import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
 import {DatasetConfig} from './base';
 
@@ -73,13 +71,15 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
 }
 
 function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
-  const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
-  if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
-  }
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,

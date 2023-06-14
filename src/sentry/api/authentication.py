@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
@@ -39,7 +41,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id):
+def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.

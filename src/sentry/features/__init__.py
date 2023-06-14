@@ -63,6 +63,7 @@ default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrateg
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:assign-to-me", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -90,6 +91,7 @@ default_manager.add("organizations:issue-details-replay-event", OrganizationFeat
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-list-prefetch-issue-on-hover", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-list-better-priority-sort", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:better-priority-sort-experiment", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -99,7 +101,6 @@ default_manager.add("organizations:large-debug-files", OrganizationFeature, Feat
 default_manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

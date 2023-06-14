@@ -5,13 +5,13 @@ from django.test import RequestFactory, override_settings
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
 @control_silo_test(stable=True)
-class JiraRequestParserTest(TestCase, BaseTestCase):
+class JiraRequestParserTest(TestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()

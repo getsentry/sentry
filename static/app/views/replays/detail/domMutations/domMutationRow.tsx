@@ -8,8 +8,8 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
