@@ -12,7 +12,6 @@ from urllib3 import Retry
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_events import DEFAULT_EVENTS_RATE_LIMIT_CONFIG
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.net.http import connection_from_url
 from sentry.search.events.constants import METRICS_GRANULARITIES
@@ -20,6 +19,7 @@ from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
 
@@ -34,6 +34,11 @@ TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
+
+DEFAULT_RATE_LIMIT = 10
+DEFAULT_RATE_LIMIT_WINDOW = 1
+DEFAULT_CONCURRENT_RATE_LIMIT = 10
+ORGANIZATION_RATE_LIMIT = 25
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -58,7 +63,19 @@ def get_trends(snuba_io):
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
     enforce_rate_limit = True
-    rate_limits = DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(
+                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+            ),
+            RateLimitCategory.USER: RateLimit(
+                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+            ),
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                ORGANIZATION_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, ORGANIZATION_RATE_LIMIT
+            ),
+        }
+    }
 
     def has_feature(self, organization, request):
         return features.has(
