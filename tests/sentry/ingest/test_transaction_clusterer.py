@@ -6,7 +6,7 @@ from freezegun import freeze_time
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
-    _store_transaction_name,
+    _record_sample,
     clear_transaction_names,
     get_active_projects,
     get_transaction_names,
@@ -66,8 +66,8 @@ def test_collection():
 
     for project in (project1, project2):
         for i in range(len(project.name)):
-            _store_transaction_name(project, f"tx-{project.name}-{i}")
-            _store_transaction_name(project, f"tx-{project.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, project, f"tx-{project.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, project, f"tx-{project.name}-{i}")
 
     set_entries1 = set(get_transaction_names(project1))
     assert set_entries1 == {"tx-p1-0", "tx-p1-1"}
@@ -84,7 +84,7 @@ def test_collection():
 
 def test_clear_redis():
     project = Project(id=101, name="p1", organization=Organization(pk=66))
-    _store_transaction_name(project, "foo")
+    _record_sample(ClustererNamespace.TRANSACTIONS, project, "foo")
     assert set(get_transaction_names(project)) == {"foo"}
     clear_transaction_names(project)
     assert set(get_transaction_names(project)) == set()
@@ -99,7 +99,7 @@ def test_distribution():
     """Make sure that the redis set prefers newer entries"""
     project = Project(id=103, name="", organization=Organization(pk=66))
     for i in range(1000):
-        _store_transaction_name(project, str(i))
+        _record_sample(ClustererNamespace.TRANSACTIONS, project, str(i))
 
     freshness = sum(map(int, get_transaction_names(project))) / 100
 
@@ -107,7 +107,7 @@ def test_distribution():
     assert freshness > 800, freshness
 
 
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "source, txname, tags, expected",
@@ -205,8 +205,8 @@ def test_save_rules(default_project):
 def test_run_clusterer_task(cluster_projects_delay, default_organization):
     def _add_mock_data(proj, number):
         for i in range(0, number):
-            _store_transaction_name(proj, f"/user/tx-{proj.name}-{i}")
-            _store_transaction_name(proj, f"/org/tx-{proj.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
 
     project1 = Project(id=123, name="project1", organization_id=default_organization.id)
     project2 = Project(id=223, name="project2", organization_id=default_organization.id)
@@ -244,11 +244,13 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 
     # add more transactions to the project 1
     for i in range(5):
-        _store_transaction_name(project1, f"/users/trans/tx-{project1.id}-{i}")
-        _store_transaction_name(project1, f"/test/path/{i}")
+        _record_sample(
+            ClustererNamespace.TRANSACTIONS, project1, f"/users/trans/tx-{project1.id}-{i}"
+        )
+        _record_sample(ClustererNamespace.TRANSACTIONS, project1, f"/test/path/{i}")
 
     # Add a transaction to project2 so it runs again
-    _store_transaction_name(project2, "foo")
+    _record_sample(ClustererNamespace.TRANSACTIONS, project2, "foo")
 
     with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1), freeze_time(
         "2000-01-01 01:00:01"
@@ -281,7 +283,7 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     project = default_project
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
 
-    _store_transaction_name(project, "/transaction/number/1")
+    _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
     cluster_projects([project])
     # Clusterer didn't create rules. Still, it updates the stores.
     assert mock_update_rules.call_count == 1
@@ -289,8 +291,8 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     # Transaction names are deleted if there aren't enough
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
 
-    _store_transaction_name(project, "/transaction/number/1")
-    _store_transaction_name(project, "/transaction/number/2")
+    _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
+    _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/2")
     cluster_projects([project])
     assert mock_update_rules.call_count == 2
     assert mock_update_rules.call_args == mock.call(
@@ -301,7 +303,7 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
 @pytest.mark.django_db
 def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
-    _store_transaction_name(deleted_project, "foo")
+    _record_sample(ClustererNamespace.TRANSACTIONS, deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.TRANSACTIONS)) == []
 
 
@@ -354,7 +356,9 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
 
     with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
         for i in range(10):
-            _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
+            _record_sample(
+                ClustererNamespace.TRANSACTIONS, project1, f"/user/tx-{project1.name}-{i}/settings"
+            )
 
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
             spawn_clusterers()
@@ -417,7 +421,9 @@ def test_dont_store_inexisting_rules(_, default_organization):
         project1 = Project(id=234, name="project1", organization_id=default_organization.id)
         project1.save()
         for i in range(3):
-            _store_transaction_name(project1, f"/user/tx-{project1.name}-{i}/settings")
+            _record_sample(
+                ClustererNamespace.TRANSACTIONS, project1, f"/user/tx-{project1.name}-{i}/settings"
+            )
 
         with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
             spawn_clusterers()

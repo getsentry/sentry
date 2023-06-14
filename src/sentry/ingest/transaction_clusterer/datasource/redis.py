@@ -38,6 +38,12 @@ def _get_redis_key(namespace: ClustererNamespace, project: Project) -> str:
     return f"{prefix}:o:{project.organization_id}:p:{project.id}"
 
 
+def _get_projects_key(namespace: ClustererNamespace) -> str:
+    """The key for the meta-set of projects"""
+    prefix = namespace.value.data
+    return f"{prefix}:projects"
+
+
 def get_redis_client() -> Any:
     # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
@@ -46,8 +52,7 @@ def get_redis_client() -> Any:
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
-    prefix = namespace.value.data
-    return client.sscan_iter(f"{prefix}:projects")
+    return client.sscan_iter(_get_projects_key(namespace))
 
 
 def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
@@ -70,7 +75,9 @@ def _record_sample(namespace: ClustererNamespace, project: Project, sample: str)
     with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
-        add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
+        created = add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
+        if created:
+            client.sadd(_get_projects_key(namespace), project.id)
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:
