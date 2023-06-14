@@ -34,9 +34,9 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         url = self.get_url(self.org.id)
         response = self.client.get(url)
 
-        assert "widgets" in response.data
-        assert "alerts" in response.data
-        assert "sdks" in response.data
+        assert "widgets" in response.data["results"]
+        assert "alerts" in response.data["results"]
+        assert "sdks" in response.data["results"]
 
     def test_check_endpoint_results_without_superuser_permissions(self):
         self.login_as(self.owner)
