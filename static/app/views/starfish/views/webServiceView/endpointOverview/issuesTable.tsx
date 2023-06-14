@@ -3,7 +3,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {IssueCategory} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 type Props = {
   issueCategory?: IssueCategory;

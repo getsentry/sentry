@@ -39,7 +39,7 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DAY, HOUR} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
