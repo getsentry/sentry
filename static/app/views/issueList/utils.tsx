@@ -42,7 +42,7 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
