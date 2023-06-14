@@ -164,7 +164,6 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
-            "snooze": False,
         }
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
@@ -198,6 +197,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
+        data["snooze"] = False
         return data
 
 
