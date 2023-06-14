@@ -336,6 +336,8 @@ class ReferrerBase(Enum):
     API_PROFILING_SUSPECT_FUNCTIONS_LIST = "api.profiling.suspect-functions.list"
     API_PROFILING_SUSPECT_FUNCTIONS_TOTALS = "api.profiling.suspect-functions.totals"
     API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
+    API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
+    API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
