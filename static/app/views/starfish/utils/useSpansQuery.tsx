@@ -1,4 +1,3 @@
-import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -9,7 +8,6 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {HOST} from 'sentry/views/starfish/utils/constants';
 
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -22,7 +20,6 @@ export type UseSpansQueryReturnType<T> = {
 
 export function useSpansQuery<T = any[]>({
   eventView,
-  queryString,
   initialData,
   limit,
   enabled,
@@ -32,63 +29,16 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   initialData?: any;
   limit?: number;
-  queryString?: string;
   referrer?: string;
 }): UseSpansQueryReturnType<T> {
   const queryFunction = getQueryFunction({
-    useDiscover: true,
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
-  if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
-    if (eventView) {
-      return queryFunction({eventView, initialData, limit, enabled, referrer});
-    }
-    throw new Error(
-      'eventView argument must be defined when Starfish useDiscover is true'
-    );
+
+  if (eventView) {
+    return queryFunction({eventView, initialData, limit, enabled, referrer});
   }
-
-  if (queryString) {
-    return queryFunction({queryString, initialData, enabled, referrer});
-  }
-  throw new Error(
-    'queryString argument must be defined when Starfish useDiscover is false, ie when using scraped data via fetch API'
-  );
-}
-
-function isDiscoverFunction(
-  queryFunction: Function
-): queryFunction is typeof useWrappedDiscoverQuery {
-  return queryFunction === useWrappedDiscoverQuery;
-}
-
-function isDiscoverTimeseriesFunction(
-  queryFunction: Function
-): queryFunction is typeof useWrappedDiscoverTimeseriesQuery {
-  return queryFunction === useWrappedDiscoverTimeseriesQuery;
-}
-
-export function useWrappedQuery({
-  queryString,
-  initialData,
-  enabled,
-  referrer,
-}: {
-  queryString: string;
-  enabled?: boolean;
-  initialData?: any;
-  referrer?: string;
-}) {
-  const {isLoading, data} = useQuery({
-    queryKey: [queryString],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${queryString}&referrer=${referrer}`).then(res => res.json()),
-    retry: false,
-    initialData,
-    enabled,
-    refetchOnWindowFocus: false,
-  });
-  return {isLoading, data};
+  throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
 export function useWrappedDiscoverTimeseriesQuery({
@@ -171,20 +121,12 @@ export function useWrappedDiscoverQuery({
   };
 }
 
-function getQueryFunction({
-  useDiscover,
-  isTimeseriesQuery,
-}: {
-  useDiscover: boolean;
-  isTimeseriesQuery?: boolean;
-}) {
-  if (useDiscover) {
-    if (isTimeseriesQuery) {
-      return useWrappedDiscoverTimeseriesQuery;
-    }
-    return useWrappedDiscoverQuery;
+function getQueryFunction({isTimeseriesQuery}: {isTimeseriesQuery?: boolean}) {
+  if (isTimeseriesQuery) {
+    return useWrappedDiscoverTimeseriesQuery;
   }
-  return useWrappedQuery;
+
+  return useWrappedDiscoverQuery;
 }
 
 type Interval = {[key: string]: any; interval: string; group?: string};
