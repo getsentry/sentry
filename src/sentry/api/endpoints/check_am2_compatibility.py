@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Mapping, Set
 
 import pytz
 import sentry_sdk
@@ -198,7 +199,9 @@ class CheckAM2CompatibilityMixin:
 
     @classmethod
     def extract_sdks_from_data(cls, data):
-        found_sdks_per_project = defaultdict(lambda: defaultdict(set))
+        found_sdks_per_project: Mapping[str, Mapping[str, Set[str]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
 
         for element in data:
             project = element.get("project")
@@ -212,7 +215,9 @@ class CheckAM2CompatibilityMixin:
 
     @classmethod
     def get_outdated_sdks(cls, found_sdks_per_project):
-        outdated_sdks_per_project = defaultdict(lambda: defaultdict(set))
+        outdated_sdks_per_project: Mapping[str, Mapping[str, Set[str]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
