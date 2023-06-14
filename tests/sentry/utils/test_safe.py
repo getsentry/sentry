@@ -72,6 +72,7 @@ class SafeExecuteTest(TestCase):
 
         assert safe_execute(simple, 1) == 1
 
+    def test_with_simple_function_raising_exception(self):
         def simple(a):
             raise Exception()
 
@@ -84,6 +85,7 @@ class SafeExecuteTest(TestCase):
 
         assert safe_execute(Foo().simple, 1) == 1
 
+    def test_with_instance_method_raising_exception(self):
         class Foo:
             def simple(self, a):
                 raise Exception()

@@ -4,9 +4,11 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 function useCrumbHandlers(startTimestampMs: number = 0) {
+  const organization = useOrganization();
   const {
     clearAllHighlights,
     highlight,
@@ -15,6 +17,8 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     setCurrentTime,
   } = useReplayContext();
   const {setActiveTab} = useActiveReplayTab();
+
+  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
   const mouseEnterCallback = useRef<{
     id: string | number | null;
@@ -87,6 +91,11 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
       }
 
       if ('type' in crumb) {
+        if (hasErrorTab && crumb.type === BreadcrumbType.ERROR) {
+          setActiveTab('errors');
+          return;
+        }
+
         switch (crumb.type) {
           case BreadcrumbType.NAVIGATION:
             setActiveTab('network');
@@ -100,7 +109,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
         }
       }
     },
-    [setCurrentTime, startTimestampMs, setActiveTab]
+    [setCurrentTime, startTimestampMs, setActiveTab, hasErrorTab]
   );
 
   return {

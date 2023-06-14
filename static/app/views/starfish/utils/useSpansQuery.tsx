@@ -15,7 +15,11 @@ import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 // Setting return type since I'd rather not know if its discover query or not
-export type UseSpansQueryReturnType<T> = {data: T; isLoading: boolean};
+export type UseSpansQueryReturnType<T> = {
+  data: T;
+  isLoading: boolean;
+  pageLinks?: string;
+};
 
 export function useSpansQuery<T = any[]>({
   eventView,
@@ -142,24 +146,34 @@ export function useWrappedDiscoverTimeseriesQuery({
 export function useWrappedDiscoverQuery({
   eventView,
   initialData,
+  enabled,
   referrer,
   limit,
 }: {
   eventView: EventView;
+  enabled?: boolean;
   initialData?: any;
   limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data} = useDiscoverQuery({
+  const {isLoading, data, pageLinks} = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
     referrer,
     limit,
+    options: {
+      enabled,
+      refetchOnWindowFocus: false,
+    },
   });
-  return {isLoading, data: isLoading && initialData ? initialData : data?.data};
+  return {
+    isLoading,
+    data: isLoading && initialData ? initialData : data?.data,
+    pageLinks,
+  };
 }
 
 function getQueryFunction({
