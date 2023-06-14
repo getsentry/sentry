@@ -256,12 +256,8 @@ class CheckAM2CompatibilityMixin:
             found_sdks_per_project = cls.extract_sdks_from_data(results.get("data"))
             outdated_sdks_per_project = cls.get_outdated_sdks(found_sdks_per_project)
             return outdated_sdks_per_project
-        except Exception as e:
-            errors.append(f"Could not check used sdks for org {organization_id}. {e}")
-
-            # We will mark failures as compatible, under the assumption than it is better to give false positives than
-            # false negatives.
-            return []
+        except Exception:
+            return None
 
     @classmethod
     def is_metrics_data(cls, organization_id, project_objects, query, errors):
@@ -289,14 +285,8 @@ class CheckAM2CompatibilityMixin:
             )
 
             return results.get("meta", {}).get("isMetricsData", None)
-        except Exception as e:
-            errors.append(
-                f"Could not check if it's metrics data for org {organization_id} and query {query}. {e}"
-            )
-
-            # We will mark failures as compatible, under the assumption than it is better to give false positives than
-            # false negatives.
-            return True
+        except Exception:
+            return None
 
     @classmethod
     def get_all_widgets_of_organization(cls, organization_id):
@@ -328,6 +318,12 @@ class CheckAM2CompatibilityMixin:
             # contains a `project` since the user might select in the dropdown project `ios` but then filter project
             # `android`.
             supports_metrics = cls.is_metrics_data(organization.id, [], query, errors)
+            if supports_metrics is None:
+                errors.append(
+                    f"Couldn't figure out compatibility for widget {widget_id} with query {query} in org {organization.id}."
+                )
+                continue
+
             if not supports_metrics:
                 # # We mark whether a metric is not supported.
                 unsupported_widgets[dashboard_id].append(widget_id)
@@ -337,11 +333,19 @@ class CheckAM2CompatibilityMixin:
             project_id = project.id
             for alert_id, query in cls.get_all_alerts_of_project(project_id):
                 supports_metrics = cls.is_metrics_data(organization.id, [project], query, errors)
+                if supports_metrics is None:
+                    errors.append(
+                        f"Couldn't figure out compatibility for alert {alert_id} with query {query} in project {project_id}."
+                    )
+                    continue
+
                 if not supports_metrics:
                     # We mark whether a metric is not supported.
                     unsupported_alerts[project_id].append(alert_id)
 
         outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects, errors)
+        if outdated_sdks_per_project is None:
+            errors.append(f"Couldn't figure outdated sdks for projects of org {organization.id}.")
 
         return cls.format_results(
             organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
