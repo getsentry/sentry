@@ -24,7 +24,6 @@ class SDKCrashDetection:
         sdk_crash_reporter: SDKCrashReporter,
         sdk_crash_detector: SDKCrashDetector,
     ):
-        self
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
