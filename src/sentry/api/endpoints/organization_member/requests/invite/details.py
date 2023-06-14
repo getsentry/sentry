@@ -110,7 +110,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         elif result.get("role"):
             member.role = result["role"]
             member.save()
-        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
+        member.outbox_for_update().drain_shard()
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

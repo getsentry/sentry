@@ -306,7 +306,7 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+        om.outbox_for_update().drain_shard()
 
         if team_roles:
             for team, role in team_roles:

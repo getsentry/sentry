@@ -31,7 +31,7 @@ def create_organization_join_request(organization, email, ip_address=None):
         organization=organization,
     ).first()
     if om:
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+        om.outbox_for_update().drain_shard()
         return
 
     try:
@@ -44,7 +44,7 @@ def create_organization_join_request(organization, email, ip_address=None):
     except IntegrityError:
         pass
 
-    om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+    om.outbox_for_update().drain_shard()
     return om
 
 

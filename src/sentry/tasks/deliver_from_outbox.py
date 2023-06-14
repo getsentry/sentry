@@ -34,4 +34,4 @@ def drain_outbox_shard(
     else:
         shard_outbox = RegionOutbox(shard_scope=shard_scope, shard_identifier=shard_identifier)
 
-    shard_outbox.drain_shard()
+    shard_outbox.drain_shard(flush_all=True)

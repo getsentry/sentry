@@ -222,7 +222,7 @@ class OrganizationIndexEndpoint(Endpoint):
                             team=team, organizationmember=om, is_active=True
                         )
 
-                om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+                om.outbox_for_update().drain_shard()
                 org_setup_complete.send_robust(
                     instance=org, user=request.user, sender=self.__class__
                 )

@@ -1,4 +1,5 @@
 import dataclasses
+import threading
 from datetime import datetime, timedelta
 from typing import ContextManager
 from unittest.mock import call, patch
@@ -26,7 +27,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
@@ -230,6 +231,122 @@ class ControlOutboxTest(TestCase):
                 outbox.drain_shard()
                 assert mock_response.call_count == 0
                 assert not ControlOutbox.objects.filter(id=outbox.id).exists()
+
+
+@region_silo_test(stable=True)
+class OutboxDrainTest(TransactionTestCase):
+    def test_drain_shard_not_flush_all__upper_bound(self):
+        outbox1 = Organization.outbox_for_update(org_id=1)
+        outbox2 = Organization.outbox_for_update(org_id=1)
+
+        outbox1.save()
+        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        processing_thread = threading.Thread(
+            target=lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+        )
+        processing_thread.start()
+
+        barrier.wait()
+
+        # Does not include outboxes created after starting process.
+        outbox2.save()
+        barrier.wait()
+
+        processing_thread.join(timeout=1)
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert RegionOutbox.objects.filter(id=outbox2.id).first()
+
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_drain_shard_not_flush_all__concurrent_processing(self, mock_process_region_outbox):
+        outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
+
+        outbox1.save()
+        outbox2.save()
+
+        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        processing_thread_1 = threading.Thread(
+            target=lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+        )
+        processing_thread_1.start()
+
+        # This concurrent process will block on, and not duplicate, the effort of the first thread.
+        processing_thread_2 = threading.Thread(
+            target=lambda: outbox2.drain_shard(_test_processing_barrier=barrier)
+        )
+
+        barrier.wait()
+        processing_thread_2.start()
+        barrier.wait()
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread_1.join()
+        processing_thread_2.join()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+        assert mock_process_region_outbox.call_count == 2
+
+    def test_drain_shard_flush_all__upper_bound(self):
+        outbox1 = Organization.outbox_for_update(org_id=1)
+        outbox2 = Organization.outbox_for_update(org_id=1)
+
+        outbox1.save()
+        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        processing_thread = threading.Thread(
+            target=lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+        )
+        processing_thread.start()
+
+        barrier.wait()
+
+        # Does include outboxes created after starting process.
+        outbox2.save()
+        barrier.wait()
+
+        # Next iteration
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread.join(timeout=1)
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_drain_shard_flush_all__concurrent_processing__cooperation(
+        self, mock_process_region_outbox
+    ):
+        outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
+
+        outbox1.save()
+        outbox2.save()
+
+        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        processing_thread_1 = threading.Thread(
+            target=lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+        )
+        processing_thread_1.start()
+
+        processing_thread_2 = threading.Thread(
+            target=lambda: outbox2.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+        )
+
+        barrier.wait()
+        processing_thread_2.start()
+        barrier.wait()
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread_1.join()
+        processing_thread_2.join()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+        assert mock_process_region_outbox.call_count == 2
 
 
 @region_silo_test(stable=True)

@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import outbox_context
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import organization_roles
 
@@ -53,7 +53,7 @@ class OrganizationMemberMapping(Model):
         )
 
     def save(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             if self.user and self.id is None:
                 for outbox in self.user.outboxes_for_update():
                     outbox.save()

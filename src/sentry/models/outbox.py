@@ -4,11 +4,13 @@ import abc
 import contextlib
 import dataclasses
 import datetime
+import threading
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
+from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
 
-from django.db import connections, models, router, transaction
+from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max
+from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
@@ -22,6 +24,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
@@ -178,16 +181,37 @@ class OutboxBase(Model):
         return now + (self.last_delay() * 2)
 
     def save(self, **kwds: Any):
+        _outbox_context.add_outbox(self)
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(**kwds)
 
     @contextlib.contextmanager
+    def process_shard(
+        self, latest_shard_row: OutboxBase | None
+    ) -> Generator[OutboxBase | None, None, None]:
+        flush_all: bool = not bool(latest_shard_row)
+        next_shard_row: OutboxBase | None
+        with transaction.atomic():
+            try:
+                next_shard_row = (
+                    self.selected_messages_in_shard().select_for_update(nowait=flush_all).first()
+                )
+            except OperationalError as e:
+                if "LockNotAvailable" in str(e):
+                    # If a non task flush process is running already, allow it to proceed without contention.
+                    next_shard_row = None
+                else:
+                    raise e
+
+            # If we have an upper bound on rows to process, we stop once we find the suggestion of a row newer
+            # than that upper bound
+            if next_shard_row and latest_shard_row and latest_shard_row.id < next_shard_row.id:
+                next_shard_row = None
+            yield next_shard_row
+
+    @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
-        # Do not, use a select for update here -- it is tempting, but a major performance issue.
-        # we should simply accept the occasional multiple sends than to introduce hard locking.
-        # so long as all objects sent are committed, and so long as any concurrent changes to data
-        # result in a future processing, we should always converge on non stale values.
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
 
@@ -197,6 +221,7 @@ class OutboxBase(Model):
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
+
             tags = {"category": OutboxCategory(self.category).name}
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -217,23 +242,35 @@ class OutboxBase(Model):
         return False
 
     @abc.abstractmethod
-    def send_signal(self):
+    def send_signal(self) -> None:
         pass
 
-    def drain_shard(self, max_updates_to_drain: int | None = None):
-        runs = 0
-        next_row: OutboxBase | None = self.selected_messages_in_shard().first()
-        while next_row is not None and (
-            max_updates_to_drain is None or runs < max_updates_to_drain
-        ):
-            runs += 1
-            next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+    def drain_shard(
+        self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
+    ) -> None:
+        # When we are flushing in a local context, we don't care about outboxes created concurrently --
+        # at best our logic depends on previously created outboxes.
+        latest_shard_row: OutboxBase | None = None
+        if not flush_all:
+            latest_shard_row = self.selected_messages_in_shard().last()
+            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # drop.
+            if latest_shard_row is None:
+                return
 
-        if next_row is not None:
-            raise OutboxFlushError(
-                f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
-            )
+        shard_row: OutboxBase | None
+        while True:
+            with self.process_shard(latest_shard_row) as shard_row:
+                if shard_row is None:
+                    break
+
+                if _test_processing_barrier:
+                    _test_processing_barrier.wait()
+
+                shard_row.process()
+
+            if _test_processing_barrier:
+                _test_processing_barrier.wait()
 
 
 # Outboxes bound from region silo -> control silo
@@ -385,6 +422,36 @@ def outbox_silo_modes() -> List[SiloMode]:
     if cur != SiloMode.CONTROL:
         result.append(SiloMode.REGION)
     return result
+
+
+class OutboxContext(threading.local):
+    accumulated_outboxes: List[OutboxBase] | None = None
+
+    def add_outbox(self, outbox: OutboxBase) -> None:
+        assert (
+            self.accumulated_outboxes is not None
+        ), "You must use with outbox_context(transaction.atomic()) when saving an outbox!"
+        self.accumulated_outboxes.append(outbox)
+
+
+_outbox_context = OutboxContext()
+
+
+@contextlib.contextmanager
+def outbox_context(transaction: Atomic, flush: bool = True) -> ContextManager[None]:
+    original = _outbox_context.accumulated_outboxes
+    accumulated: List[OutboxBase] = []
+
+    with transaction, in_test_psql_role_override("postgres"):
+        _outbox_context.accumulated_outboxes = accumulated
+        try:
+            yield
+        finally:
+            _outbox_context.accumulated_outboxes = original
+
+    if flush:
+        for outbox in accumulated:
+            outbox.drain_shard()
 
 
 process_region_outbox = Signal(providing_args=["payload", "object_identifier"])

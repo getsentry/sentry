@@ -18,6 +18,7 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationStatus,
     Team,
+    outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import logger
@@ -218,7 +219,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     )
                     org_member.set_user(user_id)
                     org_member.save()
-                    org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
+                    org_member.outbox_for_update().drain_shard()
                 except OrganizationMember.DoesNotExist:
                     return None
         return serialize_member(org_member)
@@ -304,7 +305,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:
                 org_member = OrganizationMember.objects.filter(
@@ -325,9 +326,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     inviter_id=inviter_id,
                     invite_status=invite_status,
                 )
-
-            assert org_member
-            org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
@@ -385,7 +383,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             org_member = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
             )
