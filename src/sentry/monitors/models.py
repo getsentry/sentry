@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import jsonschema
 import pytz
@@ -326,7 +326,7 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data = {}
+            alert_rule_data: Dict[str, Optional[Any]] = dict()
 
             # Build up alert target data
             targets = []
