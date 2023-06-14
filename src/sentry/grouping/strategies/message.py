@@ -82,7 +82,8 @@ _irrelevant_re = re.compile(
             (2[0-3]|[0-1][\d]):([0-5][\d])
             (?::(60|[0-5][\d]))?\s+
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
-        )
+        ) |
+        (datetime.datetime\(.*?\))
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b
@@ -94,6 +95,9 @@ _irrelevant_re = re.compile(
     (?P<int>
         -\d+\b |
         \b\d+\b
+    ) |
+    (?P<quoted_str>
+        ='([\w\s]+)'
     )
 """
 )
@@ -108,12 +112,14 @@ def trim_message_for_grouping(string: str) -> str:
         s += "..."
 
     def _handle_match(match: Match[str]) -> str:
+        # e.g. hex, 0x40000015
         for key, value in match.groupdict().items():
             if value is not None:
                 # key can be one of the keys from _irrelevant_re, thus, not a large cardinality
                 # tracking the key helps distinguish what kinds of replacements are happening
                 metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
-                return f"<{key}>"
+                # For quoted_str we want to preserver the = symbol
+                return f"=<{key}>" if key == "quoted_str" else f"<{key}>"
         return ""
 
     return _irrelevant_re.sub(_handle_match, s)
