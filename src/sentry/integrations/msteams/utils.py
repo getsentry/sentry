@@ -5,8 +5,8 @@ import logging
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 
-from ...services.hybrid_cloud.integration import integration_service
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
 MSTEAMS_MAX_ITERS = 100

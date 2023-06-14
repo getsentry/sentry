@@ -8,6 +8,8 @@ from typing import Iterable, List, Optional, cast
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
@@ -35,6 +37,10 @@ class OrganizationService(RpcService):
         from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 
         return DatabaseBackedOrganizationService()
+
+    def get(self, id: int) -> Optional[RpcOrganization]:
+        org_context = self.get_organization_by_id(id=id)
+        return org_context.organization if org_context else None
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
@@ -87,6 +93,11 @@ class OrganizationService(RpcService):
         only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
         for their full metadata is greatly discouraged for performance reasons.
         """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -166,16 +177,25 @@ class OrganizationService(RpcService):
         pass
 
     def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool
+        self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
     ) -> Optional[RpcUserOrganizationContext]:
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
+        from sentry.models import OrganizationStatus
+
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:
             return None
 
-        return self.get_organization_by_id(id=org_id, user_id=user_id)
+        org_context = self.get_organization_by_id(id=org_id, user_id=user_id)
+        if (
+            only_visible
+            and org_context
+            and org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
+            return None
+        return org_context
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -226,6 +246,13 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

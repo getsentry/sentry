@@ -33,6 +33,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo import SiloLimit
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -566,6 +567,10 @@ class OrganizationView(AbstractOrganizationView):
             return Organization.objects.get(id=self.active_organization.organization.id)
         except Organization.DoesNotExist:
             return None
+        except SiloLimit.AvailabilityError as e:
+            raise SiloLimit.AvailabilityError(
+                f"{type(self).__name__} should extend ControlSiloOrganizationView?"
+            ) from e
 
 
 class ControlSiloOrganizationView(AbstractOrganizationView):

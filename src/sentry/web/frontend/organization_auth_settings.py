@@ -16,10 +16,10 @@ from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import ControlSiloOrganizationView
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
@@ -72,12 +72,12 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     return form
 
 
-class OrganizationAuthSettingsView(OrganizationView):
+class OrganizationAuthSettingsView(ControlSiloOrganizationView):
     # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request: Request, organization, auth_provider):
+    def _disable_provider(self, request: Request, organization: RpcOrganization, auth_provider):
         self.create_audit_entry(
             request,
             organization=organization,
@@ -88,13 +88,15 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         # This is safe -- we're not syncing flags to the org member mapping table.
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(organization=organization).update(
+            OrganizationMember.objects.filter(organization_id=organization.id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])
                 .bitand(~OrganizationMember.flags["sso:invalid"])
             )
 
-        user_ids = OrganizationMember.objects.filter(organization=organization).values("user_id")
+        user_ids = OrganizationMember.objects.filter(organization_id=organization.id).values(
+            "user_id"
+        )
         User.objects.filter(id__in=user_ids).update(is_managed=False)
 
         email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
@@ -103,7 +105,9 @@ class OrganizationAuthSettingsView(OrganizationView):
             auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
-    def handle_existing_provider(self, request: Request, organization, auth_provider):
+    def handle_existing_provider(
+        self, request: Request, organization: RpcOrganization, auth_provider
+    ):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
@@ -139,8 +143,9 @@ class OrganizationAuthSettingsView(OrganizationView):
 
             auth_provider.save()
 
-            organization.default_role = form.cleaned_data["default_role"]
-            organization.save()
+            organization = organization_service.update_default_role(
+                organization_id=organization.id, default_role=form.cleaned_data["default_role"]
+            )
 
             if form.initial != form.cleaned_data:
                 changed_data = {}
@@ -171,7 +176,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             )
 
         pending_links_count = OrganizationMember.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
         ).count()
 
@@ -192,7 +197,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request: Request, organization) -> Response:
+    def handle(self, request: Request, organization: RpcOrganization) -> Response:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:

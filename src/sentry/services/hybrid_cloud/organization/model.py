@@ -3,11 +3,10 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from pydantic import Field
 
-from sentry.constants import ObjectStatus
 from sentry.db.models import ValidateFunction, Value
 from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
@@ -63,10 +62,6 @@ class RpcTeamMember(RpcModel):
     @property
     def role(self) -> Optional[TeamRole]:
         return team_roles.get(self.role_id) if self.role_id else None
-
-
-def project_status_visible() -> int:
-    return int(ObjectStatus.ACTIVE)
 
 
 class RpcOrganizationMemberFlags(RpcModel):
@@ -139,6 +134,10 @@ class RpcOrganizationFlags(RpcModel):
     require_2fa: bool = False
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
+
+
+class RpcOrganizationFlagsUpdate(TypedDict):
+    require_2fa: bool
 
 
 class RpcOrganizationInvite(RpcModel):

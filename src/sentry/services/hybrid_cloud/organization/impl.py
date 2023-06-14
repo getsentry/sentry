@@ -23,6 +23,7 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -282,6 +283,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return [r.organization for r in results]
 
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        updates = models.F("flags")
+        for (name, value) in flags.items():
+            if value is True:
+                updates = updates.bitor(Organization.flags[name])
+            elif value is False:
+                updates = updates.bitand(~Organization.flags[name])
+            else:
+                raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
+
+        Organization.objects.filter(id=organization_id).update(flags=updates)
+
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
         return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
@@ -383,6 +396,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 "organizationmember_id", flat=True
             )
         )
+
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        org = Organization.objects.get(id=organization_id)
+        org.default_role = default_role
+        org.save()
+        return serialize_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         with transaction.atomic(), in_test_psql_role_override("postgres"):

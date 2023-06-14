@@ -17,6 +17,7 @@ from sentry.models import (
     OrganizationStatus,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.organization.serial import serialize_organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -43,7 +44,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
 
         assert resp.context["login_form"]
-        assert resp.context["organization"] == self.organization
+        assert resp.context["organization"] == serialize_organization(self.organization)
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"]
 
