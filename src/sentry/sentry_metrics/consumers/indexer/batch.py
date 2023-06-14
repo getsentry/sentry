@@ -177,7 +177,7 @@ class IndexerBatch:
             "sentry_metrics.indexer.process_messages.dropped_message",
             amount=len(keys_to_remove),
             tags={
-                "reason": "cardinality_limit",
+                "reason": "cardinality_limit_legacy",
             },
         )
 
@@ -358,6 +358,7 @@ class IndexerBatch:
                     tags={
                         "reason": "writes_limit",
                         "string_type": "tags",
+                        "use_case_id": use_case_id.value,
                     },
                 )
                 if _should_sample_debug_log():
@@ -369,6 +370,7 @@ class IndexerBatch:
                             "num_global_quotas": exceeded_global_quotas,
                             "num_org_quotas": exceeded_org_quotas,
                             "org_batch_size": len(mapping[use_case_id][org_id]),
+                            "use_case_id": use_case_id.value,
                         },
                     )
                 continue
@@ -390,7 +392,9 @@ class IndexerBatch:
                 metrics.incr(
                     "sentry_metrics.indexer.process_messages.dropped_message",
                     tags={
+                        "reason": "missing_numeric_metric_id",
                         "string_type": "metric_id",
+                        "use_case_id": use_case_id.value,
                     },
                 )
 
@@ -405,6 +409,7 @@ class IndexerBatch:
                                 and metadata.fetch_type_ext.is_global
                             ),
                             "org_batch_size": len(mapping[use_case_id][org_id]),
+                            "use_case_id": use_case_id.value,
                         },
                     )
                 continue
