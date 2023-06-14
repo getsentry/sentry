@@ -1,5 +1,6 @@
 import logging
 import random
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
@@ -33,6 +34,7 @@ class MessageProcessor:
     def __init__(self, config: MetricsIngestConfiguration):
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
+        self._executor = ThreadPoolExecutor()
 
     # The following two methods are required to work such that the parallel
     # indexer can spawn subprocesses correctly.
@@ -100,6 +102,9 @@ class MessageProcessor:
             cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
                 self._config.use_case_id, batch.parsed_payloads_by_offset
             )
+        self._executor.submit(
+            cardinality_limiter.apply_cardinality_limits, cardinality_limiter_state
+        )
 
         sdk.set_measurement(
             "cardinality_limiter.keys_to_remove.len", len(cardinality_limiter_state.keys_to_remove)
@@ -119,11 +124,5 @@ class MessageProcessor:
         new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
 
         sdk.set_measurement("new_messages.len", len(new_messages))
-
-        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
-            op="apply_cardinality_limits"
-        ):
-            # TODO: move to separate thread
-            cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
 
         return new_messages
