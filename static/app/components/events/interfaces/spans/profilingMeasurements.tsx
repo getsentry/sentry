@@ -98,7 +98,6 @@ function Chart({data, type, transactionDuration}: ChartProps) {
           type: 'none',
           triggerOn: 'mousemove',
         },
-        boundaryGap: false,
         type: 'value',
         alignTicks: false,
         max: parseFloat(transactionDuration.toFixed(2)),
