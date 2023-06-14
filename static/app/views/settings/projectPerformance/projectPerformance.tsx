@@ -459,7 +459,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
-                  title={t('Performance Issues - Detector Settings')}
+                  title={t('Performance Issues - Admin Detector Settings')}
                   fields={this.performanceIssueDetectorsFormFields}
                   disabled={!isSuperUser}
                 />
