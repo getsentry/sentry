@@ -583,6 +583,16 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         assert installation.get_group_id() is None
 
 
+def assert_proxy_request(request, is_proxy=True):
+    assert (PROXY_BASE_PATH in request.url) == is_proxy
+    assert (PROXY_OI_HEADER in request.headers) == is_proxy
+    assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
+    # The following Gitlab headers don't appear in proxied requests
+    assert ("Authorization" in request.headers) != is_proxy
+    if is_proxy:
+        assert request.headers[PROXY_OI_HEADER] is not None
+
+
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
@@ -617,15 +627,6 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
         class GitlabProxySetupTestClient(GitlabProxySetupClient):
             _use_proxy_url_for_tests = True
 
-            def assert_proxy_request(self, request, is_proxy=True):
-                assert (PROXY_BASE_PATH in request.url) == is_proxy
-                assert (PROXY_OI_HEADER in request.headers) == is_proxy
-                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
-                # The following Gitlab headers don't appear in proxied requests
-                assert ("Authorization" in request.headers) != is_proxy
-                if is_proxy:
-                    assert request.headers[PROXY_OI_HEADER] is not None
-
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = GitlabProxySetupTestClient(
                 base_url=self.base_url,
@@ -637,7 +638,7 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
 
             assert "https://gitlab.example.com/api/v4/groups/cool-group" == request.url
             assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+            assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
@@ -651,7 +652,7 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
 
             assert "https://gitlab.example.com/api/v4/groups/cool-group" == request.url
             assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+            assert_proxy_request(request, is_proxy=False)
 
 
 @override_settings(
@@ -677,15 +678,6 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         class GitlabProxyApiTestClient(GitLabProxyApiClient):
             _use_proxy_url_for_tests = True
 
-            def assert_proxy_request(self, request, is_proxy=True):
-                assert (PROXY_BASE_PATH in request.url) == is_proxy
-                assert (PROXY_OI_HEADER in request.headers) == is_proxy
-                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
-                # The following Gitlab headers don't appear in proxied requests
-                assert ("Authorization" in request.headers) != is_proxy
-                if is_proxy:
-                    assert request.headers[PROXY_OI_HEADER] is not None
-
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = GitlabProxyApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
@@ -696,7 +688,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+            assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
         cache.clear()
@@ -710,7 +702,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+            assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
         cache.clear()
@@ -724,4 +716,4 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url not in request.url
-            client.assert_proxy_request(request, is_proxy=True)
+            assert_proxy_request(request, is_proxy=True)
