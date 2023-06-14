@@ -7,6 +7,7 @@ __all__ = (
     "parse_query",
     "resolve_tags",
     "translate_meta_results",
+    "QUERY_PROJECT_LIMIT",
 )
 
 from datetime import datetime, timedelta
@@ -84,6 +85,8 @@ from sentry.snuba.metrics.utils import (
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
+
+QUERY_PROJECT_LIMIT = 10
 
 
 def parse_field(field: str, allow_mri: bool = False) -> MetricField:
@@ -297,11 +300,11 @@ def resolve_tags(
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
-            rhs_ids = _get_rhs_ids(org_id, projects, rhs_slugs)
+            rhs_ids = get_rhs_ids(org_id, projects, rhs_slugs)
 
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=op,
                 rhs=rhs_ids,
@@ -368,10 +371,12 @@ def resolve_tags(
     raise InvalidParams("Unable to resolve conditions")
 
 
-def _get_rhs_ids(org_id, projects, rhs_slugs):
+def get_rhs_ids(
+    org_id: int, projects: Sequence[Project], rhs_slugs: Sequence[str]
+) -> Sequence[str]:
     projects_in_where_clause = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
 
-    if len(projects_in_where_clause) >= 100:
+    if len(projects_in_where_clause) >= QUERY_PROJECT_LIMIT:
         sentry_sdk.capture_message("Too many projects in query where clause", level="warning")
 
     passed_project_slugs = [p.slug for p in projects]
@@ -383,8 +388,8 @@ def _get_rhs_ids(org_id, projects, rhs_slugs):
 
     if len(invalid_project_slugs) > 0:
         raise InvalidParams(
-            f"Invalid project slugs: {', '.join(invalid_project_slugs)} in query. Project "
-            f"slugs must be one of {', '.join(passed_project_slugs)} defined in the top-level filters"
+            f"Invalid project slugs: '{', '.join(invalid_project_slugs)}' in query. Project "
+            f"slugs must be one of '{', '.join(passed_project_slugs)}' defined in the top-level filters"
         )
 
     rhs_ids = [p.id for p in projects_in_where_clause]

@@ -6,6 +6,7 @@ from unittest import mock
 import freezegun
 import pytest
 import pytz
+import sentry_sdk
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import (
@@ -68,7 +69,7 @@ from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
-from sentry.snuba.metrics.query_builder import QueryDefinition
+from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -79,6 +80,7 @@ pytestmark = pytest.mark.sentry_metrics
 class PseudoProject:
     organization_id: int
     id: int
+    slug: str = "project-slug"
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
@@ -1843,6 +1845,57 @@ class ResolveTagsTestCase(TestCase):
                     ),
                     op=Op.EQ,
                     rhs=1,
+                ),
+                [],
+            )
+
+    @mock.patch(
+        "sentry.snuba.metrics.Project.objects.filter",
+        return_value=[PseudoProject(i, ORG_ID) for i in range(QUERY_PROJECT_LIMIT + 1)],
+    )
+    def test_resolve_tags_too_many_projects(self, projects):
+        with mock.patch.object(sentry_sdk, "capture_message") as capture_message:
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="ifNull",
+                        parameters=[
+                            Column(
+                                name="tags[project]",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=["project-slug"],
+                ),
+                [PseudoProject(1, ORG_ID)],
+            )
+
+        capture_message.assert_called_once()
+
+    @mock.patch(
+        "sentry.snuba.metrics.Project.objects.filter", return_value=[PseudoProject(1, ORG_ID)]
+    )
+    def test_resolve_tags_invalid_project_slugs(self, projects):
+        with pytest.raises(InvalidParams):
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="ifNull",
+                        parameters=[
+                            Column(
+                                name="tags[project]",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=["invalid-project-slug"],
                 ),
                 [],
             )
