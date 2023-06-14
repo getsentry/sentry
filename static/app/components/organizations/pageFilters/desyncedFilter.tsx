@@ -53,6 +53,8 @@ const DesyncedFilterMessageWrap = styled('div')`
   margin: ${space(0.25)} ${space(0.5)} ${space(0.5)};
   padding: ${space(0.75)};
 
+  font-size: ${p => p.theme.fontSizeSmall};
+
   strong {
     display: block;
     font-weight: bold;

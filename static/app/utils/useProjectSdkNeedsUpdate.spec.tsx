@@ -9,15 +9,21 @@ const mockUseProjectSdkUpdates = useProjectSdkUpdates as jest.MockedFunction<
   typeof useProjectSdkUpdates
 >;
 
-function mockCurrentVersion(currentVersion: string) {
+function mockCurrentVersion(
+  mockUpdates: Array<{
+    projectId: string;
+    sdkVersion: string;
+  }>
+) {
   mockUseProjectSdkUpdates.mockReturnValue({
     type: 'resolved',
-    data: {
-      projectId: TestStubs.Project().id,
+    // @ts-expect-error the return type is overloaded and ts seems to want the first return type of ProjectSdkUpdate
+    data: mockUpdates.map(({projectId, sdkVersion}) => ({
+      projectId,
       sdkName: 'javascript',
-      sdkVersion: currentVersion,
+      sdkVersion,
       suggestions: [],
-    },
+    })),
   });
 }
 describe('useProjectSdkNeedsUpdate', () => {
@@ -30,7 +36,7 @@ describe('useProjectSdkNeedsUpdate', () => {
       initialProps: {
         minVersion: '1.0.0',
         organization: TestStubs.Organization(),
-        projectId: TestStubs.Project().id,
+        projectId: [TestStubs.Project().id],
       },
     });
     expect(result.current.isFetching).toBeTruthy();
@@ -38,13 +44,18 @@ describe('useProjectSdkNeedsUpdate', () => {
   });
 
   it('should not need an update if the sdk version is above the min version', () => {
-    mockCurrentVersion('3.0.0');
+    mockCurrentVersion([
+      {
+        projectId: TestStubs.Project().id,
+        sdkVersion: '3.0.0',
+      },
+    ]);
 
     const {result} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
       initialProps: {
         minVersion: '1.0.0',
         organization: TestStubs.Organization(),
-        projectId: TestStubs.Project().id,
+        projectId: [TestStubs.Project().id],
       },
     });
     expect(result.current.isFetching).toBeFalsy();
@@ -52,16 +63,67 @@ describe('useProjectSdkNeedsUpdate', () => {
   });
 
   it('should be updated it the sdk version is too low', () => {
-    mockCurrentVersion('3.0.0');
+    mockCurrentVersion([
+      {
+        projectId: TestStubs.Project().id,
+        sdkVersion: '3.0.0',
+      },
+    ]);
 
     const {result} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
       initialProps: {
         minVersion: '8.0.0',
         organization: TestStubs.Organization(),
-        projectId: TestStubs.Project().id,
+        projectId: [TestStubs.Project().id],
       },
     });
     expect(result.current.isFetching).toBeFalsy();
     expect(result.current.needsUpdate).toBeTruthy();
+  });
+
+  it('should return needsUpdate if multiple projects', () => {
+    mockCurrentVersion([
+      {
+        projectId: '1',
+        sdkVersion: '3.0.0',
+      },
+      {
+        projectId: '2',
+        sdkVersion: '3.0.0',
+      },
+    ]);
+
+    const {result} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
+      initialProps: {
+        minVersion: '8.0.0',
+        organization: TestStubs.Organization(),
+        projectId: ['1', '2'],
+      },
+    });
+    expect(result.current.isFetching).toBeFalsy();
+    expect(result.current.needsUpdate).toBeTruthy();
+  });
+
+  it('should not return needsUpdate if some projects meet minSdk', () => {
+    mockCurrentVersion([
+      {
+        projectId: '1',
+        sdkVersion: '8.0.0',
+      },
+      {
+        projectId: '2',
+        sdkVersion: '3.0.0',
+      },
+    ]);
+
+    const {result} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
+      initialProps: {
+        minVersion: '8.0.0',
+        organization: TestStubs.Organization(),
+        projectId: ['1', '2'],
+      },
+    });
+    expect(result.current.isFetching).toBeFalsy();
+    expect(result.current.needsUpdate).toBeFalsy();
   });
 });

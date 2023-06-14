@@ -1,38 +1,43 @@
-import {useMemo} from 'react';
+import {useEffect} from 'react';
 
 import {unassignedValue} from 'sentry/data/experimentConfig';
-import {Organization} from 'sentry/types';
+import {Organization, Team} from 'sentry/types';
 import {useExperiment} from 'sentry/utils/useExperiment';
 
 /**
  * Used to determine if viewer can see project creation button
  */
-export function useProjectCreationAccess(organization: Organization) {
+export function useProjectCreationAccess({
+  organization,
+  teams,
+}: {
+  organization: Organization;
+  teams: Team[];
+}) {
   const {experimentAssignment, logExperiment} = useExperiment(
-    'ProjectCreationForAllExperiment',
+    'ProjectCreationForAllExperimentV2',
     {
       logExperimentOnMount: false,
     }
   );
 
-  const canCreateProject = useMemo(() => {
-    if (
-      organization.access.includes('project:admin') ||
-      organization.access.includes('project:write')
-    ) {
-      return true;
-    }
+  const isAdmin =
+    organization.access.includes('project:admin') ||
+    teams?.some(tm => tm.access.includes('team:admin'));
 
-    if (!organization.features.includes('organizations:team-project-creation-all')) {
-      return false;
-    }
+  const shouldBeInExperiment =
+    !isAdmin &&
+    organization.features.includes('team-project-creation-all') &&
+    experimentAssignment !== unassignedValue;
 
-    if (experimentAssignment === unassignedValue) {
-      return false;
-    }
+  const canCreateProject =
+    isAdmin || (shouldBeInExperiment && experimentAssignment === 1);
 
-    logExperiment();
-    return experimentAssignment === 1;
-  }, [organization, experimentAssignment, logExperiment]);
+  useEffect(() => {
+    if (shouldBeInExperiment) {
+      logExperiment();
+    }
+  }, [logExperiment, shouldBeInExperiment]);
+
   return {canCreateProject};
 }

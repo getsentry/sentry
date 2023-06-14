@@ -18,7 +18,7 @@ key: Callable[[Tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
 
 
-class LevelEventForm(forms.Form):  # type: ignore
+class LevelEventForm(forms.Form):
     level = forms.ChoiceField(choices=list(LEVEL_CHOICES.items()))
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
 

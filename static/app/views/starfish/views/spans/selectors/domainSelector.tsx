@@ -3,25 +3,35 @@ import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   moduleName?: ModuleName;
+  spanCategory?: string;
   value?: string;
 };
 
-export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props) {
+export function DomainSelector({
+  value = '',
+  moduleName = ModuleName.ALL,
+  spanCategory,
+}: Props) {
   // TODO: This only returns the top 25 domains. It should either load them all, or paginate, or allow searching
   //
+  const {selection} = usePageFilters();
+
   const location = useLocation();
   const query = getQuery(moduleName);
-  const eventView = getEventView(moduleName);
+  const eventView = getEventView(moduleName, selection, spanCategory);
 
-  const {data: operations} = useSpansQuery<[{domain: string}]>({
+  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     queryString: query,
     initialData: [],
@@ -30,9 +40,9 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(({domain}) => ({
-      value: domain,
-      label: domain,
+    ...domains.map(datum => ({
+      value: datum['span.domain'],
+      label: datum['span.domain'],
     })),
   ];
 
@@ -48,7 +58,7 @@ export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props)
           ...location,
           query: {
             ...location.query,
-            domain: newValue.value,
+            'span.domain': newValue.value,
           },
         });
       }}
@@ -64,7 +74,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getQuery(moduleName?: string) {
-  return `SELECT domain, count()
+  return `SELECT domain as "span.domain", count()
     FROM spans_experimental_starfish
     WHERE 1 = 1
     ${moduleName ? `AND module = '${moduleName}'` : ''}
@@ -75,13 +85,31 @@ function getQuery(moduleName?: string) {
   `;
 }
 
-function getEventView(moduleName?: string) {
+function getEventView(
+  moduleName: string,
+  pageFilters: PageFilters,
+  spanCategory?: string
+) {
+  const queryConditions: string[] = [`!span.domain:""`];
+  if (moduleName) {
+    queryConditions.push(`span.module:${moduleName}`);
+  }
+  if (spanCategory) {
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      queryConditions.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      queryConditions.push(`span.category:${spanCategory}`);
+    }
+  }
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['domain', 'count()'],
+    fields: ['span.domain', 'count()'],
     orderby: '-count',
-    query: moduleName ? `module:${moduleName}` : '',
-    dataset: DiscoverDatasets.SPANS_INDEXED,
+    query: queryConditions.join(' '),
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    start: pageFilters.datetime.start ?? undefined,
+    end: pageFilters.datetime.end ?? undefined,
+    range: pageFilters.datetime.period ?? undefined,
     projects: [1],
     version: 2,
   });

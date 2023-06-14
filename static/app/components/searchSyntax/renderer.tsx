@@ -38,30 +38,33 @@ function renderResult(result: ParseResult, cursor: number) {
 
 function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
-    case Token.Spaces:
+    case Token.SPACES:
       return token.value;
 
-    case Token.Filter:
+    case Token.FILTER:
       return <FilterToken filter={token} cursor={cursor} />;
 
-    case Token.ValueTextList:
-    case Token.ValueNumberList:
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
       return <ListToken token={token} cursor={cursor} />;
 
-    case Token.ValueNumber:
+    case Token.VALUE_NUMBER:
       return <NumberToken token={token} />;
 
-    case Token.ValueBoolean:
+    case Token.VALUE_BOOLEAN:
       return <Boolean>{token.text}</Boolean>;
 
-    case Token.ValueIso8601Date:
+    case Token.VALUE_ISO_8601_DATE:
       return <DateTime>{token.text}</DateTime>;
 
-    case Token.LogicGroup:
+    case Token.LOGIC_GROUP:
       return <LogicGroup>{renderResult(token.inner, cursor)}</LogicGroup>;
 
-    case Token.LogicBoolean:
+    case Token.LOGIC_BOOLEAN:
       return <LogicBoolean>{token.value}</LogicBoolean>;
+
+    case Token.FREE_TEXT:
+      return <FreeTextToken token={token} cursor={cursor} />;
 
     default:
       return token.text;
@@ -83,7 +86,7 @@ function FilterToken({
   cursor,
 }: {
   cursor: number;
-  filter: TokenResult<Token.Filter>;
+  filter: TokenResult<Token.FILTER>;
 }) {
   const isActive = isWithinToken(filter, cursor);
 
@@ -134,7 +137,7 @@ function FilterToken({
       forceVisible
       skipWrapper
     >
-      <Filter
+      <TokenGroup
         ref={filterElementRef}
         active={isActive}
         invalid={showInvalid}
@@ -144,7 +147,70 @@ function FilterToken({
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
         <Value>{renderToken(filter.value, cursor)}</Value>
-      </Filter>
+      </TokenGroup>
+    </Tooltip>
+  );
+}
+
+function FreeTextToken({
+  token,
+  cursor,
+}: {
+  cursor: number;
+  token: TokenResult<Token.FREE_TEXT>;
+}) {
+  const isActive = isWithinToken(token, cursor);
+
+  // This state tracks if the cursor has left the filter token. We initialize it
+  // to !isActive in the case where the filter token is rendered without the
+  // cursor initially being in it.
+  const [hasLeft, setHasLeft] = useState(!isActive);
+
+  // Used to trigger the shake animation when the element becomes invalid
+  const filterElementRef = useRef<HTMLSpanElement>(null);
+
+  // Trigger the effect when isActive changes to updated whether the cursor has
+  // left the token.
+  useEffect(() => {
+    if (!isActive && !hasLeft) {
+      setHasLeft(true);
+    }
+  }, [hasLeft, isActive]);
+
+  const showInvalid = hasLeft && !!token.invalid;
+  const showTooltip = showInvalid && isActive;
+
+  const reduceMotion = useReducedMotion();
+
+  // Trigger the shakeAnimation when showInvalid is set to true. We reset the
+  // animation by clearing the style, set it to running, and re-applying the
+  // animation
+  useEffect(() => {
+    if (!filterElementRef.current || !showInvalid || reduceMotion) {
+      return;
+    }
+
+    const style = filterElementRef.current.style;
+
+    style.animation = 'none';
+    void filterElementRef.current.offsetTop;
+
+    window.requestAnimationFrame(
+      () => (style.animation = `${shakeAnimation.name} 300ms`)
+    );
+  }, [reduceMotion, showInvalid]);
+
+  return (
+    <Tooltip
+      disabled={!showTooltip}
+      title={token.invalid?.reason}
+      overlayStyle={{maxWidth: '350px'}}
+      forceVisible
+      skipWrapper
+    >
+      <FreeTextTokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
+        <FreeText>{token.text}</FreeText>
+      </FreeTextTokenGroup>
     </Tooltip>
   );
 }
@@ -153,12 +219,12 @@ function KeyToken({
   token,
   negated,
 }: {
-  token: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>;
+  token: TokenResult<Token.KEY_SIMPLE | Token.KEY_AGGREGATE | Token.KEY_EXPLICIT_TAG>;
   negated?: boolean;
 }) {
   let value: React.ReactNode = token.text;
 
-  if (token.type === Token.KeyExplicitTag) {
+  if (token.type === Token.KEY_EXPLICIT_TAG) {
     value = (
       <ExplicitKey prefix={token.prefix}>
         {token.key.quoted ? `"${token.key.value}"` : token.key.value}
@@ -174,7 +240,7 @@ function ListToken({
   cursor,
 }: {
   cursor: number;
-  token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
+  token: TokenResult<Token.VALUE_NUMBER_LIST | Token.VALUE_TEXT_LIST>;
 }) {
   return (
     <InList>
@@ -186,7 +252,7 @@ function ListToken({
   );
 }
 
-function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
+function NumberToken({token}: {token: TokenResult<Token.VALUE_NUMBER>}) {
   return (
     <Fragment>
       {token.value}
@@ -195,21 +261,31 @@ function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
   );
 }
 
-type FilterProps = {
+type TokenGroupProps = {
   active: boolean;
   invalid: boolean;
 };
 
-const colorType = (p: FilterProps) =>
+const colorType = (p: TokenGroupProps) =>
   `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
 
-const Filter = styled('span')<FilterProps>`
+const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p => (p.invalid ? p.theme.red400 : p.theme.blue400)};
 
   position: relative;
   animation-name: ${shakeAnimation};
+`;
+
+const FreeTextTokenGroup = styled(TokenGroup)`
+  ${p =>
+    !p.invalid &&
+    css`
+      --token-bg: inherit;
+      --token-border: inherit;
+      --token-value-color: inherit;
+    `}
 `;
 
 const filterCss = css`
@@ -273,6 +349,15 @@ const Value = styled('span')`
   color: var(--token-value-color);
   margin: -1px -2px -1px 0;
   padding-right: 1px;
+`;
+
+const FreeText = styled('span')`
+  ${filterCss};
+  border-radius: 2px;
+  color: var(--token-value-color);
+  margin: -1px -2px -1px 0;
+  padding-right: 1px;
+  padding-left: 1px;
 `;
 
 const Unit = styled('span')`

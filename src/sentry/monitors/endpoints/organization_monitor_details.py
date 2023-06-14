@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import transaction
+from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,7 +18,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOTFOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
@@ -37,9 +38,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Retrieve a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
@@ -65,8 +66,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Update a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -144,9 +145,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Delete a monitor or monitor environments",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
@@ -218,6 +219,10 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 return self.respond(status=404)
 
             for monitor_object in monitor_objects_list:
+                # randomize slug on monitor deletion to prevent re-creation side effects
+                if type(monitor_object) == Monitor:
+                    monitor_object.update(slug=get_random_string(length=24))
+
                 schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
                 self.create_audit_entry(
                     request=request,

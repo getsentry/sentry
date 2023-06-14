@@ -1,20 +1,20 @@
 import pytest
+from django.conf import settings
 from django.test import override_settings
 
+from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import (
-    MONOLITH_REGION_NAME,
     Region,
     RegionCategory,
     RegionConfigurationError,
-    RegionContextError,
     RegionResolutionError,
+    clear_global_regions,
     get_local_region,
     get_region_by_name,
-    get_region_for_organization,
 )
 from sentry.utils import json
 
@@ -32,12 +32,6 @@ class RegionMappingTest(TestCase):
             with pytest.raises(RegionResolutionError):
                 get_region_by_name("nowhere")
 
-    def test_get_for_organization(self):
-        with override_regions(()):
-            org = self.create_organization()
-            with pytest.raises(RegionContextError):
-                get_region_for_organization(org)
-
     def test_get_local_region(self):
         regions = [
             Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
@@ -51,7 +45,7 @@ class RegionMappingTest(TestCase):
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
-                    MONOLITH_REGION_NAME, 0, "/", RegionCategory.MULTI_TENANT
+                    settings.SENTRY_MONOLITH_REGION, 0, "/", RegionCategory.MULTI_TENANT
                 )
 
     def test_validate_region(self):
@@ -63,6 +57,7 @@ class RegionMappingTest(TestCase):
             valid_region.validate()
 
     def test_json_config_injection(self):
+        clear_global_regions()
         region_config = {
             "name": "na",
             "snowflake_id": 1,
@@ -77,16 +72,13 @@ class RegionMappingTest(TestCase):
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
 
-        organization = self.create_organization(name="test name", no_mapping=True)
-        self.create_organization_mapping(
-            organization,
-            **{
-                "slug": organization.slug,
-                "name": "test name",
-                "region_name": "na",
-                "idempotency_key": "test",
-            },
-        )
+        organization = self.create_organization(name="test name")
+        organization_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+        organization_mapping.name = "test name"
+        organization_mapping.region_name = "na"
+        organization_mapping.idempotency_key = "test"
+        organization_mapping.save()
+
         region_config = [
             {
                 "name": "na",

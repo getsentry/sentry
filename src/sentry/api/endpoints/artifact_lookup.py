@@ -134,14 +134,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         used_artifact_bundles = dict()
         bundle_file_ids = set()
 
-        def update_bundles(inner_bundles: Set[Tuple[int, datetime]]):
+        def update_bundles(inner_bundles: Set[Tuple[int, datetime]], resolved: str):
             for (bundle_id, date_added, file_id) in inner_bundles:
                 used_artifact_bundles[bundle_id] = date_added
-                bundle_file_ids.add((f"artifact_bundle/{bundle_id}", file_id))
+                bundle_file_ids.add((f"artifact_bundle/{bundle_id}", file_id, resolved))
 
         if debug_id:
             bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
-            update_bundles(bundles)
+            update_bundles(bundles, "debug-id")
 
         individual_files = set()
         if url and release_name and not bundle_file_ids:
@@ -151,12 +151,12 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             # do *not* contain the file, rather than opening up each bundle. We want to
             # avoid opening up bundles at all cost.
             bundles = get_release_artifacts(project, release_name, dist_name)
-            update_bundles(bundles)
+            update_bundles(bundles, "release")
 
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
                 for (releasefile_id, file_id) in get_legacy_release_bundles(release, dist):
-                    bundle_file_ids.add((f"release_file/{releasefile_id}", file_id))
+                    bundle_file_ids.add((f"release_file/{releasefile_id}", file_id, "release-old"))
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
         if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
@@ -188,12 +188,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             return download_id if should_use_new_id else str(file_id)
 
         found_artifacts = []
-        for (download_id, file_id) in bundle_file_ids:
+        for (download_id, file_id, resolved_with) in bundle_file_ids:
             found_artifacts.append(
                 {
                     "id": pick_id_to_return(download_id, file_id),
                     "type": "bundle",
                     "url": url_constructor.url_for_file_id(download_id),
+                    "resolved_with": resolved_with,
                 }
             )
 
@@ -210,6 +211,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                     "abs_path": release_file.name,
                     # These headers should ideally include the `Sourcemap` reference
                     "headers": release_file.file.headers,
+                    "resolved_with": "release-old",
                 }
             )
 
@@ -239,7 +241,6 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the
         # database.
         if date_added <= threshold_date:
-            metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
             # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
             with atomic_transaction(
                 using=(
@@ -265,6 +266,10 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
                     DebugIdArtifactBundle.objects.filter(
                         artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
                     ).update(date_added=now)
+
+            # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+            if updated_rows_count > 0:
+                metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
 
 
 def get_artifact_bundles_containing_debug_id(

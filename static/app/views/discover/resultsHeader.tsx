@@ -7,6 +7,7 @@ import {stringify} from 'query-string';
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -157,12 +158,14 @@ class ResultsHeader extends Component<Props, State> {
             </GuideAnchor>
           ) : (
             <Fragment>
-              <DiscoverBreadcrumb
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                isHomepage={isHomepage}
-              />
+              <Feature features={['organizations:discover-query']}>
+                <DiscoverBreadcrumb
+                  eventView={eventView}
+                  organization={organization}
+                  location={location}
+                  isHomepage={isHomepage}
+                />
+              </Feature>
               <EventInputName
                 savedQuery={savedQuery}
                 organization={organization}

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class CommitManager(BaseManager):
-    def get_for_release(self, release: Release) -> QuerySet[Commit]:
+    def get_for_release(self, release: Release) -> QuerySet[Commit]:  # pyright: ignore
         return (
             self.filter(releasecommit__release=release)
             .order_by("-releasecommit__order")

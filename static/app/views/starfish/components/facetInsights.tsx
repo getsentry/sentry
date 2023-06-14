@@ -17,11 +17,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TAG_EXPLORER_COLUMN_ORDER} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
+import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Sparkline from 'sentry/views/starfish/components/sparkline';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   eventView: EventView;
@@ -35,7 +37,10 @@ type DataRow = {
   tpmCorrelation: string;
 };
 
-const COLUMN_ORDER = [
+type Keys = 'tagKey' | 'tagValue' | 'p95' | 'throughput' | 'tpmCorrelation';
+type TableColumnHeader = GridColumnHeader<Keys>;
+
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'tagKey',
     name: 'Key',
@@ -47,8 +52,8 @@ const COLUMN_ORDER = [
     width: 200,
   },
   {
-    key: 'p50',
-    name: 'p50(duration)',
+    key: 'p95',
+    name: DataTitles.p95,
     width: 200,
   },
   {
@@ -84,11 +89,11 @@ export function FacetInsights({eventView}: Props) {
     },
   ]);
 
-  function renderBodyCell(column: GridColumnHeader, row: DataRow): React.ReactNode {
-    if (column.key === 'throughput' || column.key === 'p50') {
+  function renderBodyCell(column: TableColumnHeader, row: DataRow): React.ReactNode {
+    if (column.key === 'throughput' || column.key === 'p95') {
       return (
         <Sparkline
-          color={column.key === 'throughput' ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1]}
+          color={column.key === 'throughput' ? CHART_PALETTE[3][0] : P95_COLOR}
           series={row[column.key]}
           width={column.width ? column.width - column.width / 5 : undefined}
         />
@@ -177,7 +182,7 @@ export function FacetInsights({eventView}: Props) {
         columnSortBy={[]}
         location={location}
         grid={{
-          renderBodyCell: (column: GridColumnHeader, row: DataRow) =>
+          renderBodyCell: (column: TableColumnHeader, row: DataRow) =>
             renderBodyCell(column, row),
         }}
       />

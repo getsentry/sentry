@@ -44,7 +44,7 @@ class ProjectTest(APITestCase, TestCase):
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
         project = self.create_project(teams=[team])
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
         assert list(project.member_set.all()) == [member]
@@ -54,7 +54,7 @@ class ProjectTest(APITestCase, TestCase):
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
         project = self.create_project(teams=[team])
-        OrganizationMember.objects.get(user=user, organization=org)
+        OrganizationMember.objects.get(user_id=user.id, organization=org)
 
         assert list(project.member_set.all()) == []
 

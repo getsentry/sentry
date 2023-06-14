@@ -1,5 +1,6 @@
 import {Moment, unix} from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {EventTransaction, NewQuery} from 'sentry/types';
 import {
   DiscoverQueryComponentProps,
@@ -13,17 +14,27 @@ import {DefinedUseQueryResult, useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {TransactionListDataRow} from 'sentry/views/starfish/modules/databaseModule/panel';
+import {DataRow} from 'sentry/views/starfish/components/databaseTableView';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
 } from 'sentry/views/starfish/utils/dates';
+import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {
   UseSpansQueryReturnType,
   useWrappedDiscoverTimeseriesQuery,
 } from 'sentry/views/starfish/utils/useSpansQuery';
+
+export type TransactionListDataRow = {
+  count: number;
+  example: string;
+  frequency: number;
+  group_id: string;
+  p75: number;
+  transaction: string;
+  uniqueEvents: number;
+};
 
 export const DEFAULT_WHERE = `
   startsWith(span_operation, 'db') and
@@ -177,8 +188,7 @@ type TopTransactionData = {
 };
 
 export const useGetTransactionsForTables = (
-  tableNames: string[],
-  interval: number
+  tableNames: string[]
 ): DefinedUseQueryResult<TopTransactionData[]> => {
   const pageFilter = usePageFilters();
   const location = useLocation();
@@ -209,7 +219,7 @@ export const useGetTransactionsForTables = (
     start: start?.toString(),
     end: end?.toString(),
     dataset: DiscoverDatasets.METRICS_ENHANCED,
-    interval: `${interval}h`,
+    interval: getInterval(pageFilter.selection.datetime, 'low'),
     yAxis: ['epm()', 'p75(transaction.duration)'],
   };
 
@@ -222,7 +232,7 @@ export const useGetTransactionsForTables = (
     location,
     orgSlug: 'sentry',
     queryExtras: {
-      interval: `${interval}h`, // This interval isn't being propogated from eventView
+      interval: getInterval(pageFilter.selection.datetime, 'low'), // This interval isn't being propogated from eventView
       yAxis: ['epm()', 'p75(transaction.duration)'], // workaround - eventView actually doesn't support multiple yAxis
       excludeOther: '1',
       topEvents: '5',
@@ -595,8 +605,7 @@ type QueryTransactionByTPMAndP75ReturnType = {
   transaction: string;
 }[];
 export const useQueryTransactionByTPMAndDuration = (
-  transactionNames: string[],
-  interval: number
+  transactionNames: string[]
 ): UseSpansQueryReturnType<QueryTransactionByTPMAndP75ReturnType> => {
   const {
     selection: {datetime},
@@ -619,7 +628,7 @@ export const useQueryTransactionByTPMAndDuration = (
       end: datetime.end as string,
       range: datetime.period as string,
       dataset: DiscoverDatasets.METRICS,
-      interval: `${interval}h`,
+      interval: getInterval(datetime, 'low'),
       projects: [1],
       version: 2,
     }),
@@ -669,17 +678,6 @@ const getOrderByFromKey = (
   }
   sortDirection ??= '';
   return `${sortKey} ${sortDirection}`;
-};
-
-export const getDateQueryFilter = (startTime: Moment, endTime: Moment) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps({
-    start: startTime.format('YYYY-MM-DD HH:mm:ss'),
-    end: endTime.format('YYYY-MM-DD HH:mm:ss'),
-  });
-  return `
-  ${start_timestamp ? `AND greaterOrEquals(start_timestamp, '${start_timestamp}')` : ''}
-  ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-  `;
 };
 
 const shouldRefetchData = (

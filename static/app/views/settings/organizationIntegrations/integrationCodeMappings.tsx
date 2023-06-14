@@ -94,6 +94,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.props.setEventNames(
       'integrations.code_mappings_viewed',
       'Integrations: Code Mappings Viewed'

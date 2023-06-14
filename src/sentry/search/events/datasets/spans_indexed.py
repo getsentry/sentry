@@ -6,6 +6,7 @@ from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder
+from sentry.search.events.constants import SPAN_FUNCTION_ALIASES
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnTagArg,
@@ -144,6 +145,11 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 ),
             ]
         }
+
+        for alias, name in SPAN_FUNCTION_ALIASES.items():
+            if name in function_converter:
+                function_converter[alias] = function_converter[name].alias_as(alias)
+
         return function_converter
 
     @property

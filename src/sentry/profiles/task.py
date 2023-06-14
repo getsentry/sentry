@@ -9,7 +9,7 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 from pytz import UTC
-from symbolic import ProguardMapper  # type: ignore
+from symbolic import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -23,6 +23,7 @@ from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.sdk import set_measurement
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
@@ -32,7 +33,7 @@ class VroomTimeout(Exception):
     pass
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.profiles.task.process_profile",
     queue="profiles.process",
     autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
@@ -92,6 +93,11 @@ def process_profile_task(
     sentry_sdk.set_tag("platform", profile["platform"])
     sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
+    if "version" in profile:
+        set_measurement("profile.samples", len(profile["profile"]["samples"]))
+        set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
+        set_measurement("profile.frames", len(profile["profile"]["frames"]))
+
     if not _symbolicate_profile(profile, project):
         return
 
@@ -100,6 +106,11 @@ def process_profile_task(
 
     if not _normalize_profile(profile, organization, project):
         return
+
+    if "version" in profile:
+        set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if not _push_profile_to_vroom(profile, project):
         return
@@ -432,7 +443,7 @@ def _process_symbolicator_results_for_sample(
             stack: List[Any],
         ) -> List[Any]:
             # remove bottom frames we can't symbolicate
-            if frames[-1].get("instruction_addr", "") == "0xffffffffc":
+            if frames[stack[-1]].get("instruction_addr", "") == "0xffffffffc":
                 return stack[:-2]
             return stack
 
@@ -470,8 +481,8 @@ def _process_symbolicator_results_for_sample(
 
         new_frames_count = (
             len(raw_frames)
-            - len(symbolicated_frames_dict)
             + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            - len(symbolicated_frames_dict)
         )
 
         assert len(new_frames) == new_frames_count

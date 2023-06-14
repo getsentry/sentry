@@ -151,6 +151,21 @@ describe('Performance > Table', function () {
         user_misery: 0.114,
         project_threshold_config: ['duration', 300],
       },
+      {
+        team_key_transaction: 0,
+        transaction: '<< unparameterized >>',
+        project: '3',
+        user: 'uhoh@example.com',
+        tpm: 1,
+        p50: 100,
+        p95: 500,
+        failure_rate: 0.1,
+        apdex: 0.6,
+        count_unique_user: 500,
+        count_miserable_user: 31,
+        user_misery: 0.514,
+        project_threshold_config: ['duration', 300],
+      },
     ];
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -199,22 +214,26 @@ describe('Performance > Table', function () {
       );
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
-      expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
-      await userEvent.hover(cellActionContainers[8]);
-      const cellActions = await screen.findByTestId('cell-action');
-      expect(cellActions).toBeInTheDocument();
-      await userEvent.click(cellActions);
+      expect(cellActionContainers).toHaveLength(27); // 9 cols x 3 rows
+      const cellActionTriggers = screen.getAllByRole('button', {name: 'Actions'});
+      expect(cellActionTriggers[8]).toBeInTheDocument();
+      await userEvent.click(cellActionTriggers[8]);
 
-      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
-      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
 
-      await userEvent.hover(cellActionContainers[0]); // Transaction name
-      const transactionCellActions = await screen.findAllByTestId('cell-action');
-      expect(transactionCellActions[0]).toBeInTheDocument();
-      await userEvent.click(transactionCellActions[0]);
+      await userEvent.keyboard('{Escape}'); // Close actions menu
+
+      const transactionCellTrigger = cellActionTriggers[0]; // Transaction name
+      expect(transactionCellTrigger).toBeInTheDocument();
+      await userEvent.click(transactionCellTrigger);
 
       expect(browserHistory.push).toHaveBeenCalledTimes(0);
-      await userEvent.click(screen.getByTestId('add-to-filter'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
@@ -243,6 +262,65 @@ describe('Performance > Table', function () {
 
       const cellActionContainers = screen.queryByTestId('cell-action-container');
       expect(cellActionContainers).not.toBeInTheDocument();
+    });
+
+    it('shows unparameterized tooltip when project only recently sent events', async function () {
+      const projects = [
+        TestStubs.Project({id: '1', slug: '1'}),
+        TestStubs.Project({id: '2', slug: '2'}),
+        TestStubs.Project({id: '3', slug: '3', firstEvent: new Date().toISOString()}),
+      ];
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+        projects,
+      });
+
+      ProjectsStore.loadInitialData(data.organization.projects);
+
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />
+      );
+
+      const indicatorContainer = await screen.findByTestId('unparameterized-indicator');
+      expect(indicatorContainer).toBeInTheDocument();
+    });
+
+    it('does not show unparameterized tooltip when project only recently sent events', async function () {
+      const projects = [
+        TestStubs.Project({id: '1', slug: '1'}),
+        TestStubs.Project({id: '2', slug: '2'}),
+        TestStubs.Project({
+          id: '3',
+          slug: '3',
+          firstEvent: new Date(+new Date() - 25920e5).toISOString(),
+        }),
+      ];
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+        projects,
+      });
+
+      ProjectsStore.loadInitialData(data.organization.projects);
+
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />
+      );
+
+      await screen.findByTestId('grid-editable');
+      const indicatorContainer = screen.queryByTestId('unparameterized-indicator');
+      expect(indicatorContainer).not.toBeInTheDocument();
     });
 
     it('sends MEP param when setting enabled', function () {

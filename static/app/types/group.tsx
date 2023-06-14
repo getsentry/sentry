@@ -6,7 +6,6 @@ import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
 import type {Project} from './project';
-import type {Release} from './release';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -37,9 +36,9 @@ export type SavedSearch = {
 };
 
 export enum SavedSearchVisibility {
-  Organization = 'organization',
-  Owner = 'owner',
-  OwnerPinned = 'owner_pinned',
+  ORGANIZATION = 'organization',
+  OWNER = 'owner',
+  OWNER_PINNED = 'owner_pinned',
 }
 
 export enum SavedSearchType {
@@ -262,6 +261,7 @@ export enum GroupActivityType {
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
+  SET_ESCALATING = 'set_escalating',
 }
 
 interface GroupActivityBase {
@@ -408,6 +408,13 @@ interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
+interface GroupActivitySetEscalating extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_ESCALATING;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -454,7 +461,8 @@ export type GroupActivity =
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
   | GroupActivityCreateIssue
-  | GroupActivityAutoSetOngoing;
+  | GroupActivityAutoSetOngoing
+  | GroupActivitySetEscalating;
 
 export type Activity = GroupActivity;
 
@@ -522,13 +530,8 @@ export type GroupStatusResolution = {
   substatus?: GroupSubstatus;
 };
 
-export type GroupRelease = {
-  firstRelease: Release;
-  lastRelease: Release;
-};
-
 // TODO(ts): incomplete
-export interface BaseGroup extends GroupRelease {
+export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
   assignedTo: Actor;
@@ -583,9 +586,6 @@ export interface GroupResolution
     GroupStatusResolution {}
 
 export type Group = GroupResolution | GroupReprocessing;
-export interface GroupCollapseRelease
-  extends Omit<Group, keyof GroupRelease>,
-    Partial<GroupRelease> {}
 
 export interface GroupTombstone {
   actor: AvatarUser;

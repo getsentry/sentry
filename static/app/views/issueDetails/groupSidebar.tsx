@@ -22,14 +22,7 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {
-  AvatarUser,
-  CurrentRelease,
-  Environment,
-  Group,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {AvatarUser, CurrentRelease, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -38,9 +31,10 @@ import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
 
 type Props = {
-  environments: Environment[];
+  environments: string[];
   group: Group;
   organization: Organization;
   project: Project;
@@ -49,15 +43,7 @@ type Props = {
 
 function useFetchAllEnvsGroupData(group: Group) {
   return useApiQuery<Group>(
-    [
-      `/issues/${group.id}/`,
-      {
-        query: {
-          expand: ['inbox', 'owners'],
-          collapse: ['release', 'tags'],
-        },
-      },
-    ],
+    [`/issues/${group.id}/`, {query: getGroupDetailsQueryData()}],
     {
       staleTime: 30000,
       cacheTime: 30000,

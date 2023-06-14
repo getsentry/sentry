@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Any, List, Sequence
+from typing import List
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -38,22 +38,6 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 
 class UserManager(BaseManager, DjangoUserManager):
-    def get_team_members_with_verified_email_for_projects(
-        self, projects: Sequence[Any]
-    ) -> QuerySet:
-        from sentry.models import ProjectTeam, Team
-
-        # TODO(hybridcloud) This is doing cross silo joins
-        return self.filter(
-            emails__is_verified=True,
-            sentry_orgmember_set__teams__in=Team.objects.filter(
-                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
-                    "team_id", flat=True
-                )
-            ),
-            is_active=True,
-        ).distinct()
-
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet:
@@ -185,14 +169,24 @@ class User(BaseModel, AbstractBaseUser):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
-            for outbox in User.outboxes_for_update(self.id):
+            for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete()
 
+    def update(self, *args, **kwds):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return super().update(*args, **kwds)
+
     def save(self, *args, **kwargs):
-        if not self.username:
-            self.username = self.email
-        return super().save(*args, **kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            if not self.username:
+                self.username = self.email
+            result = super().save(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
 
     def has_perm(self, perm_name):
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
@@ -278,8 +272,11 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
+    def outboxes_for_update(self) -> List[ControlOutbox]:
+        return User.outboxes_for_user_update(self.id)
+
     @staticmethod
-    def outboxes_for_update(identifier: int) -> List[ControlOutbox]:
+    def outboxes_for_user_update(identifier: int) -> List[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.USER_SCOPE,
@@ -384,7 +381,7 @@ class User(BaseModel, AbstractBaseUser):
         return Organization.objects.filter(
             flags=models.F("flags").bitor(Organization.flags.require_2fa),
             status=OrganizationStatus.ACTIVE,
-            member_set__user=self,
+            member_set__user_id=self.id,
         )
 
     def clear_lost_passwords(self):

@@ -10,10 +10,13 @@ export enum ItemType {
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
+  INVALID_QUERY_WITH_WILDCARD = 'invalid-tag-with-wildcard',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
   LINK = 'link',
 }
+
+export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
 
 export type SearchGroup = {
   children: SearchItem[];
@@ -60,10 +63,10 @@ export type Tag = {
 };
 
 export enum ShortcutType {
-  Delete = 'delete',
-  Negate = 'negate',
-  Next = 'next',
-  Previous = 'previous',
+  DELETE = 'delete',
+  NEGATE = 'negate',
+  NEXT = 'next',
+  PREVIOUS = 'previous',
 }
 
 export type Shortcut = {
