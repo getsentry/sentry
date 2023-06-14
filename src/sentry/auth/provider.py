@@ -31,6 +31,8 @@ class Provider(PipelineProvider, abc.ABC):
     including its configuration and basic identity management.
     """
 
+    is_partner = False
+
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
 
