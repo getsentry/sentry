@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0484_break_org_member_user_fk"),
+        ("sentry", "0486_integer_pr_comment_issue_list"),
     ]
 
     operations = [
