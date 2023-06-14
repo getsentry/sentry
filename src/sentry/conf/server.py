@@ -16,6 +16,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    List,
     Mapping,
     Optional,
     Tuple,
@@ -1638,8 +1639,11 @@ SENTRY_FRONTEND_DSN = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
-# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+# Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
+
+# Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
+SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS = None
 
 # ----
 # APM config
@@ -3438,14 +3442,19 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
 SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 
-# The Redis cluster to use for monitoring the health of
-# Celery queues.
-SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
-
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
+
+# The Redis cluster to use for monitoring the health of
+# Celery queues.
+SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
+
+# The RabbitMQ hosts whose health should be monitored by the backpressure system.
+# This should be a list of dictionaries with keys "url" and "vhost".
+# E.g. for local testing: [{"url": "https://guest:guest@localhost:15672", "vhost": "%2F"}]
+SENTRY_QUEUE_MONITORING_RABBITMQ_HOSTS: List[Dict[str, str]] = []
 
 # This is a mapping between the various processing stores,
 # and the redis `cluster` they are using.
