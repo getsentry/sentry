@@ -98,4 +98,5 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 relay_usage.public_key = public_key
                 relay_usage.save()
 
+        assert relay is not None
         return Response(serialize({"relay_id": relay.relay_id}))

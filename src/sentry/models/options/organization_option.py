@@ -49,7 +49,7 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         self.reload_cache(organization.id, "organizationoption.set_value")
         return bool(created) or inst > 0
 
-    def get_all_values(self, organization: Organization) -> Mapping[str, Value]:
+    def get_all_values(self, organization: Organization | int) -> Mapping[str, Value]:
         if isinstance(organization, models.Model):
             organization_id = organization.id
         else:

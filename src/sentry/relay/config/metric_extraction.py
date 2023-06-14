@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List, Literal, Sequence, Tuple, TypedDict, Union
+from typing import Any, List, Literal, Sequence, Tuple, TypedDict, Union, cast
 
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.models import (
@@ -52,7 +52,7 @@ _HISTOGRAM_OUTLIERS_TARGET_METRICS = {
 
 @dataclass
 class _DefaultThreshold:
-    metric: TransactionMetric
+    metric: int
     threshold: int
 
 
@@ -68,11 +68,19 @@ def get_metric_conditional_tagging_rules(
     rules: List[MetricConditionalTaggingRule] = []
 
     # transaction-specific overrides must precede the project-wide threshold in the list of rules.
-    for threshold in project.projecttransactionthresholdoverride_set.all().order_by("transaction"):
+    for threshold_override in project.projecttransactionthresholdoverride_set.all().order_by(
+        "transaction"
+    ):
         rules.extend(
             _threshold_to_rules(
-                threshold,
-                [{"op": "eq", "name": "event.transaction", "value": threshold.transaction}],
+                threshold_override,
+                [
+                    {
+                        "op": "eq",
+                        "name": "event.transaction",
+                        "value": threshold_override.transaction,
+                    }
+                ],
             )
         )
 
@@ -102,10 +110,10 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
                     # The frustration threshold is always four times the threshold
                     # (see https://docs.sentry.io/product/performance/metrics/#apdex)
-                    "value": threshold.threshold * 4,
+                    "value": cast(int, threshold.threshold) * 4,
                 },
                 *extra_conditions,
             ],
@@ -120,7 +128,7 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
                     "value": threshold.threshold,
                 },
                 *extra_conditions,

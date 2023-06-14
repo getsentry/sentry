@@ -279,7 +279,7 @@ def test_untrusted_external_relays_should_not_receive_configs(
 @pytest.fixture
 def projectconfig_cache_set(monkeypatch):
     calls = []
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.set_many", calls.append)
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
     return calls
 
 

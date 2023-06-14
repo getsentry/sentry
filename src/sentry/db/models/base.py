@@ -202,7 +202,7 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
+    def __call__(self, model_class: Type[ModelClass]) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, models.Model)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
 
