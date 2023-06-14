@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Mapping, Set
+from typing import Any, Dict, Mapping, Set
 
 import pytz
 import sentry_sdk
@@ -154,7 +154,7 @@ class CheckAM2CompatibilityMixin:
     def format_results(
         cls, organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
     ):
-        results = {}
+        results: Dict[str, Any] = {}
 
         widgets = []
         for dashboard_id, widget_ids in unsupported_widgets.items():
