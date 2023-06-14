@@ -360,13 +360,8 @@ class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
             # to collect all possible issues.
             errors: List[str] = []
             results = self.run_compatibility_check(org_id, errors)
-            if errors:
-                return Response(
-                    {"errors": errors},
-                    status=500,
-                )
 
-            return Response(results, status=200)
+            return Response({"results": results, "errors": errors}, status=200)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
