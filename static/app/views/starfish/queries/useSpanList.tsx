@@ -39,7 +39,8 @@ export const useSpanList = (
   spanCategory?: string,
   orderBy?: string,
   limit?: number,
-  referrer = 'use-span-list'
+  referrer = 'use-span-list',
+  cursor?: string
 ) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
@@ -71,6 +72,7 @@ export const useSpanList = (
     enabled: Boolean(query),
     limit,
     referrer,
+    cursor,
   });
 
   return {isLoading, data, pageLinks};
