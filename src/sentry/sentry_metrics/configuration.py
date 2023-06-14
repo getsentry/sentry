@@ -8,7 +8,6 @@ from enum import Enum
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
-from arroyo import configure_metrics
 
 
 class UseCaseKey(Enum):
@@ -145,13 +144,8 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
 
-    from sentry.utils.metrics import add_global_tags, backend
+    from sentry.utils.metrics import add_global_tags
 
     global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
 
     add_global_tags(_all_threads=True, **global_tag_map)
-
-    from sentry.utils.arroyo import MetricsWrapper
-
-    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
