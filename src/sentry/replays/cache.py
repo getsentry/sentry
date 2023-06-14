@@ -1,4 +1,6 @@
 """Recording segment part cache manager."""
+from __future__ import annotations
+
 from typing import Any, Dict, Generator
 
 from django.conf import settings
@@ -21,7 +23,10 @@ class RecordingSegmentCache:
         if result is None:
             raise ValueError(f"Missing data for chunk with id {self.__key(index)}.")
         else:
-            return result
+            if type(result) is str:
+                return result.encode("utf-8")
+            else:
+                return result
 
     @metrics.wraps("replays.cache.set_recording_segment")
     def __setitem__(self, index: int, value: bytes) -> None:
@@ -45,7 +50,7 @@ class RecordingSegmentParts:
         """Iterate over each recording segment part."""
         part = RecordingSegmentCache(self.prefix)
         for i in range(self.num_parts):
-            yield part[i].encode("utf-8") if type(part[i]) is str else part[i]
+            yield part[i]
 
     def drop(self):
         """Delete all the parts associated with the recording segment."""
