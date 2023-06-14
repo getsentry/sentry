@@ -12,16 +12,14 @@ export const useIndexedSpan = (
 ) => {
   const location = useLocation();
 
-  const query = getQuery(groupId);
   const eventView = getEventView(groupId, location);
 
   // TODO: Add referrer
   const {isLoading, data} = useSpansQuery<IndexedSpan[]>({
     eventView,
     limit: 1,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query),
+    enabled: Boolean(eventView),
   });
 
   return {
@@ -29,22 +27,6 @@ export const useIndexedSpan = (
     data: data[0],
   };
 };
-
-function getQuery(groupId: string) {
-  return `
-    SELECT
-    span_id as "id",
-    group_id as "group",
-    action,
-    description,
-    span_operation as "op",
-    domain,
-    module
-    FROM spans_experimental_starfish
-    WHERE group_id = '${groupId}'
-    LIMIT 1
-  `;
-}
 
 function getEventView(groupId: string, location: Location) {
   const cleanGroupID = groupId.replaceAll('-', '').slice(-16);

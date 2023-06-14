@@ -28,14 +28,12 @@ export function DomainSelector({
   const {selection} = usePageFilters();
 
   const location = useLocation();
-  const query = getQuery(moduleName);
   const eventView = getEventView(moduleName, selection, spanCategory);
 
   const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query),
+    enabled: Boolean(eventView),
   });
 
   const options = [
@@ -72,18 +70,6 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   none: t('Domain'),
   '': t('Domain'),
 };
-
-function getQuery(moduleName?: string) {
-  return `SELECT domain as "span.domain", count()
-    FROM spans_experimental_starfish
-    WHERE 1 = 1
-    ${moduleName ? `AND module = '${moduleName}'` : ''}
-    AND domain != ''
-    GROUP BY domain
-    ORDER BY count() DESC
-    LIMIT 25
-  `;
-}
 
 function getEventView(
   moduleName: string,

@@ -10,7 +10,6 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions';
 
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -26,22 +25,18 @@ export function useSpansQuery<T = any[]>({
   queryString,
   initialData,
   limit,
-  forceUseDiscover,
   enabled,
   referrer = 'use-spans-query',
 }: {
   enabled?: boolean;
   eventView?: EventView;
-  forceUseDiscover?: boolean;
   initialData?: any;
   limit?: number;
   queryString?: string;
   referrer?: string;
 }): UseSpansQueryReturnType<T> {
-  const {options} = useStarfishOptions();
-  const {useDiscover} = options;
   const queryFunction = getQueryFunction({
-    useDiscover: forceUseDiscover ?? useDiscover,
+    useDiscover: true,
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
