@@ -57,7 +57,6 @@ export type TeamInsightsEventParameters = {
   'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': {};
   'alert_wizard.option_selected': {alert_type: string};
-  'alert_wizard.option_viewed': {alert_type: string};
   'edit_alert_rule.add_row': {
     name: string;
     project_id: string;
@@ -137,7 +136,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_rules.viewed': 'Alert Rules: Viewed',
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
-  'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
