@@ -24,7 +24,7 @@ from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_prioritise_by_project_cache_key,
+    generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     get_sliding_window_org_sample_rate,
@@ -228,12 +228,12 @@ def adjust_sample_rates_of_projects(
     if organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
         log_sample_rate_source(
-            org_id, None, "prioritise_by_project", "sliding_window_org", sample_rate
+            org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
     else:
         sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
         log_sample_rate_source(
-            org_id, None, "prioritise_by_project", "blended_sample_rate", sample_rate
+            org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
@@ -278,7 +278,7 @@ def adjust_sample_rates_of_projects(
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
         for rebalanced_project in rebalanced_projects:
-            cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
+            cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
             old_sample_rate = sample_rate_to_float(
                 redis_client.hget(cache_key, rebalanced_project.id)

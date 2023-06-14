@@ -11,7 +11,7 @@ from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_f
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_prioritise_by_project_cache_key,
+    generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
@@ -104,7 +104,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     @staticmethod
     def add_sample_rate_per_project(org_id: int, project_id: int, sample_rate: float):
         redis_client = get_redis_client_for_ds()
-        redis_client.hset(generate_prioritise_by_project_cache_key(org_id), project_id, sample_rate)
+        redis_client.hset(
+            generate_boost_low_volume_projects_cache_key(org_id), project_id, sample_rate
+        )
 
     @staticmethod
     def sampling_tier_side_effect(*args, **kwargs):
@@ -409,7 +411,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
     @staticmethod
     def set_boost_low_volume_projects_cache_entry(org_id: int, project_id: int, value: str):
         redis = get_redis_client_for_ds()
-        cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
+        cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
         redis.hset(cache_key, project_id, value)
 
     def set_sliding_window_sample_rate(self, org_id: int, project_id: int, sample_rate: float):
@@ -419,7 +421,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         # We want also to test for this case in order to verify the fallback to the `get_blended_sample_rate`.
         self.set_sliding_window_cache_entry(org_id, project_id, SLIDING_WINDOW_CALCULATION_ERROR)
 
-    def set_prioritise_by_project_sample_rate(
+    def set_boost_low_volume_projects_sample_rate(
         self, org_id: int, project_id: int, sample_rate: float
     ):
         self.set_boost_low_volume_projects_cache_entry(org_id, project_id, str(sample_rate))
@@ -446,14 +448,14 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             )
         )
 
-    def set_prioritise_by_project_invalid_for_all(self):
+    def set_boost_low_volume_projects_invalid_for_all(self):
         self.for_all_orgs_and_projects(
             lambda org_id, project_id: self.set_prioritise_by_project_invalid(org_id, project_id)
         )
 
-    def set_prioritise_by_project_sample_rate_for_all(self, sample_rate: float):
+    def set_boost_low_volume_projects_for_all(self, sample_rate: float):
         self.for_all_orgs_and_projects(
-            lambda org_id, project_id: self.set_prioritise_by_project_sample_rate(
+            lambda org_id, project_id: self.set_boost_low_volume_projects_sample_rate(
                 org_id, project_id, sample_rate
             )
         )
@@ -543,10 +545,10 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                 mark_sliding_window_org_executed()
             # Invalid value in cache.
             elif sliding_window_step == 2:
-                self.set_prioritise_by_project_invalid_for_all()
+                self.set_boost_low_volume_projects_invalid_for_all()
             # Value in cache.
             elif sliding_window_step == 3:
-                self.set_prioritise_by_project_sample_rate_for_all(used_sample_rate)
+                self.set_boost_low_volume_projects_for_all(used_sample_rate)
 
             with self.options(
                 {

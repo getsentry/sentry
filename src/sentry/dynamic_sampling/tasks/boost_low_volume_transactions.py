@@ -27,7 +27,7 @@ from sentry.dynamic_sampling.rules.base import (
     is_sliding_window_org_enabled,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    get_prioritise_by_project_sample_rate,
+    get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     set_transactions_resampling_rates,
@@ -151,18 +151,22 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
         log_sample_rate_source(
-            org_id, project_id, "prioritise_by_transaction", "sliding_window", sample_rate
+            org_id, project_id, "boost_low_volume_transactions", "sliding_window", sample_rate
         )
     elif organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_prioritise_by_project_sample_rate(
+        sample_rate = get_boost_low_volume_projects_sample_rate(
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
         log_sample_rate_source(
-            org_id, project_id, "prioritise_by_transaction", "prioritise_by_project", sample_rate
+            org_id,
+            project_id,
+            "boost_low_volume_transactions",
+            "boost_low_volume_projects",
+            sample_rate,
         )
     else:
         log_sample_rate_source(
-            org_id, project_id, "prioritise_by_transaction", "blended_sample_rate", sample_rate
+            org_id, project_id, "boost_low_volume_transactions", "blended_sample_rate", sample_rate
         )
 
     if sample_rate is None or sample_rate == 1.0:

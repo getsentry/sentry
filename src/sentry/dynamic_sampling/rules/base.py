@@ -10,7 +10,7 @@ from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    get_prioritise_by_project_sample_rate,
+    get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.rules.logging import log_rules
@@ -91,7 +91,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     else:
         # In case we use the prioritise by project, we want to fall back to the original sample rate in case there are
         # any issues.
-        sample_rate = get_prioritise_by_project_sample_rate(
+        sample_rate = get_boost_low_volume_projects_sample_rate(
             org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
         )
 
