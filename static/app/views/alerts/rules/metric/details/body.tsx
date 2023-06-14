@@ -16,6 +16,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -44,6 +45,22 @@ type Props = {
   rule?: MetricRule;
   selectedIncident?: Incident | null;
 } & RouteComponentProps<{}, {}>;
+
+function getRuleActionCategory(rule: MetricRule) {
+  const actions = rule.triggers.map(trigger => trigger.actions).flat();
+  const numDefaultActions = actions.filter(action => action.type === 'email').length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case actions.length:
+      return RuleActionsCategories.ALL_DEFAULT;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NO_DEFAULT;
+    default:
+      return RuleActionsCategories.SOME_DEFAULT;
+  }
+}
 
 export default class DetailsBody extends Component<Props> {
   getTimeWindow(): React.ReactNode {
@@ -158,6 +175,9 @@ export default class DetailsBody extends Component<Props> {
       ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
     };
 
+    const isSnoozed = rule.snooze;
+    const ruleActionCategory = getRuleActionCategory(rule);
+
     return (
       <Fragment>
         {selectedIncident &&
@@ -172,6 +192,22 @@ export default class DetailsBody extends Component<Props> {
           )}
         <Layout.Body>
           <Layout.Main>
+            {isSnoozed && (
+              <Alert showIcon>
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            )}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={timePeriod.period ?? ''}
