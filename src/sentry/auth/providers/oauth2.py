@@ -125,6 +125,7 @@ class OAuth2Callback(AuthView):
 class OAuth2Provider(Provider, abc.ABC):
     client_id = None
     client_secret = None
+    is_partner = False
 
     def get_client_id(self):
         return self.client_id

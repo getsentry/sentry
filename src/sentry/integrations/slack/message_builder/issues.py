@@ -271,7 +271,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         """
         Returns True if we need to escape the text in the message.
         """
-        return features.has("organizations:slack-escape-messages", self.group.project.organization)
+        return True
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
