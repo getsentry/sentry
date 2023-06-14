@@ -265,6 +265,12 @@ describe('filterKeysFromQuery', () => {
     ).toMatchObject([FieldKey.DEVICE_ARCH, FieldKey.DEVICE_CHARGING]);
   });
 
+  it('filters via lowercase key', () => {
+    expect(
+      filterKeysFromQuery([FieldKey.FIRST_SEEN, FieldKey.LAST_SEEN], 'firstseen')
+    ).toMatchObject([FieldKey.FIRST_SEEN]);
+  });
+
   it('filters via keywords', () => {
     expect(
       filterKeysFromQuery(
