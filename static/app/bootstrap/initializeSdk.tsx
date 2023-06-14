@@ -11,6 +11,7 @@ import {Config} from 'sentry/types';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {HTTPTimingIntegration} from 'sentry/utils/performanceForSentry/integrations';
+import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -172,6 +173,38 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return event;
     },
   });
+
+  // Event processor to fill the debug_meta field with debug IDs based on the
+  // files the error touched. (files inside the stacktrace)
+  const debugIdPolyfillEventProcessor = async (event: Event, hint: Sentry.EventHint) => {
+    if (!(hint.originalException instanceof Error)) {
+      return event;
+    }
+
+    try {
+      const debugIdMap = await getErrorDebugIds(hint.originalException);
+
+      // Fill debug_meta information
+      event.debug_meta = {};
+      event.debug_meta.images = [];
+      const images = event.debug_meta.images;
+      Object.keys(debugIdMap).forEach(filename => {
+        images.push({
+          type: 'sourcemap',
+          code_file: filename,
+          debug_id: debugIdMap[filename],
+        });
+      });
+    } catch (e) {
+      event.extra = event.extra || {};
+      event.extra.debug_id_fetch_error = String(e);
+    }
+
+    return event;
+  };
+  debugIdPolyfillEventProcessor.id = 'debugIdPolyfillEventProcessor';
+
+  Sentry.addGlobalEventProcessor(debugIdPolyfillEventProcessor);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
