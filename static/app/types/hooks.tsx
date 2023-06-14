@@ -94,6 +94,7 @@ type ReplayGracePeriodAlertProps = {organization: Organization};
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+type ProductUnavailableCTAProps = {organization: Organization};
 
 type ProfilingBetaAlertBannerProps = {
   organization: Organization;
@@ -166,6 +167,7 @@ export type ComponentHooks = {
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
