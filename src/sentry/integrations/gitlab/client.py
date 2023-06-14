@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from urllib.parse import quote
 
 from django.urls import reverse
@@ -10,9 +10,12 @@ from sentry.models import Repository
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.silo.base import SiloMode
 from sentry.utils.http import absolute_uri
 
 API_VERSION = "/api/v4"
+if TYPE_CHECKING:
+    from sentry.integrations.gitlab.integration import GitlabIntegration
 
 
 class GitLabApiClientPath:
@@ -81,7 +84,7 @@ class GitlabProxySetupClient(IntegrationProxyClient):
 class GitLabProxyApiClient(IntegrationProxyClient):
     integration_name = "gitlab"
 
-    def __init__(self, installation):
+    def __init__(self, installation: GitlabIntegration):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
@@ -126,6 +129,9 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         )
 
     def request(self, *args: Any, **kwargs: Any):
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            return super().request(*args, **kwargs)
+        # Only perform the refresh token flow in either monolithic or the control silo mode.
         try:
             return super().request(*args, **kwargs)
         except ApiUnauthorized as e:
