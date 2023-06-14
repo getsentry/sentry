@@ -1,14 +1,9 @@
 from datetime import datetime, timezone
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
-from sentry.sentry_metrics.configuration import (
-    RELEASE_HEALTH_PG_NAMESPACE,
-    IndexerStorage,
-    MetricsIngestConfiguration,
-    UseCaseKey,
-)
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -28,6 +23,7 @@ counter_payload = {
 }
 
 
+@pytest.mark.django_db
 def test_basic(request):
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
@@ -43,20 +39,8 @@ def test_basic(request):
         processes=1,
         input_block_size=1024,
         output_block_size=1024,
-        config=MetricsIngestConfiguration(
-            db_backend=IndexerStorage.MOCK,
-            db_backend_options={},
-            input_topic="ingest-metrics",
-            output_topic="snuba-metrics",
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
-            internal_metrics_tag="test",
-            writes_limiter_cluster_options={},
-            writes_limiter_namespace="test",
-            cardinality_limiter_cluster_options={},
-            cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-            index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
-        ),
-        slicing_router=None,
+        ingest_profile="release-health",
+        indexer_db="postgres",
     )
 
     strategy = processing_factory.create_with_partitions(
