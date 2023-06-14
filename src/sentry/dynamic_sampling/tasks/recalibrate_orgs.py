@@ -60,7 +60,7 @@ class OrganizationDataVolume:
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task()
+@dynamic_sampling_task
 def recalibrate_orgs() -> None:
     query_interval = timedelta(minutes=5)
 

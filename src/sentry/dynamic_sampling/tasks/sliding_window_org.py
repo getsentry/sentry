@@ -45,7 +45,7 @@ from sentry.utils.snuba import raw_snql_query
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task()
+@dynamic_sampling_task
 def sliding_window_org() -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.

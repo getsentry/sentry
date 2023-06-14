@@ -72,7 +72,7 @@ from sentry.utils.snuba import raw_snql_query
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task()
+@dynamic_sampling_task
 def boost_low_volume_projects() -> None:
     for orgs in get_active_orgs_with_projects_counts():
         for (
@@ -90,7 +90,7 @@ def boost_low_volume_projects() -> None:
     soft_time_limit=25 * 60,
     time_limit=2 * 60 + 5,
 )
-@dynamic_sampling_task()
+@dynamic_sampling_task
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
     projects_with_tx_count_and_rates: Sequence[

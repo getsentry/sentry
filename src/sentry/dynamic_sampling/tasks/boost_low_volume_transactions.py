@@ -90,7 +90,7 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task()
+@dynamic_sampling_task
 def boost_low_volume_transactions() -> None:
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
@@ -125,7 +125,7 @@ def boost_low_volume_transactions() -> None:
     soft_time_limit=25 * 60,
     time_limit=2 * 60 + 5,
 )
-@dynamic_sampling_task()
+@dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
