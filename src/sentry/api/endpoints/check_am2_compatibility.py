@@ -270,12 +270,6 @@ class CheckAM2CompatibilityMixin:
             "end": datetime.now(tz=pytz.UTC),
         }
 
-        if not project_objects and "project:" in query:
-            errors.append(
-                f"The query {query} for org {organization_id} filters by projects but no top-level projects "
-                f"are supplied."
-            )
-
         try:
             results = performance_query(
                 selected_columns=selected_columns,
@@ -317,7 +311,7 @@ class CheckAM2CompatibilityMixin:
             # When we run this query without a project, we will have some errors being throw in case the `query`
             # contains a `project` since the user might select in the dropdown project `ios` but then filter project
             # `android`.
-            supports_metrics = cls.is_metrics_data(organization.id, [], query, errors)
+            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query, errors)
             if supports_metrics is None:
                 errors.append(
                     f"Couldn't figure out compatibility for widget {widget_id} with query {query} in org {organization.id}."
