@@ -44,15 +44,11 @@ class MonitorEndpoint(Endpoint):
 
     permission_classes = (ProjectMonitorPermission,)
 
-    def convert_args(
-        self,
-        request: Request,
-        organization_slug: str,
-        monitor_slug: str,
-        checkin_id: str | None = None,
-        *args,
-        **kwargs,
-    ):
+    def convert_args(self, request: Request, *args, **kwargs):
+        organization_slug: str = kwargs["organization_slug"]
+        monitor_slug: str = kwargs["monitor_slug"]
+        checkin_id: str | None = kwargs["checkin_id"]
+
         try:
             organization = Organization.objects.get_from_cache(slug=organization_slug)
         except Organization.DoesNotExist:
@@ -119,15 +115,11 @@ class MonitorIngestEndpoint(Endpoint):
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
-    def convert_args(
-        self,
-        request: Request,
-        monitor_slug: str,
-        checkin_id: str | None = None,
-        organization_slug: str | None = None,
-        *args,
-        **kwargs,
-    ):
+    def convert_args(self, request: Request, *args, **kwargs):
+        monitor_slug: str = kwargs["monitor_slug"]
+        checkin_id: str | None = kwargs["checkin_id"]
+        organization_slug: str | None = kwargs["organization_slug"]
+
         organization = None
         monitor = None
 
