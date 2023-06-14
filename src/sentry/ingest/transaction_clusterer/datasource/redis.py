@@ -47,7 +47,7 @@ def get_redis_client() -> Any:
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
     prefix = namespace.value.data
-    return client.scan_iter(match=f"{prefix}:*")
+    return client.sscan_iter(f"{prefix}:projects")
 
 
 def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
