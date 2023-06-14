@@ -117,6 +117,7 @@ class RpcModel(pydantic.BaseModel):
 
     class Config:
         orm_mode = True
+        use_enum_values = True
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
