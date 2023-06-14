@@ -21,21 +21,10 @@ export function useSpanSamples(
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: 'Span Samples',
-      query: `${groupId ? ` group:${groupId}` : ''} ${
+      query: `${groupId ? `span.group:${groupId}` : ''} ${
         transaction ? ` transaction:${transaction}` : ''
       }`,
-      fields: [
-        'span_id',
-        'group',
-        'action',
-        'description',
-        'domain',
-        'module',
-        'duration',
-        'op',
-        'transaction_id',
-        'timestamp',
-      ],
+      fields: ['id', 'duration', 'transaction.id', 'timestamp'],
       dataset: DiscoverDatasets.SPANS_INDEXED,
       orderby: orderBy ?? DEFAULT_ORDER_BY,
       projects: [1],

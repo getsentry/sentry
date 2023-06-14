@@ -34,7 +34,7 @@ function SampleTable({groupId, transactionName}: Props) {
   );
 
   const {data: transactions, isLoading: areTransactionsLoading} = useTransactions(
-    spans.map(span => span.transaction_id),
+    spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
 
@@ -46,7 +46,7 @@ function SampleTable({groupId, transactionName}: Props) {
         data={spans.map(sample => {
           return {
             ...sample,
-            transaction: transactionsById[sample.transaction_id],
+            transaction: transactionsById[sample['transaction.id']],
           };
         })}
         isLoading={areSpanSamplesLoading || areTransactionsLoading}

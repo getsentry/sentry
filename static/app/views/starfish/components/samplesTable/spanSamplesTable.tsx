@@ -10,12 +10,12 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 
-type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p95_comparison';
+type Keys = 'transaction.id' | 'timestamp' | 'duration' | 'p95_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
   {
-    key: 'transaction_id',
+    key: 'transaction.id',
     name: 'Event ID',
     width: 200,
   },
@@ -68,12 +68,12 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    if (column.key === 'transaction_id') {
+    if (column.key === 'transaction.id') {
       return (
         <Link
-          to={`/performance/${row.transaction['project.name']}:${row.transaction_id}#span-${row.span_id}`}
+          to={`/performance/${row.transaction['project.name']}:${row['transaction.id']}#span-${row.id}`}
         >
-          {row.transaction_id.slice(0, 8)}
+          {row['transaction.id'].slice(0, 8)}
         </Link>
       );
     }

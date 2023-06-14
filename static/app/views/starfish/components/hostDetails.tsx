@@ -36,8 +36,8 @@ export function HostDetails({host}: Props) {
 
   const hostMarketingName = Object.keys(EXTERNAL_APIS).find(key => host.includes(key));
 
-  const failures = statusBreakdown?.filter((item: any) => item.status > 299);
-  const successes = statusBreakdown?.filter((item: any) => item.status < 300);
+  const failures = statusBreakdown?.filter((item: any) => item['span.status'] > 299);
+  const successes = statusBreakdown?.filter((item: any) => item['span.status'] < 300);
   const totalCount = statusBreakdown?.reduce(
     (acc: number, item: any) => acc + item.count,
     0

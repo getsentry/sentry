@@ -125,7 +125,7 @@ export default function EndpointTable({
   });
 
   const combinedEndpointData = endpointsData.map(data => {
-    const url = data.description;
+    const url = data['span.description'];
 
     const throughputSeries: Series = {
       seriesName: 'throughput',

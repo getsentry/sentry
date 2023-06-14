@@ -37,7 +37,7 @@ export const getHostListQuery = ({datetime}) => {
 export const getHostListEventView = ({datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['domain'],
+    fields: ['span.domain'],
     yAxis: ['p99(span.self_time)', 'count()'],
     query: 'module:http',
     topEvents: '10',
@@ -82,10 +82,10 @@ export const getEndpointListEventView = ({domain, action, datetime, transaction}
   return EventView.fromSavedQuery({
     name: '',
     fields: [
-      'description',
-      'group_id',
-      'domain',
-      'action',
+      'span.description',
+      'span.group',
+      'span.domain',
+      'span.action',
       'p50(span.self_time)',
       'p95(span.self_time)',
       'sum(span.self_time)',
@@ -94,8 +94,8 @@ export const getEndpointListEventView = ({domain, action, datetime, transaction}
       'count_unique(transaction)',
     ],
     orderby: '-count',
-    query: `module:http ${domain ? `domain:${domain}` : ''} ${
-      action ? `action:${action}` : ''
+    query: `span.module:http ${domain ? `span.domain:${domain}` : ''} ${
+      action ? `span.action:${action}` : ''
     } ${transaction ? `transaction:${transaction}` : ''}`,
     start: datetime.start,
     end: datetime.end,
@@ -127,7 +127,7 @@ export const getEndpointDomainsEventView = ({datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
     fields: [
-      'domain',
+      'span.domain',
       'count()',
       'sum(span.self_time)',
       'p100(span.self_time)',
@@ -136,7 +136,7 @@ export const getEndpointDomainsEventView = ({datetime}) => {
       'p50(span.self_time)',
     ],
     orderby: '-count',
-    query: 'module:http',
+    query: 'span.module:http',
     start: datetime.start,
     end: datetime.end,
     range: datetime.period,
@@ -183,7 +183,7 @@ export const getEndpointGraphEventView = ({datetime}) => {
       'p95(span.self_time)',
       'p99(span.self_time)',
     ],
-    query: 'module:http',
+    query: 'span.module:http',
     start: datetime.start,
     end: datetime.end,
     range: datetime.period,
@@ -270,9 +270,9 @@ export const getEndpointDetailTableEventView = ({
       'count_unique(transaction)',
     ],
     orderby: '-count',
-    query: `module:http ${description ? `description:${description}` : ''} ${
+    query: `span.module:http ${description ? `span.description:${description}` : ''} ${
       transactionName ? `transaction:${transactionName}` : ''
-    } ${groupId ? `group_id:${groupId}` : ''}`,
+    } ${groupId ? `span.group:${groupId}` : ''}`,
     start: datetime.start,
     end: datetime.end,
     range: datetime.period,
@@ -299,9 +299,9 @@ export const getHostStatusBreakdownQuery = ({domain, datetime}) => {
 export const getHostStatusBreakdownEventView = ({domain, datetime}) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['status', 'count()'],
+    fields: ['span.status', 'count()'],
     orderby: '-count',
-    query: `module:http domain:${domain}`,
+    query: `module:http span.domain:${domain}`,
     start: datetime.start,
     end: datetime.end,
     range: datetime.period,
