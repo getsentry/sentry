@@ -40,7 +40,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        self.health_checker = HealthChecker()
+        self.health_checker = HealthChecker("ingest")
 
     def create_with_partitions(
         self,

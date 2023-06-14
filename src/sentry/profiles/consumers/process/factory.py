@@ -17,7 +17,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self) -> None:
         super().__init__()
-        self.health_checker = HealthChecker()
+        self.health_checker = HealthChecker("profiles")
 
     def create_with_partitions(
         self,
