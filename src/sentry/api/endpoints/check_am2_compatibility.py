@@ -156,10 +156,8 @@ class CheckAM2CompatibilityMixin:
     ):
         results = {}
 
-        widgets = {}
+        widgets = []
         for dashboard_id, widget_ids in unsupported_widgets.items():
-            widgets["dashboard_id"] = dashboard_id
-
             unsupported = []
             for widget_id in widget_ids:
                 unsupported.append(
@@ -168,20 +166,19 @@ class CheckAM2CompatibilityMixin:
                         "url": cls.get_widget_url(organization.slug, dashboard_id, widget_id),
                     }
                 )
-            widgets["unsupported"] = unsupported
+
+            widgets.append({"dashboard_id": dashboard_id, "unsupported": unsupported})
 
         results["widgets"] = widgets
 
-        alerts = {}
+        alerts = []
         for project_id, alert_ids in unsupported_alerts.items():
-            alerts["project_id"] = project_id
-
             unsupported = []
             for alert_id in alert_ids:
                 unsupported.append(
                     {"id": alert_id, "url": cls.get_alert_url(organization.slug, alert_id)}
                 )
-            alerts["unsupported"] = unsupported
+            alerts.append({"project_id": project_id, "unsupported": unsupported})
 
         results["alerts"] = alerts
 
