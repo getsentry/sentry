@@ -40,7 +40,7 @@ class RegressionActivityNotification(GroupActivityNotification):
         text = "Issue marked as regression"
         if self.version:
             version_url = self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/"
+                f"/organizations/{self.organization.slug}/releases/{self.version}/"
             )
             text += f" in release {self.format_url(text=self.version_parsed, url=version_url, provider=provider)}"
         return text
