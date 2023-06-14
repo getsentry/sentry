@@ -1643,6 +1643,15 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     const cursorToken = this.cursorToken;
 
+    trackAnalytics('search.autocompleted', {
+      organization: this.props.organization,
+      search_operator: replaceText,
+      search_source: this.props.searchSource,
+      item_name: item.title ?? item.value?.split(':')[0],
+      item_type: item.type,
+      search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+    });
+
     if (!cursorToken) {
       this.updateQuery(`${query}${replaceText}`);
       return;
@@ -1655,12 +1664,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     let replaceToken = replaceText;
     if (cursorToken.type === Token.FILTER) {
       if (item.type === ItemType.TAG_OPERATOR) {
-        trackAnalytics('search.operator_autocompleted', {
-          organization: this.props.organization,
-          query: removeSpace(query),
-          search_operator: replaceText,
-          search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
-        });
         const valueLocation = cursorToken.value.location;
         clauseStart = cursorToken.location.start.offset;
         clauseEnd = valueLocation.start.offset;
