@@ -22,7 +22,8 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import NotificationSetting, RuleSnooze, UserEmail, UserOption
+from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
