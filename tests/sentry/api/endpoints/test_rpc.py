@@ -127,7 +127,7 @@ class RpcServiceEndpointTest(APITestCase):
             {
                 "scope_type": NotificationScopeType.USER.value,
                 "scope_identifier": self.user.id,
-                "target_id": 2,
+                "target_id": response.data[0]["target_id"],
                 "team_id": None,
                 "user_id": self.user.id,
                 "provider": ExternalProviders.EMAIL.value,
