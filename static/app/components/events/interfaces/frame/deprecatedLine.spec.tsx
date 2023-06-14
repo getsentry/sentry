@@ -242,6 +242,7 @@ describe('Frame - Line', function () {
           registers={{}}
           components={[]}
           event={eventWithThreads}
+          threadId={13920}
           isANR
           isExpanded
         />,
