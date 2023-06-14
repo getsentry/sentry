@@ -149,6 +149,14 @@ def get_user_actions(
 
                 report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
                 continue
+            elif category == "ui.multiClick":
+                # Log the event for tracking.
+                log = event["data"].get("payload", {}).copy()
+                log["project_id"] = project_id
+                log["replay_id"] = replay_id
+                log["dom_tree"] = log.pop("message")
+                logger.info("sentry.replays.slow_click", extra=log)
+                continue
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
