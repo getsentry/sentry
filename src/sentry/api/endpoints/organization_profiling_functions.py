@@ -46,7 +46,16 @@ class TrendType(Enum):
         if self is TrendType.IMPROVEMENT:
             return "trend_percentage()"
 
-        raise ValueError(f"Cannot sort by TrendType: {self.value}")
+        raise ValueError(f"Unknown TrendType: {self.value}")
+
+    def slope_condition(self):
+        if self is TrendType.REGRESSION:
+            return "slope():>0"
+
+        if self is TrendType.IMPROVEMENT:
+            return "slope():<0"
+
+        raise ValueError(f"Unknown TrendType: {self.value}")
 
 
 class TrendTypeField(serializers.Field):
@@ -97,12 +106,21 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             rollup = get_rollup_from_range(params["end"] - params["start"])
 
             top_functions = functions.query(
-                selected_columns=["project.id", "fingerprint", "package", "function", "count()"],
-                query=query,
+                selected_columns=[
+                    "project.id",
+                    "fingerprint",
+                    "package",
+                    "function",
+                    "count()",
+                    "slope()",
+                ],
+                query=f"{query} {data['trend'].slope_condition()}",
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,  # type: ignore[attr-defined]
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
             )
 
             set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
@@ -179,7 +197,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     }
                 )
                 formatted_result.update(
-                    {k: functions[key][k] for k in ["fingerprint", "package", "function", "count"]}
+                    {
+                        k: functions[key][k]
+                        for k in ["fingerprint", "package", "function", "count()", "slope()"]
+                    }
                 )
                 formatted_results.append(formatted_result)
             return formatted_results
