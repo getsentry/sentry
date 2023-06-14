@@ -167,6 +167,7 @@ def get_region_for_organization(organization: Organization) -> Region:
     # Backend representation to be determined. If you are working on code
     # that depends on this method, you can mock it out in unit tests or
     # temporarily hard-code a placeholder.
+    return get_region_by_name("region")
     raise NotImplementedError
 
 
