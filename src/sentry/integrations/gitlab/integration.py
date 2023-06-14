@@ -360,7 +360,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     def get_group_info(self, access_token, installation_data):
         client = GitlabProxySetupClient(
-            installation_data["url"], access_token, installation_data["verify_ssl"]
+            base_url=installation_data["url"],
+            access_token=access_token,
+            verify_ssl=installation_data["verify_ssl"],
         )
         try:
             resp = client.get_group(installation_data["group"])
