@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getHostStatusBreakdownEventView} from 'sentry/views/starfish/modules/APIModule/queries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 type Props = {
@@ -338,3 +337,21 @@ const MeterText = styled('span')`
   color: ${p => p.theme.gray300};
   white-space: nowrap;
 `;
+
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+const getHostStatusBreakdownEventView = ({domain, datetime}) => {
+  return EventView.fromSavedQuery({
+    name: '',
+    fields: ['status', 'count()'],
+    orderby: '-count',
+    query: `module:http domain:${domain}`,
+    start: datetime.start,
+    end: datetime.end,
+    range: datetime.period,
+    dataset: DiscoverDatasets.SPANS_INDEXED,
+    projects: [1],
+    version: 2,
+  });
+};
