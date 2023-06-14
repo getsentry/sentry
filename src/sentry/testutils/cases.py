@@ -495,7 +495,11 @@ class TestCase(BaseTestCase, DjangoTestCase):
 
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
-    pass
+    def setUp(self):
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
 
 
 class PerformanceIssueTestCase(BaseTestCase):

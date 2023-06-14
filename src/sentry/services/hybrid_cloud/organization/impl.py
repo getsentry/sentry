@@ -219,7 +219,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     )
                     org_member.set_user(user_id)
                     org_member.save()
-                    org_member.outbox_for_update().drain_shard()
                 except OrganizationMember.DoesNotExist:
                     return None
         return serialize_member(org_member)

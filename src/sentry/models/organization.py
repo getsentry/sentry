@@ -259,7 +259,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
                 lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            with transaction.atomic():
+            with outbox_context(transaction.atomic()):
                 self.save_with_update_outbox(*args, **kwargs)
 
     @classmethod

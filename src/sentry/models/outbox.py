@@ -4,6 +4,7 @@ import abc
 import contextlib
 import dataclasses
 import datetime
+import sys
 import threading
 from enum import IntEnum
 from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
@@ -437,21 +438,41 @@ class OutboxContext(threading.local):
 _outbox_context = OutboxContext()
 
 
+def _supports_transactions() -> bool:
+    if "pytest" not in sys.modules:
+        return True
+
+
 @contextlib.contextmanager
-def outbox_context(transaction: Atomic, flush: bool = True) -> ContextManager[None]:
+def outbox_context(inner: Atomic | None = None, flush: bool = True) -> ContextManager[None]:
     original = _outbox_context.accumulated_outboxes
     accumulated: List[OutboxBase] = []
 
-    with transaction, in_test_psql_role_override("postgres"):
+    assert not flush or inner, "Must either set a transaction or flush=False"
+
+    def do_flush():
+        for outbox in accumulated:
+            outbox.drain_shard()
+
+    if inner:
+        with inner, in_test_psql_role_override("postgres"):
+            _outbox_context.accumulated_outboxes = accumulated
+            try:
+                if flush:
+                    if _supports_transactions():
+                        transaction.on_commit(do_flush)
+                yield
+            finally:
+                _outbox_context.accumulated_outboxes = original
+
+        if not _supports_transactions():
+            do_flush()
+    else:
         _outbox_context.accumulated_outboxes = accumulated
         try:
             yield
         finally:
             _outbox_context.accumulated_outboxes = original
-
-    if flush:
-        for outbox in accumulated:
-            outbox.drain_shard()
 
 
 process_region_outbox = Signal(providing_args=["payload", "object_identifier"])

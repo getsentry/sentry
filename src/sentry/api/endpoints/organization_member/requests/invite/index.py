@@ -98,7 +98,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
         )
 
-        om.outbox_for_update().drain_shard()
         async_send_notification(InviteRequestNotification, om, request.user)
 
         return Response(serialize(om), status=201)

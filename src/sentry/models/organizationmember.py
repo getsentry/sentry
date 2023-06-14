@@ -593,8 +593,6 @@ class OrganizationMember(Model):
                 referrer=referrer,
             )
 
-        self.outbox_for_update().drain_shard()
-
         create_audit_entry_from_user(
             user_to_approve,
             api_key,
