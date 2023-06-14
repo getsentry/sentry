@@ -27,6 +27,7 @@ import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/c
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable.tsx';
@@ -111,7 +112,7 @@ export default function EndpointOverview() {
           return (
             <Fragment>
               <Header>
-                <ChartLabel>{t('Throughput Per Second')}</ChartLabel>
+                <ChartLabel>{DataTitles.throughput}</ChartLabel>
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -140,7 +141,7 @@ export default function EndpointOverview() {
                   bottom: '0',
                 }}
                 tooltipFormatterOptions={{
-                  valueFormatter: value => t('%s/sec', value.toFixed(2)),
+                  valueFormatter: value => formatThroughput(value),
                 }}
               />
               <SidebarSpacer />
