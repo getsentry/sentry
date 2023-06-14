@@ -25,12 +25,14 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     Model,
+    OptionManager,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
@@ -158,24 +160,18 @@ class OrganizationManager(BaseManager):
 
 
 @region_silo_only_model
-class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
+class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
     __include_in_export__ = True
     name = models.CharField(max_length=64)
-    slug = models.SlugField(unique=True)
+    slug: models.SlugField[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="sentry.OrganizationMember",
-        related_name="org_memberships",
-        through_fields=("organization", "user"),
-    )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
 
     flags = BitField(
@@ -551,21 +547,11 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
             queryset = model.objects.filter(organization_id=from_org.id)
             do_update(queryset, {"organization_id": to_org.id})
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
+    @property
+    def option_manager(self) -> OptionManager:
         from sentry.models import OrganizationOption
 
-        return OrganizationOption.objects.set_value(self, *args, **kwargs)
-
-    def get_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.get_value(self, *args, **kwargs)
-
-    def delete_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.unset_value(self, *args, **kwargs)
+        return OrganizationOption.objects
 
     def send_delete_confirmation(self, audit_log_entry, countdown):
         from sentry import options

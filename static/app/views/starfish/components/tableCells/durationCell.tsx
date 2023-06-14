@@ -15,7 +15,7 @@ export default function DurationCell({milliseconds, delta}: Props) {
     <Container>
       <Duration seconds={milliseconds / 1000} fixedDigits={2} abbreviation />
       {delta ? (
-        <ComparisonLabel value={delta * -1}>
+        <ComparisonLabel value={delta}>
           {delta > 0 ? '+' : ''}
           {formatPercentage(delta)}
         </ComparisonLabel>

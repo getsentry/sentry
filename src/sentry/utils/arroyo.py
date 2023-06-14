@@ -3,17 +3,14 @@ from __future__ import annotations
 from functools import partial
 from typing import Any, Callable, Mapping, Optional, Union
 
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing.processor import StreamProcessor
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.run_task_with_multiprocessing import (
+    RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
+)
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
-from arroyo.types import FilteredPayload, Message, Topic, TStrategyPayload
+from arroyo.types import TStrategyPayload
 from arroyo.utils.metrics import Metrics
 
 from sentry.metrics.base import MetricsBackend
-from sentry.utils import kafka_config
 
 Tags = Mapping[str, str]
 
@@ -90,7 +87,7 @@ def _initialize_arroyo_subprocess(initializer: Optional[Callable[[], None]], tag
     add_global_tags(_all_threads=True, **tags)
 
 
-def _initialize_arroyo_main() -> None:
+def initialize_arroyo_main() -> None:
     from arroyo import configure_metrics
 
     from sentry.utils.metrics import backend
@@ -99,19 +96,30 @@ def _initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
-class RunTaskWithMultiprocessing(ProcessingStrategy[Union[FilteredPayload, TStrategyPayload]]):
+class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
+    """
+    A variant of arroyo's RunTaskWithMultiprocessing that initializes Sentry
+    for you, and ensures global metric tags in the subprocess are inherited
+    from the main process.
+    """
+
     def __new__(
         cls,
-        *function: Callable[[Message[TStrategyPayload]], TResult],
-        next_step: ProcessingStrategy[Union[FilteredPayload, TResult]],
+        *,
         initializer: Optional[Callable[[], None]] = None,
         **kwargs: Any,
-    ) -> RunTaskWithMultiprocessing[Union[FilteredPayload, TStrategyPayload]]:
+    ) -> RunTaskWithMultiprocessing:
 
         from django.conf import settings
 
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
             from arroyo.processing.strategies.run_task import RunTask
+
+            kwargs.pop("num_processes", None)
+            kwargs.pop("input_block_size", None)
+            kwargs.pop("output_block_size", None)
+            kwargs.pop("max_batch_size", None)
+            kwargs.pop("max_batch_time", None)
 
             return RunTask(**kwargs)  # type: ignore[return-value]
         else:
@@ -122,45 +130,3 @@ class RunTaskWithMultiprocessing(ProcessingStrategy[Union[FilteredPayload, TStra
             return ArroyoRunTaskWithMultiprocessing(  # type: ignore[return-value]
                 initializer=_get_arroyo_subprocess_initializer(initializer), **kwargs
             )
-
-
-def run_basic_consumer(
-    topic: str,
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    strategy_factory: ProcessingStrategyFactory[Any],
-) -> None:
-    from django.conf import settings
-
-    from sentry.metrics.middleware import add_global_tags
-
-    add_global_tags(kafka_topic=topic, consumer_group=group_id)
-
-    _initialize_arroyo_main()
-
-    topic_def = settings.KAFKA_TOPICS[topic]
-    assert topic_def is not None
-    cluster_name: str = topic_def["cluster"]
-
-    consumer_config = build_kafka_consumer_configuration(
-        kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
-        ),
-        group_id=group_id,
-        auto_offset_reset=auto_offset_reset,
-        strict_offset_reset=strict_offset_reset,
-    )
-
-    consumer = KafkaConsumer(consumer_config)
-
-    processor = StreamProcessor(
-        consumer=consumer,
-        topic=Topic(topic),
-        processor_factory=strategy_factory,
-        commit_policy=ONCE_PER_SECOND,
-    )
-
-    from sentry.utils.kafka import run_processor_with_signals
-
-    run_processor_with_signals(processor)

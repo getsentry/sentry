@@ -1,18 +1,24 @@
+from __future__ import annotations
+
 import os
 import socket
+from typing import Any, Callable, TypeVar
 from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
 
-_service_status = {}
+T = TypeVar("T", bound=Callable[..., Any])
+
+_service_status: dict[str, bool] = {}
 
 
-def snuba_is_available():
+def snuba_is_available() -> bool:
     if "snuba" in _service_status:
         return _service_status["snuba"]
     try:
         parsed = urlparse(settings.SENTRY_SNUBA)
+        assert parsed.port is not None
         with socket.create_connection((parsed.hostname, parsed.port), 1.0):
             pass
     except OSError:
@@ -27,7 +33,7 @@ requires_snuba = pytest.mark.skipif(
 )
 
 
-def is_arm64():
+def is_arm64() -> bool:
     return os.uname().machine == "arm64"
 
 
@@ -36,8 +42,8 @@ requires_not_arm64 = pytest.mark.skipif(
 )
 
 
-def xfail_if_not_postgres(reason):
-    def decorator(function):
+def xfail_if_not_postgres(reason: str) -> Callable[[T], T]:
+    def decorator(function: T) -> T:
         return pytest.mark.xfail(os.environ.get("TEST_SUITE") != "postgres", reason=reason)(
             function
         )
@@ -45,7 +51,7 @@ def xfail_if_not_postgres(reason):
     return decorator
 
 
-def skip_for_relay_store(reason):
+def skip_for_relay_store(reason: str) -> Callable[[T], T]:
     """
     Decorator factory will skip marked tests if Relay is enabled.
     A test decorated with @skip_for_relay_store("this test has been moved in relay")
@@ -55,13 +61,13 @@ def skip_for_relay_store(reason):
     Note: Eventually, when Relay becomes compulsory, tests marked with this decorator will be deleted.
     """
 
-    def decorator(function):
+    def decorator(function: T) -> T:
         return pytest.mark.skipif(settings.SENTRY_USE_RELAY, reason=reason)(function)
 
     return decorator
 
 
-def relay_is_available():
+def relay_is_available() -> bool:
     if "relay" in _service_status:
         return _service_status["relay"]
     try:
@@ -79,7 +85,7 @@ requires_relay = pytest.mark.skipif(
 )
 
 
-def symbolicator_is_available():
+def symbolicator_is_available() -> bool:
     from sentry import options
 
     if "symbolicator" in _service_status:
