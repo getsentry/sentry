@@ -1246,6 +1246,8 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Enable Discord integration
+    "organizations:discord-integration": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
