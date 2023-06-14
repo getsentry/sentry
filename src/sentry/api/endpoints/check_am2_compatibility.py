@@ -308,9 +308,8 @@ class CheckAM2CompatibilityMixin:
         for widget_id, dashboard_id, dashboard_title, query in cls.get_all_widgets_of_organization(
             organization.id
         ):
-            # When we run this query without a project, we will have some errors being throw in case the `query`
-            # contains a `project` since the user might select in the dropdown project `ios` but then filter project
-            # `android`.
+            # We run this query by selecting all projects, so that the widget query should never fail in case the
+            # `query` contains "project:something".
             supports_metrics = cls.is_metrics_data(organization.id, all_projects, query, errors)
             if supports_metrics is None:
                 errors.append(
