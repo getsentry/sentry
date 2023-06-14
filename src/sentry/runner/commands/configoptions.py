@@ -25,12 +25,15 @@ def _attempt_update(
     """
     from sentry import options
 
+    opt = options.lookup_key(key)
+
     db_value = options.get(key)
+    db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
         click.echo(DRIFT_MSG % key)
         if not hide_drift:
             click.echo(DB_VALUE % key)
-            click.echo(safe_dump(db_value))
+            click.echo(safe_dump(db_value_to_print))
         return
 
     last_update_channel = options.get_last_update_channel(key)
@@ -60,7 +63,7 @@ def _attempt_update(
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
     if last_update_channel is not None:
         click.echo(UPDATE_MSG % key)
-        click.echo(safe_dump(db_value))
+        click.echo(safe_dump(db_value_to_print))
     else:
         click.echo(SET_MSG % key)
 
