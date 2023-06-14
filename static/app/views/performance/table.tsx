@@ -42,7 +42,6 @@ import {
 } from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 import {
-  areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
   getProject,
   getProjectID,
