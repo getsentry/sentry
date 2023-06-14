@@ -1,5 +1,6 @@
 import {unix} from 'moment';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -34,7 +35,6 @@ export const useErrorRateQuery = (queryString: string) => {
   const {startTime, endTime} = getDateFilters(pageFilter);
   const dateFilters = getDateQueryFilter(startTime, endTime);
 
-  const interval = 12;
   const discoverQuery: NewQuery = {
     id: undefined,
     name: 'HTTP Module - HTTP error rate',
@@ -44,7 +44,7 @@ export const useErrorRateQuery = (queryString: string) => {
     version: 1,
     topEvents: '5',
     dataset: DiscoverDatasets.SPANS_METRICS,
-    interval: `${interval}h`,
+    interval: getInterval(pageFilter.selection.datetime, 'low'),
     yAxis: ['http_error_count()'],
   };
 

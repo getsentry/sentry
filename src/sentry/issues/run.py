@@ -25,7 +25,7 @@ def get_occurrences_ingest_consumer(
     strict_offset_reset: bool,
     max_batch_size: int,
     max_batch_time: int,
-    processes: int,
+    num_processes: int,
     input_block_size: int,
     output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
@@ -36,7 +36,7 @@ def get_occurrences_ingest_consumer(
         strict_offset_reset,
         max_batch_size,
         max_batch_time,
-        processes,
+        num_processes,
         input_block_size,
         output_block_size,
     )
@@ -49,7 +49,7 @@ def create_ingest_occurences_consumer(
     strict_offset_reset: bool,
     max_batch_size: int,
     max_batch_time: int,
-    processes: int,
+    num_processes: int,
     input_block_size: int,
     output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
@@ -73,7 +73,7 @@ def create_ingest_occurences_consumer(
     strategy_factory = OccurrenceStrategyFactory(
         max_batch_size,
         max_batch_time,
-        processes,
+        num_processes,
         input_block_size,
         output_block_size,
     )
@@ -91,14 +91,14 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self,
         max_batch_size: int,
         max_batch_time: int,
-        processes: int,
+        num_processes: int,
         input_block_size: int,
         output_block_size: int,
     ):
         super().__init__()
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.num_processes = processes
+        self.num_processes = num_processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
 

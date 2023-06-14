@@ -1,6 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
+import {Button} from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -8,7 +10,6 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -20,7 +21,7 @@ import {SpanDescription} from 'sentry/views/starfish/components/spanDescription'
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useIndexedSpan} from 'sentry/views/starfish/queries/useIndexedSpan';
+import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -33,12 +34,26 @@ type Props = {
 
 function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
-  const {transaction} = location.query;
+  const {transaction, endpoint} = location.query;
 
-  const {data: span} = useIndexedSpan(groupId, 'span-summary-page');
+  const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
+
+  const {data: spanMetas} = useSpanMeta(
+    groupId,
+    queryFilter,
+    'span-summary-page-span-meta'
+  );
+  // TODO: Span meta might in theory return more than one row! In that case, we
+  // need to indicate in the UI that more than one set of meta corresponds to
+  // the span group
+  const span = {
+    group: groupId,
+    ...spanMetas?.[0],
+  };
+
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    undefined,
+    queryFilter,
     ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
     'span-summary-page-metrics'
   );
@@ -46,7 +61,7 @@ function SpanSummaryPage({params, location}: Props) {
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
       {group: groupId},
-      undefined,
+      queryFilter,
       ['p95(span.duration)', 'sps()'],
       'sidebar-span-metrics'
     );
@@ -59,50 +74,50 @@ function SpanSummaryPage({params, location}: Props) {
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title> Span Summary </Layout.Title>
-            </Layout.HeaderContent>{' '}
+              <Layout.Title>{t('Span Summary')}</Layout.Title>
+            </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
-              <FilterOptionsContainer>
-                <DatePageFilter alignDropdown="left" />
-              </FilterOptionsContainer>
               <BlockContainer>
-                <Block title={t('Operation')}>{span?.op}</Block>
-                <Block
-                  title={t('Throughput')}
-                  description={t('Throughput of this span per second')}
-                >
-                  <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
-                </Block>
-                <Block title={t('Duration')} description={t('Time spent in this span')}>
-                  <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
-                </Block>
-                <Block
-                  title={t('Time Spent')}
-                  description={t(
-                    'Time spent in this span as a proportion of total application time'
-                  )}
-                >
-                  <TimeSpentCell
-                    formattedTimeSpent={formatPercentage(
-                      spanMetrics?.['time_spent_percentage()']
+                <FilterOptionsContainer>
+                  <DatePageFilter alignDropdown="left" />
+                </FilterOptionsContainer>
+                <BlockContainer>
+                  <Block title={t('Operation')}>{span?.['span.op']}</Block>
+                  <Block
+                    title={t('Throughput')}
+                    description={t('Throughput of this span per second')}
+                  >
+                    <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
+                  </Block>
+                  <Block title={t('Duration')} description={t('Time spent in this span')}>
+                    <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
+                  </Block>
+                  <Block
+                    title={t('Time Spent')}
+                    description={t(
+                      'Time spent in this span as a proportion of total application time'
                     )}
-                    totalSpanTime={spanMetrics?.['sum(span.duration)']}
-                  />
-                </Block>
+                  >
+                    <TimeSpentCell
+                      timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
+                      totalSpanTime={spanMetrics?.['sum(span.duration)']}
+                    />
+                  </Block>
+                </BlockContainer>
               </BlockContainer>
 
-              {span?.description && (
+              {span?.['span.description'] && (
                 <BlockContainer>
                   <Block>
                     <Panel>
-                      <PanelBody>
+                      <DescriptionPanelBody>
                         <DescriptionContainer>
-                          <SpanDescription span={span} />
+                          <SpanDescription spanMeta={spanMetas?.[0]} />
                         </DescriptionContainer>
-                      </PanelBody>
+                      </DescriptionPanelBody>
                     </Panel>
                   </Block>
 
@@ -142,7 +157,17 @@ function SpanSummaryPage({params, location}: Props) {
                 </BlockContainer>
               )}
 
-              {span && <SpanTransactionsTable span={span} />}
+              {span && <SpanTransactionsTable span={span} endpoint={endpoint} />}
+              {endpoint && (
+                <Button
+                  to={{
+                    pathname: location.pathname,
+                    query: omit(location.query, 'endpoint'),
+                  }}
+                >
+                  {t('View More Endpoints')}
+                </Button>
+              )}
 
               {transaction && span?.group && (
                 <SampleList groupId={span.group} transactionName={transaction} />
@@ -160,7 +185,7 @@ const FilterOptionsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   align-items: center;
-  margin-bottom: ${space(2)};
+  flex: 1;
 `;
 
 type BlockProps = {
@@ -190,6 +215,7 @@ const BlockTitle = styled('h3')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   margin-bottom: ${space(1)};
+  white-space: nowrap;
 `;
 
 const BlockContent = styled('h4')`
@@ -212,6 +238,13 @@ export const BlockContainer = styled('div')`
 const DescriptionContainer = styled('div')`
   width: 100%;
   padding: ${space(1)};
+  font-size: 1rem;
+  line-height: 1.2;
+`;
+
+const DescriptionPanelBody = styled(PanelBody)`
+  padding: ${space(2)};
+  height: 208px;
 `;
 
 const BlockWrapper = styled('div')`

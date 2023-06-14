@@ -20,11 +20,13 @@ const SPAN_FILTER_KEY_TO_LOCAL_FIELD = {
 
 export type SpanMetrics = {
   'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'spm()': number;
+  'sps_percent_change()': number;
   'sum(span.duration)': number;
   'time_spent_percentage()': number;
 };
@@ -35,7 +37,7 @@ export const useSpanList = (
   spanCategory?: string,
   orderBy?: string,
   limit?: number,
-  _referrer = 'span-metrics'
+  referrer = 'use-span-list'
 ) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
@@ -60,15 +62,16 @@ export const useSpanList = (
   );
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
     queryString: query,
     initialData: [],
     enabled: Boolean(query),
     limit,
+    referrer,
   });
 
-  return {isLoading, data};
+  return {isLoading, data, pageLinks};
 };
 
 function getQuery(
@@ -140,9 +143,11 @@ function getEventView(
         'span.description',
         'span.domain',
         'spm()',
+        'sps_percent_change()',
         'sum(span.duration)',
         'p95(span.duration)',
         'time_spent_percentage()',
+        'percentile_percent_change(span.duration, 0.95)',
       ],
       orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,

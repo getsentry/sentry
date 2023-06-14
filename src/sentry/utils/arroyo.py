@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, Mapping, Optional, Type, Union
+from typing import Any, Callable, Mapping, Optional, Union
 
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer
@@ -12,7 +12,7 @@ from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
-from arroyo.types import Message, Topic, TStrategyPayload
+from arroyo.types import Topic, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 
 from sentry.metrics.base import MetricsBackend
@@ -111,7 +111,7 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
 
     def __new__(
         cls,
-        *function: Callable[[Message[TStrategyPayload]], TResult],
+        *,
         initializer: Optional[Callable[[], None]] = None,
         **kwargs: Any,
     ) -> RunTaskWithMultiprocessing:
@@ -143,13 +143,15 @@ def run_basic_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    strategy_factory_cls: Type[ProcessingStrategyFactory[Any]],
+    strategy_factory: ProcessingStrategyFactory[Any],
 ) -> None:
     from django.conf import settings
 
     from sentry.metrics.middleware import add_global_tags
 
-    add_global_tags(kafka_topic=topic, group_id=group_id)
+    add_global_tags(kafka_topic=topic, consumer_group=group_id)
+
+    _initialize_arroyo_main()
 
     topic_def = settings.KAFKA_TOPICS[topic]
     assert topic_def is not None
@@ -169,7 +171,7 @@ def run_basic_consumer(
     processor = StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=strategy_factory_cls(),
+        processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
     )
 

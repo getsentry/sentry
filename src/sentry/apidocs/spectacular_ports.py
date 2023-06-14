@@ -78,6 +78,13 @@ def get_type_hints(hint, **kwargs):
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
         return _get_type_hints(hint, **kwargs)
+    except TypeError:
+        raise UnableToProceedError(
+            f"""Unable to resolve type hints for {hint}.
+            Please use types imported from `typing` instead of the types enabled
+            by PEP585 (`from __future__ import annotations`).
+            e.g. instead of list[str], please use List[str]."""
+        )
 
 
 def _get_type_hint_origin(hint):

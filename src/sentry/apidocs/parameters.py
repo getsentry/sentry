@@ -3,7 +3,7 @@ from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 
-class GLOBAL_PARAMS:
+class GlobalParams:
     ORG_SLUG = OpenApiParameter(
         name="organization_slug",
         description="The slug of the organization the resource belongs to.",
@@ -91,7 +91,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
-class SCIM_PARAMS:
+class SCIMParams:
     MEMBER_ID = OpenApiParameter(
         name="member_id",
         location="path",
@@ -108,7 +108,7 @@ class SCIM_PARAMS:
     )
 
 
-class ISSUE_ALERT_PARAMS:
+class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
         location="path",
@@ -118,7 +118,7 @@ class ISSUE_ALERT_PARAMS:
     )
 
 
-class VISIBILITY_PARAMS:
+class VisibilityParams:
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -163,14 +163,14 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
     )
 
 
-class CURSOR_QUERY_PARAM(serializers.Serializer):
+class CursorQueryParam(serializers.Serializer):
     cursor = serializers.CharField(
         help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
         required=False,
     )
 
 
-class MONITOR_PARAMS:
+class MonitorParams:
     MONITOR_SLUG = OpenApiParameter(
         name="monitor_slug",
         location="path",
@@ -187,7 +187,7 @@ class MONITOR_PARAMS:
     )
 
 
-class EVENT_PARAMS:
+class EventParams:
     EVENT_ID = OpenApiParameter(
         name="event_id",
         location="path",
@@ -213,7 +213,7 @@ class EVENT_PARAMS:
     )
 
 
-class PROJECT_PARAMS:
+class ProjectParams:
     DEFAULT_RULES = OpenApiParameter(
         name="default_rules",
         location="query",
@@ -231,3 +231,13 @@ class PROJECT_PARAMS:
             type=str,
             description=description,
         )
+
+
+class TeamParams:
+    DETAILED = OpenApiParameter(
+        name="detailed",
+        location="query",
+        required=False,
+        type=str,
+        description='Specify "0" to return team details that do not include projects',
+    )
