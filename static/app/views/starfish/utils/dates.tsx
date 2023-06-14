@@ -1,6 +1,7 @@
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DateString} from 'sentry/types';
 import {getPeriodAgo, getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 
@@ -51,6 +52,15 @@ export const datetimeToClickhouseFilterTimestamps = (datetime?: DateTimeObject) 
 
   const end_timestamp = datetime.end && moment(datetime.end).format(DATE_FORMAT);
   return {start_timestamp, end_timestamp};
+};
+
+export const getDateConditions = (pageFilter): string[] => {
+  const {startTime, endTime, statsPeriod} = getDateFilters(pageFilter);
+  const {start, end} = normalizeDateTimeParams({
+    start: startTime.toDate(),
+    end: endTime.toDate(),
+  });
+  return statsPeriod ? [`statsPeriod:${statsPeriod}`] : [`start:${start}`, `end:${end}`];
 };
 
 export function getDateFilters(pageFilter) {
