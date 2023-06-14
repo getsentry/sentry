@@ -18,10 +18,12 @@ from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
+
 <<<<<<< HEAD
 =======
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.snuba.utils import initialize_consumer_state
+
 >>>>>>> origin/master
 from sentry.utils import kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
