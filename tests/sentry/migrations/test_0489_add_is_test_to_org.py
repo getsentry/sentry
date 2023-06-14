@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class AddIsTestFieldToOrgMigrationTest(TestMigrations):
-    migrate_from = "0488_add_orgauthtoken"
-    migrate_to = "0489_add_is_test_to_org"
+    migrate_from = "0489_index_checkin_timeout"
+    migrate_to = "0490_add_is_test_to_org"
 
     def test_default(self):
         organization_with_defalult = Organization.objects.create(slug="my-organization")
