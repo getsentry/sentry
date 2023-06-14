@@ -17,11 +17,11 @@ export async function getErrorDebugIds(e: Error): Promise<{[filename: string]: s
     return {};
   }
 
-  const stack = Sentry.defaultStackParser(e.stack);
+  const stackFrames = Sentry.defaultStackParser(e.stack);
 
   const debugIdMap: Record<string, string> = {};
 
-  const fetchTaskGenerators = stack.map(stackFrame => async () => {
+  const fetchTaskGenerators = stackFrames.map(stackFrame => async () => {
     if (!stackFrame.filename) {
       return;
     }
