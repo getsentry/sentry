@@ -1,5 +1,6 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 import sentry_sdk
 from django.conf import settings
@@ -19,6 +20,7 @@ from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
 
@@ -34,6 +36,11 @@ TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 
+DEFAULT_RATE_LIMIT = 10
+DEFAULT_RATE_LIMIT_WINDOW = 1
+DEFAULT_CONCURRENT_RATE_LIMIT = 10
+ORGANIZATION_RATE_LIMIT = 25
+
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
     retries=Retry(
@@ -42,6 +49,8 @@ ads_connection_pool = connection_from_url(
     ),
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
+
+_query_thread_pool = ThreadPoolExecutor()
 
 
 def get_trends(snuba_io):
@@ -56,6 +65,21 @@ def get_trends(snuba_io):
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(
+                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+            ),
+            RateLimitCategory.USER: RateLimit(
+                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+            ),
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                ORGANIZATION_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, ORGANIZATION_RATE_LIMIT
+            ),
+        }
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
@@ -206,14 +230,45 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
             )
             trends_request["trendFunction"] = trend_function
-            trends_request["data"] = stats_data
 
-            # Send the data to microservice
-            trends = get_trends(trends_request)
-            sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
+            # list of requests to send to microservice async
+            trends_requests = []
 
-            trending_events = trends["data"]
-            return trending_events, trends_request
+            # split the txns data into multiple dictionaries
+            split_transactions_data = [
+                dict(list(stats_data.items())[i : i + EVENTS_PER_QUERY])
+                for i in range(0, len(stats_data), EVENTS_PER_QUERY)
+            ]
+
+            for i in range(len(split_transactions_data)):
+                trends_request = trends_request.copy()
+                trends_request["data"] = split_transactions_data[i]
+                trends_requests.append(trends_request)
+
+            # send the data to microservice
+            results = list(_query_thread_pool.map(get_trends, trends_requests))
+            trend_results = []
+
+            # append all the results
+            for result in results:
+                output_dict = result["data"]
+                trend_results += output_dict
+
+            # sort the results into trending events list
+            if trends_request["sort"] == "trend_percentage()":
+                trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
+            elif trends_request["sort"] == "-trend_percentage()":
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["trend_percentage"], reverse=True
+                )
+            else:
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["absolute_percentage_change"], reverse=True
+                )
+
+            sentry_sdk.set_tag("performance.trendsv2.trends", len(trending_events) > 0)
+
+            return trending_events, trends_requests
 
         def paginate_trending_events(offset, limit):
             return {"data": trending_events[offset : limit + offset]}
@@ -244,8 +299,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     True,
                 ),
                 "stats": trending_transaction_names_stats,
-                # Temporary change to see what stats data is returned
-                "raw_stats": trends_request
+                # temporary change to see what stats data is returned
+                "raw_stats": trends_requests
                 if features.has(
                     "organizations:performance-trendsv2-dev-only",
                     organization,
@@ -285,7 +340,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             (
                 trending_events,
-                trends_request,
+                trends_requests,
             ) = get_trends_data(stats_data, request)
 
             with self.handle_query_errors():

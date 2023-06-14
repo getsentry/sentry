@@ -16,6 +16,7 @@ interface Props {
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
+  date.startOf('minute');
   if (resolution === '1h') {
     date.minute(date.minutes() - (date.minutes() % 10));
   } else if (resolution === '30d') {
@@ -37,10 +38,11 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   const times: TimeMarker[] = [];
   const start = getStartFromTimeWindow(end, timeWindow);
 
-  // Iterate and generate time markers which represent location of grid lines/time labels
+  const firstTimeMark = moment(start);
+  clampTimeBasedOnResolution(firstTimeMark, timeWindow);
+  // Generate time markers which represent location of grid lines/time labels
   for (let i = 1; i < elapsedMinutes / timeMarkerInterval; i++) {
-    const timeMark = moment(start).add(i * timeMarkerInterval, 'minute');
-    clampTimeBasedOnResolution(timeMark, timeWindow);
+    const timeMark = moment(firstTimeMark).add(i * timeMarkerInterval, 'minute');
     const position = (timeMark.valueOf() - start.valueOf()) / msPerPixel;
     times.push({date: timeMark.toDate(), position});
   }

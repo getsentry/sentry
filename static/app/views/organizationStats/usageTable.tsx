@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Project} from 'sentry/types';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import {formatUsageWithUnits, getFormatUsageOptions} from '../utils';
+import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
