@@ -341,7 +341,14 @@ class Monitor(Model):
                     )
             alert_rule_data["targets"] = targets
 
-            alert_rule_data["environment_id"] = alert_rule.environment_id
+            environment, alert_rule_environment_id = None, alert_rule.environment_id
+            if alert_rule_environment_id:
+                try:
+                    environment = Environment.objects.get(id=alert_rule_environment_id).name
+                except Environment.DoesNotExist:
+                    pass
+
+            alert_rule_data["environment"] = environment
 
             return alert_rule_data
 

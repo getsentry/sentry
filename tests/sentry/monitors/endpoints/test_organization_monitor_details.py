@@ -1,7 +1,14 @@
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
+from sentry.models import (
+    Environment,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    ScheduledDeletion,
+)
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -57,7 +64,7 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
         alert_rule = resp.data["alertRule"]
         assert alert_rule is not None
-        assert alert_rule["environment_id"] is not None
+        assert alert_rule["environment"] is not None
 
 
 @region_silo_test(stable=True)
@@ -216,7 +223,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.data["actions"] != rule.data["actions"]
-        assert monitor_rule.environment_id == new_environment.id
+        rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
+        assert rule_environment.name == new_environment.name
 
     def test_without_existing_alert_rule(self):
         monitor = self._create_monitor()
