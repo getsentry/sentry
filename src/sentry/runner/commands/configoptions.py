@@ -11,8 +11,8 @@ from sentry.runner.decorators import configuration
 DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
 DB_VALUE = "Value of option %s on DB:"
 CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
-UPDATE_MSG = "[UPDATE] Option %s updated. Old value:"
-SET_MSG = "[SET] Option %s set."
+UPDATE_MSG = "[UPDATE] Option %s updated. Old value: \n%s\nNew value: \n%s"
+SET_MSG = "[SET] Option %s set to value: \n%s"
 UNSET_MSG = "[UNSET] Option %s unset."
 
 
@@ -33,6 +33,9 @@ def _attempt_update(
         click.echo(DRIFT_MSG % key)
         if not hide_drift:
             click.echo(DB_VALUE % key)
+            # This is yaml instead of the python representation as the
+            # expected flow, in this case, is to use the output of this
+            # line to copy paste it in the config map.
             click.echo(safe_dump(db_value_to_print))
         return
 
@@ -51,7 +54,7 @@ def _attempt_update(
             # the DB and then change the default value.
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            click.echo(SET_MSG % key)
+            click.echo(SET_MSG % (key, value))
 
         elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
@@ -62,10 +65,9 @@ def _attempt_update(
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
     if last_update_channel is not None:
-        click.echo(UPDATE_MSG % key)
-        click.echo(safe_dump(db_value_to_print))
+        click.echo(UPDATE_MSG % (key, db_value, value))
     else:
-        click.echo(SET_MSG % key)
+        click.echo(SET_MSG % (key, value))
 
 
 @click.group()

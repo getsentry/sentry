@@ -88,13 +88,10 @@ class ConfigOptionsTest(CliTestCase):
             assert rv.exit_code == 0, rv.output
             output = "\n".join(
                 [
-                    SET_MSG % "int_option",
-                    UPDATE_MSG % "str_option",
-                    "old value",
-                    "...",
-                    "",
-                    SET_MSG % "map_option",
-                    SET_MSG % "list_option",
+                    SET_MSG % ("int_option", 40),
+                    UPDATE_MSG % ("str_option", "old value", "new value"),
+                    SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                    SET_MSG % ("list_option", [1, 2]),
                     DRIFT_MSG % "drifted_option",
                     DB_VALUE % "drifted_option",
                     "- 1",
@@ -158,13 +155,10 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         output = "\n".join(
             [
-                SET_MSG % "int_option",
-                UPDATE_MSG % "str_option",
-                "old value",
-                "...",
-                "",
-                SET_MSG % "map_option",
-                SET_MSG % "list_option",
+                SET_MSG % ("int_option", 40),
+                UPDATE_MSG % ("str_option", "old value", "new value"),
+                SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                SET_MSG % ("list_option", [1, 2]),
                 DRIFT_MSG % "drifted_option",
                 DB_VALUE % "drifted_option",
                 "- 1",
