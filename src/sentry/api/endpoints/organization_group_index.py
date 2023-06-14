@@ -238,6 +238,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.update(extra_query_kwargs)
 
             if query_kwargs["sort_by"] == "betterPriority":
+                choice = None
                 if features.has(
                     "organizations:better-priority-sort-experiment",
                     organization,
@@ -246,20 +247,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     choice = expt_manager.get(
                         "PrioritySortExperiment", org=organization, actor=request.user
                     )
-                    # force into variant1 for internal testing
-                    if features.has(
-                        "organizations:issue-list-better-priority-sort",
-                        organization,
-                        actor=request.user,
-                    ):
-                        choice = "variant1"
+                # force into variant1 for internal testing
+                if features.has(
+                    "organizations:issue-list-better-priority-sort",
+                    organization,
+                    actor=request.user,
+                ):
+                    choice = "variant1"
 
-                    if choice == "baseline":
-                        query_kwargs["sort_by"] = "date"
-                    else:
-                        query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(
-                            request, choice
-                        )
+                if choice == "baseline":
+                    query_kwargs["sort_by"] = "date"
+                else:
+                    query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(
+                        request, choice
+                    )
 
             query_kwargs["environments"] = environments if environments else None
 
