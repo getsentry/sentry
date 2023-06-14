@@ -149,7 +149,10 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
 
     serializer = RuleSerializer(
         context={"project": project, "organization": project.organization},
-        data={"actions": actions},
+        data={
+            "actions": actions,
+            "environment": alert_rule_data.get("environment", None),
+        },
         partial=True,
     )
 
@@ -159,6 +162,7 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
         kwargs = {
             "project": project,
             "actions": data.get("actions", []),
+            "environment": data.get("environment", None),
         }
 
         updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
