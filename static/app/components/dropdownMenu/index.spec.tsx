@@ -1,5 +1,7 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {Fragment} from 'react';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
 describe('DropdownMenu', function () {
