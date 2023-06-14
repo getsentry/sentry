@@ -21,6 +21,7 @@ from sentry.incidents.models import (
 )
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
@@ -47,10 +48,12 @@ class ActionHandler(metaclass=abc.ABCMeta):
 
 class DefaultActionHandler(ActionHandler):
     def fire(self, metric_value: int | float, new_status: IncidentStatus):
-        self.send_alert(metric_value, new_status)
+        if not RuleSnooze.objects.filter(alert_rule=self.incident.alert_rule).exists():
+            self.send_alert(metric_value, new_status)
 
     def resolve(self, metric_value: int | float, new_status: IncidentStatus):
-        self.send_alert(metric_value, new_status)
+        if not RuleSnooze.objects.filter(alert_rule=self.incident.alert_rule).exists():
+            self.send_alert(metric_value, new_status)
 
     @abc.abstractmethod
     def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
