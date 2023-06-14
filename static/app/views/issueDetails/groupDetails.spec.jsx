@@ -269,7 +269,7 @@ describe('groupDetails', () => {
     });
     createWrapper({
       ...defaultInit,
-      organization: {...defaultInit.organization, features: ['escalating-issues-ui']},
+      organization: {...defaultInit.organization, features: ['escalating-issues']},
     });
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });

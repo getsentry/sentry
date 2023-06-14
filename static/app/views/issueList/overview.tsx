@@ -793,8 +793,7 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        const hasEscalatingIssues =
-          organization.features.includes('escalating-issues-ui');
+        const hasEscalatingIssues = organization.features.includes('escalating-issues');
         this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
