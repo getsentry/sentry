@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Set
+from typing import Any, Dict, List, Mapping, Set
 
 import pytz
 import sentry_sdk
@@ -275,6 +275,12 @@ class CheckAM2CompatibilityMixin:
             "end": datetime.now(tz=pytz.UTC),
         }
 
+        if not project_objects and "project:" in query:
+            errors.append(
+                f"The query {query} for org {organization_id} filters by projects but no top-level projects "
+                f"are supplied."
+            )
+
         try:
             results = performance_query(
                 selected_columns=selected_columns,
@@ -320,6 +326,9 @@ class CheckAM2CompatibilityMixin:
         for widget_id, dashboard_id, dashboard_title, query in cls.get_all_widgets_of_organization(
             organization.id
         ):
+            # When we run this query without a project, we will have some errors being throw in case the `query`
+            # contains a `project` since the user might select in the dropdown project `ios` but then filter project
+            # `android`.
             supports_metrics = cls.is_metrics_data(organization.id, [], query, errors)
             if not supports_metrics:
                 # # We mark whether a metric is not supported.
@@ -351,7 +360,7 @@ class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
 
             # We decided for speed of iteration purposes to just pass an error array that is shared across functions
             # to collect all possible issues.
-            errors = []
+            errors: List[str] = []
             results = self.run_compatibility_check(org_id, errors)
             if errors:
                 return Response(
