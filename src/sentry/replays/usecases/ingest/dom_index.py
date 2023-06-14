@@ -149,7 +149,7 @@ def get_user_actions(
 
                 report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
                 continue
-            elif category == "ui.rageClickDetected":
+            elif category == "ui.multiClick":
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()
                 log["project_id"] = project_id
