@@ -34,7 +34,7 @@ export async function getErrorDebugIds(e: Error): Promise<{[filename: string]: s
 
     try {
       const text = await fetch(stackFrame.filename).then(res => res.text());
-      const debugIdMatch = text.match(/^\/\/# debugId=(\S+)/mi);
+      const debugIdMatch = text.match(/^\/\/# debugId=(\S+)/im);
 
       if (debugIdMatch === null) {
         return;
