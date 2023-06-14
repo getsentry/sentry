@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import Mapping, Sequence, TypedDict, Union
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.db.models import Sum
 
@@ -248,6 +249,9 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, U
         missed = authors
 
     if missed:
+        if isinstance(user, AnonymousUser):
+            user = None
+
         # Filter users based on the emails provided in the commits
         # and that belong to the organization associated with the release
         users: Sequence[UserSerializerResponse] = user_service.serialize_many(
