@@ -13,7 +13,9 @@ DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 class ConsumerDefinition(TypedDict, total=False):
+    # Which logical topic from settings to use.
     topic: Required[str]
+
     strategy_factory: Required[str]
 
     # Additional CLI options the consumer should accept. These arguments are
@@ -195,10 +197,11 @@ def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
     topic: Optional[str],
+    cluster: Optional[str],
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    join_timeout: Optional[float] = None,
+    join_timeout: Optional[float],
     **options,
 ) -> StreamProcessor:
     try:
@@ -210,7 +213,7 @@ def get_stream_processor(
 
     try:
         strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-        default_topic = consumer_definition["topic"]
+        logical_topic = consumer_definition["topic"]
     except KeyError:
         raise click.ClickException(
             f"The consumer group {consumer_name} does not have a strategy factory"
@@ -219,7 +222,7 @@ def get_stream_processor(
         )
 
     if topic is None:
-        topic = default_topic
+        topic = logical_topic
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -237,13 +240,14 @@ def get_stream_processor(
 
     from sentry.utils import kafka_config
 
-    topic_def = settings.KAFKA_TOPICS[topic]
+    topic_def = settings.KAFKA_TOPICS[logical_topic]
     assert topic_def is not None
-    cluster_name: str = topic_def["cluster"]
+    if cluster is None:
+        cluster = topic_def["cluster"]
 
     consumer_config = build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
+            cluster,
         ),
         group_id=group_id,
         auto_offset_reset=auto_offset_reset,

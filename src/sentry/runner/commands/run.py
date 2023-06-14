@@ -658,7 +658,10 @@ def profiles_consumer(**options):
 @click.option(
     "--topic",
     type=str,
-    help="Main topic with messages for processing",
+    help="Which physical topic to use for this consumer. This can be a topic name that is not specified in settings. The logical topic is still hardcoded in sentry.consumers.",
+)
+@click.option(
+    "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
 )
 @click.option(
     "--consumer-group",
@@ -728,9 +731,11 @@ def dev_consumer(consumer_names):
             consumer_name,
             [],
             topic=None,
+            cluster=None,
             group_id="sentry-consumer",
             auto_offset_reset="latest",
             strict_offset_reset=False,
+            join_timeout=None,
         )
         for consumer_name in consumer_names
     ]
