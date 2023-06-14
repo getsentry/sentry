@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0483_backfill_organization_member_user_email"),
+        ("sentry", "0488_add_orgauthtoken"),
     ]
 
     operations = [
