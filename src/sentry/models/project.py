@@ -39,8 +39,10 @@ from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.integrationdocs import integration_doc_exists
+from sentry.utils.iterators import chunked
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
+from src.sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
     from sentry.models import User
@@ -410,9 +412,17 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
             "linked_id", flat=True
         )
-        ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups).update(
-            organization_id=organization.id
-        )
+
+        for external_issues in chunked(
+            RangeQuerySetWrapper(
+                ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
+                step=1000,
+            ),
+            1000,
+        ):
+            for ei in external_issues:
+                ei.organization_id = organization.id
+            ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam
