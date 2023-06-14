@@ -19,7 +19,7 @@ const INTERVAL = 12;
 export type SpanMetrics = {
   interval: number;
   'p95(span.duration)': number;
-  'spm()': number;
+  'sps()': number;
   'sum(span.duration)': number;
   'time_spent_percentage()': number;
 };
