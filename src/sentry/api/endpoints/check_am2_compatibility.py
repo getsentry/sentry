@@ -157,7 +157,7 @@ class CheckAM2CompatibilityMixin:
 
         widgets = {}
         for dashboard_id, widget_ids in unsupported_widgets.items():
-            widgets["dashboard"] = dashboard_id
+            widgets["dashboard_id"] = dashboard_id
 
             unsupported = []
             for widget_id in widget_ids:
@@ -168,6 +168,7 @@ class CheckAM2CompatibilityMixin:
                     }
                 )
             widgets["unsupported"] = unsupported
+
         results["widgets"] = widgets
 
         alerts = {}
@@ -180,9 +181,9 @@ class CheckAM2CompatibilityMixin:
                     {"id": alert_id, "url": cls.get_alert_url(organization.slug, alert_id)}
                 )
             alerts["unsupported"] = unsupported
+
         results["alerts"] = alerts
 
-        sdks = {"url": cls.get_found_sdks_url(organization.slug)}
         projects = []
         for project, found_sdks in outdated_sdks_per_project.items():
             unsupported = []
@@ -190,7 +191,8 @@ class CheckAM2CompatibilityMixin:
                 unsupported.append({"sdk_name": sdk_name, "sdk_versions": sdk_versions})
 
             projects.append({"project": project, "unsupported": unsupported})
-        sdks["projects"] = projects
+
+        results["sdks"] = {"url": cls.get_found_sdks_url(organization.slug), "projects": projects}
 
         return results
 
@@ -343,4 +345,4 @@ class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
 
         results = self.run_compatibility_check(org_id)
 
-        return Response({results}, status=200)
+        return Response(results, status=200)
