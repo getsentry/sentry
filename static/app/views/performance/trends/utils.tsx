@@ -241,8 +241,7 @@ export function modifyTrendView(
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
-  const transactionField = ['transaction'];
-  const fields = [...transactionField, 'project'].map(field => ({
+  const fields = ['transaction', 'project'].map(field => ({
     field,
   })) as Field[];
 
@@ -433,6 +432,6 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
 
 export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
   const query = new MutableSearch(trendView.query);
-  query.setFilterValues('tpm()', ['>0.5']);
+  query.setFilterValues('tpm()', ['>0.1']);
   trendView.query = query.formatString();
 }

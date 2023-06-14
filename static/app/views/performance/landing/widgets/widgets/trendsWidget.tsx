@@ -85,7 +85,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
     eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
   } else {
-    eventView.additionalConditions.addFilterValues('tpm()', ['>0.5']);
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
   }
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
