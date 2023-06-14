@@ -3,11 +3,13 @@ import logging
 import re
 from urllib.parse import parse_qs, urlparse, urlsplit
 
-from sentry.integrations.client import ApiClient
 from sentry.integrations.utils import get_query_hash
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -16,7 +18,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraCloudClient(ApiClient):
+class JiraCloudClient(IntegrationProxyClient):
     # TODO: Update to v3 endpoints
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
@@ -44,10 +46,24 @@ class JiraCloudClient(ApiClient):
     # lets the user make their second jira issue with cached data.
     cache_time = 240
 
-    def __init__(self, base_url, shared_secret, verify_ssl, logging_context=None):
-        self.base_url = base_url
-        self.shared_secret = shared_secret
-        super().__init__(verify_ssl, logging_context)
+    def __init__(
+        self,
+        integration: RpcIntegration,
+        org_integration_id: str,
+        verify_ssl: bool,
+        logging_context: JSONData = None,
+    ):
+        self.base_url = integration.metadata.get("base_url")
+        self.shared_secret = integration.metadata.get("shared_secret")
+        if not org_integration_id:
+            org_integration_id = infer_org_integration(
+                integration_id=integration.id, ctx_logger=logger
+            )
+        super().__init__(
+            org_integration_id=org_integration_id,
+            verify_ssl=verify_ssl,
+            logging_context=logging_context,
+        )
 
     def get_cache_prefix(self):
         return "sentry-jira-2:"
@@ -82,10 +98,6 @@ class JiraCloudClient(ApiClient):
         if "headers" not in request_spec:
             request_spec["headers"] = {}
 
-        # Force adherence to the GDPR compliant API conventions.
-        # See
-        # https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
-        request_spec["headers"]["x-atlassian-force-account-id"] = "true"
         return self._request(**request_spec)
 
     def user_id_get_param(self):
