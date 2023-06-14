@@ -1558,8 +1558,6 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # If true certain Slack messages will be escaped to prevent rendering markdown
-    "organizations:slack-escape-messages": False,
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
