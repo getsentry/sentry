@@ -23,14 +23,19 @@ counter_payload = {
 }
 
 
-@pytest.mark.django_db
-def test_basic(request):
+@pytest.mark.parametrize("force_disable_multiprocessing", [True, False])
+def test_basic(request, settings, force_disable_multiprocessing):
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
     properly. The main purpose is to verify that there are no
     pickling/unpickling errors when passing the strategy into the
     ParallelTransformStep, as that is easy to break.
     """
+    # Eventually we should stop testing with the real multiprocessing strategy
+    # and instead have enough sanity checks built into sentry.utils.arroyo to
+    # make it no longer necessary.
+    settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = force_disable_multiprocessing
+
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=1,
         max_msg_batch_time=1,
