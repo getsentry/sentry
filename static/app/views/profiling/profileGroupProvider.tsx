@@ -1,4 +1,5 @@
 import {createContext, useContext, useMemo} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
@@ -36,7 +37,12 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
     if (!props.input) {
       return LoadingGroup;
     }
-    return importProfile(props.input, props.traceID, props.type);
+    try {
+      return importProfile(props.input, props.traceID, props.type);
+    } catch (err) {
+      Sentry.captureException(err);
+      return LoadingGroup;
+    }
   }, [props.input, props.traceID, props.type]);
 
   return (
