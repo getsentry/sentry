@@ -77,6 +77,7 @@ type BaseField = {
   required?: boolean;
   /** Does editing this field need to clear all other fields? */
   resetsForm?: boolean;
+  rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
   /**
