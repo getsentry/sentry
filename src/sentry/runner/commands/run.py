@@ -673,6 +673,7 @@ def profiles_consumer(**options):
     type=click.Choice(["earliest", "latest", "error"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
+@click.option("--join-timeout", type=float, help="Join timeout in seconds.", default=None)
 @strict_offset_reset_option()
 @configuration
 def basic_consumer(consumer_name, consumer_args, topic, **options):

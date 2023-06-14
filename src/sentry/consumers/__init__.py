@@ -198,6 +198,7 @@ def get_stream_processor(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
+    join_timeout: Optional[float] = None,
     **options,
 ) -> StreamProcessor:
     try:
@@ -256,4 +257,5 @@ def get_stream_processor(
         topic=Topic(topic),
         processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
+        join_timeout=join_timeout,
     )
