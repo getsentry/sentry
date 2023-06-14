@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -64,7 +64,7 @@ function ProjectSelectorFooter({
     <FooterContainer hasMessage={!!message}>
       {message && <FooterMessage>{message}</FooterMessage>}
       <FooterActions>
-        <Button
+        <LinkButton
           aria-label={t('Add Project')}
           disabled={!hasProjectWrite}
           to={newProjectUrl}
@@ -75,7 +75,7 @@ function ProjectSelectorFooter({
           }
         >
           {t('Project')}
-        </Button>
+        </LinkButton>
         {!disableMultipleProjectSelection && (
           <Feature
             features={['organizations:global-views']}

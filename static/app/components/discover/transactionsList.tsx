@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
@@ -287,7 +287,7 @@ class _TransactionsList extends Component<Props> {
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
-              <Button
+              <LinkButton
                 onClick={handleOpenAllEventsClick}
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
                   organization.slug,
@@ -300,7 +300,7 @@ class _TransactionsList extends Component<Props> {
                 data-test-id="transaction-events-open"
               >
                 {t('View All Events')}
-              </Button>
+              </LinkButton>
             </GuideAnchor>
           ) : (
             <GuideAnchor target="release_transactions_open_in_discover">

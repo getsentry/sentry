@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -336,14 +336,14 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
         </Body>
         <Footer>
           <StyledButtonBar gap={1}>
-            <Button
+            <LinkButton
               href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
               external
             >
               {t('Read the docs')}
-            </Button>
+            </LinkButton>
             {debugFilesSettingsLink && (
-              <Button
+              <LinkButton
                 title={t(
                   'Search for this debug file in all images for the %s project',
                   projSlug
@@ -351,7 +351,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
                 to={debugFilesSettingsLink}
               >
                 {t('Open in Settings')}
-              </Button>
+              </LinkButton>
             )}
           </StyledButtonBar>
         </Footer>

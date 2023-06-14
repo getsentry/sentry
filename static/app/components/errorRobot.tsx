@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import robotBackground from 'sentry-images/spot/sentry-robot.png';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -97,7 +97,7 @@ function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
         </p>
         <p>
           {project && (
-            <Button
+            <LinkButton
               data-test-id="install-instructions"
               priority="primary"
               to={`/${org.slug}/${project.slug}/getting-started/${
@@ -105,7 +105,7 @@ function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
               }`}
             >
               {t('Installation Instructions')}
-            </Button>
+            </LinkButton>
           )}
         </p>
         {sampleLink}

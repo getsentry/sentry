@@ -1,6 +1,6 @@
 import {LocationDescriptor} from 'history';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import {LinkButton, LinkButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +18,7 @@ type Props = {
   onNewestClick?: () => void;
   onOlderClick?: () => void;
   onOldestClick?: () => void;
-  size?: ButtonProps['size'];
+  size?: LinkButtonProps['size'];
 };
 
 function NavigationButtonGroup({
@@ -34,7 +34,7 @@ function NavigationButtonGroup({
 }: Props) {
   return (
     <ButtonBar className={className} merged>
-      <Button
+      <LinkButton
         size={size}
         to={links[0]}
         disabled={!hasPrevious}
@@ -42,13 +42,18 @@ function NavigationButtonGroup({
         icon={<IconPrevious size="xs" />}
         onClick={onOldestClick}
       />
-      <Button size={size} to={links[1]} disabled={!hasPrevious} onClick={onOlderClick}>
+      <LinkButton
+        size={size}
+        to={links[1]}
+        disabled={!hasPrevious}
+        onClick={onOlderClick}
+      >
         {t('Older')}
-      </Button>
-      <Button size={size} to={links[2]} disabled={!hasNext} onClick={onNewerClick}>
+      </LinkButton>
+      <LinkButton size={size} to={links[2]} disabled={!hasNext} onClick={onNewerClick}>
         {t('Newer')}
-      </Button>
-      <Button
+      </LinkButton>
+      <LinkButton
         size={size}
         to={links[3]}
         disabled={!hasNext}

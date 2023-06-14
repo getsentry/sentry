@@ -1,9 +1,9 @@
-import {Button, ButtonProps} from 'sentry/components/button';
+import {LinkButton, LinkButtonProps} from 'sentry/components/button';
 import {Organization, SandboxData} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type DemoSandboxButtonProps = ButtonProps & {
+type DemoSandboxButtonProps = LinkButtonProps & {
   /**
    * The deep link scenario
    */
@@ -74,7 +74,7 @@ function DemoSandboxButton({
   };
   url.searchParams.append('client', JSON.stringify(clientOptions));
   return (
-    <Button
+    <LinkButton
       external
       href={url.toString()}
       onClick={() =>

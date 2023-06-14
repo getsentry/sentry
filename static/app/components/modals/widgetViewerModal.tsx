@@ -15,7 +15,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
@@ -1111,7 +1111,7 @@ function OpenButton({
   }
 
   return (
-    <Button
+    <LinkButton
       to={path}
       priority="primary"
       onClick={() => {
@@ -1123,7 +1123,7 @@ function OpenButton({
       }}
     >
       {openLabel}
-    </Button>
+    </LinkButton>
   );
 }
 

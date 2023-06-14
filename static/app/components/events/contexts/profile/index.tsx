@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
@@ -90,7 +90,7 @@ function getProfileKnownDataDetails({
         subject: t('Profile ID'),
         value: data.profile_id,
         actionButton: target && (
-          <Button
+          <LinkButton
             size="xs"
             to={target}
             onClick={() =>
@@ -101,7 +101,7 @@ function getProfileKnownDataDetails({
             }
           >
             {t('View Profile')}
-          </Button>
+          </LinkButton>
         ),
       };
     }

@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
@@ -53,9 +53,9 @@ export default SkipConfirm;
 const SkipHelp = HookOrDefault({
   hookName: 'onboarding-wizard:skip-help',
   defaultComponent: () => (
-    <Button priority="primary" size="xs" to="https://forum.sentry.io/" external>
+    <LinkButton priority="primary" size="xs" to="https://forum.sentry.io/" external>
       {t('Community Forum')}
-    </Button>
+    </LinkButton>
   ),
 });
 

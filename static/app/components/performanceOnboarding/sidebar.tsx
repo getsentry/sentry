@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -207,9 +207,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
+          <LinkButton size="sm" href="https://docs.sentry.io/platforms/" external>
             {t('Go to Sentry Documentation')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
@@ -225,13 +225,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button
+          <LinkButton
             size="sm"
             href="https://docs.sentry.io/product/performance/getting-started/"
             external
           >
             {t('Go to documentation')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );

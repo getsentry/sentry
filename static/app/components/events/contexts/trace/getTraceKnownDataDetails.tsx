@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -45,9 +45,9 @@ export function getTraceKnownDataDetails({
         subject: t('Trace ID'),
         value: traceId,
         actionButton: (
-          <Button size="xs" to={generateTraceTarget(event, organization)}>
+          <LinkButton size="xs" to={generateTraceTarget(event, organization)}>
             {t('Search by Trace')}
-          </Button>
+          </LinkButton>
         ),
       };
     }
@@ -108,9 +108,9 @@ export function getTraceKnownDataDetails({
         subject: t('Transaction'),
         value: transactionName,
         actionButton: (
-          <Button size="xs" to={to}>
+          <LinkButton size="xs" to={to}>
             {t('View Summary')}
-          </Button>
+          </LinkButton>
         ),
       };
     }

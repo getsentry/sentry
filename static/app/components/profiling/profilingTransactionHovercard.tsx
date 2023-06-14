@@ -21,7 +21,7 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {Button} from '../button';
+import {LinkButton} from '../button';
 import Link from '../links/link';
 import LoadingIndicator from '../loadingIndicator';
 import PerformanceDuration from '../performanceDuration';
@@ -63,9 +63,9 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
       header={
         <Flex justify="space-between" align="center">
           <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
-          <Button to={linkToSummary} size="xs">
+          <LinkButton to={linkToSummary} size="xs">
             {t('View Profiles')}
-          </Button>
+          </LinkButton>
         </Flex>
       }
       body={

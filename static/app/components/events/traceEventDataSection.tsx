@@ -7,7 +7,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -386,7 +386,7 @@ export function TraceEventDataSection({
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
-              <Button
+              <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
@@ -400,7 +400,7 @@ export function TraceEventDataSection({
                 }}
               >
                 {t('Download')}
-              </Button>
+              </LinkButton>
             )}
             <CompactSelect
               triggerProps={{

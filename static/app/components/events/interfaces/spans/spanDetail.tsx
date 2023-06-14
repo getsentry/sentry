@@ -4,7 +4,7 @@ import map from 'lodash/map';
 import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -211,12 +211,12 @@ function SpanDetail(props: Props) {
 
           return (
             <ButtonGroup>
-              <StyledButton data-test-id="view-child-transaction" size="xs" to={to}>
+              <LinkButton data-test-id="view-child-transaction" size="xs" to={to}>
                 {t('View Transaction')}
-              </StyledButton>
-              <StyledButton size="xs" to={target}>
+              </LinkButton>
+              <LinkButton size="xs" to={target}>
                 {t('View Summary')}
-              </StyledButton>
+              </LinkButton>
             </ButtonGroup>
           );
         }}
@@ -238,9 +238,9 @@ function SpanDetail(props: Props) {
     }
 
     return (
-      <StyledButton size="xs" to={generateTraceTarget(event, organization)}>
+      <LinkButton size="xs" to={generateTraceTarget(event, organization)}>
         {t('View Trace')}
-      </StyledButton>
+      </LinkButton>
     );
   }
 
@@ -262,9 +262,9 @@ function SpanDetail(props: Props) {
     });
 
     return (
-      <StyledButton size="xs" to={target}>
+      <LinkButton size="xs" to={target}>
         {t('View Similar Spans')}
-      </StyledButton>
+      </LinkButton>
     );
   }
 
@@ -564,8 +564,6 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   top: ${space(0.75)};
   right: ${space(0.5)};
 `;
-
-const StyledButton = styled(Button)``;
 
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};

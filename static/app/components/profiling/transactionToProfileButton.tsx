@@ -1,6 +1,6 @@
 import {Location} from 'history';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import {LinkButton, LinkButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -12,7 +12,7 @@ interface Props {
   projectSlug: string;
   children?: React.ReactNode;
   query?: Location['query'];
-  size?: ButtonProps['size'];
+  size?: LinkButtonProps['size'];
 }
 
 function TransactionToProfileButton({
@@ -43,9 +43,9 @@ function TransactionToProfileButton({
   });
 
   return (
-    <Button size={size} onClick={handleGoToProfile} to={target}>
+    <LinkButton size={size} onClick={handleGoToProfile} to={target}>
       {children}
-    </Button>
+    </LinkButton>
   );
 }
 

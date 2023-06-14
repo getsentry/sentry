@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -233,12 +233,12 @@ function OnboardingContent({
             `Your project's platform has not been set. Please select your project's platform before proceeding.`
           )}
         </p>
-        <Button
+        <LinkButton
           size="sm"
           to={`/settings/${organization.slug}/projects/${currentProject.slug}/`}
         >
           {t('Go to Project Settings')}
-        </Button>
+        </LinkButton>
       </ContentContainer>
     );
   }
@@ -254,9 +254,9 @@ function OnboardingContent({
             {platform: currentPlatform?.name || currentProject.slug}
           )}
         </p>
-        <Button size="sm" href="https://discord.gg/zrMjKA4Vnz" external>
+        <LinkButton size="sm" href="https://discord.gg/zrMjKA4Vnz" external>
           {t('Join Discord')}
-        </Button>
+        </LinkButton>
       </ContentContainer>
     );
   }
@@ -270,13 +270,13 @@ function OnboardingContent({
             {project: currentProject.slug}
           )}
         </p>
-        <Button
+        <LinkButton
           size="sm"
           href="https://docs.sentry.io/product/profiling/getting-started/"
           external
         >
           {t('Go to documentation')}
-        </Button>
+        </LinkButton>
       </ContentContainer>
     );
   }

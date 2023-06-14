@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -364,9 +364,9 @@ const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug?: str
   const eventDetailsLocation = getTransactionDetailsUrl(orgSlug, eventSlug);
 
   const actionButton = projectSlug ? (
-    <Button size="xs" to={eventDetailsLocation}>
+    <LinkButton size="xs" to={eventDetailsLocation}>
       {t('View Full Event')}
-    </Button>
+    </LinkButton>
   ) : undefined;
 
   return makeRow(

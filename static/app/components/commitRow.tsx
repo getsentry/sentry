@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
@@ -121,13 +121,13 @@ function CommitRow({
       </CommitMessage>
 
       {commit.pullRequest && commit.pullRequest.externalUrl && (
-        <Button
+        <LinkButton
           external
           href={commit.pullRequest.externalUrl}
           onClick={onPullRequestClick}
         >
           {t('View Pull Request')}
-        </Button>
+        </LinkButton>
       )}
     </StyledPanelItem>
   );

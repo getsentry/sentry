@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
@@ -136,9 +136,9 @@ export function GapSpanDetails({
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <Button size="sm" priority="primary" href={docsLink} external>
+        <LinkButton size="sm" priority="primary" href={docsLink} external>
           {t('Set Up Profiling')}
-        </Button>
+        </LinkButton>
         <ManualInstrumentationInstruction />
       </InstructionsContainer>
     </Container>
@@ -208,9 +208,9 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
-      </Button>
+      </LinkButton>
     </HeaderContainer>
   );
 }

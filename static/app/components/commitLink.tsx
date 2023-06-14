@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -74,7 +74,7 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
     });
 
   return !inline ? (
-    <Button
+    <LinkButton
       external
       href={commitUrl}
       size="sm"
@@ -82,7 +82,7 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
       onClick={onClick}
     >
       {shortId}
-    </Button>
+    </LinkButton>
   ) : (
     <ExternalLink href={commitUrl} onClick={onClick}>
       {showIcon ? providerData.icon : null}

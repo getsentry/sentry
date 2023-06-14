@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
@@ -81,7 +81,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
             <Button onClick={this.handleSkipSms} name="skipStep" autoFocus>
               {t('Skip this step')}
             </Button>
-            <Button
+            <LinkButton
               priority="primary"
               onClick={closeModal}
               to={`/settings/account/security/mfa/${sms.id}/enroll/`}
@@ -90,12 +90,12 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
               autoFocus
             >
               {t('Add a Phone Number')}
-            </Button>
+            </LinkButton>
           </Footer>
         ) : (
           // get recovery codes
           <Footer>
-            <Button
+            <LinkButton
               priority="primary"
               onClick={closeModal}
               to={
@@ -107,7 +107,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
               autoFocus
             >
               {t('Get Recovery Codes')}
-            </Button>
+            </LinkButton>
           </Footer>
         )}
       </Fragment>
