@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
@@ -111,7 +112,7 @@ export function Request({data, event}: RequestProps) {
       className="request"
     >
       {view === 'curl' ? (
-        <pre>{getCurlCommand(data)}</pre>
+        <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
       ) : (
         <Fragment>
           {defined(data.query) && (
