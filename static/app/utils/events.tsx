@@ -229,7 +229,7 @@ function hasTrace(event: Event) {
  * by ensuring that every inApp frame has a valid sourcemap
  */
 export function eventHasSourceMaps(event: Event) {
-  const inAppFrames = getFrames(event, true);
+  const inAppFrames = getExceptionFrames(event, true);
 
   // the map field tells us if it's sourcemapped
   return inAppFrames.every(frame => !!frame.map);
@@ -241,7 +241,7 @@ export function eventHasSourceMaps(event: Event) {
  * to be successfully symbolicated. Otherwise falls back to checking for `rawStacktrace` field presence.
  */
 export function eventIsSymbolicated(event: Event) {
-  const frames = getFrames(event, false);
+  const frames = getAllFrames(event, false);
   const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
 
   if (fromSymbolicator) {
@@ -277,7 +277,7 @@ export function eventIsSymbolicated(event: Event) {
  * Function to determine if an event has source context
  */
 export function eventHasSourceContext(event: Event) {
-  const frames = getFrames(event, false);
+  const frames = getAllFrames(event, false);
 
   return frames.some(frame => defined(frame.context) && !!frame.context.length);
 }
@@ -290,7 +290,7 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
     // return undefined if there is no event
     return {};
   }
-  const inAppFrames = getFrames(event, true);
+  const inAppFrames = getExceptionFrames(event, true);
   if (!inAppFrames.length) {
     return {};
   }
@@ -303,8 +303,32 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
   };
 }
 
-function getFrames(event: Event, inAppOnly: boolean) {
+/**
+ * Returns all stack frames of type 'exception' of this event
+ */
+function getExceptionFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
+  const frames = exceptions
+    .map(exception => exception.data.values || [])
+    .flat()
+    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
+    .flat();
+  return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
+}
+
+/**
+ * Returns all entries of type 'exception' of this event
+ */
+function getExceptionEntries(event: Event) {
+  return (event.entries?.filter(entry => entry.type === EntryType.EXCEPTION) ||
+    []) as EntryException[];
+}
+
+/**
+ * Returns all stack frames of type 'exception' or 'threads' of this event
+ */
+function getAllFrames(event: Event, inAppOnly: boolean) {
+  const exceptions = getEntriesWithFrames(event);
   const frames = exceptions
     .map(
       (withStacktrace: EntryException | EntryThreads) => withStacktrace.data.values || []
@@ -318,7 +342,10 @@ function getFrames(event: Event, inAppOnly: boolean) {
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
-function getExceptionEntries(event: Event) {
+/**
+ * Returns all entries that can have stack frames, currently of 'exception' and 'threads' type
+ */
+function getEntriesWithFrames(event: Event) {
   return (event.entries?.filter(
     entry => entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS
   ) || []) as EntryException[] | EntryThreads[];
