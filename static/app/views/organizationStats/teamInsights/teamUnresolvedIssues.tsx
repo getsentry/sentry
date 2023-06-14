@@ -124,7 +124,7 @@ export function TeamUnresolvedIssues({
             useShortDate
             legend={{right: 3, top: 0}}
             yAxis={{minInterval: 1}}
-            xAxis={barAxisLabel(seriesData.length)}
+            xAxis={barAxisLabel()}
             series={[
               {
                 seriesName: t('Unresolved Issues'),
