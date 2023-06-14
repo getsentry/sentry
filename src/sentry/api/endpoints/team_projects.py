@@ -11,14 +11,11 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
-from sentry.api.serializers.models.project import OrganizationProjectResponse
-from sentry.api.serializers.models.project import (
-    ProjectSerializer as SentryProjectResponseSerializer,
-)
+from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
-from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS, PROJECT_PARAMS
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ProjectParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project
@@ -66,9 +63,9 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     @extend_schema(
         operation_id="List a Team's Projects",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.TEAM_SLUG,
-            CURSOR_QUERY_PARAM,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.TEAM_SLUG,
+            CursorQueryParam,
         ],
         request=None,
         responses={
@@ -121,18 +118,18 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         tags=["Projects"],
         operation_id="Create a New Project",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.TEAM_SLUG,
-            GLOBAL_PARAMS.name("The name of the project.", required=True),
-            GLOBAL_PARAMS.slug(
+            GlobalParams.ORG_SLUG,
+            GlobalParams.TEAM_SLUG,
+            GlobalParams.name("The name of the project.", required=True),
+            GlobalParams.slug(
                 "Optional slug for the project. If not provided a slug is generated from the name."
             ),
-            PROJECT_PARAMS.platform("The platform for the project."),
-            PROJECT_PARAMS.DEFAULT_RULES,
+            ProjectParams.platform("The platform for the project."),
+            ProjectParams.DEFAULT_RULES,
         ],
         request=ProjectPostSerializer,
         responses={
-            201: SentryProjectResponseSerializer,
+            201: ProjectSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),

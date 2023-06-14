@@ -9,6 +9,7 @@ import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -18,14 +19,6 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
 function validateSortOption({
   sort,
   organization,
@@ -33,13 +26,15 @@ function validateSortOption({
   organization: Organization;
   sort?: string;
 }) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
-  const sortOptions = [...DEFAULT_SORT_OPTIONS];
-  if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
-  }
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
   if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }

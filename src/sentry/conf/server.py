@@ -705,7 +705,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
@@ -836,12 +835,6 @@ CELERYBEAT_SCHEDULE = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
-    },
-    "enqueue-scheduled-jobs": {
-        "task": "sentry.tasks.enqueue_scheduled_jobs",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
     },
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
@@ -1216,6 +1209,8 @@ SENTRY_FEATURES = {
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables separate filters for user and user's teams
+    "organizations:assign-to-me": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1237,8 +1232,6 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute issue alerts feature
-    "organizations:mute-alerts": False,
     # Enable the mute metric alerts feature
     "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
@@ -1397,6 +1390,8 @@ SENTRY_FEATURES = {
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
+    # Enable better priority sort experiment
+    "organizations:better-priority-sort-experiment": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1510,7 +1505,7 @@ SENTRY_FEATURES = {
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": False,
+    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
@@ -1529,15 +1524,13 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
     "organizations:device-class-synthesis": False,
+    # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
+    "organizations:getting-started-doc-with-product-selection": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
-    # Disables multiselect platform in the onboarding flow
-    "organizations:onboarding-remove-multiselect-platform": False,
-    # Enable the project loader feature in the onboarding
-    "organizations:onboarding-project-loader": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
@@ -3441,8 +3434,19 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.1
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 
 # The Redis cluster to use for monitoring the health of
 # Celery queues.
 SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
+
+# This is a mapping between the various processing stores,
+# and the redis `cluster` they are using.
+# This setting needs to be appropriately synched across the various deployments
+# for automatic backpressure management to properly work.
+SENTRY_PROCESSING_REDIS_CLUSTERS = {
+    "attachments": "rc-short",
+    # "processing": "processing",
+    "locks": "default",
+    "post_process_locks": "default",
+}

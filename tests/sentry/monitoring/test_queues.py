@@ -8,10 +8,9 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from pytest import raises
 
 from sentry import options
-from sentry.monitoring.queues import QUEUES as MONITORED_QUEUES
 from sentry.monitoring.queues import (
     _list_queues_over_threshold,
-    _unhealthy_queue_key,
+    _unhealthy_consumer_key,
     queue_monitoring_cluster,
 )
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
@@ -26,7 +25,7 @@ class TestMonitoringQueues(TestCase):
 
     def test_list_queues_over_theshold(self):
         strike_threshold = 10
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.strike_threshold": strike_threshold,
             }
@@ -38,19 +37,20 @@ class TestMonitoringQueues(TestCase):
             strike_threshold = options.get("backpressure.monitor_queues.strike_threshold")
             under_threshold = _list_queues_over_threshold(strike_threshold, queue_history)
 
-            assert under_threshold == [
-                ("replays.process", False),
-                ("profiles.process", True),
-            ]
+            assert under_threshold == {
+                "replays.process": False,
+                "profiles.process": True,
+            }
 
     def test_backpressure_unhealthy(self):
-        queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
+        queue_name = _unhealthy_consumer_key("profiles")
 
         # Set the queue as unhealthy so it shouldn't process messages
         queue_monitoring_cluster.set(queue_name, "1")
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.enable_check": True,
+                "backpressure.monitor_queues.check_interval_in_seconds": 0,
                 "backpressure.monitor_queues.unhealthy_threshold": 0,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -60,13 +60,14 @@ class TestMonitoringQueues(TestCase):
 
     @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
     def test_backpressure_healthy(self, process_profile_task):
-        queue_name = _unhealthy_queue_key(MONITORED_QUEUES[0])
+        queue_name = _unhealthy_consumer_key("profiles")
 
         # Set the queue as healthy
         queue_monitoring_cluster.delete(queue_name)
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.enable_check": True,
+                "backpressure.monitor_queues.check_interval_in_seconds": 0,
                 "backpressure.monitor_queues.unhealthy_threshold": 1000,
                 "backpressure.monitor_queues.strike_threshold": 1,
             }
@@ -77,7 +78,7 @@ class TestMonitoringQueues(TestCase):
 
     @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
     def test_backpressure_not_enabled(self, process_profile_task):
-        with self.options(  # type: ignore[attr-defined]
+        with self.options(
             {
                 "backpressure.monitor_queues.enable_check": False,
             }
