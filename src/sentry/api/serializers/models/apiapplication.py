@@ -11,7 +11,7 @@ class ApiApplicationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         has_secret = obj.date_added > timezone.now() - timedelta(days=1)
         return {
-            "id": obj.client_id,
+            "id": obj.id,
             "clientID": obj.client_id,
             "clientSecret": obj.client_secret if has_secret else None,
             "name": obj.name,
