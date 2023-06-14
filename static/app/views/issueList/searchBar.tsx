@@ -75,7 +75,14 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         return DEVICE_CLASS_TAG_VALUES;
       }
       const values = await tagValueLoader(tag.key, query);
-      return values.map(({value}) => value);
+      return values.map(({value}) => {
+        // Truncate results to 5000 characters to avoid exceeding the max url query length
+        // The message attribute for example can be 8192 characters.
+        if (typeof value === 'string' && value.length > 5000) {
+          return value.substring(0, 5000);
+        }
+        return value;
+      });
     },
     [tagValueLoader]
   );
