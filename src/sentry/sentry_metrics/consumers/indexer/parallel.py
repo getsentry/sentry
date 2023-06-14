@@ -99,13 +99,13 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ):
         from sentry.sentry_metrics.configuration import (
             IndexerStorage,
-            UseCaseKey,
+            MetricPathKey,
             get_ingest_config,
             initialize_main_process_state,
         )
         from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 
-        use_case = UseCaseKey(ingest_profile)
+        use_case = MetricPathKey(ingest_profile)
         db_backend = IndexerStorage(indexer_db)
         ingest_config = get_ingest_config(use_case, db_backend)
         initialize_main_process_state(ingest_config)
