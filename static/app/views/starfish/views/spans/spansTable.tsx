@@ -1,120 +1,100 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import moment from 'moment';
+import {urlEncode} from '@sentry/utils';
 
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Series} from 'sentry/types/echarts';
+import Pagination from 'sentry/components/pagination';
+import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-
-import type {Cluster} from './clusters';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
+import {ModuleName} from 'sentry/views/starfish/types';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
-  clusters: Cluster[];
-  isLoading: boolean;
-  location: Location;
-  onSelect: (row: SpanDataRow) => void;
+  moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  spansData: SpanDataRow[];
-  spansTrendsData: SpanTrendDataRow[];
+  columnOrder?: TableColumnHeader[];
+  endpoint?: string;
+  limit?: number;
+  spanCategory?: string;
 };
 
 export type SpanDataRow = {
-  count: number;
-  description: string;
-  domain: string;
-  group_id: string;
-  p50: number;
-  p95: number;
-  span_operation: string;
-  total_exclusive_time: number;
+  'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
+  'span.description': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  'spm()': number;
+  'sps_percent_change()': number;
+  'time_spent_percentage()': number;
 };
 
-export type SpanTrendDataRow = {
-  group_id: string;
-  interval: string;
-  percentile_value: string;
-  span_operation: string;
-};
+export type Keys =
+  | 'span.description'
+  | 'span.op'
+  | 'span.domain'
+  | 'spm()'
+  | 'p95(span.duration)'
+  | 'sps_percent_change()'
+  | 'sum(span.duration)'
+  | 'time_spent_percentage()';
+export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
-  location,
-  spansData,
+  moduleName,
   orderBy,
   onSetOrderBy,
-  clusters,
-  spansTrendsData,
-  isLoading,
-  onSelect,
+  columnOrder,
+  spanCategory,
+  endpoint,
+  limit = 25,
 }: Props) {
-  const spansTrendsGrouped = {};
-
-  spansTrendsData?.forEach(({group_id, span_operation, interval, percentile_value}) => {
-    if (span_operation in spansTrendsGrouped) {
-      if (group_id in spansTrendsGrouped[span_operation]) {
-        return spansTrendsGrouped[span_operation][group_id].push({
-          name: interval,
-          value: percentile_value,
-        });
-      }
-      return (spansTrendsGrouped[span_operation][group_id] = [
-        {name: interval, value: percentile_value},
-      ]);
-    }
-    return (spansTrendsGrouped[span_operation] = {
-      [group_id]: [{name: interval, value: percentile_value}],
-    });
-  });
-
-  const combinedSpansData = spansData?.map(spanData => {
-    const {group_id, span_operation} = spanData;
-    if (spansTrendsGrouped[span_operation] === undefined) {
-      return spanData;
-    }
-    const percentile_trend: Series = {
-      seriesName: 'percentile_trend',
-      data: spansTrendsGrouped[span_operation][group_id],
-    };
-
-    const zeroFilled = zeroFillSeries(percentile_trend, moment.duration(1, 'day'));
-    return {...spanData, percentile_trend: zeroFilled};
-  });
+  const location = useLocation();
+  const {isLoading, data, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    undefined,
+    spanCategory,
+    orderBy,
+    limit
+  );
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={combinedSpansData}
-      columnOrder={getColumns(clusters)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, onSelect),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={columnOrder ?? getColumns(moduleName)}
+        columnSortBy={
+          orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
+        }
+        grid={{
+          renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
+          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 
 function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => void) {
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  function renderHeadCell(column: TableColumnHeader): React.ReactNode {
     return (
       <SortLink
         align="left"
-        canSort={column.key !== 'percentile_trend'}
+        canSort
         direction={orderBy === column.key ? 'desc' : undefined}
         onClick={() => {
           onSetOrderBy(`${column.key}`);
@@ -132,131 +112,122 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-const SPAN_OPS_WITH_DETAIL = ['http.client', 'db'];
-
 function renderBodyCell(
-  column: GridColumnHeader,
+  column: TableColumnHeader,
   row: SpanDataRow,
-  onSelect?: (row: SpanDataRow) => void
+  endpoint?: string
 ): React.ReactNode {
-  if (column.key === 'percentile_trend' && row[column.key]) {
-    return (
-      <Sparkline
-        color={CHART_PALETTE[3][0]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-      />
-    );
-  }
-
-  if (column.key === 'description') {
-    const formattedRow = mapRowKeys(row, row.span_operation);
+  if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
-        <Link
-          onClick={() => onSelect?.(formattedRow)}
-          to={
-            SPAN_OPS_WITH_DETAIL.includes(row.span_operation)
-              ? ''
-              : `/starfish/span/${encodeURIComponent(row.group_id)}`
-          }
-        >
-          {row.span_operation === 'db' ? (
-            <StyledFormattedCode>
-              {(row as unknown as DataRow).formatted_desc}
-            </StyledFormattedCode>
-          ) : (
-            row.description
-          )}
-        </Link>
+        {row['span.group'] ? (
+          <Link
+            to={`/starfish/span/${row['span.group']}${
+              endpoint ? `?${urlEncode({endpoint})}` : ''
+            }`}
+          >
+            {row['span.description'] || '<null>'}
+          </Link>
+        ) : (
+          row['span.description'] || '<null>'
+        )}
       </OverflowEllipsisTextContainer>
     );
   }
 
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  if (column.key === 'time_spent_percentage()') {
+    return (
+      <TimeSpentCell
+        timeSpentPercentage={row['time_spent_percentage()']}
+        totalSpanTime={row['sum(span.duration)']}
+      />
+    );
+  }
+
+  if (column.key === 'spm()') {
+    return (
+      <ThroughputCell
+        throughputPerSecond={row['spm()']}
+        delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.duration)']}
+        delta={row['percentile_percent_change(span.duration, 0.95)']}
+      />
+    );
   }
 
   return row[column.key];
 }
 
-// We use different named column keys for the same columns in db and api module
-// So we need to map them to the appropriate keys for the module details drawer
-// Not ideal, but this is a temporary fix until we match the column keys.
-// Also the type for this is not very consistent. We should fix that too.
-const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
-  switch (spanOperation) {
-    case 'http.client':
-      return {
-        ...row,
-        'p50(span.self_time)': row.p50,
-        'p95(span.self_time)': row.p95,
-      };
-    case 'db':
-      return {
-        ...row,
-        total_time: row.total_exclusive_time,
-      };
-
-    default:
-      return row;
+function getDomainHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
+    return 'Host';
   }
-};
+  if (moduleName === ModuleName.DB) {
+    return 'Table';
+  }
+  return 'Domain';
+}
+function getDescriptionHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
+    return 'URL';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Query';
+  }
+  return 'Description';
+}
 
-function getColumns(clusters: Cluster[]): GridColumnOrder[] {
-  const secondCluster = clusters.at(1);
-  const description =
-    clusters.findLast(cluster => Boolean(cluster.description_label))?.description_label ||
-    'Description';
+function getColumns(moduleName: ModuleName): TableColumnHeader[] {
+  const description = getDescriptionHeader(moduleName);
 
-  const domain =
-    clusters.findLast(cluster => Boolean(cluster.domain_label))?.domain_label || 'Domain';
+  const domain = getDomainHeader(moduleName);
 
-  const order: Array<GridColumnOrder | false> = [
-    !secondCluster && {
-      key: 'span_operation',
+  const order: TableColumnHeader[] = [
+    {
+      key: 'span.op',
       name: 'Operation',
-      width: COL_WIDTH_UNDEFINED,
+      width: 120,
     },
     {
-      key: 'description',
+      key: 'span.description',
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    !!secondCluster && {
-      key: 'domain',
-      name: domain,
+    ...(moduleName !== ModuleName.ALL
+      ? [
+          {
+            key: 'span.domain',
+            name: domain,
+            width: COL_WIDTH_UNDEFINED,
+          } as TableColumnHeader,
+        ]
+      : []),
+    {
+      key: 'spm()',
+      name: 'Throughput',
+      width: 175,
+    },
+    {
+      key: 'p95(span.duration)',
+      name: DataTitles.p95,
+      width: 175,
+    },
+    {
+      key: 'time_spent_percentage()',
+      name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'total_exclusive_time',
-      name: 'Total Time',
-      width: 250,
-    },
-    {
-      key: 'transactions',
-      name: 'Transactions',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'p50',
-      name: 'p50',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'percentile_trend',
-      name: 'p50 Trend',
-      width: 250,
     },
   ];
 
-  return order.filter((x): x is GridColumnOrder => Boolean(x));
+  return order;
 }
-
-const StyledFormattedCode = styled(FormattedCode)`
-  background: none;
-  text-overflow: ellipsis;
-`;
 
 export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;

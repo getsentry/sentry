@@ -100,7 +100,7 @@ def get_integrations_by_channel_by_recipient(
     provider: ExternalProviders,
 ) -> Mapping[RpcActor, Mapping[str, RpcIntegration]]:
     output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
-    for recipient in (RpcActor.from_object(r) for r in recipients):
+    for recipient in RpcActor.many_from_object(recipients):
         channels_to_integrations = None
         if recipient.actor_type == ActorType.USER:
             channels_to_integrations = _get_channel_and_integration_by_user(

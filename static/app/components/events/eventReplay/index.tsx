@@ -5,6 +5,8 @@ import LazyLoad from 'sentry/components/lazyLoad';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 type Props = {
   event: Event;
@@ -20,7 +22,10 @@ export default function EventReplay({replayId, organization, projectSlug, event}
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
 
-  if (!hasReplaysFeature || fetching) {
+  const project = useProjectFromSlug({organization, projectSlug});
+  const isReplayRelated = projectCanLinkToReplay(project);
+
+  if (!hasReplaysFeature || fetching || !isReplayRelated) {
     return null;
   }
 

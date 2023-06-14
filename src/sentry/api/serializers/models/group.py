@@ -70,6 +70,7 @@ from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -77,7 +78,7 @@ from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import Dataset, aliased_query, raw_query
+from sentry.utils.snuba import aliased_query, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -372,12 +373,6 @@ class GroupSerializerBase(Serializer, ABC):
     @abstractmethod
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        pass
-
-    @abstractmethod
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         pass
 
@@ -776,15 +771,6 @@ class GroupSerializer(GroupSerializerBase):
             item_list, tagstore.get_groups_user_counts, tagstore.get_group_list_tag_value
         )
 
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self.__seen_stats_impl(
-            perf_issue_list,
-            tagstore.get_perf_groups_user_counts,
-            tagstore.get_perf_group_list_tag_value,
-        )
-
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
@@ -986,22 +972,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             error_issue_list,
-            bool(self.start or self.end or self.conditions),
-            self.environment_ids,
-        )
-
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
-            self._execute_perf_seen_stats_query(
-                item_list=perf_issue_list,
-                start=self.start,
-                end=self.end,
-                conditions=self.conditions,
-                environment_ids=self.environment_ids,
-            ),
-            perf_issue_list,
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )

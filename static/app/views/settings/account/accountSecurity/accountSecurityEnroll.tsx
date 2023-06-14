@@ -33,7 +33,7 @@ import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/compone
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type getFieldsOpts = {
+type GetFieldsOpts = {
   authenticator: Authenticator;
   /**
    * Flag to track if totp has been sent
@@ -62,7 +62,7 @@ const getFields = ({
   sendingCode,
   onSmsReset,
   onU2fTap,
-}: getFieldsOpts): null | FieldObject[] => {
+}: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
   if (!form) {
@@ -189,6 +189,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.pendingInvitation = getPendingInvite();
   }
 

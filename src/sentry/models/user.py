@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any, List, Sequence
+from typing import List
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -19,7 +19,6 @@ from sentry.db.models import (
     BaseManager,
     BaseModel,
     BoundedAutoField,
-    FlexibleForeignKey,
     control_silo_only_model,
     sane_repr,
 )
@@ -28,60 +27,17 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.silo import SiloMode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
-if TYPE_CHECKING:
-    from sentry.models import Team
-
 
 class UserManager(BaseManager, DjangoUserManager):
-    def get_team_members_with_verified_email_for_projects(
-        self, projects: Sequence[Any]
-    ) -> QuerySet:
-        from sentry.models import ProjectTeam, Team
-
-        return self.filter(
-            emails__is_verified=True,
-            sentry_orgmember_set__teams__in=Team.objects.filter(
-                id__in=ProjectTeam.objects.filter(project__in=projects).values_list(
-                    "team_id", flat=True
-                )
-            ),
-            is_active=True,
-        ).distinct()
-
-    def get_from_teams(self, organization_id: int, teams: Sequence["Team"]) -> QuerySet:
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__in=teams,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_projects(self, organization_id, projects):
-        """
-        Returns users associated with a project based on their teams.
-        """
-        return self.filter(
-            sentry_orgmember_set__organization_id=organization_id,
-            sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
-    def get_from_organizations(self, organization_ids):
-        """Returns users associated with an Organization based on their teams."""
-        return self.filter(
-            sentry_orgmember_set__organization_id__in=organization_ids,
-            sentry_orgmember_set__organizationmemberteam__is_active=True,
-            is_active=True,
-        )
-
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet:
@@ -183,14 +139,7 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
-    actor = FlexibleForeignKey(
-        "sentry.Actor",
-        related_name="user_from_actor",
-        db_index=True,
-        unique=True,
-        null=True,
-        on_delete=models.PROTECT,
-    )
+
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
@@ -220,14 +169,24 @@ class User(BaseModel, AbstractBaseUser):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
-            for outbox in User.outboxes_for_update(self.id):
+            for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete()
 
+    def update(self, *args, **kwds):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return super().update(*args, **kwds)
+
     def save(self, *args, **kwargs):
-        if not self.username:
-            self.username = self.email
-        return super().save(*args, **kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            if not self.username:
+                self.username = self.email
+            result = super().save(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
 
     def has_perm(self, perm_name):
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
@@ -247,6 +206,9 @@ class User(BaseModel, AbstractBaseUser):
 
     def get_verified_emails(self):
         return self.emails.filter(is_verified=True)
+
+    def has_verified_emails(self):
+        return self.get_verified_emails().exists()
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
@@ -310,8 +272,11 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
+    def outboxes_for_update(self) -> List[ControlOutbox]:
+        return User.outboxes_for_user_update(self.id)
+
     @staticmethod
-    def outboxes_for_update(identifier: int) -> List[ControlOutbox]:
+    def outboxes_for_user_update(identifier: int) -> List[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.USER_SCOPE,
@@ -325,20 +290,13 @@ class User(BaseModel, AbstractBaseUser):
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
-        from sentry import roles
         from sentry.models import (
-            Activity,
             AuditLogEntry,
             Authenticator,
             AuthIdentity,
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSubscription,
             Identity,
             OrganizationMember,
-            OrganizationMemberTeam,
+            OrganizationMemberMapping,
             UserAvatar,
             UserEmail,
             UserOption,
@@ -348,33 +306,20 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
         )
 
-        for obj in OrganizationMember.objects.filter(user_id=from_user.id):
-            try:
-                with transaction.atomic():
-                    obj.update(user_id=to_user.id)
-            # this will error if both users are members of obj.org
-            except IntegrityError:
-                pass
-
-            # identify the highest priority membership
-            # only applies if both users are members of obj.org
-            # if roles are different, grants combined user the higher of the two
-            to_member = OrganizationMember.objects.get(
-                organization=obj.organization_id, user_id=to_user.id
+        organization_ids: List[int]
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            organization_ids = OrganizationMember.objects.filter(user_id=from_user.id).values_list(
+                "organization_id", flat=True
             )
-            if roles.get(obj.role).priority > roles.get(to_member.role).priority:
-                to_member.update(role=obj.role)
+        else:
+            organization_ids = OrganizationMemberMapping.objects.filter(
+                user_id=from_user.id
+            ).values_list("organization_id", flat=True)
 
-            for team in obj.teams.all():
-                try:
-                    with transaction.atomic():
-                        OrganizationMemberTeam.objects.create(
-                            organizationmember=to_member, team=team
-                        )
-                # this will error if both users are on the same team in obj.org,
-                # in which case, no need to update anything
-                except IntegrityError:
-                    pass
+        for organization_id in organization_ids:
+            organization_service.merge_users(
+                organization_id=organization_id, from_user_id=from_user.id, to_user_id=to_user.id
+            )
 
         model_list = (
             Authenticator,
@@ -382,11 +327,6 @@ class User(BaseModel, AbstractBaseUser):
             UserAvatar,
             UserEmail,
             UserOption,
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSubscription,
         )
 
         for model in model_list:
@@ -397,7 +337,6 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        Activity.objects.filter(user_id=from_user.id).update(user_id=to_user.id)
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)
@@ -442,7 +381,7 @@ class User(BaseModel, AbstractBaseUser):
         return Organization.objects.filter(
             flags=models.F("flags").bitor(Organization.flags.require_2fa),
             status=OrganizationStatus.ACTIVE,
-            member_set__user=self,
+            member_set__user_id=self.id,
         )
 
     def clear_lost_passwords(self):

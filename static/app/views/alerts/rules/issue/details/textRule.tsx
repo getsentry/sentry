@@ -82,7 +82,7 @@ export function TextAction({
 }) {
   if (action.targetType === 'Member') {
     const user = memberList.find(
-      member => member.user.id === `${action.targetIdentifier}`
+      member => member.user?.id === `${action.targetIdentifier}`
     );
     return (
       <Fragment>{t('Send a notification to %s', user?.email ?? t('unknown'))}</Fragment>

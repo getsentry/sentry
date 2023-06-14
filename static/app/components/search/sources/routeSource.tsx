@@ -2,6 +2,7 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import flattenDepth from 'lodash/flattenDepth';
 
+import HookStore from 'sentry/stores/hookStore';
 import {Organization, Project} from 'sentry/types';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
@@ -96,6 +97,16 @@ class RouteSource extends Component<Props, State> {
     this.createSearch();
   }
 
+  getHookConfigs(): Config {
+    const {organization} = this.props;
+
+    return organization
+      ? HookStore.get('settings:organization-navigation-config').map(cb =>
+          cb(organization)
+        )
+      : [];
+  }
+
   async createSearch() {
     const {project, organization} = this.props;
 
@@ -111,6 +122,7 @@ class RouteSource extends Component<Props, State> {
         mapFunc(accountSettingsNavigation, context),
         mapFunc(projectSettingsNavigation, context),
         mapFunc(organizationSettingsNavigation, context),
+        mapFunc(this.getHookConfigs(), context),
       ],
       2
     );

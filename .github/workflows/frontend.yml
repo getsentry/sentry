@@ -113,6 +113,7 @@ jobs:
         uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38 # main
         with:
           github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: apply eslint style fixes'
 
       - name: tsc
         id: tsc
@@ -178,7 +179,7 @@ jobs:
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
         run: |
-          SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1

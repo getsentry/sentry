@@ -23,7 +23,6 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       router: {
         params: routeParams,
       },
@@ -56,7 +55,6 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       router: {
         params: routeParams,
       },
@@ -96,7 +94,6 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       router: {
         params: routeParams,
       },
@@ -183,9 +180,7 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         features: ['onboarding-project-deletion-on-back-click'],
       },
       router: {
@@ -284,9 +279,7 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         features: ['onboarding-project-deletion-on-back-click'],
       },
       router: {
@@ -376,9 +369,7 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         features: ['onboarding-sdk-selection'],
       },
       router: {
@@ -424,9 +415,7 @@ describe('Onboarding', function () {
     };
 
     const {router, route, routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         features: ['onboarding-sdk-selection'],
       },
       router: {

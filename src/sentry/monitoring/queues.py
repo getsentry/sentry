@@ -38,7 +38,7 @@ class AmqpBackend:
             host="%s:%d" % (host, port),
             userid=dsn.username,
             password=dsn.password,
-            virtual_host=dsn.path[1:],
+            virtual_host=dsn.path[1:] or "/",
         )
 
     def get_conn(self):

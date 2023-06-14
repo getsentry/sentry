@@ -52,9 +52,10 @@ class ExternalActor(DefaultFieldsModel):
             integration=integration, organization_id=self.organization.id
         )
 
-        install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
-        notifications_service.remove_notification_settings(
-            actor_id=self.actor_id, provider=ExternalProviders(self.provider)
+        team = self.actor.resolve()
+        install.notify_remove_external_team(external_team=self, team=team)
+        notifications_service.remove_notification_settings_for_team(
+            team_id=team.id, provider=ExternalProviders(self.provider)
         )
 
         return super().delete(**kwargs)

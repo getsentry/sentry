@@ -11,7 +11,7 @@ const {organization, router, routerContext} = initializeOrg({
   project: undefined,
   projects: [
     {
-      id: 2,
+      id: '2',
       slug: 'project-2',
       environments: ['prod', 'staging'],
     },

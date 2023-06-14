@@ -10,7 +10,7 @@ import Input from 'sentry/components/input';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
@@ -24,7 +24,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import {BuildStep} from '../buildStep';
+import {BuildStep, SubHeading} from '../buildStep';
 
 interface Props {
   canAddSearchConditions: boolean;
@@ -102,15 +102,12 @@ export function FilterResultsStep({
   return (
     <BuildStep
       title={t('Filter your results')}
-      description={
-        canAddSearchConditions
-          ? t(
-              'Projects, environments, and date range have been preselected at the dashboard level. Filter down your search here. You can add multiple queries to compare data for each overlay.'
-            )
-          : t(
-              'Projects, environments, and date range have been preselected at the dashboard level. Filter down your search here.'
-            )
-      }
+      description={tct(
+        'Projects, environments, date range and releases have been preselected in the dashboard that this widget belongs to. You can filter the results by these fields further using the search bar. For example, typing [releaseQuery] narrows down the results specific to that release.',
+        {
+          releaseQuery: <StyledReleaseQuery>release:1.0.0</StyledReleaseQuery>,
+        }
+      )}
     >
       <StyledPageFilterBar>
         <ProjectPageFilter disabled />
@@ -128,6 +125,13 @@ export function FilterResultsStep({
           />
         </ReleasesProvider>
       </StyledPageFilterBar>
+      <SubHeading>
+        {canAddSearchConditions
+          ? t(
+              'Filter down your search here. You can add multiple queries to compare data for each overlay:'
+            )
+          : t('Filter down your search here:')}
+      </SubHeading>
       <div>
         {queries.map((query, queryIndex) => {
           return (
@@ -218,4 +222,9 @@ const SearchConditionsWrapper = styled('div')`
   > * + * {
     margin-left: ${space(1)};
   }
+`;
+
+const StyledReleaseQuery = styled('span')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.pink300};
 `;

@@ -27,7 +27,7 @@ class ConcurrentLimitInfo:
 
 class ConcurrentRateLimiter:
     def __init__(self, max_tll_seconds: int = DEFAULT_MAX_TTL_SECONDS) -> None:
-        cluster_key = getattr(settings, "SENTRY_RATE_LIMIT_REDIS_CLUSTER", "default")
+        cluster_key = settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_key)
         self.max_ttl_seconds = max_tll_seconds
 

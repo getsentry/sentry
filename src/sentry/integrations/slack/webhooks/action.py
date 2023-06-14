@@ -130,7 +130,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 
 @region_silo_endpoint
-class SlackActionEndpoint(Endpoint):  # type: ignore
+class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackActionRequest
@@ -222,7 +222,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not len(status_data):
             return
 
-        status: MutableMapping[str, Any] = {"status": status_data[0]}
+        status: MutableMapping[str, Any] = {
+            "status": status_data[0],
+        }
+
+        # sub-status only applies to ignored/archived issues
+        if len(status_data) > 1 and status_data[0] == "ignored":
+            status["substatus"] = status_data[1]
 
         resolve_type = status_data[-1]
 
@@ -235,9 +241,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         analytics.record(
             "integrations.slack.status",
+            organization_id=group.project.organization.id,
             status=status["status"],
             resolve_type=resolve_type,
-            actor_id=user.id,
+            user_id=user.id,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:

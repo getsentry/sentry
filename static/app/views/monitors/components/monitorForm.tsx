@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -45,6 +45,14 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 const DEFAULT_CRONTAB = '0 0 * * *';
 
+// Maps the value from the SentryMemberTeamSelectorField -> the expected alert
+// rule key and vice-versa.
+//
+// XXX(epurkhiser): For whatever reason the rules API wants the team and member
+// to be capitalized.
+const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
+const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
+
 export const DEFAULT_MAX_RUNTIME = 30;
 
 const getIntervals = (n: number): SelectValue<string>[] => [
@@ -78,9 +86,7 @@ function transformData(_data: Record<string, any>, model: FormModel) {
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
-        // XXX(epurkhiser): For whateve reason the rules API wants the team and
-        // mebmer to be capitalized.
-        const targetType = {team: 'Team', member: 'Member'}[type];
+        const targetType = RULE_TARGET_MAP[type];
 
         return {targetType, targetIdentifier: id};
       });
@@ -105,16 +111,16 @@ function transformData(_data: Record<string, any>, model: FormModel) {
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.frequency') {
-      data.config.schedule![0] = parseInt(v as string, 10);
+      data.config.schedule[0] = parseInt(v as string, 10);
       return data;
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.interval') {
-      data.config.schedule![1] = v as IntervalConfig['schedule'][1];
+      data.config.schedule[1] = v as IntervalConfig['schedule'][1];
       return data;
     }
 
-    data.config[k.substr(7)] = v;
+    data.config[k.substring(7)] = v;
     return data;
   }, {});
 }
@@ -146,11 +152,6 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData, mapFormErrors}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const [crontabInput, setCrontabInput] = useState(
-    monitor?.config.schedule_type === ScheduleType.CRONTAB
-      ? monitor?.config.schedule
-      : DEFAULT_CRONTAB
-  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -184,7 +185,9 @@ function MonitorForm({
   const isSuperuser = isActiveSuperuser();
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
-  const parsedSchedule = crontabAsText(crontabInput);
+  const alertRule = monitor?.alertRule?.targets.map(
+    target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
+  );
 
   return (
     <Form
@@ -200,6 +203,7 @@ function MonitorForm({
               slug: monitor.slug,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
+              alertRule,
               ...formDataFromConfig(monitor.type, monitor.config),
             }
           : {
@@ -281,8 +285,16 @@ function MonitorForm({
           )}
           <Observer>
             {() => {
-              const schedule_type = form.current.getValue('config.schedule_type');
-              if (schedule_type === 'crontab') {
+              const scheduleType = form.current.getValue('config.schedule_type');
+
+              const parsedSchedule =
+                scheduleType === 'crontab'
+                  ? crontabAsText(
+                      form.current.getValue('config.schedule')?.toString() ?? ''
+                    )
+                  : null;
+
+              if (scheduleType === 'crontab') {
                 return (
                   <ScheduleGroupInputs>
                     <StyledTextField
@@ -292,7 +304,6 @@ function MonitorForm({
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
-                      onChange={setCrontabInput}
                       inline={false}
                     />
                     <StyledSelectField
@@ -307,7 +318,7 @@ function MonitorForm({
                   </ScheduleGroupInputs>
                 );
               }
-              if (schedule_type === 'interval') {
+              if (scheduleType === 'interval') {
                 return (
                   <ScheduleGroupInputs interval>
                     <LabelText>{t('Every')}</LabelText>
@@ -362,35 +373,33 @@ function MonitorForm({
             inline={false}
           />
         </InputGroup>
-        {(monitor === undefined || monitor.config.alert_rule_id) && (
-          <Fragment>
-            <StyledListItem>{t('Notify members')}</StyledListItem>
-            <ListItemSubText>
-              {t(
-                'Tell us who to notify when a check-in reaches the thresholds above or has an error. You can send notifications to members or teams.'
-              )}
-            </ListItemSubText>
-            <InputGroup>
-              {monitor === undefined ? (
-                <StyledSentryMemberTeamSelectorField
-                  name="alertRule"
-                  multiple
-                  stacked
-                  inline={false}
-                />
-              ) : (
-                <AlertLink
-                  priority="muted"
-                  to={normalizeUrl(
-                    `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
-                  )}
-                >
-                  {t('Customize this monitors notification configuration in Alerts')}
-                </AlertLink>
-              )}
-            </InputGroup>
-          </Fragment>
-        )}
+        <Fragment>
+          <StyledListItem>{t('Notify members')}</StyledListItem>
+          <ListItemSubText>
+            {t(
+              'Tell us who to notify when a check-in reaches the thresholds above or has an error. You can send notifications to members or teams.'
+            )}
+          </ListItemSubText>
+          <InputGroup>
+            {monitor?.config.alert_rule_id && (
+              <AlertLink
+                priority="muted"
+                to={normalizeUrl(
+                  `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
+                )}
+              >
+                {t('Customize this monitors notification configuration in Alerts')}
+              </AlertLink>
+            )}
+            <StyledSentryMemberTeamSelectorField
+              name="alertRule"
+              multiple
+              stacked
+              inline={false}
+              menuPlacement="auto"
+            />
+          </InputGroup>
+        </Fragment>
       </StyledList>
     </Form>
   );

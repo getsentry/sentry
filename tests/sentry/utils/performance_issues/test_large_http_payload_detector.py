@@ -9,10 +9,10 @@ from sentry.testutils.performance_issues.event_generators import create_event, c
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors import LargeHTTPPayloadDetector
 from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 @region_silo_test
@@ -63,12 +63,148 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_issue_if_url_is_an_asset(self):
+    def test_does_not_issue_if_url_is_not_an_http_span(self):
         spans = [
             create_span(
                 "resource.script",
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 duration=1000.0,
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == []
+
+    def test_does_not_issue_if_url_is_not_a_json_asset(self):
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.mp3",
+                duration=1000.0,
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == []
+
+    def test_issues_if_url_is_a_json_asset(self):
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
+                duration=1000.0,
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1015-707544115c386d60b7b550634d582d8e47d9c5dd",
+                op="http",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
+                type=PerformanceLargeHTTPPayloadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_ignores_query_parameters(self):
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json?foo=bar",
+                duration=1000.0,
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1015-707544115c386d60b7b550634d582d8e47d9c5dd",
+                op="http",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
+                type=PerformanceLargeHTTPPayloadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_ignores_query_parameters_with_trailing_slash(self):
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
+                duration=1000.0,
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1015-e84e3f3951f80edcd72d5a0a08adae09e333e2ea",
+                op="http",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
+                type=PerformanceLargeHTTPPayloadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_does_not_trigger_detection_for_http_span_lower_than_100_ms_duration(self):
+        spans = [
+            create_span(
+                "http.client",
+                hash="hash1",
+                desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
+                duration=1.0,
                 data={
                     "http.transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,

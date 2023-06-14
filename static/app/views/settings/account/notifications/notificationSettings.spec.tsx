@@ -66,9 +66,7 @@ describe('NotificationSettings', function () {
 
   it('renders quota section with feature flag', function () {
     const {routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         features: ['slack-overage-notifications'],
       },
     });

@@ -2,13 +2,14 @@ import {useEffect, useState} from 'react';
 import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -83,7 +84,7 @@ export function CustomMeasurementsProvider({
 
           setState({customMeasurements: newCustomMeasurements});
         })
-        .catch((e: ResponseMeta) => {
+        .catch((e: RequestError) => {
           if (shouldCancelRequest) {
             return;
           }

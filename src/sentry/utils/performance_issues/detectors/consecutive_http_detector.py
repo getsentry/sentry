@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
@@ -13,6 +14,7 @@ from ..base import (
     PerformanceDetector,
     fingerprint_http_spans,
     get_duration_between_spans,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -92,7 +94,17 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        "http",
+                        desc,
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
             evidence_data={
                 "parent_span_ids": [],
                 "cause_span_ids": [],

@@ -12,7 +12,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
-import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -64,14 +64,12 @@ export function CreateProjectsFooter({
       let createProjectForPlatform: OnboardingSelectedSDK | undefined = undefined;
 
       if (selectedFramework) {
-        createProjectForPlatform = projects.find(
-          p => p.platform === selectedFramework.key
-        )
+        createProjectForPlatform = projects.find(p => p.slug === selectedFramework.key)
           ? undefined
           : selectedFramework;
       } else {
         createProjectForPlatform = projects.find(
-          p => p.platform === onboardingContext.data.selectedSDK?.key
+          p => p.slug === onboardingContext.data.selectedSDK?.key
         )
           ? undefined
           : onboardingContext.data.selectedSDK;
@@ -150,8 +148,8 @@ export function CreateProjectsFooter({
 
     if (
       selectedPlatform.type !== 'language' ||
-      !Object.values(SUPPORTED_LANGUAGES).includes(
-        selectedPlatform.language as SUPPORTED_LANGUAGES
+      !Object.values(SupportedLanguages).includes(
+        selectedPlatform.language as SupportedLanguages
       )
     ) {
       createPlatformProject();
@@ -176,6 +174,7 @@ export function CreateProjectsFooter({
             createPlatformProject(selectedFramework);
           }}
           onSkip={createPlatformProject}
+          newOrg
         />
       ),
       {

@@ -10,7 +10,7 @@ import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/event';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
@@ -208,7 +208,7 @@ export function SpanProfileDetails({
           registers: null,
           frames,
         }}
-        stackView={STACK_VIEW.APP}
+        stackView={StackView.APP}
         inlined
         maxDepth={MAX_STACK_DEPTH}
       />
@@ -341,7 +341,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
 const SpanDetails = styled('div')`
   padding: ${space(2)};
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: ${space(1)};
 `;
 

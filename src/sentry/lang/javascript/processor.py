@@ -2151,11 +2151,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             metrics.incr("sourcemaps.ab-test.performed")
 
-            # TODO: we currently have known differences:
-            # - python prefixes sourcemaps fetched by debug-id with `debug-id://`
-            # - some insignificant differences in source context application
-            #   related to different column offsets
-            # - python adds a `data.sourcemap` even if none was fetched successfully
             interesting_keys = {
                 "abs_path",
                 "filename",
@@ -2224,10 +2219,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                         ):
                             # python emits a `debug-id://` prefix whereas symbolicator does not
                             # OR: python adds a `data.sourcemap` even though it could not be resolved
-                            if (
-                                python_frame.get("data.sourcemap", "").startswith("debug-id://")
-                                or symbolicator_frame.get("data.sourcemap") is None
-                            ):
+                            if (python_frame.get("data.sourcemap") or "").startswith(
+                                "debug-id://"
+                            ) or symbolicator_frame.get("data.sourcemap") is None:
                                 continue
 
                             # with minified files and high column numbers, we might have a difference in

@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
@@ -73,7 +73,7 @@ async function clickEl(el) {
 }
 
 function _initializeData(
-  settings: initializeDataSettings,
+  settings: InitializeDataSettings,
   options?: {selectedProjectId?: string}
 ) {
   const newSettings = {...settings};
@@ -304,7 +304,7 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendColumn=transaction.duration&trendFunction=p50&unselectedSeries=p100%28%29'
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29'
     );
   });
 
@@ -545,7 +545,7 @@ describe('Performance > Trends', function () {
     );
 
     for (const parameter of TRENDS_PARAMETERS) {
-      if (Object.values(WebVital).includes(parameter.column as WebVital)) {
+      if (Object.values(WebVital).includes(parameter.column as string as WebVital)) {
         trendsStatsMock.mockReset();
 
         const newLocation = {
@@ -635,7 +635,7 @@ describe('Performance > Trends', function () {
             trendFunction: `${trendFunction.field}(transaction.duration)`,
             sort,
             query: expect.stringContaining('trend_percentage():>0%'),
-            interval: '30m',
+            interval: '1h',
             field: transactionFields,
             statsPeriod: '14d',
           }),
@@ -651,7 +651,7 @@ describe('Performance > Trends', function () {
             trendFunction: `${trendFunction.field}(transaction.duration)`,
             sort: '-' + sort,
             query: expect.stringContaining('trend_percentage():>0%'),
-            interval: '30m',
+            interval: '1h',
             field: transactionFields,
             statsPeriod: '14d',
           }),

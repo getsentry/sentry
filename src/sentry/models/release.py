@@ -30,12 +30,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager import BaseManager
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    BaseManager,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
@@ -1203,12 +1203,15 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def count_artifacts_in_artifact_bundles(self):
-        """Counts the number of artifacts in the artifact bundles associated with this release."""
+    def count_artifacts_in_artifact_bundles(self, project_ids: Sequence[int]):
+        """
+        Counts the number of artifacts in the artifact bundles associated with this release and a set of projects.
+        """
         qs = (
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__project_id__in=project_ids,
             )
             .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
             .values_list("releaseartifactbundle__release_name", "count")

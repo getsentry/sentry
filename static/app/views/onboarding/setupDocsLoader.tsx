@@ -18,7 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
 export function SetupDocsLoader({
   organization,
@@ -72,20 +71,20 @@ export function SetupDocsLoader({
       return;
     }
 
-    const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
-      [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
-      [DynamicSDKLoaderOption.HAS_REPLAY]: false,
-      [DynamicSDKLoaderOption.HAS_DEBUG]: false,
+    const newDynamicSdkLoaderOptions: ProjectKey['dynamicSdkLoaderOptions'] = {
+      hasPerformance: false,
+      hasReplay: false,
+      hasDebug: false,
     };
 
     products.forEach(product => {
       // eslint-disable-next-line default-case
       switch (product) {
         case PRODUCT.PERFORMANCE_MONITORING:
-          newDynamicSdkLoaderOptions[DynamicSDKLoaderOption.HAS_PERFORMANCE] = true;
+          newDynamicSdkLoaderOptions.hasPerformance = true;
           break;
         case PRODUCT.SESSION_REPLAY:
-          newDynamicSdkLoaderOptions[DynamicSDKLoaderOption.HAS_REPLAY] = true;
+          newDynamicSdkLoaderOptions.hasReplay = true;
           break;
       }
     });

@@ -1,7 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
+import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -9,7 +12,10 @@ import GridEditable, {
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
@@ -17,32 +23,25 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  ColumnType,
-  fieldAlignment,
-  getAggregateAlias,
-} from 'sentry/utils/discover/fields';
-import {TableColumn} from 'sentry/views/discover/table/types';
-
-const COLUMN_TITLES = ['endpoint', 'tpm', 'p50(duration)', 'p95(duration)'];
-
-import styled from '@emotion/styled';
-
-import Duration from 'sentry/components/duration';
-import BaseSearchBar from 'sentry/components/searchBar';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {TableColumn} from 'sentry/views/discover/table/types';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
-// HACK: Overrides ColumnType for TIME_SPENT_IN_SERVICE which is
-// returned as a number because it's an equation, but we
-// want formatted as a percentage
-const TABLE_META_OVERRIDES: Record<string, ColumnType> = {
-  [TIME_SPENT_IN_SERVICE]: 'percentage',
-};
+const COLUMN_TITLES = [
+  t('Endpoint'),
+  DataTitles.throughput,
+  t('Change'),
+  DataTitles.p95,
+  t('Change'),
+  DataTitles.errorCount,
+  t('Change'),
+  DataTitles.timeSpent,
+];
 
 type Props = {
   eventView: EventView;
@@ -51,19 +50,9 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-  columnTitles?: string[];
-  dataset?: 'discover' | 'metrics';
 };
 
-function EndpointList({
-  eventView,
-  location,
-  onSelect,
-  organization,
-  setError,
-  columnTitles,
-  dataset,
-}: Props) {
+function EndpointList({eventView, location, organization, setError}: Props) {
   const [widths, setWidths] = useState<number[]>([]);
   const [_eventView, setEventView] = useState<EventView>(eventView);
 
@@ -81,12 +70,12 @@ function EndpointList({
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
-    deltaColumnMap: Record<string, string>
+    _deltaColumnMap: Record<string, string>
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const tableMeta = {...tableData.meta, ...TABLE_META_OVERRIDES};
+    const tableMeta = tableData.meta;
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
@@ -98,22 +87,18 @@ function EndpointList({
         prefix = `${dataRow['http.method']} `;
       }
 
-      const row = {
-        endpoint: `${prefix}${dataRow.transaction}`,
-        transaction: dataRow.transaction,
-        httpOp: dataRow['http.method'],
-        aggregateDetails: {
-          failureCount: dataRow['count_if(http.status_code,greaterOrEquals,500)'],
-          p50: dataRow['p50()'],
-          tpm: dataRow['tpm()'],
-          p50Delta: dataRow[deltaColumnMap['p50()']],
-        },
-      } as EndpointDataRow;
-
       return (
         <Link
-          onClick={() => onSelect(row)}
-          to=""
+          to={`/organizations/${
+            organization.slug
+          }/starfish/endpoint-overview/?${qs.stringify({
+            endpoint: dataRow.transaction,
+            method: dataRow['http.method'],
+            statsPeriod: eventView.statsPeriod,
+            project: eventView.project,
+            start: eventView.start,
+            end: eventView.end,
+          })}`}
           style={{display: `block`, width: `100%`}}
         >
           {prefix}
@@ -127,41 +112,60 @@ function EndpointList({
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
         <Tooltip
-          title={t(
-            'This endpoint accounts for %s of the cumulative time on your web service',
-            formatPercentage(cumulativeTimePercentage)
-          )}
+          title={tct('Total time spent by endpoint is [cumulativeTime])', {
+            cumulativeTime: (
+              <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
+            ),
+          })}
           containerDisplayMode="block"
           position="top"
         >
-          <NumberContainer>
-            {tct('[cumulativeTime] ([cumulativeTimePercentage])', {
-              cumulativeTime: (
-                <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
-              ),
-              cumulativeTimePercentage: formatPercentage(cumulativeTimePercentage),
-            })}
-          </NumberContainer>
+          <NumberContainer>{formatPercentage(cumulativeTimePercentage)}</NumberContainer>
         </Tooltip>
       );
     }
 
+    if (field === 'tps()') {
+      return (
+        <NumberContainer>
+          <ThroughputCell throughputPerSecond={dataRow[field] as number} />
+        </NumberContainer>
+      );
+    }
+
     if (
-      field.startsWith(
-        'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
-      )
+      [
+        'percentile_percent_change(transaction.duration,0.95)',
+        'http_error_count_percent_change()',
+      ].includes(field)
     ) {
       const deltaValue = dataRow[field] as number;
       const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
 
       return (
         <NumberContainer>
-          <TrendingDuration trendDirection={trendDirection}>
+          <PercentChangeCell trendDirection={trendDirection}>
             {tct('[sign][delta]', {
               sign: deltaValue >= 0 ? '+' : '-',
               delta: formatPercentage(Math.abs(deltaValue), 2),
             })}
-          </TrendingDuration>
+          </PercentChangeCell>
+        </NumberContainer>
+      );
+    }
+
+    if (field === 'tps_percent_change()') {
+      const deltaValue = dataRow[field] as number;
+      const trendDirection = deltaValue > 0 ? 'good' : deltaValue < 0 ? 'bad' : 'neutral';
+
+      return (
+        <NumberContainer>
+          <PercentChangeCell trendDirection={trendDirection}>
+            {tct('[sign][delta]', {
+              sign: deltaValue >= 0 ? '+' : '-',
+              delta: formatPercentage(Math.abs(deltaValue), 2),
+            })}
+          </PercentChangeCell>
         </NumberContainer>
       );
     }
@@ -193,10 +197,10 @@ function EndpointList({
       Object.keys(tableData.data[0]).forEach(col => {
         if (
           col.startsWith(
-            'equation|(percentile_range(transaction.duration,0.50,lessOrEquals'
+            'equation|(percentile_range(transaction.duration,0.95,lessOrEquals'
           )
         ) {
-          deltaColumnMap['p50()'] = col;
+          deltaColumnMap['p95()'] = col;
         }
       });
     }
@@ -212,15 +216,9 @@ function EndpointList({
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    // Hack to get equations to align and sort properly because
-    // some of the functions called below aren't set up to handle
-    // equations. Fudging code here to keep minimal footprint of
-    // code changes.
-    let align: Alignments = 'left';
-    if (column.column.kind === 'equation') {
-      align = 'right';
-    } else {
-      align = fieldAlignment(column.name, column.type, tableMeta);
+    let align: Alignments = 'right';
+    if (title === 'Endpoint') {
+      align = 'left';
     }
     const field = {
       field: column.column.kind === 'equation' ? (column.key as string) : column.name,
@@ -266,7 +264,7 @@ function EndpointList({
   }
 
   function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
-    const newColumnTitles = columnTitles ?? COLUMN_TITLES;
+    const newColumnTitles = COLUMN_TITLES;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
       renderHeadCell(tableMeta, column, newColumnTitles[index]);
   }
@@ -291,9 +289,6 @@ function EndpointList({
     .getColumns()
     .filter(
       (col: TableColumn<React.ReactText>) =>
-        !col.name.startsWith('count_miserable') &&
-        !col.name.startsWith('percentile_range') &&
-        col.name !== 'project_threshold_config' &&
         col.name !== 'project' &&
         col.name !== 'http.method' &&
         col.name !== 'total.transaction_duration' &&
@@ -317,7 +312,7 @@ function EndpointList({
         location={location}
         setError={error => setError(error?.message)}
         referrer="api.starfish.endpoint-list"
-        queryExtras={{dataset: dataset ?? 'metrics'}}
+        queryExtras={{dataset: 'metrics'}}
       >
         {({pageLinks, isLoading, tableData}) => (
           <Fragment>
@@ -344,7 +339,9 @@ function EndpointList({
 
 export default EndpointList;
 
-const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutral'}>`
+export const PercentChangeCell = styled('div')<{
+  trendDirection: 'good' | 'bad' | 'neutral';
+}>`
   color: ${p =>
     p.trendDirection === 'good'
       ? p.theme.successText

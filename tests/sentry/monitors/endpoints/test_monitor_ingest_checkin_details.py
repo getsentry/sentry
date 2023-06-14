@@ -189,6 +189,23 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin > checkin.date_added
 
+    def test_finished_values(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        for status in CheckInStatus.FINISHED_VALUES:
+            for path_func in self._get_path_functions():
+                checkin = MonitorCheckIn.objects.create(
+                    monitor=monitor,
+                    monitor_environment=monitor_environment,
+                    project_id=self.project.id,
+                    date_added=monitor.date_added,
+                    status=status,
+                )
+
+                path = path_func(monitor.guid, checkin.guid)
+                resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
+                assert resp.status_code == 400
+
     def test_invalid_duration(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="dev")

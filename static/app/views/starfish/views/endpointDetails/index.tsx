@@ -16,22 +16,23 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import Detail from 'sentry/views/starfish/components/detailPanel';
+import {renderHeadCell} from 'sentry/views/starfish/components/endpointTable';
 import {
   OverflowEllipsisTextContainer,
-  renderHeadCell,
   TextAlignLeft,
-} from 'sentry/views/starfish/modules/APIModule/endpointTable';
+} from 'sentry/views/starfish/components/textAlign';
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableEventView,
   getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
-import {useQueryTransactionByTPMAndP75} from 'sentry/views/starfish/modules/databaseModule/queries';
-import {queryToSeries} from 'sentry/views/starfish/modules/databaseModule/utils';
+import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
 import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
+import {queryToSeries} from 'sentry/views/starfish/utils/queryToSeries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 export type EndpointDataRow = {
   count: number;
@@ -132,7 +133,7 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
     );
 
   const {isLoading: isP75GraphLoading, data: transactionGraphData} =
-    useQueryTransactionByTPMAndP75(tableData.map(d => d.transaction).splice(0, 5), 24);
+    useQueryTransactionByTPMAndDuration(tableData.map(d => d.transaction).splice(0, 5));
 
   const tpmTransactionSeries = queryToSeries(
     transactionGraphData,
@@ -166,10 +167,10 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
       <pre>{row?.domain}</pre>
       <FlexRowContainer>
         <FlexRowItem>
-          <SubHeader>{t('Duration (P50)')}</SubHeader>
+          <SubHeader>{DataTitles.p95}</SubHeader>
           <SubSubHeader>
             <Duration
-              seconds={row['p50(span.self_time)'] / 1000}
+              seconds={row['p95(span.self_time)'] / 1000}
               fixedDigits={2}
               abbreviation
             />

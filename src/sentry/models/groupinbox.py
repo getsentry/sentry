@@ -11,7 +11,6 @@ from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import inbox_in, inbox_out
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -87,14 +86,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    if reason == GroupInboxReason.REGRESSION:
-        group.substatus = GroupSubStatus.REGRESSED
-        group.save(update_fields=["substatus"])
-
-    if reason is GroupInboxReason.NEW:
-        group.substatus = GroupSubStatus.NEW
-        group.save(update_fields=["substatus"])
-    else:
+    if reason is not GroupInboxReason.NEW:
         # Ignore new issues, too many events
         inbox_in.send_robust(
             project=group.project,

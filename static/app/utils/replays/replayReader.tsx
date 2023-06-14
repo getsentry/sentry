@@ -4,6 +4,7 @@ import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -11,6 +12,7 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
+import {EventType} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -73,7 +75,7 @@ export default class ReplayReader {
     const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
       splitAttachmentsByType(attachments);
 
-    const spans = [...rawMemorySpans, rawNetworkSpans] as ReplaySpan[];
+    const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
 
     // TODO(replays): We should get correct timestamps from the backend instead
     // of having to fix them up here.
@@ -88,6 +90,8 @@ export default class ReplayReader {
     replayRecord.duration = duration(
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
+
+    this.rawErrors = errors;
 
     this.sortedSpans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
@@ -104,6 +108,7 @@ export default class ReplayReader {
     this.replayRecord = replayRecord;
   }
 
+  private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
@@ -142,7 +147,13 @@ export default class ReplayReader {
   });
 
   getConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => ['console', 'issue'].includes(crumb.category || ''))
+    this.breadcrumbs.filter(crumb => crumb.category === 'console')
+  );
+
+  getRawErrors = memoize(() => this.rawErrors);
+
+  getIssueCrumbs = memoize(() =>
+    this.breadcrumbs.filter(crumb => crumb.category === 'issue')
   );
 
   getNonConsoleCrumbs = memoize(() =>
@@ -159,9 +170,17 @@ export default class ReplayReader {
 
   getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
 
+  getDomNodes = memoize(() =>
+    extractDomNodes({
+      crumbs: this.getCrumbsWithRRWebNodes(),
+      rrwebEvents: this.getRRWebEvents(),
+      finishedAt: this.replayRecord.finished_at,
+    })
+  );
+
   sdkConfig = memoize(() => {
     const found = this.rrwebEvents.find(
-      event => event.type === 5 && event.data.tag === 'options'
+      event => event.type === EventType.Custom && event.data.tag === 'options'
     ) as undefined | RecordingOptions;
     return found?.data?.payload;
   });

@@ -1,6 +1,6 @@
 import uuid
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
@@ -10,22 +10,16 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
-from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import (
-    NoiseConfig,
-    PerformanceNPlusOneGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
-    Group,
     GroupRelease,
     Integration,
     NotificationSetting,
@@ -37,12 +31,12 @@ from sentry.models import (
     ProjectOwnership,
     Repository,
     Rule,
-    RuleSnooze,
     User,
     UserEmail,
     UserOption,
     UserReport,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -55,21 +49,21 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_options, with_feature
+from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry.utils.samples import load_data
-from sentry.utils.snuba import raw_snql_query
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
 
 
-class BaseMailAdapterTest(TestCase):
+class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
     @cached_property
     def adapter(self):
         return mail_adapter
@@ -103,7 +97,9 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
         project = self.create_project(name="Test", teams=[team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            organizationmember=OrganizationMember.objects.get(
+                user_id=user.id, organization=organization
+            ),
             team=team,
         )
         self.create_member(user=user2, organization=organization, teams=[team])
@@ -125,7 +121,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
         user4 = User.objects.create(username="baz4", email="bar@example.com", is_active=True)
         self.create_member(user=user4, organization=organization, teams=[team])
-        assert user4 in self.adapter.get_sendable_user_objects(project)
+        assert user4.id in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
         # disabled by default user4
         NotificationSetting.objects.update_settings(
@@ -158,7 +154,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             user=user4,
         )
 
-        assert user4 not in self.adapter.get_sendable_user_objects(project)
+        assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
@@ -191,7 +187,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
 
-    @with_feature("organizations:mute-alerts")
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
         event = self.store_event(
@@ -209,7 +204,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     def test_snooze_for_all(self):
         """Test that notification for alert snoozed for everyone is not send to user."""
         event = self.store_event(
@@ -227,7 +221,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_themself(self):
         """Test that notification for alert snoozed by user2 for themself is sent to user"""
         event = self.store_event(
@@ -248,7 +241,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
 
-    @with_feature("organizations:mute-alerts")
     def test_someone_else_snoozes_everyone(self):
         """Test that notification for alert snoozed by user2 for everyone is not sent to user"""
         event = self.store_event(
@@ -360,106 +352,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "Issue Data" not in msg.alternatives[0][0]
 
     def test_simple_notification_perf(self):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
-
-        rule = Rule.objects.create(project=self.project, label="my rule")
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=rule)
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        msg = mail.outbox[0]
-        assert msg.subject == "[Sentry] BAR-1 - N+1 Query"
-        checked_values = [
-            "Transaction Name",
-            # TODO: Not sure if this is right
-            "db - SELECT `books_author`.`id`, `books_author`.`",
-            "Parent Span",
-            "django.view - index",
-            "Repeating Spans (10)",
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
-        ]
-        for checked_value in checked_values:
-            assert (
-                checked_value in msg.alternatives[0][0]
-            ), f"{checked_value} not present in message"
-
-    def test_simple_notification_perf_issue_platform(self):
-        # Copy and paste of test_simple_notification_perf to work on the issue platform.
-        # We can remove this after we've started using issue platform everywhere
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-
-        with override_options(
-            {
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-                PerformanceNPlusOneGroupType.build_ingest_feature_name(),
-            ]
-        ), mock.patch.object(
-            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
-        ):
-            event = perf_event_manager.save(self.project.id)
-
-        # Write a query to get the occurrence id etc from snuba, or patch to get it so we can get
-        # the right event here.
-        where_conditions = [
-            Condition(Column("project_id"), Op.EQ, self.project.id),
-            Condition(Column("event_id"), Op.EQ, event.event_id),
-            Condition(Column("timestamp"), Op.GTE, before_now(hours=1)),
-            Condition(Column("timestamp"), Op.LT, datetime.now()),
-        ]
-
-        snuba_request = Request(
-            dataset="search_issues",
-            app_id="tagstore",
-            query=Query(
-                match=Entity("search_issues"),
-                select=[
-                    Column("group_id"),
-                    Column("occurrence_id"),
-                    Column("group_id"),
-                ],
-                where=where_conditions,
-            ),
-        )
-        result = raw_snql_query(
-            snuba_request, referrer="tagstore.get_generic_group_list_tag_value", use_cache=True
-        )["data"][0]
-        event = event.for_group(Group.objects.get(id=int(result["group_id"])))
-        event.occurrence = IssueOccurrence.fetch(result["occurrence_id"], self.project.id)
-
+        event = self.create_performance_issue()
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -835,7 +728,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         team = self.create_team(organization=organization)
         project = self.create_project(name="Test", teams=[team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            organizationmember=OrganizationMember.objects.get(
+                user_id=user.id, organization=organization
+            ),
             team=team,
         )
         self.create_member(user=user2, organization=organization, teams=[team])
@@ -1208,6 +1103,27 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
+    @with_feature("organizations:escalating-issues")
+    def test_group_substatus_header(self):
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        # Header is based on the group substatus
+        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.save()
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert "Regressed issue" in msg.alternatives[0][0]
+
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
     def test_get_digest_subject(self):
@@ -1250,7 +1166,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed(self, notify):
         """Test that a digest for an alert snoozed by user is not sent."""
@@ -1278,7 +1193,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert notify.call_count == 0
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_snooze_one_rule(self, notify):
         """Test that a digest is sent containing only notifications about an unsnoozed alert."""
@@ -1310,17 +1224,19 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 2  # we send it to 2 users
-        message1 = mail.outbox[0]
-        message2 = mail.outbox[1]
+        messages = sorted(mail.outbox, key=lambda message: message.to[0])
+
+        message1 = messages[0]
+        message2 = messages[1]
+
         # self.user only receives a digest about one alert, since a rule was muted
-        assert message2.to[0] == self.user.email
-        assert "1 new alert since" in message2.subject
+        assert message1.to[0] == self.user.email
+        assert "1 new alert since" in message1.subject
 
         # user2 receives a digest about both alerts, since no rules were muted
-        assert message1.to[0] == user2.email
-        assert "2 new alerts since" in message1.subject
+        assert message2.to[0] == user2.email
+        assert "2 new alerts since" in message2.subject
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
         """Test that a digest is only sent to the user who hasn't snoozed the rules."""
@@ -1359,7 +1275,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         assert message.to[0] == user2.email
         assert "2 new alerts since" in message.subject
 
-    @with_feature("organizations:mute-alerts")
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(self, notify):
         """Test that a digest with only one rule is only sent to the user who didn't snooze one rule."""
@@ -1504,14 +1419,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_with_perf_issue(self, digests):
         digests.enabled.return_value = True
-        event = self.store_event(
-            data=load_data(
-                "transaction",
-                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-            ),
-            project_id=self.project.id,
-        )
-        event = event.for_group(event.groups[0])
+        event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
@@ -1588,7 +1496,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             data={"text": "sup guise"},
         )
 
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
 
         with self.tasks():
             self.adapter.notify_about_activity(activity)
@@ -1604,7 +1512,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
-        self.project.teams.first().organization.member_set.create(user=user_foo)
+        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
 
         return UserReport.objects.create(
             project_id=self.project.id,

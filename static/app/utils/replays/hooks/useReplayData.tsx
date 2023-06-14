@@ -161,11 +161,6 @@ function useReplayData({
       return;
     }
 
-    if (!replayRecord.error_ids.length) {
-      setState(prev => ({...prev, fetchingErrors: false}));
-      return;
-    }
-
     // Clone the `finished_at` time and bump it up one second because finishedAt
     // has the `ms` portion truncated, while replays-events-meta operates on
     // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
@@ -182,7 +177,7 @@ function useReplayData({
     });
 
     for await (const pagedResults of paginatedErrors) {
-      setErrors(prev => [...prev, ...pagedResults]);
+      setErrors(prev => [...prev, ...(pagedResults || [])]);
     }
 
     setState(prev => ({...prev, fetchingErrors: false}));
@@ -312,12 +307,12 @@ async function* fetchPaginatedReplayErrors(
       cursor: nextCursor,
     });
   }
-  let cursor: ParsedHeader = {
+  let cursor: undefined | ParsedHeader = {
     cursor: '0:0:0',
     results: true,
     href: '',
   };
-  while (cursor.results) {
+  while (cursor && cursor.results) {
     const [{data}, , resp] = await next(cursor.cursor);
     const pageLinks = resp?.getResponseHeader('Link') ?? null;
     cursor = parseLinkHeader(pageLinks)?.next;

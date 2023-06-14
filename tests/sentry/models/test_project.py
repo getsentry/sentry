@@ -41,7 +41,7 @@ class ProjectTest(TestCase):
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
         project = self.create_project(teams=[team])
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
         assert list(project.member_set.all()) == [member]
@@ -51,7 +51,7 @@ class ProjectTest(TestCase):
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
         project = self.create_project(teams=[team])
-        OrganizationMember.objects.get(user=user, organization=org)
+        OrganizationMember.objects.get(user_id=user.id, organization=org)
 
         assert list(project.member_set.all()) == []
 
@@ -377,7 +377,9 @@ class FilterToSubscribedUsersTest(TestCase):
         actual_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
             self.project, users
         )[ExternalProviders.EMAIL]
-        expected_recipients = {RpcActor.from_orm_user(user) for user in expected_users}
+        expected_recipients = {
+            RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
+        }
         assert actual_recipients == expected_recipients
 
     def test(self):

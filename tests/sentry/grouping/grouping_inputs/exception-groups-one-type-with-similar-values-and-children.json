@@ -1,0 +1,60 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "System.Exception",
+        "value": "Some Inner Exception",
+        "mechanism": {
+          "type": "chained",
+          "handled": true,
+          "source": "InnerException",
+          "exception_id": 4,
+          "parent_id": 3
+        }
+      },
+      {
+        "type": "MyApp.Exception",
+        "value": "Test 2",
+        "mechanism": {
+          "type": "chained",
+          "handled": true,
+          "source": "InnerExceptions[1]",
+          "exception_id": 3,
+          "parent_id": 0
+        }
+      },
+      {
+        "type": "System.Exception",
+        "value": "Some Inner Exception",
+        "mechanism": {
+          "type": "chained",
+          "handled": true,
+          "source": "InnerException",
+          "exception_id": 2,
+          "parent_id": 1
+        }
+      },
+      {
+        "type": "MyApp.Exception",
+        "value": "Test 1",
+        "mechanism": {
+          "type": "chained",
+          "handled": true,
+          "source": "InnerExceptions[0]",
+          "exception_id": 1,
+          "parent_id": 0
+        }
+      },
+      {
+        "type": "System.AggregateException",
+        "value": "One or more errors occurred.",
+        "mechanism": {
+          "type": "AppDomain.UnhandledException",
+          "handled": false,
+          "is_exception_group": true,
+          "exception_id": 0
+        }
+      }
+    ]
+  }
+}

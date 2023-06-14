@@ -28,8 +28,12 @@ function SearchBarAction({
   onFilterChange,
   className,
 }: Props) {
-  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = props => (
+  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = (
+    props,
+    isOpen
+  ) => (
     <StyledTrigger
+      isOpen={isOpen}
       size="sm"
       priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
       {...props}

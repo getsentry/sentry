@@ -28,15 +28,15 @@ export const lightColors = {
   gray500: '#2B2233',
   gray400: '#3E3446',
   gray300: '#80708F',
-  gray200: '#DBD6E1',
-  gray100: '#EBE6EF',
+  gray200: '#E0DCE5',
+  gray100: '#F0ECF3',
 
   /**
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray200: 'rgba(58, 17, 95, 0.18)',
-  translucentGray100: 'rgba(45, 0, 85, 0.1)',
+  translucentGray200: 'rgba(58, 17, 95, 0.14)',
+  translucentGray100: 'rgba(45, 0, 85, 0.06)',
 
   purple400: '#584AC0',
   purple300: '#6C5FC7',
@@ -92,15 +92,15 @@ export const darkColors = {
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
   gray300: '#998DA5',
-  gray200: '#43384C',
-  gray100: '#342B3B',
+  gray200: '#393041',
+  gray100: '#302735',
 
   /**
    * Alternative version of gray200 that's translucent.
    * Useful for borders on tooltips, popovers, and dialogs.
    */
-  translucentGray200: 'rgba(218, 184, 245, 0.18)',
-  translucentGray100: 'rgba(208, 168, 240, 0.1)',
+  translucentGray200: 'rgba(218, 184, 245, 0.16)',
+  translucentGray100: 'rgba(208, 168, 240, 0.07)',
 
   purple400: '#A397F7',
   purple300: '#7669D3',
@@ -138,8 +138,8 @@ const prismLight = {
   '--prism-selected': '#E9E0EB',
   '--prism-inline-code': '#D25F7C',
   '--prism-inline-code-background': '#F8F9FB',
-  '--prism-highlight-background': '#E8ECF2',
-  '--prism-highlight-accent': '#C7CBD1',
+  '--prism-highlight-background': '#5C78A31C',
+  '--prism-highlight-accent': '#5C78A344',
   '--prism-comment': '#72697C',
   '--prism-punctuation': '#70697C',
   '--prism-property': '#7A6229',
@@ -155,8 +155,8 @@ const prismDark = {
   '--prism-selected': '#865891',
   '--prism-inline-code': '#D25F7C',
   '--prism-inline-code-background': '#F8F9FB',
-  '--prism-highlight-background': '#382F5C',
-  '--prism-highlight-accent': '#D25F7C',
+  '--prism-highlight-background': '#A8A2C31C',
+  '--prism-highlight-accent': '#A8A2C344',
   '--prism-comment': '#8B7A9E',
   '--prism-punctuation': '#B3ACC1',
   '--prism-property': '#EAB944',
@@ -487,11 +487,6 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     background: colors.gray100,
     indicatorColor: colors.gray100,
     color: colors.gray500,
-  },
-  review: {
-    background: colors.purple300,
-    indicatorColor: colors.purple300,
-    color: colors.white,
   },
   warning: {
     background: colors.yellow300,

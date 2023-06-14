@@ -86,12 +86,10 @@ describe('Modals -> WidgetViewerModal', function () {
     initialData = initializeOrg({
       organization: {
         features: ['discover-query'],
-        apdexThreshold: 400,
       },
       router: {
         location: {query: {}},
       },
-      project: 1,
       projects: [TestStubs.Project()],
     });
 
@@ -227,6 +225,15 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
         expect(screen.getByText('echarts mock')).toBeInTheDocument();
+      });
+
+      it('renders description', async function () {
+        mockEvents();
+        await renderModal({
+          initialData,
+          widget: {...mockWidget, description: 'This is a description'},
+        });
+        expect(screen.getByText('This is a description')).toBeInTheDocument();
       });
 
       it('renders Discover area chart widget viewer', async function () {

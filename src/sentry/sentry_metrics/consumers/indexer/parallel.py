@@ -10,13 +10,11 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
-from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
-    initialize_sentry_and_global_consumer_state,
+    initialize_subprocess_state,
 )
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
@@ -30,7 +28,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
-from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +124,10 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             slicing_router=self.__slicing_router,
         )
-        parallel_strategy = ParallelTransformStep(
-            MessageProcessor(self.__config).process_messages,
-            Unbatcher(next_step=producer),
-            self.__processes,
+        parallel_strategy = RunTaskWithMultiprocessing(
+            function=MessageProcessor(self.__config).process_messages,
+            next_step=Unbatcher(next_step=producer),
+            num_processes=self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
             max_batch_time=self.__max_parallel_batch_time / 1000,
@@ -142,9 +140,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             # this module, and pass that function here, it would attempt to
             # pull in a bunch of modules that try to read django settings at
             # import time
-            initializer=functools.partial(
-                initialize_sentry_and_global_consumer_state, self.__config
-            ),
+            initializer=functools.partial(initialize_subprocess_state, self.__config),
         )
 
         strategy = BatchMessages(
@@ -199,9 +195,6 @@ def get_parallel_metrics_consumer(
         slicing_router=slicing_router,
     )
 
-    cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
-    create_topics(cluster_name, [indexer_profile.input_topic])
-
     return StreamProcessor(
         KafkaConsumer(
             get_config(
@@ -214,4 +207,7 @@ def get_parallel_metrics_consumer(
         Topic(indexer_profile.input_topic),
         processing_factory,
         ONCE_PER_SECOND,
+        # We drop any in flight messages in processing step prior to produce.
+        # The SimpleProduceStep has a hardcoded join timeout of 5 seconds.
+        join_timeout=0.0,
     )

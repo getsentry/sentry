@@ -14,6 +14,6 @@ git checkout -b "$branch"
 git add .github/labels.yml
 git add .github/ISSUE_TEMPLATE/bug.yml
 git add .github/ISSUE_TEMPLATE/feature.yml
-git commit -n -m "$message"
+git commit -n -m "$message" || exit 0
 git push --set-upstream origin "$branch"
 gh pr create --title "meta(routing) $message" --body="Syncing with [``product-owners.yml``](https://github.com/getsentry/security-as-code/blob/$sha/rbac/lib/product-owners.yml) ([docs](https://www.notion.so/473791bae5bf43399d46093050b77bf0))."

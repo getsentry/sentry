@@ -15,20 +15,28 @@ import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 // Setting return type since I'd rather not know if its discover query or not
-export type UseSpansQueryReturnType<T> = {data: T; isLoading: boolean};
+export type UseSpansQueryReturnType<T> = {
+  data: T;
+  isLoading: boolean;
+  pageLinks?: string;
+};
 
 export function useSpansQuery<T = any[]>({
   eventView,
   queryString,
   initialData,
+  limit,
   forceUseDiscover,
   enabled,
+  referrer = 'use-spans-query',
 }: {
   enabled?: boolean;
   eventView?: EventView;
   forceUseDiscover?: boolean;
   initialData?: any;
+  limit?: number;
   queryString?: string;
+  referrer?: string;
 }): UseSpansQueryReturnType<T> {
   const {options} = useStarfishOptions();
   const {useDiscover} = options;
@@ -38,7 +46,7 @@ export function useSpansQuery<T = any[]>({
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
     if (eventView) {
-      return queryFunction({eventView, initialData, enabled});
+      return queryFunction({eventView, initialData, limit, enabled, referrer});
     }
     throw new Error(
       'eventView argument must be defined when Starfish useDiscover is true'
@@ -46,7 +54,7 @@ export function useSpansQuery<T = any[]>({
   }
 
   if (queryString) {
-    return queryFunction({queryString, initialData, enabled});
+    return queryFunction({queryString, initialData, enabled, referrer});
   }
   throw new Error(
     'queryString argument must be defined when Starfish useDiscover is false, ie when using scraped data via fetch API'
@@ -69,14 +77,17 @@ export function useWrappedQuery({
   queryString,
   initialData,
   enabled,
+  referrer,
 }: {
   queryString: string;
   enabled?: boolean;
   initialData?: any;
+  referrer?: string;
 }) {
   const {isLoading, data} = useQuery({
     queryKey: [queryString],
-    queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
+    queryFn: () =>
+      fetch(`${HOST}/?query=${queryString}&referrer=${referrer}`).then(res => res.json()),
     retry: false,
     initialData,
     enabled,
@@ -89,10 +100,12 @@ export function useWrappedDiscoverTimeseriesQuery({
   eventView,
   enabled,
   initialData,
+  referrer,
 }: {
   eventView: EventView;
   enabled?: boolean;
   initialData?: any;
+  referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -110,7 +123,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
-      excludeOther: 1,
+      excludeOther: 0,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
@@ -119,6 +132,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       enabled,
       refetchOnWindowFocus: false,
     },
+    referrer,
   });
   return {
     isLoading,
@@ -132,18 +146,34 @@ export function useWrappedDiscoverTimeseriesQuery({
 export function useWrappedDiscoverQuery({
   eventView,
   initialData,
+  enabled,
+  referrer,
+  limit,
 }: {
   eventView: EventView;
+  enabled?: boolean;
   initialData?: any;
+  limit?: number;
+  referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data} = useDiscoverQuery({
+  const {isLoading, data, pageLinks} = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
+    referrer,
+    limit,
+    options: {
+      enabled,
+      refetchOnWindowFocus: false,
+    },
   });
-  return {isLoading, data: isLoading && initialData ? initialData : data?.data};
+  return {
+    isLoading,
+    data: isLoading && initialData ? initialData : data?.data,
+    pageLinks,
+  };
 }
 
 function getQueryFunction({

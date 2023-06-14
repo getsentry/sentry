@@ -1,5 +1,6 @@
 from sentry.models import (
     Organization,
+    OrganizationMember,
     OrganizationStatus,
     User,
     UserOption,
@@ -7,6 +8,8 @@ from sentry.models import (
     UserRole,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 
 
@@ -19,7 +22,7 @@ class UserDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsGetTest(UserDetailsTest):
     # TODO(dcramer): theres currently no way to look up other users
     def test_look_up_other_user(self):
@@ -64,7 +67,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -144,7 +147,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.username == "new@example.com"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -239,7 +242,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
-class UserDetailsDeleteTest(UserDetailsTest):
+class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
     method = "delete"
 
     def test_close_account(self):
@@ -298,7 +301,21 @@ class UserDetailsDeleteTest(UserDetailsTest):
         self.create_member(user=user2, organization=org_with_other_owner, role="owner")
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
-        self.get_success_response(self.user.id, organizations=[], status_code=204)
+        member_records = list(
+            OrganizationMember.objects.filter(
+                organization__in=[org_with_other_owner.id, org_as_other_owner.id],
+                user_id=self.user.id,
+            )
+        )
+
+        for member in member_records:
+            self.assert_org_member_mapping(org_member=member)
+
+        with outbox_runner():
+            self.get_success_response(self.user.id, organizations=[], status_code=204)
+
+        for member in member_records:
+            self.assert_org_member_mapping_not_exists(org_member=member)
 
         # deletes org_single_owner even though it wasn't specified in array
         # because it has a single owner

@@ -7,7 +7,6 @@ import RouteError from 'sentry/views/routeError';
 
 describe('RouteError', function () {
   const {routerContext} = initializeOrg({
-    ...initializeOrg(),
     router: TestStubs.router({
       routes: [
         {path: '/'},

@@ -87,6 +87,12 @@ export interface Monitor {
   slug: string;
   status: ObjectStatus;
   type: MonitorType;
+  alertRule?: {
+    targets: Array<{
+      targetIdentifier: number;
+      targetType: 'Member' | 'Team';
+    }>;
+  };
 }
 
 export interface MonitorStat {

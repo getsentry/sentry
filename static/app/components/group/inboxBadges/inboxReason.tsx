@@ -1,25 +1,17 @@
-import {Fragment} from 'react';
-import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
+import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {Group, GroupInboxReason, GroupSubstatus, InboxDetails} from 'sentry/types';
+import {GroupInboxReason, InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
-/**
- * Since archived issues are not actually in the inbox, we're faking the inbox reason
- */
-type ArchivedReason = {
-  reason: 'archived';
-  reason_details: {substatus: Group['substatus']};
-} & Omit<InboxDetails, 'reason'>;
 type Props = {
-  inbox: InboxDetails | ArchivedReason;
+  inbox: InboxDetails;
   fontSize?: 'sm' | 'md';
   /** Displays the time an issue was added to inbox */
   showDateAdded?: boolean;
@@ -49,7 +41,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
       window,
       user_count: userCount,
       user_window: userWindow,
-    } = reasonDetails;
+    } = reasonDetails ?? {};
     if (until) {
       // Was ignored until `until` has passed.
       // `until` format: "2021-01-20T03:59:03+00:00"
@@ -98,8 +90,6 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
     tooltipDescription?: string | React.ReactNode;
     tooltipText?: string;
   } {
-    const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
-    const hasIssueStates = organization.features.includes('issue-states');
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
         return {
@@ -111,7 +101,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
         };
       case GroupInboxReason.REGRESSION:
         return {
-          tagType: hasEscalatingIssues ? 'highlight' : 'error',
+          tagType: 'error',
           reasonBadgeText: t('Regression'),
           tooltipText:
             dateAdded &&
@@ -171,29 +161,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
               relative: relativeDateAdded,
             }),
         };
-      case 'archived':
-        return {
-          tagType: 'info',
-          reasonBadgeText: t('Archived'),
-          tooltipText:
-            reasonDetails.substatus === GroupSubstatus.ARCHIVED_FOREVER
-              ? t('Archived forever')
-              : reasonDetails.substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING
-              ? t('Archived until escalating')
-              : t('Archived until condition met'),
-        };
       default:
-        if (hasIssueStates) {
-          return {
-            tagType: 'info',
-            reasonBadgeText: t('Ongoing'),
-            tooltipText:
-              dateAdded &&
-              t('Created %(relative)s', {
-                relative: relativeDateAdded,
-              }),
-          };
-        }
         return {
           tagType: 'warning',
           reasonBadgeText: t('New Issue'),
@@ -208,34 +176,28 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
-  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
   const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
-      {disabledMarkReviewed ? null : (
+      {hasEscalatingIssuesUi ? null : (
         <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
       )}
     </TooltipWrapper>
   );
 
   return (
-    <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
+    <GroupStatusTag
+      type={tagType}
+      fontSize={fontSize}
+      tooltip={tooltip}
+      dateAdded={showDateAdded ? dateAdded : undefined}
+    >
       {reasonBadgeText}
-      {showDateAdded && dateAdded && (
-        <Fragment>
-          <Separator type={tagType ?? 'default'}>{' | '}</Separator>
-          <TimeSince
-            date={dateAdded}
-            suffix=""
-            unitStyle="extraShort"
-            disabledAbsoluteTooltip
-          />
-        </Fragment>
-      )}
-    </StyledTag>
+    </GroupStatusTag>
   );
 }
 
@@ -247,16 +209,4 @@ const TooltipWrapper = styled('div')`
 
 const TooltipDescription = styled('div')`
   color: ${p => p.theme.subText};
-`;
-
-const Separator = styled('span')<{type: keyof Theme['tag']}>`
-  color: ${p => p.theme.tag[p.type].border};
-  opacity: 80%;
-`;
-
-const StyledTag = styled(Tag, {
-  shouldForwardProp: p => p !== 'fontSize',
-})<{fontSize: 'sm' | 'md'}>`
-  font-size: ${p =>
-    p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;

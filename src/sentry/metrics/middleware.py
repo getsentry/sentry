@@ -7,6 +7,7 @@ from django.conf import settings
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags, TagValue
 
 _BAD_TAGS = frozenset(["event", "project", "group"])
+_NOT_BAD_TAGS = frozenset(["use_case_id"])
 _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
     [
         # snuba related tags
@@ -30,7 +31,11 @@ def _filter_tags(key: str, tags: MutableTags) -> MutableTags:
     if key in _METRICS_THAT_CAN_HAVE_BAD_TAGS:
         return tags
 
-    discarded = frozenset(key for key in tags if key.endswith("_id") or key in _BAD_TAGS)
+    discarded = frozenset(
+        key
+        for key in tags
+        if key not in _NOT_BAD_TAGS and (key.endswith("_id") or key in _BAD_TAGS)
+    )
     if not discarded:
         return tags
 
@@ -92,7 +97,7 @@ def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None,
         del stack[old_len:]
 
 
-def _get_current_global_tags() -> MutableTags:
+def get_current_global_tags() -> MutableTags:
     rv: MutableTags = {}
 
     for tags in _GLOBAL_TAGS:
@@ -120,7 +125,7 @@ class MiddlewareWrapper(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        current_tags = _get_current_global_tags()
+        current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
@@ -135,7 +140,7 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        current_tags = _get_current_global_tags()
+        current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
@@ -150,7 +155,7 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        current_tags = _get_current_global_tags()
+        current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)

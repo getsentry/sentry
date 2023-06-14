@@ -856,7 +856,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                   }
                   event.stopPropagation();
                   const filter = stringToFilter(operationName);
-                  if (filter === SpanOperationBreakdownFilter.None) {
+                  if (filter === SpanOperationBreakdownFilter.NONE) {
                     return;
                   }
                   trackAnalytics('performance_views.relative_breakdown.selection', {
