@@ -60,5 +60,5 @@ export function getDateFilters(pageFilter) {
       ? moment().subtract(num, unit as 'h' | 'd')
       : moment(pageFilter.selection.datetime.start);
   const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
-  return {startTime, endTime};
+  return {startTime, endTime, statsPeriod: pageFilter.selection.datetime.period};
 }

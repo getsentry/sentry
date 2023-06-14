@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IssueCategory} from 'sentry/types';
@@ -14,7 +16,7 @@ function IssuesTable(props: Props) {
   const {transactionName, issueCategory} = props;
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
+  const {startTime, endTime, statsPeriod} = getDateFilters(pageFilters);
 
   const {start, end} = normalizeDateTimeParams({
     start: startTime.toDate(),
@@ -25,9 +27,14 @@ function IssuesTable(props: Props) {
     'is:unresolved',
     ...(issueCategory ? [`issue.category:${issueCategory}`] : ['']),
     ...(transactionName ? [`transaction:${transactionName}`] : ['']),
-    `start:${start}`,
-    `end:${end}`,
+    ...(statsPeriod ? [`statsPeriod:${statsPeriod}`] : [`start:${start}`, `end:${end}`]),
   ];
+  const queryCondtionString = queryConditions.join(' ');
+
+  const queryParams = useMemo(
+    () => ({project: 1, query: queryCondtionString, limit: 5, sort: 'new'}),
+    [queryCondtionString]
+  );
 
   return (
     <GroupList
@@ -35,8 +42,8 @@ function IssuesTable(props: Props) {
       withChart={false}
       narrowGroups
       endpointPath={`/organizations/${organization.slug}/issues/`}
-      query={queryConditions.join(' ')}
-      queryParams={{project: 1, query: queryConditions.join(' '), limit: 5, sort: 'new'}}
+      query={queryCondtionString}
+      queryParams={queryParams}
       withPagination={false}
       useTintRow
       source="starfish-endpoint-summary"
