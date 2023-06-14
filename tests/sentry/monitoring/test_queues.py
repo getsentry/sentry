@@ -8,7 +8,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from pytest import raises
 
 from sentry import options
-from sentry.monitoring.queues import (
+from sentry.processing.backpressure.rabbitmq import (
     _list_queues_over_threshold,
     _unhealthy_consumer_key,
     queue_monitoring_cluster,
@@ -23,7 +23,7 @@ class TestMonitoringQueues(TestCase):
     def processing_factory():
         return ProcessProfileStrategyFactory()
 
-    def test_list_queues_over_theshold(self):
+    def test_list_queues_over_threshold(self):
         strike_threshold = 10
         with self.options(
             {
