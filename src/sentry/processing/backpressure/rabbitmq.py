@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime
 from time import sleep
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from urllib.parse import urlparse
 
 import requests
@@ -102,10 +101,6 @@ def _get_queue_sizes(hosts: List[RabbitMqHost], queues: List[str]) -> Dict[str, 
                 new_sizes[name] = max(new_sizes[name], size)
 
     return new_sizes
-
-
-def _is_healthy(queue_size) -> bool:
-    return queue_size < options.get("backpressure.monitor_queues.unhealthy_threshold")
 
 
 def _update_queue_stats(queue_history: Dict[str, int]) -> None:
