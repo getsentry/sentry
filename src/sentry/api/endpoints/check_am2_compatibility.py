@@ -289,7 +289,7 @@ class CheckAM2CompatibilityMixin:
 
             # We will mark failures as compatible, under the assumption than it is better to give false positives than
             # false negatives.
-            return False
+            return True
 
     @classmethod
     def get_all_widgets_of_organization(cls, organization_id):
@@ -343,8 +343,15 @@ class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
-        org_id = request.GET.get("orgId")
+        try:
+            org_id = request.GET.get("orgId")
+            results = self.run_compatibility_check(org_id)
 
-        results = self.run_compatibility_check(org_id)
+            return Response(results, status=200)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
-        return Response(results, status=200)
+            return Response(
+                {"error": "An error occurred while trying to check compatibility for AM2"},
+                status=500,
+            )
