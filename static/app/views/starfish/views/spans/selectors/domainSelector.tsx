@@ -10,20 +10,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   moduleName?: ModuleName;
+  spanCategory?: string;
   value?: string;
 };
 
-export function DomainSelector({value = '', moduleName = ModuleName.ALL}: Props) {
+export function DomainSelector({
+  value = '',
+  moduleName = ModuleName.ALL,
+  spanCategory,
+}: Props) {
   // TODO: This only returns the top 25 domains. It should either load them all, or paginate, or allow searching
   //
   const {selection} = usePageFilters();
 
   const location = useLocation();
   const query = getQuery(moduleName);
-  const eventView = getEventView(moduleName, selection);
+  const eventView = getEventView(moduleName, selection, spanCategory);
 
   const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
@@ -79,12 +85,27 @@ function getQuery(moduleName?: string) {
   `;
 }
 
-function getEventView(moduleName: string, pageFilters: PageFilters) {
+function getEventView(
+  moduleName: string,
+  pageFilters: PageFilters,
+  spanCategory?: string
+) {
+  const queryConditions: string[] = [`!span.domain:""`];
+  if (moduleName) {
+    queryConditions.push(`span.module:${moduleName}`);
+  }
+  if (spanCategory) {
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      queryConditions.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      queryConditions.push(`span.category:${spanCategory}`);
+    }
+  }
   return EventView.fromSavedQuery({
     name: '',
     fields: ['span.domain', 'count()'],
     orderby: '-count',
-    query: moduleName ? `!span.domain:"" span.module:${moduleName}` : '!span.domain:""',
+    query: queryConditions.join(' '),
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
