@@ -463,7 +463,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
                   fields={this.performanceIssueDetectorsFormFields}
                   disabled={!isSuperUser}
                   collapsible
-                  initiallyCollapsed
                 />
               </Form>
             )}

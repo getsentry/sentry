@@ -130,7 +130,6 @@ class JsonForm extends Component<Props, State> {
     const {
       access,
       collapsible,
-      initiallyCollapsed,
       fields,
       title,
       forms,
@@ -155,7 +154,6 @@ class JsonForm extends Component<Props, State> {
       renderHeader,
       highlighted: this.state.highlighted,
       collapsible,
-      initiallyCollapsed,
     };
 
     return (

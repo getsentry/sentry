@@ -29,7 +29,6 @@ type Props = {
    * The name of the field that should be highlighted
    */
   highlighted?: string;
-  initiallyCollapsed?: boolean;
   /**
    * Renders inside of PanelBody before PanelBody close
    */
@@ -53,10 +52,9 @@ function FormPanel({
   renderFooter,
   renderHeader,
   collapsible,
-  initiallyCollapsed = false,
   ...otherProps
 }: Props) {
-  const [collapsed, setCollapse] = useState(initiallyCollapsed);
+  const [collapsed, setCollapse] = useState(false);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
   return (
