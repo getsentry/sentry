@@ -10,7 +10,10 @@ import findBestThread from 'sentry/components/events/interfaces/threads/threadSe
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {
+  CocoaProcessingErrors,
+  JavascriptProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -25,7 +28,10 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 
 import {DataSection} from './styles';
 
-const ERRORS_TO_HIDE = [JavascriptProcessingErrors.JS_MISSING_SOURCE];
+const ERRORS_TO_HIDE = [
+  JavascriptProcessingErrors.JS_MISSING_SOURCE,
+  CocoaProcessingErrors.COCOA_INVALID_DATA,
+];
 
 const MAX_ERRORS = 100;
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
