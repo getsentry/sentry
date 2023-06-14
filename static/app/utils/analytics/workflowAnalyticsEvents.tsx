@@ -22,8 +22,10 @@ export type BaseEventAnalyticsParams = {
   has_commit: boolean;
   has_exception_group: boolean;
   has_release: boolean;
+  has_source_context: boolean;
   has_source_maps: boolean;
   has_trace: boolean;
+  is_symbolicated: boolean;
   num_commits: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
