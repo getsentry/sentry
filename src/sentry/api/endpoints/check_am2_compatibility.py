@@ -235,12 +235,11 @@ class CheckAM2CompatibilityMixin:
         return outdated_sdks_per_project
 
     @classmethod
-    def get_sdks_version_used(cls, organization_id, project_id, project_objects):
+    def get_sdks_version_used(cls, organization_id, project_objects, errors):
         # We use the count() operation in order to group by project, sdk.name and sdk.version.
         selected_columns = ["count()", "project", "sdk.name", "sdk.version"]
         params = {
             "organization_id": organization_id,
-            "project_id": project_id,
             "project_objects": project_objects,
             "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
             "end": datetime.now(tz=pytz.UTC),
@@ -259,18 +258,19 @@ class CheckAM2CompatibilityMixin:
             return outdated_sdks_per_project
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            errors.append(f"Could not check used sdks for org {organization_id}.")
 
             # We will mark failures as compatible, under the assumption than it is better to give false positives than
             # false negatives.
             return []
 
     @classmethod
-    def is_metrics_data(cls, organization_id, project_id, query):
+    def is_metrics_data(cls, organization_id, project_objects, query, errors):
         # We use the count operation since it's the most generic.
         selected_columns = ["count()"]
         params = {
             "organization_id": organization_id,
-            "project_id": project_id,
+            "project_objects": project_objects,
             "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
             "end": datetime.now(tz=pytz.UTC),
         }
@@ -286,6 +286,9 @@ class CheckAM2CompatibilityMixin:
             return results.get("meta", {}).get("isMetricsData", None)
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            errors.append(
+                f"Could not check if it's metrics data for org {organization_id} and query {query}."
+            )
 
             # We will mark failures as compatible, under the assumption than it is better to give false positives than
             # false negatives.
@@ -308,7 +311,7 @@ class CheckAM2CompatibilityMixin:
         )
 
     @classmethod
-    def run_compatibility_check(cls, org_id):
+    def run_compatibility_check(cls, org_id, errors):
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
@@ -317,7 +320,7 @@ class CheckAM2CompatibilityMixin:
         for widget_id, dashboard_id, dashboard_title, query in cls.get_all_widgets_of_organization(
             organization.id
         ):
-            supports_metrics = cls.is_metrics_data(organization.id, None, query)
+            supports_metrics = cls.is_metrics_data(organization.id, [], query, errors)
             if not supports_metrics:
                 # # We mark whether a metric is not supported.
                 unsupported_widgets[dashboard_id].append(widget_id)
@@ -326,12 +329,12 @@ class CheckAM2CompatibilityMixin:
         for project in all_projects:
             project_id = project.id
             for alert_id, query in cls.get_all_alerts_of_project(project_id):
-                supports_metrics = cls.is_metrics_data(organization.id, project_id, query)
+                supports_metrics = cls.is_metrics_data(organization.id, [project], query, errors)
                 if not supports_metrics:
                     # We mark whether a metric is not supported.
                     unsupported_alerts[project_id].append(alert_id)
 
-        outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, None, all_projects)
+        outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects, errors)
 
         return cls.format_results(
             organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
@@ -345,13 +348,22 @@ class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
     def get(self, request: Request) -> Response:
         try:
             org_id = request.GET.get("orgId")
-            results = self.run_compatibility_check(org_id)
+
+            # We decided for speed of iteration purposes to just pass an error array that is shared across functions
+            # to collect all possible issues.
+            errors = []
+            results = self.run_compatibility_check(org_id, errors)
+            if errors:
+                return Response(
+                    {"errors": errors},
+                    status=500,
+                )
 
             return Response(results, status=200)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
             return Response(
-                {"error": "An error occurred while trying to check compatibility for AM2"},
+                {"error": "An error occurred while trying to check compatibility for AM2."},
                 status=500,
             )
