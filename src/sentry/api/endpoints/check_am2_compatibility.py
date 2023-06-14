@@ -257,8 +257,7 @@ class CheckAM2CompatibilityMixin:
             outdated_sdks_per_project = cls.get_outdated_sdks(found_sdks_per_project)
             return outdated_sdks_per_project
         except Exception as e:
-            sentry_sdk.capture_exception(e)
-            errors.append(f"Could not check used sdks for org {organization_id}.")
+            errors.append(f"Could not check used sdks for org {organization_id}. {e}")
 
             # We will mark failures as compatible, under the assumption than it is better to give false positives than
             # false negatives.
@@ -291,9 +290,8 @@ class CheckAM2CompatibilityMixin:
 
             return results.get("meta", {}).get("isMetricsData", None)
         except Exception as e:
-            sentry_sdk.capture_exception(e)
             errors.append(
-                f"Could not check if it's metrics data for org {organization_id} and query {query}."
+                f"Could not check if it's metrics data for org {organization_id} and query {query}. {e}"
             )
 
             # We will mark failures as compatible, under the assumption than it is better to give false positives than
