@@ -45,16 +45,19 @@ export default function SpansView(props: Props) {
         <SpanOperationSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.op'] || ''}
+          spanCategory={props.spanCategory}
         />
 
         <DomainSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.domain'] || ''}
+          spanCategory={props.spanCategory}
         />
 
         <ActionSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.action'] || ''}
+          spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>
 
@@ -62,6 +65,7 @@ export default function SpansView(props: Props) {
         <SpanTimeCharts
           moduleName={props.moduleName || ModuleName.ALL}
           appliedFilters={appliedFilters}
+          spanCategory={props.spanCategory}
         />
       </PaddedContainer>
 

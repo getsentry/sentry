@@ -10,20 +10,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   moduleName?: ModuleName;
+  spanCategory?: string;
   value?: string;
 };
 
-export function ActionSelector({value = '', moduleName = ModuleName.ALL}: Props) {
+export function ActionSelector({
+  value = '',
+  moduleName = ModuleName.ALL,
+  spanCategory,
+}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
   const {selection} = usePageFilters();
 
   const location = useLocation();
   const query = getQuery(moduleName);
-  const eventView = getEventView(moduleName, selection);
+  const eventView = getEventView(moduleName, selection, spanCategory);
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
@@ -91,12 +97,27 @@ function getQuery(moduleName?: string) {
   `;
 }
 
-function getEventView(moduleName: ModuleName, pageFilters: PageFilters) {
+function getEventView(
+  moduleName: ModuleName,
+  pageFilters: PageFilters,
+  spanCategory?: string
+) {
+  const queryConditions: string[] = [];
+  if (moduleName) {
+    queryConditions.push('!span.action:""');
+  }
+  if (spanCategory) {
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      queryConditions.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      queryConditions.push(`span.category:${spanCategory}`);
+    }
+  }
   return EventView.fromSavedQuery({
     name: '',
     fields: ['span.action', 'count()'],
     orderby: '-count',
-    query: moduleName ? `!span.action:"" span.module:${moduleName}` : '!span.action:""',
+    query: queryConditions.join(' '),
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
