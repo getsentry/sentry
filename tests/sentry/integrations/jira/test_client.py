@@ -1,25 +1,24 @@
 from unittest import mock
 
 import responses
-from responses.matchers import query_string_matcher
+from requests import PreparedRequest
+from responses.matchers import header_matcher, query_string_matcher
 
-from sentry.integrations.jira.client import JiraCloudClient
 from sentry.models import Integration
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
+mock_jwt = "my-jwt-token"
 
-class StubJiraCloud(JiraCloudClient):
-    def request_hook(self, *args, **kwargs):
-        r = super().request_hook(*args, **kwargs)
-        r["params"]["jwt"] = "my-jwt-token"
-        return r
+
+def mock_authorize_request(prepared_request: PreparedRequest):
+    prepared_request.headers["Authorization"] = f"JWT {mock_jwt}"
+    return prepared_request
 
 
 @control_silo_test(stable=True)
 class JiraClientTest(TestCase):
-    @mock.patch("sentry.integrations.jira.integration.JiraCloudClient", new=StubJiraCloud)
     def setUp(self):
         integration = Integration.objects.create(
             provider="jira",
@@ -36,12 +35,19 @@ class JiraClientTest(TestCase):
         self.client = install.get_client()
 
     @responses.activate
-    def test_get_field_autocomplete_for_non_customfield(self):
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.authorize_request",
+        side_effect=mock_authorize_request,
+    )
+    def test_get_field_autocomplete_for_non_customfield(self, mock_authorize):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
             url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
-            match=[query_string_matcher("fieldName=my_field&fieldValue=abc&jwt=my-jwt-token")],
+            match=[
+                query_string_matcher("fieldName=my_field&fieldValue=abc"),
+                header_matcher({"Authorization": f"JWT {mock_jwt}"}),
+            ],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
@@ -50,12 +56,19 @@ class JiraClientTest(TestCase):
         assert res == body
 
     @responses.activate
-    def test_get_field_autocomplete_for_customfield(self):
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.authorize_request",
+        side_effect=mock_authorize_request,
+    )
+    def test_get_field_autocomplete_for_customfield(self, mock_authorize):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
             url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
-            match=[query_string_matcher("fieldName=cf[0123]&fieldValue=abc&jwt=my-jwt-token")],
+            match=[
+                query_string_matcher("fieldName=cf[0123]&fieldValue=abc"),
+                header_matcher({"Authorization": f"JWT {mock_jwt}"}),
+            ],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
