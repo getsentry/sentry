@@ -9,20 +9,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   value: string;
   moduleName?: ModuleName;
+  spanCategory?: string;
 };
 
-export function SpanOperationSelector({value = '', moduleName = ModuleName.ALL}: Props) {
+export function SpanOperationSelector({
+  value = '',
+  moduleName = ModuleName.ALL,
+  spanCategory,
+}: Props) {
   // TODO: This only returns the top 25 operations. It should either load them all, or paginate, or allow searching
   //
   const {selection} = usePageFilters();
 
   const location = useLocation();
   const query = getQuery(moduleName);
-  const eventView = getEventView(moduleName, selection);
+  const eventView = getEventView(moduleName, selection, spanCategory);
 
   const {data: operations} = useSpansQuery<[{'span.op': string}]>({
     eventView,
@@ -68,12 +74,27 @@ function getQuery(moduleName: ModuleName) {
   `;
 }
 
-function getEventView(moduleName: ModuleName, pageFilters: PageFilters) {
+function getEventView(
+  moduleName: ModuleName,
+  pageFilters: PageFilters,
+  spanCategory?: string
+) {
+  const queryConditions: string[] = [];
+  if (moduleName) {
+    queryConditions.push(`span.module:${moduleName}`);
+  }
+  if (spanCategory) {
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      queryConditions.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      queryConditions.push(`span.category:${spanCategory}`);
+    }
+  }
   return EventView.fromSavedQuery({
     name: '',
     fields: ['span.op', 'count()'],
     orderby: '-count',
-    query: moduleName ? `span.module:${moduleName}` : '',
+    query: queryConditions.join(' '),
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,

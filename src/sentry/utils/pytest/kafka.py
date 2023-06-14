@@ -157,7 +157,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
             strict_offset_reset=False,
             max_batch_size=1,
             max_batch_time=10,
-            processes=1,
+            num_processes=1,
             input_block_size=1,
             output_block_size=1,
             force_topic=topic_event_name,

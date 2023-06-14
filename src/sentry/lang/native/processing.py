@@ -454,6 +454,8 @@ def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, 
         return process_applecrashreport
     elif is_native_event(data):
         return process_native_stacktraces
+    else:
+        return None
 
 
 def get_required_attachment_types(data) -> Set[str]:

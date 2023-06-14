@@ -1,7 +1,5 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -15,10 +13,9 @@ import {MonitorRow} from './row';
 
 interface Props {
   monitorList: Monitor[];
-  monitorListPageLinks?: string | null;
 }
 
-export function OverviewTable({monitorList, monitorListPageLinks}: Props) {
+export function OverviewTable({monitorList}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -56,30 +53,27 @@ export function OverviewTable({monitorList, monitorListPageLinks}: Props) {
   );
 
   return (
-    <Fragment>
-      <StyledPanelTable
-        headers={[
-          t('Monitor Name'),
-          t('Status'),
-          t('Schedule'),
-          t('Next Checkin'),
-          t('Project'),
-          t('Environment'),
-          t('Actions'),
-        ]}
-      >
-        {monitorList
-          ?.map(monitor =>
-            monitor.environments.length > 0
-              ? monitor.environments.map(monitorEnv =>
-                  renderMonitorRow(monitor, monitorEnv)
-                )
-              : renderMonitorRow(monitor)
-          )
-          .flat()}
-      </StyledPanelTable>
-      {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
-    </Fragment>
+    <StyledPanelTable
+      headers={[
+        t('Monitor Name'),
+        t('Status'),
+        t('Schedule'),
+        t('Next Checkin'),
+        t('Project'),
+        t('Environment'),
+        t('Actions'),
+      ]}
+    >
+      {monitorList
+        ?.map(monitor =>
+          monitor.environments.length > 0
+            ? monitor.environments.map(monitorEnv =>
+                renderMonitorRow(monitor, monitorEnv)
+              )
+            : renderMonitorRow(monitor)
+        )
+        .flat()}
+    </StyledPanelTable>
   );
 }
 
