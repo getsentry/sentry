@@ -9,7 +9,7 @@ import {MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
 export function makeMonitorListQueryKey(organization: Organization, location: Location) {
   return [
     `/organizations/${organization.slug}/monitors/`,
-    {query: {...location.query, includeNew: true}},
+    {query: {...location.query, includeNew: true, per_page: 20}},
   ] as const;
 }
 

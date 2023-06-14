@@ -1,4 +1,3 @@
-import {formatPercentage} from 'sentry/utils/formatters';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -31,9 +30,7 @@ function SampleInfo(props: Props) {
       </Block>
       <Block title={DataTitles.timeSpent}>
         <TimeSpentCell
-          formattedTimeSpent={formatPercentage(
-            spanMetrics?.['time_spent_percentage(local)']
-          )}
+          timeSpentPercentage={spanMetrics?.['time_spent_percentage(local)']}
           totalSpanTime={spanMetrics?.['sum(span.duration)']}
         />
       </Block>

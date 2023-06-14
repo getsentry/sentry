@@ -55,41 +55,7 @@ _DEFAULT_DAEMONS = {
         "--synchronize-commit-group=generic_events_group",
         "--no-strict-offset-reset",
     ],
-    # NOTE: you can add `"--v2-consumer"` to run a local dev server with the v2 consumer,
-    # and `"--processes=2"` to make it run in multi-process mode.
-    "ingest-events": [
-        "sentry",
-        "run",
-        "ingest-consumer",
-        "--consumer-type=events",
-        # "--v2-consumer",
-        # "--processes=2",
-    ],
-    "ingest-attachments": [
-        "sentry",
-        "run",
-        "ingest-consumer",
-        "--consumer-type=attachments",
-        # "--v2-consumer",
-        # "--processes=2",
-    ],
-    "ingest-transactions": [
-        "sentry",
-        "run",
-        "ingest-consumer",
-        "--consumer-type=transactions",
-        # "--v2-consumer",
-        # "--processes=2",
-    ],
-    "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
     "server": ["sentry", "run", "web"],
-    "subscription-consumer": [
-        "sentry",
-        "run",
-        "query-subscription-consumer",
-        "--no-strict-offset-reset",
-        "latest",
-    ],
     "metrics-rh": [
         "sentry",
         "run",
@@ -106,10 +72,15 @@ _DEFAULT_DAEMONS = {
         "performance",
         *_DEV_METRICS_INDEXER_ARGS,
     ],
-    "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
-    "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
-    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
+
+_SUBSCRIPTION_RESULTS_CONSUMERS = [
+    "events-subscription-results",
+    "transactions-subscription-results",
+    "generic-metrics-subscription-results",
+    "sessions-subscription-results",
+    "metrics-subscription-results",
+]
 
 
 def add_daemon(name: str, command: list[str]) -> None:
@@ -121,12 +92,8 @@ def add_daemon(name: str, command: list[str]) -> None:
     _DEFAULT_DAEMONS[name] = command
 
 
-def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
-    display_name = name
-    if "suffix" in kwargs:
-        display_name = "{}-{}".format(name, kwargs["suffix"])
-
-    return (display_name, _DEFAULT_DAEMONS[name] + list(args))
+def _get_daemon(name: str) -> tuple[str, list[str]]:
+    return name, _DEFAULT_DAEMONS[name]
 
 
 @click.command()
@@ -143,6 +110,11 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 )
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
+)
+@click.option(
+    "--dev-consumer/--no-dev-consumer",
+    default=False,
+    help="Fold multiple kafka consumers into one process using 'sentry run dev-consumer'.",
 )
 @click.option(
     "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
@@ -175,6 +147,7 @@ def devserver(
     pretty: bool,
     environment: str,
     debug_server: bool,
+    dev_consumer: bool,
     bind: str | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
@@ -226,8 +199,6 @@ and run `sentry devservices up kafka zookeeper`.
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
     has_https = shutil.which("https") is not None
 
-    needs_kafka = False
-
     control_silo_port = port + 10
 
     if needs_https and not has_https:
@@ -260,6 +231,8 @@ and run `sentry devservices up kafka zookeeper`.
         uwsgi_overrides["py-autoreload"] = 1
 
     daemons = []
+    kafka_consumers = []
+    needs_kafka = False
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
@@ -338,8 +311,7 @@ and run `sentry devservices up kafka zookeeper`.
                     "`SENTRY_DEV_PROCESS_SUBSCRIPTIONS` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
-                daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
+            kafka_consumers.extend(_SUBSCRIPTION_RESULTS_CONSUMERS)
 
         if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
             if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
@@ -352,25 +324,21 @@ and run `sentry devservices up kafka zookeeper`.
             daemons += [
                 _get_daemon("metrics-rh"),
                 _get_daemon("metrics-perf"),
-                _get_daemon("metrics-billing"),
             ]
+            kafka_consumers.append("billing-metrics-consumer")
             needs_kafka = True
 
     if settings.SENTRY_USE_RELAY:
-        needs_kafka = True
-        daemons += [
-            _get_daemon("ingest-events"),
-            _get_daemon("ingest-attachments"),
-            _get_daemon("ingest-transactions"),
-            _get_daemon("monitors"),
-        ]
+        kafka_consumers.append("ingest-events")
+        kafka_consumers.append("ingest-attachments")
+        kafka_consumers.append("ingest-transactions")
+        kafka_consumers.append("ingest-monitors")
 
         if settings.SENTRY_USE_PROFILING:
-            daemons += [_get_daemon("profiles")]
+            kafka_consumers.append("ingest-profiles")
 
     if occurrence_ingest:
-        needs_kafka = True
-        daemons += [_get_daemon("occurrences")]
+        kafka_consumers.append("ingest-occurrences")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
@@ -391,12 +359,36 @@ and run `sentry devservices up kafka zookeeper`.
         ]
 
     # Create all topics if the Kafka eventstream is selected
-    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream" or needs_kafka:
+    if (
+        settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream"
+        or kafka_consumers
+        or needs_kafka
+    ):
         from sentry.utils.batching_kafka_consumer import create_topics
 
         for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
                 create_topics(topic_data["cluster"], [topic_name], force=True)
+
+    if kafka_consumers:
+        if dev_consumer:
+            daemons.append(("dev-consumer", ["sentry", "run", "dev-consumer"] + kafka_consumers))
+        else:
+            for name in kafka_consumers:
+                daemons.append(
+                    (
+                        name,
+                        [
+                            "sentry",
+                            "run",
+                            "consumer",
+                            name,
+                            "--consumer-group=sentry-consumer",
+                            "--auto-offset-reset=latest",
+                            "--no-strict-offset-reset",
+                        ],
+                    )
+                )
 
     from sentry.runner.commands.devservices import _prepare_containers
 
