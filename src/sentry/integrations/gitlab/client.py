@@ -85,14 +85,14 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
-        self.new_identity = None
+        self.refreshed_identity = None
         self.base_url = self.metadata["base_url"]
         super().__init__(verify_ssl)
 
     @property
     def identity(self):
-        if self.new_identity:
-            return self.new_identity
+        if self.refreshed_identity:
+            return self.refreshed_identity
         return self.installation.get_default_identity()
 
     @property
@@ -133,12 +133,12 @@ class GitLabProxyApiClient(IntegrationProxyClient):
                 raise e
 
             self.is_refreshing_token = True
-            self.new_identity = self._refresh_auth()
+            self.refreshed_identity = self._refresh_auth()
 
             response = super().request(*args, **kwargs)
 
             self.is_refreshing_token = False
-            self.new_identity = None
+            self.refreshed_identity = None
 
             return response
 
