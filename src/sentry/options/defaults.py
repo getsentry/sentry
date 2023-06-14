@@ -1043,6 +1043,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1306,6 +1311,11 @@ register(
 )
 # Enables checking queue health in consumers for backpressure management.
 register("backpressure.monitor_queues.enable_check", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "backpressure.monitor_queues.check_interval_in_seconds",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "backpressure.monitor_queues.unhealthy_threshold", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
 )

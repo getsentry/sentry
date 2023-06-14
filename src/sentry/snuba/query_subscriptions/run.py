@@ -31,7 +31,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         topic: str,
         max_batch_size: int,
         max_batch_time: int,
-        processes: int,
+        num_processes: int,
         input_block_size: int,
         output_block_size: int,
         multi_proc: bool = True,
@@ -41,7 +41,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.logical_topic = dataset_to_logical_topic[self.dataset]
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.num_processes = processes
+        self.num_processes = num_processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.multi_proc = multi_proc
@@ -113,7 +113,7 @@ def get_query_subscription_consumer(
     initial_offset_reset: str,
     max_batch_size: int,
     max_batch_time: int,
-    processes: int,
+    num_processes: int,
     input_block_size: int,
     output_block_size: int,
     multi_proc: bool = False,
@@ -142,7 +142,7 @@ def get_query_subscription_consumer(
             topic,
             max_batch_size,
             max_batch_time,
-            processes,
+            num_processes,
             input_block_size,
             output_block_size,
             multi_proc=multi_proc,

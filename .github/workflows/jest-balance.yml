@@ -35,9 +35,6 @@ jobs:
             tests/js/test-balancer/jest-balance.json
           commit-message: 'ci(jest): regenerate jest-balance.json'
           branch: 'ci/jest/rebalance-tests'
-          reviewers: ${{ github.triggering_actor }}
-          team-reviewers: |
-            getsentry/app-frontend
           delete-branch: true
           base: master
           title: 'ci(jest): regenerate jest-balance.json'

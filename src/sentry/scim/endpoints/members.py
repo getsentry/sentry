@@ -31,7 +31,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
+from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -195,7 +195,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Organization Member",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=None,
         responses={
             200: OrganizationMemberSCIMSerializer,
@@ -219,7 +219,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=SCIMPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -262,7 +262,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Delete an Organization Member via SCIM",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=None,
         responses={
             204: RESPONSE_SUCCESS,
@@ -281,7 +281,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.MEMBER_ID],
         request=inline_serializer(
             "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
         ),
@@ -360,7 +360,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Members",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIMQueryParamSerializer],
+        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
             200: scim_response_envelope(
@@ -416,7 +416,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="Provision a New Organization Member",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        parameters=[GlobalParams.ORG_SLUG],
         request=inline_serializer(
             name="SCIMMemberProvision",
             fields={
