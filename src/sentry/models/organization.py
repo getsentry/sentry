@@ -173,6 +173,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     )
     date_added = models.DateTimeField(default=timezone.now)
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    is_test = models.BooleanField(default=False)
 
     flags = BitField(
         flags=(
