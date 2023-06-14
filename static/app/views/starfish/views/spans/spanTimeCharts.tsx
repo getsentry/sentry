@@ -3,7 +3,6 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -16,6 +15,7 @@ import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {
   datetimeToClickhouseFilterTimestamps,
   getDateFilters,
@@ -155,7 +155,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => `${value.toFixed(3)} / ${t('sec')}`,
+        valueFormatter: value => formatThroughput(value),
       }}
     />
   );

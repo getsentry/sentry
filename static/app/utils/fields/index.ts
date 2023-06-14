@@ -248,6 +248,11 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+  [AggregationKey.SPS]: {
+    desc: t('Spans per second'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
   [AggregationKey.FAILURE_RATE]: {
     desc: t('Failed event percentage based on transaction.status'),
     kind: FieldKind.FUNCTION,
