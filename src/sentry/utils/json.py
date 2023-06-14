@@ -10,7 +10,6 @@ from typing import IO, Any, Generator, Mapping, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
-from django.db.models import QuerySet
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
@@ -29,6 +28,8 @@ def datetime_to_str(o: datetime.datetime) -> str:
 
 
 def better_default_encoder(o: object) -> object:
+    from django_stubs_ext import QuerySetAny
+
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
@@ -52,7 +53,7 @@ def better_default_encoder(o: object) -> object:
         return int(o)
     elif callable(o):
         return "<function>"
-    elif isinstance(o, QuerySet):
+    elif isinstance(o, QuerySetAny):
         return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
