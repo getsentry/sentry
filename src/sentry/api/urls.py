@@ -2574,6 +2574,7 @@ INTERNAL_URLS = [
         RpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
     ),
+    url(r"^check-am2-compatibility/$"),
 ]
 
 urlpatterns = [
