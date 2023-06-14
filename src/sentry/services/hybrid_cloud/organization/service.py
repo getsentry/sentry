@@ -182,11 +182,20 @@ class OrganizationService(RpcService):
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
+        from sentry.models import OrganizationStatus
+
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:
             return None
 
-        return self.get_organization_by_id(id=org_id, user_id=user_id)
+        org_context = self.get_organization_by_id(id=org_id, user_id=user_id)
+        if (
+            only_visible
+            and org_context
+            and org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
+            return None
+        return org_context
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod

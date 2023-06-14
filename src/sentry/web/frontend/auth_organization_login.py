@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
-from sentry.models import AuthProvider, OrganizationStatus
+from sentry.models import AuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -52,7 +52,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )
-        if org_context is None or org_context.organization.status != OrganizationStatus.ACTIVE:
+        if org_context is None:
             return self.redirect(reverse("sentry-login"))
         organization = org_context.organization
 
