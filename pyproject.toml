@@ -893,6 +893,7 @@ module = [
     "sentry.release_health.metrics_sessions_v2",
     "sentry.release_health.sessions",
     "sentry.release_health.tasks",
+    "sentry.replays.cache",
     "sentry.replays.consumers",
     "sentry.replays.endpoints.organization_replay_count",
     "sentry.replays.endpoints.project_replay_clicks_index",
