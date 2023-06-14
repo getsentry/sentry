@@ -1,7 +1,7 @@
 import logging
 import random
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Mapping
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any, Callable, Mapping, Optional
 
 import sentry_kafka_schemas
 import sentry_sdk
@@ -35,7 +35,7 @@ class MessageProcessor:
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
         self._executor = ThreadPoolExecutor(max_workers=1)
-        self._prev_future = None
+        self._prev_future: Optional[Future] = None
 
     # The following two methods are required to work such that the parallel
     # indexer can spawn subprocesses correctly.
