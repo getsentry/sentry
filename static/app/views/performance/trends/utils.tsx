@@ -433,6 +433,6 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
 
 export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
   const query = new MutableSearch(trendView.query);
-  query.setFilterValues('tpm()', ['>0.01']);
+  query.setFilterValues('tpm()', ['>0.5']);
   trendView.query = query.formatString();
 }
