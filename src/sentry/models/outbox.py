@@ -83,6 +83,7 @@ class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
     GITHUB = 1
     JIRA = 2
+    GITLAB = 3
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -228,7 +229,7 @@ class OutboxBase(Model):
         ):
             runs += 1
             next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+            next_row = self.selected_messages_in_shard().first()
 
         if next_row is not None:
             raise OutboxFlushError(

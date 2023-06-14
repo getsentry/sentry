@@ -4,20 +4,13 @@ import {SelectField, TextField} from 'sentry/components/forms';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchVisibility} from 'sentry/types';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type SavedSearchModalContentProps = {
   organization: Organization;
 };
-
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
 
 const SELECT_FIELD_VISIBILITY_OPTIONS = [
   {value: SavedSearchVisibility.OWNER, label: t('Only me')},
@@ -26,14 +19,16 @@ const SELECT_FIELD_VISIBILITY_OPTIONS = [
 
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
 
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
-  const sortOptions = [...DEFAULT_SORT_OPTIONS];
-  if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
-  }
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
 
   const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,

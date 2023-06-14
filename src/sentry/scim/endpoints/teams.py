@@ -3,7 +3,7 @@ import re
 
 import sentry_sdk
 from django.db import IntegrityError, transaction
-from django.template.defaultfilters import slugify
+from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
+from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
@@ -96,7 +96,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Paginated Teams",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIMQueryParamSerializer],
+        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
             200: scim_response_envelope(
@@ -144,7 +144,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
 
     @extend_schema(
         operation_id="Provision a New Team",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        parameters=[GlobalParams.ORG_SLUG],
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
@@ -206,7 +206,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Team",
-        parameters=[SCIM_PARAMS.TEAM_ID, GLOBAL_PARAMS.ORG_SLUG],
+        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_SLUG],
         request=None,
         responses={
             200: TeamSCIMSerializer,
@@ -285,7 +285,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.TEAM_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -410,7 +410,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Delete an Individual Team",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.TEAM_ID],
+        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
         request=None,
         responses={
             204: RESPONSE_SUCCESS,

@@ -13,7 +13,9 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 export type SpanTransactionMetrics = {
   'p50(span.duration)': number;
   'p95(span.duration)': number;
+  'percentile_percent_change(span.duration, 0.95)': number;
   'sps()': number;
+  'sps_percent_change()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
@@ -34,14 +36,14 @@ export const useSpanTransactionMetrics = (
     : '';
   const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
 
-  const {isLoading, data} = useSpansQuery<SpanTransactionMetrics[]>({
+  const {isLoading, data, pageLinks} = useSpansQuery<SpanTransactionMetrics[]>({
     eventView,
     queryString: query,
     initialData: [],
     enabled: Boolean(query),
   });
 
-  return {isLoading, data};
+  return {isLoading, data, pageLinks};
 };
 
 function getQuery(
@@ -80,8 +82,10 @@ function getEventView(span: {group: string}, location: Location, transactions: s
       fields: [
         'transaction',
         'sps()',
+        'sps_percent_change()',
         'sum(span.duration)',
         'p95(span.duration)',
+        'percentile_percent_change(span.duration, 0.95)',
         'time_spent_percentage(local)',
       ],
       orderby: '-time_spent_percentage_local',

@@ -123,7 +123,7 @@ class BaseRequestParser(abc.ABC):
 
     # Required Overrides
 
-    def get_response(self):
+    def get_response(self) -> HttpResponse:
         """
         Used to surface a response as part of the middleware.
         Should be overwritten by implementation.

@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, Mapping, Optional, Type, Union
+from typing import Any, Callable, Mapping, Optional, Union
 
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
-from arroyo.types import FilteredPayload, Message, Topic, TStrategyPayload
+from arroyo.types import Topic, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 
 from sentry.metrics.base import MetricsBackend
@@ -111,8 +111,7 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
 
     def __new__(
         cls,
-        *function: Callable[[Message[TStrategyPayload]], TResult],
-        next_step: ProcessingStrategy[Union[FilteredPayload, TResult]],
+        *,
         initializer: Optional[Callable[[], None]] = None,
         **kwargs: Any,
     ) -> RunTaskWithMultiprocessing:
@@ -121,6 +120,12 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
 
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
             from arroyo.processing.strategies.run_task import RunTask
+
+            kwargs.pop("num_processes", None)
+            kwargs.pop("input_block_size", None)
+            kwargs.pop("output_block_size", None)
+            kwargs.pop("max_batch_size", None)
+            kwargs.pop("max_batch_time", None)
 
             return RunTask(**kwargs)  # type: ignore[return-value]
         else:
@@ -138,13 +143,15 @@ def run_basic_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    strategy_factory_cls: Type[ProcessingStrategyFactory[Any]],
+    strategy_factory: ProcessingStrategyFactory[Any],
 ) -> None:
     from django.conf import settings
 
     from sentry.metrics.middleware import add_global_tags
 
-    add_global_tags(kafka_topic=topic, group_id=group_id)
+    add_global_tags(kafka_topic=topic, consumer_group=group_id)
+
+    _initialize_arroyo_main()
 
     topic_def = settings.KAFKA_TOPICS[topic]
     assert topic_def is not None
@@ -164,7 +171,7 @@ def run_basic_consumer(
     processor = StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=strategy_factory_cls(),
+        processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
     )
 
