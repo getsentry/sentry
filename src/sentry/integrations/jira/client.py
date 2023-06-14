@@ -3,8 +3,11 @@ import logging
 import re
 from urllib.parse import parse_qs, urlparse, urlsplit
 
+from requests import PreparedRequest
+
 from sentry.integrations.utils import get_query_hash
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -49,8 +52,8 @@ class JiraCloudClient(IntegrationProxyClient):
     def __init__(
         self,
         integration: RpcIntegration,
-        org_integration_id: str,
         verify_ssl: bool,
+        org_integration_id: str = None,
         logging_context: JSONData = None,
     ):
         self.base_url = integration.metadata.get("base_url")
@@ -65,40 +68,27 @@ class JiraCloudClient(IntegrationProxyClient):
             logging_context=logging_context,
         )
 
-    def get_cache_prefix(self):
-        return "sentry-jira-2:"
-
-    def request_hook(self, method, path, data, params, **kwargs):
-        """
-        Used by Jira Client to apply the jira-cloud authentication
-        """
-        # handle params that are already part of the path
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest):
+        path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
-        url_params.update(params or {})
         path = path.split("?")[0]
-
         jwt_payload = {
             "iss": JIRA_KEY,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-            "qsh": get_query_hash(path, method.upper(), url_params),
+            "qsh": get_query_hash(
+                uri=path,
+                method=prepared_request.method.upper(),
+                query_params=url_params,
+            ),
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        params = dict(jwt=encoded_jwt, **(url_params or {}))
-        request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, data=data, params=params))
-        return request_spec
+        prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
+        return prepared_request
 
-    def request(self, method, path, data=None, params=None, **kwargs):
-        """
-        Use the request_hook method for our specific style of Jira to
-        add authentication data and transform parameters.
-        """
-        request_spec = self.request_hook(method, path, data, params, **kwargs)
-        if "headers" not in request_spec:
-            request_spec["headers"] = {}
-
-        return self._request(**request_spec)
+    def get_cache_prefix(self):
+        return "sentry-jira-2:"
 
     def user_id_get_param(self):
         """
