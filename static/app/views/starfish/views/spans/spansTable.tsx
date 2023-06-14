@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
+import {Location} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -16,6 +17,7 @@ import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughp
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
+import {getModuleFromLocation} from 'sentry/views/starfish/utils/getModuleFromLocation';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
@@ -25,6 +27,7 @@ type Props = {
   columnOrder?: TableColumnHeader[];
   endpoint?: string;
   limit?: number;
+  method?: string;
   spanCategory?: string;
 };
 
@@ -58,6 +61,7 @@ export default function SpansTable({
   columnOrder,
   spanCategory,
   endpoint,
+  method,
   limit = 25,
 }: Props) {
   const location = useLocation();
@@ -80,7 +84,8 @@ export default function SpansTable({
         }
         grid={{
           renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, location, endpoint, method),
         }}
         location={location}
       />
@@ -115,15 +120,17 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: TableColumnHeader,
   row: SpanDataRow,
-  endpoint?: string
+  location: Location,
+  endpoint?: string,
+  method?: string
 ): React.ReactNode {
   if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
           <Link
-            to={`/starfish/span/${row['span.group']}${
-              endpoint ? `?${urlEncode({endpoint})}` : ''
+            to={`/starfish/${getModuleFromLocation(location)}/span/${row['span.group']}${
+              endpoint && method ? `?${urlEncode({endpoint, method})}` : ''
             }`}
           >
             {row['span.description'] || '<null>'}
