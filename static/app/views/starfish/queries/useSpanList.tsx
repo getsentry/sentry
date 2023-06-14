@@ -25,7 +25,7 @@ export type SpanMetrics = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
+  'sps()': number;
   'sps_percent_change()': number;
   'sum(span.duration)': number;
   'time_spent_percentage()': number;
@@ -142,7 +142,7 @@ function getEventView(
         'span.group',
         'span.description',
         'span.domain',
-        'spm()',
+        'sps()',
         'sps_percent_change()',
         'sum(span.duration)',
         'p95(span.duration)',
