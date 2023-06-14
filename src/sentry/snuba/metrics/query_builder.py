@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+from sentry_sdk import capture_message
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -287,7 +288,11 @@ def resolve_tags(
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
-            rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
+            projects = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
+            if len(projects) > 999:
+                capture_message("Too many projects in query", level="warning")
+
+            rhs_ids = [p.id for p in projects]
             return Condition(
                 lhs=resolve_tags(
                     use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
