@@ -1488,8 +1488,10 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
+    # Enable performance issues detector threshold configuration
+    "organizations:performance-issues-detector-threshold-configuration": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
