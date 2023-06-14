@@ -346,6 +346,7 @@ class CheckAM2CompatibilityMixin:
         outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects, errors)
         if outdated_sdks_per_project is None:
             errors.append(f"Couldn't figure outdated sdks for projects of org {organization.id}.")
+            outdated_sdks_per_project = {}
 
         return cls.format_results(
             organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
