@@ -15,8 +15,8 @@ import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceC
 import useProjects from 'sentry/utils/useProjects';
 
 enum AnrRootCauseAllowlist {
-  PerformanceFileIOMainThreadGroupType = 1008,
-  PerformanceDBMainThreadGroupType = 1013,
+  PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
+  PERFORMANCE_DB_MAIN_THREAD_GROUP_TYPE = 1013,
 }
 
 interface Props {

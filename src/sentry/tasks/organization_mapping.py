@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
     queue="hybrid_cloud.control_repair",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 @retry
 def repair_mappings() -> None:
     metrics.incr("sentry.hybrid_cloud.tasks.organizationmapping.start", sample_rate=1.0)

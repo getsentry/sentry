@@ -6,9 +6,11 @@ from typing import Dict, Optional, Sequence, Tuple
 import sentry_sdk
 
 from sentry import options, quotas
-from sentry.dynamic_sampling.models import utils
-from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.utils import DSElement
+from sentry.dynamic_sampling.models.base import ModelType
+from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
+from sentry.dynamic_sampling.models.factory import model_factory
+from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
@@ -85,7 +87,7 @@ logger = logging.getLogger(__name__)
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def recalibrate_orgs() -> None:
     query_interval = timedelta(minutes=5)
     metrics.incr("sentry.tasks.dynamic_sampling.recalibrate_orgs.start", sample_rate=1.0)
@@ -155,7 +157,7 @@ def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def prioritise_transactions() -> None:
     """
     A task that retrieves all relative transaction counts from all projects in all orgs
@@ -196,7 +198,7 @@ def prioritise_transactions() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,  # 25 mins
     time_limit=2 * 60 + 5,
-)  # type: ignore
+)
 def process_transaction_biases(project_transactions: ProjectTransactions) -> None:
     """
     A task that given a project relative transaction counts calculates rebalancing
@@ -207,7 +209,8 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     total_num_transactions = project_transactions.get("total_num_transactions")
     total_num_classes = project_transactions.get("total_num_classes")
     transactions = [
-        DSElement(id=id, count=count) for id, count in project_transactions["transaction_counts"]
+        RebalancedItem(id=id, count=count)
+        for id, count in project_transactions["transaction_counts"]
     ]
 
     try:
@@ -244,14 +247,24 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         return
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
-    named_rates, implicit_rate = utils.adjust_sample_rates(
-        classes=transactions,
-        rate=sample_rate,
-        total_num_classes=total_num_classes,
-        total=total_num_transactions,
-        intensity=intensity,
-    )
 
+    model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    rebalanced_transactions = guarded_run(
+        model,
+        TransactionsRebalancingInput(
+            classes=transactions,
+            sample_rate=sample_rate,
+            total_num_classes=total_num_classes,
+            total=total_num_transactions,
+            intensity=intensity,
+        ),
+    )
+    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
+    if rebalanced_transactions is None:
+        return
+
+    # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
+    named_rates, implicit_rate = rebalanced_transactions
     set_transactions_resampling_rates(
         org_id=org_id,
         proj_id=project_id,
@@ -272,7 +285,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def prioritise_projects() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_projects.start", sample_rate=1.0)
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_projects", sample_rate=1.0):
@@ -292,7 +305,7 @@ def prioritise_projects() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,  # 25 mins
     time_limit=2 * 60 + 5,
-)  # type: ignore
+)
 def process_projects_sample_rates(
     org_id: OrganizationId,
     projects_with_tx_count_and_rates: Sequence[
@@ -360,35 +373,43 @@ def adjust_sample_rates(
     projects = []
     for project_id, count_per_root in projects_with_counts.items():
         projects.append(
-            DSElement(
+            RebalancedItem(
                 id=project_id,
                 count=count_per_root,
             )
         )
 
-    model = AdjustedModel(projects=projects)
-    ds_projects = model.adjust_sample_rates(sample_rate=sample_rate)
+    model = model_factory(ModelType.PROJECTS_REBALANCING)
+    rebalanced_projects = guarded_run(
+        model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
+    )
+    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
+    if rebalanced_projects is None:
+        return
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
-        for ds_project in ds_projects:
+        for rebalanced_project in rebalanced_projects:
             cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
-            old_sample_rate = sample_rate_to_float(redis_client.hget(cache_key, ds_project.id))
+            old_sample_rate = sample_rate_to_float(
+                redis_client.hget(cache_key, rebalanced_project.id)
+            )
 
             # We want to store the new sample rate as a string.
             pipeline.hset(
                 cache_key,
-                ds_project.id,
-                ds_project.new_sample_rate,  # redis stores is as string
+                rebalanced_project.id,
+                rebalanced_project.new_sample_rate,  # redis stores is as string
             )
             pipeline.pexpire(cache_key, CACHE_KEY_TTL)
 
             # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
             # system with project config invalidations, especially for projects with no volume.
-            if not are_equal_with_epsilon(old_sample_rate, ds_project.new_sample_rate):
+            if not are_equal_with_epsilon(old_sample_rate, rebalanced_project.new_sample_rate):
                 schedule_invalidate_project_config(
-                    project_id=ds_project.id, trigger="dynamic_sampling_prioritise_project_bias"
+                    project_id=rebalanced_project.id,
+                    trigger="dynamic_sampling_prioritise_project_bias",
                 )
 
         pipeline.execute()
@@ -427,7 +448,7 @@ def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def sliding_window() -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.
@@ -527,7 +548,7 @@ def adjust_base_sample_rate_per_project(
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
-)  # type: ignore
+)
 def sliding_window_org() -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.

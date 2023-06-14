@@ -61,7 +61,9 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase as DjangoTestCase
+from django.test import TransactionTestCase as DjangoTransactionTestCase
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -74,7 +76,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -110,12 +112,14 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    OrganizationMember,
     Project,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
     RuleSource,
+    User,
     UserEmail,
     UserOption,
 )
@@ -161,14 +165,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import (
-    AuthProvider,
-    Feature,
-    TaskRunner,
-    apply_feature_flag_on_cls,
-    override_options,
-    parse_queries,
-)
+from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 from .silo import exempt_from_silo_limits
 from .skips import requires_snuba
 
@@ -268,6 +265,10 @@ class BaseTestCase(Fixtures):
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
+        if isinstance(user, OrganizationMember):
+            with exempt_from_silo_limits():
+                user = User.objects.get(id=user.user_id)
+
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
@@ -418,7 +419,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
-class TestCase(BaseTestCase, TestCase):
+class TestCase(BaseTestCase, DjangoTestCase):
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -487,7 +488,7 @@ class TestCase(BaseTestCase, TestCase):
             yield
 
 
-class TransactionTestCase(BaseTestCase, TransactionTestCase):
+class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     pass
 
 
@@ -503,6 +504,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         noise_limit=0,
         project_id=None,
         detector_option="performance.issues.n_plus_one_db.problem-creation",
+        user_data=None,
     ):
         if issue_type is None:
             issue_type = PerformanceNPlusOneGroupType
@@ -519,6 +521,8 @@ class PerformanceIssueTestCase(BaseTestCase):
             event_data["transaction"] = transaction
         if project_id is None:
             project_id = self.project.id
+        if user_data:
+            event_data["user"] = user_data
 
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -1416,6 +1420,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         if (parsed_mri := parse_mri(mri_string)) is not None:
             return self.ENTITY_SHORTHANDS[parsed_mri.entity]
+        else:
+            return None
 
     def _store_metric(
         self,
@@ -2280,7 +2286,6 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     def build_and_store_session(

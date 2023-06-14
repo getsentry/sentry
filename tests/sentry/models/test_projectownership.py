@@ -25,7 +25,7 @@ def actor_key(actor):
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
         self.user2 = self.create_user("bar@localhost", username="bar")
-        self.organization.member_set.create(user=self.user2)
+        self.organization.member_set.create(user_id=self.user2.id)
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
         )

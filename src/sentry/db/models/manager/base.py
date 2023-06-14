@@ -8,6 +8,7 @@ from enum import IntEnum, auto
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     Generator,
     Generic,
@@ -329,7 +330,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         else:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
-    def get_many_from_cache(self, values: Sequence[str], key: str = "pk") -> Sequence[Any]:
+    def get_many_from_cache(self, values: Collection[str | int], key: str = "pk") -> Sequence[Any]:
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
@@ -562,4 +563,4 @@ def create_silo_limited_copy(
     queryset_subclass = type(qs_cls.__name__, (qs_cls,), queryset_overrides)
     manager_instance._queryset_class = queryset_subclass
 
-    return manager_instance  # type: ignore
+    return manager_instance

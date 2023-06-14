@@ -288,7 +288,7 @@ class TraceViewHeader extends Component<PropType, State> {
         ticks.push(
           <TickLabel
             key="first"
-            align={TickAlignment.Left}
+            align={TickAlignment.LEFT}
             hideTickMarker
             duration={0}
             style={{
@@ -304,7 +304,7 @@ class TraceViewHeader extends Component<PropType, State> {
           <TickLabel
             key="last"
             duration={duration}
-            align={TickAlignment.Right}
+            align={TickAlignment.RIGHT}
             hideTickMarker
             style={{
               right: space(1),
@@ -747,14 +747,14 @@ const TickText = styled('span')<{align: TickAlignment}>`
 
   ${({align}) => {
     switch (align) {
-      case TickAlignment.Center: {
+      case TickAlignment.CENTER: {
         return 'transform: translateX(-50%)';
       }
-      case TickAlignment.Left: {
+      case TickAlignment.LEFT: {
         return null;
       }
 
-      case TickAlignment.Right: {
+      case TickAlignment.RIGHT: {
         return 'transform: translateX(-100%)';
       }
 
@@ -781,7 +781,7 @@ function TickLabel(props: {
   align?: TickAlignment;
   hideTickMarker?: boolean;
 }) {
-  const {style, duration, hideTickMarker = false, align = TickAlignment.Center} = props;
+  const {style, duration, hideTickMarker = false, align = TickAlignment.CENTER} = props;
 
   return (
     <TickLabelContainer style={style}>
