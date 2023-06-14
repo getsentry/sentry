@@ -1,21 +1,21 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-const cellBackground = p => {
+const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
     return `background-color: ${p.theme.textColor};`;
   }
   if (p.hasOccurred === undefined && !p.isStatusError) {
-    const color = p.isHovered ? p.theme.hover : 'inherit';
-    return `background-color: ${color};`;
+    return `background-color: inherit;`;
   }
   const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
   return `background-color: ${color};`;
 };
 
-const cellColor = p => {
+const cellColor = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
     const colors = p.isStatusError
       ? [p.theme.alert.error.background]
