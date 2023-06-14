@@ -105,7 +105,10 @@
               },
               "projects": {
                 "type": "array",
-                "description": "The optional list of projects to deploy."
+                "description": "The optional list of projects to deploy.",
+                "items": {
+                  "type": "string"
+                },
               },
               "dateStarted": {
                 "type": "string",
