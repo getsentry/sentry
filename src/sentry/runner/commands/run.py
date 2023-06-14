@@ -10,7 +10,6 @@ from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
-from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 from sentry.utils.imports import import_string
 from sentry.utils.kafka import run_processor_with_signals
 
@@ -604,24 +603,17 @@ def occurrences_ingest_consumer(**options):
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
 @click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
 def metrics_parallel_consumer(**options):
-    from sentry.sentry_metrics.configuration import (
-        IndexerStorage,
-        UseCaseKey,
-        get_ingest_config,
-        initialize_main_process_state,
-    )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
-    use_case = UseCaseKey(options.pop("ingest_profile"))
-    db_backend = IndexerStorage(options.pop("indexer_db"))
-    ingest_config = get_ingest_config(use_case, db_backend)
-    slicing_router = get_slicing_router(ingest_config)
+    streamer = get_parallel_metrics_consumer(**options)
 
-    initialize_main_process_state(ingest_config)
+    from arroyo import configure_metrics
 
-    streamer = get_parallel_metrics_consumer(
-        indexer_profile=ingest_config, slicing_router=slicing_router, **options
-    )
+    from sentry.utils.arroyo import MetricsWrapper
+    from sentry.utils.metrics import backend
+
+    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer")
+    configure_metrics(metrics_wrapper)
 
     run_processor_with_signals(streamer)
 

@@ -52,6 +52,24 @@ def multiprocessing_options(
     ]
 
 
+_METRICS_INDEXER_OPTIONS = [
+    click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--indexer-db"], default="postgres"),
+    click.Option(["max_msg_batch_size", "--max-msg-batch-size"], type=int, default=50),
+    click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
+    click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
+    click.Option(
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
+    ),
+    click.Option(
+        ["--processes"],
+        default=1,
+        type=int,
+    ),
+]
+
+
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
@@ -140,6 +158,22 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "transactions",
+        },
+    },
+    "ingest-metrics": {
+        "topic": settings.KAFKA_INGEST_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
+        "click_options": _METRICS_INDEXER_OPTIONS,
+        "static_args": {
+            "ingest_profile": "release-health",
+        },
+    },
+    "ingest-generic-metrics": {
+        "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
+        "click_options": _METRICS_INDEXER_OPTIONS,
+        "static_args": {
+            "ingest_profile": "performance",
         },
     },
 }
