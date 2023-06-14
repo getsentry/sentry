@@ -153,7 +153,7 @@ def _is_healthy(queue_size) -> bool:
 
 def run_queue_stats_updater() -> None:
     hosts = []
-    for host in options.get("backpressure.monitor_queues.rabbitmq_hosts"):
+    for host in settings.SENTRY_QUEUE_MONITORING_RABBITMQ_HOSTS:
         try:
             hosts.append(_parse_rabbitmq(host))
         except ValueError as e:

@@ -3440,6 +3440,11 @@ SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 # Celery queues.
 SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
 
+# The RabbitMQ hosts whose health should be monitored by the backpressure system.
+# This should be a list of dictionaries with keys "url" and "vhost".
+# E.g. for local testing: [{"url": "https://guest:guest@localhost:15672", "vhost": "%2F"}]
+SENTRY_QUEUE_MONITORING_RABBITMQ_HOSTS = []
+
 # This is a mapping between the various processing stores,
 # and the redis `cluster` they are using.
 # This setting needs to be appropriately synched across the various deployments
