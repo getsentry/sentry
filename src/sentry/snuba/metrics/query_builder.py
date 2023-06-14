@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
-from sentry_sdk import capture_message
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -153,6 +153,7 @@ def resolve_tags(
     use_case_id: UseCaseKey,
     org_id: int,
     input_: Any,
+    project_ids: Sequence[int],
     is_tag_value: bool = False,
     allowed_tag_keys: Optional[Dict[str, str]] = None,
 ) -> Any:
@@ -288,11 +289,26 @@ def resolve_tags(
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
-            projects = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
-            if len(projects) > 999:
-                capture_message("Too many projects in query", level="warning")
+            projects_in_where_clause = Project.objects.filter(
+                slug__in=rhs_slugs, organization_id=org_id
+            )
 
-            rhs_ids = [p.id for p in projects]
+            if len(projects_in_where_clause) >= 100:
+                sentry_sdk.capture_message(
+                    "Too many projects in query where clause", level="warning"
+                )
+
+            invalid_project_slugs = [
+                p.slug for p in projects_in_where_clause if p.id not in project_ids
+            ]
+
+            if invalid_project_slugs:
+                raise InvalidParams(
+                    f"Invalid project slugs: {', '.join(invalid_project_slugs)} in query. Project "
+                    f"slugs must be defined in the top-level filters"
+                )
+
+            rhs_ids = [p.id for p in projects_in_where_clause]
             return Condition(
                 lhs=resolve_tags(
                     use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
