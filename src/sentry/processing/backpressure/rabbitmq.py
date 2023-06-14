@@ -39,12 +39,12 @@ def _parse_rabbitmq(host: Dict[str, str]) -> RabbitMqHost:
     url = host["url"]
     vhost = host["vhost"]
     dsn = urlparse(url)
-    host, port = dsn.hostname, dsn.port
+    hostname, port = dsn.hostname, dsn.port
     username, password = dsn.username, dsn.password
     if port is None:
         port = 15672
 
-    if host is None:
+    if hostname is None:
         raise ValueError("missing hostname")
 
     if username is None:
@@ -53,7 +53,7 @@ def _parse_rabbitmq(host: Dict[str, str]) -> RabbitMqHost:
     if password is None:
         raise ValueError("missing password")
 
-    return RabbitMqHost(host, port, vhost, username, password)
+    return RabbitMqHost(hostname, port, vhost, username, password)
 
 
 def _prefix_key(key_name: str) -> str:
