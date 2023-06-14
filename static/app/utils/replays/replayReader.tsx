@@ -4,6 +4,7 @@ import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -168,6 +169,14 @@ export default class ReplayReader {
   getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
 
   getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
+
+  getDomNodes = memoize(() =>
+    extractDomNodes({
+      crumbs: this.getCrumbsWithRRWebNodes(),
+      rrwebEvents: this.getRRWebEvents(),
+      finishedAt: this.replayRecord.finished_at,
+    })
+  );
 
   sdkConfig = memoize(() => {
     const found = this.rrwebEvents.find(

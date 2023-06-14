@@ -113,11 +113,11 @@ function SpanSummaryPage({params, location}: Props) {
                 <BlockContainer>
                   <Block>
                     <Panel>
-                      <PanelBody>
+                      <DescriptionPanelBody>
                         <DescriptionContainer>
                           <SpanDescription spanMeta={spanMetas?.[0]} />
                         </DescriptionContainer>
-                      </PanelBody>
+                      </DescriptionPanelBody>
                     </Panel>
                   </Block>
 
@@ -238,6 +238,13 @@ export const BlockContainer = styled('div')`
 const DescriptionContainer = styled('div')`
   width: 100%;
   padding: ${space(1)};
+  font-size: 1rem;
+  line-height: 1.2;
+`;
+
+const DescriptionPanelBody = styled(PanelBody)`
+  padding: ${space(2)};
+  height: 208px;
 `;
 
 const BlockWrapper = styled('div')`

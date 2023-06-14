@@ -23,9 +23,9 @@ type Props = {
   crumb: Crumb;
   currentHoverTime: number | undefined;
   currentTime: number;
-  handleMouseEnter: (crumb: Crumb) => void;
-  handleMouseLeave: (crumb: Crumb) => void;
   onClickTimestamp: (crumb: Crumb) => void;
+  onMouseEnter: (crumb: Crumb) => void;
+  onMouseLeave: (crumb: Crumb) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
@@ -47,8 +47,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      handleMouseEnter,
-      handleMouseLeave,
+      onMouseEnter,
+      onMouseLeave,
       onClickTimestamp,
       sortConfig,
       crumb,
@@ -116,8 +116,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             : undefined,
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      onMouseEnter: () => handleMouseEnter(crumb),
-      onMouseLeave: () => handleMouseLeave(crumb),
+      onMouseEnter: () => onMouseEnter(crumb),
+      onMouseLeave: () => onMouseLeave(crumb),
       ref,
       style,
     } as CellProps;
