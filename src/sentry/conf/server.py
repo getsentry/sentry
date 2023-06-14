@@ -3439,3 +3439,14 @@ SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 # The Redis cluster to use for monitoring the health of
 # Celery queues.
 SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
+
+# This is a mapping between the various processing stores,
+# and the redis `cluster` they are using.
+# This setting needs to be appropriately synched across the various deployments
+# for automatic backpressure management to properly work.
+SENTRY_PROCESSING_REDIS_CLUSTERS = {
+    "attachments": "rc-short",
+    # "processing": "processing",
+    "locks": "default",
+    "post_process_locks": "default",
+}
