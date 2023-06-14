@@ -18,13 +18,7 @@ from django.conf import settings
 
 from sentry.ingest.consumer_v2.ingest import process_ingest_message
 from sentry.ingest.types import ConsumerType
-
-<<<<<<< HEAD
-=======
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
-from sentry.snuba.utils import initialize_consumer_state
-
->>>>>>> origin/master
 from sentry.utils import kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
@@ -52,17 +46,6 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-<<<<<<< HEAD
-        if (mp := self.multi_process) is not None:
-            return RunTaskWithMultiprocessing(
-                function=process_ingest_message,
-                next_step=CommitOffsets(commit),
-                num_processes=mp.num_processes,
-                max_batch_size=mp.max_batch_size,
-                max_batch_time=mp.max_batch_time,
-                input_block_size=mp.input_block_size,
-                output_block_size=mp.output_block_size,
-=======
 
         # The attachments consumer that is used for multiple message types needs
         # ordering guarantees: Attachments have to be written before the event using
@@ -70,15 +53,13 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # for now.
         if self.num_processes > 1 and self.consumer_type != ConsumerType.Attachments:
             next_step = RunTaskWithMultiprocessing(
-                process_ingest_message,
-                CommitOffsets(commit),
+                function=process_ingest_message,
+                next_step=CommitOffsets(commit),
                 num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
-                initializer=initialize_consumer_state,
->>>>>>> origin/master
             )
         else:
             next_step = RunTask(
