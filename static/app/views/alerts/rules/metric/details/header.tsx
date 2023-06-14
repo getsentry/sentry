@@ -79,13 +79,13 @@ function DetailsHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          {hasSnoozeFeature && rule && rule.id && project && (
+          {hasSnoozeFeature && rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert
                   isSnoozed={isSnoozed}
                   onSnooze={onSnooze}
-                  ruleId={rule?.id}
+                  ruleId={rule.id}
                   projectSlug={project.slug}
                   ruleActionCategory={getAlertRuleActionCategory(rule)}
                   hasAccess={hasAccess}
