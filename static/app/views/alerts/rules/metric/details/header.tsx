@@ -11,8 +11,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {RuleActionsCategories} from 'sentry/types/alerts';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {isIssueAlert} from '../../../utils';
 
@@ -27,22 +27,6 @@ type Props = {
   project?: Project;
   rule?: MetricRule;
 };
-
-function getRuleActionCategory(rule: MetricRule) {
-  const actions = rule.triggers.map(trigger => trigger.actions).flat();
-  const numDefaultActions = actions.filter(action => action.type === 'email').length;
-
-  switch (numDefaultActions) {
-    // Are all actions default actions?
-    case actions.length:
-      return RuleActionsCategories.ALL_DEFAULT;
-    // Are none of the actions default actions?
-    case 0:
-      return RuleActionsCategories.NO_DEFAULT;
-    default:
-      return RuleActionsCategories.SOME_DEFAULT;
-  }
-}
 
 function DetailsHeader({
   hasMetricRuleDetailsError,
@@ -103,7 +87,7 @@ function DetailsHeader({
                   onSnooze={onSnooze}
                   ruleId={rule?.id}
                   projectSlug={project.slug}
-                  ruleActionCategory={getRuleActionCategory(rule)}
+                  ruleActionCategory={getAlertRuleActionCategory(rule)}
                   hasAccess={hasAccess}
                   type="metric"
                 />

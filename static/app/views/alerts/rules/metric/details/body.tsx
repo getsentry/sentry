@@ -20,6 +20,7 @@ import {RuleActionsCategories} from 'sentry/types/alerts';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {AlertRuleStatus, Incident} from '../../../types';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
@@ -45,22 +46,6 @@ type Props = {
   rule?: MetricRule;
   selectedIncident?: Incident | null;
 } & RouteComponentProps<{}, {}>;
-
-function getRuleActionCategory(rule: MetricRule) {
-  const actions = rule.triggers.map(trigger => trigger.actions).flat();
-  const numDefaultActions = actions.filter(action => action.type === 'email').length;
-
-  switch (numDefaultActions) {
-    // Are all actions default actions?
-    case actions.length:
-      return RuleActionsCategories.ALL_DEFAULT;
-    // Are none of the actions default actions?
-    case 0:
-      return RuleActionsCategories.NO_DEFAULT;
-    default:
-      return RuleActionsCategories.SOME_DEFAULT;
-  }
-}
 
 export default class DetailsBody extends Component<Props> {
   getTimeWindow(): React.ReactNode {
@@ -176,7 +161,7 @@ export default class DetailsBody extends Component<Props> {
     };
 
     const isSnoozed = rule.snooze;
-    const ruleActionCategory = getRuleActionCategory(rule);
+    const ruleActionCategory = getAlertRuleActionCategory(rule);
 
     return (
       <Fragment>

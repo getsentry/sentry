@@ -1,7 +1,10 @@
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 export function getProjectOptions({
   organization,
@@ -61,4 +64,37 @@ function renderIdBadge(project: Project) {
       hideName
     />
   );
+}
+
+export function getRuleActionCategory(rule: IssueAlertRule) {
+  const numDefaultActions = rule.actions.filter(
+    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
+  ).length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case rule.actions.length:
+      return RuleActionsCategories.ALL_DEFAULT;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NO_DEFAULT;
+    default:
+      return RuleActionsCategories.SOME_DEFAULT;
+  }
+}
+
+export function getAlertRuleActionCategory(rule: MetricRule) {
+  const actions = rule.triggers.map(trigger => trigger.actions).flat();
+  const numDefaultActions = actions.filter(action => action.type === 'email').length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case actions.length:
+      return RuleActionsCategories.ALL_DEFAULT;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NO_DEFAULT;
+    default:
+      return RuleActionsCategories.SOME_DEFAULT;
+  }
 }
