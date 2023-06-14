@@ -1,15 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
   const org = TestStubs.Organization({
-    features: [
-      'performance-view',
-      'performance-issues-dev',
-      'performance-issues-detector-threshold-configuration',
-    ],
+    features: ['performance-view', 'performance-issues-dev'],
   });
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -112,7 +107,7 @@ describe('projectPerformance', function () {
 
   it('does not get performance issues settings without the feature flag', function () {
     const orgWithoutPerfIssues = TestStubs.Organization({
-      features: ['performance-view', 'performance-issues-dev'],
+      features: ['performance-view'],
     });
 
     render(
@@ -124,39 +119,5 @@ describe('projectPerformance', function () {
     );
 
     expect(performanceIssuesMock).not.toHaveBeenCalled();
-  });
-
-  it('renders detector threshold configuration - admin ui', async function () {
-    jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
-
-    render(
-      <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
-        organization={org}
-        project={project}
-      />,
-      {organization: org}
-    );
-
-    expect(
-      await screen.findByText('N+1 DB Queries Detection Enabled')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Slow DB Queries Detection Enabled')).toBeInTheDocument();
-    expect(screen.getByText('N+1 API Calls Detection Enabled')).toBeInTheDocument();
-    expect(
-      screen.getByText('Consecutive HTTP Spans Detection Enabled')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Consecutive DB Queries Detection Enabled')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Large HTTP Payload Detection Enabled')).toBeInTheDocument();
-    expect(screen.getByText('DB On Main Thread Detection Enabled')).toBeInTheDocument();
-    expect(
-      screen.getByText('File I/O on Main Thread Detection Enabled')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Uncompressed Assets Detection Enabled')).toBeInTheDocument();
-    expect(
-      screen.getByText('Large Render Blocking Asset Detection Enabled')
-    ).toBeInTheDocument();
   });
 });
