@@ -341,6 +341,8 @@ class Monitor(Model):
                     )
             alert_rule_data["targets"] = targets
 
+            alert_rule_data["environment_id"] = alert_rule.environment_id
+
             return alert_rule_data
 
         return None

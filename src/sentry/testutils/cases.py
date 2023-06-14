@@ -2406,6 +2406,7 @@ class MonitorTestCase(APITestCase):
             conditions=[],
             actions=[],
             frequency=5,
+            environment=self.environment.id,
         ).call()
         rule.update(source=RuleSource.CRON_MONITOR)
 
