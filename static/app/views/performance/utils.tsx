@@ -356,17 +356,24 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   return selectedProjectPlatforms.join(', ');
 }
 
-export function getProjectID(
+export function getProject(
   eventData: EventData,
   projects: Project[]
-): string | undefined {
+): Project | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
     return undefined;
   }
 
-  return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
+  return projects.find(currentProject => currentProject.slug === projectSlug);
+}
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  return getProject(eventData, projects)?.id;
 }
 
 export function transformTransaction(
