@@ -6,9 +6,12 @@ from freezegun import freeze_time
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
+    _get_projects_key,
+    _get_redis_key,
     _record_sample,
     clear_samples,
     get_active_projects,
+    get_redis_client,
     get_transaction_names,
     record_transaction_name,
 )
@@ -88,11 +91,45 @@ def test_clear_redis():
     assert set(get_transaction_names(project)) == {"foo"}
     clear_samples(ClustererNamespace.TRANSACTIONS, project)
     assert set(get_transaction_names(project)) == set()
-    # TODO: test main set gone
 
-    # Deleting for a none-existing project does not crash:
+    # Deleting for a non-existing project does not crash:
     project2 = Project(id=666, name="project2", organization=Organization(pk=66))
     clear_samples(ClustererNamespace.TRANSACTIONS, project2)
+
+
+def test_clear_redis_projects():
+    project1 = Project(id=101, name="p1", organization=Organization(pk=66))
+    project2 = Project(id=102, name="p2", organization=Organization(pk=66))
+    client = get_redis_client()
+
+    assert not client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
+    assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
+
+    _record_sample(ClustererNamespace.TRANSACTIONS, project1, "foo")
+
+    assert client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
+    assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
+
+    _record_sample(ClustererNamespace.TRANSACTIONS, project2, "bar")
+
+    assert client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
+    assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
+
+    clear_samples(ClustererNamespace.TRANSACTIONS, project1)
+
+    assert client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
+    assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
+
+    clear_samples(ClustererNamespace.TRANSACTIONS, project2)
+
+    # Everything is gone
+    assert not client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
+    assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
