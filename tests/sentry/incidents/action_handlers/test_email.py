@@ -242,7 +242,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                         "project_slug": self.project.slug,
                         "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
                     },
-                )
+                ),
+                query="referrer=alert_email",
             ),
             "incident_name": incident.title,
             "aggregate": aggregate,

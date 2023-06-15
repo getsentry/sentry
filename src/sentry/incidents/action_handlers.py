@@ -288,7 +288,7 @@ def generate_incident_trigger_email_context(
     snooze_alert_url = None
     if features.has("organizations:mute-metric-alerts", organization):
         snooze_alert = True
-        snooze_alert_url = rule_link + "&" + urlencode({"mute": "1"})
+        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
     return {
         "link": alert_link,
