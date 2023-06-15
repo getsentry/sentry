@@ -24,7 +24,9 @@ export function useSpansQuery<T = any[]>({
   limit,
   enabled,
   referrer = 'use-spans-query',
+  cursor,
 }: {
+  cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
   initialData?: any;
@@ -34,9 +36,8 @@ export function useSpansQuery<T = any[]>({
   const queryFunction = getQueryFunction({
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
-
   if (eventView) {
-    return queryFunction({eventView, initialData, limit, enabled, referrer});
+    return queryFunction({eventView, initialData, limit, enabled, referrer, cursor});
   }
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
@@ -46,8 +47,10 @@ export function useWrappedDiscoverTimeseriesQuery({
   enabled,
   initialData,
   referrer,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   initialData?: any;
   referrer?: string;
@@ -72,6 +75,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      cursor,
     }),
     options: {
       enabled,
@@ -94,8 +98,10 @@ export function useWrappedDiscoverQuery({
   enabled,
   referrer,
   limit,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   initialData?: any;
   limit?: number;
@@ -108,6 +114,7 @@ export function useWrappedDiscoverQuery({
     orgSlug: organization.slug,
     location,
     referrer,
+    cursor,
     limit,
     options: {
       enabled,

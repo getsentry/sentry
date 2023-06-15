@@ -30,7 +30,8 @@ export const useSpanList = (
   spanCategory?: string,
   orderBy?: string,
   limit?: number,
-  referrer = 'use-span-list'
+  referrer = 'use-span-list',
+  cursor?: string
 ) => {
   const location = useLocation();
 
@@ -48,6 +49,7 @@ export const useSpanList = (
     initialData: [],
     limit,
     referrer,
+    cursor,
   });
 
   return {isLoading, data, pageLinks};
