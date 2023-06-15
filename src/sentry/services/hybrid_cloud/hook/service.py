@@ -7,7 +7,7 @@ import abc
 from typing import List, Optional, cast
 
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
-from sentry.services.hybrid_cloud.rpc import RpcService
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
@@ -21,6 +21,7 @@ class HookService(RpcService):
 
         return DatabaseBackedHookService()
 
+    @rpc_method
     @abc.abstractmethod
     def create_service_hook(
         self,
@@ -35,6 +36,7 @@ class HookService(RpcService):
     ) -> RpcServiceHook:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def update_webhook_and_events(
         self,
