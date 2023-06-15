@@ -55,7 +55,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
     class _UserOptionFilterQuery(
         FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None]
     ):
-        def base_query(self) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet:
             return UserOption.objects
 
         def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
@@ -109,6 +109,3 @@ class DatabaseBackedUserOptionService(UserOptionService):
             )
 
     _FQ = _UserOptionFilterQuery()
-
-    def close(self) -> None:
-        pass

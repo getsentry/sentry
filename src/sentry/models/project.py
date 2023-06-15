@@ -25,12 +25,16 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    OptionManager,
+    Value,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models import OptionMixin
+from sentry.models.grouplink import GroupLink
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -38,6 +42,8 @@ from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.integrationdocs import integration_doc_exists
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -103,7 +109,7 @@ class ProjectManager(BaseManager):
 
 
 @region_silo_only_model
-class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
+class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -222,15 +228,19 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 return True
         return False
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
-        return projectoptions.set(self, *args, **kwargs)
+    @property
+    def option_manager(self) -> OptionManager:
+        from sentry.models import ProjectOption
 
-    def get_option(self, *args, **kwargs):
-        return projectoptions.get(self, *args, **kwargs)
+        return ProjectOption.objects
 
-    def delete_option(self, *args, **kwargs):
-        return projectoptions.delete(self, *args, **kwargs)
+    def update_option(self, key: str, value: Value) -> bool:
+        projectoptions.update_rev_for_option(self)
+        return super().update_option(key, value)
+
+    def delete_option(self, key: str) -> None:
+        projectoptions.update_rev_for_option(self)
+        super().delete_option(key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)
@@ -300,6 +310,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         from sentry.models import (
             Environment,
             EnvironmentProject,
+            ExternalIssue,
             ProjectTeam,
             RegionScheduledDeletion,
             ReleaseProject,
@@ -404,6 +415,22 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             )
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
+
+        # Manually move over external issues to the new org
+        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
+            "linked_id", flat=True
+        )
+
+        for external_issues in chunked(
+            RangeQuerySetWrapper(
+                ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
+                step=1000,
+            ),
+            1000,
+        ):
+            for ei in external_issues:
+                ei.organization_id = organization.id
+            ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam

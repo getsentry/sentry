@@ -163,7 +163,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
               isGroupedByDate
               useShortDate
               legend={{right: 0, top: 0}}
-              xAxis={barAxisLabel(allSeries[0]?.data.length ?? 0)}
+              xAxis={barAxisLabel()}
               yAxis={{minInterval: 1}}
               series={allSeries}
             />

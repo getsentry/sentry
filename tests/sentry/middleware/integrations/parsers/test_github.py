@@ -1,3 +1,4 @@
+from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import HttpResponse
@@ -33,24 +34,31 @@ class GithubRequestParserTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
+        assert response.status_code == 200
         assert response.content == b"no-error"
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_properly(self):
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        parser.get_response_from_control_silo = MagicMock()
-        parser.get_response_from_outbox_creation = MagicMock()
 
         # No regions identified
-        parser.get_regions_from_organizations = MagicMock(return_value=[])
-        parser.get_response()
-        assert parser.get_response_from_control_silo.called
+        with mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo, mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[]
+        ):
+            parser.get_response()
+            assert get_response_from_control_silo.called
 
         # Regions found
-        parser.get_regions_from_organizations = MagicMock(return_value=[self.region])
-        parser.get_response()
-        assert parser.get_response_from_outbox_creation.called
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[self.region]
+        ):
+            parser.get_response()
+            assert get_response_from_outbox_creation.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import List, Mapping
+from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -40,7 +40,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
-from sentry.utils.types import Any
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
@@ -230,9 +229,6 @@ class DatabaseBackedAuthService(AuthService):
             sso_state=sso_state,
             permissions=permissions,
         )
-
-    def close(self) -> None:
-        pass
 
     def get_org_ids_with_scim(
         self,

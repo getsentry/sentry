@@ -20,9 +20,10 @@ from sentry.models import (
     Team,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.services.hybrid_cloud import logger
+from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -234,9 +235,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return None
 
-    def close(self) -> None:
-        pass
-
     def get_organizations(
         self,
         *,
@@ -281,6 +279,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return [r.organization for r in results if scope in r.get_scopes()]
 
         return [r.organization for r in results]
+
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        updates = models.F("flags")
+        for (name, value) in flags.items():
+            if value is True:
+                updates = updates.bitor(Organization.flags[name])
+            elif value is False:
+                updates = updates.bitand(~Organization.flags[name])
+            else:
+                raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
+
+        Organization.objects.filter(id=organization_id).update(flags=updates)
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
@@ -384,6 +394,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
         )
 
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        org = Organization.objects.get(id=organization_id)
+        org.default_role = default_role
+        org.save()
+        return serialize_organization(org)
+
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member = OrganizationMember.objects.get(
@@ -466,3 +484,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
+
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        value = orm_organization.get_option(key)
+        if value is not None and not isinstance(value, (str, int, bool)):
+            raise TypeError
+        return value
+
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+
+    def delete_option(self, *, organization_id: int, key: str) -> None:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        orm_organization.delete_option(key)

@@ -1,4 +1,6 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -6,21 +8,24 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
-  isLoading: boolean;
   moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  spansData: SpanDataRow[];
   columnOrder?: TableColumnHeader[];
+  endpoint?: string;
+  limit?: number;
+  spanCategory?: string;
 };
 
 export type SpanDataRow = {
@@ -30,7 +35,7 @@ export type SpanDataRow = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
+  'sps()': number;
   'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
@@ -39,38 +44,48 @@ export type Keys =
   | 'span.description'
   | 'span.op'
   | 'span.domain'
-  | 'spm()'
+  | 'sps()'
   | 'p95(span.duration)'
   | 'sps_percent_change()'
   | 'sum(span.duration)'
-  | 'time_spent_percentage()'
-  | 'percentile_percent_change(span.duration, 0.95)';
+  | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
   moduleName,
-  spansData,
   orderBy,
   onSetOrderBy,
-  isLoading,
   columnOrder,
+  spanCategory,
+  endpoint,
+  limit = 25,
 }: Props) {
   const location = useLocation();
+  const {isLoading, data, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    undefined,
+    spanCategory,
+    orderBy,
+    limit
+  );
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={spansData}
-      columnOrder={columnOrder ?? getColumns(moduleName)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={columnOrder ?? getColumns(moduleName)}
+        columnSortBy={
+          orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
+        }
+        grid={{
+          renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
+          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
   );
 }
 
@@ -97,12 +112,20 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.ReactNode {
+function renderBodyCell(
+  column: TableColumnHeader,
+  row: SpanDataRow,
+  endpoint?: string
+): React.ReactNode {
   if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
-          <Link to={`/starfish/span/${row['span.group']}`}>
+          <Link
+            to={`/starfish/span/${row['span.group']}${
+              endpoint ? `?${urlEncode({endpoint})}` : ''
+            }`}
+          >
             {row['span.description'] || '<null>'}
           </Link>
         ) : (
@@ -121,10 +144,10 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
     );
   }
 
-  if (column.key === 'spm()') {
+  if (column.key === 'sps()') {
     return (
       <ThroughputCell
-        throughputPerSecond={row['spm()']}
+        throughputPerSecond={row['sps()']}
         delta={row['sps_percent_change()']}
       />
     );
@@ -187,7 +210,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
         ]
       : []),
     {
-      key: 'spm()',
+      key: 'sps()',
       name: 'Throughput',
       width: 175,
     },
