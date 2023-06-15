@@ -145,7 +145,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         const label = key === '' ? NULL_SPAN_CATEGORY : key;
         seriesByDomain[label].data =
           seriesData?.data.map(datum => {
-            return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
+            return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
           }) ?? [];
       });
     }
