@@ -43,9 +43,9 @@ from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
-from src.sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
     from sentry.models import User
