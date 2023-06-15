@@ -670,7 +670,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         ]
         self.assert_facet(response, "device.class", expected)
 
-    def test_with_page_offset_parameter(self):
+    def test_with_per_page_and_cursor_parameters(self):
         test_project = self.create_project()
         self.store_event(
             data={
@@ -697,7 +697,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"project": test_project.id, "page_offset": 5, "page_size": 1},
+                data={"project": test_project.id, "cursor": 5, "per_page": 1},
             )
 
         assert response.status_code == 200, response.content

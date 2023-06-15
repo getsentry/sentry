@@ -28,7 +28,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 cursor = int(request.GET.get("cursor")) if request.GET.get("cursor") else None
                 pagination_data = {}
                 if per_page:
-                    pagination_data["page_size"] = per_page
+                    pagination_data["per_page"] = per_page
                 if cursor:
                     pagination_data["cursor"] = cursor
                 facets = discover.get_facets(
