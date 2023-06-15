@@ -1,8 +1,7 @@
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
-import {RuleActionsCategories} from 'sentry/types/alerts';
+import {IssueAlertRule, RuleActionsCategories} from 'sentry/types/alerts';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
