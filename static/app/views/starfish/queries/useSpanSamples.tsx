@@ -4,6 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanIndexedFields} from 'sentry/views/starfish/types';
 
 const DEFAULT_LIMIT = 10;
 const DEFAULT_ORDER_BY = '-duration';
@@ -24,7 +25,7 @@ export function useSpanSamples(
       query: `${groupId ? `span.group:${groupId}` : ''} ${
         transaction ? ` transaction:${transaction}` : ''
       }`,
-      fields: ['id', 'duration', 'transaction.id', 'timestamp'],
+      fields: ['id', SpanIndexedFields.SPAN_SELF_TIME, 'transaction.id', 'timestamp'],
       dataset: DiscoverDatasets.SPANS_INDEXED,
       orderby: orderBy ?? DEFAULT_ORDER_BY,
       projects: [1],

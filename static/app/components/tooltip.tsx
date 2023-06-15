@@ -11,7 +11,7 @@ import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverla
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
-export interface InternalTooltipProps extends UseHoverOverlayProps {
+interface InternalTooltipProps extends UseHoverOverlayProps {
   /**
    * The content to show in the tooltip popover
    */
@@ -99,4 +99,4 @@ function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-export {Tooltip};
+export {Tooltip, TooltipProps};
