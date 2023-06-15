@@ -354,7 +354,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           />
         ) : showDocsWithProductSelection ? (
           <DocWithProductSelection
-            organization={organization}
             project={project}
             location={location}
             currentPlatform={platform.key}
