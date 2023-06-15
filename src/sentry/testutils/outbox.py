@@ -18,6 +18,7 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     if callable(wrapped):
 
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            assert callable(wrapped)
             with outbox_runner():
                 return wrapped(*args, **kwargs)
 
