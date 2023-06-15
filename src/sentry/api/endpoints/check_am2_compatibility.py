@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Set
+from enum import Enum
+from typing import Any, Dict, Mapping, Set
 
 import pytz
 import sentry_sdk
@@ -9,10 +10,13 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.models import DashboardWidgetQuery, Organization, Project
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.snuba.models import QuerySubscription
+from sentry.tasks.base import instrumented_task
+from sentry.utils import json
 
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
@@ -110,6 +114,15 @@ SUPPORTED_SDK_VERSIONS = {
     "SentryDotNet.AspNetCore": "3.22.0",
     "sentry.go": "0.16.0",
 }
+
+TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
+ONE_MINUTE_TTL = 60  # 1 minute
+
+
+class CheckStatus(Enum):
+    ERROR = 0
+    IN_PROGRESS = 1
+    DONE = 2
 
 
 class CheckAM2CompatibilityMixin:
@@ -346,6 +359,80 @@ class CheckAM2CompatibilityMixin:
         )
 
 
+def generate_cache_key_for_async_progress(org_id):
+    return f"ds::o:{org_id}:check_am2_compatibility_status"
+
+
+def generate_cache_key_for_async_result(org_id):
+    return f"ds::o:{org_id}:check_am2_compatibility_results"
+
+
+def set_check_status(org_id, status, ttl=TASK_SOFT_LIMIT_IN_SECONDS):
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_cache_key_for_async_progress(org_id)
+
+    redis_client.set(cache_key, status)
+    redis_client.expire(cache_key, ttl)
+
+
+def get_check_status(org_id):
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_cache_key_for_async_progress(org_id)
+
+    cached_status = redis_client.get(cache_key)
+    try:
+        float_cached_status = float(cached_status)
+        return CheckStatus(float_cached_status)
+    except (TypeError, ValueError):
+        return None
+
+
+def set_check_results(org_id, results):
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_cache_key_for_async_result(org_id)
+
+    redis_client.set(cache_key, json.dumps(results))
+    redis_client.expire(cache_key, TASK_SOFT_LIMIT_IN_SECONDS)
+
+
+def get_check_results(org_id):
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_cache_key_for_async_result(org_id)
+
+    try:
+        serialised_val = redis_client.get(cache_key)
+        # We check if there is a value in cache.
+        if serialised_val:
+            return json.loads(serialised_val)
+    except (TypeError, ValueError):
+        return None
+
+
+@instrumented_task(
+    name="sentry.tasks.check_am2_compatibility",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=1,  # We don't want the system to retry such computations.
+    soft_time_limit=TASK_SOFT_LIMIT_IN_SECONDS,  # 30 minutes
+    time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
+)
+def run_compatibility_check_async(org_id):
+    errors = []
+    try:
+        set_check_status(org_id, CheckStatus.IN_PROGRESS)
+        results = CheckAM2CompatibilityMixin.run_compatibility_check(org_id, errors)
+        # The expiration of these two cache keys will be arbitrarily different due to the different times in which
+        # Redis might apply the operation, but we don't care, as long as the status outlives the result, since we check
+        # the status for determining if we want to proceed to even read a possible result.
+        set_check_status(org_id, CheckStatus.DONE)
+        set_check_results(org_id, {"results": results, "errors": errors})
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        # We want to store the error status for 1 minutes, after that the system will auto reset and we will run the
+        # compatibility check again if follow-up requests happen.
+        set_check_status(org_id, CheckStatus.ERROR, ONE_MINUTE_TTL)
+
+
 @region_silo_endpoint
 class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
     permission_classes = (SuperuserPermission,)
@@ -353,17 +440,30 @@ class CheckAM2CompatibilityEndpoint(Endpoint, CheckAM2CompatibilityMixin):
     def get(self, request: Request) -> Response:
         try:
             org_id = request.GET.get("orgId")
+            check_status = get_check_status(org_id)
+            if check_status == CheckStatus.DONE:
+                results = get_check_results(org_id)
+                # In case the state is done, but we didn't find a valid value in cache, we have a problem.
+                if results is None:
+                    raise Exception("the check status is done in cache but there are no results.")
 
-            # We decided for speed of iteration purposes to just pass an error array that is shared across functions
-            # to collect all possible issues.
-            errors: List[str] = []
-            results = self.run_compatibility_check(org_id, errors)
+                return Response({"status": CheckStatus.DONE.value, **results}, status=200)
+            elif check_status == CheckStatus.IN_PROGRESS:
+                return Response({"status": CheckStatus.IN_PROGRESS.value}, status=202)
+            elif check_status == CheckStatus.ERROR:
+                raise Exception("the asynchronous task had an internal error.")
 
-            return Response({"results": results, "errors": errors}, status=200)
+            # In case we have no status, we will trigger the asynchronous job and return.
+            run_compatibility_check_async.delay(org_id)
+            return Response({"status": CheckStatus.IN_PROGRESS.value}, status=202)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
             return Response(
-                {"error": "An error occurred while trying to check compatibility for AM2."},
+                {
+                    "status": CheckStatus.ERROR.value,
+                    "error": f"An error occurred while trying to check compatibility "
+                    f"for AM2: {e}",
+                },
                 status=500,
             )
