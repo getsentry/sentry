@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -22,6 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -231,6 +233,17 @@ export default function EndpointOverview() {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Starfish'),
+                  to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+                },
+                {
+                  label: t('Endpoint Overview'),
+                },
+              ]}
+            />
             <Layout.Title>{`${method} ${transaction}`}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
