@@ -3469,3 +3469,10 @@ SENTRY_PROCESSING_REDIS_CLUSTERS = {
     "locks": "default",
     "post_process_locks": "default",
 }
+
+
+# If set to true, model cache will read by default from DB read replica in case of cache misses.
+# NB: Set to true only if you have multi db setup and django db routing configured.
+#     See sentry.db.models.manager.base_query_set how qs.using_replica() works for more details db
+#     router implementation.
+SENTRY_MODEL_CACHE_USE_REPLICA = False
