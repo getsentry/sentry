@@ -20,6 +20,7 @@ from sentry.models import (
     SentryAppInstallationToken,
 )
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.http import absolute_uri
@@ -92,7 +93,9 @@ def get_payload_and_token(
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug
-    project = Project.objects.get(id=sentry_project_id)
+    project = project_service.get_by_id(organization_id=organization_id, id=sentry_project_id)
+    if project is None:
+        raise Project.DoesNotExist
 
     # find the connected sentry app installation
     installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
