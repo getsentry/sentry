@@ -56,22 +56,6 @@ _DEFAULT_DAEMONS = {
         "--no-strict-offset-reset",
     ],
     "server": ["sentry", "run", "web"],
-    "metrics-rh": [
-        "sentry",
-        "run",
-        "ingest-metrics-parallel-consumer",
-        "--ingest-profile",
-        "release-health",
-        *_DEV_METRICS_INDEXER_ARGS,
-    ],
-    "metrics-perf": [
-        "sentry",
-        "run",
-        "ingest-metrics-parallel-consumer",
-        "--ingest-profile",
-        "performance",
-        *_DEV_METRICS_INDEXER_ARGS,
-    ],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -321,10 +305,8 @@ and run `sentry devservices up kafka zookeeper`.
                     "`SENTRY_USE_METRICS_DEV` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            daemons += [
-                _get_daemon("metrics-rh"),
-                _get_daemon("metrics-perf"),
-            ]
+            kafka_consumers.append("ingest-metrics")
+            kafka_consumers.append("ingest-generic-metrics")
             kafka_consumers.append("billing-metrics-consumer")
             needs_kafka = True
 
