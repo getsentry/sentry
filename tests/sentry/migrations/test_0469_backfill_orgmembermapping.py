@@ -1,3 +1,4 @@
+from sentry.models import outbox_context
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.testutils.cases import TestMigrations
@@ -9,37 +10,38 @@ class BackfillNotificationSettingTest(TestMigrations):
 
     def setup_initial_state(self):
         self.owner = self.create_user()
-        self.member = OrganizationMember.objects.create(
-            organization=self.organization,
-            user_id=self.owner.id,
-            role="owner",
-        )
-        self.invite = OrganizationMember.objects.create(
-            organization=self.organization,
-            email="test@example.com",
-            inviter_id=self.user.id,
-            role="member",
-        )
+        with outbox_context(flush=False):
+            self.member = OrganizationMember.objects.create(
+                organization=self.organization,
+                user_id=self.owner.id,
+                role="owner",
+            )
+            self.invite = OrganizationMember.objects.create(
+                organization=self.organization,
+                email="test@example.com",
+                inviter_id=self.user.id,
+                role="member",
+            )
 
-        member_user = self.create_user()
-        self.member_with_mapping = OrganizationMember.objects.create(
-            organization=self.organization,
-            user_id=member_user.id,
-            role="member",
-        )
-        OrganizationMemberMapping.objects.create(
-            organization_id=self.organization.id,
-            organizationmember_id=self.member_with_mapping.id,
-            user_id=member_user.id,
-            role=self.member_with_mapping.role,
-        )
+            member_user = self.create_user()
+            self.member_with_mapping = OrganizationMember.objects.create(
+                organization=self.organization,
+                user_id=member_user.id,
+                role="member",
+            )
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id,
+                organizationmember_id=self.member_with_mapping.id,
+                user_id=member_user.id,
+                role=self.member_with_mapping.role,
+            )
 
-        self.to_remove = OrganizationMemberMapping.objects.create(
-            organization_id=self.organization.id,
-            organizationmember_id=None,
-            email="sally@example.com",
-            role="member",
-        )
+            self.to_remove = OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id,
+                organizationmember_id=None,
+                email="sally@example.com",
+                role="member",
+            )
 
     def test(self):
         # Generated mapping for invite record.
