@@ -20,6 +20,8 @@ from sentry.utils import metrics, sdk
 
 logger = logging.getLogger(__name__)
 
+executor = ThreadPoolExecutor(max_workers=1)
+
 STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.POSTGRES: PostgresIndexer,
     IndexerStorage.MOCK: MockIndexer,
@@ -34,7 +36,6 @@ class MessageProcessor:
     def __init__(self, config: MetricsIngestConfiguration):
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
-        self._executor = ThreadPoolExecutor(max_workers=1)
         self._prev_future: Optional[Future] = None
 
     # The following two methods are required to work such that the parallel
@@ -96,8 +97,11 @@ class MessageProcessor:
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))
 
-        if self._prev_future:
-            self._prev_future.result()
+        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
+            op="apply_cardinality_limits"
+        ):
+            if self._prev_future:
+                self._prev_future.result()
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
             op="check_cardinality_limits"
@@ -107,7 +111,7 @@ class MessageProcessor:
                 self._config.use_case_id, batch.parsed_payloads_by_offset
             )
 
-        self._prev_future = self._executor.submit(
+        self._prev_future = executor.submit(
             cardinality_limiter.apply_cardinality_limits, cardinality_limiter_state
         )
 
