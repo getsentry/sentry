@@ -281,12 +281,9 @@
       "release": {
         "type": "object",
         "nullable": true,
-        "oneOf": [
+        "allOf": [
           {
             "$ref": "releases/organization-release.json#/OrganizationRelease"
-          },
-          {
-            "$ref": "null.json#/NullValue"
           }
         ]
       },

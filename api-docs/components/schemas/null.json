@@ -1,5 +1,7 @@
 {
   "NullValue": {
+    "type": "string",
+    "nullable": true,
     "not": {
       "anyOf": [
         { "type": "string" },
