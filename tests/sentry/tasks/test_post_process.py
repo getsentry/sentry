@@ -1683,7 +1683,7 @@ class PostProcessGroupPerformanceTest(
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_process_transaction_event_clusterer(
         self,
         mock_store_transaction_name,
