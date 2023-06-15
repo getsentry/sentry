@@ -33,8 +33,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 
 type SpanTableRow = {
   description: string;
-  duration: number;
   op: string;
+  'span.self_time': number;
   span_id: string;
   timestamp: string;
   transaction: {
@@ -82,14 +82,14 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
       return (
         <SpanDurationBar
           spanOp={row.op}
-          spanDuration={row.duration}
+          spanDuration={row['span.self_time']}
           transactionDuration={row.transaction['transaction.duration']}
         />
       );
     }
 
     if (column.key === 'p95_comparison') {
-      return <DurationComparisonCell duration={row.duration} p95={p95} />;
+      return <DurationComparisonCell duration={row['span.self_time']} p95={p95} />;
     }
 
     if (column.key === 'timestamp') {

@@ -6,6 +6,9 @@ import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/sp
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
@@ -17,7 +20,7 @@ function SampleTable({groupId, transactionName}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName},
-    ['p95(span.duration)'],
+    [`p95(${SPAN_SELF_TIME})`],
     'span-summary-panel-samples-table-p95'
   );
 
@@ -50,7 +53,7 @@ function SampleTable({groupId, transactionName}: Props) {
           };
         })}
         isLoading={areSpanSamplesLoading || areTransactionsLoading}
-        p95={spanMetrics?.['p95(span.duration)']}
+        p95={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
       />
       <Pagination pageLinks={pageLinks} />
     </Fragment>

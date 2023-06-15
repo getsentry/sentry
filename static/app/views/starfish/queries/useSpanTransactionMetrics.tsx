@@ -4,12 +4,15 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
+const {SPAN_SELF_TIME} = SpanMetricsFields;
+
 export type SpanTransactionMetrics = {
-  'p50(span.duration)': number;
-  'p95(span.duration)': number;
-  'percentile_percent_change(span.duration, 0.95)': number;
+  'p50(span.self_time)': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'sps()': number;
   'sps_percent_change()': number;
   'sum(span.self_time)': number;
@@ -48,9 +51,9 @@ function getEventView(span: {group: string}, location: Location, transactions: s
         'transaction',
         'sps()',
         'sps_percent_change()',
-        'sum(span.duration)',
-        'p95(span.duration)',
-        'percentile_percent_change(span.duration, 0.95)',
+        `sum(${SPAN_SELF_TIME})`,
+        `p95(${SPAN_SELF_TIME})`,
+        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
         'time_spent_percentage(local)',
       ],
       orderby: '-time_spent_percentage_local',

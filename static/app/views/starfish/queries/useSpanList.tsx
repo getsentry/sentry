@@ -5,22 +5,23 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
 
 export type SpanMetrics = {
-  'p95(span.duration)': number;
-  'percentile_percent_change(span.duration, 0.95)': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'sps()': number;
   'sps_percent_change()': number;
-  'sum(span.duration)': number;
+  'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
 
@@ -77,10 +78,10 @@ function getEventView(
         'span.domain',
         'sps()',
         'sps_percent_change()',
-        'sum(span.duration)',
-        'p95(span.duration)',
+        `sum(${SPAN_SELF_TIME})`,
+        `p95(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',
-        'percentile_percent_change(span.duration, 0.95)',
+        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
       ],
       orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,
