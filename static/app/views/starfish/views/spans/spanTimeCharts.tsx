@@ -16,7 +16,7 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
