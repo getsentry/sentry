@@ -13,6 +13,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
+import {getItemsWithKeys} from './utils';
 
 export type {SelectOption, SelectOptionOrSection, SelectSection};
 
@@ -80,17 +81,7 @@ function CompactSelect<Value extends React.Key>({
     return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
   }, [multiple, value, defaultValue, onChange, closeOnSelect, grid]);
 
-  const optionsWithKey = useMemo<SelectOptionOrSectionWithKey<Value>[]>(
-    () =>
-      options.map((item, i) => ({
-        ...item,
-        // options key has to be unique to the current list of options,
-        // else we risk of a duplicate key error and end up confusing react
-        // which ultimately fails to call the correct item handlers
-        key: 'options' in item ? item.key ?? `options-${i}` : item.value,
-      })),
-    [options]
-  );
+  const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
   const controlDisabled = useMemo(
     () => disabled ?? options?.length === 0,
@@ -107,7 +98,7 @@ function CompactSelect<Value extends React.Key>({
     >
       <List
         {...listProps}
-        items={optionsWithKey}
+        items={itemsWithKey}
         onSectionToggle={onSectionToggle}
         disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
@@ -116,12 +107,12 @@ function CompactSelect<Value extends React.Key>({
         sizeLimitMessage={sizeLimitMessage}
         aria-labelledby={triggerId}
       >
-        {(item: SelectOptionOrSection<Value>) => {
+        {(item: SelectOptionOrSectionWithKey<Value>) => {
           if ('options' in item) {
             return (
               <Section key={item.key} title={item.label}>
                 {item.options.map(opt => (
-                  <Item key={opt.value} {...opt}>
+                  <Item {...opt} key={opt.key}>
                     {opt.label}
                   </Item>
                 ))}
@@ -129,11 +120,7 @@ function CompactSelect<Value extends React.Key>({
             );
           }
 
-          return (
-            <Item key={item.value} {...item}>
-              {item.label}
-            </Item>
-          );
+          return <Item {...item}>{item.label}</Item>;
         }}
       </List>
 
