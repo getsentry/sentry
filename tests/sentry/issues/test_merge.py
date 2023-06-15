@@ -130,7 +130,7 @@ class HandleIssueMergeTest(TestCase):
         for group in groups[:-1]:  # exclude the primary issue
             # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
             assert (
-                EscalatingGroupForecast.fetch(primary_group.project.id, primary_group.id).forecast
+                EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
                 == DEFAULT_MINIMUM_CEILING_FORECAST
             )
 
@@ -156,6 +156,6 @@ class HandleIssueMergeTest(TestCase):
         for group in groups:
             # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
             assert (
-                EscalatingGroupForecast.fetch(primary_group.project.id, primary_group.id).forecast
+                EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
                 == DEFAULT_MINIMUM_CEILING_FORECAST
             )
