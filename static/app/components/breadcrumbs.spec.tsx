@@ -64,7 +64,11 @@ describe('Breadcrumbs', () => {
           {
             label: 'dropdown crumb',
             onSelect,
-            items: [{label: 'item1'}, {label: 'item2'}, {label: 'item3'}],
+            items: [
+              {index: 0, value: 'item1', label: 'item1'},
+              {index: 1, value: 'item2', label: 'item2'},
+              {index: 2, value: 'item3', label: 'item3'},
+            ],
           },
           {
             label: 'Test 2',
