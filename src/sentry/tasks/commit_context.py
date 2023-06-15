@@ -36,19 +36,18 @@ logger = logging.getLogger(__name__)
 def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
     from sentry.tasks.integrations.github.pr_comment import comment_workflow
 
-    pr = PullRequest.objects.filter(
+    pr_query = PullRequest.objects.filter(
         organization_id=commit.organization_id, merge_commit_sha=commit.key
     )
-    if (
-        pr.exists()
-        and pr[0].date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30)
-        and (
-            not pr[0].pullrequestcomment_set.exists()
-            or group_owner.group_id not in pr[0].pullrequestcomment_set.get().group_ids
-        )
+    if not pr_query.exists():
+        return
+    pr = pr_query.get()
+    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30) and (
+        not pr.pullrequestcomment_set.exists()
+        or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
         # TODO: Debouncing Logic
-        comment_workflow.delay(pullrequest_id=pr[0].id, project_id=group_owner.project_id)
+        comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(
@@ -297,8 +296,8 @@ def process_commit_context(
             )
 
             if features.has("organizations:pr-comment-bot", project.organization):
-                repo = Repository.objects.get(id=commit.repository_id)
-                if repo is not None and repo.provider == "integrations:github":
+                repo = Repository.objects.filter(id=commit.repository_id)
+                if repo.exists() and repo.get().provider == "integrations:github":
                     queue_comment_task_if_needed(commit, group_owner)
 
             if created:

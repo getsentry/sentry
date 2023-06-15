@@ -565,3 +565,18 @@ class TestGHCommentQueuing(TestCommitContextMixin):
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_no_repo(self, mock_comment_workflow):
+        """No comments on suspect commit if no repo row exists"""
+        self.repo.delete()
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
