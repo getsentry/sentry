@@ -133,7 +133,7 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     )
 
 
-def serialize_organization(org: Organization) -> RpcOrganization:
+def serialize_rpc_organization(org: Organization) -> RpcOrganization:
     rpc_org: RpcOrganization = RpcOrganization(
         slug=org.slug,
         id=org.id,
