@@ -72,27 +72,34 @@ def load_service_definitions() -> Mapping[str, Service]:
     return services
 
 
+def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
+    service_health = {}
+    high_watermarks = options.get("backpressure.high_watermarks")
+
+    for name, service in services.items():
+        if name not in high_watermarks:
+            service_health[name] = True
+            continue
+        high_watermark = high_watermarks[name]
+        is_healthy = True
+        for memory in check_service_memory(service):
+            is_healthy = memory.percentage < high_watermark
+
+        service_health[name] = is_healthy
+
+    return service_health
+
+
 def start_service_monitoring() -> None:
     services = load_service_definitions()
-    service_health = {name: True for name in services.keys()}
 
     while True:
         if not options.get("backpressure.monitoring_enabled"):
             time.sleep(options.get("backpressure.monitoring_interval"))
             continue
 
-        high_watermarks = options.get("backpressure.high_watermarks")
-
         # first, check each base service and record its health
-        for name, service in services.items():
-            if name not in high_watermarks:
-                continue
-            high_watermark = high_watermarks[name]
-            is_healthy = True
-            for memory in check_service_memory(service):
-                is_healthy = memory.percentage < high_watermark
-
-            service_health[name] = is_healthy
+        service_health = check_service_health(services)
 
         # then, check the derived services and record their health
         record_consumer_heath(service_health)

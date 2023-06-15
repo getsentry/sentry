@@ -51,7 +51,7 @@ def record_consumer_heath(service_health: Mapping[str, bool]) -> None:
         for name, dependencies in CONSUMERS.items():
             is_healthy = True
             for dependency in dependencies:
-                is_healthy = is_healthy and service_health[dependency]
+                is_healthy = is_healthy and service_health.get(dependency, True)
 
             if not is_healthy:
                 pipeline.set(_unhealthy_consumer_key(name), "1", ex=60)
