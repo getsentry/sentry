@@ -70,7 +70,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/release-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -169,7 +168,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/release-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -200,7 +198,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/artifact-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -310,7 +307,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/artifact-bundles/`,
           },
-          params: {},
         },
       });
 

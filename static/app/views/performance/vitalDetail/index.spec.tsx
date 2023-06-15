@@ -28,7 +28,7 @@ const {
   router: {
     location: {
       query: {
-        project: 1,
+        project: '1',
       },
     },
   },

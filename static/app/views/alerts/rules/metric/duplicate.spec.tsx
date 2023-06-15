@@ -69,7 +69,7 @@ describe('Incident Rules Duplicate', function () {
         params: {},
         location: {
           query: {
-            createFromDuplicate: true,
+            createFromDuplicate: 'true',
             duplicateRuleId: `${rule.id}`,
           },
         },
@@ -129,7 +129,7 @@ describe('Incident Rules Duplicate', function () {
         params: {},
         location: {
           query: {
-            createFromDuplicate: true,
+            createFromDuplicate: 'true',
             duplicateRuleId: `${rule.id}`,
           },
         },

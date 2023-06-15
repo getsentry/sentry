@@ -1,6 +1,16 @@
-import type {RouteComponentProps} from 'react-router';
+import type {RouteComponent, RouteComponentProps} from 'react-router';
+import type {Location} from 'history';
 
 import type {Organization, Project} from 'sentry/types';
+
+type RouteShape = {
+  childRoutes?: RouteShape[];
+  component?: RouteComponent;
+  from?: string;
+  indexRoute?: RouteShape;
+  name?: string;
+  path?: string;
+};
 
 /**
  * Creates stubs for:
@@ -18,7 +28,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   organization?: Partial<Organization>;
   project?: Partial<Project>;
   projects?: Partial<Project>[];
-  router?: {params: RouterParams};
+  router?: {location?: Partial<Location>; params?: RouterParams; routes?: RouteShape[]};
 } = {}) {
   const projects = (
     additionalProjects ||
