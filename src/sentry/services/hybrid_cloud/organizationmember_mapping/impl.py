@@ -60,6 +60,8 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 organization_id=organization_id,
                 organizationmember_id=organizationmember_id,
             )
+            assert existing, "Failed to find conflicted org member"
+
             apply_update(existing)
 
         return serialize_org_member_mapping(existing)
