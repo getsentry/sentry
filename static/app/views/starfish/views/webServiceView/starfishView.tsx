@@ -21,6 +21,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -77,7 +78,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
           return (
             <Fragment>
-              <MiniChartPanel title={t('Throughput Per Second')}>
+              <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
                   height={80}
@@ -96,7 +97,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   stacked
                   chartColors={theme.charts.getColorPalette(2)}
                   tooltipFormatterOptions={{
-                    valueFormatter: value => t('%s/sec', value.toFixed(2)),
+                    valueFormatter: value => formatThroughput(value),
                   }}
                 />
               </MiniChartPanel>

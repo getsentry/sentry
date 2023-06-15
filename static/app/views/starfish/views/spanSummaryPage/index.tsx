@@ -24,6 +24,7 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -134,6 +135,9 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[THROUGHPUT_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
+                        tooltipFormatterOptions={{
+                          valueFormatter: value => formatThroughput(value),
+                        }}
                       />
                     </ChartPanel>
                   </Block>

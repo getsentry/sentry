@@ -7,6 +7,7 @@ import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
 
 import {
   AGGREGATION_FIELDS,
@@ -1024,6 +1025,10 @@ export function aggregateFunctionOutputType(
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
+  }
+
+  if (firstArg && STARFISH_FIELDS[firstArg]) {
+    return STARFISH_FIELDS[firstArg].outputType;
   }
 
   // If the function is an inherit type it will have a field as
