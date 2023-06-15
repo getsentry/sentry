@@ -14,7 +14,6 @@ from sentry import VERSION, audit_log, http, options
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import (
     Integration,
-    Organization,
     OrganizationIntegration,
     Project,
     SentryAppInstallationForProvider,
@@ -275,10 +274,9 @@ class VercelWebhookEndpoint(Endpoint):
                 organization_id=configuration["organization_id"], integration_id=integration.id
             ).delete()
 
-            organization = Organization.objects.get(id=configuration["organization_id"])
             create_audit_entry(
                 request=request,
-                organization=organization,
+                organization_id=configuration["organization_id"],
                 target_object=integration.id,
                 event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Vercel User",
