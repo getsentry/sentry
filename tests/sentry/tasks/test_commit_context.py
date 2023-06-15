@@ -13,7 +13,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
-from sentry.tasks.commit_context import process_commit_context
+from sentry.tasks.commit_context import process_commit_context, queue_comment_task_if_needed
 from sentry.testutils import TestCase
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import with_feature
@@ -724,3 +724,22 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
+
+    def test_gh_comment_debounces(self, mock_comment_workflow):
+        owner = GroupOwner.objects.create(
+            group=self.event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            date_added=timezone.now() - timedelta(days=8),
+        )
+        commit = Commit.objects.get(
+            repository_id=self.repo.id,
+            key=self.commit.key,
+        )
+
+        with self.tasks():
+            queue_comment_task_if_needed(commit, owner)
+            queue_comment_task_if_needed(commit, owner)
+            assert mock_comment_workflow.call_count == 1
