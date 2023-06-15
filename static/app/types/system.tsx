@@ -152,9 +152,10 @@ export interface Config {
   privacyUrl: string | null;
 
   sentryConfig: {
+    allowUrls: string[];
     dsn: string;
     release: string;
-    whitelistUrls: string[];
+    tracePropagationTargets: string[];
     profilesSampleRate?: number;
   };
   singleOrganization: boolean;
