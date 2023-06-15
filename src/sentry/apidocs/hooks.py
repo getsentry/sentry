@@ -76,6 +76,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             pass
 
         elif callback.view_class.public:
+            print("public", path)
             # endpoints that are documented via tooling
             if method in callback.view_class.public:
                 # only pass declared public methods of the endpoint
@@ -83,6 +84,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 filtered.append((path, path_regex, method, callback))
 
         else:
+            print("private", path)
             # if an endpoint doesn't have any registered public methods, don't check it.
             pass
 
