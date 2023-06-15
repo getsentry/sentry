@@ -134,6 +134,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             )
         assert response.status_code == 200
         # TODO: assert response json
+        assert response.json()
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
     def test_improvement(self, mock_trends_query):
@@ -207,6 +208,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             )
         assert response.status_code == 200
         # TODO: assert response json
+        assert response.json()
 
 
 def test_get_rollup_from_range_max_buckets():

@@ -143,8 +143,9 @@ function BaseButton({
   analyticsParams,
   ...buttonProps
 }: ButtonProps) {
-  // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
-  // Leaving it here for a bunch of our tests that query by aria-label.
+  // Fallbacking aria-label to string children is not necessary as screen
+  // readers natively understand that scenario. Leaving it here for a bunch of
+  // our tests that query by aria-label.
   const accessibleLabel =
     ariaLabel ?? (typeof children === 'string' ? children : undefined);
 
@@ -344,22 +345,22 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
 
-  return {
-    ...formStyles,
-    ...buttonPadding,
-    // If using translucent borders, rewrite size styles to
-    // prevent layout shifts
-    ...(translucentBorder && {
-      height: formStyles.height - 2,
-      minHeight: formStyles.minHeight - 2,
-      paddingTop: buttonPadding.paddingTop - 1,
-      paddingBottom: buttonPadding.paddingBottom - 1,
-      margin: 1,
-    }),
-  };
+  // If using translucent borders, rewrite size styles to
+  // prevent layout shifts
+  const borderStyles = !translucentBorder
+    ? {}
+    : {
+        height: formStyles.height - 2,
+        minHeight: formStyles.minHeight - 2,
+        paddingTop: buttonPadding.paddingTop - 1,
+        paddingBottom: buttonPadding.paddingBottom - 1,
+        margin: 1,
+      };
+
+  return {...formStyles, ...buttonPadding, ...borderStyles};
 };
 
-export const getButtonStyles = (props: StyledButtonProps) => {
+const getButtonStyles = (props: StyledButtonProps) => {
   return css`
     position: relative;
     display: inline-block;
@@ -480,3 +481,11 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
  * Also export these styled components so we can use them as selectors
  */
 export {Button, StyledButton, ButtonLabel};
+
+export {
+  /**
+   * @deprecated This is only being used in one small component elsewhere. We
+   * should probably remove this export
+   */
+  getButtonStyles,
+};
