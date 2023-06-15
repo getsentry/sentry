@@ -30,7 +30,7 @@ import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable.tsx';
+import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;

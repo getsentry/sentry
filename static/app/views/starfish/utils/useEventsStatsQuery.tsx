@@ -20,7 +20,7 @@ export function useEventsStatsQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data} = useGenericDiscoverQuery<
+  const {isLoading, data, isError} = useGenericDiscoverQuery<
     EventsStats | MultiSeriesEventsStats,
     DiscoverQueryProps
   >({
@@ -39,6 +39,7 @@ export function useEventsStatsQuery({
     }),
     options: {
       enabled,
+      retry: false,
       refetchOnWindowFocus: false,
     },
     referrer,
@@ -46,5 +47,6 @@ export function useEventsStatsQuery({
   return {
     isLoading,
     data: isLoading && initialData ? initialData : data,
+    isError,
   };
 }

@@ -4,24 +4,29 @@ import {motion} from 'framer-motion';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {OnboardingPlatformDoc} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
+const ProductSelectionAvailabilityHook = HookOrDefault({
+  hookName: 'component:product-selection-availability',
+});
+
 export function DocWithProductSelection({
-  organization,
   location,
   newOrg,
   currentPlatform,
@@ -29,10 +34,10 @@ export function DocWithProductSelection({
 }: {
   currentPlatform: PlatformKey;
   location: Location;
-  organization: Organization;
   project: Project;
   newOrg?: boolean;
 }) {
+  const organization = useOrganization();
   const [showLoaderDocs, setShowLoaderDocs] = useState(currentPlatform === 'javascript');
 
   const loadPlatform = useMemo(() => {
@@ -91,9 +96,7 @@ export function DocWithProductSelection({
           platform={currentPlatform}
         />
       )}
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-      />
+      <ProductSelectionAvailabilityHook organization={organization} />
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
