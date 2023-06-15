@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from typing import Sequence, Set, Tuple
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.template.defaultfilters import pluralize
@@ -267,7 +268,7 @@ def generate_incident_trigger_email_context(
     snooze_alert_url = None
     if features.has("organizations:mute-alerts", organization):
         snooze_alert = True
-        snooze_alert_url = rule_link + "&mute=1"
+        snooze_alert_url = rule_link + "&" + urlencode({"mute": "1"})
 
     return {
         "link": alert_link,
