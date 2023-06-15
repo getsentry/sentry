@@ -186,9 +186,9 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
     return zeroFillSeries(
       {
-        seriesName: label ?? 'p95()',
+        seriesName: label ?? `p95(${SPAN_SELF_TIME})`,
         data: groupData.map(datum => ({
-          value: datum[`p95${SPAN_SELF_TIME}`],
+          value: datum[`p95(${SPAN_SELF_TIME})`],
           name: datum.interval,
         })),
       },
