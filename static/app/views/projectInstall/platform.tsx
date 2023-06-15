@@ -302,7 +302,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     gettingStartedDocWithProductSelection &&
     (platform.key === 'javascript' || platform.key.match('^javascript-([A-Za-z]+)$'));
 
-
   return (
     <Fragment>
       <StyledPageHeader>
