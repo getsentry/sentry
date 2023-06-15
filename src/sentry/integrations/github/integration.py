@@ -230,6 +230,16 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             if blame_range is None:
                 return None
         except ApiError as e:
+            if e.text == "Branch does not exist in GitHub.":
+                logger.info(
+                    e.text,
+                    extra={
+                        "organization": repo.organization_id,
+                        "integration": repo.integration_id,
+                        "repository": repo.id,
+                    },
+                )
+                return None
             raise e
 
         try:

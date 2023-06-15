@@ -646,7 +646,7 @@ class GitHubClientMixin(GithubProxyClient):
                 .get("ranges", [])
             )
             return results
-        except AttributeError as e:
+        except AttributeError:
             if contents.get("errors"):
                 err_message = ", ".join(
                     [error.get("message", "") for error in contents.get("errors", [])]
@@ -655,8 +655,6 @@ class GitHubClientMixin(GithubProxyClient):
 
             if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
                 raise ApiError("Branch does not exist in GitHub.")
-
-            sentry_sdk.capture_exception(e)
 
             return []
 
