@@ -173,7 +173,6 @@ class IndexerBatch:
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
-
         # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
         for offset in keys_to_remove:
             # Log once per second at most since we are getting too many dropped messages because
