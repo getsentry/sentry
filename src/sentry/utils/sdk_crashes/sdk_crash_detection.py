@@ -52,9 +52,7 @@ class SDKCrashDetection:
         if not frames:
             return None
 
-        # We still need to pass in the frames to validate it's an unhandled event coming from the Cocoa SDK.
-        # We will do this in a separate PR.
-        if self.cocoa_sdk_crash_detector.is_sdk_crash():
+        if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
             # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
             sdk_crash_event_data = event.data
 
