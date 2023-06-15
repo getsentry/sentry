@@ -8,7 +8,7 @@ from typing import cast
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.project import RpcProject, RpcProjectOptionValue
-from sentry.services.hybrid_cloud.region import ByOrganizationIdAttribute
+from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
 
@@ -36,6 +36,11 @@ class ProjectService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
     def delete_option(self, *, project: RpcProject, key: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_by_id(self, *, organization_id: int, id: int) -> RpcProject:
         pass
 
 
