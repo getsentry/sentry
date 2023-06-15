@@ -54,7 +54,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
   renderBody() {
     // group commits by author
-    const groupedAuthorCommits = this.state.commits?.reduce(
+    const groupedAuthorCommits = this.state.commits?.reduce<GroupedAuthorCommits>(
       (authorCommitsAccumulator, commit) => {
         const email = commit.author?.email ?? 'unknown';
 
@@ -69,7 +69,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
         return authorCommitsAccumulator;
       },
-      {} as GroupedAuthorCommits
+      {}
     );
 
     // sort authors by number of commits

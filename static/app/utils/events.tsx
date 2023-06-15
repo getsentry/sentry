@@ -1,36 +1,40 @@
 import uniq from 'lodash/uniq';
 
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import {
   BaseGroup,
   EntryException,
+  EntryRequest,
   EntryThreads,
   EventMetadata,
   EventOrGroupType,
   Group,
   GroupActivityAssigned,
   GroupActivityType,
-  GroupTombstone,
+  GroupTombstoneHelper,
   IssueCategory,
   IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
-function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
-  return !maybe.hasOwnProperty('type');
+export function isTombstone(
+  maybe: BaseGroup | Event | GroupTombstoneHelper
+): maybe is GroupTombstoneHelper {
+  return 'isTombstone' in maybe && maybe.isTombstone;
 }
 
 /**
  * Extract the display message from an event.
  */
 export function getMessage(
-  event: Event | BaseGroup | GroupTombstone
+  event: Event | BaseGroup | GroupTombstoneHelper
 ): string | undefined {
   if (isTombstone(event)) {
     return event.culprit || '';
@@ -58,7 +62,7 @@ export function getMessage(
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event | BaseGroup | GroupTombstone) {
+export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   if (isTombstone(event)) {
     return undefined;
   }
@@ -115,7 +119,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
 }
 
 export function getTitle(
-  event: Event | BaseGroup,
+  event: Event | BaseGroup | GroupTombstoneHelper,
   features: string[] = [],
   grouping = false
 ) {
@@ -133,6 +137,7 @@ export function getTitle(
       }
 
       const displayTitleWithTreeLabel =
+        !isTombstone(event) &&
         features.includes('grouping-title-ui') &&
         (grouping ||
           isNativePlatform(event.platform) ||
@@ -175,17 +180,11 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
-      const isPerfIssue = event.issueCategory === IssueCategory.PERFORMANCE;
-      return {
-        title: isPerfIssue ? metadata.title : customTitle ?? title,
-        subtitle: isPerfIssue ? culprit : '',
-        treeLabel: undefined,
-      };
     case EventOrGroupType.GENERIC:
-      const isProfilingIssue = event.issueCategory === IssueCategory.PROFILE;
+      const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
-        title: isProfilingIssue ? metadata.title : customTitle ?? title,
-        subtitle: isProfilingIssue ? culprit : '',
+        title: customTitle ?? title,
+        subtitle: isIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:
@@ -223,10 +222,57 @@ function hasTrace(event: Event) {
  * by ensuring that every inApp frame has a valid sourcemap
  */
 export function eventHasSourceMaps(event: Event) {
-  const inAppFrames = getInAppFrames(event);
+  const inAppFrames = getExceptionFrames(event, true);
 
   // the map field tells us if it's sourcemapped
   return inAppFrames.every(frame => !!frame.map);
+}
+
+/**
+ * Function to determine if an event has been symbolicated. If the event
+ * goes through symbolicator and has in-app frames, it looks for at least one in-app frame
+ * to be successfully symbolicated. Otherwise falls back to checking for `rawStacktrace` field presence.
+ */
+export function eventIsSymbolicated(event: Event) {
+  const frames = getAllFrames(event, false);
+  const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
+
+  if (fromSymbolicator) {
+    // if the event goes through symbolicator and have in-app frames, we say it's symbolicated if
+    // at least one in-app frame is successfully symbolicated
+    const inAppFrames = frames.filter(frame => frame.inApp);
+    if (inAppFrames.length > 0) {
+      return inAppFrames.some(
+        frame => frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
+      );
+    }
+    // if there's no in-app frames, we say it's symbolicated if at least
+    // one system frame is successfully symbolicated
+    return frames.some(
+      frame => frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
+    );
+  }
+
+  // if none of the frames have symbolicatorStatus defined, most likely the event does not
+  // go through symbolicator and it's Java/Android/Javascript or something alike, so we fallback
+  // to the rawStacktrace presence
+  return event.entries?.some(entry => {
+    return (
+      (entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS) &&
+      entry.data.values?.some(
+        (value: Thread | ExceptionValue) => !!value.rawStacktrace && !!value.stacktrace
+      )
+    );
+  });
+}
+
+/**
+ * Function to determine if an event has source context
+ */
+export function eventHasSourceContext(event: Event) {
+  const frames = getAllFrames(event, false);
+
+  return frames.some(frame => defined(frame.context) && !!frame.context.length);
 }
 
 /**
@@ -237,7 +283,7 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
     // return undefined if there is no event
     return {};
   }
-  const inAppFrames = getInAppFrames(event);
+  const inAppFrames = getExceptionFrames(event, true);
   if (!inAppFrames.length) {
     return {};
   }
@@ -250,19 +296,52 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
   };
 }
 
-function getInAppFrames(event: Event) {
+/**
+ * Returns all stack frames of type 'exception' of this event
+ */
+function getExceptionFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
-  return exceptions
+  const frames = exceptions
     .map(exception => exception.data.values || [])
     .flat()
     .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
-    .flat()
-    .filter(frame => frame.inApp);
+    .flat();
+  return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
+/**
+ * Returns all entries of type 'exception' of this event
+ */
 function getExceptionEntries(event: Event) {
-  return (event.entries?.filter(entry => entry.type === 'exception') ||
+  return (event.entries?.filter(entry => entry.type === EntryType.EXCEPTION) ||
     []) as EntryException[];
+}
+
+/**
+ * Returns all stack frames of type 'exception' or 'threads' of this event
+ */
+function getAllFrames(event: Event, inAppOnly: boolean) {
+  const exceptions = getEntriesWithFrames(event);
+  const frames = exceptions
+    .map(
+      (withStacktrace: EntryException | EntryThreads) => withStacktrace.data.values || []
+    )
+    .flat()
+    .map(
+      (withStacktrace: ExceptionValue | Thread) =>
+        withStacktrace?.stacktrace?.frames || []
+    )
+    .flat();
+  return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
+}
+
+/**
+ * Returns all entries that can have stack frames, currently of 'exception' and 'threads' type
+ */
+function getEntriesWithFrames(event: Event) {
+  return (event.entries?.filter(
+    entry => entry.type === EntryType.EXCEPTION || entry.type === EntryType.THREADS
+  ) || []) as EntryException[] | EntryThreads[];
 }
 
 function getNumberOfStackFrames(event: Event) {
@@ -310,6 +389,23 @@ function getNumberOfThreadsWithNames(event: Event) {
   return Math.max(...threadLengths);
 }
 
+export function eventHasExceptionGroup(event: Event) {
+  const exceptionEntries = getExceptionEntries(event);
+  return exceptionEntries.some(entry =>
+    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  );
+}
+
+export function eventHasGraphQlRequest(event: Event) {
+  const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
+    | EntryRequest
+    | undefined;
+  return (
+    typeof requestEntry?.data?.apiTarget === 'string' &&
+    requestEntry.data.apiTarget.toLowerCase() === 'graphql'
+  );
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -336,11 +432,16 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
     event_platform: event?.platform,
+    event_runtime: event?.tags?.find(tag => tag.key === 'runtime')?.value,
     event_type: event?.type,
     has_release: !!event?.release,
+    has_exception_group: event ? eventHasExceptionGroup(event) : false,
+    has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
+    has_source_context: event ? eventHasSourceContext(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
+    is_symbolicated: event ? eventIsSymbolicated(event) : false,
     event_errors: event ? getEventErrorString(event) : '',
     frames_with_sourcemaps_percent: framesWithSourcemapsPercent,
     frames_without_source_maps_percent: framesWithoutSourceMapsPercent,

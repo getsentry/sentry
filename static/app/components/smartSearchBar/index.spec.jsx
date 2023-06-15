@@ -790,6 +790,25 @@ describe('SmartSearchBar', function () {
     ).toBeInTheDocument();
   });
 
+  it('displays invalid field messages for when wildcard is disallowed', async function () {
+    render(<SmartSearchBar {...defaultProps} query="" disallowWildcard />);
+
+    const textbox = screen.getByRole('textbox');
+
+    // Value
+    await userEvent.type(textbox, 'release:*');
+    expect(
+      await screen.findByRole('option', {name: /Wildcards aren't supported here/i})
+    ).toBeInTheDocument();
+    await userEvent.clear(textbox);
+
+    // FreeText
+    await userEvent.type(textbox, 'rel*ease');
+    expect(
+      await screen.findByRole('option', {name: /Wildcards aren't supported here/i})
+    ).toBeInTheDocument();
+  });
+
   describe('date fields', () => {
     // Transpile the lazy-loaded datepicker up front so tests don't flake
     beforeAll(async function () {

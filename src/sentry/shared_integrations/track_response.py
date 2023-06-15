@@ -22,7 +22,7 @@ class TrackResponseMixin:
     def integration_type(self) -> str | None:
         raise NotImplementedError
 
-    @cached_property  # type: ignore
+    @cached_property
     def logger(self) -> logging.Logger:
         return logging.getLogger(self.log_path)
 

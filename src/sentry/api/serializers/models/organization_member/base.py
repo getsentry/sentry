@@ -18,7 +18,7 @@ from .utils import get_organization_id
 
 
 @register(OrganizationMember)
-class OrganizationMemberSerializer(Serializer):  # type: ignore
+class OrganizationMemberSerializer(Serializer):
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
@@ -29,7 +29,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
         sorted_org_roles = sorted(
             org_roles,
-            key=lambda r: r[1].priority,  # type: ignore[no-any-return]
+            key=lambda r: r[1].priority,
             reverse=True,
         )
 
@@ -115,7 +115,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
-                "orgRolesFromTeams": self.__sorted_org_roles_for_user(item),
+                "groupOrgRoles": self.__sorted_org_roles_for_user(item),
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
             }
@@ -151,7 +151,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
-            "orgRolesFromTeams": attrs.get("orgRolesFromTeams", []),
+            "groupOrgRoles": attrs.get("groupOrgRoles", []),
         }
 
         if "externalUsers" in self.expand:

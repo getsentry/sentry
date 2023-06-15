@@ -41,6 +41,7 @@ TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
 TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
+TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
 
 
 class ThresholdDict(TypedDict):
@@ -158,6 +159,19 @@ TIMESTAMP_FIELDS = {
     "timestamp.to_day",
 }
 NON_FAILURE_STATUS = {"ok", "cancelled", "unknown"}
+HTTP_SERVER_ERROR_STATUS = {
+    "500",
+    "501",
+    "502",
+    "503",
+    "504",
+    "505",
+    "506",
+    "507",
+    "508",
+    "510",
+    "511",
+}
 
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
@@ -212,6 +226,18 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
+METRICS_FUNCTION_ALIASES = {
+    "tps_percent_change": "eps_percent_change",
+    "tpm_percent_change": "epm_percent_change",
+}
+
+SPAN_FUNCTION_ALIASES = {
+    "sps": "eps",
+    "spm": "epm",
+    "sps_percent_change": "eps_percent_change",
+    "spm_percent_change": "epm_percent_change",
+}
+
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
     "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
@@ -243,8 +269,9 @@ METRICS_MAP = {
     "user": "s:transactions/user@none",
 }
 SPAN_METRICS_MAP = {
-    "user": "s:transactions/span.user@none",
-    "span.duration": "d:transactions/span.duration@millisecond",
+    "user": "s:spans/user@none",
+    "span.self_time": "d:spans/exclusive_time@millisecond",
+    "span.duration": "d:spans/duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

@@ -88,7 +88,7 @@ export function Actions(props: Props) {
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = status === 'ignored';
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const {
@@ -526,7 +526,6 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
-                disableTooltip
               />
             </GuideAnchor>
           ) : (
@@ -536,12 +535,10 @@ export function Actions(props: Props) {
               onUpdate={onUpdate}
               disabled={disabled}
               size="sm"
-              disableTooltip
             />
           )}
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
-              disableTooltip
               disabled={disabled}
               disableDropdown={disabled}
               hasRelease={hasRelease}

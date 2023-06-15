@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import collections
-from typing import Any, Generator, Iterable, Iterator
+from itertools import zip_longest
+from typing import Any, Generator, Iterable, Iterator, MutableMapping
 
 
 def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
@@ -13,6 +14,7 @@ def generate_restricted_fieldset(
     fields: list[str] | None,
     response: Generator[dict[str, Any], None, None],
 ) -> Iterator[dict[str, Any]]:
+
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
@@ -83,16 +85,12 @@ def generate_normalized_output(
 
         item["is_archived"] = bool(item.pop("isArchived", 0))
 
-        item.pop("click_alt", None)
-        item.pop("click_aria_label", None)
         item.pop("clickClass", None)
-        item.pop("click_classes", None)
-        item.pop("click_id", None)
-        item.pop("click_role", None)
-        item.pop("click_tag", None)
-        item.pop("click_testid", None)
-        item.pop("click_text", None)
-        item.pop("click_title", None)
+        item.pop("click_selector", None)
+        # don't need clickClass or click_selector
+        #  for the click field, as they are only used for searching.
+        # (click.classes contains the full list of classes for a click)
+        item["clicks"] = extract_click_fields(item)
 
         yield item
 
@@ -138,3 +136,36 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "started_at": None,
         "is_archived": True,
     }
+
+
+CLICK_FIELD_MAP = {
+    "click_alt": "click.alt",
+    "click_aria_label": "click.label",
+    "click_classes": "click.classes",
+    "click_id": "click.id",
+    "click_role": "click.role",
+    "click_tag": "click.tag",
+    "click_testid": "click.testid",
+    "click_text": "click.text",
+    "click_title": "click.title",
+}
+
+
+def extract_click_fields(item: MutableMapping[str, Any]) -> list[dict[str, Any]]:
+    """
+    pops all of the click fields from the item and returns a list of the individual clicks as objects
+    """
+    click_dict = {}
+    for click_field in CLICK_FIELD_MAP.keys():
+        click_val = item.pop(click_field, [])
+        # if there is at least one one element, the list will be filled empty strings for the non-click segments
+        # so if there is at least one value, return a list of the truthy values.
+        # if not, return a list with a single None value
+        # also map the clickhouse field values to their query names
+        if click_val:
+            click_dict[CLICK_FIELD_MAP[click_field]] = [element for element in click_val if element]
+        else:
+            click_dict[CLICK_FIELD_MAP[click_field]] = click_val
+
+    list_of_dicts = [dict(zip(click_dict.keys(), row)) for row in zip_longest(*click_dict.values())]
+    return list_of_dicts

@@ -4,7 +4,9 @@ from unittest.mock import patch
 import pytz
 
 from sentry.models import (
+    Activity,
     Group,
+    GroupHistory,
     GroupHistoryStatus,
     GroupInbox,
     GroupInboxReason,
@@ -18,10 +20,11 @@ from sentry.tasks.auto_ongoing_issues import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-new-ongoing")
+@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_simple(self, inbox_in):
@@ -44,6 +47,13 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
         assert inbox_in.called
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 3}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
 
     @patch("sentry.signals.inbox_in.send_robust")
     def test_reprocessed(self, inbox_in):
@@ -180,7 +190,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ) == {g.id for g in groups}
 
 
-@apply_feature_flag_on_cls("organizations:issue-states-auto-transition-regressed-ongoing")
+@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_simple(self, inbox_in):
@@ -212,3 +222,10 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
         assert inbox_in.called
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 3}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()

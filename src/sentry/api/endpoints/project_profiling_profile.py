@@ -24,7 +24,7 @@ from sentry.profiles.utils import (
 from sentry.utils import json
 
 
-class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
+class ProjectProfilingBaseEndpoint(ProjectEndpoint):
     def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
@@ -140,6 +140,7 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
+
         kwargs: Dict[str, Any] = {
             "method": "GET",
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",

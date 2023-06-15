@@ -25,12 +25,14 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     Model,
+    OptionManager,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
@@ -38,11 +40,13 @@ from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 
 
 class OrganizationStatus(IntEnum):
@@ -156,25 +160,20 @@ class OrganizationManager(BaseManager):
 
 
 @region_silo_only_model
-class Organization(Model, SnowflakeIdMixin):
+class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
     __include_in_export__ = True
     name = models.CharField(max_length=64)
-    slug = models.SlugField(unique=True)
+    slug: models.SlugField[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="sentry.OrganizationMember",
-        related_name="org_memberships",
-        through_fields=("organization", "user"),
-    )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    is_test = models.BooleanField(default=False)
 
     flags = BitField(
         flags=(
@@ -240,6 +239,10 @@ class Organization(Model, SnowflakeIdMixin):
 
     snowflake_redis_key = "organization_snowflake_key"
 
+    def save_with_update_outbox(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Organization.outbox_for_update(self.id).save()
+
     def save(self, *args, **kwargs):
         slugify_target = None
         if not self.slug:
@@ -252,12 +255,16 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
+        # Run the save + outbox queueing in a transaction to ensure the control-silo is notified
+        # when a change is made to the organization model.
         if SENTRY_USE_SNOWFLAKE:
             self.save_with_snowflake_id(
-                self.snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+                self.snowflake_redis_key,
+                lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            super().save(*args, **kwargs)
+            with transaction.atomic():
+                self.save_with_update_outbox(*args, **kwargs)
 
     @classmethod
     def reserve_snowflake_id(cls):
@@ -282,15 +289,6 @@ class Organization(Model, SnowflakeIdMixin):
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=org_id,
             category=OutboxCategory.ORGANIZATION_UPDATE,
-            object_identifier=org_id,
-        )
-
-    @staticmethod
-    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
-            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
             object_identifier=org_id,
         )
 
@@ -323,7 +321,7 @@ class Organization(Model, SnowflakeIdMixin):
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": owners})
+        return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -358,7 +356,13 @@ class Organization(Model, SnowflakeIdMixin):
             role__in=roles,
         )
         if not include_null_users:
-            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+            user_ids_with_role = members_with_role.filter(user_id__isnull=False).values_list(
+                "user_id", flat=True
+            )
+            user_ids = user_service.get_many_ids(
+                filter=dict(is_active=True, user_ids=list(user_ids_with_role))
+            )
+            members_with_role = members_with_role.filter(user_id__in=user_ids)
 
         members_with_role = set(members_with_role.values_list("id", flat=True))
 
@@ -399,14 +403,16 @@ class Organization(Model, SnowflakeIdMixin):
 
         logger = logging.getLogger("sentry.merge")
         for from_member in OrganizationMember.objects.filter(
-            organization=from_org, user__isnull=False
+            organization=from_org, user_id__isnull=False
         ):
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org, user_id=from_member.user.id
+                    organization=to_org, user_id=from_member.user_id
                 )
             except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
+                with transaction.atomic():
+                    from_member.organization = to_org
+                    from_member.save()
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(
@@ -542,21 +548,11 @@ class Organization(Model, SnowflakeIdMixin):
             queryset = model.objects.filter(organization_id=from_org.id)
             do_update(queryset, {"organization_id": to_org.id})
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
+    @property
+    def option_manager(self) -> OptionManager:
         from sentry.models import OrganizationOption
 
-        return OrganizationOption.objects.set_value(self, *args, **kwargs)
-
-    def get_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.get_value(self, *args, **kwargs)
-
-    def delete_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.unset_value(self, *args, **kwargs)
+        return OrganizationOption.objects
 
     def send_delete_confirmation(self, audit_log_entry, countdown):
         from sentry import options
@@ -626,39 +622,11 @@ class Organization(Model, SnowflakeIdMixin):
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
-    __has_customer_domain: Optional[bool] = None
-
-    def _has_customer_domain(self) -> bool:
-        """
-        Check if the current organization is using or has access to customer domains.
-        """
-        if self.__has_customer_domain is not None:
-            return self.__has_customer_domain
-
-        request = env.request
-        if request and is_using_customer_domain(request):
-            self.__has_customer_domain = True
-            return True
-
-        self.__has_customer_domain = features.has("organizations:customer-domains", self)
-
-        return self.__has_customer_domain
-
-    def absolute_url(
-        self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
-    ) -> str:
-        """
-        Get an absolute URL to `path` for this organization.
-
-        This method takes customer-domains into account and will update the path when
-        customer-domains are active.
-        """
-        return organization_absolute_url(
-            self._has_customer_domain(), self.slug, path=path, query=query, fragment=fragment
-        )
-
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.id != "member":
+        """
+        Note that scopes for team-roles are filtered through this method too.
+        """
+        if bool(NON_MEMBER_SCOPES & role.scopes):
             return role.scopes
 
         scopes = set(role.scopes)
@@ -675,37 +643,3 @@ class Organization(Model, SnowflakeIdMixin):
             return Team.objects.filter(org_role__in=roles, organization=self)
 
         return Team.objects.filter(organization=self).exclude(org_role=None)
-
-
-def organization_absolute_url(
-    has_customer_domain: bool,
-    slug: str,
-    path: str,
-    query: Optional[str] = None,
-    fragment: Optional[str] = None,
-) -> str:
-    """
-    Get an absolute URL to `path` for this organization.
-
-    This method takes customer-domains into account and will update the path when
-    customer-domains are active.
-    """
-    # Avoid cycles.
-    from sentry.api.utils import customer_domain_path, generate_organization_url
-    from sentry.utils.http import absolute_uri
-
-    url_base = None
-    if has_customer_domain:
-        path = customer_domain_path(path)
-        url_base = generate_organization_url(slug)
-    uri = absolute_uri(path, url_prefix=url_base)
-    parts = [uri]
-    if query and not query.startswith("?"):
-        query = f"?{query}"
-    if query:
-        parts.append(query)
-    if fragment and not fragment.startswith("#"):
-        fragment = f"#{fragment}"
-    if fragment:
-        parts.append(fragment)
-    return "".join(parts)

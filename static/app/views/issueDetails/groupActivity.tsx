@@ -9,10 +9,10 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import ActivityAuthor from 'sentry/components/activity/author';
-import ActivityItem from 'sentry/components/activity/item';
-import Note from 'sentry/components/activity/note';
-import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
+import {ActivityAuthor} from 'sentry/components/activity/author';
+import {ActivityItem} from 'sentry/components/activity/item';
+import {Note} from 'sentry/components/activity/note';
+import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {CreateError} from 'sentry/components/activity/note/types';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -159,19 +159,17 @@ class GroupActivity extends Component<Props, State> {
 
         <Layout.Body>
           <Layout.Main>
-            <ActivityItem author={{type: 'user', user: me}}>
-              {() => (
-                <NoteInputWithStorage
-                  key={this.state.inputId}
-                  storageKey="groupinput:latest"
-                  itemKey={group.id}
-                  onCreate={this.handleNoteCreate}
-                  busy={this.state.createBusy}
-                  error={this.state.error}
-                  errorJSON={this.state.errorJSON}
-                  {...noteProps}
-                />
-              )}
+            <ActivityItem noPadding author={{type: 'user', user: me}}>
+              <NoteInputWithStorage
+                key={this.state.inputId}
+                storageKey="groupinput:latest"
+                itemKey={group.id}
+                onCreate={this.handleNoteCreate}
+                busy={this.state.createBusy}
+                error={this.state.error}
+                errorJSON={this.state.errorJSON}
+                {...noteProps}
+              />
             </ActivityItem>
 
             <Teams

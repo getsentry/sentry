@@ -7,17 +7,19 @@ import {space} from 'sentry/styles/space';
 type Props = {
   children: React.ReactNode;
   button?: JSX.Element;
-  title?: string;
+  title?: React.ReactNode;
 };
 
 export default function ChartPanel({title, children, button}: Props) {
   return (
     <Panel>
       <PanelBody withPadding>
-        <Header>
-          {title && <ChartLabel>{title}</ChartLabel>}
-          {button}
-        </Header>
+        {title && (
+          <Header>
+            {title && <ChartLabel>{title}</ChartLabel>}
+            {button}
+          </Header>
+        )}
         {children}
       </PanelBody>
     </Panel>

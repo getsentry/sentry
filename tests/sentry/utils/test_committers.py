@@ -6,7 +6,17 @@ from uuid import uuid4
 import pytest
 from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, GroupRelease, Release, Repository
+from sentry.integrations.github.integration import GitHubIntegration
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
+    GroupRelease,
+    Release,
+    ReleaseCommit,
+    Repository,
+)
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.integrations.integration import Integration
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -723,6 +733,60 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
+
+    @with_feature("organizations:commit-context")
+    def test_no_author(self):
+        model = Integration.objects.create(
+            provider="github", external_id="github_external_id", name="getsentry"
+        )
+        model.add_organization(self.organization, self.user)
+        GitHubIntegration(model, self.organization.id)
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        commit = self.create_commit()
+        ReleaseCommit.objects.create(
+            organization_id=self.organization.id, release=self.release, commit=commit, order=1
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+        GroupOwner.objects.create(
+            group_id=event.group_id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 0
 
     def test_matching_case_insensitive(self):
         event = self.store_event(

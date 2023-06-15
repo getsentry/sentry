@@ -10,22 +10,22 @@ from sentry.tasks.base import instrumented_task
 @instrumented_task(name="sentry.tasks.clear_expired_snoozes", time_limit=65, soft_time_limit=60)
 def clear_expired_snoozes():
     groupsnooze_list = list(
-        GroupSnooze.objects.filter(until__lte=timezone.now()).values_list("id", "group")[:1000]
+        GroupSnooze.objects.filter(until__lte=timezone.now()).values_list("id", "group", "until")[
+            :1000
+        ]
     )
     group_snooze_ids = [gs[0] for gs in groupsnooze_list]
-    group_list = [gs[1] for gs in groupsnooze_list]
+    groups_with_snoozes = {gs[1]: {"id": gs[0], "until": gs[2]} for gs in groupsnooze_list}
 
-    ignored_groups = list(Group.objects.filter(id__in=group_list, status=GroupStatus.IGNORED))
+    ignored_groups = list(
+        Group.objects.filter(id__in=groups_with_snoozes.keys(), status=GroupStatus.IGNORED)
+    )
 
     GroupSnooze.objects.filter(id__in=group_snooze_ids).delete()
 
     for group in ignored_groups:
         if features.has("organizations:escalating-issues", group.organization):
             manage_issue_states(group, GroupInboxReason.ESCALATING)
-
-        elif features.has("organizations:issue-states", group.organization):
-            manage_issue_states(group, GroupInboxReason.ONGOING)
-
         else:
             manage_issue_states(group, GroupInboxReason.UNIGNORED)
 

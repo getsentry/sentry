@@ -12,12 +12,14 @@ import GroupEventDetails, {
   GroupEventDetailsProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
 const makeDefaultMockData = (
   organization?: Organization,
-  project?: Project
+  project?: Project,
+  environments?: string[]
 ): {
   event: Event;
   group: Group;
@@ -29,7 +31,13 @@ const makeDefaultMockData = (
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
     group: TestStubs.Group(),
-    router: TestStubs.router({}),
+    router: TestStubs.router({
+      location: TestStubs.location({
+        query: {
+          environment: environments,
+        },
+      }),
+    }),
     event: TestStubs.Event({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
@@ -51,10 +59,13 @@ const makeDefaultMockData = (
   };
 };
 
-function TestComponent(props: Partial<GroupEventDetailsProps>) {
+function TestComponent(
+  props: Partial<GroupEventDetailsProps> & {environments?: string[]}
+) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
-    props.project
+    props.project,
+    props.environments ?? ['dev']
   );
 
   const mergedProps: GroupEventDetailsProps = {
@@ -63,7 +74,6 @@ function TestComponent(props: Partial<GroupEventDetailsProps>) {
     event,
     project,
     organization,
-    environments: [{id: '1', name: 'dev', displayName: 'Dev'}],
     params: {groupId: group.id, eventId: '1'},
     router,
     location: {} as Location<any>,
@@ -78,7 +88,18 @@ function TestComponent(props: Partial<GroupEventDetailsProps>) {
     ...props,
   };
 
-  return <GroupEventDetails {...mergedProps} />;
+  return (
+    <RouteContext.Provider
+      value={{
+        router,
+        location: router.location,
+        params: router.params,
+        routes: router.routes,
+      }}
+    >
+      <GroupEventDetails {...mergedProps} />;
+    </RouteContext.Provider>
+  );
 }
 
 const mockedTrace = (project: Project) => {
@@ -242,6 +263,11 @@ const mockGroupApis = (
     url: `/customers/org-slug/policies/`,
     body: {},
   });
+
+  MockApiClient.addMockResponse({
+    url: `/issues/${group.id}/first-last-release/`,
+    method: 'GET',
+  });
 };
 
 describe('groupEventDetails', () => {
@@ -263,9 +289,7 @@ describe('groupEventDetails', () => {
     });
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
-    rerender(
-      <TestComponent environments={[{id: '1', name: 'prod', displayName: 'Prod'}]} />
-    );
+    rerender(<TestComponent environments={['prod']} />);
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
   });

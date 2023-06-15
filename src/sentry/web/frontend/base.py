@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import inspect
 import logging
 from typing import Any, Mapping, Protocol
@@ -32,6 +33,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo import SiloLimit
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -157,7 +159,7 @@ class OrganizationMixin:
         if request.subdomain is not None and request.subdomain != organization_slug:
             # Customer domain is being used, set the subdomain as the requesting org slug.
             organization_slug = request.subdomain
-        return organization_slug  # type: ignore[no-any-return]
+        return organization_slug
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -246,7 +248,7 @@ class OrganizationMixin:
         return HttpResponseRedirect(url)
 
 
-class BaseView(View, OrganizationMixin):  # type: ignore[misc]
+class BaseView(View, OrganizationMixin):
     auth_required = True
     # TODO(dcramer): change sudo so it can be required only on POST
     sudo_required = False
@@ -269,7 +271,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
 
-    @csrf_exempt  # type: ignore[misc]
+    @csrf_exempt
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         A note on the CSRF protection process.
@@ -380,14 +382,14 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
     def get_no_permission_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-login")  # type: ignore[no-any-return]
+        return reverse("sentry-login")
 
     def get_not_2fa_compliant_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-account-settings-security")  # type: ignore[no-any-return]
+        return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request: Request, **kwargs: Any) -> dict[str, Any]:
         context = csrf(request)
-        return context  # type: ignore[no-any-return]
+        return context
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
@@ -406,7 +408,7 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return res
 
     def get_team_list(self, user: User, organization: Organization) -> list[Team]:
-        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)  # type: ignore[no-any-return]
+        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)
 
     def create_audit_entry(
         self, request: Request, transaction_id: int | None = None, **kwargs: Any
@@ -418,12 +420,8 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
 
-class OrganizationView(BaseView):
+class AbstractOrganizationView(BaseView, abc.ABC):
     """
-    A deprecated view used by endpoints that act on behalf of an organization.
-    In the future, we should move endpoints to either of the subclasses, RegionSilo* or ControlSilo*, and
-    move out any ORM specific logic into the correct silo view.  This will likely become an ABC that shares some
-    common logic.
     The 'organization' keyword argument is automatically injected into the resulting dispatch, but currently the
     typing of 'organization' will vary based on the subclass.  It may either be an RpcOrganization or an orm
     Organization based on the subclass.  Be mindful during this transition of the typing.
@@ -543,58 +541,49 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def _lookup_orm_org(self) -> Organization | None:
-        """
-        Used by convert_args to convert the hybrid cloud safe active_organization object into an org ORM.
-        This should really only be used by the Region or Monolith silo modes -- calling this in a Control silo
-        endpoint or codepath will result in exceptions.
-        :return:
-        """
-        organization: Organization | None = None
-        if self.active_organization:
-            try:
-                organization = Organization.objects.get(id=self.active_organization.organization.id)
-            except Organization.DoesNotExist:
-                pass
-        return organization
+    @abc.abstractmethod
+    def _get_organization(self) -> Organization | RpcOrganization | None:
+        raise NotImplementedError
 
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
+            kwargs["organization"] = self._get_organization()
 
-        return args, kwargs
-
-
-class RegionSiloOrganizationView(OrganizationView):
-    """
-    A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
-    region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
-    the base class (OrganizationView) will likely disappear and only either ControlSilo* or RegionSilo* classes will
-    remain.
-    """
-
-    def convert_args(
-        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
-
-        return args, kwargs
-
-
-class ControlSiloOrganizationView(OrganizationView):
-    def convert_args(
-        self, request: Any, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        kwargs["organization"] = (
-            self.active_organization.organization if self.active_organization else None
-        )
         return super().convert_args(request, *args, **kwargs)
 
 
-class ProjectView(RegionSiloOrganizationView):
+class OrganizationView(AbstractOrganizationView):
+    """
+    A view which has direct ORM access to organization objects.  Only endpoints that exist in the
+    region silo should use this class.
+    """
+
+    def _get_organization(self) -> Organization | None:
+        if not self.active_organization:
+            return None
+        try:
+            return Organization.objects.get(id=self.active_organization.organization.id)
+        except Organization.DoesNotExist:
+            return None
+        except SiloLimit.AvailabilityError as e:
+            raise SiloLimit.AvailabilityError(
+                f"{type(self).__name__} should extend ControlSiloOrganizationView?"
+            ) from e
+
+
+class ControlSiloOrganizationView(AbstractOrganizationView):
+    """A view which accesses organization objects over RPC.
+
+    Only endpoints on the control silo should use this class (but it works anywhere).
+    """
+
+    def _get_organization(self) -> RpcOrganization | None:
+        return self.active_organization.organization if self.active_organization else None
+
+
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
     matching URL pattern must pass 'org_slug' as well as 'project_slug'.
@@ -640,7 +629,7 @@ class ProjectView(RegionSiloOrganizationView):
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            organization = self._lookup_orm_org()
+            organization = self._get_organization()
 
             if organization:
                 active_project = self.get_active_project(
@@ -653,7 +642,7 @@ class ProjectView(RegionSiloOrganizationView):
         return args, kwargs
 
 
-class AvatarPhotoView(View):  # type: ignore[misc]
+class AvatarPhotoView(View):
     model: type[AvatarBase]
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:

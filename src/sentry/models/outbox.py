@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import dataclasses
 import datetime
 from enum import IntEnum
 from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
@@ -9,6 +10,7 @@ from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 from django.db import connections, models, router, transaction
 from django.db.models import Max
 from django.dispatch import Signal
+from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -61,16 +63,27 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_INSTALLATION_UPDATE = 10
     TEAM_UPDATE = 11
     ORGANIZATION_INTEGRATION_UPDATE = 12
-    ORGANIZATION_MEMBER_CREATE = 13
+    ORGANIZATION_MEMBER_CREATE = 13  # Unused
 
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
 
+@dataclasses.dataclass
+class OutboxWebhookPayload:
+    method: str
+    path: str
+    uri: str
+    headers: Mapping[str, Any]
+    body: str
+
+
 class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
     GITHUB = 1
+    JIRA = 2
+    GITLAB = 3
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -109,7 +122,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
@@ -216,7 +230,7 @@ class OutboxBase(Model):
         ):
             runs += 1
             next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+            next_row = self.selected_messages_in_shard().first()
 
         if next_row is not None:
             raise OutboxFlushError(
@@ -314,13 +328,32 @@ class ControlOutbox(OutboxBase):
         "region_name", "shard_scope", "shard_identifier", "category", "object_identifier"
     )
 
+    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=request.method,
+            path=request.get_full_path(),
+            uri=request.get_raw_uri(),
+            headers={k: v for k, v in request.headers.items()},
+            body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
+    def get_webhook_payload_from_outbox(self, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=payload.get("method"),
+            path=payload.get("path"),
+            uri=payload.get("uri"),
+            headers=payload.get("headers"),
+            body=payload.get("body"),
+        )
+
     @classmethod
     def for_webhook_update(
         cls,
         *,
         webhook_identifier: WebhookProviderIdentifier,
         region_names: List[str],
-        payload=Mapping[str, Any],
+        request: HttpRequest,
     ) -> Iterable[ControlOutbox]:
         for region_name in region_names:
             result = cls()
@@ -329,7 +362,8 @@ class ControlOutbox(OutboxBase):
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
-            result.payload = payload
+            payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
+            result.payload = dataclasses.asdict(payload)
             yield result
 
     @classmethod

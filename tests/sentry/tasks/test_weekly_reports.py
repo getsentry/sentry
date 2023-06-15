@@ -11,7 +11,7 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import GroupStatus, GroupSubStatus, OrganizationMember, Project, UserOption
+from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -25,6 +25,7 @@ from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -112,9 +113,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        OrganizationMember.objects.filter(user=self.user).update(
-            flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user_id=self.user.id).update(
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+            )
 
         # disabled
         deliver_reports(ctx)
@@ -169,7 +171,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
 
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
@@ -311,7 +313,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert "Weekly Report for" in message_params["subject"]
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_message_builder_substatus_simple(self, message_builder):
         now = timezone.now()
         three_days_ago = now - timedelta(days=3)

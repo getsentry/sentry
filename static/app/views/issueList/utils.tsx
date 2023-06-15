@@ -42,7 +42,7 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -60,8 +60,11 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle:
-          t(`Issues are marked for review when they are created, unresolved, or unignored.
+        tooltipTitle: hasEscalatingIssuesUi
+          ? t(
+              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+            )
+          : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
           Issues are automatically marked reviewed in 7 days.`),
       },
@@ -163,6 +166,7 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
+  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -179,6 +183,8 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.NEW:
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
+      return t('Priority');
+    case IssueSortOptions.BETTER_PRIORITY:
       return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');

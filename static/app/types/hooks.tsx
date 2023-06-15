@@ -8,6 +8,7 @@ import type DateRange from 'sentry/components/organizations/timeRangeSelector/da
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {Platform} from 'sentry/data/platformCategories';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
@@ -56,6 +57,7 @@ export type HookName = keyof Hooks;
 export type RouteHooks = {
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
+  'routes:root': RoutesHook;
 };
 
 /**
@@ -108,6 +110,10 @@ type ProfilingAM1OrMMXUpgrade = {
   organization: Organization;
 };
 
+type ProductSelectionAvailabilityProps = {
+  organization: Organization;
+};
+
 type SetUpSdkDocProps = {
   location: Location;
   organization: Organization;
@@ -141,6 +147,9 @@ type QualitativeIssueFeedbackProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type SentryLogoProps = SVGIconProps & {
+  pride?: boolean;
+};
 /**
  * Component wrapping hooks
  */
@@ -161,6 +170,7 @@ export type ComponentHooks = {
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
@@ -168,6 +178,7 @@ export type ComponentHooks = {
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
   'component:superuser-access-category': React.ComponentType<any>;
 };

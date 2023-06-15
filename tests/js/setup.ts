@@ -3,6 +3,7 @@
 import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
+import {ReactElement} from 'react';
 import type {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
@@ -13,6 +14,7 @@ import {stringify} from 'query-string';
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
+import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
@@ -55,6 +57,9 @@ jest.mock('lodash/debounce', () =>
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest.mock('sentry/utils/withOrganization');
+jest
+  .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
+  .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', function reactRouterMockFactory() {
   const ReactRouter = jest.requireActual('react-router');

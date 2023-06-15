@@ -61,7 +61,7 @@ export function TextCondition({
   }
   if (
     condition.id === REAPPEARED_EVENT_CONDITION &&
-    organization.features.includes('escalating-issues-ui')
+    organization.features.includes('escalating-issues')
   ) {
     return (
       <Fragment>{t('The issue changes state from archived to escalating')}</Fragment>

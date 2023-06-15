@@ -38,7 +38,7 @@ import {VitalWidget} from '../widgets/vitalWidget';
 
 import {ChartRowProps} from './widgetChartRow';
 
-type Props = {
+interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   defaultChartSetting: PerformanceWidgetSetting;
@@ -50,7 +50,7 @@ type Props = {
   withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
-} & ChartRowProps;
+}
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
@@ -168,11 +168,11 @@ const _WidgetContainer = (props: Props) => {
   const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
 
   switch (widgetProps.dataType) {
-    case GenericPerformanceWidgetDataType.trends:
+    case GenericPerformanceWidgetDataType.TRENDS:
       return (
         <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.area:
+    case GenericPerformanceWidgetDataType.AREA:
       return (
         <SingleFieldAreaWidget
           {...passedProps}
@@ -180,11 +180,11 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.vitals:
+    case GenericPerformanceWidgetDataType.VITALS:
       return (
         <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.line_list:
+    case GenericPerformanceWidgetDataType.LINE_LIST:
       return (
         <LineChartListWidget
           {...passedProps}
@@ -192,11 +192,11 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.histogram:
+    case GenericPerformanceWidgetDataType.HISTOGRAM:
       return (
         <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.stacked_area:
+    case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);

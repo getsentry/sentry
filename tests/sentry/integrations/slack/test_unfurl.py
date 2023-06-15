@@ -210,6 +210,22 @@ class UnfurlTest(TestCase):
             == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
         )
 
+    def test_escape_issue(self):
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+        )
+
+        links = [
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group.id}/",
+                args={"issue_id": group.id, "event_id": None},
+            ),
+        ]
+
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        assert unfurls[links[0].url]["text"] == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+
     def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()
 

@@ -6,6 +6,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProjectSourceMaps} from 'sentry/views/settings/projectSourceMaps/projectSourceMaps';
 
@@ -252,6 +253,16 @@ describe('ProjectSourceMaps', function () {
       expect(screen.getByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
       // Delete button
       expect(screen.getByRole('button', {name: 'Remove All Artifacts'})).toBeEnabled();
+
+      // Release information
+      expect(
+        await screen.findByText(textWithMarkupMatcher('2 Releases associated'))
+      ).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('2 Releases'));
+      expect(
+        await screen.findByText('frontend@2e318148eac9298ec04a662ae32b4b093b027f0a')
+      ).toBeInTheDocument();
+
       // Click on bundle id
       await userEvent.click(
         screen.getByRole('link', {name: 'b916a646-2c6b-4e45-af4c-409830a44e0e'})
@@ -315,7 +326,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       expect(
-        await screen.findByText('No debug ID bundles found for this project.')
+        await screen.findByText('No artifact bundles found for this project.')
       ).toBeInTheDocument();
     });
   });

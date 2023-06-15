@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -22,15 +23,15 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    GroupSubStatus,
     add_group_to_inbox,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
-class ValidateSearchFilterPermissionsTest(TestCase):  # type: ignore[misc]
+class ValidateSearchFilterPermissionsTest(TestCase):
     def run_test(self, query: str) -> None:
         validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
@@ -83,7 +84,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):  # type: ignore[misc]
         self.assert_analytics_recorded(mock_record)
 
 
-class UpdateGroupsTest(TestCase):  # type: ignore[misc]
+class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_unresolving_resolved_group(self, send_robust: Mock, send_unresolved: Mock) -> None:
@@ -129,13 +130,13 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group_forever(self, send_robust: Mock) -> None:
+    def test_ignoring_group_archived_forever(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
-        request.data = {"status": "ignored", "substatus": "forever"}
+        request.data = {"status": "ignored", "substatus": "archived_forever"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
@@ -151,7 +152,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group_until_condition(self, send_robust: Mock) -> None:
+    def test_ignoring_group_archived_until_condition_met(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -159,7 +160,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         request.user = self.user
         request.data = {
             "status": "ignored",
-            "substatus": "until_condition_met",
+            "substatus": "archived_until_condition_met",
             "statusDetails": {"ignoreDuration": 1},
         }
         request.GET = QueryDict(query_string=f"id={group.id}")
@@ -179,16 +180,31 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust: Mock) -> None:
-        for group, request_data in [
-            (self.create_group(status=GroupStatus.IGNORED), {"status": "unresolved"}),
-            (
-                self.create_group(status=GroupStatus.IGNORED),
-                {"status": "unresolved", "substatus": "ongoing"},
-            ),
+        for data in [
+            {
+                "group": self.create_group(
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                ),
+                "request_data": {"status": "unresolved"},
+                "expected_substatus": GroupSubStatus.ONGOING,
+            },
+            {
+                "group": self.create_group(
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                ),
+                "request_data": {"status": "unresolved", "substatus": "ongoing"},
+                "expected_substatus": GroupSubStatus.ONGOING,
+            },
+            {
+                "group": self.create_group(status=GroupStatus.IGNORED, first_seen=datetime.now()),
+                "request_data": {"status": "unresolved"},
+                "expected_substatus": GroupSubStatus.NEW,
+            },
         ]:
+            group = data["group"]
             request = self.make_request(user=self.user, method="GET")
             request.user = self.user
-            request.data = request_data
+            request.data = data["request_data"]
             request.GET = QueryDict(query_string=f"id={group.id}")
 
             update_groups(
@@ -198,7 +214,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
             group.refresh_from_db()
 
             assert group.status == GroupStatus.UNRESOLVED
-            assert group.substatus is GroupSubStatus.ONGOING
+            assert group.substatus == data["expected_substatus"]
             assert send_robust.called
 
     @patch("sentry.signals.issue_mark_reviewed.send_robust")
@@ -221,15 +237,15 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")  # type: ignore[misc]
+    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignore_with_substatus_until_escalating(self, send_robust: Mock) -> None:
+    def test_ignore_with_substatus_archived_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
-        request.data = {"status": "ignored", "substatus": "until_escalating"}
+        request.data = {"status": "ignored", "substatus": "archived_until_escalating"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
@@ -245,7 +261,7 @@ class UpdateGroupsTest(TestCase):  # type: ignore[misc]
         assert not GroupInbox.objects.filter(group=group).exists()
 
 
-class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
+class TestHandleIsSubscribed(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -270,7 +286,7 @@ class TestHandleIsSubscribed(TestCase):  # type: ignore[misc]
         assert resp["reason"] == "unknown"
 
 
-class TestHandleIsBookmarked(TestCase):  # type: ignore[misc]
+class TestHandleIsBookmarked(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -292,7 +308,7 @@ class TestHandleIsBookmarked(TestCase):  # type: ignore[misc]
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleHasSeen(TestCase):  # type: ignore[misc]
+class TestHandleHasSeen(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
@@ -318,7 +334,7 @@ class TestHandleHasSeen(TestCase):  # type: ignore[misc]
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
 
-class TestHandleIsPublic(TestCase):  # type: ignore[misc]
+class TestHandleIsPublic(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
