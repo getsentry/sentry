@@ -22,6 +22,7 @@ import {
   TextAlignLeft,
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Keys =
   | 'id'
@@ -55,7 +56,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
   {
     key: 'transaction.duration',
-    name: 'Duration',
+    name: DataTitles.duration,
     width: 100,
   },
   {

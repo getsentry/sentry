@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -132,6 +133,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "id":
+                    try:
+                        value = [int(item) for item in value]
+                    except ValueError:
+                        raise ParseError(detail="Invalid id value")
                     queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()

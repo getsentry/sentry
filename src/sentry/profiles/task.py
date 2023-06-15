@@ -151,6 +151,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
             # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
             # See comments in the function for why this happens.
             raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(profile)
+
+            set_measurement("profile.frames.sent", len(frames_sent))
+
             modules, stacktraces, success = run_symbolicate(
                 project=project,
                 profile=profile,
@@ -488,7 +491,7 @@ def _process_symbolicator_results_for_sample(
         assert len(new_frames) == new_frames_count
 
         profile["profile"]["frames"] = new_frames
-    else:
+    elif symbolicated_frames:
         profile["profile"]["frames"] = symbolicated_frames
 
     if profile["platform"] in SHOULD_SYMBOLICATE:

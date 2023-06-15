@@ -35,13 +35,20 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DAY, HOUR} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
+
+export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
+  [SpanMetricsFields.SPAN_DURATION]: {
+    outputType: 'duration',
+  },
+};
 
 type Props = {
   data: Series[];
