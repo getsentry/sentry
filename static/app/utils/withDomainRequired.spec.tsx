@@ -34,6 +34,10 @@ describe('normalizeUrl', function () {
       ['/settings/sentry-organizations/teams/payments/', '/settings/teams/payments/'],
       ['/settings/sentry-organizations/billing/receipts/', '/settings/billing/receipts/'],
       [
+        '/settings/sentry-organizations/teams/test-organizations/notifications/',
+        '/settings/teams/test-organizations/notifications/',
+      ],
+      [
         '/settings/acme/developer-settings/release-bot/',
         '/settings/developer-settings/release-bot/',
       ],
