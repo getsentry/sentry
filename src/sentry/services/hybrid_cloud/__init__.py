@@ -6,6 +6,7 @@ import functools
 import inspect
 import logging
 import threading
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -103,11 +104,23 @@ def _hack_pydantic_type_validation() -> None:
 _hack_pydantic_type_validation()
 
 
+class ValueEqualityEnum(Enum):
+    def __eq__(self, other):
+        value = other
+        if isinstance(other, Enum):
+            value = other.value
+        return self.value == value
+
+    def __hash__(self):
+        return hash(self.value)
+
+
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
 
     class Config:
         orm_mode = True
+        use_enum_values = True
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:

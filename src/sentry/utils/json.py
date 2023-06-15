@@ -6,7 +6,7 @@ import datetime
 import decimal
 import uuid
 from enum import Enum
-from typing import IO, Any, Generator, Mapping, NoReturn, TypeVar, overload
+from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
@@ -19,6 +19,17 @@ from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
 
+# A more traditional raw import from django_stubs_ext.aliases here breaks monkeypatching,
+# So we jump through hoops to get only the exact types
+if TYPE_CHECKING:
+    from django.db.models.query import _QuerySetAny
+
+    QuerySetAny = _QuerySetAny
+else:
+    from django.db.models.query import QuerySet
+
+    QuerySetAny = QuerySet
+
 TKey = TypeVar("TKey")
 TValue = TypeVar("TValue")
 
@@ -28,6 +39,7 @@ def datetime_to_str(o: datetime.datetime) -> str:
 
 
 def better_default_encoder(o: object) -> object:
+
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
@@ -51,6 +63,8 @@ def better_default_encoder(o: object) -> object:
         return int(o)
     elif callable(o):
         return "<function>"
+    elif isinstance(o, QuerySetAny):
+        return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
         return force_text(o)

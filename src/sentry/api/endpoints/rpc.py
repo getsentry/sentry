@@ -45,5 +45,4 @@ class RpcServiceEndpoint(Endpoint):
             raise ParseError from e
         except Exception as e:
             raise ValidationError from e
-
         return Response(data=result)
