@@ -102,6 +102,18 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_id=str(tested_monitors[0].guid),
         )
 
+    def test_timeout_at(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor.guid)
+
+            resp = self.client.post(path, {"status": "in_progress"}, **self.token_auth_headers)
+            assert resp.status_code == 201, resp.content
+
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.IN_PROGRESS
+            assert checkin.timeout_at > checkin.date_added
+
     def test_failing(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()

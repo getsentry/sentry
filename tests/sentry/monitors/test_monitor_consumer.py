@@ -170,6 +170,13 @@ class MonitorConsumerTest(TestCase):
         # Lock should prevent creation of new check-in
         assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
 
+    def test_check_in_timeout_at(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_message(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.timeout_at > checkin.date_added
+
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_message(monitor.slug, status="in_progress")
