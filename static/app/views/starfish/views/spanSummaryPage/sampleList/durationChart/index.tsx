@@ -1,17 +1,16 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {queryDataToChartData} from 'sentry/views/starfish/utils/queryDataToChartData';
-import {
-  useQueryGetSpanSeriesData,
-  useQuerySpansInTransaction,
-} from 'sentry/views/starfish/views/spanSummaryPage/queries';
-import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
@@ -19,71 +18,57 @@ type Props = {
   spanDescription?: string;
 };
 
-function DurationChart({groupId, transactionName, spanDescription}: Props) {
-  const pageFilter = usePageFilters();
-  const {isLoading, data} = useQuerySpansInTransaction({groupId});
+function DurationChart({groupId, transactionName}: Props) {
   const theme = useTheme();
 
-  const spanGroupOperation = data?.[0]?.span_operation;
-  const module = data?.[0]?.module;
-  const {startTime, endTime} = getStartAndEndTime(pageFilter);
+  const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+    {group: groupId},
+    {transactionName},
+    [`p95(${SPAN_SELF_TIME})`],
+    'sidebar-span-metrics'
+  );
 
-  const {isLoading: isLoadingSeriesData, data: seriesData} = useQueryGetSpanSeriesData({
+  const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
     groupId,
-    spanGroupOperation,
     transactionName,
-    description: spanDescription,
-    module,
-  });
+    undefined,
+    '-duration',
+    'span-summary-panel-samples-table-spans'
+  );
 
-  const {p95: p95Series} = queryDataToChartData(seriesData, startTime, endTime);
-
-  const {data: sampleListData, isLoading: isSamplesLoading} =
-    useQueryGetSpanTransactionSamples({
-      groupId,
-      transactionName,
-    });
-
-  const sampledSpanDataSeries: Series[] = sampleListData.map(
-    ({timestamp, spanDuration, transaction_id}) => ({
+  const sampledSpanDataSeries: Series[] = spans.map(
+    ({timestamp, 'span.self_time': duration, transaction_id}) => ({
       data: [
         {
-          name: timestamp,
-          value: spanDuration,
+          name: moment(timestamp).unix(),
+          value: duration,
         },
       ],
       symbol: 'path://M -1 -1 V -5 H 0 V -1 H 4 V 0 H 0 V 4 H -1 V 0 H -5 V -1 H -1',
       color: theme.gray400,
       symbolSize: 15,
-      seriesName: transaction_id.split('-')[0],
+      seriesName: transaction_id,
     })
   );
 
   return (
-    <Chart
-      statsPeriod="24h"
-      height={140}
-      data={p95Series ? [p95Series] : []}
-      start=""
-      end=""
-      loading={isLoading || isLoadingSeriesData}
-      scatterPlot={isSamplesLoading ? undefined : sampledSpanDataSeries}
-      utc={false}
-      chartColors={[P95_COLOR]}
-      isLineChart
-      definedAxisTicks={4}
-    />
+    <Fragment>
+      <h5>{DataTitles.p95}</h5>
+      <Chart
+        statsPeriod="24h"
+        height={140}
+        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
+        start=""
+        end=""
+        loading={isLoading}
+        scatterPlot={areSpanSamplesLoading ? undefined : sampledSpanDataSeries}
+        utc={false}
+        chartColors={[P95_COLOR]}
+        isLineChart
+        definedAxisTicks={4}
+      />
+    </Fragment>
   );
 }
-
-const getStartAndEndTime = pageFilter => {
-  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
-  const startTime =
-    num && unit
-      ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(pageFilter.selection.datetime.start);
-  const endTime = moment(pageFilter.selection.datetime.end ?? undefined);
-  return {startTime, endTime};
-};
 
 export default DurationChart;

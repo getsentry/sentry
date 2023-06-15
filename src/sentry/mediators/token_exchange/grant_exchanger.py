@@ -4,7 +4,8 @@ import pytz
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
 from sentry.models import ApiApplication, ApiGrant, ApiToken, SentryApp

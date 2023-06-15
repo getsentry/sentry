@@ -13,6 +13,7 @@ from snuba_sdk.function import Function
 from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
@@ -22,17 +23,16 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import (
     FIELD_ALIASES,
-    InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
 )
 from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    Dataset,
     SnubaTSResult,
     bulk_snql_query,
     get_array_column_alias,
@@ -549,7 +549,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -561,7 +562,8 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    limit (int) The number of records to fetch.
+    per_page (int) The number of records to fetch.
+    cursor (int) Multiplied by per_page to determine the number of records to skip.
 
     Returns Sequence[FacetResult]
     """
@@ -574,7 +576,8 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=limit,
+            limit=per_page,
+            offset=cursor * per_page,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -594,7 +597,7 @@ def get_facets(
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == limit:
+        if len(top_tags) == per_page:
             top_tags.pop()
         fetch_projects = True
 

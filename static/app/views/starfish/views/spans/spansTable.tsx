@@ -1,4 +1,7 @@
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -6,30 +9,40 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {formatPercentage} from 'sentry/utils/formatters';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
+const SPANS_CURSOR_NAME = 'spansCursor';
+
 type Props = {
-  isLoading: boolean;
   moduleName: ModuleName;
   onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
-  spansData: SpanDataRow[];
   columnOrder?: TableColumnHeader[];
+  endpoint?: string;
+  limit?: number;
+  spanCategory?: string;
 };
 
+const {SPAN_SELF_TIME} = SpanMetricsFields;
+
 export type SpanDataRow = {
-  'p95(span.duration)': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
+  'sps()': number;
+  'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
 
@@ -37,36 +50,58 @@ export type Keys =
   | 'span.description'
   | 'span.op'
   | 'span.domain'
-  | 'spm()'
-  | 'p95(span.duration)'
-  | 'sum(span.duration)'
+  | 'sps()'
+  | 'p95(span.self_time)'
+  | 'sps_percent_change()'
+  | `sum(${typeof SPAN_SELF_TIME})`
   | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
   moduleName,
-  spansData,
   orderBy,
   onSetOrderBy,
-  isLoading,
   columnOrder,
+  spanCategory,
+  endpoint,
+  limit = 25,
 }: Props) {
   const location = useLocation();
+  const spansCursor = decodeScalar(location.query?.[SPANS_CURSOR_NAME]);
+  const {isLoading, data, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    undefined,
+    spanCategory,
+    orderBy,
+    limit,
+    'use-span-list',
+    spansCursor
+  );
+
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [SPANS_CURSOR_NAME]: cursor},
+    });
+  };
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={spansData}
-      columnOrder={columnOrder ?? getColumns(moduleName)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={columnOrder ?? getColumns(moduleName)}
+        columnSortBy={
+          orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
+        }
+        grid={{
+          renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
+          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+    </Fragment>
   );
 }
 
@@ -93,12 +128,20 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
   return renderHeadCell;
 }
 
-function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.ReactNode {
+function renderBodyCell(
+  column: TableColumnHeader,
+  row: SpanDataRow,
+  endpoint?: string
+): React.ReactNode {
   if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
-          <Link to={`/starfish/span/${row['span.group']}`}>
+          <Link
+            to={`/starfish/span/${row['span.group']}${
+              endpoint ? `?${urlEncode({endpoint})}` : ''
+            }`}
+          >
             {row['span.description'] || '<null>'}
           </Link>
         ) : (
@@ -111,14 +154,28 @@ function renderBodyCell(column: TableColumnHeader, row: SpanDataRow): React.Reac
   if (column.key === 'time_spent_percentage()') {
     return (
       <TimeSpentCell
-        formattedTimeSpent={formatPercentage(row['time_spent_percentage()'])}
-        totalSpanTime={row['sum(span.duration)']}
+        timeSpentPercentage={row['time_spent_percentage()']}
+        totalSpanTime={row[`sum(${SPAN_SELF_TIME})`]}
       />
     );
   }
 
-  if (column.key === 'spm()') {
-    return <ThroughputCell throughputPerSecond={row[column.key]} />;
+  if (column.key === 'sps()') {
+    return (
+      <ThroughputCell
+        throughputPerSecond={row['sps()']}
+        delta={row['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'p95(span.self_time)') {
+    return (
+      <DurationCell
+        milliseconds={row['p95(span.self_time)']}
+        delta={row['percentile_percent_change(span.self_time, 0.95)']}
+      />
+    );
   }
 
   return row[column.key];
@@ -169,12 +226,12 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
         ]
       : []),
     {
-      key: 'spm()',
+      key: 'sps()',
       name: 'Throughput',
       width: 175,
     },
     {
-      key: 'p95(span.duration)',
+      key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
       width: 175,
     },

@@ -9,7 +9,7 @@ import pytz
 from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import Group, GroupSubStatus, UserOption
+from sentry.models import Group, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -31,6 +31,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -166,7 +167,7 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
+        if len(self.rules) > 0:
             context["snooze_alert"] = True
             context[
                 "snooze_alert_url"

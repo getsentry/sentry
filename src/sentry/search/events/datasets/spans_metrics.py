@@ -5,7 +5,7 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -63,7 +63,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "count_unique",
                     required_args=[
                         fields.MetricArg(
-                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                            "column",
+                            allowed_columns=["user", "transaction"],
+                            allow_custom_measurements=False,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -79,51 +81,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "epm",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("span.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            Function("divide", [args["interval"], 60]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "eps",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("span.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            args["interval"],
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
@@ -152,7 +116,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -175,7 +139,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -193,7 +157,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -211,7 +175,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -239,7 +203,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration"],
+                                allowed_columns=["span.duration", "span.self_time"],
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -284,7 +248,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=["span.duration"],
+                            allowed_columns=["span.duration", "span.self_time"],
                             allow_custom_measurements=False,
                         ),
                         fields.NumberRange("percentile", 0, 1),
@@ -313,7 +277,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=["span.duration"],
+                            allowed_columns=["span.duration", "span.self_time"],
                             allow_custom_measurements=False,
                         ),
                         fields.NumberRange("percentile", 0, 1),
@@ -325,6 +289,18 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "http_error_count_percent_change",
                     snql_distribution=self._resolve_http_error_count_percent_change,
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "epm_percent_change",
+                    snql_distribution=self._resolve_epm_percent_change,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "eps_percent_change",
+                    snql_distribution=self._resolve_eps_percent_change,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="percentage",
                 ),
             ]
@@ -452,30 +428,56 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _get_middle(self):
-        """Get the middle for percent change functions"""
-        if self.builder.start is None or self.builder.end is None:
-            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
-        return self.builder.start + (self.builder.end - self.builder.start) / 2
+    def _resolve_epm(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        return self._resolve_rate(60, args, alias, extra_condition)
 
-    def _first_half_condition(self):
-        """Create the first half condition for percent_change functions"""
-        return Function(
-            "less",
+    def _resolve_eps(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        return self._resolve_rate(None, args, alias, extra_condition)
+
+    def _resolve_rate(
+        self,
+        interval: Optional[int],
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        base_condition = Function(
+            "equals",
             [
-                Function("toDateTime", [self._get_middle()]),
-                self.builder.column("timestamp"),
+                Column("metric_id"),
+                self.resolve_metric("span.duration"),
             ],
         )
+        if extra_condition:
+            condition = Function("and", [base_condition, extra_condition])
+        else:
+            condition = base_condition
 
-    def _second_half_condition(self):
-        """Create the second half condition for percent_change functions"""
         return Function(
-            "greaterOrEquals",
+            "divide",
             [
-                Function("toDateTime", [self._get_middle()]),
-                self.builder.column("timestamp"),
+                Function(
+                    "countIf",
+                    [
+                        Column("value"),
+                        condition,
+                    ],
+                ),
+                args["interval"]
+                if interval is None
+                else Function("divide", [args["interval"], interval]),
             ],
+            alias,
         )
 
     def _resolve_http_error_count_percent_change(
@@ -483,8 +485,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        first_half = self._resolve_http_error_count({}, None, self._first_half_condition())
-        second_half = self._resolve_http_error_count({}, None, self._second_half_condition())
+        first_half = self._resolve_http_error_count({}, None, self.builder.first_half_condition())
+        second_half = self._resolve_http_error_count({}, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percentile_percent_change(
@@ -496,25 +498,56 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[self._first_half_condition()],
+            extra_conditions=[self.builder.first_half_condition()],
         )
         second_half = function_aliases.resolve_metrics_percentile(
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[self._second_half_condition],
+            extra_conditions=[self.builder.second_half_condition()],
         )
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_epm_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_epm(args, None, self.builder.first_half_condition())
+        second_half = self._resolve_epm(args, None, self.builder.second_half_condition())
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_eps_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_eps(args, None, self.builder.first_half_condition())
+        second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percent_change_function(self, first_half, second_half, alias):
         return Function(
-            "divide",
+            "if",
             [
                 Function(
-                    "minus",
-                    [second_half, first_half],
+                    "greater",
+                    [
+                        first_half,
+                        0,
+                    ],
                 ),
-                first_half,
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "minus",
+                            [second_half, first_half],
+                        ),
+                        first_half,
+                    ],
+                ),
+                None,
             ],
             alias,
         )

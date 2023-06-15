@@ -13,7 +13,7 @@ from rest_framework.serializers import ValidationError
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.team_projects import ProjectSerializer
+from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.experiments import manager as expt_manager
@@ -73,7 +73,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
-        serializer = ProjectSerializer(data=request.data)
+        serializer = ProjectPostSerializer(data=request.data)
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
@@ -82,7 +82,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
         exposed = expt_manager.get(
-            "ProjectCreationForAllExperiment", org=organization, actor=request.user
+            "ProjectCreationForAllExperimentV2", org=organization, actor=request.user
         )
 
         if (

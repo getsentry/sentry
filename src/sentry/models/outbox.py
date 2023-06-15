@@ -82,6 +82,8 @@ class OutboxWebhookPayload:
 class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
     GITHUB = 1
+    JIRA = 2
+    GITLAB = 3
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -120,7 +122,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
@@ -227,7 +230,7 @@ class OutboxBase(Model):
         ):
             runs += 1
             next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+            next_row = self.selected_messages_in_shard().first()
 
         if next_row is not None:
             raise OutboxFlushError(
@@ -328,7 +331,7 @@ class ControlOutbox(OutboxBase):
     def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=request.method,
-            path=request.path,
+            path=request.get_full_path(),
             uri=request.get_raw_uri(),
             headers={k: v for k, v in request.headers.items()},
             body=request.body.decode(encoding="utf-8"),
