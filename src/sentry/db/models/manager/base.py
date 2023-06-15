@@ -260,7 +260,9 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         model: M = super().get(*args, **kwargs)
         return model
 
-    def get_from_cache(self, use_replica: bool = False, **kwargs: Any) -> M:
+    def get_from_cache(
+        self, use_replica: bool = settings.SENTRY_MODEL_CACHE_USE_REPLICA, **kwargs: Any
+    ) -> M:
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
