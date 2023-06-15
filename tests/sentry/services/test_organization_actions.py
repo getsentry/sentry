@@ -147,6 +147,7 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         org_before_update = Organization.objects.get(id=self.org.id)
         updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
 
+        assert updated_org
         assert updated_org.status == OrganizationStatus.PENDING_DELETION
         assert updated_org.name == org_before_update.name
         assert updated_org.slug == org_before_update.slug
