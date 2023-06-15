@@ -20,11 +20,12 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import Integration, OrganizationIntegration, Project
+from sentry.models import Integration, OrganizationIntegration, Project, User
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.utils.sdk import capture_exception
 
+from ...services.hybrid_cloud.user.serial import serialize_rpc_user
 from .client import ConfigurationError, gen_aws_client
 from .utils import (
     ALL_AWS_REGIONS,
@@ -270,7 +271,12 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
-            serialized_organization = serialize(pipeline.organization, request.user)
+            serialized_organization = organization_service.serialize_organization(
+                id=pipeline.organization.id,
+                as_user=serialize_rpc_user(request.user)
+                if isinstance(request.user, User)
+                else None,
+            )
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",

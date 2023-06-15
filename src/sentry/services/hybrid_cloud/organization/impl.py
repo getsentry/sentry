@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Set, cast
+from typing import Any, Iterable, List, Optional, Set, cast
 
 from django.db import IntegrityError, models, transaction
 
 from sentry import roles
+from sentry.api.serializers import serialize
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Activity,
@@ -34,9 +35,10 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
-    serialize_organization,
     serialize_organization_summary,
+    serialize_rpc_organization,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 
 
@@ -55,6 +57,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
+    def serialize_organization(
+        self, *, id: int, as_user: Optional[RpcUser] = None
+    ) -> Optional[Any]:
+        org = Organization.objects.filter(id=id).first()
+        if org is None:
+            return None
+        return serialize([org], user=as_user)
+
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[RpcUserOrganizationContext]:
@@ -71,7 +81,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return RpcUserOrganizationContext(
-            user_id=user_id, organization=serialize_organization(org), member=membership
+            user_id=user_id, organization=serialize_rpc_organization(org), member=membership
         )
 
     def get_org_by_slug(
@@ -184,7 +194,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return RpcUserInviteContext(
             user_id=member.user_id,
-            organization=serialize_organization(org),
+            organization=serialize_rpc_organization(org),
             member=serialize_member(member),
             invite_organization_member_id=organization_member_id,
         )
@@ -400,7 +410,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org = Organization.objects.get(id=organization_id)
         org.default_role = default_role
         org.save()
-        return serialize_organization(org)
+        return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         with transaction.atomic(), in_test_psql_role_override("postgres"):
