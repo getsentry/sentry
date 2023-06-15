@@ -103,8 +103,7 @@
           "type": "object",
           "properties": {
             "data": {
-              "type": "object",
-              "nullable": true
+              "type": "object"
             },
             "dateCompleted": {
               "type": "string",
@@ -117,8 +116,7 @@
               "type": "integer"
             },
             "user": {
-              "type": "string",
-              "nullable": true
+              "type": "string"
             }
           }
         }
