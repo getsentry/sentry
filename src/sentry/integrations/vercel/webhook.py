@@ -133,6 +133,27 @@ class VercelWebhookEndpoint(Endpoint):
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
+    def parse_new_external_id(self, request: Request) -> str:
+        payload = request.data["payload"]
+        # New Vercel request flow
+        external_id = (
+            payload.get("team")["id"]
+            if (payload.get("team") and payload.get("team") != {})
+            else payload["user"]["id"]
+        )
+        return external_id
+
+    def parse_old_external_id(self, request: Request) -> str:
+        # Old Vercel request flow
+        external_id = request.data.get("teamId") or request.data["userId"]
+        return external_id
+
+    def parse_external_id(self, request: Request) -> str:
+        try:
+            return self.parse_new_external_id(request)
+        except Exception:
+            return self.parse_old_external_id(request)
+
     def post(self, request: Request) -> Response:
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
@@ -158,11 +179,7 @@ class VercelWebhookEndpoint(Endpoint):
             # Try the new Vercel request. If it fails, try the old Vercel request
             try:
                 payload = request.data["payload"]
-                external_id = (
-                    payload.get("team")["id"]
-                    if (payload.get("team") and payload.get("team") != {})
-                    else payload["user"]["id"]
-                )
+                external_id = self.parse_new_external_id(request)
                 scope.set_tag("vercel_webhook.type", "new")
 
                 if event_type == "integration-configuration.removed":
@@ -171,7 +188,7 @@ class VercelWebhookEndpoint(Endpoint):
                 if event_type == "deployment.created":
                     return self._deployment_created(external_id, request)
             except Exception:
-                external_id = request.data.get("teamId") or request.data["userId"]
+                external_id = self.parse_old_external_id(request)
                 scope.set_tag("vercel_webhook.type", "old")
 
                 if event_type == "integration-configuration-removed":
@@ -186,15 +203,11 @@ class VercelWebhookEndpoint(Endpoint):
             # Try the new Vercel request. If it fails, try the old Vercel request
             try:
                 payload = request.data["payload"]
-                external_id = (
-                    payload.get("team")["id"]
-                    if (payload.get("team") and payload.get("team") != {})
-                    else payload["user"]["id"]
-                )
+                external_id = self.parse_new_external_id(request)
                 scope.set_tag("vercel_webhook.type", "new")
                 configuration_id = payload["configuration"]["id"]
             except Exception:
-                external_id = request.data.get("teamId") or request.data["userId"]
+                external_id = self.parse_old_external_id(request)
                 scope.set_tag("vercel_webhook.type", "old")
                 configuration_id = request.data.get("configurationId")
 
