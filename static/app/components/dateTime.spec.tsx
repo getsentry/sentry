@@ -4,15 +4,15 @@ import DateTime from 'sentry/components/dateTime';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('DateTime', () => {
-  const user = {
-    ...TestStubs.User(),
+  const user = TestStubs.User({
     options: {
       clock24Hours: false,
       timezone: 'America/Los_Angeles',
     },
-  };
+  });
+
   beforeAll(() => {
-    ConfigStore.loadInitialData({user});
+    ConfigStore.loadInitialData(TestStubs.Config({user}));
   });
 
   it('renders a date', () => {
@@ -22,7 +22,7 @@ describe('DateTime', () => {
 
   it('renders a date and shows the year if it is outside the current year', () => {
     const date = new Date();
-    date.setYear(2016);
+    date.setFullYear(2016);
     date.setMonth(11);
     date.setDate(31);
 
