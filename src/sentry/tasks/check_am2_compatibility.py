@@ -319,7 +319,7 @@ class CheckAM2Compatibility:
         ):
             # We run this query by selecting all projects, so that the widget query should never fail in case the
             # `query` contains "project:something".
-            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query, errors)
+            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
                 errors.append(
                     f"Couldn't figure out compatibility for widget {widget_id} with query {query} in org {organization.id}."
@@ -334,7 +334,7 @@ class CheckAM2Compatibility:
         for project in all_projects:
             project_id = project.id
             for alert_id, query in cls.get_all_alerts_of_project(project_id):
-                supports_metrics = cls.is_metrics_data(organization.id, [project], query, errors)
+                supports_metrics = cls.is_metrics_data(organization.id, [project], query)
                 if supports_metrics is None:
                     errors.append(
                         f"Couldn't figure out compatibility for alert {alert_id} with query {query} in project {project_id}."
@@ -345,9 +345,11 @@ class CheckAM2Compatibility:
                     # We mark whether a metric is not supported.
                     unsupported_alerts[project_id].append(alert_id)
 
-        outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects, errors)
+        outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects)
         if outdated_sdks_per_project is None:
-            errors.append(f"Couldn't figure outdated sdks for projects of org {organization.id}.")
+            errors.append(
+                f"Couldn't figure out outdated sdks for projects of org {organization.id}."
+            )
             outdated_sdks_per_project = {}
 
         return cls.format_results(
