@@ -240,8 +240,11 @@ def get_client_config(request=None):
             "sentryUrl": options.get("system.url-prefix"),
         },
     }
+
+    user_details = None
     if user and user.is_authenticated:
-        (serialized_user,) = user_service.serialize_many(
+        # Fetch the user, this could be an empty result as the user could be deleted.
+        user_details = user_service.serialize_many(
             filter={"user_ids": [user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
@@ -249,12 +252,10 @@ def get_client_config(request=None):
                 user=request.user,
             ),
         )
-        context.update(
-            {
-                "isAuthenticated": True,
-                "user": serialized_user,
-            }
-        )
+
+    if user and user.is_authenticated and user_details:
+        context["isAuthenticated"] = True
+        context["user"] = user_details[0]
 
         if request.user.is_superuser:
             # Note: This intentionally does not use the "active" superuser flag as
