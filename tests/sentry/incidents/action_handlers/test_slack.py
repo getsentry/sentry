@@ -121,3 +121,26 @@ class SlackActionHandlerTest(FireTest, TestCase):
             handler.fire(metric_value, IncidentStatus(incident.status))
 
         assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_rule_snoozed_by_user_still_sends(self):
+        """We shouldn't be able to get into this state from the UI, but this test ensures that if an alert whose action
+        is to notify an integration is muted for a specific user, that the alert still fires because it should only NOT
+        fire if it's muted for everyone"""
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        RuleSnooze.objects.create(alert_rule=alert_rule, user_id=self.user.id)
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body='{"ok": true}',
+        )
+        handler = SlackActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 1

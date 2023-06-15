@@ -48,11 +48,15 @@ class ActionHandler(metaclass=abc.ABCMeta):
 
 class DefaultActionHandler(ActionHandler):
     def fire(self, metric_value: int | float, new_status: IncidentStatus):
-        if not RuleSnooze.objects.filter(alert_rule=self.incident.alert_rule).exists():
+        if not RuleSnooze.objects.filter(
+            alert_rule=self.incident.alert_rule, user_id__isnull=True
+        ).exists():
             self.send_alert(metric_value, new_status)
 
     def resolve(self, metric_value: int | float, new_status: IncidentStatus):
-        if not RuleSnooze.objects.filter(alert_rule=self.incident.alert_rule).exists():
+        if not RuleSnooze.objects.filter(
+            alert_rule=self.incident.alert_rule, user_id__isnull=True
+        ).exists():
             self.send_alert(metric_value, new_status)
 
     @abc.abstractmethod
