@@ -23,7 +23,34 @@ export type DisabledProduct = {
   reason: string;
 };
 
-type Props = {
+type ProductProps = {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  onClick?: () => void;
+  permanentDisabled?: boolean;
+};
+
+function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+  return (
+    <ProductWrapper
+      permanentDisabled={permanentDisabled}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+    >
+      <Checkbox
+        checked={checked}
+        disabled={permanentDisabled ? false : disabled}
+        aria-label={label}
+        size="xs"
+        readOnly
+      />
+      <span>{label}</span>
+    </ProductWrapper>
+  );
+}
+
+type ProductSelectionProps = {
   defaultSelectedProducts?: PRODUCT[];
   disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
@@ -35,7 +62,7 @@ export function ProductSelection({
   disabledProducts,
   lazyLoader,
   skipLazyLoader,
-}: Props) {
+}: ProductSelectionProps) {
   const router = useRouter();
   const products = decodeList(router.location.query.product);
 
@@ -91,10 +118,7 @@ export function ProductSelection({
       </TextBlock>
       <Products>
         <Tooltip title={t("Let's admit it, we all have errors.")}>
-          <Product disabled permanentDisabled>
-            <Checkbox checked readOnly size="xs" aria-label={t('Error Monitoring')} />
-            <div>{t('Error Monitoring')}</div>
-          </Product>
+          <Product disabled checked permanentDisabled label={t('Error Monitoring')} />
         </Tooltip>
         <Tooltip
           title={
@@ -112,22 +136,11 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={
-              performanceProductDisabled
-                ? undefined
-                : () => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
-            }
+            onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
             disabled={!!performanceProductDisabled}
-          >
-            <Checkbox
-              checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
-              disabled={!!performanceProductDisabled}
-              aria-label={t('Performance Monitoring')}
-              size="xs"
-              readOnly
-            />
-            {t('Performance Monitoring')}
-          </Product>
+            checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
+            label={t('Performance Monitoring')}
+          />
         </Tooltip>
         <Tooltip
           title={
@@ -145,22 +158,11 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={
-              sessionReplayProductDisabled
-                ? undefined
-                : () => handleClickProduct(PRODUCT.SESSION_REPLAY)
-            }
+            onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
             disabled={!!sessionReplayProductDisabled}
-          >
-            <Checkbox
-              checked={products.includes(PRODUCT.SESSION_REPLAY)}
-              disabled={!!sessionReplayProductDisabled}
-              aria-label={t('Session Replay')}
-              size="xs"
-              readOnly
-            />
-            {t('Session Replay')}
-          </Product>
+            checked={products.includes(PRODUCT.SESSION_REPLAY)}
+            label={t('Session Replay')}
+          />
         </Tooltip>
       </Products>
       {lazyLoader && (
@@ -187,7 +189,7 @@ const Products = styled('div')`
   gap: ${space(1)};
 `;
 
-const Product = styled('div')<{disabled?: boolean; permanentDisabled?: boolean}>`
+const ProductWrapper = styled('div')<{disabled?: boolean; permanentDisabled?: boolean}>`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
@@ -201,11 +203,18 @@ const Product = styled('div')<{disabled?: boolean; permanentDisabled?: boolean}>
   border-radius: 6px;
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   font-weight: 500;
-  opacity: ${p => (p.disabled ? 0.5 : 1)};
   color: ${p =>
     p.disabled && !p.permanentDisabled ? p.theme.textColor : p.theme.purple300};
   input {
     cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  }
+
+  > *:first-child {
+    opacity: ${p => (p.permanentDisabled ? 0.5 : 1)};
+  }
+
+  > *:last-child {
+    opacity: ${p => (p.disabled ? 0.5 : 1)};
   }
 `;
 
