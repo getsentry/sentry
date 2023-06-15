@@ -22,7 +22,6 @@ import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 import {
   getEndpointAggregatesQuery,
   getEndpointListEventView,
-  getEndpointListQuery,
 } from '../modules/APIModule/queries';
 
 type Props = {
@@ -98,7 +97,6 @@ export default function EndpointTable({
   columns,
 }: Props) {
   const {isLoading: areEndpointsLoading, data: endpointsData} = useSpansQuery({
-    queryString: getEndpointListQuery(filterOptions),
     eventView: getEndpointListEventView(filterOptions),
     initialData: [],
   });

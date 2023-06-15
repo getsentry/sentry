@@ -24,7 +24,6 @@ import {
 import {
   getEndpointDetailSeriesQuery,
   getEndpointDetailTableEventView,
-  getEndpointDetailTableQuery,
 } from 'sentry/views/starfish/modules/APIModule/queries';
 import {useQueryTransactionByTPMAndDuration} from 'sentry/views/starfish/modules/databaseModule/queries';
 import {HOST} from 'sentry/views/starfish/utils/constants';
@@ -105,12 +104,6 @@ function EndpointDetailBody({row}: EndpointDetailBodyProps) {
   });
 
   const {isLoading: tableIsLoading, data: tableData} = useSpansQuery({
-    queryString: getEndpointDetailTableQuery({
-      description: null,
-      transactionName: null,
-      datetime: pageFilter.selection.datetime,
-      groupId: row.group_id,
-    }),
     eventView: getEndpointDetailTableEventView({
       description: null,
       transactionName: null,
