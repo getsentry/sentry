@@ -68,7 +68,7 @@ function EventOrGroupHeader({
         )}
         {!hideIcons &&
           status === 'ignored' &&
-          !organization.features.includes('escalating-issues-ui') && (
+          !organization.features.includes('escalating-issues') && (
             <IconWrapper>
               <IconMute color="red400" />
             </IconWrapper>

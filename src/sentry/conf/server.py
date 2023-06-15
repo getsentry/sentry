@@ -1246,6 +1246,8 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Enable Discord integration
+    "organizations:discord-integration": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1488,8 +1490,10 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
+    # Enable performance issues detector threshold configuration
+    "organizations:performance-issues-detector-threshold-configuration": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1558,8 +1562,6 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # If true certain Slack messages will be escaped to prevent rendering markdown
-    "organizations:slack-escape-messages": False,
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
@@ -1639,8 +1641,11 @@ SENTRY_FRONTEND_DSN = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
-# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+# Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
+
+# Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
+SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS = None
 
 # ----
 # APM config

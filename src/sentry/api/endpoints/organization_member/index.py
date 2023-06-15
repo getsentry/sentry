@@ -190,7 +190,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
-                    query_user_ids = user_service.get_many_ids(filter=dict(query=value))
+                    query_user_ids = user_service.get_many_ids(
+                        filter=dict(query=value, organization_id=organization.id)
+                    )
                     queryset = queryset.filter(
                         Q(user_id__in=query_user_ids) | Q(email__icontains=value)
                     )

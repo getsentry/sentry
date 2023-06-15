@@ -83,7 +83,7 @@ export function getConfirm({
   }) {
     const actionText =
       action === ConfirmAction.IGNORE &&
-      organization.features.includes('escalating-issues-ui')
+      organization.features.includes('escalating-issues')
         ? t('archive')
         : action;
     const question = allInQuerySelected

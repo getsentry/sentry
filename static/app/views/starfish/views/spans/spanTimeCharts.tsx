@@ -12,7 +12,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import {getSegmentLabel} from 'sentry/views/starfish/components/breakdownBar';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -43,6 +42,16 @@ type ChartProps = {
   filters: AppliedFilters;
   moduleName: ModuleName;
 };
+
+function getSegmentLabel(span_operation, action, domain) {
+  if (span_operation === 'http.client') {
+    return t('%s requests to %s', action, domain);
+  }
+  if (span_operation === 'db') {
+    return t('%s queries on %s', action, domain);
+  }
+  return span_operation || domain || undefined;
+}
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
   const {selection} = usePageFilters();
@@ -125,7 +134,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum['spm()'] / 60,
+          value: datum['sps()'],
           name: datum.interval,
         })),
       },
@@ -316,7 +325,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
+      yAxis: ['sps()', 'p50(span.duration)', 'p95(span.duration)'],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],

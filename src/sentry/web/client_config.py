@@ -219,6 +219,16 @@ def get_client_config(request=None):
                 if settings.SENTRY_FRONTEND_WHITELIST_URLS
                 else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
             ),
+            "allowUrls": (
+                settings.SENTRY_FRONTEND_WHITELIST_URLS
+                if settings.SENTRY_FRONTEND_WHITELIST_URLS
+                else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
+            ),
+            "tracePropagationTargets": (
+                settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
+                if settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
+                else []
+            ),
         },
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
