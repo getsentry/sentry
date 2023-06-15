@@ -16,7 +16,7 @@ import mergeRefs from 'sentry/utils/mergeRefs';
  * to be poorly typed as `any`). So this is a bit of a workaround to receive
  * the proper html attributes.
  */
-type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
+type ButtonElement = HTMLButtonElement | HTMLAnchorElement | any;
 
 /**
  * Props shared across different types of button components
