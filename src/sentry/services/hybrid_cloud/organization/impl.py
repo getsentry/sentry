@@ -20,9 +20,10 @@ from sentry.models import (
     Team,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.services.hybrid_cloud import logger
+from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -94,7 +95,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, email__iexact=email
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
@@ -168,7 +171,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = OrganizationMember.objects.filter(organization_id=org.id, email=email).first()
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, email__iexact=email
+            ).first()
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, id=organization_member_id
@@ -192,7 +197,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except OrganizationMember.DoesNotExist:
             return False
         num_deleted, _deleted = member.delete()
-        return num_deleted > 0  # type: ignore[no-any-return]
+        return num_deleted > 0
 
     def set_user_for_organization_member(
         self,
@@ -229,9 +234,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             logger.info("Organization by slug [%s] not found", slug)
 
         return None
-
-    def close(self) -> None:
-        pass
 
     def get_organizations(
         self,
@@ -278,6 +280,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return [r.organization for r in results]
 
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        updates = models.F("flags")
+        for (name, value) in flags.items():
+            if value is True:
+                updates = updates.bitor(Organization.flags[name])
+            elif value is False:
+                updates = updates.bitand(~Organization.flags[name])
+            else:
+                raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
+
+        Organization.objects.filter(id=organization_id).update(flags=updates)
+
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
         return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
@@ -289,7 +303,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         default_org_role: str,
         user_id: int | None = None,
         email: str | None = None,
-        flags: RpcOrganizationMemberFlags | None = None,
+        flags: Optional[RpcOrganizationMemberFlags] = None,
         role: str | None = None,
         inviter_id: int | None = None,
         invite_status: int | None = None,
@@ -299,16 +313,30 @@ class DatabaseBackedOrganizationService(OrganizationService):
         ), "Must set either user_id or email"
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
+
         with transaction.atomic(), in_test_psql_role_override("postgres"):
-            org_member: OrganizationMember = OrganizationMember.objects.create(
-                organization_id=organization_id,
-                user_id=user_id,
-                email=email,
-                flags=self._deserialize_member_flags(flags) if flags else 0,
-                role=role or default_org_role,
-                inviter_id=inviter_id,
-                invite_status=invite_status,
-            )
+            org_member: Optional[OrganizationMember] = None
+            if user_id is not None:
+                org_member = OrganizationMember.objects.filter(
+                    organization_id=organization_id, user_id=user_id
+                ).first()
+            elif email is not None:
+                org_member = OrganizationMember.objects.filter(
+                    organization_id=organization_id, email=email
+                ).first()
+
+            if org_member is None:
+                org_member = OrganizationMember.objects.create(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    flags=self._deserialize_member_flags(flags) if flags else 0,
+                    role=role or default_org_role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
+
+            assert org_member
             org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
@@ -365,6 +393,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 "organizationmember_id", flat=True
             )
         )
+
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        org = Organization.objects.get(id=organization_id)
+        org.default_role = default_role
+        org.save()
+        return serialize_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         with transaction.atomic(), in_test_psql_role_override("postgres"):
@@ -445,4 +481,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user_id=user.id).update(user_is_active=user.is_active)
+            OrganizationMember.objects.filter(user_id=user.id).update(
+                user_is_active=user.is_active, user_email=user.email
+            )
+
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        value = orm_organization.get_option(key)
+        if value is not None and not isinstance(value, (str, int, bool)):
+            raise TypeError
+        return value
+
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+
+    def delete_option(self, *, organization_id: int, key: str) -> None:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        orm_organization.delete_option(key)

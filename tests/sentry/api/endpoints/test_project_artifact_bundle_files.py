@@ -20,9 +20,16 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             project_id=project.id,
             artifact_bundle=artifact_bundle,
         )
+        # We simulate the existence of multiple release/dist pairs for this specific bundle.
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="2.0",
             dist_name="android",
             artifact_bundle=artifact_bundle,
         )
@@ -42,8 +49,10 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
-            "release": "1.0",
-            "dist": "android",
+            "associations": [
+                {"release": "1.0", "dist": "android"},
+                {"release": "2.0", "dist": "android"},
+            ],
             "files": [
                 {
                     "debugId": None,
@@ -119,8 +128,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         expected = [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
-                "release": "1.0",
-                "dist": None,
+                "associations": [{"release": "1.0", "dist": None}],
                 "files": [
                     {
                         "debugId": None,
@@ -140,8 +148,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             },
             {
                 "bundleId": str(artifact_bundle.bundle_id),
-                "release": "1.0",
-                "dist": None,
+                "associations": [{"release": "1.0", "dist": None}],
                 "files": [
                     {
                         "debugId": None,
@@ -161,8 +168,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             },
             {
                 "bundleId": str(artifact_bundle.bundle_id),
-                "release": "1.0",
-                "dist": None,
+                "associations": [{"release": "1.0", "dist": None}],
                 "files": [
                     {
                         "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
@@ -218,8 +224,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
-            "release": None,
-            "dist": None,
+            "associations": [],
             "files": [
                 {
                     "debugId": None,
@@ -237,8 +242,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
-            "release": None,
-            "dist": None,
+            "associations": [],
             "files": [
                 {
                     "debugId": None,
@@ -270,8 +274,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
-            "release": None,
-            "dist": None,
+            "associations": [],
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
@@ -295,8 +298,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
-            "release": None,
-            "dist": None,
+            "associations": [],
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
@@ -320,8 +322,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "bundleId": str(artifact_bundle.bundle_id),
-            "release": None,
-            "dist": None,
+            "associations": [],
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",

@@ -27,7 +27,6 @@ from sentry.models import (
     GroupHistory,
     GroupHistoryStatus,
     GroupStatus,
-    GroupSubStatus,
     Organization,
     OrganizationMember,
     OrganizationStatus,
@@ -36,6 +35,7 @@ from sentry.models import (
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
@@ -349,8 +349,8 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
     substatus_counts = (
         Group.objects.filter(
             project__organization_id=ctx.organization.id,
-            first_seen__gte=ctx.start,
-            first_seen__lt=ctx.end,
+            last_seen__gte=ctx.start,
+            last_seen__lt=ctx.end,
             status=GroupStatus.UNRESOLVED,
         )
         .values("project_id", "substatus")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import inspect
 import logging
 import urllib.response
@@ -13,13 +14,7 @@ import django.urls
 import pydantic
 from django.conf import settings
 
-from sentry.services.hybrid_cloud import (
-    ArgumentDict,
-    DelegatedBySiloMode,
-    InterfaceWithLifecycle,
-    RpcModel,
-    stubbed,
-)
+from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
 from sentry.silo import SiloMode
 from sentry.types.region import Region
 from sentry.utils import json
@@ -232,7 +227,7 @@ def regional_rpc_method(
 _global_service_registry: Dict[str, DelegatingRpcService] = {}
 
 
-class RpcService(InterfaceWithLifecycle):
+class RpcService(abc.ABC):
     """A set of methods to be exposed as part of the RPC interface.
 
     Extend this class to declare a "base service" where the method interfaces are
@@ -384,9 +379,6 @@ class RpcService(InterfaceWithLifecycle):
         _global_service_registry[cls.key] = service
         return service
 
-    def close(self) -> None:
-        pass
-
 
 class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
@@ -488,7 +480,7 @@ def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinf
     request.add_header("Content-Length", str(len(data)))
     # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
     # request.add_header("Authorization", f"Bearer {api_token}")
-    return urlopen(request, data)  # type: ignore
+    return urlopen(request, data)
 
 
 @dataclass(frozen=True)

@@ -45,7 +45,7 @@ class FilterQueryDatabaseImpl(
     # Required Overrides
 
     @abc.abstractmethod
-    def base_query(self) -> QuerySet:
+    def base_query(self, ids_only: bool = False) -> QuerySet:
         # This should return a QuerySet for the model in question along with any other required data
         # that is not a filter
         pass
@@ -84,14 +84,14 @@ class FilterQueryDatabaseImpl(
 
     # Helpers
 
-    def _query_many(self, filter: FILTER_ARGS) -> QuerySet:
+    def _query_many(self, filter: FILTER_ARGS, ids_only: bool = False) -> QuerySet:
         validation_error = self.filter_arg_validator()(filter)
         if validation_error is not None:
             raise TypeError(
                 f"Failed to validate filter arguments passed to {self.__class__.__name__}: {validation_error}"
             )
 
-        query = self.base_query()
+        query = self.base_query(ids_only=ids_only)
         return self.apply_filters(query, filter)
 
     # Public Interface
@@ -108,7 +108,7 @@ class FilterQueryDatabaseImpl(
         if as_user is None and auth_context:
             as_user = auth_context.user
 
-        return serialize(  # type: ignore
+        return serialize(
             self._query_many(filter=filter),
             user=as_user,
             serializer=self.serialize_api(serializer),
@@ -116,3 +116,6 @@ class FilterQueryDatabaseImpl(
 
     def get_many(self, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
         return [self.serialize_rpc(o) for o in self._query_many(filter=filter)]
+
+    def get_many_ids(self, filter: FILTER_ARGS) -> List[int]:
+        return [o.id for o in self._query_many(filter=filter, ids_only=True)]

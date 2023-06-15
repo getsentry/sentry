@@ -14,7 +14,7 @@ import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -200,8 +200,8 @@ function CreateProject() {
 
     if (
       selectedPlatform.type !== 'language' ||
-      !Object.values(SUPPORTED_LANGUAGES).includes(
-        selectedPlatform.language as SUPPORTED_LANGUAGES
+      !Object.values(SupportedLanguages).includes(
+        selectedPlatform.language as SupportedLanguages
       )
     ) {
       createProject();

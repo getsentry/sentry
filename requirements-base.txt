@@ -32,7 +32,7 @@ jsonschema>=3.2.0
 lxml>=4.9.1
 maxminddb>=2.3
 mistune>=2.0.3
-mmh3>=3.0.0
+mmh3>=4.0.0
 packaging>=21.3
 parsimonious>=0.8.0
 petname>=2.6
@@ -58,7 +58,7 @@ requests>=2.25.1
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
-sentry-arroyo>=2.10.3
+sentry-arroyo>=2.11.6
 sentry-kafka-schemas>=0.1.8
 sentry-redis-tools>=0.1.5
 sentry-relay>=0.8.25

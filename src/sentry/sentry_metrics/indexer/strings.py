@@ -141,15 +141,23 @@ SHARED_TAG_STRINGS = {
     "geo.country_code": PREFIX + 251,
     "span.group": PREFIX + 252,
     "transaction.method": PREFIX + 253,
+    "span.category": PREFIX + 254,
+    # More Transactions
+    "has_profile": PREFIX + 260,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
 
 # 400-499
 SPAN_METRICS_NAMES = {
+    # Deprecated -- transactions namespace
     "s:transactions/span.user@none": PREFIX + 400,
     "d:transactions/span.duration@millisecond": PREFIX + 401,
     "d:transactions/span.exclusive_time@millisecond": PREFIX + 402,
+    # Spans namespace
+    "s:spans/user@none": PREFIX + 403,
+    "d:spans/duration@millisecond": PREFIX + 404,
+    "d:spans/exclusive_time@millisecond": PREFIX + 405,
 }
 
 SHARED_STRINGS = {

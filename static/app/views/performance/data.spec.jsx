@@ -116,7 +116,7 @@ describe('generatePerformanceEventView()', function () {
       {
         query: {
           query: 'tag:value transaction:*auth*',
-          [METRIC_SEARCH_SETTING_PARAM]: MEPState.metricsOnly,
+          [METRIC_SEARCH_SETTING_PARAM]: MEPState.METRICS_ONLY,
         },
       },
       [],

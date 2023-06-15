@@ -150,9 +150,9 @@ export type ParsedTraceType = {
 };
 
 export enum TickAlignment {
-  Left,
-  Right,
-  Center,
+  LEFT,
+  RIGHT,
+  CENTER,
 }
 
 export type TraceContextType = {

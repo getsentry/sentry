@@ -6,7 +6,6 @@ import functools
 import inspect
 import logging
 import threading
-from abc import ABC, abstractmethod
 from typing import (
     Any,
     Callable,
@@ -14,7 +13,6 @@ from typing import (
     Generator,
     Generic,
     Iterable,
-    List,
     Mapping,
     Optional,
     Tuple,
@@ -35,16 +33,12 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
+OptionValue = Union[str, int, bool, None]
+
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
 DEFAULT_DATE = datetime.datetime(2000, 1, 1)
-
-
-class InterfaceWithLifecycle(ABC):
-    @abstractmethod
-    def close(self) -> None:
-        pass
 
 
 def report_pydantic_type_validation_error(
@@ -54,7 +48,6 @@ def report_pydantic_type_validation_error(
     model_class: Optional[Type[Any]],
 ) -> None:
     with sentry_sdk.push_scope() as scope:
-        scope.set_level("warning")
         scope.set_context(
             "pydantic_validation",
             {
@@ -64,7 +57,7 @@ def report_pydantic_type_validation_error(
                 "model_class": str(model_class),
             },
         )
-        sentry_sdk.capture_exception(TypeError("Pydantic type validation error"))
+        logger.warning("Pydantic type validation error", exc_info=True)
 
 
 def _hack_pydantic_type_validation() -> None:
@@ -169,7 +162,7 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
+ServiceInterface = TypeVar("ServiceInterface")
 
 
 class DelegatedBySiloMode(Generic[ServiceInterface]):
@@ -203,7 +196,6 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
             yield
         finally:
             with self._lock:
-                self.close(silo_mode)
                 self._singleton[silo_mode] = prev
 
     def __getattr__(self, item: str) -> Any:
@@ -213,27 +205,10 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
             if impl := self._singleton.get(cur_mode, None):
                 return getattr(impl, item)
             if con := self._constructors.get(cur_mode, None):
-                self.close(cur_mode)
                 self._singleton[cur_mode] = inst = con()
                 return getattr(inst, item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
-
-    def close(self, mode: SiloMode | None = None) -> None:
-        to_close: List[ServiceInterface] = []
-        with self._lock:
-            if mode is None:
-                to_close.extend(s for s in self._singleton.values() if s is not None)
-                self._singleton = dict()
-            else:
-                existing = self._singleton.get(mode)
-                if existing:
-                    to_close.append(existing)
-                self._singleton = self._singleton.copy()
-                self._singleton[mode] = None
-
-        for service in to_close:
-            service.close()
 
 
 hc_test_stub: Any = threading.local()
@@ -254,9 +229,6 @@ def CreateStubFromBase(
 
     def __init__(self: Any, backing_service: ServiceInterface) -> None:
         self.backing_service = backing_service
-
-    def close(self: Any) -> None:
-        self.backing_service.close()
 
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
@@ -284,7 +256,6 @@ def CreateStubFromBase(
             if getattr(getattr(Super, name), "__isabstractmethod__", False):
                 methods[name] = make_method(name)
 
-    methods["close"] = close
     methods["__init__"] = __init__
 
     return cast(
@@ -316,7 +287,7 @@ def coerce_id_from(m: object | int | None) -> int | None:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot coerce {m!r} into id!")
 
 
@@ -324,5 +295,5 @@ def extract_id_from(m: object | int) -> int:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot extract {m!r} from id!")

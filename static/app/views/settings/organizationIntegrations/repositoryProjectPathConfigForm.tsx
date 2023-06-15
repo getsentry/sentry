@@ -85,7 +85,6 @@ function RepositoryProjectPathConfigForm({
       onChange: handleRepoChange,
     },
     {
-      id: 'defaultBranch',
       name: 'defaultBranch',
       type: 'string',
       required: true,

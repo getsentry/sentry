@@ -87,6 +87,7 @@ class Webhook:
                 )
             }
 
+            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
@@ -434,7 +435,7 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GitHubWebhookBase(Endpoint):  # type: ignore
+class GitHubWebhookBase(Endpoint):
     """https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks"""
 
     authentication_classes = ()

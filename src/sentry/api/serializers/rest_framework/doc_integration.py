@@ -1,7 +1,7 @@
 from typing import Any, MutableMapping
 
 from django.db import transaction
-from django.template.defaultfilters import slugify
+from django.utils.text import slugify
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError

@@ -1,6 +1,11 @@
+import {Fragment} from 'react';
+import keyBy from 'lodash/keyBy';
+
+import Pagination from 'sentry/components/pagination';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {useQuerySpansInTransaction} from 'sentry/views/starfish/views/spanSummaryPage/queries';
-import {useQueryGetSpanTransactionSamples} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/queries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 
 type Props = {
   groupId: string;
@@ -9,17 +14,47 @@ type Props = {
 };
 
 function SampleTable({groupId, transactionName}: Props) {
-  const {data} = useQuerySpansInTransaction({
-    groupId,
-  });
-  const p95 = data[0]?.p95 ?? 0;
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    {transactionName},
+    ['p95(span.duration)'],
+    'span-summary-panel-samples-table-p95'
+  );
 
-  const {data: sampleListData, isLoading} = useQueryGetSpanTransactionSamples({
+  const {
+    data: spans,
+    isLoading: areSpanSamplesLoading,
+    pageLinks,
+  } = useSpanSamples(
     groupId,
     transactionName,
-  });
+    undefined,
+    '-duration',
+    'span-summary-panel-samples-table-spans'
+  );
 
-  return <SpanSamplesTable data={sampleListData} isLoading={isLoading} p95={p95} />;
+  const {data: transactions, isLoading: areTransactionsLoading} = useTransactions(
+    spans.map(span => span.transaction_id),
+    'span-summary-panel-samples-table-transactions'
+  );
+
+  const transactionsById = keyBy(transactions, 'id');
+
+  return (
+    <Fragment>
+      <SpanSamplesTable
+        data={spans.map(sample => {
+          return {
+            ...sample,
+            transaction: transactionsById[sample.transaction_id],
+          };
+        })}
+        isLoading={areSpanSamplesLoading || areTransactionsLoading}
+        p95={spanMetrics?.['p95(span.duration)']}
+      />
+      <Pagination pageLinks={pageLinks} />
+    </Fragment>
+  );
 }
 
 export default SampleTable;

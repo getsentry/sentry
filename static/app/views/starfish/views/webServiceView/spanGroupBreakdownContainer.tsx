@@ -1,35 +1,32 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {PERIOD_REGEX} from 'sentry/views/starfish/utils/dates';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {
-  getOtherModulesTimeseries,
-  getTopModules,
-  getTopModulesTimeseries,
-  totalCumulativeTime,
-} from 'sentry/views/starfish/views/webServiceView/queries';
+import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
-export const OTHER_SPAN_GROUP_MODULE = 'other';
-const FORCE_USE_DISCOVER = true;
+export const OTHER_SPAN_GROUP_MODULE = 'Other';
+export const NULL_SPAN_CATEGORY = '<null>';
 
 type Props = {
   transaction?: string;
+  transactionMethod?: string;
 };
 
 type Group = {
-  'span.module': string;
+  'span.category': string;
 };
 
 export type Segment = Group & {
@@ -42,164 +39,126 @@ export type DataRow = {
   group: Group;
 };
 
-export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Props) {
-  const transaction = maybeTransaction ?? '';
+export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Props) {
   const pageFilter = usePageFilters();
+  const organization = useOrganization();
+  const location = useLocation();
   const {selection} = pageFilter;
   const theme = useTheme();
 
-  const {data: segments, isLoading: isSegmentsLoading} = useSpansQuery<Segment[]>({
-    queryString: `${getTopModules({
-      transaction,
-      datetime: selection.datetime,
-    })}`,
-    eventView: getEventView(
+  const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
+    eventView: getCumulativeTimeEventView(
       selection,
-      `span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
-      ['span.module']
+      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
+        transactionMethod ? `http.method:${transactionMethod}` : ''
+      }`,
+      ['span.category']
     ),
-    initialData: [],
-    forceUseDiscover: FORCE_USE_DISCOVER,
+    orgSlug: organization.slug,
+    referrer: 'starfish-web-service.span-category-breakdown',
+    location,
+    limit: 4,
   });
 
-  const {data: cumulativeTime} = useSpansQuery({
-    queryString: `${totalCumulativeTime({
-      transaction,
-      datetime: selection.datetime,
-    })}`,
-    eventView: getEventView(
+  const {data: cumulativeTime, isLoading: isCumulativeDataLoading} = useDiscoverQuery({
+    eventView: getCumulativeTimeEventView(
       selection,
-      `${transaction ? `transaction:${transaction}` : ''}`,
+      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
+        transactionMethod ? `http.method:${transactionMethod}` : ''
+      }`,
       []
     ),
-    initialData: [],
-    forceUseDiscover: FORCE_USE_DISCOVER,
+    orgSlug: organization.slug,
+    referrer: 'starfish-web-service.total-time',
+    location,
   });
 
-  const totalValues = cumulativeTime.reduce(
-    (acc, segment) => acc + segment['sum(span.duration)'],
-    0
-  );
-  const totalSegments = segments.reduce(
-    (acc, segment) => acc + segment['sum(span.duration)'],
-    0
-  );
-  const otherValue = totalValues - totalSegments;
+  const {isLoading: isTopDataLoading, data: topData} = useEventsStatsQuery({
+    eventView: getEventView(
+      selection,
+      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
+        transactionMethod ? `http.method:${transactionMethod}` : ''
+      }`,
+      ['span.category'],
+      true
+    ),
+    enabled: true,
+    referrer: 'starfish-web-service.span-category-breakdown-timeseries',
+    initialData: [],
+  });
+
+  if (
+    isSegmentsLoading ||
+    isCumulativeDataLoading ||
+    isTopDataLoading ||
+    !defined(segments) ||
+    !defined(cumulativeTime) ||
+    !defined(topData)
+  ) {
+    return <Placeholder height="285px" />;
+  }
+
+  const totalValues = cumulativeTime.data[0]?.['sum(span.duration)']
+    ? parseInt(cumulativeTime?.data[0]['sum(span.duration)'] as string, 10)
+    : 0;
+  const totalSegments =
+    segments?.data.reduce(
+      (acc, segment) => acc + parseInt(segment['sum(span.duration)'] as string, 10),
+      0
+    ) ?? 0;
+
+  const otherValue = totalValues ? totalValues - totalSegments : 0;
 
   const transformedData: DataRow[] = [];
 
-  for (let index = 0; index < segments.length; index++) {
-    const element = segments[index];
+  for (let index = 0; index < segments.data.length; index++) {
+    const element = segments.data[index];
+    const category = element['span.category'] as string;
     transformedData.push({
-      cumulativeTime: element['sum(span.duration)'],
+      cumulativeTime: parseInt(element['sum(span.duration)'] as string, 10),
       group: {
-        'span.module': element['span.module'],
+        'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
       },
     });
   }
 
-  transformedData.push({
-    cumulativeTime: otherValue,
-    group: {
-      'span.module': OTHER_SPAN_GROUP_MODULE,
-    },
-  });
-
-  let topConditions =
-    segments.length > 0 ? ` span.module = '${segments[0]['span.module']}'` : '';
-
-  for (let index = 1; index < segments.length; index++) {
-    const element = segments[index];
-    topConditions = topConditions.concat(
-      ' OR ',
-      ` span.module = '${element['span.module']}'`
-    );
+  if (otherValue > 0) {
+    transformedData.push({
+      cumulativeTime: otherValue,
+      group: {
+        'span.category': OTHER_SPAN_GROUP_MODULE,
+      },
+    });
   }
 
-  const {isLoading: isTopDataLoading, data: topData} = useSpansQuery({
-    queryString: `${getTopModulesTimeseries({
-      transaction,
-      topConditions,
-      datetime: selection.datetime,
-    })}`,
-    eventView: getEventView(
-      selection,
-      `span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
-      ['span.module'],
-      true
-    ),
-    initialData: [],
-    forceUseDiscover: FORCE_USE_DISCOVER,
-  });
+  const seriesByDomain: {[category: string]: Series} = {};
+  const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
-  const {isLoading: isOtherDataLoading, data: otherData} = useSpansQuery({
-    queryString: `${getOtherModulesTimeseries({
-      transaction,
-      topConditions,
-      datetime: selection.datetime,
-    })}`,
-    eventView: getEventView(
-      selection,
-      `!span.module:[db,http] ${transaction ? `transaction:${transaction}` : ''}`,
-      [],
-      true
-    ),
-    initialData: [],
-    forceUseDiscover: FORCE_USE_DISCOVER,
-  });
-
-  const seriesByDomain: {[module: string]: Series} = {};
-  const [_, num, unit] = pageFilter.selection.datetime.period?.match(PERIOD_REGEX) ?? [];
-  const start =
-    num && unit
-      ? moment().subtract(num, unit as 'h' | 'd')
-      : moment(pageFilter.selection.datetime.start);
-  const end = moment(pageFilter.selection.datetime.end ?? undefined);
-
-  const colorPalette = theme.charts.getColorPalette(transformedData.length - 3);
-
-  if (
-    !isTopDataLoading &&
-    !isOtherDataLoading &&
-    topData.length > 0 &&
-    segments.length > 0
-  ) {
-    segments.forEach((segment, index) => {
-      const label = segment['span.module'];
+  if (!isTopDataLoading && transformedData.length > 0) {
+    transformedData.forEach((segment, index) => {
+      const category = segment.group['span.category'] as string;
+      const label = category === '' ? NULL_SPAN_CATEGORY : category;
       seriesByDomain[label] = {
-        seriesName: `${label}`,
+        seriesName: label,
         data: [],
         color: colorPalette[index],
       };
     });
 
-    topData.forEach(value => {
-      seriesByDomain[value['span.module'] ?? value.group].data.push({
-        value: value['p95(span.duration)'],
-        name: value.interval,
-      });
-    });
-
-    seriesByDomain.Other = {
-      seriesName: `Other`,
-      data: [],
-      color: theme.gray100,
-    };
-
-    otherData.forEach(value => {
-      seriesByDomain.Other.data.push({
-        value: value['p95(span.duration)'],
-        name: value.interval,
-      });
+    Object.keys(topData).forEach(key => {
+      const seriesData = topData?.[key];
+      const label = key === '' ? NULL_SPAN_CATEGORY : key;
+      seriesByDomain[label].data =
+        seriesData?.data.map(datum => {
+          return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
+        }) ?? [];
     });
   }
 
-  const data = Object.values(seriesByDomain).map(series =>
-    zeroFillSeries(series, moment.duration(12, 'hour'), start, end)
-  );
+  const data = Object.values(seriesByDomain);
 
   const initialShowSeries = transformedData.map(
-    segment => segment.group['span.module'] !== OTHER_SPAN_GROUP_MODULE
+    segment => segment.group['span.category'] !== OTHER_SPAN_GROUP_MODULE
   );
 
   return (
@@ -211,6 +170,7 @@ export function SpanGroupBreakdownContainer({transaction: maybeTransaction}: Pro
         topSeriesData={data}
         colorPalette={colorPalette}
         initialShowSeries={initialShowSeries}
+        transaction={transaction}
       />
     </StyledPanel>
   );
@@ -230,15 +190,36 @@ const getEventView = (
   return EventView.fromSavedQuery({
     name: '',
     fields: ['sum(span.duration)', 'p95(span.duration)', ...groups],
-    yAxis: getTimeseries ? ['sum(span.duration)', 'p95(span.duration)'] : [],
+    yAxis: getTimeseries ? ['p95(span.duration)'] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
+    orderby: '-sum_span_duration',
     projects: [1],
     version: 2,
-    topEvents: groups.length > 0 ? '5' : undefined,
+    topEvents: groups.length > 0 ? '4' : undefined,
     interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
+  });
+};
+
+const getCumulativeTimeEventView = (
+  pageFilters: PageFilters,
+  query: string,
+  groups: string[]
+) => {
+  return EventView.fromSavedQuery({
+    name: '',
+    fields: ['sum(span.duration)', ...groups],
+    query,
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    start: pageFilters.datetime.start ?? undefined,
+    end: pageFilters.datetime.end ?? undefined,
+    range: pageFilters.datetime.period ?? undefined,
+    orderby: '-sum_span_duration',
+    projects: [1],
+    version: 2,
+    topEvents: groups.length > 0 ? '4' : undefined,
   });
 };

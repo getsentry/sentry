@@ -38,7 +38,7 @@ class OrganizationMappingService(RpcService):
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
         user: Optional[int] = None,
-    ) -> RpcOrganizationMapping:
+    ) -> Optional[RpcOrganizationMapping]:
         """
         This method returns a new or recreated OrganizationMapping object.
         If a record already exists with the same slug, the organization_id can only be
@@ -53,9 +53,6 @@ class OrganizationMappingService(RpcService):
         A unique per customer billing identifier
         :return:
         """
-        pass
-
-    def close(self) -> None:
         pass
 
     @rpc_method

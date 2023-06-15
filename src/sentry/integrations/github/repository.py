@@ -12,7 +12,7 @@ from sentry.utils.json import JSONData
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
+class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
     repo_provider = "github"
 

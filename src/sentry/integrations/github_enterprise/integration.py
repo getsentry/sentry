@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
@@ -18,7 +21,9 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider, bu
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.models import Integration
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -300,7 +305,12 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             lambda: self._make_identity_pipeline_view(),
         ]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         pass
 
     def get_installation_info(self, installation_data, access_token, installation_id):
