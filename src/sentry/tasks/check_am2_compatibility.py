@@ -244,7 +244,7 @@ class CheckAM2Compatibility:
         return outdated_sdks_per_project
 
     @classmethod
-    def get_sdks_version_used(cls, organization_id, project_objects, errors):
+    def get_sdks_version_used(cls, organization_id, project_objects):
         # We use the count() operation in order to group by project, sdk.name and sdk.version.
         selected_columns = ["count()", "project", "sdk.name", "sdk.version"]
         params = {
@@ -269,7 +269,7 @@ class CheckAM2Compatibility:
             return None
 
     @classmethod
-    def is_metrics_data(cls, organization_id, project_objects, query, errors):
+    def is_metrics_data(cls, organization_id, project_objects, query):
         # We use the count operation since it's the most generic.
         selected_columns = ["count()"]
         params = {
