@@ -63,7 +63,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org = Organization.objects.filter(id=id).first()
         if org is None:
             return None
-        return serialize([org], user=as_user)
+        return serialize(org, user=as_user)
 
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
