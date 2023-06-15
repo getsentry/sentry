@@ -400,7 +400,10 @@ export function eventHasGraphQlRequest(event: Event) {
   const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
     | EntryRequest
     | undefined;
-  return requestEntry?.data?.apiTarget === 'graphql';
+  return (
+    typeof requestEntry?.data?.apiTarget === 'string' &&
+    requestEntry.data.apiTarget.toLowerCase() === 'graphql'
+  );
 }
 
 /**
