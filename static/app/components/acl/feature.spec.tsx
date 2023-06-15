@@ -172,9 +172,10 @@ describe('Feature', function () {
     });
 
     it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
-      ConfigStore.config = {
+      ConfigStore.config = TestStubs.Config({
         features: new Set(['organizations:create']),
-      };
+      });
+
       render(<Feature features={['organizations:create']}>{childrenMock}</Feature>, {
         context: routerContext,
       });
@@ -192,7 +193,9 @@ describe('Feature', function () {
   describe('no children', function () {
     it('should display renderDisabled with no feature', function () {
       render(
-        <Feature features={['nope']} renderDisabled={() => <span>disabled</span>} />,
+        <Feature features={['nope']} renderDisabled={() => <span>disabled</span>}>
+          <div>The Child</div>
+        </Feature>,
         {context: routerContext}
       );
       expect(screen.getByText('disabled')).toBeInTheDocument();
@@ -200,7 +203,9 @@ describe('Feature', function () {
 
     it('should display be empty when on', function () {
       render(
-        <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>} />,
+        <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>}>
+          <div>The Child</div>
+        </Feature>,
         {context: routerContext}
       );
       expect(screen.queryByText('disabled')).not.toBeInTheDocument();
@@ -269,18 +274,17 @@ describe('Feature', function () {
 
     beforeEach(function () {
       hookFn = jest.fn(() => null);
-      HookStore.hooks['feature-disabled:org-baz'] = [hookFn];
-      HookStore.hooks['feature-disabled:test-hook'] = [hookFn];
+      HookStore.add('feature-disabled:sso-basic', hookFn);
     });
 
     afterEach(function () {
-      delete HookStore.hooks['feature-disabled:org-baz'];
+      HookStore.remove('feature-disabled:sso-basic', hookFn);
     });
 
     it('uses hookName if provided', function () {
       const children = <div>The Child</div>;
       render(
-        <Feature features={['org-bazar']} hookName="feature-disabled:test-hook">
+        <Feature features={['org-bazar']} hookName="feature-disabled:sso-basic">
           {children}
         </Feature>,
         {context: routerContext}
