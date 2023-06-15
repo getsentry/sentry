@@ -42,7 +42,7 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -185,7 +185,7 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.PRIORITY:
       return t('Priority');
     case IssueSortOptions.BETTER_PRIORITY:
-      return t('Better Priority');
+      return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:

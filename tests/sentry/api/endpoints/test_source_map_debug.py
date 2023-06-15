@@ -523,7 +523,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             data={
                 "event_id": "a" * 32,
                 "release": "my-release",
-                "dist": "my-dist",
+                "dist": None,
                 "exception": {
                     "values": [
                         {
@@ -547,10 +547,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
-
         file = File.objects.create(name="application.js", type="release.file")
         fileobj = ContentFile(b"a\na")
         file.putfile(fileobj)
@@ -560,7 +556,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             release_id=release.id,
             file=file,
             name="~/application.js",
-            dist_id=dist.id,
+            dist_id=None,
         )
 
         resp = self.get_success_response(

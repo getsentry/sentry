@@ -15,5 +15,8 @@ export type IndexedSpan = {
   group: string;
   module: string;
   op: string;
+  'span.self_time': number;
   span_id: string;
+  timestamp: string;
+  transaction_id: string;
 };

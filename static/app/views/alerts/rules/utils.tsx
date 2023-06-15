@@ -1,24 +1,29 @@
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
+import {IssueAlertRule, RuleActionsCategories} from 'sentry/types/alerts';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 export function getProjectOptions({
+  organization,
   projects,
   isFormDisabled,
-  hasOpenMembership,
-  hasOrgWrite,
 }: {
-  hasOpenMembership: boolean;
-  hasOrgWrite: boolean;
   isFormDisabled: boolean;
+  organization: Organization;
   projects: Project[];
 }) {
+  const hasOrgAlertWrite = organization.access.includes('alerts:write');
+  const hasOrgWrite = organization.access.includes('org:write');
+  const hasOpenMembership = organization.features.includes('open-membership');
+
   // If form is enabled, we want to limit to the subset of projects which the
   // user can create/edit alerts.
-  const projectWithWrite = isFormDisabled
-    ? projects
-    : projects.filter(project => project.access.includes('alerts:write'));
+  const projectWithWrite =
+    isFormDisabled || hasOrgAlertWrite
+      ? projects
+      : projects.filter(project => project.access.includes('alerts:write'));
   const myProjects = projectWithWrite.filter(project => project.isMember);
   const allProjects = projectWithWrite.filter(project => !project.isMember);
 
@@ -58,4 +63,37 @@ function renderIdBadge(project: Project) {
       hideName
     />
   );
+}
+
+export function getRuleActionCategory(rule: IssueAlertRule) {
+  const numDefaultActions = rule.actions.filter(
+    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
+  ).length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case rule.actions.length:
+      return RuleActionsCategories.ALL_DEFAULT;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NO_DEFAULT;
+    default:
+      return RuleActionsCategories.SOME_DEFAULT;
+  }
+}
+
+export function getAlertRuleActionCategory(rule: MetricRule) {
+  const actions = rule.triggers.map(trigger => trigger.actions).flat();
+  const numDefaultActions = actions.filter(action => action.type === 'email').length;
+
+  switch (numDefaultActions) {
+    // Are all actions default actions?
+    case actions.length:
+      return RuleActionsCategories.ALL_DEFAULT;
+    // Are none of the actions default actions?
+    case 0:
+      return RuleActionsCategories.NO_DEFAULT;
+    default:
+      return RuleActionsCategories.SOME_DEFAULT;
+  }
 }

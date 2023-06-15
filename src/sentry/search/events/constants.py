@@ -226,6 +226,11 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
+METRICS_FUNCTION_ALIASES = {
+    "tps_percent_change": "eps_percent_change",
+    "tpm_percent_change": "epm_percent_change",
+}
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
@@ -264,8 +269,9 @@ METRICS_MAP = {
     "user": "s:transactions/user@none",
 }
 SPAN_METRICS_MAP = {
-    "user": "s:transactions/span.user@none",
-    "span.duration": "d:transactions/span.duration@millisecond",
+    "user": "s:spans/user@none",
+    "span.self_time": "d:spans/exclusive_time@millisecond",
+    "span.duration": "d:spans/duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

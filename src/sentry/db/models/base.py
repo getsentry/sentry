@@ -25,11 +25,11 @@ __all__ = (
 )
 
 
-def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
+def sane_repr(*attrs: str) -> Callable[[object], str]:
     if "id" not in attrs and "pk" not in attrs:
         attrs = ("id",) + attrs
 
-    def _repr(self: models.Model) -> str:
+    def _repr(self: object) -> str:
         cls = type(self).__name__
 
         pairs = (f"{a}={getattr(self, a, None)!r}" for a in attrs)
@@ -202,7 +202,7 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
+    def __call__(self, model_class: Type[ModelClass]) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, models.Model)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
 

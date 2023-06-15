@@ -26,6 +26,15 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
     ) -> Optional[RpcOrganizationMemberMapping]:
+        def apply_update(existing: OrganizationMemberMapping) -> None:
+            existing.role = mapping.role
+            existing.user_id = mapping.user_id
+            existing.email = mapping.email
+            existing.inviter_id = mapping.inviter_id
+            existing.invite_status = mapping.invite_status
+            existing.organizationmember_id = organizationmember_id
+            existing.save()
+
         try:
             with transaction.atomic():
                 existing = self._find_organization_member(
@@ -38,21 +47,24 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                         organization_id=organization_id
                     )
 
-                existing.role = mapping.role
-                existing.user_id = mapping.user_id
-                existing.email = mapping.email
-                existing.inviter_id = mapping.inviter_id
-                existing.invite_status = mapping.invite_status
-                existing.organizationmember_id = organizationmember_id
-
-                existing.save()
-            return serialize_org_member_mapping(existing)
+                assert existing
+                apply_update(existing)
+                return serialize_org_member_mapping(existing)
         except IntegrityError as e:
-            # Stale user id, which will happen if a cascading deletion on the user has no reached the region.
+            # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
             # This is "safe" since the upsert here should be a no-op.
             if "fk_auth_user" in str(e):
                 return None
-            raise
+
+            existing = self._find_organization_member(
+                organization_id=organization_id,
+                organizationmember_id=organizationmember_id,
+            )
+            assert existing, "Failed to find conflicted org member"
+
+            apply_update(existing)
+
+        return serialize_org_member_mapping(existing)
 
     def _find_organization_member(
         self,
@@ -75,6 +87,3 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         )
         if org_member_map:
             org_member_map.delete()
-
-    def close(self) -> None:
-        pass

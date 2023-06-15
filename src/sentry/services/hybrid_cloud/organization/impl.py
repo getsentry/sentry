@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Set, cast
+from typing import Any, Iterable, List, Optional, Set, cast
 
 from django.db import IntegrityError, models, transaction
 
 from sentry import roles
+from sentry.api.serializers import serialize
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Activity,
@@ -20,9 +21,10 @@ from sentry.models import (
     Team,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.services.hybrid_cloud import logger
+from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
@@ -33,9 +35,10 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
-    serialize_organization,
     serialize_organization_summary,
+    serialize_rpc_organization,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 
 
@@ -54,6 +57,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
+    def serialize_organization(
+        self, *, id: int, as_user: Optional[RpcUser] = None
+    ) -> Optional[Any]:
+        org = Organization.objects.filter(id=id).first()
+        if org is None:
+            return None
+        return serialize(org, user=as_user)
+
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[RpcUserOrganizationContext]:
@@ -70,7 +81,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return RpcUserOrganizationContext(
-            user_id=user_id, organization=serialize_organization(org), member=membership
+            user_id=user_id, organization=serialize_rpc_organization(org), member=membership
         )
 
     def get_org_by_slug(
@@ -94,7 +105,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, email__iexact=email
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
@@ -168,7 +181,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = OrganizationMember.objects.filter(organization_id=org.id, email=email).first()
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, email__iexact=email
+            ).first()
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, id=organization_member_id
@@ -179,7 +194,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return RpcUserInviteContext(
             user_id=member.user_id,
-            organization=serialize_organization(org),
+            organization=serialize_rpc_organization(org),
             member=serialize_member(member),
             invite_organization_member_id=organization_member_id,
         )
@@ -214,7 +229,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     )
                     org_member.set_user(user_id)
                     org_member.save()
-                    org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
+
+                    transaction.on_commit(
+                        lambda: org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
+                    )
                 except OrganizationMember.DoesNotExist:
                     return None
         return serialize_member(org_member)
@@ -229,9 +247,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             logger.info("Organization by slug [%s] not found", slug)
 
         return None
-
-    def close(self) -> None:
-        pass
 
     def get_organizations(
         self,
@@ -278,6 +293,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return [r.organization for r in results]
 
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        updates = models.F("flags")
+        for (name, value) in flags.items():
+            if value is True:
+                updates = updates.bitor(Organization.flags[name])
+            elif value is False:
+                updates = updates.bitand(~Organization.flags[name])
+            else:
+                raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
+
+        Organization.objects.filter(id=organization_id).update(flags=updates)
+
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
         return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
@@ -299,6 +326,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         ), "Must set either user_id or email"
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
+
         with transaction.atomic(), in_test_psql_role_override("postgres"):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:
@@ -378,6 +406,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 "organizationmember_id", flat=True
             )
         )
+
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        org = Organization.objects.get(id=organization_id)
+        org.default_role = default_role
+        org.save()
+        return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
         with transaction.atomic(), in_test_psql_role_override("postgres"):
@@ -461,3 +497,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
+
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        value = orm_organization.get_option(key)
+        if value is not None and not isinstance(value, (str, int, bool)):
+            raise TypeError
+        return value
+
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+
+    def delete_option(self, *, organization_id: int, key: str) -> None:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        orm_organization.delete_option(key)

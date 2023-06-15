@@ -26,11 +26,11 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
-import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable.tsx';
+import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
@@ -112,7 +112,7 @@ export default function EndpointOverview() {
           return (
             <Fragment>
               <Header>
-                <ChartLabel>{t('Throughput Per Second')}</ChartLabel>
+                <ChartLabel>{DataTitles.throughput}</ChartLabel>
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -141,7 +141,7 @@ export default function EndpointOverview() {
                   bottom: '0',
                 }}
                 tooltipFormatterOptions={{
-                  valueFormatter: value => t('%s/sec', value.toFixed(2)),
+                  valueFormatter: value => formatThroughput(value),
                 }}
               />
               <SidebarSpacer />
@@ -297,21 +297,14 @@ function SpanMetricsTable({
   transaction: string | undefined;
 }) {
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-  const {isLoading: areSpansLoading, data: spansData} = useSpanList(
-    filter ?? ModuleName.ALL,
-    transaction,
-    undefined,
-    '-time_spent_percentage',
-    SPANS_TABLE_LIMIT
-  );
 
   return (
     <SpansTable
-      moduleName={ModuleName.ALL}
-      isLoading={areSpansLoading}
-      spansData={spansData}
+      moduleName={filter ?? ModuleName.ALL}
       orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
+      endpoint={transaction}
+      limit={SPANS_TABLE_LIMIT}
     />
   );
 }

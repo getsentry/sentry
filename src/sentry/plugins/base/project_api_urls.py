@@ -2,12 +2,7 @@ import logging
 import re
 
 from django.conf.urls import include, url
-
-try:
-    from django.urls import URLPattern, URLResolver
-except ImportError:
-    # TODO(django22): Remove once we've upgraded
-    from django.conf.urls import RegexURLPattern as URLPattern, RegexURLResolver as URLResolver
+from django.urls import URLPattern, URLResolver
 
 from sentry.plugins.base import plugins
 
