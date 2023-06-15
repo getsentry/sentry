@@ -42,7 +42,7 @@ def _metric_percentile_definition(
                         [
                             Column("metric_id"),
                             indexer.resolve(
-                                UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[field]
+                                UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[field]
                             ),
                         ],
                     ),
@@ -60,7 +60,7 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
             Column("metric_id"),
             Op.IN,
             sorted(
-                indexer.resolve(UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[metric])
+                indexer.resolve(UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[metric])
                 for metric in metrics
             ),
         )
@@ -1480,16 +1480,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-        expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
+        expected = [mock.call(UseCaseID.TRANSACTIONS, self.organization.id, "transaction")]
 
         expected.extend(
             [
                 mock.call(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     self.organization.id,
                     constants.METRICS_MAP["measurements.lcp"],
                 ),
-                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
+                mock.call(UseCaseID.TRANSACTIONS, self.organization.id, "measurement_rating"),
             ]
         )
 
