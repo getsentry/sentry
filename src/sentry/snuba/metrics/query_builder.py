@@ -300,7 +300,7 @@ def resolve_tags(
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
-            rhs_ids = get_rhs_ids(org_id, projects, rhs_slugs)
+            rhs_ids = get_project_ids(org_id, projects, rhs_slugs)
 
             return Condition(
                 lhs=resolve_tags(
@@ -371,7 +371,7 @@ def resolve_tags(
     raise InvalidParams("Unable to resolve conditions")
 
 
-def get_rhs_ids(
+def get_project_ids(
     org_id: int, projects: Sequence[Project], rhs_slugs: Sequence[str]
 ) -> Sequence[str]:
     projects_in_where_clause = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
