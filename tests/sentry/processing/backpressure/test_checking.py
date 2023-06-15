@@ -17,7 +17,7 @@ def test_backpressure_unhealthy():
     record_consumer_heath({"celery": False})
     with override_options(
         {
-            "backpressure.checking_enabled": True,
+            "backpressure.checking.enabled": True,
         }
     ):
         with raises(MessageRejected):
@@ -28,7 +28,7 @@ def test_backpressure_unhealthy():
 def test_backpressure_healthy(process_profile_task):
     with override_options(
         {
-            "backpressure.checking_enabled": True,
+            "backpressure.checking.enabled": True,
         }
     ):
         process_one_message()
@@ -40,7 +40,7 @@ def test_backpressure_healthy(process_profile_task):
 def test_backpressure_not_enabled(process_profile_task):
     with override_options(
         {
-            "backpressure.checking_enabled": False,
+            "backpressure.checking.enabled": False,
         }
     ):
         process_one_message()

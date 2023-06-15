@@ -94,8 +94,8 @@ def start_service_monitoring() -> None:
     services = load_service_definitions()
 
     while True:
-        if not options.get("backpressure.monitoring_enabled"):
-            time.sleep(options.get("backpressure.monitoring_interval"))
+        if not options.get("backpressure.monitoring.enabled"):
+            time.sleep(options.get("backpressure.monitoring.interval"))
             continue
 
         # first, check each base service and record its health
@@ -104,4 +104,4 @@ def start_service_monitoring() -> None:
         # then, check the derived services and record their health
         record_consumer_heath(service_health)
 
-        time.sleep(options.get("backpressure.monitoring_interval"))
+        time.sleep(options.get("backpressure.monitoring.interval"))

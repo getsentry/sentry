@@ -31,7 +31,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
     This behavior might change in the future.
     """
 
-    if not options.get("backpressure.checking_enabled"):
+    if not options.get("backpressure.checking.enabled"):
         return True
     # check if queue is healthy by pinging Redis
     try:

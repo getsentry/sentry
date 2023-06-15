@@ -45,7 +45,7 @@ def test_record_consumer_health() -> None:
     record_consumer_heath(service_health)
     with override_options(
         {
-            "backpressure.checking_enabled": True,
+            "backpressure.checking.enabled": True,
         }
     ):
         assert is_consumer_healthy() is True
@@ -54,7 +54,7 @@ def test_record_consumer_health() -> None:
     record_consumer_heath(service_health)
     with override_options(
         {
-            "backpressure.checking_enabled": True,
+            "backpressure.checking.enabled": True,
         }
     ):
         assert is_consumer_healthy() is False

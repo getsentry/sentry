@@ -1309,14 +1309,14 @@ register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_A
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
-register("backpressure.monitoring_enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backpressure.monitoring.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # How often the monitor will check service health.
-register("backpressure.monitoring_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backpressure.monitoring.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Enables checking consumer health for backpressure management.
-register("backpressure.checking_enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backpressure.checking.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # How often a consumer will check for its health in a debounced fassion.
-register("backpressure.checking_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backpressure.checking.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
