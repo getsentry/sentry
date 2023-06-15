@@ -140,16 +140,21 @@
         "type": "object",
         "properties": {
           "accountLimit": {
-            "type": "integer"
+            "type": "integer",
+            "format": "int64"
           },
           "maxRate": {
-            "type": "integer"
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           },
           "maxRateInterval": {
-            "type": "integer"
+            "type": "integer",
+            "format": "int64"
           },
           "projectLimit": {
-            "type": "integer"
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
