@@ -54,7 +54,7 @@ function DetailsHeader({
   };
 
   const hasSnoozeFeature = organization.features.includes('mute-metric-alerts');
-  const isSnoozed = rule?.snooze || false;
+  const isSnoozed = rule?.snooze ?? false;
 
   return (
     <Layout.Header>
