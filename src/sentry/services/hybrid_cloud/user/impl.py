@@ -115,9 +115,6 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
-    def close(self) -> None:
-        pass
-
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):
@@ -152,7 +149,10 @@ class DatabaseBackedUserService(UserService):
 
             return list(query)
 
-        def base_query(self) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet:
+            if ids_only:
+                return User.objects
+
             return User.objects.extra(
                 select={
                     "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
@@ -169,9 +169,7 @@ class DatabaseBackedUserService(UserService):
             )
 
         def filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
-            return self._filter_has_any_key_validator(
-                "user_ids", "organization_id", "emails", "query", "authenticator_types"
-            )
+            return self._filter_has_any_key_validator("user_ids", "organization_id", "emails")
 
         def serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
             serializer: Serializer = UserSerializer()

@@ -113,7 +113,6 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
               legend={{right: 3, top: 0}}
               yAxis={{minInterval: 1}}
               xAxis={{
-                splitNumber: seriesData.length,
                 type: 'category',
                 min: 0,
                 axisLabel: {

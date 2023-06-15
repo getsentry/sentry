@@ -148,7 +148,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources = []
+    csp_disallowed_sources: List[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
@@ -160,7 +160,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
     try:
-        computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+        computed_quotas = [
+            quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
+        ]
     except BaseException:
         metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
         raise
@@ -406,7 +408,7 @@ def _get_project_config(
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
     with Hub.current.start_span(op="get_event_retention"):
-        event_retention = quotas.get_event_retention(project.organization)
+        event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
     with Hub.current.start_span(op="get_all_quotas"):

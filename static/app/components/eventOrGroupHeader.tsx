@@ -68,7 +68,7 @@ function EventOrGroupHeader({
         )}
         {!hideIcons &&
           status === 'ignored' &&
-          !organization.features.includes('escalating-issues-ui') && (
+          !organization.features.includes('escalating-issues') && (
             <IconWrapper>
               <IconMute color="red400" />
             </IconWrapper>
@@ -227,10 +227,10 @@ const GroupLevel = styled('div')<{level: Level}>`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: flex;
+  display: inline-flex;
 `;
 const TitleWithoutLink = styled('span')`
-  display: flex;
+  display: inline-flex;
 `;
 
 export default withOrganization(EventOrGroupHeader);

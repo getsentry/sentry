@@ -1,14 +1,16 @@
-import {CSSProperties, forwardRef, MouseEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {ComponentProps, CSSProperties, forwardRef, MouseEvent, useMemo} from 'react';
 import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
+import {
+  Cell,
+  StyledTimestampButton,
+  Text,
+} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
@@ -18,24 +20,15 @@ type Props = {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
-  handleMouseEnter: (span: NetworkSpan) => void;
-  handleMouseLeave: (span: NetworkSpan) => void;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   onClickTimestamp: (crumb: NetworkSpan) => void;
+  onMouseEnter: (span: NetworkSpan) => void;
+  onMouseLeave: (span: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
   startTimestampMs: number;
   style: CSSProperties;
-};
-
-type CellProps = {
-  hasOccurred: boolean | undefined;
-  isDetailsOpen: boolean;
-  isStatusError: boolean;
-  className?: string;
-  numeric?: boolean;
-  onClick?: undefined | (() => void);
 };
 
 const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
@@ -44,8 +37,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      handleMouseEnter,
-      handleMouseLeave,
+      onMouseEnter,
+      onMouseLeave,
       onClickCell,
       onClickTimestamp,
       rowIndex,
@@ -60,7 +53,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     const dataIndex = rowIndex - 1;
 
     const {getParamValue} = useUrlParams('n_detail_row', '');
-    const isDetailsOpen = getParamValue() === String(dataIndex);
+    const isSelected = getParamValue() === String(dataIndex);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
@@ -104,14 +97,14 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
             : undefined,
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      isDetailsOpen,
+      isSelected,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
       onClick: () => onClickCell({dataIndex, rowIndex}),
-      onMouseEnter: () => handleMouseEnter(span),
-      onMouseLeave: () => handleMouseLeave(span),
+      onMouseEnter: () => onMouseEnter(span),
+      onMouseLeave: () => onMouseLeave(span),
       ref,
       style,
-    } as CellProps;
+    } as ComponentProps<typeof Cell>;
 
     const renderFns = [
       () => (
@@ -173,59 +166,5 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     return renderFns[columnIndex]();
   }
 );
-
-const cellBackground = p => {
-  if (p.isDetailsOpen) {
-    return `background-color: ${p.theme.textColor};`;
-  }
-  if (p.hasOccurred === undefined && !p.isStatusError) {
-    const color = p.isHovered ? p.theme.hover : 'inherit';
-    return `background-color: ${color};`;
-  }
-  const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
-  return `background-color: ${color};`;
-};
-
-const cellColor = p => {
-  if (p.isDetailsOpen) {
-    const colors = p.isStatusError
-      ? [p.theme.alert.error.background]
-      : [p.theme.background];
-    return `color: ${colors[0]};`;
-  }
-  const colors = p.isStatusError
-    ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
-    : ['inherit', p.theme.gray300];
-
-  return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
-};
-
-const Cell = styled('div')<CellProps>`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
-
-  ${cellBackground}
-  ${cellColor}
-
-  ${p =>
-    p.numeric &&
-    `
-    font-variant-numeric: tabular-nums;
-    justify-content: flex-end;
-  `};
-`;
-
-const Text = styled('div')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  padding: ${space(0.75)} ${space(1.5)};
-`;
-
-const StyledTimestampButton = styled(TimestampButton)`
-  padding-inline: ${space(1.5)};
-`;
 
 export default NetworkTableCell;

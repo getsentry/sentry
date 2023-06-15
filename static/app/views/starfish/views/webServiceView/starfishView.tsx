@@ -12,6 +12,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 
 const EventsRequest = withApi(_EventsRequest);
 
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
@@ -20,6 +21,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -38,67 +40,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView, onSelect} = props;
   const theme = useTheme();
 
-  function renderFailureRateChart() {
-    const query = new MutableSearch(['event.type:transaction']);
-
-    return (
-      <EventsRequest
-        query={query.formatString()}
-        includePrevious={false}
-        partial
-        interval="1h"
-        includeTransformedData
-        limit={1}
-        environment={eventView.environment}
-        project={eventView.project}
-        period={eventView.statsPeriod}
-        referrer="starfish-homepage-failure-rate"
-        start={eventView.start}
-        end={eventView.end}
-        organization={organization}
-        yAxis="http_error_count()"
-        dataset={DiscoverDatasets.METRICS}
-      >
-        {eventData => {
-          const transformedData: Series[] | undefined = eventData.timeseriesData?.map(
-            series => ({
-              data: series.data,
-              seriesName: t('Errors (5XXs)'),
-              color: CHART_PALETTE[5][3],
-              silent: true,
-            })
-          );
-
-          if (!transformedData) {
-            return null;
-          }
-
-          return (
-            <Chart
-              statsPeriod={eventView.statsPeriod}
-              height={80}
-              data={transformedData}
-              start={eventView.start as string}
-              end={eventView.end as string}
-              loading={eventData.loading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '8px',
-                bottom: '0',
-              }}
-              definedAxisTicks={2}
-              isLineChart
-              chartColors={theme.charts.getColorPalette(2)}
-            />
-          );
-        }}
-      </EventsRequest>
-    );
-  }
-
-  function renderThroughputChart() {
+  function renderCharts() {
     const query = new MutableSearch([
       'event.type:transaction',
       'has:http.method',
@@ -116,40 +58,71 @@ export function StarfishView(props: BasePerformanceViewProps) {
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-homepage-count"
+        referrer="starfish-homepage-charts"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis="tps()"
-        queryExtras={{dataset: 'metrics'}}
+        yAxis={['tps()', 'http_error_count()']}
+        dataset={DiscoverDatasets.METRICS}
       >
-        {({loading, timeseriesData}) => {
-          if (!timeseriesData) {
+        {({loading, results}) => {
+          if (!results || !results[1]) {
             return null;
           }
 
+          const errorsData: Series = {
+            seriesName: t('Errors (5XXs)'),
+            color: CHART_PALETTE[5][3],
+            data: results[1].data,
+          };
+
           return (
-            <Chart
-              statsPeriod={eventView.statsPeriod}
-              height={80}
-              data={timeseriesData}
-              start=""
-              end=""
-              loading={loading}
-              utc={false}
-              grid={{
-                left: '0',
-                right: '0',
-                top: '8px',
-                bottom: '0',
-              }}
-              definedAxisTicks={2}
-              stacked
-              chartColors={theme.charts.getColorPalette(2)}
-              tooltipFormatterOptions={{
-                valueFormatter: value => t('%s/sec', value.toFixed(2)),
-              }}
-            />
+            <Fragment>
+              <MiniChartPanel title={DataTitles.throughput}>
+                <Chart
+                  statsPeriod={eventView.statsPeriod}
+                  height={80}
+                  data={[results[0]]}
+                  start=""
+                  end=""
+                  loading={loading}
+                  utc={false}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '8px',
+                    bottom: '0',
+                  }}
+                  definedAxisTicks={2}
+                  stacked
+                  chartColors={theme.charts.getColorPalette(2)}
+                  tooltipFormatterOptions={{
+                    valueFormatter: value => formatThroughput(value),
+                  }}
+                />
+              </MiniChartPanel>
+
+              <MiniChartPanel title={DataTitles.errorCount}>
+                <Chart
+                  statsPeriod={eventView.statsPeriod}
+                  height={80}
+                  data={[errorsData]}
+                  start={eventView.start as string}
+                  end={eventView.end as string}
+                  loading={loading}
+                  utc={false}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '8px',
+                    bottom: '0',
+                  }}
+                  definedAxisTicks={2}
+                  isLineChart
+                  chartColors={theme.charts.getColorPalette(2)}
+                />
+              </MiniChartPanel>
+            </Fragment>
           );
         }}
       </EventsRequest>
@@ -165,14 +138,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           <ChartsContainerItem>
             <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
-          <ChartsContainerItem2>
-            <MiniChartPanel title={t('Throughput Per Second')}>
-              {renderThroughputChart()}
-            </MiniChartPanel>
-            <MiniChartPanel title={DataTitles.errorCount}>
-              {renderFailureRateChart()}
-            </MiniChartPanel>
-          </ChartsContainerItem2>
+          <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
         </ChartsContainer>
       </StyledRow>
 

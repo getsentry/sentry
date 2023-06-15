@@ -356,6 +356,28 @@ class MonitorConsumerTest(TestCase):
         )
         assert monitor_environment is not None
 
+    def test_monitor_upsert_invalid_slug(self):
+        self.send_message(
+            "some/slug@with-weird|stuff",
+            monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
+        )
+
+        # invalid slug is slugified
+        monitor = Monitor.objects.get(slug="someslugwith-weirdstuff")
+        assert monitor is not None
+
+    def test_monitor_upsert_temp_dual_read_invalid_slug(self):
+        monitor = self._create_monitor(slug="my/monitor/invalid-slug")
+
+        self.send_message(
+            "my/monitor/invalid-slug",
+            monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_id == monitor.id
+
     def test_monitor_invalid_config(self):
         self.send_message(
             "my-invalid-monitor",

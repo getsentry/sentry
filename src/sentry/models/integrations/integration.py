@@ -15,6 +15,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
@@ -95,7 +96,7 @@ class Integration(DefaultFieldsModel):
     def has_feature(self, feature):
         return feature in self.get_provider().features
 
-    def add_organization(self, organization, user=None, default_auth_id=None):
+    def add_organization(self, organization: RpcOrganization, user=None, default_auth_id=None):
         """
         Add an organization to this integration.
 

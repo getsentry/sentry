@@ -16,6 +16,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    List,
     Mapping,
     Optional,
     Tuple,
@@ -27,6 +28,7 @@ from typing import (
 from urllib.parse import urlparse
 
 import sentry
+from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -623,8 +625,26 @@ def SOCIAL_AUTH_DEFAULT_USERNAME() -> str:
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
+# Hybrid cloud multi-silo configuration
+# Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
+SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
+
+# If this instance is a region silo, which region is it running in?
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+
+# Enable siloed development environment.
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+
+# List of the available regions, or a JSON string
+# that is parsed.
+SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+
+# Fallback region name for monolith deployments
+SENTRY_MONOLITH_REGION: str = "--monolith--"
+
+
 # Queue configuration
-from kombu import Queue
+from kombu import Exchange, Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
@@ -705,7 +725,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
@@ -724,15 +743,39 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_archive_issues",
+    "sentry.tasks.check_am2_compatibility",
 )
 
-CELERY_QUEUES = [
+default_exchange = Exchange("default", type="direct")
+control_exchange = default_exchange
+
+if USE_SILOS:
+    control_exchange = Exchange("control", type="direct")
+
+
+CELERY_QUEUES_ALL = [
+    Queue("options", routing_key="options"),
+    Queue("files.copy", routing_key="files.copy"),
+    Queue("files.delete", routing_key="files.delete"),
+]
+
+CELERY_QUEUES_CONTROL = [
+    Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
+    Queue("auth", routing_key="auth", exchange=control_exchange),
+    Queue("integrations", routing_key="integrations", exchange=control_exchange),
+    Queue(
+        "hybrid_cloud.control_repair",
+        routing_key="hybrid_cloud.control_repair",
+        exchange=control_exchange,
+    ),
+]
+
+CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
-    Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
@@ -769,8 +812,6 @@ CELERY_QUEUES = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
-    Queue("files.copy", routing_key="files.copy"),
-    Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
@@ -786,9 +827,7 @@ CELERY_QUEUES = [
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
-    Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
-    Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
@@ -817,32 +856,64 @@ CELERY_QUEUES = [
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
-    Queue("hybrid_cloud.control_repair", routing_key="hybrid_cloud.control_repair"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
 ]
 
-for queue in CELERY_QUEUES:
-    queue.durable = False
-
-
 from celery.schedules import crontab
 
-CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-CELERYBEAT_SCHEDULE = {
+# Only tasks that work with users/integrations and shared subsystems
+# are run in control silo.
+CELERYBEAT_SCHEDULE_CONTROL = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth"},
     },
-    "enqueue-scheduled-jobs": {
-        "task": "sentry.tasks.enqueue_scheduled_jobs",
+    "sync-options": {
+        "task": "sentry.tasks.options.sync_options",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 10, "queue": "options"},
+    },
+    "deliver-from-outbox": {
+        "task": "sentry.tasks.enqueue_outbox_jobs",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
+        "options": {"expires": 30},
     },
+    "schedule-deletions": {
+        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
+        "options": {"expires": 60 * 25},
+    },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "options": {"expires": 60 * 25},
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        # Run every 15 minutes
+        "schedule": crontab(minute="*/15"),
+    },
+    "schedule-vsts-integration-subscription-check": {
+        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        "schedule": crontab_with_minute_jitter(hour="*/6"),
+        "options": {"expires": 60 * 25},
+    },
+    "hybrid-cloud-repair-mappings": {
+        "task": "sentry.tasks.organization_mapping.repair_mappings",
+        # Run every hour
+        "schedule": crontab(minute=0, hour="*/1"),
+        "options": {"expires": 3600},
+    },
+}
+
+# Most tasks run in the regions
+CELERYBEAT_SCHEDULE_REGION = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
         # Run every hour
@@ -941,11 +1012,6 @@ CELERYBEAT_SCHEDULE = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
-        "schedule": crontab_with_minute_jitter(hour="*/6"),
-        "options": {"expires": 60 * 25},
-    },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -984,13 +1050,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=42),
         "options": {"expires": 3600},
     },
-    # TODO(HC) Remove or re-enable this once a decision is made on org mapping creation
-    # "hybrid-cloud-repair-mappings": {
-    #     "task": "sentry.tasks.organization_mapping.repair_mappings",
-    #     # Run every hour
-    #     "schedule": crontab(minute=0, hour="*/1"),
-    #     "options": {"expires": 3600},
-    # },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
@@ -1049,6 +1108,25 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
+# Assign the configuration keys celery uses based on our silo mode.
+if SILO_MODE == SiloMode.CONTROL.value:
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
+    CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
+    CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+
+elif SILO_MODE == SiloMode.REGION.value:
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
+    CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
+
+else:
+    CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
+    CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+
+for queue in CELERY_QUEUES:
+    queue.durable = False
+
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
@@ -1072,7 +1150,6 @@ PROCESSING_QUEUES = [
     "post_process_transactions",
     "profiles.process",
 ]
-
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
@@ -1216,6 +1293,8 @@ SENTRY_FEATURES = {
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables separate filters for user and user's teams
+    "organizations:assign-to-me": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1250,6 +1329,8 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Enable Discord integration
+    "organizations:discord-integration": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1395,6 +1476,8 @@ SENTRY_FEATURES = {
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
+    # Enable better priority sort experiment
+    "organizations:better-priority-sort-experiment": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1490,8 +1573,10 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
-    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
+    # Enable performance issues detector threshold configuration
+    "organizations:performance-issues-detector-threshold-configuration": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1508,7 +1593,7 @@ SENTRY_FEATURES = {
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
     # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": False,
+    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
@@ -1560,10 +1645,10 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # If true certain Slack messages will be escaped to prevent rendering markdown
-    "organizations:slack-escape-messages": False,
     # If true, allow to create/use org auth tokens
     "organizations:org-auth-tokens": False,
+    # Enable detecting SDK crashes during event processing
+    "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1639,8 +1724,11 @@ SENTRY_FRONTEND_DSN = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
-# Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
+# Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
+
+# Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
+SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS = None
 
 # ----
 # APM config
@@ -3325,7 +3413,6 @@ SENTRY_FUNCTIONS_PROJECT_NAME = None
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
 # Settings related to SiloMode
-SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
 DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
@@ -3334,18 +3421,14 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
-SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
-SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
-SENTRY_MONOLITH_REGION: str = "--monolith--"
-
-# Enable siloed development environment.
-USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
-
 if USE_SILOS:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
 
+    # TODO(hybridcloud) Having a region connection is going to require
+    # a ton of changes to transaction.atomic(). We should use control + default
+    # instead.
     DATABASES["region"] = DATABASES["default"].copy()
     DATABASES["region"]["NAME"] = "region"
 
@@ -3371,6 +3454,7 @@ if USE_SILOS:
         }
     )
     DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
@@ -3439,6 +3523,34 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
 SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 
+# The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
+# Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
+# Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
+SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
+
 # The Redis cluster to use for monitoring the health of
 # Celery queues.
 SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
+
+# The RabbitMQ hosts whose health should be monitored by the backpressure system.
+# This should be a list of dictionaries with keys "url" and "vhost".
+# E.g. for local testing: [{"url": "https://guest:guest@localhost:15672", "vhost": "%2F"}]
+SENTRY_QUEUE_MONITORING_RABBITMQ_HOSTS: List[Dict[str, str]] = []
+
+# This is a mapping between the various processing stores,
+# and the redis `cluster` they are using.
+# This setting needs to be appropriately synched across the various deployments
+# for automatic backpressure management to properly work.
+SENTRY_PROCESSING_REDIS_CLUSTERS = {
+    "attachments": "rc-short",
+    # "processing": "processing",
+    "locks": "default",
+    "post_process_locks": "default",
+}
+
+
+# If set to true, model cache will read by default from DB read replica in case of cache misses.
+# NB: Set to true only if you have multi db setup and django db routing configured.
+#     See sentry.db.models.manager.base_query_set how qs.using_replica() works for more details db
+#     router implementation.
+SENTRY_MODEL_CACHE_USE_REPLICA = False
