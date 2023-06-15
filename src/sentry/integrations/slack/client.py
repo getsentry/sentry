@@ -8,10 +8,9 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client import BaseApiResponse
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
@@ -33,16 +32,11 @@ class SlackClient(IntegrationProxyClient):
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
-        # The IntegrationProxyClient requires org_integration context to proxy requests properly
-        # but the SlackClient is not often invoked within the context of an organization. This work
-        # around ensures one is always provided
         self.integration_id = integration_id
         if not org_integration_id and integration_id is not None:
-            org_integrations = integration_service.get_organization_integrations(
-                integration_id=self.integration_id
+            org_integration_id = infer_org_integration(
+                integration_id=self.integration_id, ctx_logger=logger
             )
-            if len(org_integrations) > 0:
-                org_integration_id = org_integrations[0].id
 
         super().__init__(org_integration_id, verify_ssl, logging_context)
 

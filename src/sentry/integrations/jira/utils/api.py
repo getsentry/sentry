@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 def _get_client(integration: RpcIntegration) -> JiraCloudClient:
     return JiraCloudClient(
-        integration.metadata["base_url"],
-        integration.metadata["shared_secret"],
+        integration=integration,
         verify_ssl=True,
     )
 

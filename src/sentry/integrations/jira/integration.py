@@ -380,8 +380,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
         return JiraCloudClient(
-            self.model.metadata["base_url"],
-            self.model.metadata["shared_secret"],
+            integration=self.model,
+            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )
