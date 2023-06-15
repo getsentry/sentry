@@ -49,9 +49,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return False
 
-    def close(self) -> None:
-        pass
-
     def page_integration_ids(
         self,
         *,

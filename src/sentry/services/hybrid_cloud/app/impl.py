@@ -198,6 +198,3 @@ class DatabaseBackedAppService(AppService):
             return serialize_sentry_app(SentryApp.objects.get(application_id=api_application_id))
         except SentryApp.DoesNotExist:
             return None
-
-    def close(self) -> None:
-        pass

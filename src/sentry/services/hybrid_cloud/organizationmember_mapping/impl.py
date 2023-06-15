@@ -85,6 +85,3 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         )
         if org_member_map:
             org_member_map.delete()
-
-    def close(self) -> None:
-        pass

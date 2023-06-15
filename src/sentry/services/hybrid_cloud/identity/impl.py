@@ -21,9 +21,6 @@ from sentry.services.hybrid_cloud.identity.service import IdentityService
 
 
 class DatabaseBackedIdentityService(IdentityService):
-    def close(self) -> None:
-        pass
-
     def get_provider(
         self,
         *,

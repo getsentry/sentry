@@ -7,9 +7,6 @@ from sentry.utils import metrics
 
 
 class DatabaseBackedLogService(LogService):
-    def close(self) -> None:
-        pass
-
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         entry = AuditLogEntry.from_event(event)
         try:
@@ -55,9 +52,6 @@ class DatabaseBackedLogService(LogService):
 
 
 class OutboxBackedLogService(LogService):
-    def close(self) -> None:
-        pass
-
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE,

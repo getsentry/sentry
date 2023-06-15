@@ -109,6 +109,3 @@ class DatabaseBackedUserOptionService(UserOptionService):
             )
 
     _FQ = _UserOptionFilterQuery()
-
-    def close(self) -> None:
-        pass

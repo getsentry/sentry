@@ -10,9 +10,6 @@ from sentry.services.hybrid_cloud.project_key import (
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
-    def close(self) -> None:
-        pass
-
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         from sentry.models import ProjectKey
 

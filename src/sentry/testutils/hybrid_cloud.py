@@ -7,17 +7,17 @@ from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, 
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle, hc_test_stub
+from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
 from sentry.silo import SiloMode
 from sentry.testutils.silo import exempt_from_silo_limits
 
 
 class use_real_service:
-    service: InterfaceWithLifecycle
+    service: object
     silo_mode: SiloMode | None
     context: contextlib.ExitStack
 
-    def __init__(self, service: InterfaceWithLifecycle, silo_mode: SiloMode | None):
+    def __init__(self, service: object, silo_mode: SiloMode | None):
         self.silo_mode = silo_mode
         self.service = service
         self.context = contextlib.ExitStack()
@@ -63,8 +63,8 @@ class use_real_service:
 
 @contextlib.contextmanager
 def service_stubbed(
-    service: InterfaceWithLifecycle,
-    stub: Optional[InterfaceWithLifecycle],
+    service: object,
+    stub: Optional[object],
     silo_mode: Optional[SiloMode] = None,
 ) -> Generator[None, None, None]:
     """

@@ -235,9 +235,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return None
 
-    def close(self) -> None:
-        pass
-
     def get_organizations(
         self,
         *,

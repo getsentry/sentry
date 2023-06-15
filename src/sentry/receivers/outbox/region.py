@@ -22,8 +22,7 @@ from sentry.models import (
 from sentry.models.team import Team
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent
-from sentry.services.hybrid_cloud.log.impl import DatabaseBackedLogService
+from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
@@ -38,16 +37,14 @@ from sentry.types.region import get_local_region
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
 def process_audit_log_event(payload: Any, **kwds: Any):
-    # TODO: This will become explicit rpc
     if payload is not None:
-        DatabaseBackedLogService().record_audit_log(event=AuditLogEvent(**payload))
+        log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.USER_IP_EVENT)
 def process_user_ip_event(payload: Any, **kwds: Any):
-    # TODO: This will become explicit rpc
     if payload is not None:
-        DatabaseBackedLogService().record_user_ip(event=UserIpEvent(**payload))
+        log_rpc_service.record_user_ip(event=UserIpEvent(**payload))
 
 
 def maybe_handle_joined_user(org_member: OrganizationMember) -> None:
