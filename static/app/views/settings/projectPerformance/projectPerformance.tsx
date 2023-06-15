@@ -75,11 +75,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    if (
-      organization.features.includes(
-        'performance-issues-detector-threshold-configuration'
-      )
-    ) {
+    if (organization.features.includes('project-performance-settings-admin')) {
       const performanceIssuesEndpoint = [
         'performance_issue_settings',
         `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
@@ -445,11 +441,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               </Access>
             </Form>
           </Feature>
-          <Feature
-            features={[
-              'organizations:performance-issues-detector-threshold-configuration',
-            ]}
-          >
+          <Feature features={['organizations:project-performance-settings-admin']}>
             {isSuperUser && (
               <Form
                 saveOnBlur

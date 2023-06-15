@@ -8,7 +8,7 @@ describe('projectPerformance', function () {
     features: [
       'performance-view',
       'performance-issues-dev',
-      'performance-issues-detector-threshold-configuration',
+      'project-performance-settings-admin',
     ],
   });
   const project = TestStubs.ProjectDetails();
