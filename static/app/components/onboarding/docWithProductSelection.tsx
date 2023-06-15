@@ -4,15 +4,12 @@ import {motion} from 'framer-motion';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {
-  DisabledProduct,
-  PRODUCT,
-  ProductSelection,
-} from 'sentry/components/onboarding/productSelection';
+import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -25,65 +22,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
-function getDefaultSelectedProducts({
-  hasSessionReplay,
-  hasPerformance,
-}: {
-  hasPerformance: boolean;
-  hasSessionReplay: boolean;
-}) {
-  const defaultSelectedProducts: PRODUCT[] = [];
-
-  if (hasSessionReplay) {
-    defaultSelectedProducts.push(PRODUCT.SESSION_REPLAY);
-  }
-
-  if (hasPerformance) {
-    defaultSelectedProducts.push(PRODUCT.PERFORMANCE_MONITORING);
-  }
-
-  return defaultSelectedProducts;
-}
-
-function getDisabledProducts({
-  hasSessionReplay,
-  hasPerformance,
-  hasRightsToUgradePlan,
-}: {
-  hasPerformance: boolean;
-  hasRightsToUgradePlan: boolean;
-  hasSessionReplay: boolean;
-}) {
-  const disabledProducts: DisabledProduct[] = [];
-
-  if (!hasSessionReplay) {
-    const reason = hasRightsToUgradePlan
-      ? t('To use Session Replay, update your organizations plan to its latest version.')
-      : t(
-          'To use Session Replay, request an owner in your organization to update its plan to the latest version.'
-        );
-
-    disabledProducts.push({
-      product: PRODUCT.SESSION_REPLAY,
-      reason,
-    });
-  }
-
-  if (!hasPerformance) {
-    const reason = hasRightsToUgradePlan
-      ? t('To use Performance, update your organizations plan to its latest version.')
-      : t(
-          'To use Performance, request an owner in your organization to update its plan to the latest version.'
-        );
-
-    disabledProducts.push({
-      product: PRODUCT.PERFORMANCE_MONITORING,
-      reason,
-    });
-  }
-
-  return disabledProducts;
-}
+const ProductSelectionAvailabilityHook = HookOrDefault({
+  hookName: 'component:product-selection-availability',
+});
 
 export function DocWithProductSelection({
   location,
@@ -147,21 +88,6 @@ export function DocWithProductSelection({
     );
   }
 
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const hasPerformance = organization.features.includes('performance-view');
-  const hasRightsToUgradePlan = organization.orgRole === 'owner';
-
-  const defaultSelectedProducts: PRODUCT[] = getDefaultSelectedProducts({
-    hasSessionReplay,
-    hasPerformance,
-  });
-
-  const disabledProducts: DisabledProduct[] = getDisabledProducts({
-    hasSessionReplay,
-    hasPerformance,
-    hasRightsToUgradePlan,
-  });
-
   return (
     <Fragment>
       {newOrg && (
@@ -170,10 +96,7 @@ export function DocWithProductSelection({
           platform={currentPlatform}
         />
       )}
-      <ProductSelection
-        defaultSelectedProducts={defaultSelectedProducts}
-        disabledProducts={disabledProducts}
-      />
+      <ProductSelectionAvailabilityHook organization={organization} />
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
