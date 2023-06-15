@@ -9,6 +9,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_with_outbox_message,
+    mark_organization_as_pending_deletion_with_outbox_message,
     update_organization_with_outbox_message,
     upsert_organization_by_org_id_with_outbox_message,
 )
@@ -130,3 +131,44 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         assert org_before_modification.name == self.org.name
         assert org_before_modification.status == self.org.status
         assert_outbox_update_message_exists(org=db_created_org, expected_count=2)
+
+
+@region_silo_test(stable=True)
+class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCase):
+    def setUp(self):
+        self.org: Organization = self.create_organization(
+            slug="sluggy", name="barfoo", status=OrganizationStatus.ACTIVE
+        )
+
+        with outbox_runner():
+            pass
+
+    def test_mark_for_deletion_and_outbox_generation(self):
+        org_before_update = Organization.objects.get(id=self.org.id)
+        updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
+
+        assert updated_org
+        self.org.refresh_from_db()
+        assert updated_org.status == self.org.status == OrganizationStatus.PENDING_DELETION
+        assert updated_org.name == self.org.name == org_before_update.name
+        assert updated_org.slug == self.org.slug == org_before_update.slug
+
+        assert_outbox_update_message_exists(self.org, 1)
+
+    def test_mark_for_deletion_on_already_deleted_org(self):
+        self.org.status = OrganizationStatus.PENDING_DELETION
+        with outbox_runner():
+            self.org.save()
+
+        org_before_update = Organization.objects.get(id=self.org.id)
+
+        updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
+
+        assert updated_org is None
+
+        self.org.refresh_from_db()
+        assert self.org.status == org_before_update.status
+        assert self.org.name == org_before_update.name
+        assert self.org.slug == org_before_update.slug
+
+        assert_outbox_update_message_exists(self.org, 0)

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 from django.db import transaction
 from django.db.models.expressions import CombinedExpression
@@ -41,4 +41,21 @@ def upsert_organization_by_org_id_with_outbox_message(
     with transaction.atomic():
         org, created = Organization.objects.update_or_create(id=org_id, defaults=upsert_data)
         Organization.outbox_for_update(org_id=org_id).save()
+        return org
+
+
+def mark_organization_as_pending_deletion_with_outbox_message(
+    *, org_id: int
+) -> Optional[Organization]:
+    with transaction.atomic():
+        query_result = Organization.objects.filter(
+            id=org_id, status=OrganizationStatus.ACTIVE
+        ).update(status=OrganizationStatus.PENDING_DELETION)
+
+        if not query_result:
+            return None
+
+        Organization.outbox_for_update(org_id=org_id).save()
+
+        org = Organization.objects.get(id=org_id)
         return org
