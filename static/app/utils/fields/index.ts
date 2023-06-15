@@ -1369,7 +1369,9 @@ export const getFieldDefinition = (
   }
 };
 
-export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+export function makeTagCollection(
+  fieldKeys: FieldKey[] | ReplayFieldKey[]
+): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(fieldKey => [
       fieldKey,
