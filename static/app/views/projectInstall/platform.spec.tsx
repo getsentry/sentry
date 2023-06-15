@@ -108,4 +108,63 @@ describe('ProjectInstallPlatform', function () {
       expect(router.push).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('should render getting started docs for correct platform', async function () {
+    const project = TestStubs.Project({platform: 'javascript'});
+
+    const routeParams = {
+      projectId: project.slug,
+      platform: 'python',
+    };
+
+    const {router, route, routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {},
+        },
+        params: routeParams,
+        projects: [project],
+      },
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/projects/org-slug/project-slug/rules/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/projects/org-slug/project-slug/',
+      body: [project],
+    });
+
+    render(
+      <ProjectInstallPlatform
+        router={router}
+        route={route}
+        location={router.location}
+        routeParams={routeParams}
+        routes={router.routes}
+        params={routeParams}
+      />,
+      {
+        context: routerContext,
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Configure JavaScript SDK',
+      })
+    ).toBeInTheDocument();
+  });
 });
