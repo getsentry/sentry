@@ -139,6 +139,21 @@ class MetricAlertDetails extends Component<Props, State> {
     };
   }
 
+  onSnooze = ({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => {
+    if (this.state.rule) {
+      const rule = {...this.state.rule, snooze, snoozeCreatedBy, snoozeForEveryone};
+      this.setState({rule});
+    }
+  };
+
   fetchData = async () => {
     const {
       api,
@@ -230,6 +245,7 @@ class MetricAlertDetails extends Component<Props, State> {
           organization={organization}
           rule={rule}
           project={project}
+          onSnooze={this.onSnooze}
         />
         <DetailsBody
           {...this.props}

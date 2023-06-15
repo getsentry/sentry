@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -128,5 +128,57 @@ describe('MetricAlertDetails', () => {
     );
     expect(incidentMock).toHaveBeenCalled();
     expect(issuesRequest).toHaveBeenCalled();
+  });
+
+  it('renders mute button for metric alert', async () => {
+    const {routerContext, organization, router} = initializeOrg({
+      organization: {features: ['mute-metric-alerts']},
+    });
+    const incident = TestStubs.Incident();
+    const rule = TestStubs.MetricRule({
+      projects: [project.slug],
+      latestIncident: incident,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [incident],
+    });
+
+    const postRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
+      method: 'POST',
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
+      method: 'DELETE',
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+        params={{ruleId: rule.id}}
+      />,
+      {context: routerContext, organization}
+    );
+
+    expect(await screen.findByText('Mute for me')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Mute for me'}));
+    expect(postRequest).toHaveBeenCalledTimes(1);
+
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
+
+    expect(deleteRequest).toHaveBeenCalledTimes(1);
   });
 });
