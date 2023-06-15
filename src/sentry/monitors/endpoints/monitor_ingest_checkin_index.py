@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.db import transaction
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
@@ -197,11 +196,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
-            timeout_at = None
-            if status == CheckInStatus.IN_PROGRESS:
-                timeout_at = timezone.now().replace(second=0, microsecond=0) + timedelta(
-                    minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
-                )
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
@@ -210,7 +204,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 duration=result.get("duration"),
                 status=status,
                 expected_time=expected_time,
-                timeout_at=timeout_at,
                 monitor_config=monitor_config,
             )
 
@@ -223,6 +216,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
+                if status == CheckInStatus.IN_PROGRESS:
+                    timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
+                        minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+                    )
+                    checkin.update(timeout_at=timeout_at)
+
                 monitor_environment.mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):

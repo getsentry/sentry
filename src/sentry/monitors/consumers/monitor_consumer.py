@@ -11,7 +11,6 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
 from django.utils.text import slugify
 
 from sentry import ratelimits
@@ -292,9 +291,7 @@ def _process_message(wrapper: Dict) -> None:
                 monitor_config = monitor.get_validated_config()
                 timeout_at = None
                 if status == CheckInStatus.IN_PROGRESS:
-                    timeout_at = timezone.now().replace(
-                        second=0, microsecond=0
-                    ) + datetime.timedelta(
+                    timeout_at = date_added.replace(second=0, microsecond=0) + datetime.timedelta(
                         minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
                     )
 
