@@ -9,7 +9,7 @@ import type {Organization, Project} from 'sentry/types';
  *   - router
  *   - context that contains org + projects + router
  */
-export function initializeOrg({
+export function initializeOrg<RouterParams = {orgId: string; projectId: string}>({
   organization: additionalOrg,
   project: additionalProject,
   projects: additionalProjects,
@@ -18,7 +18,7 @@ export function initializeOrg({
   organization?: Partial<Organization>;
   project?: Partial<Project>;
   projects?: Partial<Project>[];
-  router?: any;
+  router?: {params: RouterParams};
 } = {}) {
   const projects = (
     additionalProjects ||
@@ -51,9 +51,14 @@ export function initializeOrg({
 
   /**
    * A collection of router props that are passed to components by react-rotuer
+   *
+   * Pass custom router params like so:
+   * ```ts
+   * initializeOrg({router: {params: {alertId: '123'}}})
+   * ```
    */
-  const routerProps: RouteComponentProps<{orgId: string; projectId: string}, {}> = {
-    params: router.params as {orgId: string; projectId: string},
+  const routerProps: RouteComponentProps<RouterParams, {}> = {
+    params: router.params as any,
     routeParams: router.params,
     router,
     route: router.routes[0],
