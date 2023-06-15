@@ -95,6 +95,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   }}
                   definedAxisTicks={2}
                   stacked
+                  isLineChart
                   chartColors={theme.charts.getColorPalette(2)}
                   tooltipFormatterOptions={{
                     valueFormatter: value => formatThroughput(value),
