@@ -15,7 +15,6 @@ from rest_framework import status
 from sentry.models import (
     ControlOutbox,
     Organization,
-    OrganizationMapping,
     OrganizationMember,
     OutboxCategory,
     OutboxScope,
@@ -24,7 +23,6 @@ from sentry.models import (
     WebhookProviderIdentifier,
     outbox_context,
 )
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
@@ -54,38 +52,6 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def test_creating_user_outboxes(self):
-        with exempt_from_silo_limits():
-            org = Factories.create_organization()
-
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            org_mapping.region_name = "a"
-            org_mapping.save()
-
-            org2 = Factories.create_organization()
-
-            org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
-            org_mapping2.region_name = "b"
-            org_mapping2.save()
-
-            user1 = Factories.create_user()
-            organization_service.add_organization_member(
-                organization_id=org.id,
-                default_org_role=org.default_role,
-                user_id=user1.id,
-            )
-
-            organization_service.add_organization_member(
-                organization_id=org2.id,
-                default_org_role=org2.default_role,
-                user_id=user1.id,
-            )
-
-        for outbox in User.outboxes_for_user_update(user1.id):
-            outbox.save()
-
-        assert ControlOutbox.objects.count() > 0
-
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
         with exempt_from_silo_limits():
@@ -93,16 +59,21 @@ class ControlOutboxTest(TestCase):
 
         user1 = Factories.create_user()
         user2 = Factories.create_user()
-        organization_service.add_organization_member(
-            organization_id=org.id,
-            default_org_role=org.default_role,
-            user_id=user1.id,
-        )
-        organization_service.add_organization_member(
-            organization_id=org.id,
-            default_org_role=org.default_role,
-            user_id=user2.id,
-        )
+
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.create(
+                organization_id=org.id,
+                user_id=user1.id,
+                role=org.default_role,
+            )
+            om.outbox_for_update().drain_shard()
+
+            om = OrganizationMember.objects.create(
+                organization_id=org.id,
+                user_id=user2.id,
+                role=org.default_role,
+            )
+            om.outbox_for_update().drain_shard()
 
         with outbox_context(flush=False):
             for inst in User.outboxes_for_user_update(user1.id):

@@ -427,7 +427,7 @@ def outbox_silo_modes() -> List[SiloMode]:
 
 
 class OutboxContext(threading.local):
-    flushing_enabled: bool = False
+    flushing_enabled: bool | None = None
 
 
 _outbox_context = OutboxContext()
@@ -435,8 +435,16 @@ _outbox_context = OutboxContext()
 
 @contextlib.contextmanager
 def outbox_context(
-    inner: Atomic | None = None, kwargs: dict[str, Any] | None = None, flush: bool = True
+    inner: Atomic | None = None, kwargs: dict[str, Any] | None = None, flush: bool | None = None
 ) -> ContextManager[None]:
+
+    # If we don't specify our flush, use the outer specified override
+    if flush is None:
+        flush = _outbox_context.flushing_enabled
+        # But if there is no outer override, default to True
+        if flush is None:
+            flush = True
+
     if kwargs:
         flush = kwargs.pop("flush", flush)
     assert not flush or inner, "Must either set a transaction or flush=False"
@@ -444,14 +452,14 @@ def outbox_context(
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with inner, in_test_psql_role_override("postgres"):
-            _outbox_context.start()
+        with in_test_psql_role_override("postgres"), inner:
+            _outbox_context.flushing_enabled = flush
             try:
                 yield
             finally:
                 _outbox_context.flushing_enabled = original
     else:
-        _outbox_context.start()
+        _outbox_context.flushing_enabled = flush
         try:
             yield
         finally:
