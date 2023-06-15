@@ -1,15 +1,14 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import ErrorRobot from 'sentry/components/errorRobot';
 
 describe('ErrorRobot', function () {
-  let getIssues;
+  let getIssues: jest.Func;
   let routerContext;
 
   beforeEach(function () {
     routerContext = TestStubs.routerContext();
-    getIssues = Client.addMockResponse({
+    getIssues = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       method: 'GET',
       body: [],
@@ -18,17 +17,13 @@ describe('ErrorRobot', function () {
 
   afterEach(() => {
     jest.clearAllMocks();
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   describe('with a project', function () {
     function createWrapper() {
       return render(
-        <ErrorRobot
-          api={new MockApiClient()}
-          org={TestStubs.Organization()}
-          project={TestStubs.Project()}
-        />,
+        <ErrorRobot org={TestStubs.Organization()} project={TestStubs.Project()} />,
         {context: routerContext}
       );
     }
@@ -51,10 +46,9 @@ describe('ErrorRobot', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(
-        <ErrorRobot api={new MockApiClient()} org={TestStubs.Organization()} />,
-        {context: routerContext}
-      );
+      return render(<ErrorRobot org={TestStubs.Organization()} />, {
+        context: routerContext,
+      });
     }
 
     it('Renders a disabled create event button', function () {
