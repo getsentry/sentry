@@ -128,9 +128,9 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = {
+      ConfigStore.config = TestStubs.Config({
         user: null,
-      };
+      });
 
       render(<Access>{childrenMock}</Access>, {context: routerContext, organization});
 
@@ -141,9 +141,10 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = {
-        user: {isSuperuser: true},
-      };
+      ConfigStore.config = TestStubs.Config({
+        user: TestStubs.User({isSuperuser: true}),
+      });
+
       render(<Access isSuperuser>{childrenMock}</Access>, {
         context: routerContext,
         organization,
@@ -156,9 +157,10 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = {
-        user: {isSuperuser: false},
-      };
+      ConfigStore.config = TestStubs.Config({
+        user: TestStubs.User({isSuperuser: false}),
+      });
+
       render(<Access isSuperuser>{childrenMock}</Access>, {
         context: routerContext,
         organization,
@@ -195,9 +197,10 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = {
-        user: {isSuperuser: true},
-      };
+      ConfigStore.config = TestStubs.Config({
+        user: TestStubs.User({isSuperuser: true}),
+      });
+
       render(
         <Access isSuperuser>
           <p>The Child</p>
@@ -209,9 +212,10 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = {
-        user: {isSuperuser: false},
-      };
+      ConfigStore.config = TestStubs.Config({
+        user: TestStubs.User({isSuperuser: false}),
+      });
+
       render(
         <Access isSuperuser>
           <p>The Child</p>
