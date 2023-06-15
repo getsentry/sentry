@@ -3,6 +3,7 @@ import type {Location} from 'history';
 
 import type {Organization, Project} from 'sentry/types';
 
+// Workaround react-router PlainRoute type not covering redirect routes.
 type RouteShape = {
   childRoutes?: RouteShape[];
   component?: RouteComponent;
