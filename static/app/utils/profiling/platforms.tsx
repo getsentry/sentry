@@ -5,6 +5,7 @@ export const supportedProfilingPlatforms = profiling;
 export const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
+  'go',
   'node',
   'python',
   'php',
@@ -36,6 +37,12 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'apple-ios') {
     return 'apple-ios';
   }
+
+  // Go
+  if (platform === 'go') {
+    return 'go';
+  }
+
   // Javascript
   if (platform.startsWith('node')) {
     return 'node';
