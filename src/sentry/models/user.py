@@ -161,10 +161,10 @@ class User(BaseModel, AbstractBaseUser):
     def class_name(self):
         return "User"
 
-    def delete(self):
+    def delete(self, *args, **kwds):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(), kwds, flush=False):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -173,13 +173,13 @@ class User(BaseModel, AbstractBaseUser):
             return super().delete()
 
     def update(self, *args, **kwds):
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(), kwds):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(), kwargs):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)

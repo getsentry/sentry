@@ -259,7 +259,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
                 lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            with outbox_context(transaction.atomic()):
+            with outbox_context(transaction.atomic(), kwargs):
                 self.save_with_update_outbox(*args, **kwargs)
 
     @classmethod
@@ -275,7 +275,7 @@ class Organization(Model, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(), kwargs, flush=False):
             Organization.outbox_for_update(self.id).save()
             return super().delete(**kwargs)
 

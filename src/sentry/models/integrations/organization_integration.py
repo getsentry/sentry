@@ -48,7 +48,7 @@ class OrganizationIntegration(DefaultFieldsModel):
         ]
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(), kwds, flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             super().delete(*args, **kwds)

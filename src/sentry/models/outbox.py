@@ -4,7 +4,6 @@ import abc
 import contextlib
 import dataclasses
 import datetime
-import sys
 import threading
 from enum import IntEnum
 from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
@@ -182,7 +181,9 @@ class OutboxBase(Model):
         return now + (self.last_delay() * 2)
 
     def save(self, **kwds: Any):
-        _outbox_context.add_outbox(self)
+        if _outbox_context.flushing_enabled:
+            transaction.on_commit(lambda: self.drain_shard())
+
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(**kwds)
@@ -426,53 +427,35 @@ def outbox_silo_modes() -> List[SiloMode]:
 
 
 class OutboxContext(threading.local):
-    accumulated_outboxes: List[OutboxBase] | None = None
-
-    def add_outbox(self, outbox: OutboxBase) -> None:
-        assert (
-            self.accumulated_outboxes is not None
-        ), "You must use with outbox_context(transaction.atomic()) when saving an outbox!"
-        self.accumulated_outboxes.append(outbox)
+    flushing_enabled: bool = False
 
 
 _outbox_context = OutboxContext()
 
 
-def _supports_transactions() -> bool:
-    if "pytest" not in sys.modules:
-        return True
-
-
 @contextlib.contextmanager
-def outbox_context(inner: Atomic | None = None, flush: bool = True) -> ContextManager[None]:
-    original = _outbox_context.accumulated_outboxes
-    accumulated: List[OutboxBase] = []
-
+def outbox_context(
+    inner: Atomic | None = None, kwargs: dict[str, Any] | None = None, flush: bool = True
+) -> ContextManager[None]:
+    if kwargs:
+        flush = kwargs.pop("flush", flush)
     assert not flush or inner, "Must either set a transaction or flush=False"
 
-    def do_flush():
-        for outbox in accumulated:
-            outbox.drain_shard()
+    original = _outbox_context.flushing_enabled
 
     if inner:
         with inner, in_test_psql_role_override("postgres"):
-            _outbox_context.accumulated_outboxes = accumulated
+            _outbox_context.start()
             try:
-                if flush:
-                    if _supports_transactions():
-                        transaction.on_commit(do_flush)
                 yield
             finally:
-                _outbox_context.accumulated_outboxes = original
-
-        if not _supports_transactions():
-            do_flush()
+                _outbox_context.flushing_enabled = original
     else:
-        _outbox_context.accumulated_outboxes = accumulated
+        _outbox_context.start()
         try:
             yield
         finally:
-            _outbox_context.accumulated_outboxes = original
+            _outbox_context.flushing_enabled = original
 
 
 process_region_outbox = Signal(providing_args=["payload", "object_identifier"])

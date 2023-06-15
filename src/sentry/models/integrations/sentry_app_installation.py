@@ -170,7 +170,7 @@ class SentryAppInstallation(ParanoidModel):
         return super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(), kwargs, flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)

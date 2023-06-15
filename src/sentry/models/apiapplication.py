@@ -75,7 +75,7 @@ class ApiApplication(Model):
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(), kwargs, flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)
