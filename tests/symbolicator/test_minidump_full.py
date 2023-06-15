@@ -82,7 +82,10 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                         "upload_file_minidump": f,
                         "some_file": ("hello.txt", BytesIO(b"Hello World!")),
                     },
-                    {"sentry[logger]": "test-logger"},
+                    {
+                        "sentry[logger]": "test-logger",
+                        "sentry[level]": "error",
+                    },
                 )
 
         candidates = event.data["debug_meta"]["images"][0]["candidates"]
@@ -91,6 +94,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         insta_snapshot_native_stacktrace_data(self, event.data)
         assert event.data.get("logger") == "test-logger"
+        assert event.data.get("level") == "error"
         # assert event.data.get("extra") == {"foo": "bar"}
 
         attachments = sorted(
