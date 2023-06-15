@@ -1,10 +1,9 @@
-from typing import Any, Generator, Mapping, Tuple, Union
 from dataclasses import dataclass
-
-from redis import Redis
-from rediscluster import RedisCluster
+from typing import Any, Generator, Mapping, Union
 
 import requests
+from redis import Redis
+from rediscluster import RedisCluster
 
 
 @dataclass
@@ -21,7 +20,7 @@ class ServiceMemory:
 
 def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
     """Returns the currently used memory and the memory limit of a
-       RabbitMQ host.
+    RabbitMQ host.
     """
 
     if not host.endswith("/"):

@@ -8,7 +8,12 @@ from sentry import options
 from sentry.processing.backpressure.health import record_consumer_health
 
 # from sentry import options
-from sentry.processing.backpressure.memory import Cluster, iter_cluster_memory_usage, query_rabbitmq_memory_usage, ServiceMemory
+from sentry.processing.backpressure.memory import (
+    Cluster,
+    ServiceMemory,
+    iter_cluster_memory_usage,
+    query_rabbitmq_memory_usage,
+)
 from sentry.processing.backpressure.topology import PROCESSING_SERVICES
 from sentry.utils import redis
 
