@@ -3463,7 +3463,7 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # The definition can also be empty, in which case nothing is checked and
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
-SENTRY_PROCESSING_SERVICES = {
+SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
     "attachments-store": {"redis": "rc-short"},
     "processing-store": {},  # "redis": "processing"},

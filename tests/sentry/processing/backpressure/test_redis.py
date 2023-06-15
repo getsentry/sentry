@@ -1,4 +1,4 @@
-from sentry.processing.backpressure.redis import iter_cluster_memory_usage
+from sentry.processing.backpressure.memory import iter_cluster_memory_usage
 from sentry.utils import redis
 
 
@@ -7,7 +7,7 @@ def test_returns_some_usage() -> None:
 
     usage = [usage for usage in iter_cluster_memory_usage(cluster)]
     assert len(usage) > 0
-    used, available = usage[0]
-    assert used > 0
-    assert available > 0
-    assert used < available
+    memory = usage[0]
+    assert memory.used > 0
+    assert memory.available > 0
+    assert 0.0 < memory.percentage < 1.0

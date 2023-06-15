@@ -6,10 +6,9 @@ from django.conf import settings
 
 from sentry import options
 from sentry.processing.backpressure.health import record_consumer_health
-from sentry.processing.backpressure.rabbitmq import query_rabbitmq_memory_usage
 
 # from sentry import options
-from sentry.processing.backpressure.redis import Cluster, iter_cluster_memory_usage
+from sentry.processing.backpressure.memory import Cluster, iter_cluster_memory_usage, query_rabbitmq_memory_usage, ServiceMemory
 from sentry.processing.backpressure.topology import PROCESSING_SERVICES
 from sentry.utils import redis
 
@@ -27,18 +26,6 @@ class RabbitMq:
 Service = Union[Redis, RabbitMq, None]
 
 
-@dataclass
-class ServiceMemory:
-    used: int
-    available: int
-    percentage: float
-
-    def __init__(self, used: int, available: int):
-        self.used = used
-        self.available = max(available, 1)
-        self.percentage = min(used / available, 1.0)
-
-
 def check_service_memory(service: Service) -> Generator[ServiceMemory, None, None]:
     """
     This queries the given [`Service`] and returns the [`ServiceMemory`]
@@ -46,13 +33,11 @@ def check_service_memory(service: Service) -> Generator[ServiceMemory, None, Non
     """
 
     if isinstance(service, Redis):
-        for used, available in iter_cluster_memory_usage(service.cluster):
-            yield ServiceMemory(used, available)
+        yield from iter_cluster_memory_usage(service.cluster)
 
     elif isinstance(service, RabbitMq):
         for server in service.servers:
-            used, available = query_rabbitmq_memory_usage(server)
-            yield ServiceMemory(used, available)
+            yield query_rabbitmq_memory_usage(server)
 
 
 def load_service_definitions() -> Dict[str, Service]:
@@ -87,7 +72,7 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
         high_watermark = high_watermarks[name]
         is_healthy = True
         for memory in check_service_memory(service):
-            is_healthy = memory.percentage < high_watermark
+            is_healthy = is_healthy and memory.percentage < high_watermark
 
         service_health[name] = is_healthy
 
