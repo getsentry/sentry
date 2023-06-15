@@ -940,9 +940,16 @@ function buildRoutes() {
         />
         <Route
           path="new-token/"
-          name={t('Create New Token')}
+          name={t('Create New Auth Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          )}
+        />
+        <Route
+          path=":tokenId/"
+          name={t('Edit Auth Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           )}
         />
       </Route>

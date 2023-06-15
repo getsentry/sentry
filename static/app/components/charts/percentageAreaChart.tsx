@@ -102,7 +102,6 @@ export default class PercentageAreaChart extends Component<Props> {
           type: 'value',
           interval: 25,
           splitNumber: 4,
-          data: [0, 25, 50, 100],
           axisLabel: {
             formatter: '{value}%',
           },

@@ -88,7 +88,7 @@ export function Actions(props: Props) {
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = status === 'ignored';
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const {
