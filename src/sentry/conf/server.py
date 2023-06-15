@@ -724,6 +724,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_archive_issues",
+    "sentry.tasks.check_am2_compatibility",
 )
 
 CELERY_QUEUES = [
@@ -1246,6 +1247,8 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Enable Discord integration
+    "organizations:discord-integration": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit

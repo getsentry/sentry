@@ -5,6 +5,7 @@ from sentry.models import Organization, OrganizationMapping
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Test setup no longer valid after adding is_test to organization model")
 class MakeOrganizationMappingOrgIdUnique(TestMigrations):
     migrate_from = "0473_backfill_organization_member_is_active"
     migrate_to = "0474_make_organization_mapping_org_id_unique"

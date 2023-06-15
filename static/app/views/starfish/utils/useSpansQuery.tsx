@@ -10,7 +10,6 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HOST} from 'sentry/views/starfish/utils/constants';
-import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions';
 
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -26,27 +25,25 @@ export function useSpansQuery<T = any[]>({
   queryString,
   initialData,
   limit,
-  forceUseDiscover,
   enabled,
   referrer = 'use-spans-query',
+  cursor,
 }: {
+  cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
-  forceUseDiscover?: boolean;
   initialData?: any;
   limit?: number;
   queryString?: string;
   referrer?: string;
 }): UseSpansQueryReturnType<T> {
-  const {options} = useStarfishOptions();
-  const {useDiscover} = options;
   const queryFunction = getQueryFunction({
-    useDiscover: forceUseDiscover ?? useDiscover,
+    useDiscover: true,
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
   if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
     if (eventView) {
-      return queryFunction({eventView, initialData, limit, enabled, referrer});
+      return queryFunction({eventView, initialData, limit, enabled, referrer, cursor});
     }
     throw new Error(
       'eventView argument must be defined when Starfish useDiscover is true'
@@ -101,8 +98,10 @@ export function useWrappedDiscoverTimeseriesQuery({
   enabled,
   initialData,
   referrer,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   initialData?: any;
   referrer?: string;
@@ -127,6 +126,7 @@ export function useWrappedDiscoverTimeseriesQuery({
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      cursor,
     }),
     options: {
       enabled,
@@ -149,8 +149,10 @@ export function useWrappedDiscoverQuery({
   enabled,
   referrer,
   limit,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   initialData?: any;
   limit?: number;
@@ -163,6 +165,7 @@ export function useWrappedDiscoverQuery({
     orgSlug: organization.slug,
     location,
     referrer,
+    cursor,
     limit,
     options: {
       enabled,

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -73,7 +72,11 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     location,
   });
 
-  const {isLoading: isTopDataLoading, data: topData} = useEventsStatsQuery({
+  const {
+    isLoading: isTopDataLoading,
+    data: topData,
+    isError,
+  } = useEventsStatsQuery({
     eventView: getEventView(
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
@@ -87,18 +90,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     initialData: [],
   });
 
-  if (
-    isSegmentsLoading ||
-    isCumulativeDataLoading ||
-    isTopDataLoading ||
-    !defined(segments) ||
-    !defined(cumulativeTime) ||
-    !defined(topData)
-  ) {
-    return <Placeholder height="285px" />;
-  }
-
-  const totalValues = cumulativeTime.data[0]?.['sum(span.duration)']
+  const totalValues = cumulativeTime?.data[0]?.['sum(span.duration)']
     ? parseInt(cumulativeTime?.data[0]['sum(span.duration)'] as string, 10)
     : 0;
   const totalSegments =
@@ -111,48 +103,52 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const transformedData: DataRow[] = [];
 
-  for (let index = 0; index < segments.data.length; index++) {
-    const element = segments.data[index];
-    const category = element['span.category'] as string;
-    transformedData.push({
-      cumulativeTime: parseInt(element['sum(span.duration)'] as string, 10),
-      group: {
-        'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
-      },
-    });
-  }
+  if (defined(segments)) {
+    for (let index = 0; index < segments.data.length; index++) {
+      const element = segments.data[index];
+      const category = element['span.category'] as string;
+      transformedData.push({
+        cumulativeTime: parseInt(element['sum(span.duration)'] as string, 10),
+        group: {
+          'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
+        },
+      });
+    }
 
-  if (otherValue > 0) {
-    transformedData.push({
-      cumulativeTime: otherValue,
-      group: {
-        'span.category': OTHER_SPAN_GROUP_MODULE,
-      },
-    });
+    if (otherValue > 0) {
+      transformedData.push({
+        cumulativeTime: otherValue,
+        group: {
+          'span.category': OTHER_SPAN_GROUP_MODULE,
+        },
+      });
+    }
   }
 
   const seriesByDomain: {[category: string]: Series} = {};
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
-  if (!isTopDataLoading && transformedData.length > 0) {
-    transformedData.forEach((segment, index) => {
-      const category = segment.group['span.category'] as string;
-      const label = category === '' ? NULL_SPAN_CATEGORY : category;
-      seriesByDomain[label] = {
-        seriesName: label,
-        data: [],
-        color: colorPalette[index],
-      };
-    });
+  if (defined(topData)) {
+    if (!isTopDataLoading && transformedData.length > 0) {
+      transformedData.forEach((segment, index) => {
+        const category = segment.group['span.category'] as string;
+        const label = category === '' ? NULL_SPAN_CATEGORY : category;
+        seriesByDomain[label] = {
+          seriesName: label,
+          data: [],
+          color: colorPalette[index],
+        };
+      });
 
-    Object.keys(topData).forEach(key => {
-      const seriesData = topData?.[key];
-      const label = key === '' ? NULL_SPAN_CATEGORY : key;
-      seriesByDomain[label].data =
-        seriesData?.data.map(datum => {
-          return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
-        }) ?? [];
-    });
+      Object.keys(topData).forEach(key => {
+        const seriesData = topData?.[key];
+        const label = key === '' ? NULL_SPAN_CATEGORY : key;
+        seriesByDomain[label].data =
+          seriesData?.data.map(datum => {
+            return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
+          }) ?? [];
+      });
+    }
   }
 
   const data = Object.values(seriesByDomain);
@@ -170,7 +166,10 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         topSeriesData={data}
         colorPalette={colorPalette}
         initialShowSeries={initialShowSeries}
+        isTimeseriesLoading={isTopDataLoading}
+        isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
+        errored={isError}
       />
     </StyledPanel>
   );
