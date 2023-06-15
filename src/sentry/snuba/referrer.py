@@ -342,6 +342,7 @@ class ReferrerBase(Enum):
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
+    API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
