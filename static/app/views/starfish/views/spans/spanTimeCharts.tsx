@@ -15,6 +15,7 @@ import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/c
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
@@ -154,7 +155,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => `${value.toFixed(3)} / ${t('sec')}`,
+        valueFormatter: value => formatThroughput(value),
       }}
     />
   );
