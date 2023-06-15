@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 class InternalIntegrationProxyEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
+    log_extra = {}
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
@@ -131,11 +132,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
         self.proxy_path = trim_leading_slashes(request.get_full_path()[len(PROXY_BASE_PATH) :])
-        self.log_extra = {
-            "method": request.method,
-            "path": self.proxy_path,
-            "host": request.headers.get("Host"),
-        }
+        self.log_extra["method"] = request.method
+        self.log_extra["path"] = self.proxy_path
+        self.log_extra["host"] = request.headers.get("Host")
+
         if not self._should_operate(request):
             raise Http404
 
