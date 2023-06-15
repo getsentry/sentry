@@ -261,6 +261,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "unsubscribe_link": None,
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": False,
+            "snooze_alert_url": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
