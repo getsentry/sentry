@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Dict
 
 from django.http import Http404, HttpResponse
 from requests import Request, Response
@@ -25,7 +28,7 @@ logger = logging.getLogger(__name__)
 class InternalIntegrationProxyEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
-    log_extra = {}
+    log_extra: Dict[str, str | int] = {}
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
@@ -100,7 +103,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         self.client: IntegrationProxyClient = installation.get_client()
         client_type = type(self.client)
-        self.log_extra["client_type"] = client_type
+        self.log_extra["client_type"] = client_type.__name__
         if not issubclass(client_type, IntegrationProxyClient):
             logger.error("invalid_client", extra=self.log_extra)
             return False
