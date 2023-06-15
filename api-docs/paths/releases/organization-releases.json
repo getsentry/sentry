@@ -31,7 +31,8 @@
               "type": "array",
               "items": {
                 "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
-              }
+              },
+              "minItems": 2
             },
             "example": [
               {

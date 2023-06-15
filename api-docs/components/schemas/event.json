@@ -124,7 +124,18 @@
               "type": "string"
             },
             "data": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "column": {
+                  "type": "integer"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "row": {
+                  "type": "integer"
+                }
+              }
             }
           }
         }
@@ -259,18 +270,14 @@
           }
         }
       },
-      "contexts": {
-        "type": "object"
-      },
+      "contexts": { "$ref": "#/contexts" },
       "fingerprints": {
         "type": "array",
         "items": {
           "type": "string"
         }
       },
-      "context": {
-        "type": "object"
-      },
+      "context": { "$ref": "#/context" },
       "release": {
         "type": "object",
         "nullable": true,
@@ -346,7 +353,18 @@
               "type": "string"
             },
             "data": {
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "column": {
+                  "type": "integer"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "row": {
+                  "type": "integer"
+                }
+              }
             }
           }
         }
@@ -477,18 +495,14 @@
           }
         }
       },
-      "contexts": {
-        "type": "object"
-      },
+      "contexts": { "$ref": "#/contexts" },
       "fingerprints": {
         "type": "array",
         "items": {
           "type": "string"
         }
       },
-      "context": {
-        "type": "object"
-      },
+      "context": { "$ref": "#/context" },
       "groupID": {
         "type": "string"
       },
@@ -587,9 +601,7 @@
           }
         }
       },
-      "contexts": {
-        "type": "object"
-      },
+      "contexts": { "$ref": "#/contexts" },
       "dateCreated": {
         "type": "string"
       },
@@ -705,6 +717,139 @@
         "$ref": "users.json#/EventUser"
       },
       "title": {
+        "type": "string"
+      }
+    }
+  },
+  "contexts": {
+    "type": "object",
+    "properties": {
+      "ForbiddenError": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer"
+          },
+          "statusText": {
+            "type": "string"
+          },
+          "responseJSON": {
+            "type": "object",
+            "properties": {
+              "detail": {
+                "type": "string"
+              }
+            }
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "browser": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "os": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "trace": {
+        "type": "object",
+        "properties": {
+          "span_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string"
+          }
+        }
+      },
+      "organization": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "context": {
+    "type": "object",
+    "properties": {
+      "resp": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer"
+          },
+          "responseJSON": {
+            "type": "object",
+            "properties": {
+              "detail": {
+                "type": "string"
+              }
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "statusText": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": "string"
+          }
+        }
+      },
+      "session": {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string"
+          }
+        }
+      },
+      "unauthorized": {
+        "type": "boolean"
+      },
+      "url": {
         "type": "string"
       }
     }
