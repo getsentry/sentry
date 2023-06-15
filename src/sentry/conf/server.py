@@ -2318,6 +2318,12 @@ def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]
     )
 
 
+# To use RabbitMQ as a Celery tasks broker
+# BROKER_URL = "amqp://guest:guest@localhost:5672/sentry"
+# more info https://develop.sentry.dev/services/queue/
+SENTRY_DEV_USE_RABBITMQ = bool(os.getenv("SENTRY_DEV_USE_RABBITMQ", False))
+
+
 # platform.processor() changed at some point between these:
 # 11.2.3: arm
 # 12.3.1: arm64
@@ -2375,6 +2381,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
+        }
+    ),
+    "rabbitmq": lambda settings, options: (
+        {
+            "image": "rabbitmq:3-management",
+            "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
         }
     ),
     "kafka": lambda settings, options: (
