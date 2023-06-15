@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
@@ -8,7 +9,8 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -17,6 +19,8 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+
+const SPANS_CURSOR_NAME = 'spansCursor';
 
 type Props = {
   moduleName: ModuleName;
@@ -35,7 +39,7 @@ export type SpanDataRow = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
+  'sps()': number;
   'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
@@ -44,7 +48,7 @@ export type Keys =
   | 'span.description'
   | 'span.op'
   | 'span.domain'
-  | 'spm()'
+  | 'sps()'
   | 'p95(span.duration)'
   | 'sps_percent_change()'
   | 'sum(span.duration)'
@@ -61,13 +65,23 @@ export default function SpansTable({
   limit = 25,
 }: Props) {
   const location = useLocation();
+  const spansCursor = decodeScalar(location.query?.[SPANS_CURSOR_NAME]);
   const {isLoading, data, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
     undefined,
     spanCategory,
     orderBy,
-    limit
+    limit,
+    'use-span-list',
+    spansCursor
   );
+
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [SPANS_CURSOR_NAME]: cursor},
+    });
+  };
 
   return (
     <Fragment>
@@ -84,7 +98,7 @@ export default function SpansTable({
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -144,10 +158,10 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'spm()') {
+  if (column.key === 'sps()') {
     return (
       <ThroughputCell
-        throughputPerSecond={row['spm()']}
+        throughputPerSecond={row['sps()']}
         delta={row['sps_percent_change()']}
       />
     );
@@ -210,7 +224,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
         ]
       : []),
     {
-      key: 'spm()',
+      key: 'sps()',
       name: 'Throughput',
       width: 175,
     },

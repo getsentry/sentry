@@ -674,34 +674,52 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 class InboxTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_inbox_regression(self, mock_processor):
-        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        new_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
-        group = event.group
+        group = new_event.group
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
 
         self.call_post_process_group(
             is_new=True,
             is_regression=True,
             is_new_group_environment=False,
-            event=event,
+            event=new_event,
         )
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
         GroupInbox.objects.filter(
             group=group
         ).delete()  # Delete so it creates the .REGRESSION entry.
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
 
-        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+        mock_processor.assert_called_with(EventMatcher(new_event), True, True, False, False)
 
-        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        # resolve the new issue so regression actually happens
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.active_at = group.active_at - timedelta(minutes=1)
+        group.save(update_fields=["status", "substatus", "active_at"])
+
+        # trigger a transition from resolved to regressed by firing an event that groups to that issue
+        regressed_event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        assert regressed_event.group == new_event.group
+
+        group = regressed_event.group
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
-            event=event,
+            event=regressed_event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(event), False, True, False, False)
-
-        group = Group.objects.get(id=group.id)
+        mock_processor.assert_called_with(EventMatcher(regressed_event), False, True, False, False)
+        group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
         assert GroupInbox.objects.filter(

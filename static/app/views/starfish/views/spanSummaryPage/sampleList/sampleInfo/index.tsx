@@ -1,6 +1,5 @@
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
@@ -27,12 +26,6 @@ function SampleInfo(props: Props) {
       </Block>
       <Block title={DataTitles.p95}>
         <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
-      </Block>
-      <Block title={DataTitles.timeSpent}>
-        <TimeSpentCell
-          timeSpentPercentage={spanMetrics?.['time_spent_percentage(local)']}
-          totalSpanTime={spanMetrics?.['sum(span.duration)']}
-        />
       </Block>
     </BlockContainer>
   );

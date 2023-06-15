@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import {DO_NOT_USE_TOOLTIP, InternalTooltipProps} from 'sentry/components/tooltip';
+import {DO_NOT_USE_TOOLTIP, TooltipProps} from 'sentry/components/tooltip';
 import domId from 'sentry/utils/domId';
 
 type Tooltip = {
@@ -56,7 +56,7 @@ class TooltipStore {
 
 const tooltipStore = new TooltipStore();
 
-export function AcceptanceTestTooltip(props: InternalTooltipProps) {
+export function AcceptanceTestTooltip(props: TooltipProps) {
   const [forceVisible, setForceVisible] = useState<undefined | boolean>(undefined);
 
   useEffect(() => {
