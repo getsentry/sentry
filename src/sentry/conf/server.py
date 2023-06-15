@@ -3134,6 +3134,7 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 }
 
 # If this is turned on, then sentry will perform automatic grouping updates.
+# This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
 # How long is the migration phase for grouping updates?
