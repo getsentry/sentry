@@ -66,9 +66,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
-          if (!results || !results[1]) {
+          if (!results || !results[0] || !results[1]) {
             return null;
           }
+
+          const throughputData: Series = {
+            seriesName: t('Throughput'),
+            data: results[0].data,
+          };
 
           const errorsData: Series = {
             seriesName: t('Errors (5XXs)'),
@@ -82,7 +87,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 <Chart
                   statsPeriod={eventView.statsPeriod}
                   height={80}
-                  data={[results[0]]}
+                  data={[throughputData]}
                   start=""
                   end=""
                   loading={loading}
