@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
@@ -28,6 +31,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.tasks import TIMEOUT
 from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
@@ -191,14 +195,23 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     monitor_environment.last_checkin
                 )
 
+            status = getattr(CheckInStatus, result["status"].upper())
+            monitor_config = monitor.get_validated_config()
+            timeout_at = None
+            if status == CheckInStatus.IN_PROGRESS:
+                timeout_at = timezone.now().replace(second=0, microsecond=0) + timedelta(
+                    minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+                )
+
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
                 monitor_environment=monitor_environment,
                 duration=result.get("duration"),
-                status=getattr(CheckInStatus, result["status"].upper()),
+                status=status,
                 expected_time=expected_time,
-                monitor_config=monitor.get_validated_config(),
+                timeout_at=timeout_at,
+                monitor_config=monitor_config,
             )
 
             signal_first_checkin(project, monitor)

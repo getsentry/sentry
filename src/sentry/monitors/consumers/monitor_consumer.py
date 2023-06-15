@@ -11,6 +11,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from django.utils.text import slugify
 
 from sentry import ratelimits
@@ -27,6 +28,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
+from sentry.monitors.tasks import TIMEOUT
 from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import ConfigValidator
 from sentry.utils import json, metrics
@@ -287,6 +289,15 @@ def _process_message(wrapper: Dict) -> None:
                         monitor_environment.last_checkin
                     )
 
+                monitor_config = monitor.get_validated_config()
+                timeout_at = None
+                if status == CheckInStatus.IN_PROGRESS:
+                    timeout_at = timezone.now().replace(
+                        second=0, microsecond=0
+                    ) + datetime.timedelta(
+                        minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+                    )
+
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
                     guid = uuid.uuid4()
@@ -303,7 +314,8 @@ def _process_message(wrapper: Dict) -> None:
                                 "date_added": date_added,
                                 "date_updated": start_time,
                                 "expected_time": expected_time,
-                                "monitor_config": monitor.get_validated_config(),
+                                "timeout_at": timeout_at,
+                                "monitor_config": monitor_config,
                             },
                             project_id=project_id,
                             monitor=monitor,
