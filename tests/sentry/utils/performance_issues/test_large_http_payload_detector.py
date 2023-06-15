@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import create_event, create_span
 from sentry.testutils.silo import region_silo_test
@@ -62,6 +63,40 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        spans = [
+            create_span(
+                "http.client",
+                1000,
+                "GET /api/0/organizations/endpoint1",
+                "hash1",
+                data={
+                    "http.transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+        event = create_event(spans)
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = LargeHTTPPayloadDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"large_http_payload_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = LargeHTTPPayloadDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_issue_if_url_is_not_an_http_span(self):
         spans = [
