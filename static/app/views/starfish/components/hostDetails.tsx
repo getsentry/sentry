@@ -9,10 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  getHostStatusBreakdownEventView,
-  getHostStatusBreakdownQuery,
-} from 'sentry/views/starfish/modules/APIModule/queries';
+import {getHostStatusBreakdownEventView} from 'sentry/views/starfish/modules/APIModule/queries';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 type Props = {
@@ -23,10 +20,6 @@ export function HostDetails({host}: Props) {
   const theme = useTheme();
   const pageFilter = usePageFilters();
   const {isLoading: isStatusBreakdownLoading, data: statusBreakdown} = useSpansQuery({
-    queryString: getHostStatusBreakdownQuery({
-      domain: host,
-      datetime: pageFilter.selection.datetime,
-    }),
     eventView: getHostStatusBreakdownEventView({
       domain: host,
       datetime: pageFilter.selection.datetime,
