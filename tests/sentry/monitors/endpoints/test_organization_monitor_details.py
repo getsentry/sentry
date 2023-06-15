@@ -1,7 +1,14 @@
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
+from sentry.models import (
+    Environment,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    ScheduledDeletion,
+)
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -55,7 +62,9 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
 
         self._create_alert_rule(monitor)
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
-        assert resp.data["alertRule"] is not None
+        alert_rule = resp.data["alertRule"]
+        assert alert_rule is not None
+        assert alert_rule["environment"] is not None
 
 
 @region_silo_test(stable=True)
@@ -196,13 +205,15 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_existing_alert_rule(self):
         monitor = self._create_monitor()
         rule = self._create_alert_rule(monitor)
+        new_environment = self.create_environment(name="jungle")
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
             method="PUT",
             **{
                 "alert_rule": {
-                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+                    "environment": new_environment.name,
                 }
             },
         )
@@ -212,6 +223,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.data["actions"] != rule.data["actions"]
+        rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
+        assert rule_environment.name == new_environment.name
 
     def test_without_existing_alert_rule(self):
         monitor = self._create_monitor()

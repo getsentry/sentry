@@ -29,7 +29,7 @@ export const useSpanTransactionMetrics = (
   const {isLoading, data, pageLinks} = useSpansQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView),
+    enabled: Boolean(span),
   });
 
   return {isLoading, data, pageLinks};

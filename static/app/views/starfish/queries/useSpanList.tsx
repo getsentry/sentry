@@ -46,7 +46,6 @@ export const useSpanList = (
   const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(eventView),
     limit,
     referrer,
   });
