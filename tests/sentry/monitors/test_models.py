@@ -324,7 +324,7 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": hash_from_values(["monitor", str(monitor.guid), "error"]),
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
@@ -393,7 +393,7 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": hash_from_values(["monitor", str(monitor.guid), "duration"]),
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
@@ -466,7 +466,7 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": hash_from_values(["monitor", str(monitor.guid), "missed_checkin"]),
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,

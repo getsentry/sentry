@@ -533,9 +533,9 @@ class MonitorEnvironment(Model):
                 resource_id=None,
                 project_id=self.monitor.project_id,
                 event_id=uuid.uuid4().hex,
-                fingerprint=hash_from_values(
-                    ["monitor", str(self.monitor.guid), occurrence_data["reason"]]
-                ),
+                fingerprint=[
+                    hash_from_values(["monitor", str(self.monitor.guid), occurrence_data["reason"]])
+                ],
                 type=occurrence_data["group_type"],
                 issue_title=f"Monitor failure: {self.monitor.name}",
                 subtitle="",
