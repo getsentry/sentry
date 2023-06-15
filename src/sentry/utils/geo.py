@@ -58,5 +58,3 @@ def _init_geoip_rust():
 if geoip_path_mmdb:
     _init_geoip()
     _init_geoip_rust()
-else:
-    logger.warning("settings.GEOIP_PATH_MMDB not configured.")
