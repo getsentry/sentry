@@ -189,12 +189,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventTimeLabel>
         )}
-        <QuickTrace
-          event={event}
-          group={group}
-          organization={organization}
-          location={location}
-        />
+        <QuickTrace event={event} organization={organization} location={location} />
       </EventHeading>
       <ActionsWrapper>
         <DropdownMenu

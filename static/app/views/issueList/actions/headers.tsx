@@ -11,7 +11,6 @@ type Props = {
   onSelectStatsPeriod: (statsPeriod: string) => void;
   selection: PageFilters;
   statsPeriod: string;
-  anySelected?: boolean;
   isSavedSearchesOpen?: boolean;
 };
 
