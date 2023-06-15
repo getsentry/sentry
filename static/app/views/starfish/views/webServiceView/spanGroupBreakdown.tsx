@@ -23,10 +23,13 @@ import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreak
 type Props = {
   colorPalette: string[];
   initialShowSeries: boolean[];
+  isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
+  isTimeseriesLoading: boolean;
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
+  errored?: boolean;
   transaction?: string;
 };
 
@@ -36,6 +39,8 @@ export function SpanGroupBreakdown({
   topSeriesData: data,
   initialShowSeries,
   transaction,
+  isTimeseriesLoading,
+  errored,
 }: Props) {
   const {selection} = usePageFilters();
   const theme = useTheme();
@@ -71,7 +76,8 @@ export function SpanGroupBreakdown({
           data={visibleSeries}
           start=""
           end=""
-          loading={false}
+          errored={errored}
+          loading={isTimeseriesLoading}
           utc={false}
           grid={{
             left: '0',
