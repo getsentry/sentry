@@ -19,6 +19,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
+from sentry.models import RuleSnooze
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.models.user import User
@@ -68,7 +69,17 @@ class EmailActionHandler(ActionHandler):
         if not target:
             return set()
 
+        if RuleSnooze.objects.filter(
+            alert_rule=self.incident.alert_rule, user_id__isnull=True
+        ).exists():
+            return set()
+
         if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            if RuleSnooze.objects.filter(
+                alert_rule=self.incident.alert_rule, user_id=target.id
+            ).exists():
+                return set()
+
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
@@ -76,7 +87,10 @@ class EmailActionHandler(ActionHandler):
                 self.project,
                 {RpcUser(id=member.user_id) for member in target.member_set},
             )[ExternalProviders.EMAIL]
-            return {user.id for user in users}
+            snoozed_users = RuleSnooze.objects.filter(
+                alert_rule=self.incident.alert_rule, user_id__in=[user.id for user in users]
+            ).values_list("user_id", flat=True)
+            return {user.id for user in users if user.id not in snoozed_users}
 
         return set()
 
