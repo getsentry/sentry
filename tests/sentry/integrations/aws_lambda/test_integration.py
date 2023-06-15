@@ -9,6 +9,8 @@ from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
 from sentry.models import Integration, OrganizationIntegration, ProjectKey
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.helpers.faux import Mock
 from sentry.testutils.silo import control_silo_test
@@ -51,8 +53,6 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_render_cloudformation_view(self, mock_react_view):
-        from sentry.services.hybrid_cloud.organization.serial import serialize_organization
-
         self.pipeline.state.step_index = 1
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
@@ -68,7 +68,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "accountNumber": None,
                 "error": None,
                 "initialStepNumber": 1,
-                "organization": serialize_organization(self.organization),
+                "organization": organization_service.serialize_organization(
+                    id=self.organization.id, as_user=serialize_rpc_user(self.user)
+                ),
                 "awsExternalId": None,
             },
         )
@@ -85,8 +87,6 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_set_arn_with_error(self, mock_react_view, mock_gen_aws_client):
-        from sentry.services.hybrid_cloud.organization.serial import serialize_organization
-
         self.pipeline.state.step_index = 1
         mock_gen_aws_client.side_effect = ClientError({"Error": {}}, "assume_role")
         data = {"region": region, "accountNumber": account_number, "awsExternalId": "my-id"}
@@ -95,6 +95,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         mock_react_view.assert_called_with(
             ANY,
             "awsLambdaCloudformation",
+            # Ensure that the expected value passes through json serialization
             {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": "https://example.com/file.json",
@@ -104,7 +105,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "accountNumber": account_number,
                 "error": "Please validate the Cloudformation stack was created successfully",
                 "initialStepNumber": 1,
-                "organization": serialize_organization(self.organization),
+                "organization": organization_service.serialize_organization(
+                    id=self.organization.id, as_user=serialize_rpc_user(self.user)
+                ),
                 "awsExternalId": "my-id",
             },
         )

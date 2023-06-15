@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Iterable, List, Optional, cast
+from typing import Any, Iterable, List, Optional, cast
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
@@ -25,6 +25,7 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -41,6 +42,20 @@ class OrganizationService(RpcService):
     def get(self, id: int) -> Optional[RpcOrganization]:
         org_context = self.get_organization_by_id(id=id)
         return org_context.organization if org_context else None
+
+    @regional_rpc_method(resolve=ByOrganizationId("id"))
+    @abstractmethod
+    def serialize_organization(
+        self,
+        *,
+        id: int,
+        as_user: Optional[RpcUser] = None,
+    ) -> Optional[Any]:
+        """
+        Attempts to serialize a given organization.  Note that this can be None if the organization is already deleted
+        in the corresponding region silo.
+        """
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
