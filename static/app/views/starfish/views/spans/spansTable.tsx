@@ -35,7 +35,7 @@ export type SpanDataRow = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
+  'sps()': number;
   'sps_percent_change()': number;
   'time_spent_percentage()': number;
 };
@@ -44,7 +44,7 @@ export type Keys =
   | 'span.description'
   | 'span.op'
   | 'span.domain'
-  | 'spm()'
+  | 'sps()'
   | 'p95(span.duration)'
   | 'sps_percent_change()'
   | 'sum(span.duration)'
@@ -144,10 +144,10 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'spm()') {
+  if (column.key === 'sps()') {
     return (
       <ThroughputCell
-        throughputPerSecond={row['spm()']}
+        throughputPerSecond={row['sps()']}
         delta={row['sps_percent_change()']}
       />
     );
@@ -210,7 +210,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
         ]
       : []),
     {
-      key: 'spm()',
+      key: 'sps()',
       name: 'Throughput',
       width: 175,
     },

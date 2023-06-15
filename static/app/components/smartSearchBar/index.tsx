@@ -42,7 +42,12 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldDefinition,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -1642,6 +1647,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {query} = this.state;
 
     const cursorToken = this.cursorToken;
+
+    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
+      trackAnalytics('search.key_autocompleted', {
+        organization: this.props.organization,
+        search_operator: replaceText,
+        search_source: this.props.searchSource,
+        item_name: item.title ?? item.value?.split(':')[0],
+        item_type: item.type,
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+      });
+    }
 
     if (!cursorToken) {
       this.updateQuery(`${query}${replaceText}`);
