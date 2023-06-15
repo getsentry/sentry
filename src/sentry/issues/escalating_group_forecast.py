@@ -60,6 +60,10 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
+    def delete(cls, project_id: int, group_id: int) -> None:
+        nodestore.delete(cls.build_storage_identifier(project_id, group_id))
+
+    @classmethod
     def fetch_todays_forecast(cls, project_id: int, group_id: int) -> int:
         date_now = datetime.now().date()
         escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)

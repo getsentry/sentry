@@ -5,11 +5,12 @@ from uuid import uuid4
 
 import rest_framework
 
-from sentry import eventstream
+from sentry import eventstream, features
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Activity, Group, GroupStatus, Project, User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 class MergedGroup(TypedDict):
@@ -43,11 +44,25 @@ def handle_merge(
     Group.objects.filter(id__in=group_ids_to_merge).update(status=GroupStatus.PENDING_MERGE)
 
     transaction_id = uuid4().hex
+    has_escalating_flag = features.has(
+        "organizations:escalating-issues", primary_group.organization
+    )
+    merge_forecasts = (
+        has_escalating_flag
+        and primary_group.status == GroupStatus.IGNORED
+        and primary_group.substatus == GroupSubStatus.UNTIL_ESCALATING
+    )
+    delete_forecasts = has_escalating_flag and not merge_forecasts
+
     merge_groups.delay(
         from_object_ids=group_ids_to_merge,
         to_object_id=primary_group.id,
         transaction_id=transaction_id,
         eventstream_state=eventstream_state,
+        handle_forecasts_groups=group_list_by_times_seen
+        if merge_forecasts or delete_forecasts
+        else None,
+        delete_forecasts=delete_forecasts,
     )
 
     Activity.objects.create(

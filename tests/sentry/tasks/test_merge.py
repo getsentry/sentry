@@ -1,16 +1,32 @@
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
-from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
+from sentry.issues.escalating import ParsedGroupsCount
+from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, GroupStatus, UserReport
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.similarity import _make_index_backend
-from sentry.tasks.merge import merge_groups
+from sentry.tasks.merge import merge_and_parse_past_counts, merge_groups
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupSubStatus
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
+
+EXPECTED_MERGED_AND_PARSED_COUNTS: ParsedGroupsCount = {
+    3: {
+        "intervals": [
+            "2023-06-09T11:00:0000000+00:00",
+            "2023-06-10T08:00:0000000+00:00",
+            "2023-06-10T09:00:0000000+00:00",
+            "2023-06-13T08:00:0000000+00:00",
+        ],
+        "data": [10, 20, 20, 10],
+    }
+}
 
 
 @patch("sentry.similarity.features.index", new=index)
@@ -188,3 +204,104 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert not Group.objects.filter(id=group1.id).exists()
 
         assert UserReport.objects.get(id=ur.id).group_id == group2.id
+
+    def test_merge_inherits_from_primary(self):
+        """
+        Test that on merge, the merged group's GroupStatus, GroupInbox, and GroupHistory
+        are inherited from the primary group
+        """
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+        target = event1.group
+        other = event2.group
+
+        target.status, target.substatus = GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING
+        target.save()
+        record_group_history(target, GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING)
+        record_group_history(other, GroupHistoryStatus.ONGOING)
+        add_group_to_inbox(target, GroupInboxReason.NEW)
+        add_group_to_inbox(other, GroupInboxReason.ONGOING)
+
+        with self.tasks():
+            merge_groups([other.id], target.id)
+
+        assert not Group.objects.filter(id=other.id).exists()
+        merged_group = Group.objects.filter(id=target.id)[0]
+        assert merged_group.status == GroupStatus.IGNORED
+        assert merged_group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        assert (
+            GroupHistory.objects.filter(group=merged_group)[0].status
+            == GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING
+        )
+        assert not GroupHistory.objects.filter(group=other)
+
+        assert GroupInbox.objects.filter(group=merged_group)[0].reason == GroupInboxReason.NEW.value
+        assert not GroupHistory.objects.filter(group=other)
+
+    def test_merge_and_parse_past_counts(self):
+        """
+        Test that merge_and_parse_past_counts correctly merges group counts by the hourBucket
+        and parses the data into ParsedGroupsCount type.
+        """
+        groups_count_response = [
+            {
+                "group_id": 1,
+                "hourBucket": "2023-06-10T08:00:0000000+00:00",
+                "count()": 10,
+                "project_id": 1,
+            },
+            {
+                "group_id": 1,
+                "hourBucket": "2023-06-10T09:00:0000000+00:00",
+                "count()": 10,
+                "project_id": 1,
+            },
+            {
+                "group_id": 1,
+                "hourBucket": "2023-06-13T08:00:0000000+00:00",
+                "count()": 10,
+                "project_id": 1,
+            },
+            {
+                "group_id": 3,
+                "hourBucket": "2023-06-09T11:00:0000000+00:00",
+                "count()": 10,
+                "project_id": 1,
+            },
+            {
+                "group_id": 3,
+                "hourBucket": "2023-06-10T08:00:0000000+00:00",
+                "count()": 10,
+                "project_id": 1,
+            },
+            {
+                "group_id": 3,
+                "hourBucket": "2023-06-10T09:00:0000000+00:00",
+                "count()": 10,
+                "project_id": 1,
+            },
+        ]
+        merged_and_parsed_counts = merge_and_parse_past_counts(
+            groups_count_response, primary_group_id=3
+        )
+        assert merged_and_parsed_counts == EXPECTED_MERGED_AND_PARSED_COUNTS
