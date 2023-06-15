@@ -255,7 +255,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         ProjectOption.objects.set_value(
             project=project,
             key="sentry:performance_issue_settings",
-            value={"consecutive_db_queries_detection_rate": 0.0},
+            value={"consecutive_db_queries_detection_enabled": False},
         )
 
         settings = get_detection_settings(project.id)
