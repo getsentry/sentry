@@ -7,7 +7,7 @@ from arroyo.processing.strategies import MessageRejected, ProcessingStrategy, Ru
 from arroyo.types import FilteredPayload, Message
 
 from sentry import options
-from sentry.monitoring.queues import is_consumer_healthy
+from sentry.processing.backpressure.rabbitmq import is_consumer_healthy
 
 # As arroyo would otherwise busy-wait, we will sleep for a short time
 # when a message is rejected.

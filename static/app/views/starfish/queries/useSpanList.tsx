@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import omit from 'lodash/omit';
 import moment, {Moment} from 'moment';
 
 import {defined} from 'sentry/utils';
@@ -10,6 +11,7 @@ import {ModuleName} from 'sentry/views/starfish/types';
 import {getDateFilters} from 'sentry/views/starfish/utils/dates';
 import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
 const SPAN_FILTER_KEY_TO_LOCAL_FIELD = {
@@ -25,7 +27,7 @@ export type SpanMetrics = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
+  'sps()': number;
   'sps_percent_change()': number;
   'sum(span.duration)': number;
   'time_spent_percentage()': number;
@@ -142,7 +144,7 @@ function getEventView(
         'span.group',
         'span.description',
         'span.domain',
-        'spm()',
+        'sps()',
         'sps_percent_change()',
         'sum(span.duration)',
         'p95(span.duration)',
@@ -154,7 +156,7 @@ function getEventView(
       projects: [1],
       version: 2,
     },
-    location
+    omit(location, 'span.category')
   );
 }
 
@@ -177,7 +179,11 @@ function buildEventViewQuery(
   }
 
   if (defined(spanCategory)) {
-    result.push(`span.category:${spanCategory}`);
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      result.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      result.push(`span.category:${spanCategory}`);
+    }
   }
 
   if (transaction) {

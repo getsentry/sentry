@@ -504,7 +504,7 @@ export const filterKeysFromQuery = (
 ): string[] =>
   tagKeys
     .flatMap(key => {
-      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
+      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '').toLocaleLowerCase();
       const definition = fieldDefinitionGetter(keyWithoutFunctionPart);
       const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
 

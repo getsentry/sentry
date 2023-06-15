@@ -230,9 +230,6 @@ class DatabaseBackedAuthService(AuthService):
             permissions=permissions,
         )
 
-    def close(self) -> None:
-        pass
-
     def get_org_ids_with_scim(
         self,
     ) -> List[int]:
