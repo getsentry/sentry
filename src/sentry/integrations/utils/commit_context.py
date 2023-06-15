@@ -93,7 +93,7 @@ def find_commit_context_for_event(
                 provider=integration.provider,
                 error_message=e.text,
             )
-            logger.error(
+            logger.info(
                 "process_commit_context.failed_to_fetch_commit_context",
                 extra={
                     **extra,
