@@ -6,6 +6,7 @@ from freezegun import freeze_time
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -17,34 +18,36 @@ from . import FireTest
 @region_silo_test(stable=True)
 class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
-    def run_test(self, incident, method, chart_url=None):
-        from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-
+    def setUp(self):
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        integration = self.create_integration(
+        self.integration = self.create_integration(
             organization=self.organization,
             external_id="1",
             provider="slack",
             metadata={"access_token": token, "installation_type": "born_as_bot"},
         )
-        channel_id = "some_id"
-        channel_name = "#hello"
+        self.channel_id = "some_id"
+        self.channel_name = "#hello"
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+                {"ok": "true", "channels": [{"name": self.channel_name[1:], "id": self.channel_id}]}
             ),
         )
-
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=channel_name,
+        self.action = self.create_alert_rule_trigger_action(
+            target_identifier=self.channel_name,
             type=AlertRuleTriggerAction.Type.SLACK,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration=integration,
+            integration=self.integration,
         )
+
+    @responses.activate
+    def run_test(self, incident, method, chart_url=None):
+        from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",
@@ -52,12 +55,12 @@ class SlackActionHandlerTest(FireTest, TestCase):
             content_type="application/json",
             body='{"ok": true}',
         )
-        handler = SlackActionHandler(action, incident, self.project)
+        handler = SlackActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
-        data = parse_qs(responses.calls[1].request.body)
-        assert data["channel"] == [channel_id]
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["channel"] == [self.channel_id]
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
@@ -80,7 +83,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         integration = self.create_integration(
             organization=self.organization,
-            external_id="1",
+            external_id="2",
             provider="slack",
             status=ObjectStatus.DELETION_IN_PROGRESS,
         )
@@ -93,7 +96,51 @@ class SlackActionHandlerTest(FireTest, TestCase):
             integration_id=integration.id,
             sentry_app_id=None,
         )
+
         handler = SlackActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             handler.fire(metric_value, IncidentStatus(incident.status))
+
+    @responses.activate
+    def test_rule_snoozed(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        RuleSnooze.objects.create(alert_rule=alert_rule)
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body='{"ok": true}',
+        )
+        handler = SlackActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_rule_snoozed_by_user_still_sends(self):
+        """We shouldn't be able to get into this state from the UI, but this test ensures that if an alert whose action
+        is to notify an integration is muted for a specific user, that the alert still fires because it should only NOT
+        fire if it's muted for everyone"""
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        RuleSnooze.objects.create(alert_rule=alert_rule, user_id=self.user.id)
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body='{"ok": true}',
+        )
+        handler = SlackActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 1
