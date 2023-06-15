@@ -1210,6 +1210,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             to_object_id=group2.id,
             transaction_id="abc123",
             eventstream_state=eventstream_state,
+            handle_forecasts_groups=None,
+            delete_forecasts=False,
         )
 
     @patch("sentry.issues.merge.uuid4")
