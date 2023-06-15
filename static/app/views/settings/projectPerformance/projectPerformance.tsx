@@ -16,6 +16,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -74,7 +75,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    if (organization.features.includes('performance-issues-dev')) {
+    if (organization.features.includes('project-performance-settings-admin')) {
       const performanceIssuesEndpoint = [
         'performance_issue_settings',
         `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
@@ -207,52 +208,63 @@ class ProjectPerformance extends AsyncView<Props, State> {
   get performanceIssueDetectorsFormFields(): Field[] {
     return [
       {
-        name: 'n_plus_one_db_detection_rate',
-        type: 'range',
-        label: t('N+1 (DB) Detection Rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
+        name: 'n_plus_one_db_queries_detection_enabled',
+        type: 'boolean',
+        label: t('N+1 DB Queries Detection Enabled'),
+        defaultValue: true,
       },
       {
-        name: 'n_plus_one_db_count',
-        type: 'number',
-        label: t('N+1 (DB) Minimum Count'),
-        min: 0,
-        max: 1000,
-        defaultValue: 5,
+        name: 'slow_db_queries_detection_enabled',
+        type: 'boolean',
+        label: t('Slow DB Queries Detection Enabled'),
+        defaultValue: true,
       },
       {
-        name: 'n_plus_one_db_duration_threshold',
-        type: 'number',
-        label: t('N+1 (DB) Duration Threshold'),
-        min: 0,
-        max: 1000000.0,
-        defaultValue: 500,
-      },
-      {
-        name: 'n_plus_one_api_calls_detection_rate',
-        type: 'range',
-        label: t('N+1 API Calls Detection Rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
-      },
-      {
-        name: 'consecutive_db_queries_detection_rate',
-        type: 'range',
-        label: t('Consecutive DB Detection rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
+        name: 'n_plus_one_api_calls_detection_enabled',
+        type: 'boolean',
+        label: t('N+1 API Calls Detection Enabled'),
+        defaultValue: true,
       },
       {
         name: 'consecutive_http_spans_detection_enabled',
         type: 'boolean',
         label: t('Consecutive HTTP Spans Detection Enabled'),
+        defaultValue: true,
+      },
+      {
+        name: 'consecutive_db_queries_detection_enabled',
+        type: 'boolean',
+        label: t('Consecutive DB Queries Detection Enabled'),
+        defaultValue: true,
+      },
+      {
+        name: 'large_http_payload_detection_enabled',
+        type: 'boolean',
+        label: t('Large HTTP Payload Detection Enabled'),
+        defaultValue: true,
+      },
+      {
+        name: 'db_on_main_thread_detection_enabled',
+        type: 'boolean',
+        label: t('DB On Main Thread Detection Enabled'),
+        defaultValue: true,
+      },
+      {
+        name: 'file_io_on_main_thread_detection_enabled',
+        type: 'boolean',
+        label: t('File I/O on Main Thread Detection Enabled'),
+        defaultValue: true,
+      },
+      {
+        name: 'uncompressed_assets_detection_enabled',
+        type: 'boolean',
+        label: t('Uncompressed Assets Detection Enabled'),
+        defaultValue: true,
+      },
+      {
+        name: 'large_render_blocking_asset_detection_enabled',
+        type: 'boolean',
+        label: t('Large Render Blocking Asset Detection Enabled'),
         defaultValue: true,
       },
     ];
@@ -315,6 +327,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const params = {orgId: organization.slug, projectId: project.slug};
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
+    const isSuperUser = isActiveSuperuser();
 
     return (
       <Fragment>
@@ -401,8 +414,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
             </Access>
           </Form>
         </Feature>
-        <Feature features={['organizations:performance-issues-dev']}>
-          <Fragment>
+        <Fragment>
+          <Feature features={['organizations:performance-issues-dev']}>
             <Form
               saveOnBlur
               allowUndo
@@ -427,25 +440,26 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 )}
               </Access>
             </Form>
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={this.state.performance_issue_settings}
-              apiMethod="PUT"
-              apiEndpoint={performanceIssuesEndpoint}
-            >
-              <Access access={requiredScopes} project={project}>
-                {({hasAccess}) => (
-                  <JsonForm
-                    title={t('Performance Issues - Detector Settings')}
-                    fields={this.performanceIssueDetectorsFormFields}
-                    disabled={!hasAccess}
-                  />
-                )}
-              </Access>
-            </Form>
-          </Fragment>
-        </Feature>
+          </Feature>
+          <Feature features={['organizations:project-performance-settings-admin']}>
+            {isSuperUser && (
+              <Form
+                saveOnBlur
+                allowUndo
+                initialData={this.state.performance_issue_settings}
+                apiMethod="PUT"
+                apiEndpoint={performanceIssuesEndpoint}
+              >
+                <JsonForm
+                  title={t('Performance Issues - Admin Detector Settings')}
+                  fields={this.performanceIssueDetectorsFormFields}
+                  disabled={!isSuperUser}
+                  collapsible
+                />
+              </Form>
+            )}
+          </Feature>
+        </Fragment>
       </Fragment>
     );
   }
