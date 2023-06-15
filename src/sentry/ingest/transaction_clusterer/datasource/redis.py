@@ -77,7 +77,9 @@ def _record_sample(namespace: ClustererNamespace, project: Project, sample: str)
         redis_key = _get_redis_key(namespace, project)
         created = add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
         if created:
-            client.sadd(_get_projects_key(namespace), project.id)
+            projects_key = _get_projects_key(namespace)
+            client.sadd(projects_key, project.id)
+            client.expire(projects_key, SET_TTL)
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:
@@ -88,10 +90,13 @@ def get_transaction_names(project: Project) -> Iterator[str]:
     return client.sscan_iter(redis_key)
 
 
-def clear_transaction_names(project: Project) -> None:
+def clear_samples(namespace: ClustererNamespace, project: Project) -> None:
     client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
+    projects_key = _get_projects_key(namespace)
+    client.srem(projects_key, str(project.id))  # TODO(jjbayer): test me
+
+    redis_key = _get_redis_key(namespace, project)
     client.delete(redis_key)
 
 
@@ -160,12 +165,6 @@ def get_span_descriptions(project: Project) -> Iterator[str]:
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
     return client.sscan_iter(redis_key)
-
-
-def clear_span_descriptions(project: Project) -> None:
-    client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    client.delete(redis_key)
 
 
 def record_span_descriptions(

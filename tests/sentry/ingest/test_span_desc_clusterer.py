@@ -7,7 +7,7 @@ from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _record_sample,
-    clear_span_descriptions,
+    clear_samples,
     get_active_projects,
     get_span_descriptions,
     record_span_descriptions,
@@ -61,12 +61,12 @@ def test_clear_redis():
     project = Project(id=101, name="p1", organization=Organization(pk=66))
     _record_sample(ClustererNamespace.SPANS, project, "foo")
     assert set(get_span_descriptions(project)) == {"foo"}
-    clear_span_descriptions(project)
+    clear_samples(ClustererNamespace.SPANS, project)
     assert set(get_span_descriptions(project)) == set()
 
     # Deleting for a none-existing project does not crash:
     project2 = Project(id=666, name="project2", organization=Organization(pk=66))
-    clear_span_descriptions(project2)
+    clear_samples(ClustererNamespace.SPANS, project2)
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
