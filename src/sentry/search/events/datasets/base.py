@@ -1,7 +1,7 @@
 import abc
 from typing import Any, Callable, Dict, List, Mapping, Optional, Set, cast
 
-from snuba_sdk import Function, OrderBy
+from snuba_sdk import OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -55,29 +55,3 @@ class DatasetConfig(abc.ABC):
                 return cast(str, argument.get_type(value))
 
         return result_type_fn
-
-    def _get_middle(self):
-        """Get the middle for percent change functions"""
-        if self.builder.start is None or self.builder.end is None:
-            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
-        return self.builder.start + (self.builder.end - self.builder.start) / 2
-
-    def _first_half_condition(self):
-        """Create the first half condition for percent_change functions"""
-        return Function(
-            "less",
-            [
-                self.builder.column("timestamp"),
-                Function("toDateTime", [self._get_middle()]),
-            ],
-        )
-
-    def _second_half_condition(self):
-        """Create the second half condition for percent_change functions"""
-        return Function(
-            "greaterOrEquals",
-            [
-                self.builder.column("timestamp"),
-                Function("toDateTime", [self._get_middle()]),
-            ],
-        )

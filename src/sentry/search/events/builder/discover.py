@@ -91,6 +91,32 @@ class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
 
+    def get_middle(self):
+        """Get the middle for comparison functions"""
+        if self.start is None or self.end is None:
+            raise InvalidSearchQuery("Need both start & end to use percent_change")
+        return self.start + (self.end - self.start) / 2
+
+    def first_half_condition(self):
+        """Create the first half condition for percent_change functions"""
+        return Function(
+            "less",
+            [
+                self.column("timestamp"),
+                Function("toDateTime", [self.get_middle()]),
+            ],
+        )
+
+    def second_half_condition(self):
+        """Create the second half condition for percent_change functions"""
+        return Function(
+            "greaterOrEquals",
+            [
+                self.column("timestamp"),
+                Function("toDateTime", [self.get_middle()]),
+            ],
+        )
+
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
