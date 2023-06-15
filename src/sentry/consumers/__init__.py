@@ -202,6 +202,7 @@ def get_stream_processor(
     auto_offset_reset: str,
     strict_offset_reset: bool,
     join_timeout: Optional[float],
+    max_poll_interval_ms: Optional[int] = None,
     **options,
 ) -> StreamProcessor:
     try:
@@ -253,6 +254,9 @@ def get_stream_processor(
         auto_offset_reset=auto_offset_reset,
         strict_offset_reset=strict_offset_reset,
     )
+
+    if max_poll_interval_ms is not None:
+        consumer_config["max.poll.interval.ms"] = max_poll_interval_ms
 
     consumer = KafkaConsumer(consumer_config)
 
