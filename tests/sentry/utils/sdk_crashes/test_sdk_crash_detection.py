@@ -186,12 +186,14 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
                     "symbol": "__handleUncaughtException",
                     "package": "CoreFoundation",
                     "in_app": False,
+                    "image_addr": "0x1a4e8f000",
                 },
                 {
                     "function": "_objc_terminate",
                     "symbol": "_ZL15_objc_terminatev",
                     "package": "libobjc.A.dylib",
                     "in_app": False,
+                    "image_addr": "0x1a4e8f000",
                 },
                 {
                     "function": "CPPExceptionTerminate",
@@ -200,12 +202,14 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
                     "symbol": "_ZL21CPPExceptionTerminatev",
                     "package": "MainApp",
                     "in_app": False,
+                    "image_addr": "0x1a4e8f000",
                 },
                 {
                     "function": "std::__terminate",
                     "symbol": "_ZSt11__terminatePFvvE",
                     "package": "libc++abi.dylib",
                     "in_app": False,
+                    "image_addr": "0x1a4e8f000",
                 },
             ]
         )
@@ -243,12 +247,14 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
                         "symbol": "__handleUncaughtException",
                         "package": "CoreFoundation",
                         "in_app": False,
+                        "image_addr": "0x1a4e8f000",
                     },
                     {
                         "function": "_objc_terminate",
                         "symbol": "_ZL15_objc_terminatev",
                         "package": "libobjc.A.dylib",
                         "in_app": False,
+                        "image_addr": "0x1a4e8f000",
                     },
                     get_sentry_frame("sentrycrashdl_getBinaryImage"),
                     {
@@ -256,6 +262,7 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
                         "symbol": "_ZSt11__terminatePFvvE",
                         "package": "libc++abi.dylib",
                         "in_app": False,
+                        "image_addr": "0x1a4e8f000",
                     },
                 ]
             ),

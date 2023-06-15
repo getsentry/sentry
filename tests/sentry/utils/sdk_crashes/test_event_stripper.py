@@ -10,7 +10,7 @@ from fixtures.sdk_crash_detection.crash_event import (
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 
@@ -128,6 +128,86 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         assert stripped_event_data.get("timestamp") == 1
         assert stripped_event_data.get("platform") == "cocoa"
 
+    def test_strip_event_data_keeps_simple_exception_properties(self):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
+
+        assert get_path(stripped_event_data, "exception", "values", 0, "type") == "EXC_BAD_ACCESS"
+        assert get_path(stripped_event_data, "exception", "values", 0, "value") is None
+
+    def test_strip_event_data_keeps_exception_mechanism(self):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        # set extra data that should be stripped
+        set_path(event.data, "exception", "values", 0, "mechanism", "foo", value="bar")
+        set_path(
+            event.data, "exception", "values", 0, "mechanism", "meta", "signal", "foo", value="bar"
+        )
+        set_path(
+            event.data,
+            "exception",
+            "values",
+            0,
+            "mechanism",
+            "meta",
+            "mach_exception",
+            "foo",
+            value="bar",
+        )
+
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
+
+        mechanism = get_path(stripped_event_data, "exception", "values", 0, "mechanism")
+
+        assert mechanism == {
+            "handled": False,
+            "type": "mach",
+            "meta": {
+                "signal": {"number": 11, "code": 0, "name": "SIGSEGV", "code_name": "SEGV_NOOP"},
+                "mach_exception": {
+                    "exception": 1,
+                    "code": 1,
+                    "subcode": 0,
+                    "name": "EXC_BAD_ACCESS",
+                },
+            },
+        }
+
+    def test_strip_event_data_keeps_exception_stacktrace(self):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
+
+        first_frame = get_path(
+            stripped_event_data, "exception", "values", 0, "stacktrace", "frames", 0
+        )
+
+        assert first_frame == {
+            "filename": "EventStripperTestFrame.swift",
+            "function": "function",
+            "raw_function": "raw_function",
+            "module": "module",
+            "abs_path": "abs_path",
+            "in_app": False,
+            "instruction_addr": "0x1a4e8f000",
+            "addr_mode": "0x1a4e8f000",
+            "symbol": "symbol",
+            "symbol_addr": "0x1a4e8f000",
+            "image_addr": "0x1a4e8f000",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+            "platform": "platform",
+        }
+
     def test_strip_event_data_strips_non_referenced_dsyms(self):
         event = self.create_event(
             data=get_crash_event(),
@@ -164,7 +244,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             stripped_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
-        assert len(stripped_frames) == 6
+        assert len(stripped_frames) == 7
         assert (
             len(
                 [
