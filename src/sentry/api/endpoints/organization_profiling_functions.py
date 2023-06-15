@@ -46,7 +46,7 @@ class TrendType(Enum):
         if self is TrendType.IMPROVEMENT:
             return "trend_percentage()"
 
-        raise ValueError(f"Cannot sort by TrendType: {self.value}")
+        raise ValueError(f"Unknown TrendType: {self.value}")
 
 
 class TrendTypeField(serializers.Field):
@@ -89,16 +89,28 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
+        top_functions = {}
+
         def get_event_stats(columns, query, params, _rollup, zerofill_results, comparison_delta):
+            nonlocal top_functions
+
             rollup = get_rollup_from_range(params["end"] - params["start"])
 
             top_functions = functions.query(
-                selected_columns=["project.id", "fingerprint", "package", "function", "count()"],
+                selected_columns=[
+                    "project.id",
+                    "fingerprint",
+                    "package",
+                    "function",
+                    "count()",
+                ],
                 query=query,
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,  # type: ignore[attr-defined]
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
             )
 
             set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
@@ -147,18 +159,40 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return {"data": trending_functions[offset : limit + offset]}
 
         def get_stats_data_for_trending_events(results):
+            functions = {
+                f"{function['project.id']},{function['fingerprint']}": function
+                for function in top_functions.get("data", [])
+            }
             formatted_results = []
             for result in results["data"]:
                 # The endpoint originally was meant for only transactions
                 # hence the name of the key, but it can be adapted to work
                 # for functions as well.
-                stats_key = f"{result['project']},{result['transaction']}"
-                formatted_results.append(
+                key = f"{result['project']},{result['transaction']}"
+                formatted_result = {"stats": stats_data[key]}
+                formatted_result.update(
                     {
-                        **result,
-                        "stats": stats_data[stats_key],
+                        k: result[k]
+                        for k in [
+                            "aggregate_range_1",
+                            "aggregate_range_2",
+                            "breakpoint",
+                            "change",
+                            "project",
+                            "trend_difference",
+                            "trend_percentage",
+                            "unweighted_p_value",
+                            "unweighted_t_value",
+                        ]
                     }
                 )
+                formatted_result.update(
+                    {
+                        k: functions[key][k]
+                        for k in ["fingerprint", "package", "function", "count()"]
+                    }
+                )
+                formatted_results.append(formatted_result)
             return formatted_results
 
         with self.handle_query_errors():

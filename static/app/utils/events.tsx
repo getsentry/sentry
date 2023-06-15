@@ -5,6 +5,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {
   BaseGroup,
   EntryException,
+  EntryRequest,
   EntryThreads,
   EventMetadata,
   EventOrGroupType,
@@ -395,6 +396,16 @@ export function eventHasExceptionGroup(event: Event) {
   );
 }
 
+export function eventHasGraphQlRequest(event: Event) {
+  const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
+    | EntryRequest
+    | undefined;
+  return (
+    typeof requestEntry?.data?.apiTarget === 'string' &&
+    requestEntry.data.apiTarget.toLowerCase() === 'graphql'
+  );
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -421,9 +432,11 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
     event_platform: event?.platform,
+    event_runtime: event?.tags?.find(tag => tag.key === 'runtime')?.value,
     event_type: event?.type,
     has_release: !!event?.release,
     has_exception_group: event ? eventHasExceptionGroup(event) : false,
+    has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
