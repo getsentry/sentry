@@ -154,6 +154,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.actor import RpcActor
+from ..services.hybrid_cloud.organization.serial import serialize_organization
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -974,11 +975,14 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
+        with exempt_from_silo_limits():
+            rpc_organization = serialize_organization(self.organization)
+
         self.login_as(self.user)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
         self.pipeline = IntegrationPipeline(
-            request=self.request, organization=self.organization, provider_key=self.provider.key
+            request=self.request, organization=rpc_organization, provider_key=self.provider.key
         )
 
         self.init_path = reverse(
@@ -2484,6 +2488,7 @@ class MonitorTestCase(APITestCase):
             conditions=[],
             actions=[],
             frequency=5,
+            environment=self.environment.id,
         ).call()
         rule.update(source=RuleSource.CRON_MONITOR)
 

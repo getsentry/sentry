@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from sentry.db.models.base import Model
-from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 from .store import PipelineSessionStore
 
@@ -12,7 +14,7 @@ class PipelineRequestState:
 
     state: PipelineSessionStore
     provider_model: Model
-    organization: Organization
+    organization: RpcOrganization | None
     provider_key: str
 
 

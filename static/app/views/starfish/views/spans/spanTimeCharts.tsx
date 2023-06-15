@@ -134,7 +134,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       {
         seriesName: label ?? 'Throughput',
         data: groupData.map(datum => ({
-          value: datum['spm()'] / 60,
+          value: datum['sps()'],
           name: datum.interval,
         })),
       },
@@ -325,7 +325,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['spm()', 'p50(span.duration)', 'p95(span.duration)'],
+      yAxis: ['sps()', 'p50(span.duration)', 'p95(span.duration)'],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
