@@ -48,12 +48,14 @@ def mark_organization_as_pending_deletion_with_outbox_message(
     *, org_id: int
 ) -> Optional[Organization]:
     with transaction.atomic():
-        org: Organization = Organization.objects.get(id=org_id)
-        if org.status != OrganizationStatus.ACTIVE:
+        query_result = Organization.objects.filter(
+            id=org_id, status=OrganizationStatus.ACTIVE
+        ).update(status=OrganizationStatus.PENDING_DELETION)
+
+        if not query_result:
             return None
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
         Organization.outbox_for_update(org_id=org_id).save()
 
-        org.refresh_from_db()
+        org = Organization.objects.get(id=org_id)
         return org

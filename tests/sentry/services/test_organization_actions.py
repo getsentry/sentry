@@ -148,14 +148,10 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
 
         assert updated_org
-        assert updated_org.status == OrganizationStatus.PENDING_DELETION
-        assert updated_org.name == org_before_update.name
-        assert updated_org.slug == org_before_update.slug
-
         self.org.refresh_from_db()
-        assert self.org.status == OrganizationStatus.PENDING_DELETION
-        assert self.org.name == org_before_update.name
-        assert self.org.slug == org_before_update.slug
+        assert updated_org.status == self.org.status == OrganizationStatus.PENDING_DELETION
+        assert updated_org.name == self.org.name == org_before_update.name
+        assert updated_org.slug == self.org.slug == org_before_update.slug
 
         assert_outbox_update_message_exists(self.org, 1)
 
