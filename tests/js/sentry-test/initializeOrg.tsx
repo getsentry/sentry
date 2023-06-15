@@ -1,3 +1,5 @@
+import type {RouteComponentProps} from 'react-router';
+
 import type {Organization, Project} from 'sentry/types';
 
 /**
@@ -47,7 +49,10 @@ export function initializeOrg({
     },
   ]);
 
-  const routerProps = {
+  /**
+   * A collection of router props that are passed to components by react-rotuer
+   */
+  const routerProps: RouteComponentProps<{orgId: string; projectId: string}, {}> = {
     params: router.params as {orgId: string; projectId: string},
     routeParams: router.params,
     router,
@@ -63,7 +68,7 @@ export function initializeOrg({
     router,
     routerContext,
     routerProps,
-    // not sure what purpose this serves
+    // @deprecated - not sure what purpose this serves
     route: {},
   };
 }
