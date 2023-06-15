@@ -42,7 +42,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         return False
 
 
-def record_consumer_heath(service_health: Mapping[str, bool]) -> None:
+def record_consumer_health(service_health: Mapping[str, bool]) -> None:
     with service_monitoring_cluster.pipeline() as pipeline:
         key_ttl = options.get("backpressure.status_ttl")
         for name, dependencies in CONSUMERS.items():

@@ -5,12 +5,8 @@ from typing import Dict, Generator, List, Mapping, Union
 from django.conf import settings
 
 from sentry import options
-from sentry.processing.backpressure.health import record_consumer_heath
-from sentry.processing.backpressure.rabbitmq import (
-    RabbitMqHost,
-    parse_rabbitmq,
-    query_rabbitmq_memory_usage,
-)
+from sentry.processing.backpressure.health import record_consumer_health
+from sentry.processing.backpressure.rabbitmq import query_rabbitmq_memory_usage
 
 # from sentry import options
 from sentry.processing.backpressure.redis import Cluster, iter_cluster_memory_usage
@@ -25,7 +21,7 @@ class Redis:
 
 @dataclass
 class RabbitMq:
-    servers: List[RabbitMqHost]
+    servers: List[str]
 
 
 Service = Union[Redis, RabbitMq, None]
@@ -67,8 +63,7 @@ def load_service_definitions() -> Dict[str, Service]:
             services[name] = Redis(cluster)
 
         elif rabbitmq_urls := definition.get("rabbitmq"):
-            servers = [parse_rabbitmq(url) for url in rabbitmq_urls]
-            services[name] = RabbitMq(servers)
+            services[name] = RabbitMq(rabbitmq_urls)
 
         else:
             services[name] = None
@@ -112,6 +107,6 @@ def start_service_monitoring() -> None:
         service_health = check_service_health(services)
 
         # then, check the derived services and record their health
-        record_consumer_heath(service_health)
+        record_consumer_health(service_health)
 
         time.sleep(options.get("backpressure.monitoring.interval"))

@@ -3458,7 +3458,7 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # It has to match a cluster defined in `redis.redis_clusters`.
 #
 # For `rabbitmq`, one has to provide a list of server URLs.
-# The URL is in the format `https://{user}:{password}@{hostname}:{port}/{vhost}`.
+# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
 #
 # The definition can also be empty, in which case nothing is checked and
 # the service is assumed to be healthy.

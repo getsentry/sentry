@@ -7,7 +7,7 @@ from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from pytest import raises
 
-from sentry.processing.backpressure.health import record_consumer_heath
+from sentry.processing.backpressure.health import record_consumer_health
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
@@ -21,7 +21,7 @@ from sentry.utils import json
     }
 )
 def test_backpressure_unhealthy():
-    record_consumer_heath({"celery": False})
+    record_consumer_health({"celery": False})
     with raises(MessageRejected):
         process_one_message()
 
@@ -35,7 +35,7 @@ def test_backpressure_unhealthy():
     }
 )
 def test_backpressure_healthy(process_profile_task):
-    record_consumer_heath(
+    record_consumer_health(
         {
             "celery": True,
             "attachments-store": True,

@@ -1,7 +1,7 @@
 import pytest
 from django.test.utils import override_settings
 
-from sentry.processing.backpressure.health import is_consumer_healthy, record_consumer_heath
+from sentry.processing.backpressure.health import is_consumer_healthy, record_consumer_health
 from sentry.processing.backpressure.monitor import (
     Redis,
     assert_all_services_defined,
@@ -65,15 +65,15 @@ def test_record_consumer_health() -> None:
         "processing-locks": True,
         "post-process-locks": True,
     }
-    record_consumer_heath(service_health)
+    record_consumer_health(service_health)
     assert is_consumer_healthy() is True
 
     service_health["celery"] = False
-    record_consumer_heath(service_health)
+    record_consumer_health(service_health)
     assert is_consumer_healthy() is False
 
     with pytest.raises(KeyError):
-        record_consumer_heath(
+        record_consumer_health(
             {
                 "sellerie": True,  # oops
                 "attachments-store": True,
