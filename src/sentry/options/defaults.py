@@ -1318,6 +1318,10 @@ register("backpressure.checking.enabled", default=False, flags=FLAG_AUTOMATOR_MO
 # How often a consumer will check for its health in a debounced fassion.
 register("backpressure.checking.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+
+# How long a status is persisted, which means that updates to health status can be paused for that long before consumers will assume things are unhealthy
+register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(

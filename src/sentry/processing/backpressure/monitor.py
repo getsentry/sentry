@@ -14,6 +14,7 @@ from sentry.processing.backpressure.rabbitmq import (
 
 # from sentry import options
 from sentry.processing.backpressure.redis import Cluster, iter_cluster_memory_usage
+from sentry.processing.backpressure.topology import PROCESSING_SERVICES
 from sentry.utils import redis
 
 
@@ -27,7 +28,7 @@ class RabbitMq:
     servers: List[RabbitMqHost]
 
 
-Service = Union[Redis, RabbitMq]
+Service = Union[Redis, RabbitMq, None]
 
 
 @dataclass
@@ -69,7 +70,18 @@ def load_service_definitions() -> Dict[str, Service]:
             servers = [parse_rabbitmq(url) for url in rabbitmq_urls]
             services[name] = RabbitMq(servers)
 
+        else:
+            services[name] = None
+
     return services
+
+
+def assert_all_services_defined(services: Dict[str, Service]) -> None:
+    for name in PROCESSING_SERVICES:
+        if name not in services:
+            raise ValueError(
+                f"The `{name}` Service is missing from `settings.SENTRY_PROCESSING_SERVICES`."
+            )
 
 
 def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
@@ -77,9 +89,6 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
     high_watermarks = options.get("backpressure.high_watermarks")
 
     for name, service in services.items():
-        if name not in high_watermarks:
-            service_health[name] = True
-            continue
         high_watermark = high_watermarks[name]
         is_healthy = True
         for memory in check_service_memory(service):
@@ -92,6 +101,7 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
 
 def start_service_monitoring() -> None:
     services = load_service_definitions()
+    assert_all_services_defined(services)
 
     while True:
         if not options.get("backpressure.monitoring.enabled"):

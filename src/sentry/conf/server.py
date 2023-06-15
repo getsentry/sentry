@@ -3459,11 +3459,14 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 #
 # For `rabbitmq`, one has to provide a list of server URLs.
 # The URL is in the format `https://{user}:{password}@{hostname}:{port}/{vhost}`.
+#
+# The definition can also be empty, in which case nothing is checked and
+# the service is assumed to be healthy.
+# However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES = {
-    # base services
     "celery": {"redis": "default"},
     "attachments-store": {"redis": "rc-short"},
-    # "processing-store": {"redis": "processing"},
+    "processing-store": {},  # "redis": "processing"},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},
 }

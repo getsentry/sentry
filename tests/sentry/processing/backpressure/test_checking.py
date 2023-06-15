@@ -13,37 +13,51 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.status_ttl": 60,
+    }
+)
 def test_backpressure_unhealthy():
     record_consumer_heath({"celery": False})
-    with override_options(
-        {
-            "backpressure.checking.enabled": True,
-        }
-    ):
-        with raises(MessageRejected):
-            process_one_message()
+    with raises(MessageRejected):
+        process_one_message()
 
 
 @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.status_ttl": 60,
+    }
+)
 def test_backpressure_healthy(process_profile_task):
-    with override_options(
+    record_consumer_heath(
         {
-            "backpressure.checking.enabled": True,
+            "celery": True,
+            "attachments-store": True,
+            "processing-store": True,
+            "processing-locks": True,
+            "post-process-locks": True,
         }
-    ):
-        process_one_message()
+    )
+    process_one_message()
 
     process_profile_task.assert_called_once()
 
 
 @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+@override_options(
+    {
+        "backpressure.checking.enabled": False,
+        "backpressure.checking.interval": 5,
+    }
+)
 def test_backpressure_not_enabled(process_profile_task):
-    with override_options(
-        {
-            "backpressure.checking.enabled": False,
-        }
-    ):
-        process_one_message()
+    process_one_message()
 
     process_profile_task.assert_called_once()
 

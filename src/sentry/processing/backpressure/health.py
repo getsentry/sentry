@@ -12,11 +12,11 @@ def _prefix_key(key_name: str) -> str:
     return f"bp1:{key_name}"
 
 
-UNHEALTHY_KEY_NAME = "unhealthy-consumers"
+HEALTHY_KEY_NAME = "consumer_is_healthy"
 
 
 def _unhealthy_consumer_key(name: str) -> str:
-    return _prefix_key(f"{UNHEALTHY_KEY_NAME}:{name}")
+    return _prefix_key(f"{HEALTHY_KEY_NAME}:{name}")
 
 
 service_monitoring_cluster = redis.redis_clusters.get(
@@ -35,27 +35,23 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         return True
     # check if queue is healthy by pinging Redis
     try:
-        # We set the key if the queue is unhealthy. If the key exists,
-        # the queue is unhealthy and we need to return False.
-        healthy = not service_monitoring_cluster.exists(_unhealthy_consumer_key(consumer_name))
-        # TODO: do we want to also check the `default` consumer as a catch-all?
+        return service_monitoring_cluster.get(_unhealthy_consumer_key(consumer_name)) == "true"
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        # By default it's considered healthy
-        healthy = True
-    return healthy
+        # By default it's considered unhealthy
+        return False
 
 
 def record_consumer_heath(service_health: Mapping[str, bool]) -> None:
     with service_monitoring_cluster.pipeline() as pipeline:
+        key_ttl = options.get("backpressure.status_ttl")
         for name, dependencies in CONSUMERS.items():
             is_healthy = True
             for dependency in dependencies:
-                is_healthy = is_healthy and service_health.get(dependency, True)
+                is_healthy = is_healthy and service_health[dependency]
 
-            if not is_healthy:
-                pipeline.set(_unhealthy_consumer_key(name), "1", ex=60)
-            else:
-                pipeline.delete(_unhealthy_consumer_key(name))
+            pipeline.set(
+                _unhealthy_consumer_key(name), "true" if is_healthy else "false", ex=key_ttl
+            )
 
         pipeline.execute()

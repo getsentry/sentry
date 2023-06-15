@@ -4,6 +4,7 @@ from django.test.utils import override_settings
 from sentry.processing.backpressure.health import is_consumer_healthy, record_consumer_heath
 from sentry.processing.backpressure.monitor import (
     Redis,
+    assert_all_services_defined,
     check_service_health,
     load_service_definitions,
 )
@@ -15,6 +16,17 @@ def test_loading_definitions() -> None:
     with override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "default"}}):
         services = load_service_definitions()
         assert "redis" in services
+
+    with pytest.raises(ValueError):
+        assert_all_services_defined(
+            {
+                "sellerie": None,  # oops
+                "attachments-store": None,
+                "processing-store": None,
+                "processing-locks": None,
+                "post-process-locks": None,
+            }
+        )
 
 
 def test_check_redis_health() -> None:
@@ -39,22 +51,34 @@ def test_check_redis_health() -> None:
         assert service_health["redis"] is False
 
 
-@pytest.mark.django_db()
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.status_ttl": 60,
+    }
+)
 def test_record_consumer_health() -> None:
-    service_health = {"celery": True}
+    service_health = {
+        "celery": True,
+        "attachments-store": True,
+        "processing-store": True,
+        "processing-locks": True,
+        "post-process-locks": True,
+    }
     record_consumer_heath(service_health)
-    with override_options(
-        {
-            "backpressure.checking.enabled": True,
-        }
-    ):
-        assert is_consumer_healthy() is True
+    assert is_consumer_healthy() is True
 
-    service_health = {"celery": False}
+    service_health["celery"] = False
     record_consumer_heath(service_health)
-    with override_options(
-        {
-            "backpressure.checking.enabled": True,
-        }
-    ):
-        assert is_consumer_healthy() is False
+    assert is_consumer_healthy() is False
+
+    with pytest.raises(KeyError):
+        record_consumer_heath(
+            {
+                "sellerie": True,  # oops
+                "attachments-store": True,
+                "processing-store": True,
+                "processing-locks": True,
+                "post-process-locks": True,
+            }
+        )
