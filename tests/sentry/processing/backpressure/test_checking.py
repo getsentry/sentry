@@ -50,7 +50,7 @@ def test_backpressure_not_enabled(process_profile_task):
 
 def process_one_message():
     processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
-        commit=Mock(), partitions=None
+        commit=Mock(), partitions={}
     )
     message_dict = {
         "organization_id": 1,

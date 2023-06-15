@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import Generator, List, Mapping, Union
+from typing import Dict, Generator, List, Mapping, Union
 
 from django.conf import settings
 
@@ -58,8 +58,8 @@ def check_service_memory(service: Service) -> Generator[ServiceMemory, None, Non
             yield ServiceMemory(used, available)
 
 
-def load_service_definitions() -> Mapping[str, Service]:
-    services = {}
+def load_service_definitions() -> Dict[str, Service]:
+    services: Dict[str, Service] = {}
     for name, definition in settings.SENTRY_PROCESSING_SERVICES.items():
         if cluster_id := definition.get("redis"):
             cluster = redis.redis_clusters.get(cluster_id)
