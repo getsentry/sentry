@@ -286,9 +286,11 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
         # Remove the regular expression check for parameterization, relying on
-        # the parameterization in span hashing to handle it.
+        # the parameterization in span hashing to handle it.  Make sure we at
+        # least have a space though, to exclude e.g. MongoDB and Prisma's
+        # `rawQuery`.
         query = span.get("description", None)
-        return bool(query)
+        return bool(query) and " " in query
 
 
 def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
