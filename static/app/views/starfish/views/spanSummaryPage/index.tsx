@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -123,7 +123,10 @@ function SpanSummaryPage({params, location}: Props) {
                   >
                     <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                   </Block>
-                  <Block title={t('Duration')} description={t('Time spent in this span')}>
+                  <Block
+                    title={t('Duration (P95)')}
+                    description={t('Time spent in this span')}
+                  >
                     <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
                   </Block>
                   <Block
