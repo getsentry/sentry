@@ -454,7 +454,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
                   title={t('Performance Issues - Admin Detector Settings')}
                   fields={this.performanceIssueDetectorsFormFields}
                   disabled={!isSuperUser}
-                  collapsible
                 />
               </Form>
             )}
