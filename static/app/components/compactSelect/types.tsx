@@ -36,9 +36,29 @@ export type SelectOptionOrSection<Value extends React.Key> =
   | SelectOption<Value>
   | SelectSection<Value>;
 
+export interface SelectOptionWithKey<Value extends React.Key>
+  extends SelectOption<Value> {
+  /**
+   * Key to identify this section. If not specified, the section's index will
+   * be used.
+   */
+  key: React.Key;
+}
+
+export interface SelectSectionWithKey<Value extends React.Key>
+  extends SelectSection<Value> {
+  /**
+   * Key to identify this section. If not specified, the section's index will
+   * be used.
+   */
+  key: React.Key;
+  options: SelectOptionWithKey<Value>[];
+}
+
 /**
  * Select option/section type used for internal selection manager. DO NOT import in
  * other components. Import `SelectOptionOrSection` instead.
  */
 export type SelectOptionOrSectionWithKey<Value extends React.Key> =
-  SelectOptionOrSection<Value> & {key?: React.Key};
+  | SelectOptionWithKey<Value>
+  | SelectSectionWithKey<Value>;
