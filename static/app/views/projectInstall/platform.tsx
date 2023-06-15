@@ -47,7 +47,6 @@ const SetUpSdkDocHook = HookOrDefault({
 
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
 type Props = RouteComponentProps<{projectId: string}, {}>;
@@ -307,8 +306,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     gettingStartedDocWithProductSelection &&
     (platform.key === 'javascript' || platform.key.match('^javascript-([A-Za-z]+)$'));
 
-  console.log({showDocsWithProductSelection});
-
   return (
     <Fragment>
       <ProductUnavailableCTAHook organization={organization} />
@@ -354,7 +351,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         </ButtonBar>
       </StyledPageHeader>
       <div>
-        {/* {isSelfHosted ? (
+        {isSelfHosted ? (
           <SetUpGeneralSdkDoc
             organization={organization}
             projectSlug={project.slug}
@@ -373,14 +370,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
             location={location}
             platform={platform}
           />
-        )} */}
-
-        <DocWithProductSelection
-          project={project}
-          location={location}
-          currentPlatform={platform.key}
-        />
-
+        )}
         {isGettingStarted && showPerformancePrompt && (
           <Feature
             features={['performance-view']}
