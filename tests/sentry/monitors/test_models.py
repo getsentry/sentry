@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
     MonitorCheckInMissed,
@@ -323,13 +324,13 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [f"monitor-{str(monitor.guid)}-unknown"],
-                "issue_title": f"Monitor failure: {monitor.name} (unknown)",
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
+                "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
-                    {"name": "Failure reason", "value": "unknown", "important": True},
+                    {"name": "Failure reason", "value": "error", "important": True},
                     {
                         "name": "Environment",
                         "value": monitor_environment.environment.name,
@@ -343,7 +344,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 ],
                 "type": MonitorCheckInFailure.type_id,
                 "level": "error",
-                "culprit": "",
+                "culprit": "error",
             },
         ) == dict(occurrence)
 
@@ -392,8 +393,8 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [f"monitor-{str(monitor.guid)}-duration"],
-                "issue_title": f"Monitor failure: {monitor.name} (duration)",
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
+                "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
                 "evidence_data": {},
@@ -412,7 +413,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 ],
                 "type": MonitorCheckInTimeout.type_id,
                 "level": "error",
-                "culprit": "",
+                "culprit": "duration",
             },
         ) == dict(occurrence)
 
@@ -465,8 +466,8 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [f"monitor-{str(monitor.guid)}-missed_checkin"],
-                "issue_title": f"Monitor failure: {monitor.name} (missed_checkin)",
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
+                "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
                 "evidence_data": {},
@@ -485,7 +486,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 ],
                 "type": MonitorCheckInMissed.type_id,
                 "level": "warning",
-                "culprit": "",
+                "culprit": "missed_checkin",
             },
         ) == dict(occurrence)
 
@@ -541,8 +542,10 @@ class MonitorEnvironmentTestCase(TestCase):
         )
 
         new_config = {
-            "schedule": [2, "month"],
-            "schedule_type": "interval",
+            "schedule": {
+                "type": "crontab",
+                "value": "0 0 1 2 *",
+            },
             "max_runtime": 10,
             "garbage": "data",
         }
@@ -552,8 +555,8 @@ class MonitorEnvironmentTestCase(TestCase):
         monitor.update_config(new_config, validated_config)
 
         assert monitor.config == {
-            "schedule": [2, "month"],
-            "schedule_type": ScheduleType.INTERVAL,
+            "schedule": "0 0 1 2 *",
+            "schedule_type": ScheduleType.CRONTAB,
             "max_runtime": 10,
             "alert_rule_id": 1,
         }

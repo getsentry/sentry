@@ -24,10 +24,18 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
             with self.handle_query_errors():
+                per_page = int(request.GET.get("per_page")) if request.GET.get("per_page") else None
+                cursor = int(request.GET.get("cursor")) if request.GET.get("cursor") else None
+                pagination_data = {}
+                if per_page:
+                    pagination_data["per_page"] = per_page
+                if cursor:
+                    pagination_data["cursor"] = cursor
                 facets = discover.get_facets(
                     query=request.GET.get("query"),
                     params=params,
                     referrer="api.organization-events-facets.top-tags",
+                    **pagination_data,
                 )
 
         with sentry_sdk.start_span(op="discover.endpoint", description="populate_results") as span:

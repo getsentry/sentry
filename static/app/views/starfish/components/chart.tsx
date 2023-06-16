@@ -1,5 +1,6 @@
 import {RefObject, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import {
@@ -20,9 +21,13 @@ import {
   FormatterOptions,
   getFormatter,
 } from 'sentry/components/charts/components/tooltip';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
 import {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {
@@ -30,13 +35,23 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DAY, HOUR} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
+
+export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
+  [SpanMetricsFields.SPAN_DURATION]: {
+    outputType: 'duration',
+  },
+  [SpanMetricsFields.SPAN_SELF_TIME]: {
+    outputType: 'duration',
+  },
+};
 
 type Props = {
   data: Series[];
@@ -50,6 +65,7 @@ type Props = {
   chartGroup?: string;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
+  errored?: boolean;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
@@ -73,10 +89,10 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[]) {
+function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
-  if (data.length > 2) {
+  if (data.length > 1 && stacked) {
     for (let i = 0; i < data.length; i++) {
       maxValue += max(data[i].data.map(point => point.value)) as number;
     }
@@ -132,6 +148,7 @@ function Chart({
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
+  errored,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -146,10 +163,6 @@ function Chart({
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  if (!data || data.length <= 0) {
-    return null;
-  }
-
   const colors = chartColors ?? theme.charts.getColorPalette(4);
 
   const durationOnly =
@@ -160,9 +173,12 @@ function Chart({
     data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
   let dataMax = durationOnly
-    ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+    ? computeAxisMax(
+        [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
+        stacked
+      )
     : percentOnly
-    ? computeMax(data)
+    ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
     : undefined;
   // Fix an issue where max == 1 for duration charts would look funky cause we round
   if (dataMax === 1 && durationOnly) {
@@ -233,12 +249,19 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
+
     if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(
+            value,
+            aggregateOutputFormat ?? aggregateOutputType(seriesName)
+          );
+        },
         ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }
@@ -281,15 +304,6 @@ function Chart({
     },
   } as Omit<AreaChartProps, 'series'>;
 
-  if (loading) {
-    if (isLineChart) {
-      return <LineChart height={height} series={[]} {...areaChartProps} />;
-    }
-    if (isBarChart) {
-      return <BarChart height={height} series={[]} {...areaChartProps} />;
-    }
-    return <AreaChart height={height} series={[]} {...areaChartProps} />;
-  }
   const series: Series[] = data.map((values, _) => ({
     ...values,
     yAxisIndex: 0,
@@ -320,79 +334,100 @@ function Chart({
         },
       };
 
-  return (
-    <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
-      {zoomRenderProps => {
-        if (isLineChart) {
+  function getChart() {
+    if (errored) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    return (
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+        {zoomRenderProps => {
+          if (isLineChart) {
+            return (
+              <BaseChart
+                {...zoomRenderProps}
+                ref={chartRef}
+                height={height}
+                previousPeriod={previousData}
+                additionalSeries={transformedThroughput}
+                xAxis={xAxis}
+                yAxes={areaChartProps.yAxes}
+                tooltip={areaChartProps.tooltip}
+                colors={colors}
+                grid={grid}
+                legend={showLegend ? {top: 0, right: 0} : undefined}
+                onClick={onClick}
+                series={[
+                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                    LineSeries({
+                      ...options,
+                      name: seriesName,
+                      data: seriesData?.map(({value, name}) => [name, value]),
+                      animation: false,
+                      animationThreshold: 1,
+                      animationDuration: 0,
+                    })
+                  ),
+                  ...(scatterPlot ?? []).map(
+                    ({seriesName, data: seriesData, ...options}) =>
+                      ScatterSeries({
+                        ...options,
+                        name: seriesName,
+                        data: seriesData?.map(({value, name}) => [name, value]),
+                        animation: false,
+                      })
+                  ),
+                ]}
+              />
+            );
+          }
+
+          if (isBarChart) {
+            return (
+              <BarChart
+                height={height}
+                series={series}
+                xAxis={xAxis}
+                additionalSeries={transformedThroughput}
+                yAxes={areaChartProps.yAxes}
+                tooltip={areaChartProps.tooltip}
+                colors={colors}
+                grid={grid}
+                legend={showLegend ? {top: 0, right: 0} : undefined}
+              />
+            );
+          }
+
           return (
-            <BaseChart
-              {...zoomRenderProps}
-              ref={chartRef}
+            <AreaChart
+              forwardedRef={chartRef}
               height={height}
+              {...zoomRenderProps}
+              series={series}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
-              yAxes={areaChartProps.yAxes}
-              tooltip={areaChartProps.tooltip}
-              colors={colors}
-              grid={grid}
-              legend={showLegend ? {top: 0, right: 0} : undefined}
-              onClick={onClick}
-              series={[
-                ...series.map(({seriesName, data: seriesData, ...options}) =>
-                  LineSeries({
-                    ...options,
-                    name: seriesName,
-                    data: seriesData?.map(({value, name}) => [name, value]),
-                    animation: false,
-                    animationThreshold: 1,
-                    animationDuration: 0,
-                  })
-                ),
-                ...(scatterPlot ?? []).map(({seriesName, data: seriesData, ...options}) =>
-                  ScatterSeries({
-                    ...options,
-                    name: seriesName,
-                    data: seriesData?.map(({value, name}) => [name, value]),
-                    animation: false,
-                  })
-                ),
-              ]}
+              stacked={stacked}
+              {...areaChartProps}
             />
           );
-        }
-
-        if (isBarChart) {
-          return (
-            <BarChart
-              height={height}
-              series={series}
-              xAxis={xAxis}
-              additionalSeries={transformedThroughput}
-              yAxes={areaChartProps.yAxes}
-              tooltip={areaChartProps.tooltip}
-              colors={colors}
-              grid={grid}
-              legend={showLegend ? {top: 0, right: 0} : undefined}
-            />
-          );
-        }
-
-        return (
-          <AreaChart
-            forwardedRef={chartRef}
-            height={height}
-            {...zoomRenderProps}
-            series={series}
-            previousPeriod={previousData}
-            additionalSeries={transformedThroughput}
-            xAxis={xAxis}
-            stacked={stacked}
-            {...areaChartProps}
-          />
-        );
-      }}
-    </ChartZoom>
+        }}
+      </ChartZoom>
+    );
+  }
+  return (
+    <TransitionChart
+      loading={loading}
+      reloading={loading}
+      height={height ? `${height}px` : undefined}
+    >
+      <LoadingScreen loading={loading} />
+      {getChart()}
+    </TransitionChart>
   );
 }
 
@@ -421,3 +456,22 @@ const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
   }
   return HOUR;
 };
+
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+function LoadingScreen({loading}: {loading: boolean}) {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
+}

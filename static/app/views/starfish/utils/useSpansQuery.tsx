@@ -1,4 +1,3 @@
-import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -9,80 +8,38 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {useStarfishOptions} from 'sentry/views/starfish/utils/useStarfishOptions';
 
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 // Setting return type since I'd rather not know if its discover query or not
-export type UseSpansQueryReturnType<T> = {data: T; isLoading: boolean};
+export type UseSpansQueryReturnType<T> = {
+  data: T;
+  isLoading: boolean;
+  pageLinks?: string;
+};
 
 export function useSpansQuery<T = any[]>({
   eventView,
-  queryString,
   initialData,
-  forceUseDiscover,
+  limit,
   enabled,
+  referrer = 'use-spans-query',
+  cursor,
 }: {
+  cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
-  forceUseDiscover?: boolean;
   initialData?: any;
-  queryString?: string;
+  limit?: number;
+  referrer?: string;
 }): UseSpansQueryReturnType<T> {
-  const {options} = useStarfishOptions();
-  const {useDiscover} = options;
   const queryFunction = getQueryFunction({
-    useDiscover: forceUseDiscover ?? useDiscover,
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
-  if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
-    if (eventView) {
-      return queryFunction({eventView, initialData, enabled});
-    }
-    throw new Error(
-      'eventView argument must be defined when Starfish useDiscover is true'
-    );
+  if (eventView) {
+    return queryFunction({eventView, initialData, limit, enabled, referrer, cursor});
   }
-
-  if (queryString) {
-    return queryFunction({queryString, initialData, enabled});
-  }
-  throw new Error(
-    'queryString argument must be defined when Starfish useDiscover is false, ie when using scraped data via fetch API'
-  );
-}
-
-function isDiscoverFunction(
-  queryFunction: Function
-): queryFunction is typeof useWrappedDiscoverQuery {
-  return queryFunction === useWrappedDiscoverQuery;
-}
-
-function isDiscoverTimeseriesFunction(
-  queryFunction: Function
-): queryFunction is typeof useWrappedDiscoverTimeseriesQuery {
-  return queryFunction === useWrappedDiscoverTimeseriesQuery;
-}
-
-export function useWrappedQuery({
-  queryString,
-  initialData,
-  enabled,
-}: {
-  queryString: string;
-  enabled?: boolean;
-  initialData?: any;
-}) {
-  const {isLoading, data} = useQuery({
-    queryKey: [queryString],
-    queryFn: () => fetch(`${HOST}/?query=${queryString}`).then(res => res.json()),
-    retry: false,
-    initialData,
-    enabled,
-    refetchOnWindowFocus: false,
-  });
-  return {isLoading, data};
+  throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
 export function useWrappedDiscoverTimeseriesQuery({
@@ -90,8 +47,10 @@ export function useWrappedDiscoverTimeseriesQuery({
   enabled,
   initialData,
   referrer,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   initialData?: any;
   referrer?: string;
@@ -112,10 +71,11 @@ export function useWrappedDiscoverTimeseriesQuery({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
-      excludeOther: 1,
+      excludeOther: 0,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      cursor,
     }),
     options: {
       enabled,
@@ -135,37 +95,45 @@ export function useWrappedDiscoverTimeseriesQuery({
 export function useWrappedDiscoverQuery({
   eventView,
   initialData,
+  enabled,
   referrer,
+  limit,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
+  enabled?: boolean;
   initialData?: any;
+  limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data} = useDiscoverQuery({
+  const {isLoading, data, pageLinks} = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
     referrer,
+    cursor,
+    limit,
+    options: {
+      enabled,
+      refetchOnWindowFocus: false,
+    },
   });
-  return {isLoading, data: isLoading && initialData ? initialData : data?.data};
+  return {
+    isLoading,
+    data: isLoading && initialData ? initialData : data?.data,
+    pageLinks,
+  };
 }
 
-function getQueryFunction({
-  useDiscover,
-  isTimeseriesQuery,
-}: {
-  useDiscover: boolean;
-  isTimeseriesQuery?: boolean;
-}) {
-  if (useDiscover) {
-    if (isTimeseriesQuery) {
-      return useWrappedDiscoverTimeseriesQuery;
-    }
-    return useWrappedDiscoverQuery;
+function getQueryFunction({isTimeseriesQuery}: {isTimeseriesQuery?: boolean}) {
+  if (isTimeseriesQuery) {
+    return useWrappedDiscoverTimeseriesQuery;
   }
-  return useWrappedQuery;
+
+  return useWrappedDiscoverQuery;
 }
 
 type Interval = {[key: string]: any; interval: string; group?: string};

@@ -105,16 +105,13 @@ from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallati
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    organizationmember_mapping_service,
-)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
-from sentry.utils.performance_issues.performance_detection import PerformanceProblem
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -265,7 +262,7 @@ class Factories:
     @exempt_from_silo_limits()
     def create_organization(name=None, owner=None, **kwargs):
         if not name:
-            name = petname.Generate(2, " ", letters=10).title()
+            name = petname.generate(2, " ", letters=10).title()
 
         org = Organization.objects.create(name=name, **kwargs)
 
@@ -278,12 +275,13 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_org_mapping(org, **kwds):
-        kwds.setdefault("organization_id", org.id)
-        kwds.setdefault("slug", org.slug)
-        kwds.setdefault("name", org.name)
-        kwds.setdefault("idempotency_key", uuid4().hex)
-        kwds.setdefault("region_name", "test-region")
+    def create_org_mapping(org=None, **kwds):
+        if org:
+            kwds.setdefault("organization_id", org.id)
+            kwds.setdefault("slug", org.slug)
+            kwds.setdefault("name", org.name)
+            kwds.setdefault("idempotency_key", uuid4().hex)
+            kwds.setdefault("region_name", "na")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
@@ -308,8 +306,7 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        om.outbox_for_create().drain_shard(max_updates_to_drain=10)
-        organizationmember_mapping_service.create_with_organization_member(org_member=om)
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if team_roles:
             for team, role in team_roles:
@@ -344,7 +341,7 @@ class Factories:
     @exempt_from_silo_limits()
     def create_team(organization, **kwargs):
         if not kwargs.get("name"):
-            kwargs["name"] = petname.Generate(2, " ", letters=10).title()
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
             kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
@@ -358,7 +355,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_environment(project, **kwargs):
-        name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
+        name = kwargs.get("name", petname.generate(3, " ", letters=10)[:64])
 
         organization = kwargs.get("organization")
         organization_id = organization.id if organization else project.organization_id
@@ -371,7 +368,7 @@ class Factories:
     @exempt_from_silo_limits()
     def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
         if not kwargs.get("name"):
-            kwargs["name"] = petname.Generate(2, " ", letters=10).title()
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
             kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
@@ -574,7 +571,12 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_artifact_bundle(
-        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
+        cls,
+        org,
+        bundle_id=None,
+        artifact_count=0,
+        fixture_path="artifact_bundle_debug_ids",
+        date_uploaded=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -586,7 +588,7 @@ class Factories:
         # mock it with an arbitrary value.
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=org.id,
-            bundle_id=uuid4(),
+            bundle_id=bundle_id or uuid4(),
             file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
@@ -615,7 +617,7 @@ class Factories:
         repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
-            or "{}-{}".format(petname.Generate(2, "", letters=10), random.randint(1000, 9999)),
+            or "{}-{}".format(petname.generate(2, "", letters=10), random.randint(1000, 9999)),
             provider=provider,
             integration_id=integration_id,
             url=url,
@@ -912,7 +914,7 @@ class Factories:
     def _sentry_app_kwargs(**kwargs):
         _kwargs = {
             "user": kwargs.get("user", Factories.create_user()),
-            "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+            "name": kwargs.get("name", petname.generate(2, " ", letters=10).title()),
             "organization_id": kwargs.get(
                 "organization_id", kwargs.pop("organization", Factories.create_organization()).id
             ),
@@ -1087,7 +1089,7 @@ class Factories:
     @staticmethod
     def _doc_integration_kwargs(**kwargs):
         _kwargs = {
-            "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+            "name": kwargs.get("name", petname.generate(2, " ", letters=10).title()),
             "author": kwargs.get("author", "me"),
             "description": kwargs.get("description", "hi im a description"),
             "url": kwargs.get("url", "https://sentry.io"),
@@ -1208,7 +1210,7 @@ class Factories:
         alert_rule=None,
     ):
         if not title:
-            title = petname.Generate(2, " ", letters=10).title()
+            title = petname.generate(2, " ", letters=10).title()
         if alert_rule is None:
             alert_rule = Factories.create_alert_rule(
                 organization, projects, query=query, time_window=1
@@ -1265,7 +1267,7 @@ class Factories:
         comparison_delta=None,
     ):
         if not name:
-            name = petname.Generate(2, " ", letters=10).title()
+            name = petname.generate(2, " ", letters=10).title()
 
         if query_type is None:
             query_type = query_datasets_to_type[dataset]
@@ -1300,7 +1302,7 @@ class Factories:
     @exempt_from_silo_limits()
     def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
-            label = petname.Generate(2, " ", letters=10).title()
+            label = petname.generate(2, " ", letters=10).title()
 
         return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 

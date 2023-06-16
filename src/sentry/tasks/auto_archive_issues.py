@@ -7,12 +7,12 @@ from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.models import (
     Activity,
     Group,
     GroupHistoryStatus,
     GroupStatus,
-    ObjectStatus,
     Organization,
     OrganizationStatus,
     Project,
@@ -34,7 +34,7 @@ ITERATOR_CHUNK = 10_000
     name="sentry.tasks.auto_archive_issues.run_auto_archive",
     queue="auto_transition_issue_states",
     max_retries=3,
-)  # type: ignore
+)
 @retry
 @monitor(monitor_slug="auto-archive-job-monitor")
 def run_auto_archive() -> None:
@@ -62,7 +62,7 @@ def run_auto_archive() -> None:
     default_retry_delay=60,
     time_limit=25 * 60,
     soft_time_limit=20 * 60,
-)  # type: ignore
+)
 @retry
 def run_auto_archive_for_project(project_ids: List[int]) -> None:
     now = datetime.now(tz=pytz.UTC)

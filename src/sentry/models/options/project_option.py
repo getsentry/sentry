@@ -8,7 +8,6 @@ from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -121,6 +120,8 @@ class ProjectOptionManager(OptionManager["Project"]):
         return values
 
     def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
+        from sentry.tasks.relay import schedule_invalidate_project_config
+
         if update_reason != "projectoption.get_all_values":
             schedule_invalidate_project_config(project_id=project_id, trigger=update_reason)
         cache_key = self._make_key(project_id)
@@ -137,7 +138,7 @@ class ProjectOptionManager(OptionManager["Project"]):
 
 
 @region_silo_only_model
-class ProjectOption(Model):  # type: ignore
+class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.
 

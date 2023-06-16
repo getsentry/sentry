@@ -12,6 +12,7 @@ from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -39,6 +40,9 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    mark_organization_as_pending_deletion_with_outbox_message,
+)
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -189,6 +193,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_sensitiveFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
     def validate_safeFields(self, value):
@@ -561,22 +567,24 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
 
         with transaction.atomic():
-            updated = Organization.objects.filter(
-                id=organization.id, status=OrganizationStatus.ACTIVE
-            ).update(status=OrganizationStatus.PENDING_DELETION)
-            if updated:
-                organization.status = OrganizationStatus.PENDING_DELETION
+            updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=organization.id
+            )
+
+            if updated_organization is not None:
                 schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
                 entry = self.create_audit_entry(
                     request=request,
-                    organization=organization,
-                    target_object=organization.id,
+                    organization=updated_organization,
+                    target_object=updated_organization.id,
                     event=audit_log.get_event_id("ORG_REMOVE"),
-                    data=organization.get_audit_log_data(),
+                    data=updated_organization.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
-                organization.send_delete_confirmation(entry, ONE_DAY)
-                Organization.objects.uncache_object(organization.id)
+                updated_organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(updated_organization.id)
+
+            organization.status = OrganizationStatus.PENDING_DELETION
         context = serialize(
             organization,
             request.user,

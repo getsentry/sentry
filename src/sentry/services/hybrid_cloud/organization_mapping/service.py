@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import Optional, cast
 
-from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
@@ -39,7 +38,7 @@ class OrganizationMappingService(RpcService):
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
         user: Optional[int] = None,
-    ) -> RpcOrganizationMapping:
+    ) -> Optional[RpcOrganizationMapping]:
         """
         This method returns a new or recreated OrganizationMapping object.
         If a record already exists with the same slug, the organization_id can only be
@@ -56,9 +55,6 @@ class OrganizationMappingService(RpcService):
         """
         pass
 
-    def close(self) -> None:
-        pass
-
     @rpc_method
     @abstractmethod
     def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
@@ -68,7 +64,7 @@ class OrganizationMappingService(RpcService):
     @abstractmethod
     def upsert(
         self, *, organization_id: int, update: RpcOrganizationMappingUpdate
-    ) -> OrganizationMapping:
+    ) -> RpcOrganizationMapping:
         pass
 
     @rpc_method

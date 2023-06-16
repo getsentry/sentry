@@ -1,10 +1,11 @@
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
-import {formatPercentage} from 'sentry/utils/formatters';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {DataTitles, getTooltip} from 'sentry/views/starfish/views/spans/types';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
@@ -14,25 +15,25 @@ type Props = {
 function SampleInfo(props: Props) {
   const {groupId, transactionName} = props;
 
-  const {data: spanMetrics} = useSpanTransactionMetrics({group_id: groupId}, [
-    transactionName,
-  ]);
-  const {data: applicationMetrics} = useApplicationMetrics();
-  const spm = spanMetrics[transactionName]?.spm;
-  const p95 = spanMetrics[transactionName]?.p95;
-  const span_total_time = spanMetrics[transactionName]?.total_time;
-  const application_total_time = applicationMetrics['sum(span.duration)'];
-
-  const tooltip = getTooltip('timeSpent', span_total_time, application_total_time);
+  const {data: spanMetrics} = useSpanMetrics(
+    {group: groupId},
+    {transactionName},
+    [
+      'sps()',
+      `sum(${SPAN_SELF_TIME})`,
+      `p95(${SPAN_SELF_TIME})`,
+      'time_spent_percentage(local)',
+    ],
+    'span-summary-panel-metrics'
+  );
 
   return (
     <BlockContainer>
-      <Block title={t('Throughput')}>{spm?.toFixed(2)} / min</Block>
-      <Block title={DataTitles.p95}>{p95?.toFixed(2)} ms</Block>
-      <Block title={DataTitles.timeSpent}>
-        <Tooltip title={tooltip}>
-          {formatPercentage(span_total_time / application_total_time)}
-        </Tooltip>
+      <Block title={DataTitles.throughput}>
+        <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
+      </Block>
+      <Block title={DataTitles.p95}>
+        <DurationCell milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]} />
       </Block>
     </BlockContainer>
   );

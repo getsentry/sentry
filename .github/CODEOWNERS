@@ -13,6 +13,7 @@
 
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
+/src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
 /src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
@@ -78,7 +79,7 @@ mypy.ini                                                 @getsentry/python-typin
 /.github/workflows/release.yml                           @getsentry/release-approvers
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
-/docker                                                  @getsentry/release-approvers
+/self-hosted                                             @getsentry/release-approvers
 setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
@@ -415,10 +416,12 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Issues
 /src/sentry/event_manager.py                        @getsentry/issues
+/src/sentry/grouping/                               @getsentry/issues
 /src/sentry/issues/                                 @getsentry/issues
 /src/sentry/tasks/post_process.py                   @getsentry/issues
 /src/sentry/types/issues.py                         @getsentry/issues
 /tests/sentry/event_manager/test_event_manager.py   @getsentry/issues
+/tests/sentry/grouping/                             @getsentry/issues
 /tests/sentry/issues/                               @getsentry/issues
 /tests/sentry/search/                               @getsentry/issues
 /tests/sentry/tasks/test_post_process.py            @getsentry/issues

@@ -31,6 +31,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ProfilesSnubaTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
@@ -61,7 +62,9 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase as DjangoTestCase
+from django.test import TransactionTestCase as DjangoTransactionTestCase
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -74,7 +77,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -110,12 +113,14 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     Organization,
+    OrganizationMember,
     Project,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
     RuleSource,
+    User,
     UserEmail,
     UserOption,
 )
@@ -129,6 +134,7 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
+    SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -149,6 +155,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.actor import RpcActor
+from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -161,14 +168,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import (
-    AuthProvider,
-    Feature,
-    TaskRunner,
-    apply_feature_flag_on_cls,
-    override_options,
-    parse_queries,
-)
+from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 from .silo import exempt_from_silo_limits
 from .skips import requires_snuba
 
@@ -268,6 +268,10 @@ class BaseTestCase(Fixtures):
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
+        if isinstance(user, OrganizationMember):
+            with exempt_from_silo_limits():
+                user = User.objects.get(id=user.user_id)
+
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
@@ -418,7 +422,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
-class TestCase(BaseTestCase, TestCase):
+class TestCase(BaseTestCase, DjangoTestCase):
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -487,7 +491,7 @@ class TestCase(BaseTestCase, TestCase):
             yield
 
 
-class TransactionTestCase(BaseTestCase, TransactionTestCase):
+class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     pass
 
 
@@ -503,6 +507,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         noise_limit=0,
         project_id=None,
         detector_option="performance.issues.n_plus_one_db.problem-creation",
+        user_data=None,
     ):
         if issue_type is None:
             issue_type = PerformanceNPlusOneGroupType
@@ -519,6 +524,8 @@ class PerformanceIssueTestCase(BaseTestCase):
             event_data["transaction"] = transaction
         if project_id is None:
             project_id = self.project.id
+        if user_data:
+            event_data["user"] = user_data
 
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -969,11 +976,14 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
+        with exempt_from_silo_limits():
+            rpc_organization = serialize_rpc_organization(self.organization)
+
         self.login_as(self.user)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
         self.pipeline = IntegrationPipeline(
-            request=self.request, organization=self.organization, provider_key=self.provider.key
+            request=self.request, organization=rpc_organization, provider_key=self.provider.key
         )
 
         self.init_path = reverse(
@@ -1416,6 +1426,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         if (parsed_mri := parse_mri(mri_string)) is not None:
             return self.ENTITY_SHORTHANDS[parsed_mri.entity]
+        else:
+            return None
 
     def _store_metric(
         self,
@@ -1592,6 +1604,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
+        "span.duration": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1638,6 +1651,46 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
+        if tags is None:
+            tags = {}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
+
+        if not isinstance(value, list):
+            value = [value]
+        for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                self.TYPE_MAP[entity],
+                internal_metric,
+                tags,
+                int(metric_timestamp),
+                subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    def store_span_metric(
+        self,
+        value: List[int] | int,
+        metric: str = "span.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+        project: Optional[id] = None,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,  # TODO(wmak): this needs to be the span id
+    ):
+        internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
@@ -1748,6 +1801,83 @@ class OutcomesSnubaTest(TestCase):
             ).status_code
             == 200
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class ProfilesSnubaTestCase(
+    TestCase,
+    BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
+):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
+
+    def store_functions(
+        self,
+        functions,
+        project,
+        transaction=None,
+        extras=None,
+        timestamp=None,
+    ):
+        if timestamp is None:
+            timestamp = before_now(minutes=10)
+
+        if transaction is None:
+            transaction = load_data("transaction", timestamp=timestamp)
+
+        profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
+        if profile_context.get("profile_id") is None:
+            profile_context["profile_id"] = uuid4().hex
+        profile_id = profile_context.get("profile_id")
+
+        timestamp = transaction["timestamp"]
+
+        self.store_event(transaction, project_id=project.id)
+
+        functions = [
+            {**function, "fingerprint": self.function_fingerprint(function)}
+            for function in functions
+        ]
+
+        functions_payload = {
+            "project_id": project.id,
+            "profile_id": profile_id,
+            "transaction_name": transaction["transaction"],
+            # the transaction platform doesn't quite match the
+            # profile platform, but should be fine for tests
+            "platform": transaction["platform"],
+            "functions": functions,
+            "timestamp": timestamp,
+            # TODO: should reflect the org
+            "retention_days": 90,
+        }
+
+        if extras is not None:
+            functions_payload.update(extras)
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/functions/insert", json=[functions_payload]
+        )
+        assert response.status_code == 200
+
+        return {
+            "transaction": transaction,
+            "functions": functions,
+        }
+
+    def function_fingerprint(self, function):
+        # this is a different hashing algorithm than is used by vroom
+        # but it's not a big deal
+        hasher = hashlib.md5()
+        if function.get("package") is not None:
+            hasher.update(function["package"].encode())
+        else:
+            hasher.update(b"")
+        hasher.update(b":")
+        hasher.update(function["function"].encode())
+        return int(hasher.hexdigest()[:16], 16)
 
 
 @pytest.mark.snuba
@@ -2280,7 +2410,6 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     def build_and_store_session(
@@ -2401,6 +2530,7 @@ class MonitorTestCase(APITestCase):
             conditions=[],
             actions=[],
             frequency=5,
+            environment=self.environment.id,
         ).call()
         rule.update(source=RuleSource.CRON_MONITOR)
 

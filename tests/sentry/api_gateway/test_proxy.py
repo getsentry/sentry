@@ -8,7 +8,7 @@ from django.test.client import RequestFactory
 from rest_framework.exceptions import NotFound
 
 from sentry.api_gateway.proxy import proxy_request
-from sentry.silo.util import INVALID_OUTBOUND_HEADERS
+from sentry.silo.util import INVALID_OUTBOUND_HEADERS, PROXY_DIRECT_LOCATION_HEADER
 from sentry.testutils.helpers.api_gateway import (
     SENTRY_REGION_CONFIG,
     ApiGatewayTestCase,
@@ -30,8 +30,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp_json["proxy"]
         assert resp.has_header("test")
         assert resp["test"] == "header"
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/get"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/get"
 
         request = RequestFactory().get("http://sentry.io/error")
         resp = proxy_request(request, self.organization.slug)
@@ -40,8 +40,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp_json["proxy"]
         assert resp.has_header("test")
         assert resp["test"] == "header"
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/error"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/error"
 
     @responses.activate
     def test_query_params(self, _):
@@ -82,8 +82,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/post"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/post"
 
     @responses.activate
     def test_put(self, _):
@@ -102,8 +102,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/put"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/put"
 
     @responses.activate
     def test_patch(self, _):
@@ -122,8 +122,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/patch"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/patch"
 
     @responses.activate
     def test_head(self, _):
@@ -142,8 +142,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/head"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/head"
 
     @responses.activate
     def test_delete(self, _):
@@ -162,8 +162,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
-        assert resp.has_header("X-Sentry-Proxy-URL")
-        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/delete"
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+        assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://region1.testserver/delete"
 
     @responses.activate
     def test_file_upload(self, _):

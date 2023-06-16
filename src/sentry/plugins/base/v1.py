@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ("Plugin",)
 
 import logging
@@ -7,12 +9,14 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth import access
+from sentry.models import Project
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.utils.hashlib import md5_text
 
 
@@ -86,7 +90,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     def get_plugin_type(self):
         return "default"
 
-    def is_enabled(self, project=None):
+    def is_enabled(self, project: Project | RpcProject | None = None):
         """
         Returns a boolean representing if this plugin is enabled.
 

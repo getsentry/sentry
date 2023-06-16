@@ -295,44 +295,42 @@ def patch_transport_for_instrumentation(transport, transport_name):
 
 
 def configure_sdk():
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-    from sentry_sdk.integrations.threading import ThreadingIntegration
-
+    """
+    Setup and initialize the Sentry SDK.
+    """
     assert sentry_sdk.Hub.main.client is None
 
     sdk_options = dict(settings.SENTRY_SDK_CONFIG)
-
-    relay_dsn = sdk_options.pop("relay_dsn", None)
-    experimental_dsn = sdk_options.pop("experimental_dsn", None)
-    internal_project_key = get_project_key()
-    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
-    upstream_dsn = sdk_options.pop("dsn", None)
+    sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
-    sdk_options["send_client_reports"] = True
-    sdk_options["before_send_transaction"] = before_send_transaction
 
-    if upstream_dsn:
-        transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
-        upstream_transport = patch_transport_for_instrumentation(transport, "upstream")
+    internal_project_key = get_project_key()
+
+    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
+    sentry4sentry_dsn = sdk_options.pop("dsn", None)
+    sentry_saas_dsn = sdk_options.pop("relay_dsn", None)
+    experimental_dsn = sdk_options.pop("experimental_dsn", None)
+
+    if sentry4sentry_dsn:
+        transport = make_transport(get_options(dsn=sentry4sentry_dsn, **sdk_options))
+        sentry4sentry_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
-        upstream_transport = None
+        sentry4sentry_transport = None
 
-    if relay_dsn:
-        transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
-        relay_transport = patch_transport_for_instrumentation(transport, "relay")
+    if sentry_saas_dsn:
+        transport = make_transport(get_options(dsn=sentry_saas_dsn, **sdk_options))
+        sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
-        relay_transport = None
+        sentry_saas_transport = None
     elif internal_project_key and internal_project_key.dsn_private:
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
-        relay_transport = patch_transport_for_instrumentation(transport, "relay")
+        sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
-        relay_transport = None
+        sentry_saas_transport = None
 
     if experimental_dsn:
         transport = make_transport(get_options(dsn=experimental_dsn, **sdk_options))
@@ -345,6 +343,12 @@ def configure_sdk():
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
+        """
+        Sends all envelopes and events to two Sentry instances:
+        - Sentry SaaS (aka Sentry.io) and
+        - Sentry4Sentry (aka S4S)
+        """
+
         def capture_envelope(self, envelope):
             # Temporarily capture envelope counts to compare to ingested
             # transactions.
@@ -378,19 +382,19 @@ def configure_sdk():
                     # Experimental events should not be sent to other transports even if they are not sampled.
                     return
 
-            # Upstream should get the event first because it is most isolated from
-            # the this sentry installation.
-            if upstream_transport:
+            # Sentry4Sentry (upstream) should get the event first because
+            # it is most isolated from the this sentry installation.
+            if sentry4sentry_transport:
                 metrics.incr("internal.captured.events.upstream")
                 # TODO(mattrobenolt): Bring this back safely.
                 # from sentry import options
                 # install_id = options.get('sentry:install-id')
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
-                getattr(upstream_transport, method_name)(*args, **kwargs)
+                getattr(sentry4sentry_transport, method_name)(*args, **kwargs)
 
-            if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-                # If this is a envelope ensure envelope and it's items are distinct references
+            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+                # If this is an envelope ensure envelope and it's items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
                     envelope = args_list[0]
@@ -400,7 +404,7 @@ def configure_sdk():
 
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
-                    getattr(relay_transport, method_name)(*args, **kwargs)
+                    getattr(sentry_saas_transport, method_name)(*args, **kwargs)
                 else:
                     metrics.incr(
                         "internal.uncaptured.events.relay",
@@ -408,10 +412,16 @@ def configure_sdk():
                         tags={"reason": "unsafe"},
                     )
 
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.threading import ThreadingIntegration
+
     sentry_sdk.init(
-        # set back the upstream_dsn popped above since we need a default dsn on the client
+        # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
-        dsn=upstream_dsn,
+        dsn=sentry4sentry_dsn,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
@@ -546,6 +556,8 @@ def check_current_scope_transaction(
                 "scope_transaction": scope._transaction,
                 "request_transaction": transaction_from_request,
             }
+        else:
+            return None
 
 
 def capture_exception_with_scope_check(
@@ -653,3 +665,37 @@ def merge_context_into_scope(
 
     existing_context = scope._contexts.setdefault(context_name, {})
     existing_context.update(context_data)
+
+
+__all__ = (
+    "EXPERIMENT_TAG",
+    "LEGACY_RESOLVER",
+    "RavenShim",
+    "Scope",
+    "UNSAFE_FILES",
+    "UNSAFE_TAG",
+    "before_send_transaction",
+    "bind_ambiguous_org_context",
+    "bind_organization_context",
+    "capture_exception",
+    "capture_exception_with_scope_check",
+    "capture_message",
+    "check_current_scope_transaction",
+    "check_tag",
+    "configure_scope",
+    "configure_sdk",
+    "get_options",
+    "get_project_key",
+    "get_transaction_name_from_request",
+    "is_current_event_experimental",
+    "is_current_event_safe",
+    "make_transport",
+    "mark_scope_as_experimental",
+    "mark_scope_as_unsafe",
+    "merge_context_into_scope",
+    "patch_transport_for_instrumentation",
+    "push_scope",
+    "set_current_event_project",
+    "set_measurement",
+    "traces_sampler",
+)

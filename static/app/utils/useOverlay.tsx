@@ -1,25 +1,28 @@
 import {useMemo, useRef, useState} from 'react';
 import {PopperProps, usePopper} from 'react-popper';
-import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
-import {useButton} from '@react-aria/button';
+import {detectOverflow, Modifier} from '@popperjs/core';
+import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';
+import type {FlipModifier} from '@popperjs/core/lib/modifiers/flip';
+import type {PreventOverflowModifier} from '@popperjs/core/lib/modifiers/preventOverflow';
+import {useButton as useButtonAria} from '@react-aria/button';
 import {
-  OverlayProps,
+  AriaOverlayProps,
   OverlayTriggerProps,
-  useOverlay as useAriaOverlay,
-  useOverlayTrigger,
+  useOverlay as useOverlayAria,
+  useOverlayTrigger as useOverlayTriggerAria,
 } from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
-import {useOverlayTriggerState} from '@react-stately/overlays';
-import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
-
-type PreventOverflowOptions = NonNullable<(typeof preventOverflow)['options']>;
+import {
+  OverlayTriggerProps as OverlayTriggerStateProps,
+  useOverlayTriggerState,
+} from '@react-stately/overlays';
 
 /**
  * PopperJS modifier to change the popper element's width/height to prevent
  * overflowing. Based on
  * https://github.com/atomiks/popper.js/blob/master/src/modifiers/maxSize.js
  */
-const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
+const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options']>> = {
   name: 'maxSize',
   phase: 'main',
   requiresIfExists: ['offset', 'preventOverflow', 'flip'],
@@ -72,14 +75,24 @@ const applyMaxSize: Modifier<'applyMaxSize', {}> = {
 };
 
 export interface UseOverlayProps
-  extends Partial<OverlayProps>,
+  extends Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
+  /**
+   * Options to pass to the `arrow` modifier.
+   */
+  arrowOptions?: ArrowModifier['options'];
   disableTrigger?: boolean;
   /**
-   * Offset along the main axis.
+   * Options to pass to the `flip` modifier.
    */
-  offset?: number;
+  flipOptions?: FlipModifier['options'];
+  /**
+   * Offset value. If a single number, determines the _distance_ along the main axis. If
+   * an array of two numbers, the first number determines the _skidding_ along the alt
+   * axis, and the second determines the _distance_ along the main axis.
+   */
+  offset?: number | [number, number];
   /**
    * To be called when the overlay closes because of a user interaction (click) outside
    * the overlay. Note: this won't be called when the user presses Escape to dismiss.
@@ -89,7 +102,10 @@ export interface UseOverlayProps
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
-  preventOverflowOptions?: PreventOverflowOptions;
+  /**
+   * Options to pass to the `preventOverflow` modifier.
+   */
+  preventOverflowOptions?: PreventOverflowModifier['options'];
 }
 
 function useOverlay({
@@ -100,6 +116,8 @@ function useOverlay({
   type = 'dialog',
   offset = 8,
   position = 'top',
+  arrowOptions = {},
+  flipOptions = {},
   preventOverflowOptions = {},
   isDismissable = true,
   shouldCloseOnBlur = false,
@@ -109,7 +127,7 @@ function useOverlay({
   disableTrigger,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
-  const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
 
@@ -151,6 +169,7 @@ function useOverlay({
           // Set padding to avoid the arrow reaching the side of the tooltip
           // and overflowing out of the rounded border
           padding: 4,
+          ...arrowOptions,
         },
       },
       {
@@ -158,12 +177,13 @@ function useOverlay({
         options: {
           // Only flip on main axis
           flipVariations: false,
+          ...flipOptions,
         },
       },
       {
         name: 'offset',
         options: {
-          offset: [0, offset],
+          offset: Array.isArray(offset) ? offset : [0, offset],
         },
       },
       {
@@ -187,7 +207,7 @@ function useOverlay({
         enabled: openState.isOpen,
       },
     ],
-    [arrowElement, offset, preventOverflowOptions, openState]
+    [arrowElement, offset, arrowOptions, flipOptions, preventOverflowOptions, openState]
   );
   const {
     styles: popperStyles,
@@ -196,19 +216,20 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const {buttonProps} = useButton(
-    {onPress: openState.toggle, isDisabled: disableTrigger},
-    triggerRef
-  );
-  const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
+  const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
     {type},
     openState,
+    triggerRef
+  );
+  const {buttonProps: triggerAriaProps} = useButtonAria(
+    {...triggerProps, isDisabled: disableTrigger},
     triggerRef
   );
 
   // Get props for overlay element
   const interactedOutside = useRef(false);
-  const {overlayProps} = useAriaOverlay(
+  const interactOutsideTrigger = useRef<HTMLButtonElement | null>(null);
+  const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
         onClose?.();
@@ -216,6 +237,9 @@ function useOverlay({
         if (interactedOutside.current) {
           onInteractOutside?.();
           interactedOutside.current = false;
+
+          interactOutsideTrigger.current?.click();
+          interactOutsideTrigger.current = null;
         }
 
         openState.close();
@@ -231,6 +255,18 @@ function useOverlay({
           !triggerRef.current?.contains(target) &&
           (shouldCloseOnInteractOutside?.(target) ?? true)
         ) {
+          // Check if the target is inside a different overlay trigger. If yes, then we
+          // should activate that trigger after this overlay has closed (see the onClose
+          // prop above). This allows users to quickly jump between adjacent overlays.
+          const closestOverlayTrigger = target.closest?.<HTMLButtonElement>(
+            'button[aria-expanded="false"]'
+          );
+          if (closestOverlayTrigger && closestOverlayTrigger !== triggerRef.current) {
+            interactOutsideTrigger.current = closestOverlayTrigger;
+          } else {
+            interactOutsideTrigger.current = null;
+          }
+
           interactedOutside.current = true;
           return true;
         }
@@ -247,13 +283,13 @@ function useOverlay({
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
-      ...mergeProps(buttonProps, triggerProps),
+      ...triggerAriaProps,
     },
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,
       style: popperStyles.popper,
-      ...mergeProps(overlayTriggerProps, overlayProps),
+      ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {
       ref: setArrowElement,

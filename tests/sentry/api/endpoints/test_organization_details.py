@@ -13,15 +13,14 @@ from rest_framework import status
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.auth.authenticators import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
     AuthProvider,
     DeletedOrganization,
-    ObjectStatus,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
@@ -268,6 +267,11 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         ):
             response = self.get_success_response(org.slug)
             assert not response.data["isDynamicallySampled"]
+
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
+        assert resp.status_code == 400
 
 
 @region_silo_test
@@ -885,7 +889,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
@@ -893,9 +897,32 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        scheduled_deletions = ScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
-        ).exists()
+        )
+        assert scheduled_deletions.exists()
+        assert scheduled_deletions.count() == 1
+
+    def test_update_org_mapping_on_deletion(self):
+        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert org_mapping.status == OrganizationStatus.ACTIVE
+        with self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=self.organization.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        org_mapping.refresh_from_db()
+        assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
+    def test_organization_does_not_exist(self):
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
+
+        self.get_error_response("nonexistent-slug", status_code=404)
 
 
 @region_silo_test

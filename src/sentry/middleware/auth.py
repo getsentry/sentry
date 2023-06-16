@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
@@ -14,7 +16,6 @@ from sentry.services.hybrid_cloud.auth import auth_service, authentication_reque
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
-from sentry.utils.types import Any
 
 
 def get_user(request):

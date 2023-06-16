@@ -22,7 +22,7 @@ import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {
   platformToPerformanceType,
-  PROJECT_PERFORMANCE_TYPE,
+  ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
@@ -90,7 +90,7 @@ function EventsContent(props: Props) {
   }
 
   const platform = platformToPerformanceType(projects, eventView.project);
-  if (platform === PROJECT_PERFORMANCE_TYPE.BACKEND) {
+  if (platform === ProjectPerformanceType.BACKEND) {
     const userIndex = transactionsListTitles.indexOf('user');
     if (userIndex > 0) {
       transactionsListTitles.splice(userIndex + 1, 0, 'http.method');

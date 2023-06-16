@@ -91,18 +91,24 @@ ISSUE_PLATFORM_MAP = {
 }
 
 SPAN_COLUMN_MAP = {
+    # These are deprecated, keeping them for now while we migrate the frontend
     "action": "action",
     "description": "description",
     "domain": "domain",
     "group": "group",
-    "id": "span_id",
     "module": "module",
+    "id": "span_id",
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "span.action": "action",
+    "span.description": "description",
+    "span.domain": "domain",
     "span.duration": "duration",
-    "span.self_time": "exclusive_time",
+    "span.group": "group",
+    "span.module": "module",
     "span.op": "op",
+    "span.self_time": "exclusive_time",
     "span.status": "span_status",
     "timestamp": "timestamp",
     "trace": "trace_id",
@@ -817,7 +823,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
-        hashable = json.dumps(query, sort_keys=True)
+        hashable = json.dumps(query)
 
     # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"

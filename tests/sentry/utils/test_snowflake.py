@@ -82,6 +82,7 @@ class SnowflakeUtilsTest(TestCase):
                     if s == segment:
                         return value & ((1 << s.length) - 1)
                     value >>= s.length
+                raise AssertionError("unreachable")
 
             assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].snowflake_id
             assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].snowflake_id

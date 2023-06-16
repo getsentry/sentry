@@ -20,10 +20,10 @@ from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector imp
 )
 from sentry.utils.performance_issues.performance_detection import (
     DetectorType,
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 @region_silo_test

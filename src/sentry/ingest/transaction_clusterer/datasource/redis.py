@@ -20,7 +20,7 @@ from sentry.utils.safe import safe_execute
 
 #: Maximum number of transaction names per project that we want
 #: to store in redis.
-MAX_SET_SIZE = 2000
+MAX_SET_SIZE = 4000
 
 #: Retention of a set.
 #: Remove the set if it has not received any updates for 24 hours.
@@ -47,7 +47,7 @@ def get_redis_client() -> Any:
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
     prefix = namespace.value.data
-    return client.scan_iter(match=f"{prefix}:*")  # type: ignore
+    return client.scan_iter(match=f"{prefix}:*")
 
 
 def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
@@ -78,7 +78,7 @@ def get_transaction_names(project: Project) -> Iterator[str]:
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
-    return client.sscan_iter(redis_key)  # type: ignore
+    return client.sscan_iter(redis_key)
 
 
 def clear_transaction_names(project: Project) -> None:
@@ -146,7 +146,7 @@ def get_span_descriptions(project: Project) -> Iterator[str]:
     """Return all span descriptions stored for the given project."""
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    return client.sscan_iter(redis_key)  # type: ignore
+    return client.sscan_iter(redis_key)
 
 
 def clear_span_descriptions(project: Project) -> None:

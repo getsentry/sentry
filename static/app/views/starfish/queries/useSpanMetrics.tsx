@@ -1,59 +1,62 @@
-import {useQuery} from 'sentry/utils/queryClient';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import {Location} from 'history';
 
-const INTERVAL = 12;
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
-  count: number;
-  first_seen: string;
-  last_seen: string;
-  p50: number;
-  p95: number;
-  spm: number;
-  total_time: number;
+  [metric: string]: number;
 };
 
 export const useSpanMetrics = (
-  span?: Pick<Span, 'group_id'>,
+  span?: Pick<IndexedSpan, 'group'>,
   queryFilters: {transactionName?: string} = {},
-  referrer = 'span-metrics'
+  fields: string[] = [],
+  referrer: string = 'span-metrics'
 ) => {
-  const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const location = useLocation();
+
   const filters: string[] = [];
   if (queryFilters.transactionName) {
     filters.push(`transaction = ${queryFilters.transactionName}`);
   }
 
-  const query = span
-    ? `
-  SELECT
-  count() as count,
-  min(timestamp) as first_seen,
-  max(timestamp) as last_seen,
-  sum(exclusive_time) as total_time,
-  quantile(0.5)(exclusive_time) as p50,
-  quantile(0.5)(exclusive_time) as p95,
-  divide(count, multiply(${INTERVAL}, 60)) as spm
-  FROM spans_experimental_starfish
-  WHERE group_id = '${span.group_id}'
-  ${dateFilters}
-  ${filters.join(' AND ')}`
-    : '';
+  const eventView = span
+    ? getEventView(span, location, queryFilters.transactionName, fields)
+    : undefined;
 
-  const {isLoading, error, data} = useQuery<SpanMetrics[]>({
-    queryKey: ['span-metrics', span?.group_id, dateFilters],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
-    retry: false,
+  // TODO: Add referrer
+  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+    eventView,
     initialData: [],
     enabled: Boolean(span),
+    referrer,
   });
 
-  return {isLoading, error, data: data[0] ?? {}};
+  return {isLoading, data: data[0] ?? {}};
 };
+
+function getEventView(
+  span: {group: string},
+  location: Location,
+  transaction?: string,
+  fields: string[] = []
+) {
+  const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
+
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      query: `span.group:${cleanGroupId}${
+        transaction ? ` transaction:${transaction}` : ''
+      }`,
+      fields,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      projects: [1],
+      version: 2,
+    },
+    location
+  );
+}
