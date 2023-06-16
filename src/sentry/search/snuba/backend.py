@@ -41,13 +41,13 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
+from sentry.search.utils import get_teams_for_user
 from sentry.utils.cursors import Cursor, CursorResult
 
 
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
-    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     include_none = False
     types_to_actors = defaultdict(list)
@@ -86,17 +86,7 @@ def assigned_to_filter(
                 **{
                     f"{field_filter}__in": GroupAssignee.objects.filter(
                         project_id__in=[p.id for p in projects],
-                        team_id__in=list(
-                            Team.objects.filter(
-                                id__in=OrganizationMemberTeam.objects.filter(
-                                    organizationmember__in=OrganizationMember.objects.filter(
-                                        user_id__in=user_ids,
-                                        organization_id=projects[0].organization_id,
-                                    ),
-                                    is_active=True,
-                                ).values_list("team_id", flat=True)
-                            )
-                        ),
+                        team_id__in=[team.id for team in get_teams_for_user()],
                     ).values_list("group_id", flat=True)
                 }
             )
