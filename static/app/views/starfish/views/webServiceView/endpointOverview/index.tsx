@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -25,6 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -49,11 +51,16 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, method, statsPeriod} = location.query;
+  const {endpoint, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
+    : undefined;
+  const method = location.query.method
+    ? Array.isArray(location.query.method)
+      ? location.query.method[0]
+      : location.query.method
     : undefined;
   const pageFilter = usePageFilters();
 
@@ -245,6 +252,17 @@ export default function EndpointOverview() {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Starfish'),
+                  to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+                },
+                {
+                  label: t('Endpoint Overview'),
+                },
+              ]}
+            />
             <Layout.Title>{`${method} ${transaction}`}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
@@ -273,7 +291,11 @@ export default function EndpointOverview() {
               </SegmentedControl>
             </SegmentedControlContainer>
             {/* TODO: Add transaction method to filter */}
-            <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
+            <SpanMetricsTable
+              filter={state.spansFilter}
+              transaction={transaction}
+              method={method}
+            />
             <SubHeader>{t('Sample Events')}</SubHeader>
             <TransactionSamplesTable queryConditions={queryConditions} />
             <SegmentedControlContainer>
@@ -314,9 +336,11 @@ export default function EndpointOverview() {
 function SpanMetricsTable({
   filter,
   transaction,
+  method,
 }: {
   filter: ModuleName;
   transaction: string | undefined;
+  method?: string;
 }) {
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
 
@@ -326,6 +350,7 @@ function SpanMetricsTable({
       orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
       endpoint={transaction}
+      method={method}
       limit={SPANS_TABLE_LIMIT}
     />
   );
