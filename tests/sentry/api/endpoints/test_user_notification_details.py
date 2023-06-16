@@ -101,6 +101,17 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         )
         assert value == NotificationSettingOptionValues.ALWAYS
 
+    def test_save_approvals(self):
+        data = {"approval": {"user": {"me": {"email": "always"}}}}
+
+        self.get_success_response("me", **data)
+        value = NotificationSetting.objects.get_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.APPROVAL,
+            actor=RpcActor.from_orm_user(self.user),
+        )
+        assert value == NotificationSettingOptionValues.ALWAYS
+
     def test_saves_and_returns_values_when_defaults_present(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,

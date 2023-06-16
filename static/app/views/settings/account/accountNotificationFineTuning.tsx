@@ -17,6 +17,7 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
 } from 'sentry/views/settings/account/notifications/fields';
+import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/notificationSettingsByOrganizationByProjects';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   getNotificationTypeFromPathname,
@@ -69,7 +70,6 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
     <Fragment>
       {data.map(({name, projects: projectFields}) => (
         <div key={name}>
-          <PanelHeader>{name}</PanelHeader>
           {projectFields.map(f => (
             <PanelBodyLineItem key={f.name}>
               <SelectField
@@ -133,10 +133,22 @@ type State = AsyncView['state'] & {
   emails: UserEmail[] | null;
   fineTuneData: Record<string, any> | null;
   notifications: Record<string, any> | null;
+  organizationId: string;
   projects: Project[] | null;
 };
 
 class AccountNotificationFineTuning extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      emails: [],
+      fineTuneData: null,
+      notifications: [],
+      projects: [],
+      organizationId: this.props.organizations[0].id,
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
@@ -146,7 +158,10 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     ];
 
     if (isGroupedByProject(fineTuneType)) {
-      endpoints.push(['projects', '/projects/']);
+      endpoints.push([
+        'projects',
+        `/projects/?organization_id=${this.props.organizations[0].id}`,
+      ]);
     }
 
     endpoints.push(['emails', '/users/me/emails/']);
@@ -175,6 +190,10 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
         }) ?? []
     );
   }
+
+  handleOrgChange = (option: {label: string; value: string}) => {
+    this.setState({organizationId: option.value});
+  };
 
   renderBody() {
     const {params} = this.props;
@@ -227,6 +246,11 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
         <Panel>
           <PanelBody>
             <PanelHeader hasButtons={isProject}>
+              <OrganizationSelectHeader
+                organizations={this.props.organizations}
+                organizationId={this.state.organizationId}
+                handleOrgChange={this.handleOrgChange}
+              />
               <Heading>{isProject ? t('Projects') : t('Organizations')}</Heading>
               <div>
                 {isProject &&
@@ -269,4 +293,4 @@ const Heading = styled('div')`
   flex: 1;
 `;
 
-export default AccountNotificationFineTuning;
+export default withOrganizations(AccountNotificationFineTuning);

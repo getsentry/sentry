@@ -40,9 +40,14 @@ function NotificationSettingsByOrganization({
     >
       <JsonForm
         title={t('Organizations')}
-        fields={organizations.map(organization =>
-          getParentField(notificationType, notificationSettings, organization, onChange)
-        )}
+        fields={organizations.map(organization => {
+          return getParentField(
+            notificationType,
+            notificationSettings,
+            organization,
+            onChange
+          );
+        })}
       />
     </Form>
   );

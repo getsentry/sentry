@@ -54,6 +54,7 @@ export const getFallBackValue = (notificationType: string): string => {
     case 'workflow':
       return 'subscribe_only';
     default:
+      // PICK UP HERE
       // issue, approval, quota, quotaErrors, quotaTransactions, quotaAttachments,
       // quotaReplays, quotaWarnings, quotaSpendAllocations, spikeProtection, email, reports
       return '';
