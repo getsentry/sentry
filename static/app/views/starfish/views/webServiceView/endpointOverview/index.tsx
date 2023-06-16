@@ -227,10 +227,15 @@ export default function EndpointOverview() {
   }
 
   const handleViewAllEventsClick = () => {
+    const issuesQuery = new MutableSearch([
+      ...(issueFilter === 'ALL' ? [] : [`issue.category:${issueFilter}`]),
+      `transaction:${transaction}`,
+      `http.method:${method}`,
+    ]);
     browserHistory.push({
       pathname: `/issues/?${qs.stringify({
         ...getDateConditions(pageFilter),
-        transaction,
+        query: issuesQuery.formatString(),
       })}`,
     });
   };
@@ -296,6 +301,7 @@ export default function EndpointOverview() {
             </SegmentedControlContainer>
             <IssuesTable
               issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
+              httpMethod={method as string}
               transactionName={transaction}
             />
           </Layout.Main>
