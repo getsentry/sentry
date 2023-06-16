@@ -195,7 +195,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         event = manager.save(project.id)
 
-        project.update_option("sentry:grouping_config", "newstyle:2019-10-29")
+        project.update_option("sentry:grouping_config", "newstyle:2023-01-1")
         project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
         project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
 
