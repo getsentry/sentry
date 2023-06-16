@@ -28,6 +28,7 @@ export const supportedPlatformExpectedDocKeys: Record<
     '3-configure-profiling',
     '4-upload',
   ],
+  go: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   node: ['1-install', '2-configure-performance', '3-configure-profiling'],
   python: ['1-install', '2-configure-performance', '3-configure-profiling'],
   php: ['1-install', '2-configure-performance', '3-configure-profiling'],
