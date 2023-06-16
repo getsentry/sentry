@@ -22,6 +22,7 @@ from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,7 @@ class PostProcessForwarder:
     celery task
     """
 
-    def __init__(self, dispatch_function: Callable[[Message[KafkaPayload]], None]) -> None:
-        self.dispatch_function = dispatch_function
+    def __init__(self) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
@@ -123,7 +123,9 @@ class PostProcessForwarder:
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(self.dispatch_function, concurrency)
+        strategy_factory = PostProcessForwarderStrategyFactory(
+            concurrency=concurrency
+        )
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
@@ -132,9 +134,9 @@ class PostProcessForwarder:
 
 class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
-        self, dispatch_function: Callable[[Message[KafkaPayload]], None], concurrency: int
+        self,
+        concurrency: int,
     ):
-        self.__dispatch_function = dispatch_function
         self.__concurrency = concurrency
         self.__max_pending_futures = concurrency + 1000
 
@@ -144,7 +146,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskInThreads(
-            self.__dispatch_function,
+            _get_task_kwargs_and_dispatch,
             self.__concurrency,
             self.__max_pending_futures,
             CommitOffsets(commit),

@@ -223,9 +223,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
     ) -> None:
-        dispatch_function = _get_task_kwargs_and_dispatch
-
-        PostProcessForwarder(dispatch_function).run(
+        PostProcessForwarder().run(
             entity,
             consumer_group,
             topic,

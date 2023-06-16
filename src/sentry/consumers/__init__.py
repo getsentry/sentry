@@ -25,6 +25,8 @@ class ConsumerDefinition(TypedDict, total=False):
     # Hardcoded additional kwargs for strategy_factory
     static_args: Mapping[str, Any]
 
+    consumer_wrapper: str
+
 
 def convert_max_batch_time(ctx, param, value):
     if value <= 0:
@@ -181,6 +183,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "performance",
         },
     },
+    "post-process-forwarder-issue-platform": {
+        "topic": settings.KAFKA_EVENTSTREAM_GENERIC,
+        "strategy_factory": "sentry.post_process_forwarder.post_process_forwarder.PostProcessForwarderStrategyFactory",
+        "consumer_wrapper": 
+    }
 }
 
 
