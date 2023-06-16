@@ -228,15 +228,10 @@ def assigned_or_suggested_filter(
                 ).values("team")
             ).values_list("id", flat=True)
         )
-        organization = projects[0].organization
-        query_ids = Q(user_id__in=user_ids)
-        # Only add team_ids to query if assign-to-me flag is off
-        if not features.has("organizations:assign-to-me", organization, actor=None):
-            query_ids = query_ids | Q(team_id__in=team_ids)
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    query_ids,
+                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
