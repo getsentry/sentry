@@ -213,14 +213,16 @@ def get_stream_processor(
         )
 
     try:
-        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+        strategy_factory = consumer_definition["strategy_factory"]
         logical_topic = consumer_definition["topic"]
     except KeyError:
         raise click.ClickException(
-            f"The consumer group {consumer_name} does not have a strategy factory"
+            f"The consumer {consumer_name} does not have a strategy factory "
             f"registered. Most likely there is another subcommand in 'sentry run' "
             f"responsible for this consumer"
         )
+
+    strategy_factory_cls = import_string(strategy_factory)
 
     if topic is None:
         topic = logical_topic
