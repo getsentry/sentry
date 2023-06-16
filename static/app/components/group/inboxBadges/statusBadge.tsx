@@ -16,7 +16,7 @@ function getBadgeProperties(
 ): {status: string; tagType: keyof Theme['tag']; tooltip?: string} | undefined {
   if (status === 'resolved') {
     return {
-      tagType: 'default',
+      tagType: 'highlight',
       status: t('Resolved'),
     };
   }
