@@ -27,7 +27,7 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
 
 
 def get_retention_from_org_id(org_id: int) -> int:
-    cache_key = f"seen-orgs:{org_id}"
+    cache_key = f"org_retention_days:{org_id}"
     cached_retention: Optional[int] = cache.get(cache_key)
 
     if cached_retention is not None:
