@@ -90,7 +90,8 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.is_refreshing_token = False
         self.refreshed_identity = None
         self.base_url = self.metadata["base_url"]
-        super().__init__(verify_ssl)
+        org_integration_id = installation.org_integration.id
+        super().__init__(org_integration_id=org_integration_id, verify_ssl=verify_ssl)
 
     @property
     def identity(self):
