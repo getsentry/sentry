@@ -92,10 +92,8 @@ def convert_actor_or_none_value(
     actors_or_none = []
     for actor in value:
         if actor == "my_teams":
-            # get teams
             actors_or_none.extend(get_teams_for_user(projects, user))
         else:
-            # normal behavior
             actors_or_none.append(parse_actor_or_none_value(projects, actor, user))
     return actors_or_none
 
