@@ -6,9 +6,14 @@ import {Resizeable} from 'sentry/components/replays/resizeable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {
+  JobTickData,
   MonitorBucketData,
   MonitorBucketEnvMapping,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
+import {
+  isEnvMappingEmpty,
+  mergeEnvMappings,
+} from 'sentry/views/monitors/components/overviewTimeline/utils';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 
 interface Props {
@@ -18,15 +23,15 @@ interface Props {
   width?: number;
 }
 
-function getAggregateStatus(envData: MonitorBucketEnvMapping) {
-  // Orders the status in terms of precedence for showing to the user
-  const statusOrdering = [
-    CheckInStatus.OK,
-    CheckInStatus.MISSED,
-    CheckInStatus.TIMEOUT,
-    CheckInStatus.ERROR,
-  ];
+// Orders the status in terms of precedence for showing to the user
+const statusOrdering = [
+  CheckInStatus.OK,
+  CheckInStatus.MISSED,
+  CheckInStatus.TIMEOUT,
+  CheckInStatus.ERROR,
+];
 
+export function getAggregateStatus(envData: MonitorBucketEnvMapping) {
   return Object.values(envData).reduce((currentStatus, value) => {
     for (const [index, status] of statusOrdering.entries()) {
       if (value[status] > 0 && index > statusOrdering.indexOf(currentStatus)) {
@@ -35,6 +40,20 @@ function getAggregateStatus(envData: MonitorBucketEnvMapping) {
     }
     return currentStatus;
   }, CheckInStatus.OK);
+}
+
+export function getAggregateStatusFromMultipleBuckets(
+  envDataArr: MonitorBucketEnvMapping[]
+) {
+  return envDataArr
+    .map(getAggregateStatus)
+    .reduce(
+      (aggregateStatus, currentStatus) =>
+        statusOrdering.indexOf(currentStatus) > statusOrdering.indexOf(aggregateStatus)
+          ? currentStatus
+          : aggregateStatus,
+      CheckInStatus.OK
+    );
 }
 
 function getColorFromStatus(status: CheckInStatus, theme: Theme) {
@@ -57,6 +76,78 @@ function getBucketedCheckInsPosition(
   return elapsedSinceStart / msPerPixel;
 }
 
+function generateJobTickFromBucket(
+  bucket: MonitorBucketData[number],
+  options?: Partial<JobTickData>
+) {
+  const [timestamp, envMapping] = bucket;
+  return {
+    endTs: timestamp,
+    startTs: timestamp,
+    width: 1,
+    envMapping,
+    roundedLeft: false,
+    roundedRight: false,
+    ...options,
+  };
+}
+
+export function mergeBuckets(data: MonitorBucketData) {
+  const minTickWidth = 4;
+
+  const jobTicks: JobTickData[] = [];
+  data.reduce((currentJobTick, bucket, i) => {
+    const [timestamp, envMapping] = bucket;
+    const envMappingEmpty = isEnvMappingEmpty(envMapping);
+    if (!currentJobTick) {
+      return envMappingEmpty
+        ? currentJobTick
+        : generateJobTickFromBucket(bucket, {roundedLeft: true});
+    }
+    const bucketStatus = getAggregateStatus(envMapping);
+    const currJobTickStatus = getAggregateStatus(currentJobTick.envMapping);
+    // If the current bucket is empty and our job tick has reached a min width
+    if (envMappingEmpty && currentJobTick.width >= minTickWidth) {
+      // Then add our current tick to the running list of job ticks to render
+      currentJobTick.roundedRight = true;
+      jobTicks.push(currentJobTick);
+
+      return null;
+    }
+
+    const nextTickAggregateStatus = getAggregateStatusFromMultipleBuckets(
+      data.slice(i, i + minTickWidth).map(([_, envData]) => envData)
+    );
+    // If the next buckets have a different status from our current job tick
+    if (
+      bucketStatus !== currJobTickStatus &&
+      nextTickAggregateStatus !== currJobTickStatus &&
+      currentJobTick.width >= minTickWidth
+    ) {
+      // Then add our current tick to the running list of job ticks to render
+      jobTicks.push(currentJobTick);
+      return generateJobTickFromBucket(bucket);
+    }
+
+    // Merge our current tick with the current bucket data
+    currentJobTick = {
+      ...currentJobTick,
+      endTs: timestamp,
+      envMapping: mergeEnvMappings(currentJobTick.envMapping, envMapping),
+      width: currentJobTick.width + 1,
+    };
+
+    // Ensure we render the last tick
+    if (i === data.length - 1) {
+      currentJobTick.roundedRight = true;
+      jobTicks.push(currentJobTick);
+    }
+    return currentJobTick;
+  }, null as JobTickData | null);
+
+  return jobTicks;
+}
+
 export function CheckInTimeline(props: Props) {
   const {bucketedData, start, end} = props;
 
@@ -64,27 +155,29 @@ export function CheckInTimeline(props: Props) {
     const timeWindow = end.getTime() - start.getTime();
     const msPerPixel = timeWindow / width;
 
+    const jobTicks = mergeBuckets(bucketedData);
+
     return (
       <TimelineContainer>
-        {bucketedData.map(([timestamp, envData]) => {
-          const timestampMs = timestamp * 1000;
-          if (Object.keys(envData).length === 0) {
-            return null;
-          }
+        {jobTicks.map(
+          ({startTs, width: tickWidth, envMapping, roundedLeft, roundedRight}) => {
+            const timestampMs = startTs * 1000;
+            const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
 
-          const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
-          if (left < 0) {
-            return null;
+            return (
+              <JobTickContainer style={{left}} key={startTs}>
+                <Tooltip title={<DateTime date={timestampMs} seconds />}>
+                  <JobTick
+                    style={{width: tickWidth}}
+                    status={getAggregateStatus(envMapping)}
+                    roundedLeft={roundedLeft}
+                    roundedRight={roundedRight}
+                  />
+                </Tooltip>
+              </JobTickContainer>
+            );
           }
-
-          return (
-            <JobTickContainer style={{left}} key={timestamp}>
-              <Tooltip title={<DateTime date={timestampMs} seconds />}>
-                <JobTick status={getAggregateStatus(envData)} />
-              </Tooltip>
-            </JobTickContainer>
-          );
-        })}
+        )}
       </TimelineContainer>
     );
   }
@@ -104,12 +197,26 @@ const TimelineContainer = styled('div')`
 
 const JobTickContainer = styled('div')`
   position: absolute;
-  transform: translateX(-50%);
 `;
 
-const JobTick = styled('div')<{status: CheckInStatus}>`
+const JobTick = styled('div')<{
+  roundedLeft: boolean;
+  roundedRight: boolean;
+  status: CheckInStatus;
+}>`
   background: ${p => getColorFromStatus(p.status, p.theme)};
   width: 4px;
   height: 14px;
-  border-radius: 6px;
+  ${p =>
+    p.roundedLeft &&
+    `
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+  `}
+  ${p =>
+    p.roundedRight &&
+    `
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+  `}
 `;
