@@ -1,3 +1,8 @@
+from datetime import datetime, timedelta
+
+from freezegun import freeze_time
+
+from sentry.integrations.request_buffer import IntegrationErrorLogBuffer
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -22,8 +27,21 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.integration.id)
         assert "configOrganization" in response.data[0]
+        assert "broken" in response.data[0]
+        assert not response.data[0]["broken"]
 
     def test_no_config(self):
         response = self.get_success_response(self.organization.slug, qs_params={"includeConfig": 0})
 
         assert "configOrganization" not in response.data[0]
+
+    def test_integration_is_broken(self):
+        buffer = IntegrationErrorLogBuffer(self.integration)
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.add()
+
+        response = self.get_success_response(self.organization.slug, qs_params={"includeConfig": 0})
+        assert "broken" in response.data[0]
+        assert response.data[0]["broken"]

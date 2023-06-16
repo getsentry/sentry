@@ -92,5 +92,12 @@ class IntegrationErrorLogBuffer:
                 }
                 pipe.lpush(buffer_key, json.dumps(data))
 
+        else:
+            data = {
+                "date": now,
+                "count": 1,
+            }
+            pipe.lpush(buffer_key, json.dumps(data))
+
         pipe.expire(buffer_key, KEY_EXPIRY)
         pipe.execute()
