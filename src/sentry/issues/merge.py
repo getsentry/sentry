@@ -45,7 +45,7 @@ def handle_merge(
 
     transaction_id = uuid4().hex
     has_escalating_flag = features.has(
-        "organizations:escalating-issues", primary_group.organization
+        "organizations:escalating-issues-v2", primary_group.organization
     )
     merge_forecasts = (
         has_escalating_flag

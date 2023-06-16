@@ -183,10 +183,8 @@ def merge_groups(
                     "model": Group.__name__,
                 },
             )
-            group_history = GroupHistory.objects.filter(group=group)
-            group_history.delete()
-            group_inbox = GroupInbox.objects.filter(group=group)
-            group_inbox.delete()
+            GroupHistory.objects.filter(group=group).delete()
+            GroupInbox.objects.filter(group=group).delete()
 
             new_group.update(
                 # TODO(dcramer): ideally these would be SQL clauses

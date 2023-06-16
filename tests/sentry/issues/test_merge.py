@@ -94,7 +94,7 @@ class HandleIssueMergeTest(TestCase):
             handle_merge(self.groups, self.project_lookup, self.user)
             assert e.match("Only error issues can be merged.")
 
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:escalating-issues-v2")
     @patch("sentry.tasks.merge.merge_groups.delay", wraps=merge_groups)  # call immediately
     @patch("sentry.tasks.merge.query_groups_past_counts")
     def test_handle_merge_recomputes_forecast(
@@ -134,7 +134,7 @@ class HandleIssueMergeTest(TestCase):
                 == DEFAULT_MINIMUM_CEILING_FORECAST
             )
 
-    @with_feature("organizations:escalating-issues")
+    @with_feature("organizations:escalating-issues-v2")
     @patch("sentry.tasks.merge.merge_groups.delay", wraps=merge_groups)  # call immediately
     @patch("sentry.tasks.merge.query_groups_past_counts")
     def test_handle_merge_deletes_forecast(
