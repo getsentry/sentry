@@ -242,7 +242,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                         "project_slug": self.project.slug,
                         "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
                     },
-                )
+                ),
+                query="referrer=alert_email",
             ),
             "incident_name": incident.title,
             "aggregate": aggregate,
@@ -260,6 +261,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "unsubscribe_link": None,
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": False,
+            "snooze_alert_url": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
