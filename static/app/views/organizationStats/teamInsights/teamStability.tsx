@@ -89,7 +89,7 @@ function TeamStability({
     {staleTime: 5000}
   );
 
-  const loading = isPeriodSessionsLoading || isWeekSessionsLoading;
+  const isLoading = isPeriodSessionsLoading || isWeekSessionsLoading;
 
   if (isPeriodSessionsError || isWeekSessionsError) {
     return (
@@ -157,7 +157,7 @@ function TeamStability({
   }
 
   function renderScore(projectId: string, dataset: 'week' | 'period') {
-    if (loading) {
+    if (isLoading) {
       return (
         <div>
           <Placeholder width="80px" height="25px" />
@@ -175,7 +175,7 @@ function TeamStability({
   }
 
   function renderTrend(projectId: string) {
-    if (loading) {
+    if (isLoading) {
       return (
         <div>
           <Placeholder width="80px" height="25px" />
@@ -231,7 +231,7 @@ function TeamStability({
           </ProjectBadgeContainer>
 
           <div>
-            {periodSessions && weekSessions && !loading && (
+            {periodSessions && weekSessions && !isLoading && (
               <MiniBarChart
                 isGroupedByDate
                 showTimeInTooltip
