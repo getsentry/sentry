@@ -129,6 +129,7 @@ export enum FieldValueType {
   STRING = 'string',
   NEVER = 'never',
   SIZE = 'size',
+  RATE = 'rate',
 }
 
 export enum WebVital {

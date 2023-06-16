@@ -98,6 +98,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                     top: '8px',
                     bottom: '0',
                   }}
+                  aggregateOutputFormat="rate"
                   definedAxisTicks={2}
                   stacked
                   chartColors={theme.charts.getColorPalette(2)}

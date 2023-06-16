@@ -92,6 +92,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return axisDuration(value, durationUnit);
     case 'size':
       return formatBytesBase2(value, 0);
+    case 'rate':
+      return `${value}/s`;
     default:
       return value.toString();
   }

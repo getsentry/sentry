@@ -57,7 +57,7 @@ type Props = {
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
-  aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
+  aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
   definedAxisTicks?: number;
