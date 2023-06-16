@@ -42,7 +42,7 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        #
+
         self.browser.click('[data-test-id="platform-javascript-react"]')
         self.browser.wait_until_not(".loading")
         self.browser.click('[data-test-id="create-project"]')
