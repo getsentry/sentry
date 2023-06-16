@@ -167,9 +167,9 @@ class CheckAM2Compatibility:
         results: Dict[str, Any] = {}
 
         widgets = []
-        for dashboard_id, widgets in unsupported_widgets.items():
+        for dashboard_id, unsupported_widgets in unsupported_widgets.items():
             unsupported = []
-            for widget_id, fields, conditions in widgets:
+            for widget_id, fields, conditions in unsupported_widgets:
                 unsupported.append(
                     {
                         "id": widget_id,
@@ -184,9 +184,9 @@ class CheckAM2Compatibility:
         results["widgets"] = widgets
 
         alerts = []
-        for project_id, alerts in unsupported_alerts.items():
+        for project_id, unsupported_alerts in unsupported_alerts.items():
             unsupported = []
-            for alert_id, aggregate, query in alerts:
+            for alert_id, aggregate, query in unsupported_alerts:
                 unsupported.append(
                     {
                         "id": alert_id,
@@ -239,13 +239,15 @@ class CheckAM2Compatibility:
                     min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
                     if min_sdk_version is None:
                         # If we didn't find the SDK, we suppose it doesn't support dynamic sampling.
-                        outdated_sdks_per_project[project][sdk_name].add(sdk_version)
+                        outdated_sdks_per_project[project][sdk_name].add(
+                            f"{sdk_version} found (no data for minimum version)"
+                        )
                     else:
                         # We check if it is less, thus it is not supported.
                         comparison = cls.compare_versions(sdk_version, min_sdk_version)
                         if comparison == -1:
                             outdated_sdks_per_project[project][sdk_name].add(
-                                f"{sdk_version} found {min_sdk_version} required"
+                                f"{sdk_version} found >= {min_sdk_version} required"
                             )
 
         return outdated_sdks_per_project
@@ -301,8 +303,8 @@ class CheckAM2Compatibility:
     @classmethod
     def get_all_widgets_of_organization(cls, organization_id):
         return DashboardWidgetQuery.objects.filter(
-            Q(conditions__icontains="event.type:transaction")
-            | Q(conditions__icontains="!event.type:error"),
+            ~Q(conditions__icontains="event.type:error")
+            | ~Q(conditions__icontains="!event.type:transaction"),
             widget__dashboard__organization_id=organization_id,
         ).values_list(
             "id", "widget__dashboard__id", "widget__dashboard__title", "fields", "conditions"
