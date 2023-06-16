@@ -43,9 +43,7 @@ function TeamStability({
   end,
   utc,
 }: TeamStabilityProps) {
-  // TODO: handle projectsWithSessions.length = 0
   const projectsWithSessions = projects.filter(project => project.hasSessions);
-
   const datetime = {start, end, period, utc};
   const commonQuery = {
     environment: [],
@@ -56,9 +54,7 @@ function TeamStability({
   };
 
   const {
-    // weekly selected date range
     data: periodSessions,
-    // TODO? Was originally SessionApiResponse | null. Is type okay?
     isLoading: isPeriodSessionsLoading,
     isError: isPeriodSessionsError,
     refetch: refetchPeriodSessions,
@@ -76,9 +72,7 @@ function TeamStability({
   );
 
   const {
-    // Locked to last 7 days
     data: weekSessions,
-    // TODO? Was originally SessionApiResponse | null. Is type okay?
     isLoading: isWeekSessionsLoading,
     isError: isWeekSessionsError,
     refetch: refetchWeekSessions,
