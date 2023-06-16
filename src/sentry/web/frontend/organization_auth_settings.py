@@ -115,10 +115,11 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
+            if provider.is_partner:
+                return HttpResponse("Can't disable partner authentication provider", status=405)
+
             op = request.POST.get("op")
             if op == "disable":
-                if provider.is_partner:
-                    return HttpResponse("Can't disable partner authentication provider", status=405)
                 self._disable_provider(request, organization, auth_provider)
 
                 messages.add_message(request, messages.SUCCESS, OK_PROVIDER_DISABLED)
