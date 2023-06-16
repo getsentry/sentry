@@ -9,7 +9,6 @@ import {GroupListColumn} from './groupList';
 type Props = {
   withChart: boolean;
   narrowGroups?: boolean;
-  showLastTriggered?: boolean;
   withColumns?: GroupListColumn[];
 };
 
