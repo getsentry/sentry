@@ -16,12 +16,12 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
-  allEnvironments: Group | undefined;
-  currentRelease: CurrentRelease | undefined;
   environments: string[];
-  group: Group | undefined;
   organization: Organization;
   project: Project;
+  allEnvironments?: Group;
+  currentRelease?: CurrentRelease;
+  group?: Group;
 };
 
 type GroupRelease = {
