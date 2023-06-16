@@ -1,6 +1,13 @@
+import invariant from 'invariant';
+
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+
+function isBreadcrumbFrame(frame: BreadcrumbFrame | undefined): frame is BreadcrumbFrame {
+  return frame !== undefined;
+}
 
 export default function hydrateBreadcrumbs(
   replayRecord: ReplayRecord,
@@ -8,15 +15,23 @@ export default function hydrateBreadcrumbs(
 ): BreadcrumbFrame[] {
   const startTimestampMs = replayRecord.started_at.getTime();
 
-  return breadcrumbFrames.map((frame: RawBreadcrumbFrame) => {
-    const time = new Date(frame.timestamp * 1000);
-    return {
-      ...frame,
-      offsetMs: Math.abs(time.getTime() - startTimestampMs),
-      timestamp: time,
-      timestampMs: time.getTime(),
-    };
-  });
+  return breadcrumbFrames
+    .map((frame: RawBreadcrumbFrame) => {
+      try {
+        const time = new Date(frame.timestamp * 1000);
+        invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
+
+        return {
+          ...frame,
+          offsetMs: Math.abs(time.getTime() - startTimestampMs),
+          timestamp: time,
+          timestampMs: time.getTime(),
+        };
+      } catch {
+        return undefined;
+      }
+    })
+    .filter(isBreadcrumbFrame);
 }
 
 export function replayInitBreadcrumb(replayRecord: ReplayRecord): BreadcrumbFrame {

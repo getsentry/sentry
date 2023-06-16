@@ -3,8 +3,9 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
 describe('hydrateSpans', () => {
+  const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
+
   it('should set the start & end timestamps, & offsetMs for each span in the list', () => {
-    const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
     const spans = [
       TestStubs.Replay.MemoryFrame({
         startTimestamp: new Date('2023/12/23'),
@@ -49,5 +50,12 @@ describe('hydrateSpans', () => {
         offsetMs: ONE_DAY_MS * 2,
       },
     ]);
+  });
+
+  it('should drop spans that cannot be parsed', () => {
+    const spans = [{foo: 'bar'}];
+
+    // @ts-expect-error: Explicitly test invalid input
+    expect(hydrateSpans(replayRecord, spans)).toStrictEqual([]);
   });
 });
