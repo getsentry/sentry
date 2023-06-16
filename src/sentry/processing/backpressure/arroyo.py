@@ -7,7 +7,7 @@ from arroyo.processing.strategies import MessageRejected, ProcessingStrategy, Ru
 from arroyo.types import FilteredPayload, Message
 
 from sentry import options
-from sentry.processing.backpressure.rabbitmq import is_consumer_healthy
+from sentry.processing.backpressure.health import is_consumer_healthy
 
 # As arroyo would otherwise busy-wait, we will sleep for a short time
 # when a message is rejected.
@@ -24,9 +24,7 @@ class HealthChecker:
     def is_healthy(self) -> bool:
         now = time.time()
         # Check queue health if it's been more than the interval
-        if now - self.last_check >= options.get(
-            "backpressure.monitor_queues.check_interval_in_seconds"
-        ):
+        if now - self.last_check >= options.get("backpressure.checking.interval"):
             # TODO: We would want to at first monitor everything all at once,
             # and make it more fine-grained later on.
             self.is_queue_healthy = is_consumer_healthy(self.consumer_name)
