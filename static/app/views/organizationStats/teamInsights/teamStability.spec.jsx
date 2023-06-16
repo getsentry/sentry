@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
-  it('should comparse selected past crash rate with current week', () => {
+  it('should comparse selected past crash rate with current week', async () => {
     const sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
       body: TestStubs.SessionStatusCountByProjectInPeriod(),
@@ -13,18 +13,18 @@ describe('TeamStability', () => {
       <TeamStability
         projects={[project]}
         organization={TestStubs.Organization()}
-        period="7d"
+        period="2w"
       />
     );
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
-    expect(screen.getAllByText('90%')).toHaveLength(2);
-    expect(screen.getByText('0%')).toBeInTheDocument(2);
-    expect(sessionsApi).toHaveBeenCalledTimes(3);
+    expect(await screen.findAllByText('90%')).toHaveLength(2);
+    expect(await screen.findByText('0%')).toBeInTheDocument(2);
+    expect(sessionsApi).toHaveBeenCalledTimes(2);
   });
 
-  it('should render no sessions', () => {
-    const noSessionProject = TestStubs.Project({hasSessions: false, id: 123});
+  it('should render no sessions', async () => {
+    const noSessionProject = TestStubs.Project({hasSessions: false, id: 321});
     render(
       <TeamStability
         projects={[noSessionProject]}
@@ -33,7 +33,7 @@ describe('TeamStability', () => {
       />
     );
 
-    expect(screen.getAllByText('\u2014')).toHaveLength(3);
+    expect(await screen.findAllByText('\u2014')).toHaveLength(3);
   });
 
   it('should render no projects', () => {
