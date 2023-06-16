@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Mapping, Optional, Sequence, Union
 
@@ -13,8 +15,8 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        unit: Optional[str],
         tags: Mapping[str, str],
+        unit: Optional[str],
     ) -> None:
 
         """
@@ -33,8 +35,8 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        unit: Optional[str],
         tags: Mapping[str, str],
+        unit: Optional[str],
     ) -> None:
 
         """
@@ -52,8 +54,8 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        unit: Optional[str],
         tags: Mapping[str, str],
+        unit: Optional[str],
     ) -> None:
 
         """
