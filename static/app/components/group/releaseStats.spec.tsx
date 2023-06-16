@@ -14,7 +14,9 @@ describe('GroupReleaseStats', function () {
     });
   });
 
-  const createWrapper = props =>
+  const createWrapper = (
+    props: Partial<React.ComponentProps<typeof GroupReleaseStats>>
+  ) =>
     render(
       <GroupReleaseStats
         group={group}
@@ -27,7 +29,7 @@ describe('GroupReleaseStats', function () {
     );
 
   it('renders all environments', function () {
-    createWrapper();
+    createWrapper({});
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();
