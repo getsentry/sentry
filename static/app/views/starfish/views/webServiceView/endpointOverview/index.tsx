@@ -291,11 +291,7 @@ export default function EndpointOverview() {
                   {t('Performance Only')}
                 </SegmentedControl.Item>
               </SegmentedControl>
-              <Button
-                style={{position: 'absolute', right: 0}}
-                size="sm"
-                onClick={handleViewAllEventsClick}
-              >
+              <Button size="sm" onClick={handleViewAllEventsClick}>
                 {t('View All')}
               </Button>
             </SegmentedControlContainer>
@@ -377,7 +373,8 @@ const StyledRow = styled(PerformanceLayoutBodyRow)`
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
-  position: relative;
+  display: flex;
+  justify-content: space-between;
 `;
 
 const ChartLabel = styled('div')`
