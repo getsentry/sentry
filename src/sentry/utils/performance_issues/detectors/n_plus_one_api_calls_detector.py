@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import random
 from collections import defaultdict
 from datetime import timedelta
 from typing import List, Mapping, Optional, Sequence
@@ -87,7 +88,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_enabled"]
+        return (
+            self.settings["detection_rate"] > random.random()
+        )  # TODO Uncomment after detection_rate migration: self.settings["detection_enabled"]
 
     @classmethod
     def is_event_eligible(cls, event, project=None):

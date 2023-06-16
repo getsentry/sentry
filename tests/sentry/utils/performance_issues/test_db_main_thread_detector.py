@@ -4,7 +4,6 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceDBMainThreadGroupType
-from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
@@ -50,26 +49,27 @@ class DBMainThreadDetectorTest(TestCase):
             )
         ]
 
-    def test_respects_project_option(self):
-        project = self.create_project()
-        event = get_event("db-on-main-thread")
-        event["project_id"] = project.id
+    # TODO Abdullah Khan: Uncomment after detection_rate migration
+    # def test_respects_project_option(self):
+    #     project = self.create_project()
+    #     event = get_event("db-on-main-thread")
+    #     event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = DBMainThreadDetector(settings, event)
+    #     settings = get_detection_settings(project.id)
+    #     detector = DBMainThreadDetector(settings, event)
 
-        assert detector.is_creation_allowed_for_project(project)
+    #     assert detector.is_creation_allowed_for_project(project)
 
-        ProjectOption.objects.set_value(
-            project=project,
-            key="sentry:performance_issue_settings",
-            value={"db_on_main_thread_detection_enabled": False},
-        )
+    #     ProjectOption.objects.set_value(
+    #         project=project,
+    #         key="sentry:performance_issue_settings",
+    #         value={"db_on_main_thread_detection_enabled": False},
+    #     )
 
-        settings = get_detection_settings(project.id)
-        detector = DBMainThreadDetector(settings, event)
+    #     settings = get_detection_settings(project.id)
+    #     detector = DBMainThreadDetector(settings, event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+    #     assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_detect_db_main_thread(self):
         event = get_event("db-on-main-thread")

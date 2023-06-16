@@ -95,7 +95,7 @@ class SlowDBQueryDetector(PerformanceDetector):
         return features.has("organizations:performance-slow-db-issue", organization, actor=None)
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return self.settings[0]["detection_enabled"]
+        return True  # TODO Remove after detection_rate migration: self.settings[0]["detection_enabled"]
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:

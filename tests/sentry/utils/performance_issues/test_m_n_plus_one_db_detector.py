@@ -5,7 +5,6 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
@@ -141,23 +140,24 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
         assert self.find_problems(event) == []
 
-    def test_respects_project_option(self):
-        project = self.create_project()
-        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
-        event["project_id"] = project.id
+    # TODO Abdullah Khan: Uncomment after detection_rate migration
+    # def test_respects_project_option(self):
+    #     project = self.create_project()
+    #     event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
+    #     event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = MNPlusOneDBSpanDetector(settings, event)
+    #     settings = get_detection_settings(project.id)
+    #     detector = MNPlusOneDBSpanDetector(settings, event)
 
-        assert detector.is_creation_allowed_for_project(project)
+    #     assert detector.is_creation_allowed_for_project(project)
 
-        ProjectOption.objects.set_value(
-            project=project,
-            key="sentry:performance_issue_settings",
-            value={"n_plus_one_db_queries_detection_enabled": False},
-        )
+    #     ProjectOption.objects.set_value(
+    #         project=project,
+    #         key="sentry:performance_issue_settings",
+    #         value={"n_plus_one_db_queries_detection_enabled": False},
+    #     )
 
-        settings = get_detection_settings(project.id)
-        detector = MNPlusOneDBSpanDetector(settings, event)
+    #     settings = get_detection_settings(project.id)
+    #     detector = MNPlusOneDBSpanDetector(settings, event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+    #     assert not detector.is_creation_allowed_for_project(project)
