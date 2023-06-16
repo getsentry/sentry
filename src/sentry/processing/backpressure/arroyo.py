@@ -9,10 +9,6 @@ from arroyo.types import FilteredPayload, Message
 from sentry import options
 from sentry.processing.backpressure.rabbitmq import is_consumer_healthy
 
-# As arroyo would otherwise busy-wait, we will sleep for a short time
-# when a message is rejected.
-SLEEP_MS = 10
-
 
 class HealthChecker:
     def __init__(self, consumer_name: str = "default"):
@@ -53,7 +49,6 @@ def create_backpressure_step(
 
     def ensure_healthy_queue(message: Message[TPayload]) -> TPayload:
         if not health_checker.is_healthy():
-            time.sleep(SLEEP_MS / 1000)
             raise MessageRejected()
 
         return message.payload
