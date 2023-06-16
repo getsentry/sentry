@@ -58,12 +58,12 @@ class IntegrationErrorLogBuffer:
         pipe = self.client.pipeline()
 
         # get first element from array
-        last_item_array = self.client.lrange(buffer_key, 0, 1)
-        if len(last_item_array):
-            last_item = json.loads(last_item_array[0])
-            if last_item.get("date") == now:
-                last_item["count"] += 1
-                pipe.lset(buffer_key, 0, json.dumps(last_item))
+        recent_item_array = self.client.lrange(buffer_key, 0, 1)
+        if len(recent_item_array):
+            recent_item = json.loads(recent_item_array[0])
+            if recent_item.get("date") == now:
+                recent_item["count"] += 1
+                pipe.lset(buffer_key, 0, json.dumps(recent_item))
             else:
                 data = {
                     "date": now,
