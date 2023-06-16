@@ -1346,8 +1346,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable archive/escalating issue workflow UI, enable everything except post processing
-    "organizations:escalating-issues-ui": False,
     # Enable escalating forecast threshold a/b experiment
     "organizations:escalating-issues-experiment-group": False,
     # Enable archive/escalating issue workflow features in v2
