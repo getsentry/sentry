@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Mapping, Type
 
 from sentry.models import ControlOutbox, OutboxBase, RegionOutbox, outbox_silo_modes
+from sentry.models.outbox import OutboxError
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs")
@@ -34,4 +38,15 @@ def drain_outbox_shard(
     else:
         shard_outbox = RegionOutbox(shard_scope=shard_scope, shard_identifier=shard_identifier)
 
-    shard_outbox.drain_shard()
+    try:
+        shard_outbox.drain_shard()
+    except OutboxError as err:
+        logging.info(
+            "outbox.drain_outbox_shard.processing_error",
+            extra={
+                "message": str(err),
+                "shard_identifier": shard_identifier,
+                "shard_scope": shard_scope,
+                "region_name": region_name,
+            },
+        )

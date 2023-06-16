@@ -8,6 +8,7 @@ from typing import Optional
 from django.db import IntegrityError, transaction
 
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import OutboxRetryError
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
@@ -60,7 +61,8 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 organization_id=organization_id,
                 organizationmember_id=organizationmember_id,
             )
-            assert existing, "Failed to find conflicted org member"
+            if not existing:
+                raise OutboxRetryError()
 
             apply_update(existing)
 

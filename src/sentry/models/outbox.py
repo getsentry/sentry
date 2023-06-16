@@ -92,7 +92,27 @@ def _ensure_not_null(k: str, v: Any) -> Any:
     return v
 
 
-class OutboxFlushError(Exception):
+class OutboxError(Exception):
+    """Base class for outbox errors"""
+
+    pass
+
+
+class OutboxRetryError(OutboxError):
+    """
+    Can be raised by outbox receivers when they encounter a scenario
+    that can be resolved by trying again later.
+    """
+
+    pass
+
+
+class OutboxFlushError(OutboxError):
+    """
+    Raised when outbox messages cannot be flushed
+    becuase rows were removed by concurrent processes.
+    """
+
     pass
 
 
