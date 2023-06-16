@@ -28,15 +28,17 @@ def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optiona
 
 def get_retention_from_org_id(org_id: int) -> int:
     cache_key = f"seen-orgs:{org_id}"
-    retention: int = cache.get(cache_key)
+    cached_retention: Optional[int] = cache.get(cache_key)
 
-    if retention is None:
+    if cached_retention is not None:
+        return cached_retention
+    else:
         # the default in Snuba is 90 days, and if there is no
         # org-configured retention stored, we use that default
         retention = quotas.get_event_retention(organization=org_id) or 90
         cache.set(cache_key, retention)
 
-    return retention
+        return retention
 
 
 # TODO: Use the Futures that are returned by the call to produce.
