@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import cast
+from typing import Optional, cast
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.project import RpcProject, RpcProjectOptionValue
@@ -40,7 +40,7 @@ class ProjectService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_by_id(self, *, organization_id: int, id: int) -> RpcProject:
+    def get_by_id(self, *, organization_id: int, id: int) -> Optional[RpcProject]:
         pass
 
 
