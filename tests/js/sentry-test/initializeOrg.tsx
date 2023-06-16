@@ -13,6 +13,18 @@ type RouteShape = {
   path?: string;
 };
 
+interface InitializeOrgOptions<RouterParams> {
+  organization?: Partial<Organization>;
+  project?: Partial<Project>;
+  projects?: Partial<Project>[];
+  router?: {
+    location?: Partial<Location>;
+    params?: RouterParams;
+    push?: jest.Mock;
+    routes?: RouteShape[];
+  };
+}
+
 /**
  * Creates stubs for:
  *   - a project or projects
@@ -25,12 +37,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   project: additionalProject,
   projects: additionalProjects,
   router: additionalRouter,
-}: {
-  organization?: Partial<Organization>;
-  project?: Partial<Project>;
-  projects?: Partial<Project>[];
-  router?: {location?: Partial<Location>; params?: RouterParams; routes?: RouteShape[]};
-} = {}) {
+}: InitializeOrgOptions<RouterParams> = {}) {
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
