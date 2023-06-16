@@ -61,7 +61,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   ]);
 
   /**
-   * A collection of router props that are passed to components by react-rotuer
+   * A collection of router props that are passed to components by react-router
    *
    * Pass custom router params like so:
    * ```ts
