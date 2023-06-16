@@ -132,7 +132,7 @@ export default class ReplayReader {
 
     // Insert extra records to satisfy minimum requirements for the UI
     this._breadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
-    this._rrwebEvents.push(recordingStartFrame(replayRecord));
+    this._rrwebEvents.unshift(recordingStartFrame(replayRecord));
     this._rrwebEvents.push(recordingEndFrame(replayRecord));
 
     /*********************/
