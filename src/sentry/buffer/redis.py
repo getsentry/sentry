@@ -33,7 +33,10 @@ def _validate_json_roundtrip(value, model):
     if _last_validation_log is None or _last_validation_log < time() - 10:
         _last_validation_log = time()
         try:
-            if RedisBuffer._load_values(RedisBuffer._dump_values(value)) != value:
+            if (
+                RedisBuffer._load_values(json.loads(json.dumps(RedisBuffer._dump_values(value))))
+                != value
+            ):
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
