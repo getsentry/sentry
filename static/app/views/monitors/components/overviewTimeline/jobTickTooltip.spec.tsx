@@ -12,7 +12,7 @@ export function generateEnvMapping(name: string, counts: StatusCounts) {
 }
 
 describe('JobTickTooltip', function () {
-  it('renders job tick representing single job run', function () {
+  it('renders tooltip representing single job run', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const envMapping = generateEnvMapping('prod', [0, 1, 0, 0]);
@@ -35,7 +35,7 @@ describe('JobTickTooltip', function () {
     expect(screen.queryByText('-')).not.toBeInTheDocument();
   });
 
-  it('renders job tick representing multiple job runs 1 env', function () {
+  it('renders tooltip representing multiple job runs 1 env', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const envMapping = generateEnvMapping('prod', [1, 1, 1, 1]);
@@ -62,7 +62,7 @@ describe('JobTickTooltip', function () {
     expect(screen.queryByText('-')).toBeInTheDocument();
   });
 
-  it('renders job tick representing multiple job runs multiple envs', function () {
+  it('renders tooltip representing multiple job runs multiple envs', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const prodEnvMapping = generateEnvMapping('prod', [0, 1, 0, 2]);
