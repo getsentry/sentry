@@ -130,3 +130,9 @@ class Integration(DefaultFieldsModel):
             )
 
             return org_integration
+
+    def record_failure(self):
+        from sentry.integrations.request_buffer import IntegrationErrorLogBuffer
+
+        buffer = IntegrationErrorLogBuffer(self)
+        buffer.add()
