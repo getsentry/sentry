@@ -124,7 +124,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
   /**
    * Similar to `href`, but for internal links within the app.
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   to?: string | object;
 }
