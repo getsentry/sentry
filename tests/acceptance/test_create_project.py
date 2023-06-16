@@ -42,17 +42,16 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-
+        #
         self.browser.click('[data-test-id="platform-javascript-react"]')
-
+        self.browser.wait_until_not(".loading")
         self.browser.click('[data-test-id="create-project"]')
 
         self.browser.wait_until_not(".loading")
-        assert self.browser.find_element(
-            by=By.XPATH, value="//h2[contains(text(), 'Configure React SDK')]"
-        )
-        # self.browser.wait_until_test_id(".loading123")
+        self.browser.wait_until("h2")
 
-        # print(element)
+        title = self.browser.find_element(by=By.CSS_SELECTOR, value="h2")
+        info_box = self.browser.find_element(by=By.CSS_SELECTOR, value="div.ref-info > span")
 
-        # self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        assert "React" in title.text
+        assert "React" in info_box.text
