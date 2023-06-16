@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
 
@@ -7,6 +7,8 @@ from sentry.utils import json, redis
 
 BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
+
+IS_BROKEN_RANGE = 7  # 7 days
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +44,7 @@ class IntegrationErrorLogBuffer:
 
         return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
-    def get(self):
+    def _get(self):
         """
         Returns the list of daily aggregate error counts.
         """
@@ -50,6 +52,22 @@ class IntegrationErrorLogBuffer:
             self._convert_obj_to_dict(obj)
             for obj in self._get_all_from_buffer(self._get_redis_key())
         ]
+
+    def is_integration_broken(self):
+        """
+        Integration is broken if we have 7 consecutive days with a non-zero error count
+        """
+        data = [
+            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
+            for item in self._get()
+            if item.get("count", 0) > 0 and item.get("date")
+        ][0:IS_BROKEN_RANGE]
+
+        date_set = {data[0] - timedelta(x) for x in range((data[0] - data[-1]).days)}
+        missing = list(date_set - set(data))
+        if len(missing):
+            return False
+        return True
 
     def add(self):
         buffer_key = self._get_redis_key()
