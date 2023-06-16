@@ -19,7 +19,6 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import RuleSnooze
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.models.rulesnooze import RuleSnooze
