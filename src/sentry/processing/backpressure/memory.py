@@ -46,7 +46,7 @@ def get_memory_usage(info: Mapping[str, Any]) -> ServiceMemory:
     # or alternatively: `used_memory_rss`?
     memory_used = info.get("used_memory", 0)
     # `maxmemory` might be 0 in development
-    memory_available = info.get("maxmemory", 0) or info.get("total_system_memory", 0)
+    memory_available = info.get("maxmemory", 0) or info["total_system_memory"]
 
     return ServiceMemory(memory_used, memory_available)
 

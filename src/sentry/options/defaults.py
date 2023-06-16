@@ -1324,6 +1324,10 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
+# If this option is being modified downstream, and a new default setting
+# may be added, it has to be updated downstream as well, otherwise the
+# code will throw. This is intentional. We want to throw fast and loud on
+# misconfiguration.
 register(
     "backpressure.high_watermarks",
     default={
