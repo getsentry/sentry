@@ -1,6 +1,9 @@
 import {Fragment, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,6 +31,7 @@ import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -222,6 +226,15 @@ export default function EndpointOverview() {
     );
   }
 
+  const handleViewAllEventsClick = () => {
+    browserHistory.push({
+      pathname: `/issues/?${qs.stringify({
+        ...getDateConditions(pageFilter),
+        transaction,
+      })}`,
+    });
+  };
+
   return (
     <PageFiltersContainer>
       <Layout.Page>
@@ -273,6 +286,13 @@ export default function EndpointOverview() {
                   {t('Performance Only')}
                 </SegmentedControl.Item>
               </SegmentedControl>
+              <Button
+                style={{position: 'absolute', right: 0}}
+                size="sm"
+                onClick={handleViewAllEventsClick}
+              >
+                View All
+              </Button>
             </SegmentedControlContainer>
             <IssuesTable
               issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
@@ -351,6 +371,7 @@ const StyledRow = styled(PerformanceLayoutBodyRow)`
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
+  position: relative;
 `;
 
 const ChartLabel = styled('div')`

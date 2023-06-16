@@ -7,33 +7,41 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 
 type Props = {
+  httpMethod?: string;
   issueCategory?: IssueCategory;
   transactionName?: string;
 };
 
 function IssuesTable(props: Props) {
-  const {transactionName, issueCategory} = props;
+  const {transactionName, issueCategory, httpMethod} = props;
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const dateCondtions = getDateConditions(pageFilters);
+  const {statsPeriod, start, end} = getDateConditions(pageFilters);
 
   const queryConditions: string[] = [
     'is:unresolved',
     ...(issueCategory ? [`issue.category:${issueCategory}`] : ['']),
     ...(transactionName ? [`transaction:${transactionName}`] : ['']),
-    ...dateCondtions,
+    ...(httpMethod ? [`http.method:${httpMethod}`] : ['']),
   ];
   const queryCondtionString = queryConditions.join(' ');
 
-  const queryParams = useMemo(
-    () => ({project: 1, query: queryCondtionString, limit: 5, sort: 'new'}),
-    [queryCondtionString]
-  );
+  const queryParams = useMemo(() => {
+    const dateConditions = statsPeriod ? {statsPeriod} : {start, end};
+    return {
+      project: 1,
+      query: queryCondtionString,
+      limit: 5,
+      sort: 'new',
+      ...dateConditions,
+    };
+  }, [queryCondtionString, statsPeriod, start, end]);
 
   return (
     <GroupList
       orgId={organization.slug}
       withChart={false}
+      withColumns={[]}
       narrowGroups
       endpointPath={`/organizations/${organization.slug}/issues/`}
       query={queryCondtionString}
