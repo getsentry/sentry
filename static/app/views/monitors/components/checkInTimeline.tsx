@@ -112,7 +112,7 @@ export function CheckInTimeline(props: Props) {
 
           return (
             <JobTickContainer style={{left}} key={startTs}>
-              <Tooltip title={JobTickTooltip(jobTick)}>
+              <Tooltip title={<JobTickTooltip {...jobTick} />}>
                 <JobTick
                   style={{width: tickWidth}}
                   status={getAggregateStatus(envMapping)}
