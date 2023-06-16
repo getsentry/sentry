@@ -66,6 +66,7 @@ default_manager.add("organizations:javascript-console-error-tag", OrganizationFe
 default_manager.add("organizations:assign-to-me", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
