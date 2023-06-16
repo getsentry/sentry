@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Test setup no longer valid after adding is_test to organization model")
 class BackfillNotificationSettingTest(TestMigrations):
     migrate_from = "0468_pickle_to_json_sentry_rawevent"
     migrate_to = "0469_backfill_orgmembermapping"

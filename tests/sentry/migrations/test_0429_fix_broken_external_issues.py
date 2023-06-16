@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Test setup no longer valid after adding is_test to organization model")
 class FixBrokenExternalIssues(TestMigrations):
     migrate_from = "0428_backfill_denormalize_notification_actor"
     migrate_to = "0429_fix_broken_external_issues"
