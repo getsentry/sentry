@@ -4,13 +4,13 @@ import {PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {Column} from './groupList';
+import {GroupListColumn} from './groupList';
 
 type Props = {
   withChart: boolean;
   narrowGroups?: boolean;
   showLastTriggered?: boolean;
-  withColumns?: Column[];
+  withColumns?: GroupListColumn[];
 };
 
 function GroupListHeader({

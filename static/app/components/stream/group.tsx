@@ -9,7 +9,7 @@ import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {Column} from 'sentry/components/issues/groupList';
+import {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {PanelItem} from 'sentry/components/panels';
@@ -70,7 +70,7 @@ type Props = {
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
-  withColumns?: Column[];
+  withColumns?: GroupListColumn[];
 };
 
 function BaseGroupRow({

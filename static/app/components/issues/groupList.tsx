@@ -35,10 +35,10 @@ const defaultProps = {
   useFilteredStats: true,
   useTintRow: true,
   narrowGroups: false,
-  withColumns: ['graph', 'event', 'users', 'assignee'] satisfies Column[],
+  withColumns: ['graph', 'event', 'users', 'assignee'] satisfies GroupListColumn[],
 };
 
-export type Column = 'graph' | 'event' | 'users' | 'assignee' | 'lastTriggered';
+export type GroupListColumn = 'graph' | 'event' | 'users' | 'assignee' | 'lastTriggered';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -61,7 +61,7 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
-  withColumns?: Column[];
+  withColumns?: GroupListColumn[];
 } & Partial<typeof defaultProps>;
 
 type State = {
