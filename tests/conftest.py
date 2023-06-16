@@ -169,17 +169,20 @@ def simulate_on_commit(request):
     def new_atomic_exit(self, exc_type, *args, **kwds):
         connection = get_connection(self.using)
         if (
-            len(connection.savepoint_ids) == 1
+            # There will be either 1 or 2 outer transactions imposed by django.
+            # Fire all the transaction hooks within this range.
+            len(connection.savepoint_ids) in {1, 2}
             and exc_type is None
             and not connection.closed_in_transaction
             and not connection.needs_rollback
         ):
             _old_atomic_exit(self, exc_type, *args, **kwds)
-            connection.in_atomic_block = False
+            old_validate = connection.validate_no_atomic_block
+            connection.validate_no_atomic_block = lambda: None
             try:
                 connection.run_and_clear_commit_hooks()
             finally:
-                connection.in_atomic_block = True
+                connection.validate_no_atomic_block = old_validate
         else:
             return _old_atomic_exit(self, exc_type, *args, **kwds)
 
