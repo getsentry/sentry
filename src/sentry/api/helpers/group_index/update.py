@@ -788,13 +788,19 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor,
-    assigned_by,
-    integration,
-    group_list,
+    assigned_actor: str,
+    assigned_by: str,
+    integration: str,
+    group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
 ):
+    """
+    Handle the assignedTo field on a group update.
+
+    This sets a new assignee or removes existing assignees, and logs the
+    manual.issue_assignment analytic.
+    """
     assigned_by = (
         assigned_by if assigned_by in ["assignee_selector", "suggested_assignee"] else None
     )
