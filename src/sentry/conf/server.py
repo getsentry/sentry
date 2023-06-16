@@ -16,7 +16,6 @@ from typing import (
     Callable,
     Dict,
     Iterable,
-    List,
     Mapping,
     Optional,
     Tuple,
@@ -1576,7 +1575,7 @@ SENTRY_FEATURES = {
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enable performance issues detector threshold configuration
-    "organizations:performance-issues-detector-threshold-configuration": False,
+    "organizations:project-performance-settings-admin": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -3530,24 +3529,27 @@ SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
 
-# The Redis cluster to use for monitoring the health of
-# Celery queues.
-SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
+# The Redis cluster to use for monitoring the service / consumer health.
+SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
-# The RabbitMQ hosts whose health should be monitored by the backpressure system.
-# This should be a list of dictionaries with keys "url" and "vhost".
-# E.g. for local testing: [{"url": "https://guest:guest@localhost:15672", "vhost": "%2F"}]
-SENTRY_QUEUE_MONITORING_RABBITMQ_HOSTS: List[Dict[str, str]] = []
-
-# This is a mapping between the various processing stores,
-# and the redis `cluster` they are using.
-# This setting needs to be appropriately synched across the various deployments
-# for automatic backpressure management to properly work.
-SENTRY_PROCESSING_REDIS_CLUSTERS = {
-    "attachments": "rc-short",
-    # "processing": "processing",
-    "locks": "default",
-    "post_process_locks": "default",
+# This is a view of which abstract processing service is backed by which infrastructure.
+# Right now, the infrastructure can be `redis` or `rabbitmq`.
+#
+# For `redis`, one has to provide the cluster id.
+# It has to match a cluster defined in `redis.redis_clusters`.
+#
+# For `rabbitmq`, one has to provide a list of server URLs.
+# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
+#
+# The definition can also be empty, in which case nothing is checked and
+# the service is assumed to be healthy.
+# However, the service *must* be defined.
+SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
+    "celery": {"redis": "default"},
+    "attachments-store": {"redis": "rc-short"},
+    "processing-store": {},  # "redis": "processing"},
+    "processing-locks": {"redis": "default"},
+    "post-process-locks": {"redis": "default"},
 }
 
 

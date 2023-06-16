@@ -167,7 +167,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @staticmethod
     def build_better_priority_sort_kwargs(
-        request: Request, choice: str
+        request: Request,
+        choice: str,
+        internal: bool,
     ) -> Mapping[str, PrioritySortWeights]:
         """
         Temporary function to be used while developing the new priority sort. Parses the query params in the request.
@@ -219,9 +221,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         }
 
         # XXX(CEO): these are based on the current sort D and E and are subject to change
-        if choice:
+        if choice and not internal:
             aggregate_kwargs["better_priority"]["issue_halflife_hours"] = 12
-        if choice == "variant1":
+        if choice == "variant1" and not internal:
             aggregate_kwargs["better_priority"]["relative_volume"] = 0
 
         return aggregate_kwargs
@@ -238,6 +240,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.update(extra_query_kwargs)
 
             if query_kwargs["sort_by"] == "betterPriority":
+                internal = False
                 choice = None
                 if features.has(
                     "organizations:better-priority-sort-experiment",
@@ -253,13 +256,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     organization,
                     actor=request.user,
                 ):
+                    internal = True
                     choice = "variant1"
 
                 if choice == "baseline":
                     query_kwargs["sort_by"] = "date"
                 else:
                     query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(
-                        request, choice
+                        request, choice, internal
                     )
 
             query_kwargs["environments"] = environments if environments else None
