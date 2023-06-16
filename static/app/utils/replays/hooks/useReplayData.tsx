@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
@@ -104,6 +104,7 @@ function useReplayData({
 
   const [state, setState] = useState<State>(INITIAL_STATE);
   const [attachments, setAttachments] = useState<unknown[]>([]);
+  const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
@@ -134,6 +135,7 @@ function useReplayData({
 
     const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
     const cursors = new Array(pages).fill(0).map((_, i) => `0:${segmentsPerPage * i}:0`);
+    cursors.forEach(cursor => attachmentMap.current.set(cursor, []));
 
     await Promise.allSettled(
       cursors.map(cursor => {
@@ -148,7 +150,9 @@ function useReplayData({
           }
         );
         promise.then(response => {
-          setAttachments(prev => (prev ?? []).concat(...response));
+          attachmentMap.current.set(cursor, response);
+          const flattened = Array.from(attachmentMap.current.values()).flat(2);
+          setAttachments(flattened);
         });
         return promise;
       })

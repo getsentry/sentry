@@ -110,7 +110,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
+  if (!fetching && replay && replay.getRRWebFrames().length < 2) {
     return (
       <Page
         orgSlug={orgSlug}
