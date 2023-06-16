@@ -1,15 +1,22 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
-from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    Project,
+    PullRequest,
+    Repository,
+    RepositoryProjectPathConfig,
+)
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
@@ -24,6 +31,36 @@ PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 logger = logging.getLogger(__name__)
+
+
+def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
+    from sentry.tasks.integrations.github.pr_comment import comment_workflow
+
+    logger.info(
+        "github.pr_comment.queue_comment_check",
+        extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
+    )
+
+    pr_query = PullRequest.objects.filter(
+        organization_id=commit.organization_id, merge_commit_sha=commit.key
+    )
+    if not pr_query.exists():
+        logger.info(
+            "github.pr_comment.queue_comment_task_missing_pr",
+            extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
+        )
+        return
+    pr = pr_query.get()
+    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30) and (
+        not pr.pullrequestcomment_set.exists()
+        or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
+    ):
+        # TODO: Debouncing Logic
+        logger.info(
+            "github.pr_comment.queue_comment_workflow",
+            extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+        )
+        comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(
@@ -270,6 +307,20 @@ def process_commit_context(
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
+
+            if features.has("organizations:pr-comment-bot", project.organization):
+                logger.info(
+                    "github.pr_comment",
+                    extra={"organization_id": project.organization_id},
+                )
+                repo = Repository.objects.filter(id=commit.repository_id)
+                if repo.exists() and repo.get().provider == "integrations:github":
+                    queue_comment_task_if_needed(commit, group_owner)
+                else:
+                    logger.info(
+                        "github.pr_comment.incorrect_repo_config",
+                        extra={"organization_id": project.organization_id},
+                    )
 
             if created:
                 # If owners exceeds the limit, delete the oldest one.
