@@ -13,12 +13,12 @@ describe('GuideAnchor', function () {
   ];
 
   beforeEach(function () {
-    ConfigStore.config = {
-      user: {
+    ConfigStore.config = TestStubs.Config({
+      user: TestStubs.User({
         isSuperuser: false,
         dateJoined: new Date(2020, 0, 1),
-      },
-    };
+      }),
+    });
   });
 
   it('renders, async advances, async and finishes', async function () {
@@ -39,9 +39,7 @@ describe('GuideAnchor', function () {
     //
     // NOTE(epurkhiser): We may be able to remove the skipPointerEventsCheck
     // when we're on popper >= 1.
-    await userEvent.click(screen.getByLabelText('Next'), undefined, {
-      skipPointerEventsCheck: true,
-    });
+    await userEvent.click(screen.getByLabelText('Next'));
 
     expect(await screen.findByText('Narrow Down Suspects')).toBeInTheDocument();
     expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
@@ -52,9 +50,7 @@ describe('GuideAnchor', function () {
       url: '/assistant/',
     });
 
-    await userEvent.click(screen.getByLabelText('Enough Already'), undefined, {
-      skipPointerEventsCheck: true,
-    });
+    await userEvent.click(screen.getByLabelText('Enough Already'));
 
     expect(finishMock).toHaveBeenCalledWith(
       '/assistant/',
@@ -84,9 +80,7 @@ describe('GuideAnchor', function () {
       url: '/assistant/',
     });
 
-    await userEvent.click(screen.getByLabelText('Dismiss'), undefined, {
-      skipPointerEventsCheck: true,
-    });
+    await userEvent.click(screen.getByLabelText('Dismiss'));
 
     expect(dismissMock).toHaveBeenCalledWith(
       '/assistant/',
