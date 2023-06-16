@@ -319,12 +319,10 @@ def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: Us
 
 
 def get_teams_for_user(projects: Sequence[Project], user: User) -> list[Team]:
-    user_ids = [user.id]
-
     team_ids = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
-                user_id__in=user_ids, organization_id=projects[0].organization_id
+                user_id__in=[user.id], organization_id=projects[0].organization_id
             ),
             is_active=True,
         ).values("team")
