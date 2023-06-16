@@ -156,7 +156,7 @@ def simulate_on_commit(request):
 
     request_node_cls = request.node.cls
 
-    if not issubclass(request_node_cls, DjangoTestCase):
+    if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
         BaseDatabaseWrapper._is_django_test_case = False
         try:
             yield
