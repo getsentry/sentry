@@ -296,7 +296,7 @@ export default function EndpointOverview() {
                 size="sm"
                 onClick={handleViewAllEventsClick}
               >
-                View All
+                {t('View All')}
               </Button>
             </SegmentedControlContainer>
             <IssuesTable
