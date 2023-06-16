@@ -16,7 +16,7 @@ function IssuesTable(props: Props) {
   const {transactionName, issueCategory, httpMethod} = props;
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {statsPeriod, start, end} = getDateConditions(pageFilters);
+  const {statsPeriod, start, end} = getDateConditions(pageFilters.selection);
 
   const queryConditions: string[] = [
     'is:unresolved',

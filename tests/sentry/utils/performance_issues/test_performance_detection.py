@@ -129,6 +129,22 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
+    # TODO Abdullah Khan: Uncomment after detection_rate migration
+    # @override_options(BASE_DETECTOR_OPTIONS)
+    # def test_detection_enable_option_passed_to_detector(self):
+    #     n_plus_one_event = get_event("n-plus-one-in-django-index-view")
+    #     sdk_span_mock = Mock()
+
+    #     perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
+    #     assert_n_plus_one_db_problem(perf_problems)
+
+    #     self.project_option_mock.return_value = {
+    #         "n_plus_one_db_queries_detection_enabled": False,
+    #     }
+
+    #     perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
+    #     assert perf_problems == []
+
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
         n_plus_one_event = get_event("n-plus-one-db-root-parent-span")

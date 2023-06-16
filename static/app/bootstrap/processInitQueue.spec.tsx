@@ -6,7 +6,7 @@ describe('processInitQueue', function () {
     const init = {
       name: 'onReady',
       onReady: mock,
-    };
+    } as const;
 
     window.__onSentryInit = [init];
 
@@ -26,7 +26,7 @@ describe('processInitQueue', function () {
     const init = {
       name: 'onReady',
       onReady: mock,
-    };
+    } as const;
 
     window.__onSentryInit.push(init);
     expect(mock).toHaveBeenCalledTimes(1);

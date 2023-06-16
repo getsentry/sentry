@@ -1,4 +1,5 @@
 import OrganizationStore from 'sentry/stores/organizationStore';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 describe('OrganizationStore', function () {
   beforeEach(function () {
@@ -51,7 +52,7 @@ describe('OrganizationStore', function () {
   });
 
   it('errors correctly', function () {
-    const error = new Error('uh-oh');
+    const error = new RequestError('GET', '/some/path', new Error('uh oh'));
     error.status = 404;
     OrganizationStore.onFetchOrgError(error);
     expect(OrganizationStore.get()).toMatchObject({

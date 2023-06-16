@@ -234,7 +234,7 @@ export default function EndpointOverview() {
     ]);
     browserHistory.push({
       pathname: `/issues/?${qs.stringify({
-        ...getDateConditions(pageFilter),
+        ...getDateConditions(pageFilter.selection),
         query: issuesQuery.formatString(),
       })}`,
     });

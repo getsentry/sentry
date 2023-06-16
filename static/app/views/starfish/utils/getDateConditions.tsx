@@ -1,10 +1,11 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PageFilters} from 'sentry/types';
 import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 export const getDateConditions = (
-  pageFilter
+  selection: PageFilters
 ): {end?: string | undefined; start?: string | undefined; statsPeriod?: string} => {
-  const {startTime, endTime, statsPeriod} = getDateFilters(pageFilter);
+  const {startTime, endTime, statsPeriod} = getDateFilters(selection);
   const {start, end} = normalizeDateTimeParams({
     start: startTime.toDate(),
     end: endTime.toDate(),

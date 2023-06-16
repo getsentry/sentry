@@ -19,7 +19,7 @@ describe('getStacktraceBody', function () {
   });
 
   it('returns empty array for empty event entries', function () {
-    const result = getStacktraceBody({});
+    const result = getStacktraceBody(TestStubs.Event({entries: []}));
     expect(result).toEqual([]);
   });
 });
