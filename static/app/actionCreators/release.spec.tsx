@@ -9,7 +9,7 @@ describe('ReleaseActionCreator', function () {
 
   const api = new MockApiClient();
   const mockData = {id: '1'};
-  let mockResponse;
+  let mockResponse: jest.Mock;
 
   describe('getProjectRelease', () => {
     const releaseUrl = `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
