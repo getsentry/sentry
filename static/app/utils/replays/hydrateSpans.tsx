@@ -1,3 +1,6 @@
+import invariant from 'invariant';
+
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {RawSpanFrame, SpanFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -16,6 +19,9 @@ export default function hydrateSpans(
       try {
         const start = new Date(frame.startTimestamp * 1000);
         const end = new Date(frame.endTimestamp * 1000);
+
+        invariant(isValidDate(start), 'spanFrame.startTimestamp is invalid');
+        invariant(isValidDate(end), 'spanFrame.endTimestamp is invalid');
         return {
           ...frame,
           endTimestamp: end,

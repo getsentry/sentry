@@ -1,3 +1,6 @@
+import invariant from 'invariant';
+
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {ErrorFrame, RawReplayError} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -15,6 +18,8 @@ export default function hydrateErrors(
     .map(error => {
       try {
         const time = new Date(error.timestamp);
+        invariant(isValidDate(time), 'errorFrame.timestamp is invalid');
+
         return {
           category: 'issue' as const,
           data: {

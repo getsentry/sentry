@@ -1,4 +1,7 @@
+import invariant from 'invariant';
+
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -16,6 +19,8 @@ export default function hydrateBreadcrumbs(
     .map((frame: RawBreadcrumbFrame) => {
       try {
         const time = new Date(frame.timestamp * 1000);
+        invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
+
         return {
           ...frame,
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
