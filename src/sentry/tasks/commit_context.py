@@ -47,6 +47,10 @@ def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
         # TODO: Debouncing Logic
+        logger.info(
+            "github.pr_comment.queue_comment_task",
+            extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+        )
         comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
