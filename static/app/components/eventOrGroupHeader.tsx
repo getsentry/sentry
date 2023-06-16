@@ -95,10 +95,14 @@ function EventOrGroupHeader({
   function getTitle() {
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;
+    const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style: status === 'resolved' ? {textDecoration: 'line-through'} : undefined,
+      style:
+        status === 'resolved' && !hasEscalatingIssues
+          ? {textDecoration: 'line-through'}
+          : undefined,
     };
 
     if (isTombstone(data)) {
