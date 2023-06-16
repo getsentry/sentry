@@ -41,4 +41,8 @@ describe('GroupStatusBadge', () => {
     );
     expect(screen.getByText('Regressed')).toBeInTheDocument();
   });
+  it('should display resolved', () => {
+    render(<GroupStatusBadge status={ResolutionStatus.RESOLVED} />);
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
+  });
 });
