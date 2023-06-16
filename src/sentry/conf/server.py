@@ -1398,8 +1398,6 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable metrics feature on the backend
-    "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1658,8 +1656,6 @@ SENTRY_FEATURES = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
-    # DEPRECATED: pending removal
-    "projects:dsym": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1673,8 +1669,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
-    # Use Kafka (instead of Celery) for ingestion pipeline.
-    "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
