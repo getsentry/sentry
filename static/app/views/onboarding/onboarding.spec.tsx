@@ -22,7 +22,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -30,7 +30,14 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -47,7 +54,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -55,7 +62,14 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -79,7 +93,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -132,7 +146,14 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -158,7 +179,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-project-deletion-on-back-click'],
       },
@@ -214,7 +235,14 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -250,7 +278,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-project-deletion-on-back-click'],
       },
@@ -306,7 +334,14 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -333,7 +368,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -344,7 +379,14 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -372,7 +414,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, route, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -383,7 +425,14 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding {...routerProps} />
+        <Onboarding
+          router={router}
+          location={router.location}
+          params={routeParams}
+          routes={router.routes}
+          routeParams={router.params}
+          route={route}
+        />
       </OnboardingContextProvider>,
       {
         context: routerContext,
