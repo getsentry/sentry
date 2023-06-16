@@ -210,6 +210,7 @@ class RedisBuffer(Buffer):
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         # TODO(dcramer): once this goes live in production, we can kill the pickle path
         # (this is to ensure a zero downtime deploy where we can transition event processing)
+        _validate_json_roundtrip(filters, model)
         pipe.hsetnx(key, "f", pickle.dumps(filters))
         # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
         for column, amount in columns.items():
@@ -219,10 +220,10 @@ class RedisBuffer(Buffer):
             # Group tries to serialize 'score', so we'd need some kind of processing
             # hook here
             # e.g. "update score if last_seen or times_seen is changed"
+            _validate_json_roundtrip(extra, model)
             for column, value in extra.items():
                 # TODO(dcramer): once this goes live in production, we can kill the pickle path
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
-                _validate_json_roundtrip(value, model)
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
 
