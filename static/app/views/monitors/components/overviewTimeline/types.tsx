@@ -21,4 +21,20 @@ export type TimeWindowData = Record<TimeWindow, TimeWindowOptions>;
 
 export type MonitorBucketData = [timestamp: number, envData: MonitorBucketEnvMapping][];
 
-export type MonitorBucketEnvMapping = Record<string, Record<CheckInStatus, number>>;
+export interface JobTickData {
+  endTs: number;
+  envMapping: MonitorBucketEnvMapping;
+  roundedLeft: boolean;
+  roundedRight: boolean;
+  startTs: number;
+  width: number;
+}
+
+export type StatsBucket = {
+  [CheckInStatus.OK]: number;
+  [CheckInStatus.MISSED]: number;
+  [CheckInStatus.TIMEOUT]: number;
+  [CheckInStatus.ERROR]: number;
+};
+
+export type MonitorBucketEnvMapping = Record<string, StatsBucket>;
