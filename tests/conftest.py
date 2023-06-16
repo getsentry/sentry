@@ -157,7 +157,7 @@ def simulate_on_commit(request):
     request_node_cls = request.node.cls
 
     if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
-        BaseDatabaseWrapper._is_django_test_case = False
+        BaseDatabaseWrapper._is_django_test_case = False  # type: ignore
         try:
             yield
         finally:
@@ -187,13 +187,13 @@ def simulate_on_commit(request):
             return _old_atomic_exit(self, exc_type, *args, **kwds)
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
-    transaction.Atomic.__exit__ = new_atomic_exit
+    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
 
-    BaseDatabaseWrapper._is_django_test_case = True
+    BaseDatabaseWrapper._is_django_test_case = True  # type: ignore
     try:
         yield
     finally:
-        transaction.Atomic.__exit__ = _old_atomic_exit
+        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
         delattr(BaseDatabaseWrapper, "_is_django_test_case")
 
 

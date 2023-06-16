@@ -173,13 +173,13 @@ class User(BaseModel, AbstractBaseUser):
             return super().delete()
 
     def update(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), kwds):
+        with outbox_context(transaction.atomic(), kwds, flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(), kwargs):
+        with outbox_context(transaction.atomic(), kwargs, flush=False):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)
