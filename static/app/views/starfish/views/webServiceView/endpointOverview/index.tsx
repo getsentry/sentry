@@ -45,7 +45,7 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, method, statsPeriod} = location.query;
+  const {endpoint, 'http.method': method, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]

@@ -87,7 +87,7 @@ function getEventView(
       projects: [1],
       version: 2,
     },
-    omit(location, 'span.category')
+    omit(location, 'span.category', 'http.method')
   );
 }
 
@@ -119,6 +119,10 @@ function buildEventViewQuery(
 
   if (transaction) {
     result.push(`transaction:${transaction}`);
+  }
+
+  if (query['http.method']) {
+    result.push(`transaction.method:${query['http.method']}`);
   }
 
   return result;

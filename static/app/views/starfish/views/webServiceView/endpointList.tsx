@@ -93,7 +93,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             organization.slug
           }/starfish/endpoint-overview/?${qs.stringify({
             endpoint: dataRow.transaction,
-            method: dataRow['http.method'],
+            'http.method': dataRow['http.method'],
             statsPeriod: eventView.statsPeriod,
             project: eventView.project,
             start: eventView.start,

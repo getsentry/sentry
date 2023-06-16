@@ -35,9 +35,13 @@ type Props = {
 
 function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
-  const {transaction, endpoint} = location.query;
+  const {transaction, endpoint, endpointMethod} = location.query;
 
   const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
+
+  if (endpointMethod && queryFilter) {
+    queryFilter['transaction.method'] = endpointMethod;
+  }
 
   const {data: spanMetas} = useSpanMeta(
     groupId,
@@ -166,7 +170,7 @@ function SpanSummaryPage({params, location}: Props) {
                 <Button
                   to={{
                     pathname: location.pathname,
-                    query: omit(location.query, 'endpoint'),
+                    query: omit(location.query, 'endpoint', 'endpointMethod'),
                   }}
                 >
                   {t('View More Endpoints')}

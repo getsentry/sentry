@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -68,13 +68,15 @@ export default function SpansTable({
   const spansCursor = decodeScalar(location.query?.[SPANS_CURSOR_NAME]);
   const {isLoading, data, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
-    undefined,
+    endpoint,
     spanCategory,
     orderBy,
     limit,
     'use-span-list',
     spansCursor
   );
+
+  const endpointMethod = decodeScalar(location.query?.['http.method']);
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
     browserHistory.push({
@@ -94,7 +96,8 @@ export default function SpansTable({
         }
         grid={{
           renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-          renderBodyCell: (column, row) => renderBodyCell(column, row, endpoint),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, endpoint, endpointMethod),
         }}
         location={location}
       />
@@ -129,15 +132,20 @@ function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => v
 function renderBodyCell(
   column: TableColumnHeader,
   row: SpanDataRow,
-  endpoint?: string
+  endpoint?: string,
+  endpointMethod?: string
 ): React.ReactNode {
   if (column.key === 'span.description') {
+    const queryString = {
+      endpoint,
+      endpointMethod,
+    };
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
           <Link
             to={`/starfish/span/${row['span.group']}${
-              endpoint ? `?${urlEncode({endpoint})}` : ''
+              queryString ? `?${qs.stringify(queryString)}` : ''
             }`}
           >
             {row['span.description'] || '<null>'}
