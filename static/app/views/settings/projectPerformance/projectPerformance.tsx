@@ -16,7 +16,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -327,7 +326,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const params = {orgId: organization.slug, projectId: project.slug};
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
-    const isSuperUser = isActiveSuperuser();
 
     return (
       <Fragment>
@@ -442,7 +440,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             </Form>
           </Feature>
           <Feature features={['organizations:project-performance-settings-admin']}>
-            {isSuperUser && (
+            {
               <Form
                 saveOnBlur
                 allowUndo
@@ -453,10 +451,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 <JsonForm
                   title={t('Performance Issues - Admin Detector Settings')}
                   fields={this.performanceIssueDetectorsFormFields}
-                  disabled={!isSuperUser}
+                  disabled={false}
                 />
               </Form>
-            )}
+            }
           </Feature>
         </Fragment>
       </Fragment>
