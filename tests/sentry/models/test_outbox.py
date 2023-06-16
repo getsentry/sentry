@@ -393,14 +393,15 @@ class RegionOutboxTest(TestCase):
             future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
             future_scheduled_outbox.save()
             assert future_scheduled_outbox.scheduled_for > start_time
+            assert RegionOutbox.objects.count() == 1
 
             assert RegionOutbox.find_scheduled_shards().count() == 0  # type: ignore
 
             with outbox_runner():
                 pass
 
-            # We expect the shard to be drained if at *least* one scheduled
-            # message is in the past.
+            # Since the event is sometime in the future, we expect the single
+            #  outbox message not to be processed
             assert RegionOutbox.objects.count() == 1
 
     def test_scheduling_with_past_and_future_outbox_times(self):
