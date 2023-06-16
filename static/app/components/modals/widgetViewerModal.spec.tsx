@@ -13,6 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -42,9 +43,11 @@ async function renderModal({
   tableData,
   pageLinks,
   seriesResultsType,
+  dashboardFilters,
 }: {
   initialData: any;
   widget: any;
+  dashboardFilters?: DashboardFilters;
   pageLinks?: string;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
@@ -65,6 +68,7 @@ async function renderModal({
         tableData={tableData}
         pageLinks={pageLinks}
         seriesResultsType={seriesResultsType}
+        dashboardFilters={dashboardFilters}
       />
     </div>,
     {
@@ -217,6 +221,27 @@ describe('Modals -> WidgetViewerModal', function () {
           '/organizations/org-slug/events/',
           expect.objectContaining({
             query: expect.objectContaining({sort: ['-count()']}),
+          })
+        );
+      });
+
+      it('applies the dashboard filters to the widget query when provided', async function () {
+        const eventsMock = mockEvents();
+        await renderModal({
+          initialData,
+          widget: mockWidget,
+          dashboardFilters: {release: ['project-release@1.2.0']},
+        });
+        expect(screen.getByText('title')).toBeInTheDocument();
+        expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+        expect(eventsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query:
+                // The release was injected into the discover query
+                'title:/organizations/:orgId/performance/summary/ release:project-release@1.2.0 ',
+            }),
           })
         );
       });
