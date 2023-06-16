@@ -235,13 +235,15 @@ export function trendsTargetRoute({
 
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
 
-  if (conditions.hasFilter('tpm()')) {
-    modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-  } else {
-    modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-  }
-  // Metrics don't support duration filters
+  // Trends on metrics don't need these conditions
   if (!organization.features.includes('performance-new-trends')) {
+    // No need to carry over tpm filters to transaction summary
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
+    } else {
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
+    }
+
     if (conditions.hasFilter('transaction.duration')) {
       modifiedConditions.setFilterValues(
         'transaction.duration',

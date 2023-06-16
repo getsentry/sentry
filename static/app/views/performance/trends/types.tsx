@@ -34,6 +34,7 @@ export type TrendParameter = {
 export enum TrendChangeType {
   IMPROVED = 'improved',
   REGRESSION = 'regression',
+  ANY = 'any',
 }
 
 export enum TrendFunctionField {

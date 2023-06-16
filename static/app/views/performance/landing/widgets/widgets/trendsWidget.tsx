@@ -79,11 +79,13 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     },
   ];
   const rest = {...props, eventView};
-  eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
   if (!organization.features.includes('performance-new-trends')) {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
     eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
     eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
     eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  } else {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
   }
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
