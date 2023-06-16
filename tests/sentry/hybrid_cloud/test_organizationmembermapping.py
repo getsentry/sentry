@@ -30,12 +30,11 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         )
 
     def test_upsert_email_invite(self):
-        with exempt_from_silo_limits():
-            om = OrganizationMember.objects.create(
-                role="member",
-                email="foo@example.com",
-                organization_id=self.organization.id,
-            )
+        om = OrganizationMember(
+            role="member",
+            email="foo@example.com",
+            organization_id=self.organization.id,
+        )
         rpc_orgmember_mapping = organizationmember_mapping_service.upsert_mapping(
             organization_id=self.organization.id,
             organizationmember_id=111111,
@@ -48,8 +47,6 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
 
         om.user_id = self.create_user().id
         om.email = None
-        with exempt_from_silo_limits():
-            om.save()
 
         rpc_orgmember_mapping = organizationmember_mapping_service.upsert_mapping(
             organization_id=self.organization.id,
