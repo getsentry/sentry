@@ -85,9 +85,11 @@ def queue_comment_task_if_needed(
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
-        cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
-        if cache.get(cache_key) is not None:
-            return
+        lock = locks.get(f"queue_comment_task:{pr.id}", duration=10, name="queue_comment_task")
+        with lock.acquire():
+            cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
+            if cache.get(cache_key) is not None:
+                return
 
         # create PR commit row for suspect commit and PR
         PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
