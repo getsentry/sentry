@@ -50,6 +50,28 @@ class FileIOMainThreadDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
+    # TODO Abdullah Khan: Uncomment after detection_rate migration
+    # def test_respects_project_option(self):
+    #     project = self.create_project()
+    #     event = get_event("file-io-on-main-thread")
+    #     event["project_id"] = project.id
+
+    #     settings = get_detection_settings(project.id)
+    #     detector = FileIOMainThreadDetector(settings, event)
+
+    #     assert detector.is_creation_allowed_for_project(project)
+
+    #     ProjectOption.objects.set_value(
+    #         project=project,
+    #         key="sentry:performance_issue_settings",
+    #         value={"file_io_on_main_thread_detection_enabled": False},
+    #     )
+
+    #     settings = get_detection_settings(project.id)
+    #     detector = FileIOMainThreadDetector(settings, event)
+
+    #     assert not detector.is_creation_allowed_for_project(project)
+
     def test_detects_file_io_main_thread(self):
         event = get_event("file-io-on-main-thread")
 
