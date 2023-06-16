@@ -6,6 +6,7 @@ import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import campfire from 'sentry-logos/logo-campfire.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
+import discord from 'sentry-logos/logo-discord.svg';
 import flowdock from 'sentry-logos/logo-flowdock.svg';
 import github from 'sentry-logos/logo-github.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
@@ -52,6 +53,7 @@ export const ICON_PATHS = {
   bitbucket_pipelines: bitbucket,
   bitbucket_server: bitbucketserver,
   campfire,
+  discord,
   flowdock,
   github,
   github_enterprise: githubEnterprise,
