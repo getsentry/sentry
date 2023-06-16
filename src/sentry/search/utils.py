@@ -319,7 +319,7 @@ def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: Us
 
 
 def get_teams_for_user(projects: Sequence[Project], user: User) -> list[Team]:
-    team_ids = Team.objects.filter(
+    teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
                 user_id__in=[user.id], organization_id=projects[0].organization_id
@@ -328,7 +328,7 @@ def get_teams_for_user(projects: Sequence[Project], user: User) -> list[Team]:
         ).values("team")
     )
 
-    return list(team_ids)
+    return list(teams)
 
 
 def parse_actor_value(projects: Sequence[Project], value: str, user: User) -> Union[User, Team]:
