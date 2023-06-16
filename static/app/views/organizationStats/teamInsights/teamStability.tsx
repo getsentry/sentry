@@ -94,9 +94,10 @@ function TeamStability({
   if (isPeriodSessionsError || isWeekSessionsError) {
     return (
       <LoadingError
-        onRetry={async () =>
-          await Promise.all([refetchPeriodSessions(), refetchWeekSessions()])
-        }
+        onRetry={() => {
+          refetchPeriodSessions();
+          refetchWeekSessions();
+        }}
       />
     );
   }
