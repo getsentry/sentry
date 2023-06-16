@@ -1,7 +1,7 @@
 import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent as TFullSnapshotEvent} from '@sentry-internal/rrweb';
+export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
 
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
 export {EventType} from '@sentry-internal/rrweb';
