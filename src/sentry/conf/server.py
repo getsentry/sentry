@@ -1386,8 +1386,6 @@ SENTRY_FEATURES = {
     "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable rule page.
-    "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable issue platform
