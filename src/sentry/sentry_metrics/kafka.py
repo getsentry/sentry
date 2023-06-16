@@ -8,7 +8,9 @@ from arroyo import Topic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from django.core.cache import cache
 
+from sentry import quotas
 from sentry.sentry_metrics.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
@@ -22,6 +24,19 @@ ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
     mri_unit = "none" if unit is None else unit
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
+
+
+def get_retention_from_org_id(org_id: int) -> int:
+    cache_key = f"seen-orgs:{org_id}"
+    retention: int = cache.get(cache_key)
+
+    if retention is None:
+        # the default in Snuba is 90 days, and if there is no
+        # org-configured retention stored, we use that default
+        retention = quotas.get_event_retention(organization=org_id) or 90
+        cache.set(cache_key, retention)
+
+    return retention
 
 
 # TODO: Use the Futures that are returned by the call to produce.
@@ -52,7 +67,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Union[int, float],
         tags: Mapping[str, str],
         unit: Optional[str],
-        retention_days: int = 90,
     ) -> None:
 
         """
@@ -69,7 +83,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "value": value,
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
-            "retention_days": retention_days,
+            "retention_days": get_retention_from_org_id(org_id),
             "type": "c",
         }
 
@@ -84,7 +98,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[int],
         tags: Mapping[str, str],
         unit: Optional[str],
-        retention_days: int = 90,
     ) -> None:
 
         """
@@ -101,7 +114,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "value": value,
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
-            "retention_days": retention_days,
+            "retention_days": get_retention_from_org_id(org_id),
             "type": "s",
         }
 
@@ -116,7 +129,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         value: Sequence[Union[int, float]],
         tags: Mapping[str, str],
         unit: Optional[str],
-        retention_days: int = 90,
     ) -> None:
 
         """
@@ -132,7 +144,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "value": value,
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
-            "retention_days": retention_days,
+            "retention_days": get_retention_from_org_id(org_id),
             "type": "d",
         }
 

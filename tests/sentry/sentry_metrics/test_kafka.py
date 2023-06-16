@@ -16,7 +16,6 @@ project_id = 1
 metric_name = "my_metric"
 values = [2, 3]
 tags = {"a": "b"}
-retention = 90
 
 
 def test_produce_set() -> None:
@@ -43,7 +42,6 @@ def test_produce_set() -> None:
         values,
         tags,
         unit=None,
-        retention_days=retention,
     )
 
     set_metric = {
@@ -89,7 +87,6 @@ def test_produce_counter() -> None:
         5,
         tags,
         unit=None,
-        retention_days=retention,
     )
 
     counter_metric = {
@@ -135,7 +132,6 @@ def test_produce_distribution() -> None:
         values,
         tags,
         unit=None,
-        retention_days=retention,
     )
 
     distribution_metric = {
