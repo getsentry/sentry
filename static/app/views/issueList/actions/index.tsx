@@ -214,7 +214,6 @@ function IssueListActions({
         )}
         <Headers
           onSelectStatsPeriod={onSelectStatsPeriod}
-          anySelected={anySelected}
           selection={selection}
           statsPeriod={statsPeriod}
           isReprocessingQuery={displayReprocessingActions}

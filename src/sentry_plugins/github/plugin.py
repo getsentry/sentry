@@ -250,8 +250,6 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         bindings.add("repository.provider", GitHubRepositoryProvider, id="github")
         if self.has_apps_configured():
             bindings.add("repository.provider", GitHubAppsRepositoryProvider, id="github_apps")
-        else:
-            self.logger.info("apps-not-configured")
 
 
 class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
