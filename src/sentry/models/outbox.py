@@ -377,7 +377,7 @@ class ControlOutbox(OutboxBase):
         )
 
     @classmethod
-    def get_webhook_payload_from_outbox(self, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=payload.get("method"),
             path=payload.get("path"),
