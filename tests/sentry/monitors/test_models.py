@@ -159,6 +159,7 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
+    @with_feature({"organizations:crons-issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -203,6 +204,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
+    @with_feature({"organizations:crons-issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -247,6 +249,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
+    @with_feature({"organizations:crons-issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -295,8 +298,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-issue-platform")
+    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -353,6 +355,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
+                "fingerprint": ["monitor", str(monitor.guid), "error"],
                 "platform": "other",
                 "project_id": monitor.project_id,
                 "sdk": None,
@@ -363,8 +366,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-issue-platform")
+    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -422,6 +424,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
+                "fingerprint": ["monitor", str(monitor.guid), "duration"],
                 "platform": "other",
                 "project_id": monitor.project_id,
                 "sdk": None,
@@ -432,8 +435,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-issue-platform")
+    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_missed_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -495,6 +497,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
+                "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
                 "platform": "other",
                 "project_id": monitor.project_id,
                 "sdk": None,
