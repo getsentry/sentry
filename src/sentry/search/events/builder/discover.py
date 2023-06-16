@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 from datetime import datetime, timedelta
 from typing import (
@@ -122,6 +124,7 @@ class BaseQueryBuilder:
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
+    function_alias_prefix: str | None = None
     spans_metrics_builder = False
 
     def _dataclass_params(
@@ -1461,7 +1464,9 @@ class QueryBuilder(BaseQueryBuilder):
         alias: Union[str, Any, None] = match.group("alias")
 
         if alias is None:
-            alias = fields.get_function_alias_with_columns(raw_function, arguments)
+            alias = fields.get_function_alias_with_columns(
+                raw_function, arguments, self.function_alias_prefix
+            )
 
         return (function, combinator, arguments, alias)
 
