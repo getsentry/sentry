@@ -14,7 +14,7 @@ describe('retryableImport', function () {
       )
     );
 
-    const result = await retryableImport(() => importMock());
+    const result = await retryableImport(importMock);
 
     expect(result).toEqual({
       default: {
@@ -32,7 +32,7 @@ describe('retryableImport', function () {
     );
 
     try {
-      await retryableImport(() => importMock());
+      await retryableImport(importMock);
     } catch (err) {
       // do nothing
     }
@@ -59,7 +59,7 @@ describe('retryableImport', function () {
         )
       );
 
-    const result = await retryableImport(() => importMock());
+    const result = await retryableImport(importMock);
 
     expect(result).toEqual({
       default: {
@@ -72,12 +72,12 @@ describe('retryableImport', function () {
   it('only retries 3 times', async function () {
     const importMock = jest.fn(
       () =>
-        new Promise((_resolve, reject) => reject(new Error('Loading chunk 123 failed')))
+        new Promise<{default: unknown}>((_resolve, reject) =>
+          reject(new Error('Loading chunk 123 failed'))
+        )
     );
 
-    await expect(retryableImport(() => importMock())).rejects.toThrow(
-      'Loading chunk 123 failed'
-    );
+    await expect(retryableImport(importMock)).rejects.toThrow('Loading chunk 123 failed');
     expect(importMock).toHaveBeenCalledTimes(3);
   });
 });
