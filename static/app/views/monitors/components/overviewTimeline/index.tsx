@@ -91,6 +91,7 @@ export function OverviewTimeline({monitorList}: Props) {
         width={timelineWidth}
       />
       <GridLineOverlay
+        showCursor={!isLoading}
         timeWindow={timeWindow}
         end={nowRef.current}
         width={timelineWidth}
