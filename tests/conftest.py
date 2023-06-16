@@ -1,3 +1,4 @@
+import functools
 import os
 from typing import MutableSet
 
@@ -141,6 +142,56 @@ def validate_silo_mode():
         raise Exception(
             "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
         )
+
+
+@pytest.fixture(autouse=True)
+def simulate_on_commit(request):
+    """
+    Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
+    correctly test on_commit hooks and detecting the state of transactions for various useful test assertions.
+    """
+    from django.db import transaction
+    from django.db.backends.base.base import BaseDatabaseWrapper
+    from django.test import TestCase as DjangoTestCase
+
+    request_node_cls = request.node.cls
+
+    if not issubclass(request_node_cls, DjangoTestCase):
+        BaseDatabaseWrapper._is_django_test_case = False
+        try:
+            yield
+        finally:
+            delattr(BaseDatabaseWrapper, "_is_django_test_case")
+        return
+
+    _old_atomic_exit = transaction.Atomic.__exit__
+
+    def new_atomic_exit(self, exc_type, *args, **kwds):
+        connection = get_connection(self.using)
+        if (
+            len(connection.savepoint_ids) == 1
+            and exc_type is None
+            and not connection.closed_in_transaction
+            and not connection.needs_rollback
+        ):
+            _old_atomic_exit(self, exc_type, *args, **kwds)
+            connection.in_atomic_block = False
+            try:
+                connection.run_and_clear_commit_hooks()
+            finally:
+                connection.in_atomic_block = True
+        else:
+            return _old_atomic_exit(self, exc_type, *args, **kwds)
+
+    functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
+    transaction.Atomic.__exit__ = new_atomic_exit
+
+    BaseDatabaseWrapper._is_django_test_case = True
+    try:
+        yield
+    finally:
+        transaction.Atomic.__exit__ = _old_atomic_exit
+        delattr(BaseDatabaseWrapper, "_is_django_test_case")
 
 
 @pytest.fixture(autouse=True)
