@@ -1,9 +1,11 @@
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
@@ -16,7 +18,12 @@ function SampleInfo(props: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName},
-    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage(local)'],
+    [
+      'sps()',
+      `sum(${SPAN_SELF_TIME})`,
+      `p95(${SPAN_SELF_TIME})`,
+      'time_spent_percentage(local)',
+    ],
     'span-summary-panel-metrics'
   );
 
@@ -26,13 +33,7 @@ function SampleInfo(props: Props) {
         <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
       </Block>
       <Block title={DataTitles.p95}>
-        <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
-      </Block>
-      <Block title={DataTitles.timeSpent}>
-        <TimeSpentCell
-          timeSpentPercentage={spanMetrics?.['time_spent_percentage(local)']}
-          totalSpanTime={spanMetrics?.['sum(span.duration)']}
-        />
+        <DurationCell milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]} />
       </Block>
     </BlockContainer>
   );

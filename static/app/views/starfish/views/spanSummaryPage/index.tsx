@@ -26,11 +26,15 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   location: Location;
@@ -59,7 +63,12 @@ function SpanSummaryPage({params, location}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     queryFilter,
-    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    [
+      'sps()',
+      `sum(${SPAN_SELF_TIME})`,
+      `p95(${SPAN_SELF_TIME})`,
+      'time_spent_percentage()',
+    ],
     'span-summary-page-metrics'
   );
 
@@ -67,7 +76,7 @@ function SpanSummaryPage({params, location}: Props) {
     useSpanMetricsSeries(
       {group: groupId},
       queryFilter,
-      ['p95(span.duration)', 'sps()'],
+      [`p95(${SPAN_SELF_TIME})`, 'sps()'],
       'sidebar-span-metrics'
     );
 
@@ -125,7 +134,9 @@ function SpanSummaryPage({params, location}: Props) {
                     title={t('Duration (P95)')}
                     description={t('Time spent in this span')}
                   >
-                    <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
+                    <DurationCell
+                      milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+                    />
                   </Block>
                   <Block
                     title={t('Time Spent')}
@@ -135,7 +146,7 @@ function SpanSummaryPage({params, location}: Props) {
                   >
                     <TimeSpentCell
                       timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                      totalSpanTime={spanMetrics?.['sum(span.duration)']}
+                      totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
                     />
                   </Block>
                 </BlockContainer>
@@ -167,6 +178,9 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[THROUGHPUT_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
+                        tooltipFormatterOptions={{
+                          valueFormatter: value => formatThroughput(value),
+                        }}
                       />
                     </ChartPanel>
                   </Block>
@@ -176,7 +190,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+                        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
                         start=""
                         end=""
                         loading={areSpanMetricsSeriesLoading}

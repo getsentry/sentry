@@ -8,25 +8,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-export const getTimeSpentQuery = (
-  descriptionFilter: string | undefined,
-  groupingColumn: string,
-  conditions: string[] = []
-) => {
-  const validConditions = conditions.filter(Boolean);
-
-  return `SELECT
-    ${groupingColumn} AS primary_group,
-    sum(exclusive_time) AS exclusive_time
-    FROM spans_experimental_starfish
-    WHERE 1 = 1
-    ${validConditions.length > 0 ? 'AND' : ''}
-    ${validConditions.join(' AND ')}
-    ${descriptionFilter ? `AND match(lower(description), '${descriptionFilter}')` : ''}
-    GROUP BY primary_group
-  `;
-};
-
 export const useErrorRateQuery = (queryString: string) => {
   const location = useLocation();
   const pageFilter = usePageFilters();

@@ -22,8 +22,11 @@ import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Row = {
   metrics: SpanTransactionMetrics;
@@ -155,8 +158,8 @@ function BodyCell({
   if (column.key === 'p95(transaction.duration)') {
     return (
       <DurationCell
-        milliseconds={row.metrics?.['p95(span.duration)']}
-        delta={row.metrics?.['percentile_percent_change(span.duration, 0.95)']}
+        milliseconds={row.metrics?.[`p95(${SPAN_SELF_TIME})`]}
+        delta={row.metrics?.[`percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`]}
       />
     );
   }
@@ -174,7 +177,7 @@ function BodyCell({
     return (
       <TimeSpentCell
         timeSpentPercentage={row.metrics?.['time_spent_percentage(local)']}
-        totalSpanTime={row.metrics?.['sum(span.duration)']}
+        totalSpanTime={row.metrics?.[`sum(${SPAN_SELF_TIME})`]}
       />
     );
   }

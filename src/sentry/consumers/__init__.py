@@ -202,24 +202,20 @@ def get_stream_processor(
     auto_offset_reset: str,
     strict_offset_reset: bool,
     join_timeout: Optional[float],
+    max_poll_interval_ms: Optional[int] = None,
     **options,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
     except KeyError:
         raise click.ClickException(
-            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS"
-        )
-
-    try:
-        strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-        logical_topic = consumer_definition["topic"]
-    except KeyError:
-        raise click.ClickException(
-            f"The consumer group {consumer_name} does not have a strategy factory"
-            f"registered. Most likely there is another subcommand in 'sentry run' "
+            f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS. "
+            f"Most likely there is another subcommand in 'sentry run' "
             f"responsible for this consumer"
         )
+
+    strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
+    logical_topic = consumer_definition["topic"]
 
     if topic is None:
         topic = logical_topic
@@ -253,6 +249,9 @@ def get_stream_processor(
         auto_offset_reset=auto_offset_reset,
         strict_offset_reset=strict_offset_reset,
     )
+
+    if max_poll_interval_ms is not None:
+        consumer_config["max.poll.interval.ms"] = max_poll_interval_ms
 
     consumer = KafkaConsumer(consumer_config)
 

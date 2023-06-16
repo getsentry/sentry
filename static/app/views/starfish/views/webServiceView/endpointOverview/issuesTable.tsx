@@ -4,7 +4,7 @@ import GroupList from 'sentry/components/issues/groupList';
 import {IssueCategory} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getDateConditions} from 'sentry/views/starfish/utils/dates';
+import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 
 type Props = {
   issueCategory?: IssueCategory;
@@ -15,7 +15,7 @@ function IssuesTable(props: Props) {
   const {transactionName, issueCategory} = props;
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const dateCondtions = getDateConditions(pageFilters);
+  const dateCondtions = getDateConditions(pageFilters.selection);
 
   const queryConditions: string[] = [
     'is:unresolved',

@@ -10,6 +10,7 @@ export type DataKey =
   | 'p50'
   | 'p95'
   | 'throughput'
+  | 'duration'
   | 'errorCount';
 
 export const DataTitles: Record<DataKey, string> = {
@@ -17,6 +18,7 @@ export const DataTitles: Record<DataKey, string> = {
   p50p95: t('Duration (P50, P95)'),
   p50: t('Duration (P50)'),
   p95: t('Duration (P95)'),
+  duration: t('Duration'),
   errorCount: t('5XX Responses'),
   throughput: t('Throughput'),
 };

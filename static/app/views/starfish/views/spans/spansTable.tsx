@@ -18,7 +18,7 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -35,9 +35,11 @@ type Props = {
   spanCategory?: string;
 };
 
+const {SPAN_SELF_TIME} = SpanMetricsFields;
+
 export type SpanDataRow = {
-  'p95(span.duration)': number;
-  'percentile_percent_change(span.duration, 0.95)': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
@@ -52,9 +54,9 @@ export type Keys =
   | 'span.op'
   | 'span.domain'
   | 'sps()'
-  | 'p95(span.duration)'
+  | 'p95(span.self_time)'
   | 'sps_percent_change()'
-  | 'sum(span.duration)'
+  | `sum(${typeof SPAN_SELF_TIME})`
   | 'time_spent_percentage()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
@@ -160,7 +162,7 @@ function renderBodyCell(
     return (
       <TimeSpentCell
         timeSpentPercentage={row['time_spent_percentage()']}
-        totalSpanTime={row['sum(span.duration)']}
+        totalSpanTime={row[`sum(${SPAN_SELF_TIME})`]}
       />
     );
   }
@@ -174,11 +176,11 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'p95(span.duration)') {
+  if (column.key === 'p95(span.self_time)') {
     return (
       <DurationCell
-        milliseconds={row['p95(span.duration)']}
-        delta={row['percentile_percent_change(span.duration, 0.95)']}
+        milliseconds={row['p95(span.self_time)']}
+        delta={row['percentile_percent_change(span.self_time, 0.95)']}
       />
     );
   }
@@ -236,7 +238,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
       width: 175,
     },
     {
-      key: 'p95(span.duration)',
+      key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
       width: 175,
     },
