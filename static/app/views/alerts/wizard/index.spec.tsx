@@ -5,7 +5,7 @@ import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
   it('sets crash free dataset to metrics', async () => {
-    const {organization, project, router, routerContext} = initializeOrg({
+    const {organization, project, routerProps, routerContext} = initializeOrg({
       organization: {
         features: [
           'alert-crash-free-metrics',
@@ -15,20 +15,12 @@ describe('AlertWizard', () => {
         ],
         access: ['org:write', 'alerts:write'],
       },
-      project: undefined,
-      projects: undefined,
-      router: undefined,
     });
     render(
       <AlertWizard
         organization={organization}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        params={{projectId: project.slug}}
         projectId={project.slug}
+        {...routerProps}
       />,
       {context: routerContext, organization}
     );
