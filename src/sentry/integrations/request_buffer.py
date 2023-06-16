@@ -63,6 +63,9 @@ class IntegrationErrorLogBuffer:
             if item.get("count", 0) > 0 and item.get("date")
         ][0:IS_BROKEN_RANGE]
 
+        if not len(data):
+            return False
+
         date_set = {data[0] - timedelta(x) for x in range((data[0] - data[-1]).days)}
         missing = list(date_set - set(data))
         if len(missing):
