@@ -1013,10 +1013,6 @@ urlpatterns += [
                     name="sentry-extension-setup",
                 ),
                 url(
-                    r"^cloudflare/",
-                    include("sentry.integrations.cloudflare.urls"),
-                ),
-                url(
                     r"^jira/",
                     include("sentry.integrations.jira.urls"),
                 ),

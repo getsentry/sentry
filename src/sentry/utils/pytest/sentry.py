@@ -100,8 +100,6 @@ def pytest_configure(config):
     middleware[sudo] = "sentry.testutils.middleware.SudoMiddleware"
     settings.MIDDLEWARE = tuple(middleware)
 
-    settings.SENTRY_OPTIONS["cloudflare.secret-key"] = "cloudflare-secret-key"
-
     # enable draft features
     settings.SENTRY_OPTIONS["mail.enable-replies"] = True
 
