@@ -42,7 +42,7 @@ describe('GroupStatusBadge', () => {
     expect(screen.getByText('Regressed')).toBeInTheDocument();
   });
   it('should display resolved', () => {
-    render(<GroupStatusBadge status={ResolutionStatus.UNRESOLVED} />);
-    expect(screen.getByText('Regressed')).toBeInTheDocument();
+    render(<GroupStatusBadge status={ResolutionStatus.RESOLVED} />);
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
   });
 });
