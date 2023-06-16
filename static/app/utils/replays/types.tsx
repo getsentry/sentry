@@ -172,6 +172,7 @@ export type RawReplayError = {
 export type ErrorFrame = Overwrite<
   BreadcrumbFrame,
   {
+    category: 'issue';
     data: {
       eventId: string; // error['id']
       groupId: number; // error['issue.id']
@@ -179,5 +180,6 @@ export type ErrorFrame = Overwrite<
       label: string; // error['error.type'].join('')
       projectSlug: string; // error['project.name']
     };
+    message: string;
   }
 >;

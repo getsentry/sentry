@@ -59,4 +59,11 @@ describe('hydrateErrors', () => {
       },
     ]);
   });
+
+  it('should drop errors that cannot be parsed', () => {
+    const errors = [{foo: 'bar'}];
+
+    // @ts-expect-error: Explicitly test invalid input
+    expect(hydrateErrors(replayRecord, errors)).toStrictEqual([]);
+  });
 });

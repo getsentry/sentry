@@ -48,6 +48,13 @@ describe('hydrateBreadcrumbs', () => {
     ]);
   });
 
+  it('should drop breadcrumbs that cannot be parsed', () => {
+    const breadcrumbs = [{foo: 'bar'}];
+
+    // @ts-expect-error: Explicitly test invalid input
+    expect(hydrateBreadcrumbs(replayRecord, breadcrumbs)).toStrictEqual([]);
+  });
+
   describe('replayInitBreadcrumb', () => {
     it('should return a RecordingFrame', () => {
       const replayRecord = TestStubs.ReplayRecord({});
