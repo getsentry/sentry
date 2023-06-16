@@ -1,9 +1,11 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -93,6 +95,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+
+        modified_params = params.copy()
+        delta = modified_params["end"] - modified_params["start"]
+        duration = delta.total_seconds()
+        if duration >= 1209600 and duration <= 1209600 * 2:
+            new_start = modified_params["end"] - timedelta(days=30)
+            min_start = timezone.now() - timedelta(days=90)
+            modified_params["start"] = new_start if min_start < new_start else min_start
+            sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
+            sentry_sdk.set_tag(
+                "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
+            )
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
@@ -234,6 +248,17 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # list of requests to send to microservice async
             trends_requests = []
 
+            # format start and end
+            for data in list(stats_data.items()):
+                data_start = data[1].pop("start", "")
+                data_end = data[1].pop("end", "")
+                # data start and end that analysis is ran on
+                data[1]["data_start"] = data_start
+                data[1]["data_end"] = data_end
+                # user requested start and end
+                data[1]["request_start"] = params["start"].timestamp()
+                data[1]["request_end"] = data_end
+
             # split the txns data into multiple dictionaries
             split_transactions_data = [
                 dict(list(stats_data.items())[i : i + EVENTS_PER_QUERY])
@@ -278,6 +303,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if request.GET.get("withTimeseries", False):
                 trending_transaction_names_stats = stats_data
             else:
+                # TODO remove extra data when stats period is from 14d to 30d
                 for t in results["data"]:
                     transaction_name = t["transaction"]
                     project = t["project"]
@@ -316,7 +342,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 get_event_stats_metrics,
                 top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
-                params=params,
+                params=modified_params,
                 query=query,
             )
 
