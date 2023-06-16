@@ -353,6 +353,16 @@ class MonitorEnvironmentTestCase(TestCase):
         assert dict(
             event,
             **{
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                        "slug": monitor.slug,
+                    }
+                },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": ["monitor", str(monitor.guid), "error"],
@@ -422,6 +432,16 @@ class MonitorEnvironmentTestCase(TestCase):
         assert dict(
             event,
             **{
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                        "slug": monitor.slug,
+                    }
+                },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": ["monitor", str(monitor.guid), "duration"],
@@ -495,6 +515,16 @@ class MonitorEnvironmentTestCase(TestCase):
         assert dict(
             event,
             **{
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                        "slug": monitor.slug,
+                    }
+                },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
