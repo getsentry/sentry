@@ -30,4 +30,11 @@ export interface JobTickData {
   width: number;
 }
 
-export type MonitorBucketEnvMapping = Record<string, Record<CheckInStatus, number>>;
+export type StatsBucket = {
+  [CheckInStatus.OK]: number;
+  [CheckInStatus.MISSED]: number;
+  [CheckInStatus.TIMEOUT]: number;
+  [CheckInStatus.ERROR]: number;
+};
+
+export type MonitorBucketEnvMapping = Record<string, StatsBucket>;
