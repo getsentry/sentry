@@ -26,10 +26,8 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {
-  getModuleFromLocation,
-  MODULES,
-} from 'sentry/views/starfish/utils/getModuleFromLocation';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -88,11 +86,11 @@ function SpanSummaryPage({params, location}: Props) {
                     to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
                   },
                   {
-                    label: MODULES[getModuleFromLocation(location)],
+                    label: ROUTE_NAMES[extractRoute(location)],
                     to: normalizeUrl(
-                      `/organizations/${
-                        organization.slug
-                      }/starfish/${getModuleFromLocation(location)}/?${qs.stringify({
+                      `/organizations/${organization.slug}/starfish/${extractRoute(
+                        location
+                      )}/?${qs.stringify({
                         endpoint,
                         method,
                       })}`

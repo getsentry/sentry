@@ -19,7 +19,7 @@ import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughp
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {getModuleFromLocation} from 'sentry/views/starfish/utils/getModuleFromLocation';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const SPANS_CURSOR_NAME = 'spansCursor';
@@ -143,7 +143,7 @@ function renderBodyCell(
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
           <Link
-            to={`/starfish/${getModuleFromLocation(location)}/span/${row['span.group']}${
+            to={`/starfish/${extractRoute(location)}/span/${row['span.group']}${
               endpoint && method ? `?${urlEncode({endpoint, method})}` : ''
             }`}
           >

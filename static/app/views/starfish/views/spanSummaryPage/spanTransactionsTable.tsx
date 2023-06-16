@@ -22,7 +22,7 @@ import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {getModuleFromLocation} from 'sentry/views/starfish/utils/getModuleFromLocation';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
@@ -186,7 +186,7 @@ function TransactionCell({span, column, row, endpoint, method, location}: CellPr
   return (
     <Fragment>
       <Link
-        to={`/starfish/${getModuleFromLocation(location)}/span/${encodeURIComponent(
+        to={`/starfish/${extractRoute(location)}/span/${encodeURIComponent(
           span.group
         )}?${qs.stringify({
           endpoint,
