@@ -34,7 +34,7 @@ export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props)
         <DateTime date={startTs * 1000} {...dateTimeProps} />
         {!representsSingleJob && (
           <Fragment>
-            <Text>-</Text>
+            <Text>{'\u2014'}</Text>
             <DateTime date={endTs * 1000} {...dateTimeProps} />
           </Fragment>
         )}
@@ -75,7 +75,6 @@ const StatusCountContainer = styled('div')`
 
 const TooltipTimeLabel = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
   margin-bottom: ${space(0.5)};
   justify-content: center;
 `;
