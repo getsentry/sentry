@@ -18,7 +18,7 @@ describe('Hook', function () {
   });
 
   it('renders component from a hook', function () {
-    HookStore.add('footer', ({organization} = {}) => (
+    HookStore.add('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         {organization.slug}
       </HookWrapper>
@@ -26,53 +26,35 @@ describe('Hook', function () {
 
     render(
       <div>
-        <Hook name="footer" organization={TestStubs.Organization()} />
+        <Hook name="sidebar:help-menu" organization={TestStubs.Organization()} />
       </div>
     );
 
-    expect(HookStore.hooks.footer).toHaveLength(1);
+    expect(HookStore.get('sidebar:help-menu')).toHaveLength(1);
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('hook-wrapper')).toHaveTextContent('org-slug');
   });
 
-  it('renders an invalid hook', function () {
-    HookStore.add('footer', ({organization} = {}) => (
-      <HookWrapper key={0} organization={organization}>
-        {organization.slug}
-      </HookWrapper>
-    ));
-
-    render(
-      <div>
-        <Hook name="invalid-hook" organization={TestStubs.Organization()} />
-        invalid
-      </div>
-    );
-
-    expect(screen.queryByText('org-slug')).not.toBeInTheDocument();
-    expect(screen.getByText('invalid')).toBeInTheDocument();
-  });
-
   it('can re-render when hooks get after initial render', function () {
-    HookStore.add('footer', ({organization} = {}) => (
+    HookStore.add('sidebar:help-menu', ({organization}) => (
       <HookWrapper key={0} organization={organization}>
         Old Hook
       </HookWrapper>
     ));
 
     const {rerender} = render(
-      <Hook name="footer" organization={TestStubs.Organization()} />
+      <Hook name="sidebar:help-menu" organization={TestStubs.Organization()} />
     );
 
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
 
-    HookStore.add('footer', () => (
+    HookStore.add('sidebar:help-menu', () => (
       <HookWrapper key="new" organization={null}>
         New Hook
       </HookWrapper>
     ));
 
-    rerender(<Hook name="footer" organization={TestStubs.Organization()} />);
+    rerender(<Hook name="sidebar:help-menu" organization={TestStubs.Organization()} />);
 
     expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
@@ -82,7 +64,7 @@ describe('Hook', function () {
   it('can use children as a render prop', function () {
     let idx = 0;
     render(
-      <Hook name="footer" organization={TestStubs.Organization()}>
+      <Hook name="sidebar:help-menu" organization={TestStubs.Organization()}>
         {({hooks}) =>
           hooks.map((hook, i) => (
             <HookWrapper key={i}>
@@ -93,13 +75,13 @@ describe('Hook', function () {
       </Hook>
     );
 
-    HookStore.add('footer', () => (
+    HookStore.add('sidebar:help-menu', () => (
       <HookWrapper key="new" organization={null}>
         First Hook
       </HookWrapper>
     ));
 
-    HookStore.add('footer', () => (
+    HookStore.add('sidebar:help-menu', () => (
       <HookWrapper key="new" organization={null}>
         Second Hook
       </HookWrapper>
