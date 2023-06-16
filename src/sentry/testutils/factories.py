@@ -81,6 +81,7 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
+    RuleSnooze,
     SavedSearch,
     SentryAppInstallation,
     SentryFunction,
@@ -1502,3 +1503,8 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def snooze_rule(**kwargs):
+        return RuleSnooze.objects.create(**kwargs)
