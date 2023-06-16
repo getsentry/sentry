@@ -1,0 +1,150 @@
+{
+  "event_id": "1",
+  "platform": "other",
+  "message": "",
+  "datetime": "2023-02-22T15:02:44.096560Z",
+  "tags": [
+    ["application", "countries"],
+    ["browser", "Python Requests 2.22"],
+    ["browser.name", "Python Requests"],
+    ["environment", "dev"],
+    ["level", "info"],
+    ["runtime", "CPython 3.7.3"],
+    ["runtime.name", "CPython"],
+    ["user", "username:matt"],
+    ["transaction", "/render-blocking-asset/"],
+    ["url", "http://countries:8010/country_by_code/"]
+  ],
+  "_metrics": {
+    "bytes.stored.event": 3054
+  },
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1562681591,
+        "type": "default",
+        "category": "query",
+        "level": "info",
+        "message": "SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'"
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.browser": {
+        "value": 633.474827
+      },
+      "ops.db": {
+        "value": 91.876
+      },
+      "ops.http": {
+        "value": 2039.16049
+      },
+      "ops.resource": {
+        "value": 2024.234772
+      },
+      "total.time": {
+        "value": 2875.570536
+      }
+    }
+  },
+  "contexts": {
+    "browser": {
+      "name": "Python Requests",
+      "version": "2.22",
+      "type": "browser"
+    },
+    "runtime": {
+      "name": "CPython",
+      "version": "3.7.3",
+      "build": "3.7.3 (default, Jun 27 2019, 22:53:21) \n[GCC 8.3.0]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "af6cd4ed98d1459a9d496071342ab3e7",
+      "span_id": "ff2776d0dcfd474c",
+      "parent_span_id": "d333ac34048040f7",
+      "op": "http.server",
+      "status": "ok",
+      "hash": "35488174ce510b81",
+      "type": "trace"
+    }
+  },
+  "culprit": "/country_by_code/",
+  "environment": "dev",
+  "hashes": ["92872d9cb7e134b1654c81929e3983d1"],
+  "level": "info",
+  "location": "/render-blocking-asset/",
+  "logger": "",
+  "measurements": {
+    "fcp": {
+      "value": 2500,
+      "unit": "millisecond"
+    }
+  },
+  "metadata": {
+    "location": "/render-blocking-asset/",
+    "title": "/render-blocking-asset/"
+  },
+  "modules": {
+    "my.package": "1.0.0"
+  },
+  "nodestore_insert": 1677078167.623985,
+  "received": 1677078167.57445,
+  "request": {
+    "url": "http://countries:8010/country_by_code/",
+    "method": "GET",
+    "query_string": [["code", "CAN"]],
+    "headers": [
+      ["Accept", "*/*"],
+      ["Accept-Encoding", "gzip, deflate"],
+      ["Connection", "keep-alive"],
+      ["Content-Length", ""],
+      ["Content-Type", "text/plain"],
+      ["Host", "countries:8010"],
+      ["Referer", "fixtures.transaction"],
+      ["Sentry-Trace", "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"],
+      ["User-Agent", "python-requests/2.22.0"]
+    ],
+    "env": {
+      "SERVER_NAME": "a90286977562",
+      "SERVER_PORT": "8010"
+    },
+    "inferred_content_type": "text/plain"
+  },
+  "span_grouping_config": {
+    "id": "default:2022-10-27"
+  },
+  "spans": [
+    {
+      "description": "/asset.js",
+      "op": "resource.script",
+      "span_id": "5b35bf3458d54fd7",
+      "parent_span_id": "d333ac34048040f7",
+      "trace_id": "af6cd4ed98d1459a9d496071342ab3e7",
+      "data": {
+        "http.response_content_length": 1000001,
+        "duration": 1
+      },
+      "hash": "a8b09954a220aea9"
+    }
+  ],
+  "start_timestamp": 1677078163.79656,
+  "timestamp": 1677078168.09656,
+  "title": "/render-blocking-asset/",
+  "transaction": "/render-blocking-asset/",
+  "transaction_info": {
+    "source": "unknown"
+  },
+  "type": "transaction",
+  "user": {
+    "email": "matt@example.com",
+    "ip_address": "127.0.0.1",
+    "geo": {
+      "country_code": "AU",
+      "city": "Melbourne",
+      "region": "VIC"
+    }
+  },
+  "version": "5"
+}

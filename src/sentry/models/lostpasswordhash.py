@@ -11,7 +11,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.lost_password_hash import APILostPasswordHash
+    from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
 
 
 @control_silo_only_model
@@ -64,7 +64,7 @@ class LostPasswordHash(Model):
         )
         msg.send_async([user.email])
 
-    # Duplicated from APILostPasswordHash
+    # Duplicated from RpcLostPasswordHash
     def get_absolute_url(self, mode: str = "recover") -> str:
         return LostPasswordHash.get_lostpassword_url(self.user_id, self.hash, mode)
 
@@ -77,8 +77,8 @@ class LostPasswordHash(Model):
         return absolute_uri(reverse(url_key, args=[user_id, hash]))
 
     @classmethod
-    def for_user(cls, user) -> "APILostPasswordHash":
+    def for_user(cls, user) -> "RpcLostPasswordHash":
         from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 
-        password_hash = lost_password_hash_service.get_or_create(user.id)
+        password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
         return password_hash

@@ -1,9 +1,7 @@
 **/dist/**/*
 **/vendor/**/*
-**/tests/**/lang/javascript/fixtures/**/*
-**/tests/**/lang/javascript/example-project/**/*
-/scripts/
+**/tests/**/fixtures/**/*
+/scripts/*.js
 !.github
 !.github/workflows/scripts/*
-!.storybook
 *.d.ts

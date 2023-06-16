@@ -127,26 +127,6 @@ export function setActiveProject(project: Project | null) {
   LatestContextStore.onSetActiveProject(project);
 }
 
-export function removeProject(api: Client, orgId: string, project: Project) {
-  const endpoint = `/projects/${orgId}/${project.slug}/`;
-
-  return api
-    .requestPromise(endpoint, {
-      method: 'DELETE',
-    })
-    .then(
-      () => {
-        addSuccessMessage(
-          tct('[project] was successfully removed', {project: project.slug})
-        );
-      },
-      err => {
-        addErrorMessage(tct('Error removing [project]', {project: project.slug}));
-        throw err;
-      }
-    );
-}
-
 export function transferProject(
   api: Client,
   orgId: string,
@@ -326,17 +306,48 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
  * @param platform The platform key of the project
  * @param options Additional options such as creating default alert rules
  */
-export function createProject(
-  api: Client,
-  orgSlug: string,
-  team: string,
-  name: string,
-  platform: string,
-  options: {defaultRules?: boolean} = {}
-) {
+export function createProject({
+  api,
+  name,
+  options = {},
+  orgSlug,
+  platform,
+  team,
+}: {
+  api: Client;
+  name: string;
+  options: {defaultRules?: boolean};
+  orgSlug: string;
+  platform: string;
+  team: string;
+}) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
     data: {name, platform, default_rules: options.defaultRules},
+  });
+}
+
+/**
+ * Deletes a project
+ *
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectSlug Project Slug
+ */
+export function removeProject({
+  api,
+  orgSlug,
+  projectSlug,
+  origin,
+}: {
+  api: Client;
+  orgSlug: string;
+  origin: 'onboarding' | 'settings' | 'getting_started';
+  projectSlug: Project['slug'];
+}) {
+  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+    method: 'DELETE',
+    data: {origin},
   });
 }
 
@@ -349,12 +360,17 @@ export function createProject(
  * @param projectSlug Project Slug
  * @param platform Project platform.
  */
-export function loadDocs(
-  api: Client,
-  orgSlug: string,
-  projectSlug: string,
-  platform: PlatformKey
-) {
+export function loadDocs({
+  api,
+  orgSlug,
+  projectSlug,
+  platform,
+}: {
+  api: Client;
+  orgSlug: string;
+  platform: PlatformKey;
+  projectSlug: string;
+}) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }
 

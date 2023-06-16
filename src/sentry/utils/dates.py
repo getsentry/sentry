@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
+from typing import Any, Mapping, Optional, Tuple, Union, overload
 
 import pytz
 from dateutil.parser import parse
@@ -19,7 +19,7 @@ def ensure_aware(value: datetime) -> datetime:
     """
     if is_aware(value):
         return value
-    return cast(datetime, make_aware(value))
+    return make_aware(value)
 
 
 def to_timestamp(value: datetime) -> float:
@@ -107,9 +107,16 @@ def parse_stats_period(period: str) -> Optional[timedelta]:
     value = int(value)
     if not unit:
         unit = "s"
-    return timedelta(
-        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}
-    )
+    try:
+        return timedelta(
+            **{
+                {"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[
+                    unit
+                ]: value
+            }
+        )
+    except OverflowError:
+        return timedelta.max
 
 
 def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:

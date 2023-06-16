@@ -3,7 +3,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
@@ -15,9 +15,9 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     canUseMetricsData(props.organization);
 
   const doubleChartRowCharts = [
+    PerformanceWidgetSetting.MOST_REGRESSED,
     PerformanceWidgetSetting.MOST_RELATED_ISSUES,
     PerformanceWidgetSetting.MOST_IMPROVED,
-    PerformanceWidgetSetting.MOST_REGRESSED,
   ];
 
   if (showSpanOperationsWidget) {
@@ -25,7 +25,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
   }
 
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+    <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div data-test-id="all-transactions-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow

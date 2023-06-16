@@ -78,6 +78,8 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 else:
                     query_kwargs["search_filters"] = parsed_terms
 
+                query_kwargs["actor"] = request.user
+
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
                 results = search.query(**query_kwargs)
 

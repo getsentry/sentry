@@ -29,6 +29,7 @@ type Props = {
 
 type HomepageQueryState = AsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
+  starfishResult?: null;
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
@@ -84,10 +85,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     const {organization} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
-    if (
-      organization.features.includes('discover-query-builder-as-landing-page') &&
-      organization.features.includes('discover-query')
-    ) {
+    if (organization.features.includes('discover-query')) {
       endpoints.push([
         'savedQuery',
         `/organizations/${organization.slug}/discover/homepage/`,

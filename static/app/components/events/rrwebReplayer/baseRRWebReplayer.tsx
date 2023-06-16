@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import RRWebPlayer from 'rrweb-player';
+import RRWebPlayer from '@sentry-internal/rrweb-player';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
@@ -11,7 +11,7 @@ interface Props {
   events?: RRWebEvents;
 }
 
-const BaseRRWebReplayerComponent = ({events, className}: Props) => {
+function BaseRRWebReplayerComponent({events, className}: Props) {
   const playerEl = useRef<HTMLDivElement>(null);
 
   const initPlayer = () => {
@@ -33,7 +33,7 @@ const BaseRRWebReplayerComponent = ({events, className}: Props) => {
   useEffect(() => void initPlayer(), [events]);
 
   return <div ref={playerEl} className={className} />;
-};
+}
 
 const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .replayer-mouse {

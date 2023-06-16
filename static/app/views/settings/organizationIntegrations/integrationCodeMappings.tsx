@@ -12,7 +12,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Integration,
   Organization,
@@ -20,10 +20,8 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types';
-import {
-  getIntegrationIcon,
-  trackIntegrationAnalytics,
-} from 'sentry/utils/integrationUtil';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
@@ -96,6 +94,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.props.setEventNames(
       'integrations.code_mappings_viewed',
       'Integrations: Code Mappings Viewed'
@@ -107,7 +106,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   trackDocsClick = () => {
-    trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
+    trackAnalytics('integrations.stacktrace_docs_clicked', {
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
       organization: this.props.organization,
@@ -127,17 +126,12 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       this.setState({pathConfigs});
       addSuccessMessage(t('Deletion successful'));
     } catch (err) {
-      addErrorMessage(
-        tct('[status]: [text]', {
-          status: err.statusText,
-          text: err.responseText,
-        })
-      );
+      addErrorMessage(`${err.statusText}: ${err.responseText}`);
     }
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
-    trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
+    trackAnalytics('integrations.stacktrace_complete_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
@@ -153,7 +147,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, projects, integration} = this.props;
-    trackIntegrationAnalytics('integrations.stacktrace_start_setup', {
+    trackAnalytics('integrations.stacktrace_start_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,
@@ -162,7 +156,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
-        <Header closeButton>{t('Configure code path mapping')}</Header>
+        <Header closeButton>
+          <h4>{t('Configure code path mapping')}</h4>
+        </Header>
         <Body>
           <RepositoryProjectPathConfigForm
             organization={organization}

@@ -4,10 +4,12 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
+from sentry.testutils.silo import control_silo_test
 
 
 class Double:
@@ -26,6 +28,7 @@ class MockMediator(Mediator):
             pass
 
 
+@control_silo_test(stable=True)
 class TestMediator(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()

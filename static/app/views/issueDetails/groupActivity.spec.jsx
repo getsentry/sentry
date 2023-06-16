@@ -14,10 +14,12 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {GroupActivityType} from 'sentry/types';
 import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
   let project;
+  const dateCreated = '2021-10-01T15:31:38.950115Z';
 
   beforeEach(function () {
     project = TestStubs.Project();
@@ -308,7 +310,7 @@ describe('GroupActivity', function () {
       ConfigStore.set('user', {id: '123', isSuperuser: true});
     });
 
-    it('should do nothing if not present in GroupStore', function () {
+    it('should do nothing if not present in GroupStore', async function () {
       createWrapper();
       renderGlobalModal();
       act(() => {
@@ -316,26 +318,139 @@ describe('GroupActivity', function () {
         GroupStore.removeActivity('1337', 'note-1');
       });
 
-      userEvent.click(screen.getByText('Remove'));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).not.toHaveBeenCalled();
     });
 
-    it('should remove remove the item from the GroupStore make a DELETE API request', function () {
+    it('should remove remove the item from the GroupStore make a DELETE API request', async function () {
       createWrapper();
       renderGlobalModal();
 
-      userEvent.click(screen.getByText('Remove'));
+      await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('renders ignored', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreUntilEscalating: true,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar ignored this issue'
+    );
+  });
+
+  it('renders archived until escalating if org has `escalating-issues` feature', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreUntilEscalating: true,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+      organization: {features: ['escalating-issues']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar archived this issue until it escalates'
+    );
+  });
+
+  it('renders escalating with forecast and plural events if org has `escalating-issues` feature', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_UNRESOLVED,
+          data: {
+            forecast: 200,
+          },
+          user: null,
+          dateCreated,
+        },
+        {
+          id: '124',
+          type: GroupActivityType.SET_ESCALATING,
+          data: {
+            forecast: 400,
+          },
+          user: null,
+          dateCreated: '2021-10-05T15:31:38.950115Z',
+        },
+      ],
+      organization: {features: ['escalating-issues']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because over 400 events happened in an hour'
+    );
+    expect(screen.getAllByTestId('activity-item').at(-2)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because over 200 events happened in an hour'
+    );
+  });
+
+  it('renders escalating with forecast and singular event if org has `escalating-issues` feature', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_UNRESOLVED,
+          data: {
+            forecast: 1,
+          },
+          user: null,
+          dateCreated,
+        },
+      ],
+      organization: {features: ['escalating-issues']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because over 1 event happened in an hour'
+    );
+  });
+
+  it('renders ignored until it happens x times in time window', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreCount: 400,
+            ignoreWindow: 1,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar ignored this issue until it happens 400 time(s) in 1 minute'
+    );
   });
 });

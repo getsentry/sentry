@@ -1,8 +1,14 @@
+import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {QueryKey, useQueries, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {
+  ApiQueryKey,
+  useApiQuery,
+  UseApiQueryOptions,
+  useQueries,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';
@@ -30,15 +36,23 @@ interface UrlNotValidDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.URL_NOT_VALID;
 }
 interface PartialMatchDebugError extends BaseSourceMapDebugError {
-  data: {absPath: string; partialMatchPath: string};
+  data: {absPath: string; partialMatchPath: string; urlPrefix: string};
   type: SourceMapProcessingIssueType.PARTIAL_MATCH;
 }
 interface DistMismatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.DIST_MISMATCH;
 }
+interface SourcemapNotFoundDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND;
+}
 interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   data: {absPath: string};
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
+}
+
+interface SDKOutOfDate extends BaseSourceMapDebugError {
+  data: {sdkName: string; sdkVersion: string; showMigrationGuide: boolean};
+  type: SourceMapProcessingIssueType.SDK_OUT_OF_DATE;
 }
 
 export type SourceMapDebugError =
@@ -49,7 +63,9 @@ export type SourceMapDebugError =
   | UrlNotValidDebugError
   | PartialMatchDebugError
   | DistMismatchDebugError
-  | NoURLMatchDebugError;
+  | SourcemapNotFoundDebugError
+  | NoURLMatchDebugError
+  | SDKOutOfDate;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -64,6 +80,8 @@ export enum SourceMapProcessingIssueType {
   NO_URL_MATCH = 'no_url_match',
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
+  SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
+  SDK_OUT_OF_DATE = 'sdk_out_of_date',
 }
 
 const sourceMapDebugQuery = ({
@@ -72,7 +90,7 @@ const sourceMapDebugQuery = ({
   eventId,
   frameIdx,
   exceptionIdx,
-}: UseSourceMapDebugProps): QueryKey => [
+}: UseSourceMapDebugProps): ApiQueryKey => [
   `/projects/${orgSlug}/${projectSlug}/events/${eventId}/source-map-debug/`,
   {
     query: {
@@ -94,9 +112,9 @@ export type StacktraceFilenameQuery = {filename: string; query: UseSourceMapDebu
 
 export function useSourceMapDebug(
   props?: UseSourceMapDebugProps,
-  options: Partial<UseQueryOptions<SourceMapDebugResponse>> = {}
+  options: Partial<UseApiQueryOptions<SourceMapDebugResponse>> = {}
 ) {
-  return useQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
+  return useApiQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
     staleTime: Infinity,
     retry: false,
     refetchOnWindowFocus: false,
@@ -114,7 +132,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
     retry: false,
   };
   return useQueries({
-    queries: props.map<UseQueryOptions<SourceMapDebugResponse>>(p => {
+    queries: props.map(p => {
       const key = sourceMapDebugQuery(p);
       return {
         queryKey: sourceMapDebugQuery(p),
@@ -123,7 +141,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
           api.requestPromise(key[0], {
             method: 'GET',
             query: key[1]?.query,
-          }),
+          }) as Promise<SourceMapDebugResponse>,
         ...options,
       };
     }),
@@ -131,7 +149,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
 }
 
 const ALLOWED_SDKS = Object.keys(sourceMapSdkDocsMap);
-const MAX_FRAMES = 3;
+const MAX_FRAMES = 5;
 
 /**
  * Check we have all required props and platform is supported
@@ -151,10 +169,6 @@ export function debugFramesEnabled({
     return false;
   }
 
-  if (!organization.features.includes('fix-source-map-cta')) {
-    return false;
-  }
-
   return ALLOWED_SDKS.includes(sdkName);
 }
 
@@ -167,26 +181,26 @@ export function getUniqueFilesFromException(
   excValues: ExceptionValue[],
   props: Omit<UseSourceMapDebugProps, 'frameIdx' | 'exceptionIdx'>
 ): StacktraceFilenameQuery[] {
-  // Not using .at(-1) because we need to use the index later
-  const exceptionIdx = excValues.length - 1;
-  const fileFrame = (excValues[exceptionIdx]?.stacktrace?.frames ?? [])
-    // Get the frame numbers before filtering
-    .map<[Frame, number]>((frame, idx) => [frame, idx])
-    .filter(
-      ([frame]) =>
-        // Only debug inApp frames
-        frame.inApp &&
-        // Only debug frames with a filename that are not <anonymous> etc.
-        !isFrameFilenamePathlike(frame) &&
-        // Line number might not work for non-javascript languages
-        defined(frame.lineNo)
-    )
-    .map<StacktraceFilenameQuery>(([frame, idx]) => ({
-      filename: frame.filename!,
-      query: {...props, frameIdx: idx, exceptionIdx},
-    }));
+  const fileFrame = flatten(
+    excValues.map((excValue, exceptionIdx) => {
+      return (excValue.stacktrace?.frames || [])
+        .map<[Frame, number]>((frame, idx) => [frame, idx])
+        .filter(
+          ([frame]) =>
+            // Only debug inApp frames
+            frame.inApp &&
+            // Only debug frames with a filename that are not <anonymous> etc.
+            !isFrameFilenamePathlike(frame) &&
+            // Line number might not work for non-javascript languages
+            defined(frame.lineNo)
+        )
+        .map<StacktraceFilenameQuery>(([frame, idx]) => ({
+          filename: frame.filename!,
+          query: {...props, frameIdx: idx, exceptionIdx},
+        }));
+    })
+  );
 
-  // Return only the first 3 unique filenames
-  // TODO: reverse only applies to newest first
+  // Return only the first MAX_FRAMES unique filenames
   return uniqBy(fileFrame.reverse(), ({filename}) => filename).slice(0, MAX_FRAMES);
 }

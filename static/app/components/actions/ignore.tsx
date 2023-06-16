@@ -8,7 +8,7 @@ import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconMute} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
   GroupStatusResolution,
@@ -62,7 +62,7 @@ export function getIgnoreActions({
           status: ResolutionStatus.IGNORED,
           statusDetails,
         }),
-      message: confirmMessage?.(statusDetails) ?? null,
+      message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
     });
   };
@@ -204,29 +204,23 @@ type IgnoreActionProps = {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
-  confirmMessage?: (
-    statusDetails: ResolutionStatusDetails | undefined
-  ) => React.ReactNode;
-  disableTooltip?: boolean;
+  confirmMessage?: () => React.ReactNode;
   disabled?: boolean;
-  hideIcon?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
 };
 
-const IgnoreActions = ({
+function IgnoreActions({
   onUpdate,
   disabled,
   shouldConfirm,
   confirmMessage,
   className,
-  hideIcon,
-  disableTooltip,
   size = 'xs',
   confirmLabel = t('Ignore'),
   isIgnored = false,
-}: IgnoreActionProps) => {
+}: IgnoreActionProps) {
   if (isIgnored) {
     return (
       <Tooltip title={t('Change status to unresolved')}>
@@ -237,7 +231,6 @@ const IgnoreActions = ({
             onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
           }
           aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
         />
       </Tooltip>
     );
@@ -254,11 +247,10 @@ const IgnoreActions = ({
     <ButtonBar className={className} merged>
       <IgnoreButton
         size={size}
-        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
+        tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={hideIcon ? null : <IconMute size={size} />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >
@@ -281,7 +273,7 @@ const IgnoreActions = ({
       />
     </ButtonBar>
   );
-};
+}
 
 export default IgnoreActions;
 

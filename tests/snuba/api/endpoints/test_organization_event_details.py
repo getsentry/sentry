@@ -3,11 +3,13 @@ from datetime import timedelta
 import pytest
 from django.urls import NoReverseMatch, reverse
 
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 def format_project_event(project_slug, event_id):
@@ -15,7 +17,7 @@ def format_project_event(project_slug, event_id):
 
 
 @region_silo_test
-class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
@@ -264,3 +266,32 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 404, response.content
+
+    def test_generic_event(self):
+        occurrence_data = self.build_occurrence_data(project_id=self.project.id)
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            event_data={
+                "event_id": occurrence_data["event_id"],
+                "project_id": occurrence_data["project_id"],
+                "level": "info",
+            },
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": occurrence_data["event_id"],
+            },
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == occurrence_data["event_id"]
+        assert response.data["projectSlug"] == self.project.slug
+        assert response.data["occurrence"] is not None
+        assert response.data["occurrence"]["id"] == occurrence.id

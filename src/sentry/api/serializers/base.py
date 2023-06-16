@@ -17,6 +17,8 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.utils.json import JSONData
 
+logger = logging.getLogger(__name__)
+
 K = TypeVar("K")
 
 registry: MutableMapping[Any, Any] = {}
@@ -43,7 +45,7 @@ def serialize(
 
     :param objects: A list of objects
     :param user: The user who will be viewing the objects. Omit to view as `AnonymousUser`.
-    :param serializer: The `Serializer` class who's logic we'll use to serialize
+    :param serializer: The `Serializer` class whose logic we'll use to serialize
         `objects` (see below.) Omit to just look up the Serializer in the
         registry by the `objects`'s type.
     :param kwargs Any
@@ -113,7 +115,7 @@ class Serializer:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
         except Exception:
-            logging.exception("Failed to serialize", extra={"instance": obj})
+            logger.exception("Failed to serialize", extra={"instance": obj})
             return None
 
     def serialize(

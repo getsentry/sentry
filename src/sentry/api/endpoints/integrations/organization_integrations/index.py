@@ -9,9 +9,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
-from sentry.models import ObjectStatus, Organization, OrganizationIntegration
-from sentry.services.hybrid_cloud import ApiPaginationArgs
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.constants import ObjectStatus
+from sentry.models import Organization, OrganizationIntegration
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
 
 
 def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
@@ -20,7 +21,7 @@ def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
 
 
 def prepare_features(
-    integration: APIIntegration,
+    integration: RpcIntegration,
 ) -> set[str]:
     """Normalize feature names Integration provider feature lists."""
 
@@ -75,12 +76,12 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         pagination_result = integration_service.page_organization_integrations_ids(
             organization_id=organization.id,
             statuses=[
-                ObjectStatus.VISIBLE,
+                ObjectStatus.ACTIVE,
                 ObjectStatus.DISABLED,
                 ObjectStatus.PENDING_DELETION,
             ],
             provider_key=provider_key,
-            args=ApiPaginationArgs.from_endpoint_request(self, request),
+            args=RpcPaginationArgs.from_endpoint_request(self, request),
         )
         results = integration_service.get_organization_integrations(
             org_integration_ids=pagination_result.ids

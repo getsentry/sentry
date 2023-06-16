@@ -3,7 +3,7 @@ import functools
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models import Activity, Commit, Group, PullRequest
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.activity import ActivityType
 from sentry.utils.functional import apply_values
 
@@ -77,7 +77,7 @@ class ActivitySerializer(Serializer):
 
         return {
             item: {
-                "user": users[str(item.user_id)] if item.user_id else None,
+                "user": users.get(str(item.user_id)) if item.user_id else None,
                 "source": groups.get(item.data["source_id"])
                 if item.type == ActivityType.UNMERGE_DESTINATION.value
                 else None,

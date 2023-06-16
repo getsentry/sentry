@@ -1,19 +1,20 @@
-import {Fragment, useContext} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
-import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {tct, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {ExceptionType, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {Event, ExceptionValue} from 'sentry/types/event';
+import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Mechanism} from './mechanism';
-import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
+import {RelatedExceptions} from './relatedExceptions';
 import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
 import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
@@ -24,7 +25,7 @@ type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
   projectSlug: Project['slug'];
-  type: STACK_TYPE;
+  type: StackType;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
@@ -33,6 +34,88 @@ type Props = {
     React.ComponentProps<typeof StackTrace>,
     'groupingCurrentLevel' | 'hasHierarchicalGrouping'
   >;
+
+type CollapsedExceptionMap = {[exceptionId: number]: boolean};
+
+const useCollapsedExceptions = (values?: ExceptionValue[]) => {
+  const [collapsedExceptions, setCollapsedSections] = useState<CollapsedExceptionMap>(
+    () => {
+      if (!values) {
+        return {};
+      }
+
+      return values
+        .filter(
+          ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
+        )
+        .reduce(
+          (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
+          {}
+        );
+    }
+  );
+
+  const toggleException = (exceptionId: number) => {
+    setCollapsedSections(old => {
+      if (!defined(old[exceptionId])) {
+        return old;
+      }
+
+      return {...old, [exceptionId]: !old[exceptionId]};
+    });
+  };
+
+  const expandException = (exceptionId: number) => {
+    setCollapsedSections(old => {
+      const exceptionValue = values?.find(
+        value => value.mechanism?.exception_id === exceptionId
+      );
+      const exceptionGroupId = exceptionValue?.mechanism?.parent_id;
+
+      if (!exceptionGroupId || !defined(old[exceptionGroupId])) {
+        return old;
+      }
+
+      return {...old, [exceptionGroupId]: false};
+    });
+  };
+
+  return {toggleException, collapsedExceptions, expandException};
+};
+
+function ToggleExceptionButton({
+  values,
+  exception,
+  toggleException,
+  collapsedExceptions,
+}: {
+  collapsedExceptions: CollapsedExceptionMap;
+  exception: ExceptionValue;
+  toggleException: (exceptionId: number) => void;
+  values: ExceptionValue[];
+}) {
+  const exceptionId = exception.mechanism?.exception_id;
+
+  if (!exceptionId || !defined(collapsedExceptions[exceptionId])) {
+    return null;
+  }
+
+  const collapsed = collapsedExceptions[exceptionId];
+  const numChildren = values.filter(
+    ({mechanism}) => mechanism?.parent_id === exceptionId
+  ).length;
+
+  return (
+    <ShowRelatedExceptionsButton
+      priority="link"
+      onClick={() => toggleException(exceptionId)}
+    >
+      {collapsed
+        ? tn('Show %s related exceptions', 'Show %s related exceptions', numChildren)
+        : tn('Hide %s related exceptions', 'Hide %s related exceptions', numChildren)}
+    </ShowRelatedExceptionsButton>
+  );
+}
 
 export function Content({
   newestFirst,
@@ -46,10 +129,13 @@ export function Content({
   type,
   meta,
 }: Props) {
+  const {collapsedExceptions, toggleException, expandException} =
+    useCollapsedExceptions(values);
+
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
-  const organization = useContext(OrganizationContext);
+  const organization = useOrganization({allowNull: true});
   if (!values) {
     return null;
   }
@@ -68,20 +154,26 @@ export function Content({
       })
     : [];
 
-  const sdkName = event.sdk?.name;
-
   const children = values.map((exc, excIdx) => {
     const hasSourcemapDebug = debugFrames.some(
       ({query}) => query.exceptionIdx === excIdx
     );
+    const id = defined(exc.mechanism?.exception_id)
+      ? `exception-${exc.mechanism?.exception_id}`
+      : undefined;
+
+    if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
+      return null;
+    }
+
     return (
-      <div key={excIdx} className="exception">
+      <div key={excIdx} className="exception" data-test-id="exception-value">
         {defined(exc?.module) ? (
           <Tooltip title={tct('from [exceptionModule]', {exceptionModule: exc?.module})}>
-            <Title>{exc.type}</Title>
+            <Title id={id}>{exc.type}</Title>
           </Tooltip>
         ) : (
-          <Title>{exc.type}</Title>
+          <Title id={id}>{exc.type}</Title>
         )}
         <StyledPre className="exc-message">
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
@@ -90,20 +182,26 @@ export function Content({
             exc.value
           )}
         </StyledPre>
+        <ToggleExceptionButton
+          {...{collapsedExceptions, toggleException, values, exception: exc}}
+        />
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
+        <RelatedExceptions
+          mechanism={exc.mechanism}
+          allExceptions={values}
+          newestFirst={newestFirst}
+          onExceptionClick={expandException}
+        />
         <ErrorBoundary mini>
-          <Fragment>
-            {!shouldDebugFrames && <SetupSourceMapsAlert event={event} />}
-            {hasSourcemapDebug && (
-              <SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />
-            )}
-          </Fragment>
+          {hasSourcemapDebug && (
+            <SourceMapDebug debugFrames={debugFrames} event={event} />
+          )}
         </ErrorBoundary>
         <StackTrace
           data={
-            type === STACK_TYPE.ORIGINAL
+            type === StackType.ORIGINAL
               ? exc.stacktrace
               : exc.rawStacktrace || exc.stacktrace
           }
@@ -140,4 +238,9 @@ const Title = styled('h5')`
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+`;
+
+const ShowRelatedExceptionsButton = styled(Button)`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

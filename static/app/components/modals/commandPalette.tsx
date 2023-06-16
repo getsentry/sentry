@@ -6,13 +6,19 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Input from 'sentry/components/input';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {analytics} from 'sentry/utils/analytics';
+import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 function CommandPalette({Body}: ModalRenderProps) {
   const theme = useTheme();
 
-  useEffect(() => void analytics('omnisearch.open', {}), []);
+  useEffect(
+    () =>
+      void trackAnalytics('omnisearch.open', {
+        organization: null,
+      }),
+    []
+  );
 
   return (
     <Body>
@@ -64,7 +70,7 @@ const InputWrapper = styled('div')`
 const StyledInput = styled(Input)`
   width: 100%;
   padding: ${space(1)};
-  border-radius: 8px;
+  border-radius: ${p => p.theme.modalBorderRadius};
 
   outline: none;
   border: none;

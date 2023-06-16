@@ -69,7 +69,7 @@ describe('ReleaseIssues', function () {
 
     expect(await screen.findByText('No new issues in this release.')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
     expect(
       await screen.findByText('No resolved issues in this release.')
     ).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('ReleaseIssues', function () {
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
     expect(
       await screen.findByText(
         textWithMarkupMatcher('No unhandled issues for the last 24 hours.')
@@ -92,25 +92,26 @@ describe('ReleaseIssues', function () {
     ).toBeInTheDocument();
   });
 
-  it('filters the issues', function () {
+  it('filters the issues', async function () {
     render(<ReleaseIssues {...props} />);
 
     expect(screen.getAllByRole('radio')).toHaveLength(5);
+    await screen.findByRole('radio', {name: 'New Issues 0'});
 
-    userEvent.click(screen.getByRole('radio', {name: 'New Issues'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'New Issues 0'}));
     expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('radio', {name: 'Resolved'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
     expect(resolvedIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('radio', {name: 'Unhandled'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
     expect(unhandledIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('radio', {name: 'All Issues'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'All Issues 0'}));
     expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
-  it('renders link to Issues', function () {
+  it('renders link to Issues', async function () {
     const {routerContext} = initializeOrg();
 
     render(<ReleaseIssues {...props} />, {context: routerContext});
@@ -120,19 +121,21 @@ describe('ReleaseIssues', function () {
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=firstRelease%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
 
-    userEvent.click(screen.getByRole('radio', {name: 'Resolved'}));
+    await screen.findByRole('radio', {name: 'Resolved 0'});
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
 
-    userEvent.click(screen.getByRole('radio', {name: 'Unhandled'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
 
-    userEvent.click(screen.getByRole('radio', {name: 'All Issues'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'All Issues 0'}));
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'

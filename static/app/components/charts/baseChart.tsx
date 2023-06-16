@@ -27,7 +27,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   EChartChartReadyHandler,
   EChartClickHandler,
@@ -46,7 +46,7 @@ import {defined} from 'sentry/utils';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import Tooltip, {TooltipSubLabel} from './components/tooltip';
+import {ChartTooltip, TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -476,7 +476,7 @@ function BaseChartUnwrapped({
 
   const tooltipOrNone =
     tooltip !== null
-      ? Tooltip({
+      ? ChartTooltip({
           showTimeInTooltip,
           isGroupedByDate,
           addSecondsToTimeFormat,

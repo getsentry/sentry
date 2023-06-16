@@ -11,18 +11,20 @@ export interface TeamBadgeProps
   hideOverflow?: boolean | string;
 }
 
-const Badge = ({
+function Badge({
   hideOverflow = true,
   team,
   ...props
-}: TeamBadgeProps): React.ReactElement => (
-  <BaseBadge
-    displayName={
-      <BadgeDisplayName hideOverflow={hideOverflow}>{`#${team.slug}`}</BadgeDisplayName>
-    }
-    team={team}
-    {...props}
-  />
-);
+}: TeamBadgeProps): React.ReactElement {
+  return (
+    <BaseBadge
+      displayName={
+        <BadgeDisplayName hideOverflow={hideOverflow}>{`#${team.slug}`}</BadgeDisplayName>
+      }
+      team={team}
+      {...props}
+    />
+  );
+}
 
 export default Badge;

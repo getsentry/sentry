@@ -40,7 +40,9 @@ describe('withRepositories HoC', function () {
   });
 
   it('prevents repeated calls', function () {
-    const Component = () => null;
+    function Component() {
+      return null;
+    }
     const Container = withRepositories(Component);
 
     jest.spyOn(api, 'requestPromise');
@@ -66,7 +68,9 @@ describe('withRepositories HoC', function () {
    * change the value for orgSlug
    */
   it('prevents simultaneous calls', function () {
-    const Component = () => null;
+    function Component() {
+      return null;
+    }
     const Container = withRepositories(Component);
 
     jest.spyOn(api, 'requestPromise');

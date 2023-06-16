@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'sentry/utils/dates';
 
 type Props = {

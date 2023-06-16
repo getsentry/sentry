@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {
   initializeData as _initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ import TransactionEvents from 'sentry/views/performance/transactionSummary/trans
 
 import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
 
-const WrappedComponent = ({data}) => {
+function WrappedComponent({data}) {
   return (
     <MEPSettingProvider>
       <TransactionEvents
@@ -21,7 +21,7 @@ const WrappedComponent = ({data}) => {
       />
     </MEPSettingProvider>
   );
-};
+}
 
 const setupMockApiResponeses = () => {
   MockApiClient.addMockResponse({
@@ -122,7 +122,7 @@ const setupMockApiResponeses = () => {
   });
 };
 
-const initializeData = (settings?: initializeDataSettings) => {
+const initializeData = (settings?: InitializeDataSettings) => {
   settings = {
     features: ['performance-view'],
     query: {project: '1', transaction: 'transaction'},
@@ -166,12 +166,12 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       name: /percentile p100/i,
     });
 
-    userEvent.click(percentileButton);
+    await userEvent.click(percentileButton);
 
     const p50 = screen.getByRole('option', {name: 'p50'});
     expect(p50).toBeInTheDocument();
 
-    userEvent.click(p50);
+    await userEvent.click(p50);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({query: expect.objectContaining({showTransactions: 'p50'})})

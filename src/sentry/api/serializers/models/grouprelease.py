@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import GroupRelease, Release
+from sentry.models import GroupRelease, Project, Release
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
@@ -43,6 +43,16 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
     def get_attrs(self, item_list, user):
         attrs = super().get_attrs(item_list, user)
 
+        tenant_ids = (
+            {
+                "organization_id": Project.objects.get_from_cache(
+                    id=item_list[0].project_id
+                ).organization_id
+            }
+            if item_list
+            else None
+        )
+
         items = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
@@ -59,6 +69,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                     start=since,
                     end=until,
                     rollup=int(interval.total_seconds()),
+                    tenant_ids=tenant_ids,
                 )
             except NotImplementedError:
                 # TODO(dcramer): probably should log this, but not worth

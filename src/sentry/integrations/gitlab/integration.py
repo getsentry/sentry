@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Mapping
+from datetime import datetime, timezone
+from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
@@ -154,15 +154,20 @@ class GitlabIntegration(
         if not lineno:
             return None
         try:
-            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+            if blame_range is None:
+                return None
         except ApiError as e:
             raise e
 
+        date_format_expected = "%Y-%m-%dT%H:%M:%S.%f%z"
         try:
             commit = max(
                 blame_range,
                 key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committed_date"), "%Y-%m-%dT%H:%M:%S.%fZ"
+                    blame.get("commit", {}).get("committed_date"), date_format_expected
                 ),
             )
         except (ValueError, IndexError):
@@ -172,9 +177,14 @@ class GitlabIntegration(
         if not commitInfo:
             return None
         else:
+            committed_date = "{}Z".format(
+                datetime.strptime(commitInfo.get("committed_date"), date_format_expected)
+                .astimezone(timezone.utc)
+                .strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+            )
             return {
                 "commitId": commitInfo.get("id"),
-                "committedDate": commitInfo.get("committed_date"),
+                "committedDate": committed_date,
                 "commitMessage": commitInfo.get("message"),
                 "commitAuthorName": commitInfo.get("committer_name"),
                 "commitAuthorEmail": commitInfo.get("committer_email"),

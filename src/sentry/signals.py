@@ -122,10 +122,10 @@ first_event_with_minified_stack_trace_received = BetterSignal(providing_args=["p
 first_transaction_received = BetterSignal(providing_args=["project", "event"])
 first_profile_received = BetterSignal(providing_args=["project"])
 first_replay_received = BetterSignal(providing_args=["project"])
-first_cron_monitor_created = BetterSignal(providing_args=["project", "user"])
+first_cron_monitor_created = BetterSignal(providing_args=["project", "user", "from_upsert"])
 first_cron_checkin_received = BetterSignal(providing_args=["project", "monitor_id"])
 member_invited = BetterSignal(providing_args=["member", "user"])
-member_joined = BetterSignal(providing_args=["member", "organization"])
+member_joined = BetterSignal(providing_args=["member", "organization_id"])
 issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
 plugin_enabled = BetterSignal(providing_args=["plugin", "project", "user"])
 
@@ -168,7 +168,11 @@ issue_resolved = BetterSignal(
 )
 issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
-issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
+issue_archived = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
+issue_escalating = BetterSignal(
+    providing_args=["project", "group", "event", "was_until_escalating"]
+)
+issue_unignored = BetterSignal(providing_args=["project", "user_id", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
 
 # comments
@@ -186,7 +190,7 @@ integration_added = BetterSignal(providing_args=["integration", "organization", 
 integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
 
-monitor_failed = BetterSignal(providing_args=["monitor"])
+monitor_environment_failed = BetterSignal(providing_args=["monitor"])
 
 # experiments
 join_request_created = BetterSignal(providing_args=["member"])

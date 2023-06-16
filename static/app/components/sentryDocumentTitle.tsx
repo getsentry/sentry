@@ -1,7 +1,7 @@
-import DocumentTitle from 'react-document-title';
+import {createContext, useContext, useEffect, useMemo} from 'react';
 
 type Props = {
-  children?: React.ReactChild;
+  children?: React.ReactNode;
   /**
    * Should the ` - Sentry` suffix be excluded?
    */
@@ -21,6 +21,10 @@ type Props = {
   title?: string;
 };
 
+const DEFAULT_PAGE_TITLE = 'Sentry';
+
+const DocumentTitleContext = createContext(DEFAULT_PAGE_TITLE);
+
 /**
  * Assigns the document title. The deepest nested version of this title will be
  * the one which is assigned.
@@ -32,31 +36,55 @@ function SentryDocumentTitle({
   noSuffix,
   children,
 }: Props) {
-  function getPageTitle() {
+  const parentTitle = useContext(DocumentTitleContext);
+
+  const pageTitle = useMemo(() => {
     if (orgSlug && projectSlug) {
-      return `${title} - ${orgSlug} - ${projectSlug}`;
+      return `${title} — ${orgSlug} — ${projectSlug}`;
     }
 
     if (orgSlug) {
-      return `${title} - ${orgSlug}`;
+      return `${title} — ${orgSlug}`;
     }
 
     if (projectSlug) {
-      return `${title} - ${projectSlug}`;
+      return `${title} — ${projectSlug}`;
     }
 
     return title;
+  }, [orgSlug, projectSlug, title]);
+
+  const documentTitle = useMemo(() => {
+    if (noSuffix) {
+      return pageTitle;
+    }
+
+    if (pageTitle !== '') {
+      return `${pageTitle} — Sentry`;
+    }
+
+    return DEFAULT_PAGE_TITLE;
+  }, [noSuffix, pageTitle]);
+
+  // NOTE: We do this OUTSIDE of a use effect so that the update order is
+  // correct, otherwsie the inner most SentryDocumentTitle will have it's
+  // useEffect called first followed by the parents, which will cause the wrong
+  // title be set.
+  if (document.title !== documentTitle) {
+    document.title = documentTitle;
   }
 
-  const pageTitle = getPageTitle();
+  useEffect(() => {
+    return () => {
+      document.title = parentTitle;
+    };
+  }, [parentTitle]);
 
-  const documentTitle = noSuffix
-    ? pageTitle
-    : pageTitle !== ''
-    ? `${pageTitle} - Sentry`
-    : 'Sentry';
-
-  return <DocumentTitle title={documentTitle}>{children}</DocumentTitle>;
+  return (
+    <DocumentTitleContext.Provider value={documentTitle}>
+      {children}
+    </DocumentTitleContext.Provider>
+  );
 }
 
 export default SentryDocumentTitle;

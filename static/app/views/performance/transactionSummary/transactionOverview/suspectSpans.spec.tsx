@@ -30,7 +30,6 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
-    project: 1,
     projects: [],
   });
 
@@ -77,7 +76,6 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('View All Spans')).toBeInTheDocument();
       expect(await screen.findByText('Span Operation')).toBeInTheDocument();
       expect(await screen.findByText('Span Name')).toBeInTheDocument();
-      expect(await screen.findByText('Span Count')).toBeInTheDocument();
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
       expect(await screen.findByText('P75 Self Time')).toBeInTheDocument();
       expect(await screen.findByText('Total Self Time')).toBeInTheDocument();

@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
@@ -45,9 +45,7 @@ export default function EventCreatedTooltip({event}: Props) {
       <dd>
         {dateCreated ? (
           <Fragment>
-            {dateCreated.format('ll')}
-            <br />
-            {dateCreated.format(format)}
+            {dateCreated.format('ll')} {dateCreated.format(format)}
           </Fragment>
         ) : (
           <NotApplicableText>{t('n/a')}</NotApplicableText>
@@ -57,9 +55,7 @@ export default function EventCreatedTooltip({event}: Props) {
         <Fragment>
           <dt>{t('Received')}</dt>
           <dd>
-            {dateReceived.format('ll')}
-            <br />
-            {dateReceived.format(format)}
+            {dateReceived.format('ll')} {dateReceived.format(format)}
           </dd>
           <dt>{t('Latency')}</dt>
           <dd>

@@ -50,6 +50,7 @@ for cmd in map(
         "sentry.runner.commands.backup.import_",
         "sentry.runner.commands.cleanup.cleanup",
         "sentry.runner.commands.config.config",
+        "sentry.runner.commands.configoptions.configoptions",
         "sentry.runner.commands.createuser.createuser",
         "sentry.runner.commands.devserver.devserver",
         "sentry.runner.commands.django.django",
@@ -71,9 +72,9 @@ for cmd in map(
         "sentry.runner.commands.permissions.permissions",
         "sentry.runner.commands.devservices.devservices",
         "sentry.runner.commands.performance.performance",
-        "sentry.runner.commands.performance.detect",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
+        "sentry.runner.commands.openai.openai",
     ),
 ):
     cli.add_command(cmd)
@@ -104,7 +105,7 @@ def make_django_command(name, django_command=None, help=None):
 cli.add_command(make_django_command("shell", help="Run a Python interactive interpreter."))
 
 
-def configure():
+def configure(*, skip_service_validation: bool = False):
     """
     Kick things off and configure all the things.
 
@@ -121,7 +122,7 @@ def configure():
     _, py, yaml = discover_configs()
 
     # TODO(mattrobenolt): Surface this also as a CLI option?
-    skip_service_validation = (
+    skip_service_validation = skip_service_validation or (
         "SENTRY_SKIP_BACKEND_VALIDATION" in os.environ
         or "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
     )

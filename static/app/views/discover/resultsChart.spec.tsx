@@ -22,7 +22,6 @@ describe('Discover > ResultsChart', function () {
     router: {
       location,
     },
-    project: 1,
     projects: [],
   });
 
@@ -40,7 +39,7 @@ describe('Discover > ResultsChart', function () {
     });
   });
 
-  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', function () {
+  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
     render(
       <ResultsChart
         router={TestStubs.router()}
@@ -58,7 +57,7 @@ describe('Discover > ResultsChart', function () {
       {context: initialData.routerContext}
     );
 
-    userEvent.click(screen.getByText(/Display/));
+    await userEvent.click(screen.getByText(/Display/));
 
     DISPLAY_MODE_OPTIONS.forEach(({value, label}) => {
       if (
@@ -125,7 +124,7 @@ describe('Discover > ResultsChart', function () {
       {context: initialData.routerContext}
     );
 
-    userEvent.click(await screen.findByText(/Y-Axis/));
+    await userEvent.click(await screen.findByText(/Y-Axis/));
 
     expect(screen.getAllByRole('option')).toHaveLength(2);
 

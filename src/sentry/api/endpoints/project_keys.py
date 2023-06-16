@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
+from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models import ProjectKey, ProjectKeyStatus
 
 
@@ -78,6 +79,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 secret_key=result.get("secret"),
                 rate_limit_count=rate_limit_count,
                 rate_limit_window=rate_limit_window,
+                data=get_default_loader_data(project),
             )
 
             self.create_audit_entry(

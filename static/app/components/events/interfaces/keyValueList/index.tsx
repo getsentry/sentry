@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
@@ -90,7 +90,7 @@ function KeyValueList({
   );
 }
 
-const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
+function MultiValueContainer({values}: {values: string[]}): JSX.Element {
   return (
     <Fragment>
       {values.map((val, idx) => (
@@ -98,7 +98,7 @@ const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
       ))}
     </Fragment>
   );
-};
+}
 
 export default KeyValueList;
 

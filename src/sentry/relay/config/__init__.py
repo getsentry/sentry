@@ -31,7 +31,12 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
-from sentry.ingest.transaction_clusterer.rules import get_sorted_rules
+from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
+from sentry.ingest.transaction_clusterer.rules import (
+    TRANSACTION_NAME_RULE_TTL_SECS,
+    get_sorted_rules,
+)
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
@@ -44,14 +49,21 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
+    "projects:span-metrics-extraction",
+    "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
+    "organizations:device-class-synthesis",
 ]
 
 EXTRACT_METRICS_VERSION = 1
 EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
+
+#: How often the transaction clusterer should run before we trust its output as "complete",
+#: and start marking all URL transactions as sanitized.
+MIN_CLUSTERER_RUNS = 10
 
 logger = logging.getLogger(__name__)
 
@@ -107,22 +119,36 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     for flt in get_all_filter_specs():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        filter_settings[filter_id] = settings
+        if settings["isEnabled"]:
+            filter_settings[filter_id] = settings
 
+    error_messages: List[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
-        if error_messages:
-            filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+
+    enable_react = project.get_option("filters:react-hydration-errors")
+    if enable_react:
+        # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
+        # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
+        # 422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
+        # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
+        # 425 - Text content does not match server-rendered HTML.
+        error_messages += [
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+        ]
+
+    if error_messages:
+        filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources = []
+    csp_disallowed_sources: List[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
@@ -133,7 +159,16 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
-    return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+    try:
+        computed_quotas = [
+            quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
+        ]
+    except BaseException:
+        metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
+        raise
+    else:
+        metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
+        return computed_quotas
 
 
 def get_project_config(
@@ -162,7 +197,10 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
     ):
-        return {"rules": generate_rules(project)}
+        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
+        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
+        return {"rules": [], "rulesV2": generate_rules(project)}
+
     return None
 
 
@@ -186,26 +224,62 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
-    cluster_rules = get_sorted_rules(project)
+    cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
     if not cluster_rules:
         return None
 
     return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
 
 
-#: How long a transaction name rule lasts, in seconds.
-TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
-
-
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
     return TransactionNameRule(
         pattern=pattern,
         expiry=expiry_at,
         # Some more hardcoded fields for future compatibility. These are not
         # currently used.
         scope={"source": "url"},
+        redaction={"method": "replace", "substitution": "*"},
+    )
+
+
+class SpanDescriptionScope(TypedDict):
+    op: Literal["http"]
+    """Top scope to match on. Subscopes match all top scopes; for example, the
+    scope `http` matches `http.client` and `http.server` operations."""
+
+
+class SpanDescriptionRuleRedaction(TypedDict):
+    method: Literal["replace"]
+    substitution: str
+
+
+class SpanDescriptionRule(TypedDict):
+    pattern: str
+    expiry: str
+    scope: SpanDescriptionScope
+    redaction: SpanDescriptionRuleRedaction
+
+
+def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
+    if not features.has("projects:span-metrics-extraction", project):
+        return None
+
+    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
+    if not rules:
+        return None
+
+    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
+
+
+def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
+    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    return SpanDescriptionRule(
+        pattern=pattern,
+        expiry=expiry_at,
+        scope={"op": "http"},
         redaction={"method": "replace", "substitution": "*"},
     )
 
@@ -241,7 +315,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
-    if project.status != ObjectStatus.VISIBLE:
+    if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
@@ -264,13 +338,15 @@ def _get_project_config(
                 ],
                 "piiConfig": get_pii_config(project),
                 "datascrubbingSettings": get_datascrubbing_settings(project),
-                "features": get_exposed_features(project),
             },
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
 
     config = cfg["config"]
+
+    if exposed_features := get_exposed_features(project):
+        config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
@@ -282,6 +358,14 @@ def _get_project_config(
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
+
+    # Rules to replace high cardinality span descriptions
+    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
+
+    # Mark the project as ready if it has seen >= 10 clusterer runs.
+    # This prevents projects from prematurely marking all URL transactions as sanitized.
+    if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
+        config["txNameReady"] = True
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -317,13 +401,19 @@ def _get_project_config(
 
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
-        config["filterSettings"] = get_filter_settings(project)
+        if filter_settings := get_filter_settings(project):
+            config["filterSettings"] = filter_settings
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
-        config["groupingConfig"] = get_grouping_config_dict_for_project(project)
+        grouping_config = get_grouping_config_dict_for_project(project)
+        if grouping_config is not None:
+            config["groupingConfig"] = grouping_config
     with Hub.current.start_span(op="get_event_retention"):
-        config["eventRetention"] = quotas.get_event_retention(project.organization)
+        event_retention = quotas.backend.get_event_retention(project.organization)
+        if event_retention is not None:
+            config["eventRetention"] = event_retention
     with Hub.current.start_span(op="get_all_quotas"):
-        config["quotas"] = get_quotas(project, keys=project_keys)
+        if quotas_config := get_quotas(project, keys=project_keys):
+            config["quotas"] = quotas_config
 
     return ProjectConfig(project, **cfg)
 
@@ -413,7 +503,7 @@ class _ConfigBase:
         return None  # property not set or path goes beyond the Config defined valid path
 
     def __get_data(self) -> Mapping[str, Any]:
-        return object.__getattribute__(self, "data")  # type: ignore
+        return object.__getattribute__(self, "data")
 
     def __str__(self) -> str:
         try:
@@ -489,40 +579,6 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 TRANSACTION_METRICS_EXTRACTION_VERSION = 1
 
 
-#: Top-level metrics for transactions
-TRANSACTION_METRICS = frozenset(
-    [
-        "s:transactions/user@none",
-        "d:transactions/duration@millisecond",
-    ]
-)
-
-
-ALL_MEASUREMENT_METRICS = frozenset(
-    [
-        "d:transactions/measurements.fcp@millisecond",
-        "d:transactions/measurements.lcp@millisecond",
-        "d:transactions/measurements.app_start_cold@millisecond",
-        "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@none",
-        "d:transactions/measurements.fid@millisecond",
-        "d:transactions/measurements.inp@millisecond",
-        "d:transactions/measurements.fp@millisecond",
-        "d:transactions/measurements.frames_frozen@none",
-        "d:transactions/measurements.frames_frozen_rate@ratio",
-        "d:transactions/measurements.frames_slow@none",
-        "d:transactions/measurements.frames_slow_rate@ratio",
-        "d:transactions/measurements.frames_total@none",
-        "d:transactions/measurements.stall_count@none",
-        "d:transactions/measurements.stall_longest_time@millisecond",
-        "d:transactions/measurements.stall_percentage@ratio",
-        "d:transactions/measurements.stall_total_time@millisecond",
-        "d:transactions/measurements.ttfb@millisecond",
-        "d:transactions/measurements.ttfb.requesttime@millisecond",
-    ]
-)
-
-
 class CustomMeasurementSettings(TypedDict):
     limit: int
 
@@ -532,7 +588,6 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractMetrics: List[str]
     extractCustomTags: List[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
@@ -552,14 +607,7 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    metrics: List[str] = []
     custom_tags: List[str] = []
-
-    metrics.extend(sorted(TRANSACTION_METRICS))
-    # TODO: for now let's extract all known measurements. we might want to
-    # be more fine-grained in the future once we know which measurements we
-    # really need (or how that can be dynamically determined)
-    metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which
@@ -570,8 +618,6 @@ def get_transaction_metrics_settings(
             for _, breakdown_config in breakdowns_config.items():
                 assert breakdown_config["type"] == "spanOperations"
 
-                for op_name in breakdown_config["matches"]:
-                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond")
         except Exception:
             capture_exception()
 
@@ -586,7 +632,6 @@ def get_transaction_metrics_settings(
 
     return {
         "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
-        "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
         "acceptTransactionNames": "clientBased",

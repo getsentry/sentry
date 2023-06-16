@@ -1,22 +1,19 @@
 import logging
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional
 
-import requests
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.client import ApiClient
-from sentry.integrations.utils.codecov import get_codecov_data
+from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
-from sentry.models.organization import Organization
-from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
@@ -28,17 +25,22 @@ def get_link(
     config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
 ) -> Dict[str, str]:
     result = {}
-    oi = config.organization_integration
-    integration = oi.integration
-    install = integration.get_installation(oi.organization_id)
+
+    integration = integration_service.get_integration(
+        organization_integration_id=config.organization_integration_id
+    )
+    install = integration_service.get_installation(
+        integration=integration, organization_id=config.project.organization_id
+    )
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
     link = None
     try:
-        link = install.get_stacktrace_link(
-            config.repository, formatted_path, config.default_branch, version
-        )
+        if isinstance(install, RepositoryMixin):
+            link = install.get_stacktrace_link(
+                config.repository, formatted_path, config.default_branch, version
+            )
 
     except ApiError as e:
         if e.code != 403:
@@ -50,6 +52,7 @@ def get_link(
         result["sourceUrl"] = link
     else:
         result["error"] = result.get("error") or "file_not_found"
+        assert isinstance(install, RepositoryMixin)
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
@@ -133,39 +136,30 @@ def set_tags(scope: Scope, result: JSONData) -> None:
         scope.set_tag(
             "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
         )
+    scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
 
 
-@region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
     """
-    Returns valid links for source code providers so that
-    users can go from the file in the stack trace to the
-    provider of their choice.
+    Returns the code mapping config list for a project sorted based on precedence.
+    User generated code mappings are evaluated before Sentry generated code mappings.
+    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
+    roots.
 
-    `file`: The file path from the stack trace
-    `commitId` (optional): The commit_id for the last commit of the
-                           release associated to the stack trace's event
-    `sdkName` (optional): The sdk.name associated with the event
-    `absPath` (optional): The abs_path field value of the relevant stack frame
-    `module`   (optional): The module field value of the relevant stack frame
-    `package`  (optional): The package field value of the relevant stack frame
-
+    `project`: The project to get the list of sorted code mapping configs for
     """
 
-    def sort_code_mapping_configs(
-        self,
-        configs: List[RepositoryProjectPathConfig],
-    ) -> List[RepositoryProjectPathConfig]:
-        """
-        Sorts the code mapping config list based on precedence.
-        User generated code mappings are evaluated before Sentry generated code mappings.
-        Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-        roots.
+    # xxx(meredith): if there are ever any changes to this query, make
+    # sure that we are still ordering by `id` because we want to make sure
+    # the ordering is deterministic
+    # codepath mappings must have an associated integration for stacktrace linking.
+    configs = RepositoryProjectPathConfig.objects.filter(
+        project=project, organization_integration_id__isnull=False
+    )
 
-        `configs`: The list of code mapping configs
+    sorted_configs = []  # type: List[RepositoryProjectPathConfig]
 
-        """
-        sorted_configs = []  # type: List[RepositoryProjectPathConfig]
+    try:
         for config in configs:
             inserted = False
             for index, sorted_config in enumerate(sorted_configs):
@@ -185,96 +179,27 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(len(sorted_configs), config)
                 else:
                     sorted_configs.insert(0, config)
-        return sorted_configs
+    except Exception:
+        logger.exception("There was a failure sorting the code mappings")
 
-    def get_latest_commit_sha_from_blame(
-        self,
-        integration_installation: ApiClient,
-        line_no: int,
-        filepath: str,
-        repository: Repository,
-        ref: str,
-    ) -> Optional[str]:
-        commit_sha = ""
-        git_blame_list = integration_installation.get_blame_for_file(
-            repository,
-            filepath,
-            ref,
-            line_no,
-        )
-        if git_blame_list:
-            git_blame_list.sort(key=lambda blame: blame["commit"]["committedDate"])
-            commit_sha = git_blame_list[-1]["commit"]["oid"]
-        if not commit_sha:
-            logger.warning(
-                "Failed to get commit from git blame.",
-                extra={
-                    "git_blame_response": git_blame_list,
-                    "filepath": filepath,
-                    "line_no": line_no,
-                    "ref": ref,
-                },
-            )
-        return commit_sha
+    return sorted_configs
 
-    def fetch_codecov_data(
-        self,
-        has_error_commit: bool,
-        ref: Optional[str],
-        integrations: BaseQuerySet,
-        org: Organization,
-        user: Request.user,
-        line_no: int,
-        filepath: str,
-        repo: Repository,
-        branch: str,
-        service: str,
-        path: str,
-    ) -> Optional[Dict[str, Any]]:
-        fetch_commit_sha = features.has(
-            "organizations:codecov-commit-sha-from-git-blame",
-            org,
-            actor=user,
-        )
-        # Get commit sha from Git blame if valid
-        gh_integrations = integrations.filter(provider="github")
-        should_get_commit_sha = fetch_commit_sha and gh_integrations and not has_error_commit
 
-        if should_get_commit_sha:
-            try:
-                integration_installation = gh_integrations[0].get_installation(
-                    organization_id=org.id
-                )
-                ref = self.get_latest_commit_sha_from_blame(
-                    integration_installation,
-                    line_no,
-                    filepath,
-                    repo,
-                    branch,
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to get commit sha from git blame, pending investigation. Continuing execution."
-                )
+@region_silo_endpoint
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+    """
+    Returns valid links for source code providers so that
+    users can go from the file in the stack trace to the
+    provider of their choice.
 
-        # Call codecov API if codecov-commit-sha-from-git-blame flag is not enabled
-        # or getting ref from git blame was successful
-        codecov_data = None
-        if not fetch_commit_sha or ref:
-            lineCoverage, codecovUrl = get_codecov_data(
-                repo=repo.name,
-                service=service,
-                ref=ref if ref else branch,
-                ref_type="sha" if ref else "branch",
-                path=path,
-            )
-            if lineCoverage and codecovUrl:
-                codecov_data = {
-                    "lineCoverage": lineCoverage,
-                    "coverageUrl": codecovUrl,
-                    "status": 200,
-                }
-        return codecov_data
+    `file`: The file path from the stack trace
+    `commitId` (optional): The commit_id for the last commit of the
+                           release associated to the stack trace's event
+    `sdkName` (optional): The sdk.name associated with the event
+    `absPath` (optional): The abs_path field value of the relevant stack frame
+    `module`   (optional): The module field value of the relevant stack frame
+    `package`  (optional): The package field value of the relevant stack frame
+    """
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -284,7 +209,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(organizations=project.organization_id)
+        integrations = Integration.objects.filter(
+            organizationintegration__organization_id=project.organization_id
+        )
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         result["integrations"] = [
@@ -293,17 +220,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
-        # xxx(meredith): if there are ever any changes to this query, make
-        # sure that we are still ordering by `id` because we want to make sure
-        # the ordering is deterministic
-        # codepath mappings must have an associated integration for stacktrace linking.
-        configs = RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration__isnull=False
-        )
-        try:
-            configs = self.sort_code_mapping_configs(configs)
-        except Exception:
-            logger.exception("There was a failure sorting the code mappings")
+        configs = get_code_mapping_configs(project)
 
         current_config = None
         with configure_scope() as scope:
@@ -359,47 +276,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                codecov_enabled = bool(
-                    features.has(
-                        "organizations:codecov-stacktrace-integration",
-                        project.organization,
-                        actor=request.user,
-                    )
-                    and project.organization.flags.codecov_access
-                )
-                scope.set_tag("codecov.enabled", codecov_enabled)
-                if codecov_enabled:
-                    # Get Codecov data
-                    try:
-                        line_no = ctx.get("line_no")
-                        codecov_data = self.fetch_codecov_data(
-                            has_error_commit := bool(ctx.get("commit_id")),
-                            ref=ctx["commit_id"] if has_error_commit else None,
-                            integrations=integrations,
-                            org=project.organization,
-                            user=request.user,
-                            line_no=int(line_no) if line_no else 0,
-                            filepath=filepath,
-                            repo=current_config["repository"],
-                            branch=current_config["config"]["defaultBranch"],
-                            service=current_config["config"]["provider"]["key"],
-                            path=current_config["outcome"]["sourcePath"],
-                        )
-                        if codecov_data:
-                            result["codecov"] = codecov_data
-                    except requests.exceptions.HTTPError as error:
-                        result["codecov"] = {
-                            "attemptedUrl": error.response.url,
-                            "status": error.response.status_code,
-                        }
-                        if error.response.status_code != 404:
-                            logger.exception(
-                                "Failed to get expected data from Codecov, pending investigation. Continuing execution."
-                            )
-                    except Exception:
-                        logger.exception("Something unexpected happen. Continuing execution.")
-                    # We don't expect coverage data if the integration does not exist (404)
-
+                should_get_coverage = codecov_enabled(project.organization)
+                scope.set_tag("codecov.enabled", should_get_coverage)
+                if should_get_coverage:
+                    codecov_data = fetch_codecov_data(config=current_config)
+                    if codecov_data:
+                        result["codecov"] = codecov_data
             try:
                 set_tags(scope, result)
             except Exception:

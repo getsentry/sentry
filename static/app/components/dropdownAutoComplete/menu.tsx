@@ -7,7 +7,7 @@ import DropdownBubble from 'sentry/components/dropdownBubble';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
@@ -345,7 +345,6 @@ function Menu({
                 {...{style, css, blendCorner, detached, alignMenu, minWidth}}
               >
                 <DropdownMainContent minWidth={minWidth}>
-                  {itemsLoading && <LoadingIndicator mini />}
                   {showInput && (
                     <InputWrapper>
                       <StyledInput
@@ -374,9 +373,10 @@ function Menu({
                           {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
                         </EmptyMessage>
                       )}
-                      {busy && (
+                      {(itemsLoading || busy) && (
                         <BusyMessage>
-                          <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
+                          {itemsLoading && <LoadingIndicator mini />}
+                          {busy && <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>}
                         </BusyMessage>
                       )}
                       {!busy && (
@@ -501,5 +501,6 @@ const ItemList = styled('div')<{maxHeight: NonNullable<Props['maxHeight']>}>`
 const BusyMessage = styled('div')`
   display: flex;
   justify-content: center;
-  padding: ${space(1)};
+  align-items: center;
+  padding: ${space(3)} ${space(1)};
 `;

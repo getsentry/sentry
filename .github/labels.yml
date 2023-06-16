@@ -8,15 +8,19 @@
 # Read more here: https://github.com/Financial-Times/github-label-sync#label-config-file
 
 # Getsentry workflow control
-- name: trigger-getsentry-external
-  color: '3E5E06'
+- name: 'Trigger: getsentry tests'
+  aliases: ['trigger-getsentry-external']
+  color: 'A0CABD'
   description: 'once code is reviewed: apply label to PR to trigger getsentry tests'
 - name: 'Trigger: Revert'
-  color: '3E5E06'
+  color: 'A0CABD'
   description: 'add to a merged PR to revert it (skips CI)'
+- name: 'Trigger: Visual Snapshot'
+  color: 'A0CABD'
+  description: 'add to a PR to run a visual snapshot diff'
 
 # Unito - notion.so/52d10dbfad474328850319e48b057a5b
-- name: "Sync: Jira"
+- name: 'Sync: Jira'
   color: 'A0CABD'
   description: 'apply to auto-create a Jira shadow ticket'
 
@@ -33,7 +37,7 @@
   color: '3C74DD'
   description: Automatically applied to PRs that change frontend components
 
-# Status for use with stalebot
+# Status for use with stalebot and routing/triage
 - name: 'Status: Backlog'
   color: '8D5494'
   description: stalebot will ignore
@@ -69,9 +73,6 @@
 - name: 'Type: Design'
   color: '584774'
   description: ''
-- name: 'Type: Epic'
-  color: '584774'
-  description: 'Epics can be automatically shadowed in Jira: notion.so/52d10dbfad474328850319e48b057a5b'
 - name: 'Type: Feature Request'
   color: '584774'
   description: ''
@@ -152,18 +153,15 @@
 - name: 'Component: Package'
   color: '584774'
   description: ''
+- name: 'Component: Performance'
+  color: '584774'
+  description: Performance product, including Performance Issues
 - name: 'Component: Relay'
   color: '584774'
   description: ''
 - name: 'Component: Releases'
   color: '584774'
   description: ''
-- name: 'Component: Replay Details'
-  color: '584774'
-  description: Session Replays → Details
-- name: 'Component: Replay Index'
-  color: '584774'
-  description: Session Replays → Index page
 - name: 'Component: Rules'
   color: '584774'
   description: ''
@@ -185,6 +183,78 @@
 - name: 'Component: Workflow'
   color: '584774'
   description: ''
+
+# Waiting for Labels
+- name: 'Waiting for: Support'
+  color: '8D5494'
+- name: 'Waiting for: Product Owner'
+  color: '8D5494'
+- name: 'Waiting for: Community'
+  color: '8D5494'
+
+# Product Areas - notion.so/sentry/473791bae5bf43399d46093050b77bf0
+- name: 'Product Area: Unknown'
+  color: '8D5494'
+- name: 'Product Area: Sign In'
+  color: '8D5494'
+- name: 'Product Area: Issues'
+  color: '8D5494'
+- name: 'Product Area: Issues - Suggested Fix'
+  color: '8D5494'
+- name: 'Product Area: Projects'
+  color: '8D5494'
+- name: 'Product Area: Performance'
+  color: '8D5494'
+- name: 'Product Area: Profiling'
+  color: '8D5494'
+- name: 'Product Area: Replays'
+  color: '8D5494'
+- name: 'Product Area: Crons'
+  color: '8D5494'
+- name: 'Product Area: Alerts'
+  color: '8D5494'
+- name: 'Product Area: Discover'
+  color: '8D5494'
+- name: 'Product Area: Dashboards'
+  color: '8D5494'
+- name: 'Product Area: Releases'
+  color: '8D5494'
+- name: 'Product Area: User Feedback'
+  color: '8D5494'
+- name: 'Product Area: Stats'
+  color: '8D5494'
+- name: 'Product Area: Settings'
+  color: '8D5494'
+- name: 'Product Area: Settings - General'
+  color: '8D5494'
+- name: 'Product Area: Settings - Projects'
+  color: '8D5494'
+- name: 'Product Area: Settings - Teams'
+  color: '8D5494'
+- name: 'Product Area: Settings - Members'
+  color: '8D5494'
+- name: 'Product Area: Settings - Security & Privacy'
+  color: '8D5494'
+- name: 'Product Area: Settings - Auth'
+  color: '8D5494'
+- name: 'Product Area: Settings - Relay'
+  color: '8D5494'
+- name: 'Product Area: Settings - Repositories'
+  color: '8D5494'
+- name: 'Product Area: Settings - Integrations'
+  color: '8D5494'
+- name: 'Product Area: Settings - Developer Settings'
+  color: '8D5494'
+- name: 'Product Area: Settings - Spike Protection'
+  color: '8D5494'
+- name: 'Product Area: Help'
+  color: '8D5494'
+- name: "Product Area: What's New"
+  color: '8D5494'
+- name: 'Product Area: Footer'
+  color: '8D5494'
+- name: 'Product Area: Other'
+  color: '8D5494'
 
 # Teams
 - name: 'Team: Backend'
@@ -242,12 +312,18 @@
 - name: 'Team: Ops'
   color: '8D5494'
   description: ''
+- name: 'Team: Performance'
+  color: '8D5494'
+  description: 'team-performance'
 - name: 'Team: Revenue'
   color: '8D5494'
   description: ''
 - name: 'Team: Search & Storage'
   color: '8D5494'
   description: sns
+- name: 'Team: Security'
+  color: '8D5494'
+  description: ''
 - name: 'Team: Stacktrace'
   color: '8D5494'
   description: owners-stacktrace
@@ -257,9 +333,6 @@
 - name: 'Team: Telemetry Experience'
   color: '8D5494'
   description: telemetry-experience
-- name: 'Team: Visibility'
-  color: '8D5494'
-  description: ''
 - name: 'Team: Web SDKs - Backend'
   color: '8D5494'
   description: team-web-sdk-backend
@@ -270,6 +343,9 @@
   color: '8D5494'
   description: ''
 - name: 'Team: Crons'
+  color: '8D5494'
+  description: ''
+- name: 'Team: Profiling'
   color: '8D5494'
   description: ''
 
@@ -317,6 +393,9 @@
   description: ''
 
 # Platforms
+- name: 'Platform: .NET'
+  color: '584774'
+  description: ''
 - name: 'Platform: Cocoa'
   color: '584774'
   description: ''

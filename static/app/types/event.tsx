@@ -41,9 +41,12 @@ export type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
+  cause_span_ids?: string[];
   offender_span_hashes?: string[];
+  offender_span_ids?: string[];
   op?: string;
   parent_span_hashes?: string[];
+  parent_span_ids?: string[];
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
@@ -147,7 +150,24 @@ export interface Thread {
   id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
+  heldLocks?: Record<string, Lock> | null;
   name?: string | null;
+  state?: string | null;
+}
+
+export type Lock = {
+  address: string | null;
+  class_name: string | null;
+  package_name: string | null;
+  thread_id: number | null;
+  type: LockType;
+};
+
+export enum LockType {
+  LOCKED = 1,
+  WAITING = 2,
+  SLEEPING = 4,
+  BLOCKED = 8,
 }
 
 export type Frame = {
@@ -171,6 +191,7 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
   minGroupingLevel?: number;
@@ -242,6 +263,7 @@ export enum EventOrGroupType {
   EXPECTSTAPLE = 'expectstaple',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  GENERIC = 'generic',
 }
 
 /**
@@ -259,6 +281,8 @@ export enum EntryType {
   HPKP = 'hpkp',
   BREADCRUMBS = 'breadcrumbs',
   THREADS = 'threads',
+  THREAD_STATE = 'thread-state',
+  THREAD_TAGS = 'thread-tags',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   RESOURCES = 'resources',
@@ -308,22 +332,35 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export type EntryRequest = {
+export interface EntryRequestDataDefault {
+  apiTarget: null;
+  method: string;
+  url: string;
+  cookies?: [key: string, value: string][];
+  data?: string | null | Record<string, any> | [key: string, value: any][];
+  env?: Record<string, string>;
+  fragment?: string | null;
+  headers?: [key: string, value: string][];
+  inferredContentType?:
+    | null
+    | 'application/json'
+    | 'application/x-www-form-urlencoded'
+    | 'multipart/form-data';
+  query?: [key: string, value: string][] | string;
+}
+
+export interface EntryRequestDataGraphQl
+  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+  apiTarget: 'graphql';
   data: {
-    method: string;
-    url: string;
-    cookies?: [key: string, value: string][];
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    env?: Record<string, string>;
-    fragment?: string | null;
-    headers?: [key: string, value: string][];
-    inferredContentType?:
-      | null
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'multipart/form-data';
-    query?: [key: string, value: string][] | string;
+    query: string;
+    variables: Record<string, string | number | null>;
+    operationName?: string;
   };
+}
+
+export type EntryRequest = {
+  data: EntryRequestDataDefault | EntryRequestDataGraphQl;
   type: EntryType.REQUEST;
 };
 
@@ -583,9 +620,24 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export interface ReplayContext {
+  replay_id: string;
+  type: string;
+}
+export interface BrowserContext {
+  name: string;
+  version: string;
+}
+
+export interface ResponseContext {
+  data: unknown;
+  type: 'response';
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
+  browser?: BrowserContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
@@ -595,6 +647,8 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  replay?: ReplayContext;
+  response?: ResponseContext;
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
@@ -630,7 +684,7 @@ type EventEvidenceDisplay = {
   value: string;
 };
 
-type EventOccurrence = {
+export type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -647,7 +701,26 @@ type EventOccurrence = {
   issueTitle: string;
   resourceId: string;
   subtitle: string;
+  type: number;
 };
+
+type EventRelease = Pick<
+  Release,
+  | 'commitCount'
+  | 'data'
+  | 'dateCreated'
+  | 'dateReleased'
+  | 'deployCount'
+  | 'id'
+  | 'lastCommit'
+  | 'lastDeploy'
+  | 'ref'
+  | 'status'
+  | 'url'
+  | 'userAgent'
+  | 'version'
+  | 'versionInfo'
+>;
 
 interface EventBase {
   contexts: EventContexts;
@@ -694,7 +767,7 @@ interface EventBase {
   platform?: PlatformType;
   previousEventID?: string | null;
   projectSlug?: string;
-  release?: Release | null;
+  release?: EventRelease | null;
   sdk?: {
     name: string;
     version: string;
@@ -704,6 +777,7 @@ interface EventBase {
 }
 
 interface TraceEventContexts extends EventContexts {
+  browser?: BrowserContext;
   profile?: ProfileContext;
 }
 
@@ -711,7 +785,9 @@ export interface EventTransaction
   extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
   contexts: TraceEventContexts;
   endTimestamp: number;
-  entries: (EntrySpans | EntryRequest)[];
+  // EntryDebugMeta is required for profiles to render in the span
+  // waterfall with the correct symbolication statuses
+  entries: (EntrySpans | EntryRequest | EntryDebugMeta)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;

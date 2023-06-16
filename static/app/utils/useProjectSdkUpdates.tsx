@@ -16,10 +16,15 @@ interface UseProjectSdkOptions {
   organization: Organization;
   projectId: Project['id'] | null;
 }
-
+export function useProjectSdkUpdates(
+  options: UseProjectSdkOptions & {projectId: null}
+): RequestState<ProjectSdkUpdates[] | null>;
+export function useProjectSdkUpdates(
+  options: UseProjectSdkOptions & {projectId: Project['id']}
+): RequestState<ProjectSdkUpdates | null>;
 export function useProjectSdkUpdates(
   options: UseProjectSdkOptions
-): RequestState<ProjectSdkUpdates | null> {
+): RequestState<ProjectSdkUpdates | ProjectSdkUpdates[] | null> {
   const api = useApi();
   const [state, setState] = useState<RequestState<ProjectSdkUpdates[] | null>>({
     type: 'initial',
@@ -54,12 +59,14 @@ export function useProjectSdkUpdates(
     };
   }, [api, options.organization.slug]);
 
-  const stateForProject = useMemo((): RequestState<ProjectSdkUpdates | null> => {
+  const stateForProject = useMemo((): RequestState<
+    ProjectSdkUpdates[] | ProjectSdkUpdates | null
+  > => {
     if (!options.projectId) {
       return {
         ...state,
         type: 'resolved',
-        data: null,
+        data: state.type === 'resolved' && state.data ? state.data : null,
       };
     }
     if (state.type === 'resolved') {

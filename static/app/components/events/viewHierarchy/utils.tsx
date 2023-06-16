@@ -4,7 +4,8 @@ import {mat3, vec2} from 'gl-matrix';
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
 import {defined} from 'sentry/utils';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
   const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
@@ -40,7 +41,10 @@ export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]):
   return bounds;
 }
 
-export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
+export function getHierarchyDimensions(
+  hierarchies: ViewHierarchyWindow[],
+  useAbsolutePosition: boolean = false
+): {
   maxHeight: number;
   maxWidth: number;
   nodes: ViewNode[];
@@ -60,8 +64,8 @@ export function getHierarchyDimensions(hierarchies: ViewHierarchyWindow[]): {
     const node = {
       node: child,
       rect: new Rect(
-        (parent?.x ?? 0) + (child.x ?? 0),
-        (parent?.y ?? 0) + (child.y ?? 0),
+        useAbsolutePosition ? child.x ?? 0 : (parent?.x ?? 0) + (child.x ?? 0),
+        useAbsolutePosition ? child.y ?? 0 : (parent?.y ?? 0) + (child.y ?? 0),
         child.width ?? 0,
         child.height ?? 0
       ),

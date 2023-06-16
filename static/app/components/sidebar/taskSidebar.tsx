@@ -4,7 +4,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
@@ -13,7 +13,7 @@ interface TaskSidebarProps
   children?: React.ReactNode;
 }
 
-export const TaskSidebar = (props: TaskSidebarProps) => {
+export function TaskSidebar(props: TaskSidebarProps) {
   const {children, collapsed, hidePanel, orientation} = props;
 
   return (
@@ -26,7 +26,7 @@ export const TaskSidebar = (props: TaskSidebarProps) => {
       {children}
     </TaskSidebarPanel>
   );
-};
+}
 
 export const TaskSidebarList = styled('div')`
   display: grid;

@@ -13,7 +13,7 @@ from sentry.models import SentryApp
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:
-        queryset = SentryApp.objects.filter(owner=organization, application__isnull=False)
+        queryset = SentryApp.objects.filter(owner_id=organization.id, application__isnull=False)
 
         if SentryAppStatus.as_int(request.GET.get("status")) is not None:
             queryset = queryset.filter(status=SentryAppStatus.as_int(request.GET.get("status")))

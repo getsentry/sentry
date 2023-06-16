@@ -23,7 +23,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import {
   generateReleaseMarkLines,
@@ -80,10 +80,7 @@ function ReleaseEventsChart({
 
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return new MutableSearch([
-          '!event.type:transaction',
-          releaseFilter,
-        ]).formatString();
+        return new MutableSearch(['event.type:error', releaseFilter]).formatString();
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
         return new MutableSearch([
           'event.type:transaction',
@@ -128,7 +125,7 @@ function ReleaseEventsChart({
   function getHelp() {
     switch (chartType) {
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE);
+        return getTermHelp(organization, PerformanceTerm.FAILURE_RATE);
       default:
         return null;
     }

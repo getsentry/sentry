@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -27,11 +29,12 @@ from sentry.models.grouphistory import (
     record_group_history_from_activity_type,
 )
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -55,7 +58,8 @@ def remove_resolved_link(link):
     with transaction.atomic():
         link.delete()
         affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
-            status=GroupStatus.UNRESOLVED
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
         )
         if affected:
             Activity.objects.create(
@@ -108,10 +112,10 @@ def resolved_in_commit(instance, created, **kwargs):
                 else:
                     user_list = ()
 
-                acting_user = None
+                acting_user: Optional[RpcUser] = None
 
                 if user_list:
-                    acting_user: APIUser = user_list[0]
+                    acting_user = user_list[0]
                     self_assign_issue: str = get_option_from_list(
                         user_option_service.get_many(
                             filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
@@ -147,8 +151,13 @@ def resolved_in_commit(instance, created, **kwargs):
                 Activity.objects.create(**activity_kwargs)
 
                 Group.objects.filter(id=group.id).update(
-                    status=GroupStatus.RESOLVED, resolved_at=current_datetime
+                    status=GroupStatus.RESOLVED,
+                    resolved_at=current_datetime,
+                    substatus=None,
                 )
+                group.status = GroupStatus.RESOLVED
+                group.substatus = None
+
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
                 record_group_history_from_activity_type(
                     group,
@@ -213,9 +222,9 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     user_list = list(instance.author.find_users())
                 else:
                     user_list = ()
-                acting_user = None
+                acting_user: Optional[RpcUser] = None
                 if user_list:
-                    acting_user: APIUser = user_list[0]
+                    acting_user = user_list[0]
                     GroupAssignee.objects.assign(
                         group=group, assigned_to=acting_user, acting_user=acting_user
                     )

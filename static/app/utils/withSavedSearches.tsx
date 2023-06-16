@@ -18,9 +18,9 @@ type InjectedSavedSearchesProps = {
 function withSavedSearches<P extends InjectedSavedSearchesProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  return (
+  return function (
     props: Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>
-  ) => {
+  ) {
     const organization = useOrganization();
     const {data: savedSearches, isLoading} = useFetchSavedSearchesForOrg({
       orgSlug: organization.slug,

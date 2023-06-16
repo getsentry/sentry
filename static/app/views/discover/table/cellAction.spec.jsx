@@ -68,41 +68,24 @@ describe('Discover -> CellAction', function () {
   };
   const view = EventView.fromLocation(location);
 
-  function hoverContainer() {
-    userEvent.hover(screen.getByText('some content'));
-  }
-
-  function unhoverContainer() {
-    userEvent.unhover(screen.getByText('some content'));
-  }
-
-  function openMenu() {
-    hoverContainer();
-    userEvent.click(screen.getByRole('button'));
+  async function openMenu() {
+    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
   }
 
   describe('hover menu button', function () {
     it('shows no menu by default', function () {
       renderComponent(view);
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    });
-
-    it('shows a menu on hover, and hides again', function () {
-      renderComponent(view);
-
-      hoverContainer();
-      expect(screen.getByRole('button')).toBeInTheDocument();
-
-      unhoverContainer();
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Actions'})).toBeInTheDocument();
     });
   });
 
   describe('opening the menu', function () {
-    it('toggles the menu on click', function () {
+    it('toggles the menu on click', async function () {
       renderComponent(view);
-      openMenu();
-      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
+      await openMenu();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
     });
   });
 
@@ -113,45 +96,41 @@ describe('Discover -> CellAction', function () {
       handleCellAction = jest.fn();
     });
 
-    it('add button appends condition', function () {
+    it('add button appends condition', async function () {
       renderComponent(view, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
     });
 
-    it('exclude button adds condition', function () {
+    it('exclude button adds condition', async function () {
       renderComponent(view, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      );
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('exclude button appends exclusions', function () {
+    it('exclude button appends exclusions', async function () {
       const excludeView = EventView.fromLocation({
         query: {...location.query, query: '!transaction:nope'},
       });
       renderComponent(excludeView, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      );
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('go to summary button goes to transaction summary page', function () {
-      renderComponent(view, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-      expect(handleCellAction).toHaveBeenCalledWith('transaction', 'best-transaction');
-    });
-
-    it('go to release button goes to release health page', function () {
+    it('go to release button goes to release health page', async function () {
       renderComponent(view, handleCellAction, 3);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'release',
@@ -159,10 +138,12 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('greater than button adds condition', function () {
+    it('greater than button adds condition', async function () {
       renderComponent(view, handleCellAction, 2);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      );
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'show_greater_than',
@@ -170,10 +151,12 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('less than button adds condition', function () {
+    it('less than button adds condition', async function () {
       renderComponent(view, handleCellAction, 2);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      );
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'show_less_than',
@@ -181,18 +164,18 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('error.handled with null adds condition', function () {
+    it('error.handled with null adds condition', async function () {
       renderComponent(view, handleCellAction, 7, defaultData);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 1);
     });
 
-    it('error.type with array values adds condition', function () {
+    it('error.type with array values adds condition', async function () {
       renderComponent(view, handleCellAction, 8, defaultData);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', [
         'ServerException',
@@ -202,139 +185,149 @@ describe('Discover -> CellAction', function () {
       ]);
     });
 
-    it('error.handled with 0 adds condition', function () {
+    it('error.handled with 0 adds condition', async function () {
       renderComponent(view, handleCellAction, 7, {
         ...defaultData,
         'error.handled': [0],
       });
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', [0]);
     });
 
-    it('show appropriate actions for string cells', function () {
+    it('show appropriate actions for string cells', async function () {
       renderComponent(view, handleCellAction, 0);
-      openMenu();
+      await openMenu();
 
-      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Exclude from filter'})
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Show values greater than'})
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show values greater than'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Show values less than'})
+        screen.queryByRole('menuitemradio', {name: 'Show values less than'})
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for string cells with null values', function () {
+    it('show appropriate actions for string cells with null values', async function () {
       renderComponent(view, handleCellAction, 4);
-      openMenu();
+      await openMenu();
 
-      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Exclude from filter'})
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for number cells', function () {
+    it('show appropriate actions for number cells', async function () {
       renderComponent(view, handleCellAction, 1);
-      openMenu();
+      await openMenu();
 
       expect(
-        screen.queryByRole('button', {name: 'Add to filter'})
+        screen.queryByRole('menuitemradio', {name: 'Add to filter'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Exclude from filter'})
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
       ).not.toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Show values greater than'})
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Show values less than'})
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for date cells', function () {
+    it('show appropriate actions for date cells', async function () {
       renderComponent(view, handleCellAction, 2);
-      openMenu();
+      await openMenu();
 
-      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Exclude from filter'})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Show values greater than'})
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Show values less than'})
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for release cells', function () {
+    it('show appropriate actions for release cells', async function () {
       renderComponent(view, handleCellAction, 3);
-      openMenu();
+      await openMenu();
 
-      expect(screen.getByRole('button', {name: 'Go to release'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Go to release'})
+      ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty release cells', function () {
+    it('show appropriate actions for empty release cells', async function () {
       renderComponent(view, handleCellAction, 3, {...defaultData, release: null});
-      openMenu();
+      await openMenu();
 
       expect(
-        screen.queryByRole('button', {name: 'Go to release'})
+        screen.queryByRole('menuitemradio', {name: 'Go to release'})
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for measurement cells', function () {
+    it('show appropriate actions for measurement cells', async function () {
       renderComponent(view, handleCellAction, 5);
-      openMenu();
+      await openMenu();
 
       expect(
-        screen.queryByRole('button', {name: 'Add to filter'})
+        screen.queryByRole('menuitemradio', {name: 'Add to filter'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Exclude from filter'})
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
       ).not.toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Show values greater than'})
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Show values less than'})
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty measurement cells', function () {
+    it('show appropriate actions for empty measurement cells', async function () {
       renderComponent(view, handleCellAction, 5, {
         ...defaultData,
         'measurements.fcp': null,
       });
-      openMenu();
+      await openMenu();
 
-      expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Exclude from filter'})
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Show values greater than'})
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show values greater than'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Show values less than'})
+        screen.queryByRole('menuitemradio', {name: 'Show values less than'})
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for numeric function cells', function () {
+    it('show appropriate actions for numeric function cells', async function () {
       renderComponent(view, handleCellAction, 6);
-      openMenu();
+      await openMenu();
 
       expect(
-        screen.getByRole('button', {name: 'Show values greater than'})
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Show values less than'})
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
       ).toBeInTheDocument();
     });
 
@@ -343,8 +336,7 @@ describe('Discover -> CellAction', function () {
         ...defaultData,
         'percentile(measurements.fcp, 0.5)': null,
       });
-      hoverContainer();
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
     });
   });
 });
@@ -462,7 +454,6 @@ describe('updateQuery()', function () {
 
   it('does not error for special actions', function () {
     const results = new MutableSearch([]);
-    updateQuery(results, Actions.TRANSACTION, columnA, '');
     updateQuery(results, Actions.RELEASE, columnA, '');
     updateQuery(results, Actions.DRILLDOWN, columnA, '');
   });

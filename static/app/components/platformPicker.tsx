@@ -14,11 +14,15 @@ import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCate
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
+export const PLATFORM_CATEGORIES: {
+  id: string;
+  name: string;
+  platforms?: PlatformKey[];
+}[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
 
 const PlatformList = styled('div')`
   display: grid;
@@ -27,10 +31,14 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+
+export type Platform = PlatformIntegration & {
+  category: Category;
+};
 
 interface PlatformPickerProps {
-  setPlatform: (key: PlatformKey | null) => void;
+  setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -58,6 +66,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   get platformList() {
     const {category} = this.state;
+
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();
@@ -67,9 +76,23 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       platform.name.toLowerCase().includes(filter) ||
       filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
-    const categoryMatch = (platform: PlatformIntegration) =>
-      category === 'all' ||
-      (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    const categoryMatch = (platform: PlatformIntegration) => {
+      if (category === 'all') {
+        return true;
+      }
+
+      // Symfony was no appering under the server category
+      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
+      // does not contain the suffix 2.
+      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
+      if (
+        (platform.id as any) === 'php-symfony' &&
+        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
+      ) {
+        return true;
+      }
+      return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+    };
 
     const filtered = platforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
@@ -80,7 +103,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+      trackAnalytics('growth.platformpicker_search', {
         search: this.state.filter.toLowerCase(),
         num_results: this.platformList.length,
         source: this.props.source,
@@ -102,7 +125,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                  trackAnalytics('growth.platformpicker_category', {
                     category: id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
@@ -125,26 +148,28 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
           />
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => (
-            <PlatformCard
-              data-test-id={`platform-${platform.id}`}
-              key={platform.id}
-              platform={platform}
-              selected={this.props.platform === platform.id}
-              onClear={(e: React.MouseEvent) => {
-                setPlatform(null);
-                e.stopPropagation();
-              }}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.select_platform', {
-                  platform_id: platform.id,
-                  source: this.props.source,
-                  organization: this.props.organization ?? null,
-                });
-                setPlatform(platform.id as PlatformKey);
-              }}
-            />
-          ))}
+          {platformList.map(platform => {
+            return (
+              <PlatformCard
+                data-test-id={`platform-${platform.id}`}
+                key={platform.id}
+                platform={platform}
+                selected={this.props.platform === platform.id}
+                onClear={(e: React.MouseEvent) => {
+                  setPlatform(null);
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                  trackAnalytics('growth.select_platform', {
+                    platform_id: platform.id,
+                    source: this.props.source,
+                    organization: this.props.organization ?? null,
+                  });
+                  setPlatform({...platform, category});
+                }}
+              />
+            );
+          })}
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
@@ -234,7 +259,6 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
       withLanguageIcon
       format="lg"
     />
-
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
@@ -245,8 +269,8 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  cursor: pointer;
   background: ${p => p.selected && p.theme.alert.info.backgroundLight};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};

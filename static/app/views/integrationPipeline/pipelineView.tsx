@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
 import Indicators from 'sentry/components/indicators';
-import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';

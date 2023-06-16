@@ -35,6 +35,7 @@ class MetricsQueryBuilder:
         self.granularity: Granularity = Granularity(3600)
         self.orderby: Optional[ConditionGroup] = None
         self.where: Optional[Sequence[Groupable]] = None
+        self.having: Optional[ConditionGroup] = None
         self.groupby: Optional[Sequence[MetricGroupByField]] = None
         self.limit: Optional[Limit] = None
         self.offset: Optional[Offset] = None
@@ -57,6 +58,10 @@ class MetricsQueryBuilder:
 
     def with_where(self, where: [ConditionGroup]) -> "MetricsQueryBuilder":
         self.where = where
+        return self
+
+    def with_having(self, having: [ConditionGroup]) -> "MetricsQueryBuilder":
+        self.having = having
         return self
 
     def with_orderby(self, orderby: Sequence[MetricOrderByField]) -> "MetricsQueryBuilder":
@@ -97,6 +102,7 @@ class MetricsQueryBuilder:
             "select": self.select,
             "orderby": self.orderby,
             "where": self.where,
+            "having": self.having,
             "groupby": self.groupby,
             "limit": self.limit,
             "offset": self.offset,

@@ -108,10 +108,10 @@ describe('AccountSecurity', function () {
       ],
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     // Should only have been called once
     await waitFor(() => expect(authenticatorsMock).toHaveBeenCalledTimes(1));
@@ -122,7 +122,7 @@ describe('AccountSecurity', function () {
     ).toBeInTheDocument();
   });
 
-  it('can remove one of multiple 2fa methods when org requires 2fa', function () {
+  it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -150,10 +150,10 @@ describe('AccountSecurity', function () {
       screen.getAllByRole('status', {name: 'Authentication Method Active'})
     ).toHaveLength(2);
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -185,7 +185,7 @@ describe('AccountSecurity', function () {
       screen.getByRole('status', {name: 'Authentication Method Active'})
     ).toBeInTheDocument();
 
-    userEvent.hover(screen.getByRole('button', {name: 'Delete'}));
+    await userEvent.hover(screen.getByRole('button', {name: 'Delete'}));
     expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
 
     expect(
@@ -219,7 +219,7 @@ describe('AccountSecurity', function () {
       screen.getByRole('status', {name: 'Authentication Method Inactive'})
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Add'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add'}));
 
     await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
   });
@@ -297,7 +297,7 @@ describe('AccountSecurity', function () {
     expect(screen.getByRole('button', {name: 'View Codes'})).toBeEnabled();
   });
 
-  it('can change password', function () {
+  it('can change password', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -311,17 +311,20 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Current Password'}),
       'oldpassword'
     );
-    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'newpassword');
-    userEvent.type(
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'New Password'}),
+      'newpassword'
+    );
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Verify New Password'}),
       'newpassword'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Change password'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 
     expect(mock).toHaveBeenCalledWith(
       url,
@@ -336,7 +339,7 @@ describe('AccountSecurity', function () {
     );
   });
 
-  it('requires current password to be entered', function () {
+  it('requires current password to be entered', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -349,13 +352,16 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'newpassword');
-    userEvent.type(
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'New Password'}),
+      'newpassword'
+    );
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Verify New Password'}),
       'newpassword'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Change password'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 
     expect(mock).not.toHaveBeenCalled();
   });
@@ -374,7 +380,7 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    userEvent.click(screen.getByRole('button', {name: 'Sign out of all devices'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Sign out of all devices'}));
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>

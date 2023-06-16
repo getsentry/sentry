@@ -4,35 +4,49 @@ from typing import TYPE_CHECKING
 
 from django.db.models import F
 
+from sentry import features
 from sentry.api.serializers import Serializer, register
 from sentry.models import AuthProvider, Organization, OrganizationMember
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.auth import ApiAuthProvider
+    from sentry.services.hybrid_cloud.auth import RpcAuthProvider
 
 
 @register(AuthProvider)
 class AuthProviderSerializer(Serializer):
     def serialize(
         self,
-        obj: AuthProvider | ApiAuthProvider,
+        obj: AuthProvider | RpcAuthProvider,
         attrs,
         user,
-        organization: Organization | None = None,
+        organization: Organization | RpcOrganization | None = None,
     ):
-        organization = organization or obj.organization
+        if not organization:
+            org_context = organization_service.get_organization_by_id(id=obj.organization_id)
+            if org_context:
+                organization = org_context.organization
+        assert organization, "Could not find organization for serialization"
+
         pending_links_count = OrganizationMember.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
         ).count()
 
         login_url = Organization.get_url(organization.slug)
 
+        absolute_login_url = OrganizationAbsoluteUrlMixin.organization_absolute_url(
+            features.has("organizations:customer-domains", organization),
+            slug=organization.slug,
+            path=login_url,
+        )
+
         return {
             "id": str(obj.id),
             "provider_name": obj.provider,
             "pending_links_count": pending_links_count,
-            "login_url": organization.absolute_url(login_url),
+            "login_url": absolute_login_url,
             "default_role": organization.default_role,
             "require_link": not obj.flags.allow_unlinked,
             "scim_enabled": bool(obj.flags.scim_enabled),

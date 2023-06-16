@@ -33,7 +33,7 @@ class UserUserRolesTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserUserRolesGetTest(UserUserRolesTest, PermissionTestMixin):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])

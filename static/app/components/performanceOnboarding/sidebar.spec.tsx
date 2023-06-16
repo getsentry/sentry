@@ -2,13 +2,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import {generateDocKeys} from './utils';
@@ -38,20 +37,19 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
           routes: [],
         }}
       >
-        <OrganizationContext.Provider value={props.organization}>
-          <PersistedStoreProvider>
-            <SidebarContainer
-              organization={props.organization}
-              location={location}
-              {...props}
-            />
-          </PersistedStoreProvider>
-        </OrganizationContext.Provider>
+        <OnboardingContextProvider>
+          <SidebarContainer
+            organization={props.organization}
+            location={location}
+            {...props}
+          />
+        </OnboardingContextProvider>
       </RouteContext.Provider>
     );
   };
 
-  const renderSidebar = props => render(getElement(props));
+  const renderSidebar = props =>
+    render(getElement(props), {organization: props.organization});
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -86,7 +84,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -95,7 +93,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Level Up')).toBeInTheDocument();
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
 
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
     expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
   });
 
@@ -112,7 +110,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -122,7 +120,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).toHaveBeenCalledWith(
       'https://docs.sentry.io/product/performance/getting-started/',
       '_blank'
@@ -145,7 +143,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -155,7 +153,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
@@ -178,7 +176,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -188,7 +186,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
@@ -211,7 +209,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     const quickStart = screen.getByText('Quick Start');
 
     expect(quickStart).toBeInTheDocument();
-    userEvent.click(quickStart);
+    await userEvent.click(quickStart);
 
     const sidebar = await screen.findByRole('dialog');
     expect(sidebar).toBeInTheDocument();
@@ -221,7 +219,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.getByText('Boost performance')).toBeInTheDocument();
     const performanceCard = screen.getByTestId('setup_transactions');
 
-    userEvent.click(performanceCard);
+    await userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/performance/');
   });
@@ -258,7 +256,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
 
     act(() => {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
     });
 
     expect(

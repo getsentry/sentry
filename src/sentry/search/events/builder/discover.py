@@ -51,15 +51,18 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models import Environment, Organization, Project, Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
+from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -68,10 +71,11 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
-    Dataset,
     QueryOutsideRetentionError,
     is_duration_measurement,
     is_measurement,
@@ -88,9 +92,37 @@ class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
 
+    def get_middle(self):
+        """Get the middle for comparison functions"""
+        if self.start is None or self.end is None:
+            raise InvalidSearchQuery("Need both start & end to use percent_change")
+        return self.start + (self.end - self.start) / 2
+
+    def first_half_condition(self):
+        """Create the first half condition for percent_change functions"""
+        return Function(
+            "less",
+            [
+                self.column("timestamp"),
+                Function("toDateTime", [self.get_middle()]),
+            ],
+        )
+
+    def second_half_condition(self):
+        """Create the second half condition for percent_change functions"""
+        return Function(
+            "greaterOrEquals",
+            [
+                self.column("timestamp"),
+                Function("toDateTime", [self.get_middle()]),
+            ],
+        )
+
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
+
+    spans_metrics_builder = False
 
     def _dataclass_params(
         self, snuba_params: Optional[SnubaParams], params: ParamsType
@@ -135,7 +167,7 @@ class QueryBuilder(BaseQueryBuilder):
             else:
                 environments = []
 
-        user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
+        user = user_service.get_user(user_id=params["user_id"]) if "user_id" in params else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -205,6 +237,12 @@ class QueryBuilder(BaseQueryBuilder):
             "query": set(),
             "columns": set(),
         }
+
+        # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
+        org_id = self.organization_id or (
+            self.params.organization.id if self.params.organization else None
+        )
+        self.tenant_ids = {"organization_id": org_id} if org_id else None
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -331,12 +369,18 @@ class QueryBuilder(BaseQueryBuilder):
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.use_metrics_layer:
+            if self.spans_metrics_builder:
+                self.config = SpansMetricsDatasetConfig(self)
+            elif self.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
             self.config = ProfilesDatasetConfig(self)
+        elif self.dataset == Dataset.Functions:
+            self.config = ProfileFunctionsDatasetConfig(self)
+        elif self.dataset == Dataset.SpansIndexed:
+            self.config = SpansIndexedDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -624,6 +668,7 @@ class QueryBuilder(BaseQueryBuilder):
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
             resolved_column = self.resolve_column(column, alias=True)
+
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)
 
@@ -645,6 +690,15 @@ class QueryBuilder(BaseQueryBuilder):
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
         field = tag_match.group("tag") if tag_match else raw_field
+
+        if field == "group_id":
+            # We don't expose group_id publicly, so if a user requests it
+            # we expect it is a custom tag. Convert it to tags[group_id]
+            # and ensure it queries tag data
+            # These maps are updated so the response can be mapped back to group_id
+            self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
+            self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
+            raw_field = "tags[group_id]"
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
@@ -951,7 +1005,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         return flattened
 
-    @cached_property  # type: ignore
+    @cached_property
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
         if self.organization_id is None or not self.has_metrics:
@@ -1304,7 +1358,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_context:
+            if is_tag or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.
@@ -1416,7 +1470,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         ie. any_user_display -> any(user_display)
         """
-        return self.function_alias_map[function.alias].field  # type: ignore
+        return self.function_alias_map[function.alias].field
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
@@ -1437,6 +1491,7 @@ class QueryBuilder(BaseQueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids=self.tenant_ids,
         )
 
     @classmethod
@@ -1448,6 +1503,8 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if not referrer:
+            InvalidSearchQuery("Query missing referrer.")
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
     def process_results(self, results: Any) -> EventsResponse:
@@ -1536,8 +1593,6 @@ class UnresolvedQuery(QueryBuilder):
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
-    time_column = Column("time")
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1564,12 +1619,17 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             skip_tag_resolution=skip_tag_resolution,
         )
 
+        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    @property
+    def time_column(self) -> SelectType:
+        return Column("time")
 
     def resolve_query(
         self,
@@ -1608,6 +1668,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
                 granularity=self.granularity,
                 limit=self.limit,
             ),
+            tenant_ids=self.tenant_ids,
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

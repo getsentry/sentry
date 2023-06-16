@@ -10,11 +10,11 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-const U2fEnrolledDetails = props => {
+function U2fEnrolledDetails(props) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
     props;
 
@@ -51,9 +51,9 @@ const U2fEnrolledDetails = props => {
       </PanelBody>
     </Panel>
   );
-};
+}
 
-const Device = props => {
+function Device(props) {
   const {device, isLastDevice, onRenameU2fDevice, onRemoveU2fDevice} = props;
   const [deviceName, setDeviceName] = useState(device.name);
   const [isEditing, setEditting] = useState(false);
@@ -136,7 +136,7 @@ const Device = props => {
       </Actions>
     </DevicePanelItem>
   );
-};
+}
 
 const DeviceNameInput = styled(Input)`
   width: 50%;

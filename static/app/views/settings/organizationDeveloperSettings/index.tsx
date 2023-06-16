@@ -9,7 +9,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryApp, SentryFunction} from 'sentry/types';
 import {
   platformEventLinkMap,
@@ -213,10 +213,12 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       tabs.push(['sentryfx', t('Sentry Function')]);
     }
 
+    const hasAuthTokens = organization.features.includes('org-auth-tokens');
+
     return (
       <div>
         <SettingsPageHeader
-          title={t('Developer Settings')}
+          title={hasAuthTokens ? t('Custom Integrations') : t('Developer Settings')}
           body={
             <Fragment>
               {t(

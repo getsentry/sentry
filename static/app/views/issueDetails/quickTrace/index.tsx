@@ -1,33 +1,37 @@
 import {useContext} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Placeholder from 'sentry/components/placeholder';
-import {Group, Organization} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import useMedia from 'sentry/utils/useMedia';
 
 import IssueQuickTrace from './issueQuickTrace';
 
 type Props = {
   event: Event;
-  group: Group;
   location: Location;
   organization: Organization;
-  isPerformanceIssue?: boolean;
 };
 
-function QuickTrace({event, organization, location, isPerformanceIssue}: Props) {
+function QuickTrace({event, organization, location}: Props) {
+  const theme = useTheme();
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
   const quickTrace = useContext(QuickTraceContext);
 
-  if (!hasPerformanceView || !hasTraceContext) {
+  const isSmallViewport = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
+  if (isSmallViewport || !hasPerformanceView || !hasTraceContext) {
     return null;
   }
 
   if (quickTrace?.isLoading) {
-    return <GrowingPlaceholder height="24px" />;
+    return <TracePlaceholder height="20px" />;
   }
 
   return (
@@ -35,15 +39,15 @@ function QuickTrace({event, organization, location, isPerformanceIssue}: Props) 
       organization={organization}
       event={event}
       location={location}
-      isPerformanceIssue={isPerformanceIssue}
       quickTrace={quickTrace}
     />
   );
 }
 
-const GrowingPlaceholder = styled(Placeholder)`
-  flex-grow: 1;
+const TracePlaceholder = styled(Placeholder)`
   width: auto;
+  max-width: 300px;
+  margin-top: ${space(0.75)};
 `;
 
 export default QuickTrace;

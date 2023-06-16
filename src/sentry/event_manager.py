@@ -6,9 +6,9 @@ import logging
 import random
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from hashlib import md5
 from io import BytesIO
 from typing import (
     TYPE_CHECKING,
@@ -31,6 +31,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
+from django.db.models.signals import post_save
 from django.utils.encoding import force_text
 from pytz import UTC
 
@@ -77,6 +78,9 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -112,8 +116,8 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
@@ -126,23 +130,20 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
-from sentry.utils import json, metrics, redis
+from sentry.types.group import GroupSubStatus
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import (
-    EventPerformanceProblem,
-    PerformanceProblem,
-    detect_performance_problems,
-)
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -150,19 +151,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
-
-issue_rate_limiter = RedisSlidingWindowRateLimiter(
-    **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
-)
-PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-
-DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
-GROUPHASH_IGNORE_LIMIT_MAP = {
-    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
-    GroupType.PERFORMANCE_SLOW_DB_QUERY: 100,
-    GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES: 15,
-    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: 100,
-}
 
 
 @dataclass
@@ -241,7 +229,7 @@ def get_max_crashreports(
     model: Union[Project, Organization], allow_none: bool = False
 ) -> Optional[int]:
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value, allow_none=allow_none)  # type: ignore
+    return convert_crashreport_count(value, allow_none=allow_none)
 
 
 def crashreports_exceeded(current_count: int, max_count: int) -> bool:
@@ -259,13 +247,13 @@ def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashrep
 
     cached_reports = cache.get(cache_key, None)
     if cached_reports is not None and cached_reports >= max_crashreports:
-        return cached_reports  # type: ignore
+        return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
     # We don't need the actual number, but just whether it's more or equal to
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
-    return query[:max_crashreports].count()  # type: ignore
+    return query[:max_crashreports].count()
 
 
 class HashDiscarded(Exception):
@@ -277,8 +265,8 @@ class HashDiscarded(Exception):
         self.tombstone_id = tombstone_id
 
 
-class ScoreClause(Func):  # type: ignore
-    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):  # type: ignore
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
         self.group = group
         self.last_seen = last_seen
         self.times_seen = times_seen
@@ -287,12 +275,12 @@ class ScoreClause(Func):  # type: ignore
             self.times_seen = self.times_seen.rhs.value
         super().__init__(*args, **kwargs)
 
-    def __int__(self):  # type: ignore
+    def __int__(self):
         # Calculate the score manually when coercing to an int.
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(self, compiler, connection, function=None, template=None):  # type: ignore
+    def as_sql(self, compiler, connection, function=None, template=None):
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
@@ -488,6 +476,7 @@ class EventManager:
             _run_background_grouping(project, job)
 
         secondary_hashes = None
+        migrate_off_hierarchical = False
 
         try:
             secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
@@ -524,10 +513,25 @@ class EventManager:
         ):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
+        # Because this logic is not complex enough we want to special case the situation where we
+        # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
+        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
+        # but it wants a different logic to implement splitting of hierarchical hashes.
+        migrate_off_hierarchical = bool(
+            secondary_hashes
+            and secondary_hashes.hierarchical_hashes
+            and not hashes.hierarchical_hashes
+        )
+
         hashes = CalculatedHashes(
             hashes=list(hashes.hashes) + list(secondary_hashes and secondary_hashes.hashes or []),
-            hierarchical_hashes=hashes.hierarchical_hashes,
-            tree_labels=hashes.tree_labels,
+            hierarchical_hashes=(
+                list(hashes.hierarchical_hashes)
+                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+            ),
+            tree_labels=(
+                hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
+            ),
         )
 
         if not do_background_grouping_before:
@@ -558,6 +562,7 @@ class EventManager:
                     release=job["release"],
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
+                    migrate_off_hierarchical=migrate_off_hierarchical,
                     **kwargs,
                 )
                 job["groups"] = [group_info]
@@ -584,6 +589,7 @@ class EventManager:
         _get_or_create_environment_many(jobs, projects)
         _get_or_create_group_environment_many(jobs, projects)
         _get_or_create_release_associated_models(jobs, projects)
+        _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs, projects)
         _tsdb_record_all_metrics(jobs)
 
@@ -795,6 +801,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["received_timestamp"] = job["event"].data.get("received") or float(
             job["event"].datetime.strftime("%s")
         )
+        job["groups"] = []
 
 
 def _is_commit_sha(version: str) -> bool:
@@ -804,9 +811,7 @@ def _is_commit_sha(version: str) -> bool:
 def _associate_commits_with_release(release: Release, project: Project) -> None:
     previous_release = release.get_previous_release(project)
     possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related(
-            "repository", "organization_integration", "organization_integration__integration"
-        )
+        RepositoryProjectPathConfig.objects.select_related("repository")
         .filter(project=project, repository__provider="integrations:github")
         .all()
     )
@@ -814,11 +819,20 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
         # If it does exist, kick off a task to look if the commit exists in the repository
         target_repo = None
         for repo_proj_path_model in possible_repos:
-            integration_installation = (
-                repo_proj_path_model.organization_integration.integration.get_installation(
-                    organization_id=project.organization.id
-                )
+            ois = integration_service.get_organization_integrations(
+                org_integration_ids=[repo_proj_path_model.organization_integration_id]
             )
+            oi = ois[0]
+            if not oi:
+                continue
+            integration = integration_service.get_integration(integration_id=oi.integration_id)
+            if not integration:
+                continue
+            integration_installation = integration_service.get_installation(
+                integration=integration, organization_id=oi.organization_id
+            )
+            if not integration_installation:
+                continue
             repo_client = integration_installation.get_client()
             try:
                 repo_client.get_commit(
@@ -944,7 +958,7 @@ def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
     if environment == "":
         environment = None
 
-    return environment  # type:ignore
+    return environment
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -1046,12 +1060,18 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
 @metrics.wraps("save_event.get_or_create_group_environment_many")
 def _get_or_create_group_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        for group_info in job["groups"]:
-            group_info.is_new_group_environment = GroupEnvironment.get_or_create(
-                group_id=group_info.group.id,
-                environment_id=job["environment"].id,
-                defaults={"first_release": job["release"] or None},
-            )[1]
+        _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
+
+
+def _get_or_create_group_environment(
+    environment: Environment, release: Optional[Release], groups: Sequence[GroupInfo]
+) -> None:
+    for group_info in groups:
+        group_info.is_new_group_environment = GroupEnvironment.get_or_create(
+            group_id=group_info.group.id,
+            environment_id=environment.id,
+            defaults={"first_release": release or None},
+        )[1]
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -1077,42 +1097,73 @@ def _get_or_create_release_associated_models(
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
-        rp_new_groups = 0
-        rpe_new_groups = 0
-        for group_info in job["groups"]:
-            if group_info.is_new:
-                rp_new_groups += 1
-            if group_info.is_new_group_environment:
-                rpe_new_groups += 1
-        if rp_new_groups:
-            buffer_incr(
-                ReleaseProject,
-                {"new_groups": rp_new_groups},
-                {"release_id": release.id, "project_id": project.id},
-            )
-        if rpe_new_groups:
-            buffer_incr(
-                ReleaseProjectEnvironment,
-                {"new_issues_count": rpe_new_groups},
-                {
-                    "project_id": project.id,
-                    "release_id": release.id,
-                    "environment_id": environment.id,
-                },
-            )
+
+
+def _increment_release_associated_counts_many(
+    jobs: Sequence[Job], projects: ProjectsMapping
+) -> None:
+    for job in jobs:
+        _increment_release_associated_counts(
+            projects[job["project_id"]], job["environment"], job["release"], job["groups"]
+        )
+
+
+def _increment_release_associated_counts(
+    project: Project,
+    environment: Environment,
+    release: Optional[Release],
+    groups: Sequence[GroupInfo],
+) -> None:
+    if not release:
+        return
+
+    rp_new_groups = 0
+    rpe_new_groups = 0
+    for group_info in groups:
+        if group_info.is_new:
+            rp_new_groups += 1
+        if group_info.is_new_group_environment:
+            rpe_new_groups += 1
+    if rp_new_groups:
+        buffer_incr(
+            ReleaseProject,
+            {"new_groups": rp_new_groups},
+            {"release_id": release.id, "project_id": project.id},
+        )
+    if rpe_new_groups:
+        buffer_incr(
+            ReleaseProjectEnvironment,
+            {"new_issues_count": rpe_new_groups},
+            {
+                "project_id": project.id,
+                "release_id": release.id,
+                "environment_id": environment.id,
+            },
+        )
 
 
 @metrics.wraps("save_event.get_or_create_group_release_many")
 def _get_or_create_group_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        if job["release"]:
-            for group_info in job["groups"]:
-                group_info.group_release = GroupRelease.get_or_create(
-                    group=group_info.group,
-                    release=job["release"],
-                    environment=job["environment"],
-                    datetime=job["event"].datetime,
-                )
+        _get_or_create_group_release(
+            job["environment"], job["release"], job["event"], job["groups"]
+        )
+
+
+def _get_or_create_group_release(
+    environment: Environment,
+    release: Optional[Release],
+    event: BaseEvent,
+    groups: Sequence[GroupInfo],
+) -> None:
+    if release:
+        for group_info in groups:
+            group_info.group_release = GroupRelease.get_or_create(
+                group=group_info.group,
+                release=release,
+                environment=environment,
+                datetime=event.datetime,
+            )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -1381,14 +1432,6 @@ def materialize_metadata(
     }
 
 
-def inject_performance_problem_metadata(
-    metadata: dict[str, Any], problem: PerformanceProblem
-) -> dict[str, Any]:
-    metadata["value"] = problem.desc
-    metadata["title"] = problem.title
-    return metadata
-
-
 def get_culprit(data: Mapping[str, Any]) -> str:
     """Helper to calculate the default culprit"""
     return str(
@@ -1402,6 +1445,7 @@ def _save_aggregate(
     release: Optional[Release],
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
+    migrate_off_hierarchical: Optional[bool] = False,
     **kwargs: dict[str, Any],
 ) -> Optional[GroupInfo]:
     project = event.project
@@ -1526,7 +1570,13 @@ def _save_aggregate(
 
     is_new = False
 
-    if root_hierarchical_grouphash is None:
+    # For the migration from hierarchical to non hierarchical we want to associate
+    # all group hashes
+    if migrate_off_hierarchical:
+        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
+            new_hashes.append(root_hierarchical_grouphash)
+    elif root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
     elif root_hierarchical_grouphash.group_id is None:
@@ -1720,18 +1770,28 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
         )
     )
-    issue_unresolved.send_robust(
-        project=group.project,
-        user=None,
-        group=group,
-        transition_type="automatic",
-        sender="handle_regression",
-    )
-
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
+    group.substatus = GroupSubStatus.REGRESSED
+    # groups may have been updated already from a separate event that groups to the same group
+    # only fire these signals the first time the row was actually updated
+    if is_regression:
+        issue_unresolved.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="handle_regression",
+        )
+        post_save.send(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["last_seen", "active_at", "status", "substatus"],
+        )
 
     if is_regression and release:
         resolution = None
@@ -2160,9 +2220,7 @@ def _calculate_event_grouping(
         apply_server_fingerprinting(
             event.data.data,
             get_fingerprinting_config_for_project(project),
-            allow_custom_title=features.has(
-                "organizations:custom-event-title", project.organization, actor=None
-            ),
+            allow_custom_title=True,
         )
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
@@ -2176,7 +2234,7 @@ def _calculate_event_grouping(
             hashes = event.get_hashes()
 
     hashes.write_to_event(event.data)
-    return cast(CalculatedHashes, hashes)
+    return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
@@ -2241,200 +2299,32 @@ def _save_grouphash_and_group(
     return group, created
 
 
-def _message_from_metadata(meta: Mapping[str, str]) -> str:
-    title = meta.get("title", "")
-    location = meta.get("location", "")
-    separator = ": " if title and location else ""
-    return f"{title}{separator}{location}"
-
-
-@metrics.wraps("save_event.save_aggregate_performance")
-def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
-
-    MAX_GROUPS = (
-        10  # safety check in case we are passed too many. constant will live somewhere else tbd
-    )
+@metrics.wraps("save_event.send_occurrence_to_platform")
+def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["groups"] = []
-        hashes = []
         event = job["event"]
         project = event.project
+        event_id = event.event_id
 
-        # Granular, per-project option
-        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
-        if per_project_rate > random.random():
-
-            kwargs = _create_kwargs(job)
-            kwargs["culprit"] = job["culprit"]
-            kwargs["data"] = materialize_metadata(
-                event.data,
-                get_event_type(event.data),
-                dict(job["event_metadata"]),
+        performance_problems = job["performance_problems"]
+        for problem in performance_problems:
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=project.id,
+                event_id=event_id,
+                fingerprint=[problem.fingerprint],
+                type=problem.type,
+                issue_title=problem.title,
+                subtitle=problem.desc,
+                culprit=event.transaction,
+                evidence_data=problem.evidence_data,
+                evidence_display=problem.evidence_display,
+                detection_time=event.datetime,
+                level=job["level"],
             )
-            kwargs["data"]["last_received"] = job["received_timestamp"]
 
-            performance_problems = job["performance_problems"]
-            for problem in performance_problems:
-                problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
-
-            performance_problems_by_hash = {p.fingerprint: p for p in performance_problems}
-            all_group_hashes = [problem.fingerprint for problem in performance_problems]
-            group_hashes = all_group_hashes[:MAX_GROUPS]
-
-            existing_grouphashes = GroupHash.objects.filter(
-                project=project, hash__in=group_hashes
-            ).select_related("group")
-
-            new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
-
-            if new_grouphashes:
-                # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
-                if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
-                    groups_to_ignore = set()
-                    cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get(
-                        "cluster", "default"
-                    )
-                    client = redis.redis_clusters.get(cluster_key)
-
-                    for new_grouphash in new_grouphashes:
-                        group_type = performance_problems_by_hash[new_grouphash].type
-                        if not should_create_group(client, new_grouphash, group_type, project):
-                            groups_to_ignore.add(new_grouphash)
-
-                    new_grouphashes = new_grouphashes - groups_to_ignore
-
-                new_grouphashes_count = len(new_grouphashes)
-
-                with metrics.timer("performance.performance_issue.check_write_limits"):
-                    granted_quota = issue_rate_limiter.check_and_use_quotas(
-                        [
-                            RequestedQuota(
-                                f"performance-issues:{project.id}",
-                                new_grouphashes_count,
-                                [PERFORMANCE_ISSUE_QUOTA],
-                            )
-                        ]
-                    )[0]
-
-                # Log how many groups didn't get created because of rate limiting
-                _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted
-                metrics.incr("performance.performance_issue.dropped", _dropped_group_hash_count)
-
-                for new_grouphash in list(new_grouphashes)[: granted_quota.granted]:
-                    # GROUP DOES NOT EXIST
-                    with sentry_sdk.start_span(
-                        op="event_manager.create_performance_group_transaction"
-                    ) as span, metrics.timer(
-                        "event_manager.create_performance_group_transaction",
-                        tags={"platform": event.platform or "unknown"},
-                        sample_rate=1.0,
-                    ) as metric_tags, transaction.atomic():
-                        problem = performance_problems_by_hash[new_grouphash]
-
-                        span.set_tag("create_group_transaction.outcome", "no_group")
-                        span.set_tag("group_type", problem.type.name)
-                        metric_tags["create_group_transaction.outcome"] = "no_group"
-                        metric_tags["group_type"] = problem.type.name
-
-                        group_kwargs = kwargs.copy()
-                        group_kwargs["type"] = problem.type.value
-
-                        group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
-                            group_kwargs["data"]["metadata"], problem
-                        )
-
-                        if group_kwargs["data"]["metadata"]:
-                            group_kwargs["message"] = _message_from_metadata(
-                                group_kwargs["data"]["metadata"]
-                            )
-
-                        group, is_new = _save_grouphash_and_group(
-                            project, event, new_grouphash, **group_kwargs
-                        )
-
-                        is_regression = False
-
-                        span.set_tag("create_group_transaction.outcome", "new_group")
-                        metric_tags["create_group_transaction.outcome"] = "new_group"
-
-                        metrics.incr(
-                            "group.created",
-                            skip_internal=True,
-                            tags={"platform": job["platform"] or "unknown"},
-                        )
-
-                        job["groups"].append(
-                            GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
-                        )
-                        hashes.append(new_grouphash)
-
-            if existing_grouphashes:
-
-                # GROUP EXISTS
-                for existing_grouphash in existing_grouphashes:
-                    group = existing_grouphash.group
-                    if group.issue_category != GroupCategory.PERFORMANCE:
-                        logger.info(
-                            "event_manager.category_mismatch",
-                            extra={
-                                "issue_category": group.issue_category,
-                                "event_type": "performance",
-                            },
-                        )
-                        continue
-
-                    is_new = False
-
-                    problem = performance_problems_by_hash[existing_grouphash.hash]
-                    group_kwargs = kwargs.copy()
-                    group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
-                        group_kwargs["data"]["metadata"], problem
-                    )
-                    if group_kwargs["data"]["metadata"].get("title"):
-                        group_kwargs["message"] = _message_from_metadata(
-                            group_kwargs["data"]["metadata"]
-                        )
-
-                    is_regression = _process_existing_aggregate(
-                        group=group, event=job["event"], data=group_kwargs, release=job["release"]
-                    )
-
-                    job["groups"].append(
-                        GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
-                    )
-                    hashes.append(existing_grouphash.hash)
-
-            job["event"].groups = [group_info.group for group_info in job["groups"]]
-            job["event"].data["hashes"] = hashes
-            for problem_hash in hashes:
-                EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
-
-
-@metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str, type: GroupType, project: Project) -> bool:
-    key = f"grouphash:{grouphash}:{project.id}"
-    times_seen = client.incr(key)
-    metrics.incr(
-        "performance.performance_issue.grouphash_counted",
-        tags={
-            "times_seen": times_seen,
-            "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
-        },
-        sample_rate=1.0,
-    )
-
-    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
-        client.delete(grouphash)
-        metrics.incr(
-            "performance.performance_issue.issue_will_be_created",
-            tags={"group_type": type.name},
-            sample_rate=1.0,
-        )
-
-        return True
-    else:
-        client.expire(key, 60 * 60 * 24)  # 24 hour expiration from last seen
-        return False
+            produce_occurrence_to_kafka(occurrence)
 
 
 @metrics.wraps("event_manager.save_transaction_events")
@@ -2462,18 +2352,16 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
-    _detect_performance_problems(jobs, projects)
     _materialize_metadata_many(jobs)
-    _save_aggregate_performance(jobs, projects)  # type: ignore
     _get_or_create_environment_many(jobs, projects)
-    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
-    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    _detect_performance_problems(jobs, projects)
+    _send_occurrence_to_platform(jobs, projects)
     return jobs
 
 

@@ -4,8 +4,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectUserFeedback from 'sentry/views/settings/project/projectUserFeedback';
 
 describe('ProjectUserFeedback', function () {
-  const {org, project, routerContext} = initializeOrg();
-  const url = `/projects/${org.slug}/${project.slug}/`;
+  const {organization, project, routerContext} = initializeOrg();
+  const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -21,12 +21,12 @@ describe('ProjectUserFeedback', function () {
     });
   });
 
-  it('can toggle sentry branding option', function () {
+  it('can toggle sentry branding option', async function () {
     render(
       <ProjectUserFeedback
-        organizatigon={org}
+        organizatigon={organization}
         project={project}
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{orgId: organization.slug, projectId: project.slug}}
       />,
       {context: routerContext}
     );
@@ -37,7 +37,7 @@ describe('ProjectUserFeedback', function () {
     });
 
     // Click Regenerate Token
-    userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
 
     expect(mock).toHaveBeenCalledWith(
       url,

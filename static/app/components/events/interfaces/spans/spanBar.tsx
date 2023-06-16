@@ -43,11 +43,11 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   QuickTraceContext,
@@ -77,6 +77,7 @@ import {
 } from './types';
 import {
   durationlessBrowserOps,
+  formatSpanTreeLabel,
   getMeasurementBounds,
   getMeasurements,
   getSpanID,
@@ -130,11 +131,11 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
@@ -578,8 +579,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
-    const description = span?.description ?? getSpanID(span);
-
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
     const errored = Boolean(errors && errors.length > 0);
 
@@ -608,7 +607,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
           >
             <strong>{titleFragments}</strong>
-            {description}
+            {formatSpanTreeLabel(span)}
           </RowTitleContent>
         </RowTitle>
       </RowTitleContainer>
@@ -877,8 +876,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   ): React.ReactNode {
     const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
-    if (transactions && transactions.length === 1) {
-      const transaction = transactions[0];
+    if (transactions && transactions.length >= 1) {
       return (
         <Tooltip
           title={
@@ -898,15 +896,16 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                 const eventKey = showEmbeddedChildren
                   ? 'span_view.embedded_child.hide'
                   : 'span_view.embedded_child.show';
-                trackAdvancedAnalyticsEvent(eventKey, {organization});
+                trackAnalytics(eventKey, {organization});
 
-                toggleEmbeddedChildren({
-                  orgSlug: organization.slug,
-                  eventSlug: generateEventSlug({
+                const eventSlugs = transactions.map(transaction =>
+                  generateEventSlug({
                     id: transaction.event_id,
                     project: transaction.project_slug,
-                  }),
-                });
+                  })
+                );
+
+                toggleEmbeddedChildren(organization.slug, eventSlugs);
               }
             }}
           />
@@ -919,7 +918,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   renderMissingInstrumentationProfileBadge(): React.ReactNode {
     const {organization, span} = this.props;
 
-    if (!organization.features.includes('profiling-previews')) {
+    if (!organization.features.includes('profiling')) {
       return null;
     }
 

@@ -73,7 +73,6 @@ function mockRequests(orgSlug: Organization['slug']) {
 
 describe('VisualizationStep', function () {
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     organization: {
       features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },
@@ -121,10 +120,11 @@ describe('VisualizationStep', function () {
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
 
-    userEvent.type(await screen.findByPlaceholderText('Alias'), 'abc');
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
+    await userEvent.type(await screen.findByPlaceholderText('Alias'), 'abc', {
+      delay: null,
     });
+    act(() => jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1));
+    jest.useRealTimers();
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
@@ -257,7 +257,7 @@ describe('VisualizationStep', function () {
       }
     );
 
-    userEvent.click(screen.getByText('Add a Column'));
+    await userEvent.click(screen.getByText('Add a Column'));
 
     // Only called once on the initial render
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));

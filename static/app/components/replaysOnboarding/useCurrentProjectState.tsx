@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import first from 'lodash/first';
 
+import {splitProjectsByReplaySupport} from 'sentry/components/replaysOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {replayOnboardingPlatforms, replayPlatforms} from 'sentry/data/platformCategories';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -13,7 +14,7 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
-  const isActive = currentPanel === SidebarPanelKey.ReplaysOnboarding;
+  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
 
   // Projects where we have the onboarding instructions ready:
   const projectsWithOnboarding = useMemo(
@@ -82,8 +83,15 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
     projectWithReplaySupport,
   ]);
 
+  const {supported, unsupported} = useMemo(() => {
+    return splitProjectsByReplaySupport(projects);
+  }, [projects]);
+
   return {
     projects: projectWithReplaySupport,
+    allProjects: projects,
+    supportedProjects: supported,
+    unsupportedProjects: unsupported,
     currentProject,
     setCurrentProject,
   };

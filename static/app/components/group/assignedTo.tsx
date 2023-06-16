@@ -2,27 +2,23 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
-  AssigneeSelectorDropdownProps,
+  OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
-import {
-  findMatchedRules,
-  Rules,
-} from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -30,12 +26,36 @@ import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
+// TODO(ts): add the correct type
+type Rules = Array<any> | null;
+
+/**
+ * Given a list of rule objects returned from the API, locate the matching
+ * rules for a specific owner.
+ */
+function findMatchedRules(rules: Rules, owner: Actor) {
+  if (!rules) {
+    return undefined;
+  }
+
+  const matchOwner = (actorType: Actor['type'], key: string) =>
+    (actorType === 'user' && key === owner.email) ||
+    (actorType === 'team' && key === owner.name);
+
+  const actorHasOwner = ([actorType, key]) =>
+    actorType === owner.type && matchOwner(actorType, key);
+
+  return rules
+    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
+    .map(([rule]) => rule);
+}
+
 interface AssignedToProps {
   group: Group;
   project: Project;
   disableDropdown?: boolean;
   event?: Event;
-  onAssign?: AssigneeSelectorDropdownProps['onAssign'];
+  onAssign?: OnAssignCallback;
 }
 type IssueOwner = {
   actor: Actor;
@@ -121,9 +141,10 @@ function getOwnerList(
   );
 
   // Convert to suggested assignee format
-  return filteredOwners.map(owner => ({
+  return filteredOwners.map<Omit<SuggestedAssignee, 'assignee'>>(owner => ({
     ...owner.actor,
-    suggestedReason: getSuggestedReason(owner),
+    suggestedReasonText: getSuggestedReason(owner),
+    suggestedReason: owner.source,
   }));
 }
 
@@ -140,13 +161,16 @@ export function getAssignedToDisplayName(group: Group) {
   return group.assignedTo?.name ?? t('No one');
 }
 
-function AssignedTo({group, project, event, disableDropdown = false}: AssignedToProps) {
+function AssignedTo({
+  group,
+  project,
+  event,
+  onAssign,
+  disableDropdown = false,
+}: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const hasStreamlineTargetingFeature = organization.features.includes(
-    'streamline-targeting-context'
-  );
   const {data} = useCommitters(
     {
       eventId: event?.id ?? '',
@@ -154,7 +178,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled: hasStreamlineTargetingFeature && defined(event?.id),
+      enabled: defined(event?.id),
     }
   );
 
@@ -164,7 +188,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
   }, [api, organization, project]);
 
   useEffect(() => {
-    if (!event || !organization.features.includes('streamline-targeting-context')) {
+    if (!event) {
       return () => {};
     }
 
@@ -187,27 +211,28 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     };
   }, [api, event, organization, project.slug]);
 
-  const owners = hasStreamlineTargetingFeature
-    ? getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo)
-    : undefined;
+  const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
-        {hasStreamlineTargetingFeature && (
-          <Access access={['project:write']}>
-            <Button
-              onClick={() => {
-                openCreateOwnershipRule({project, organization, issueId: group.id});
-              }}
-              aria-label={t('Create Ownership Rule')}
-              icon={<IconSettings />}
-              borderless
-              size="xs"
-            />
-          </Access>
-        )}
+        <Access access={['project:read']}>
+          <Button
+            onClick={() => {
+              openIssueOwnershipRuleModal({
+                project,
+                organization,
+                issueId: group.id,
+                eventData: event!,
+              });
+            }}
+            aria-label={t('Create Ownership Rule')}
+            icon={<IconSettings />}
+            borderless
+            size="xs"
+          />
+        </Access>
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown
@@ -216,6 +241,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           disabled={disableDropdown}
           id={group.id}
           assignedTo={group.assignedTo}
+          onAssign={onAssign}
         >
           {({loading, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>

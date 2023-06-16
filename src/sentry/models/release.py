@@ -8,7 +8,7 @@ from time import time
 from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.db.models.signals import pre_save
 from django.utils import timezone
@@ -29,11 +29,13 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager import BaseManager
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
-    BaseManager,
+    ArtifactBundle,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
@@ -82,9 +84,7 @@ class ReleaseProjectModelManager(BaseManager):
             and options.get("dynamic-sampling:enabled-biases")
             and project_boosted_releases.has_boosted_releases
         ):
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
-            )
+            schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     def post_save(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
@@ -487,7 +487,7 @@ class Release(Model):
     # Deprecated, we no longer write to this field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
-    owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
@@ -608,6 +608,31 @@ class Release(Model):
         except RelayError:
             # This can happen on invalid legacy releases
             return False
+
+    @staticmethod
+    def is_release_newer_or_equal(org_id, release, other_release):
+        if release is None:
+            return False
+
+        if other_release is None:
+            return True
+
+        if release == other_release:
+            return True
+
+        releases = {
+            release.version: float(release.date_added.timestamp())
+            for release in Release.objects.filter(
+                organization_id=org_id, version__in=[release, other_release]
+            )
+        }
+        release_date = releases.get(release)
+        other_release_date = releases.get(other_release)
+
+        if release_date is not None and other_release_date is not None:
+            return release_date > other_release_date
+
+        return False
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -806,7 +831,7 @@ class Release(Model):
             if COMMIT_RANGE_DELIMITER in ref["commit"]:
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
-    def set_refs(self, refs, user, fetch=False):
+    def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models import Commit, ReleaseHeadCommit, Repository
@@ -853,7 +878,7 @@ class Release(Model):
                 fetch_commits.apply_async(
                     kwargs={
                         "release_id": self.id,
-                        "user_id": user.id,
+                        "user_id": user_id,
                         "refs": refs,
                         "prev_release_id": prev_release and prev_release.id,
                     }
@@ -1122,7 +1147,7 @@ class Release(Model):
                     },
                 )
                 group = Group.objects.get(id=group_id)
-                group.update(status=GroupStatus.RESOLVED)
+                group.update(status=GroupStatus.RESOLVED, substatus=None)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
                 record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
@@ -1177,6 +1202,27 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def count_artifacts_in_artifact_bundles(self, project_ids: Sequence[int]):
+        """
+        Counts the number of artifacts in the artifact bundles associated with this release and a set of projects.
+        """
+        qs = (
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__project_id__in=project_ids,
+            )
+            .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+            .values_list("releaseartifactbundle__release_name", "count")
+        )
+
+        qs.query.group_by = ["releaseartifactbundle__release_name"]
+
+        if len(qs) == 0:
+            return None
+
+        return qs[0]
 
     def clear_commits(self):
         """

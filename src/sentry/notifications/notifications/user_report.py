@@ -10,11 +10,12 @@ from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.notifications.utils.participants import ParticipantMap
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Project, Team, User
+    from sentry.models import Project
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,14 @@ class UserReportNotification(ProjectNotification):
         self.group = Group.objects.get(id=report["issue"]["id"])
         self.report = report
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
-        return {
-            provider: data
-            for provider, data in data_by_provider.items()
-            if provider in [ExternalProviders.EMAIL]
-        }
+        email_participants = data_by_provider.get_participants_by_provider(ExternalProviders.EMAIL)
+
+        result = ParticipantMap()
+        for (actor, reason) in email_participants:
+            result.add(ExternalProviders.EMAIL, actor, reason)
+        return result
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.
@@ -75,7 +75,7 @@ class UserReportNotification(ProjectNotification):
         }
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}

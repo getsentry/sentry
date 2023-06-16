@@ -20,7 +20,7 @@ json_dumps = json.JSONEncoder(
     default=None,
 ).encode
 
-json_loads = json._default_decoder.decode
+json_loads = json.loads
 
 
 class NodeStorage(local, Service):
@@ -185,7 +185,7 @@ class NodeStorage(local, Service):
             }
             if subkey is None:
                 self._set_cache_items(items)
-                items.update(cache_items)
+                items.update(cache_items)  # pyright: ignore
 
             span.set_tag("result", "from_service")
             span.set_tag("found", len(items))

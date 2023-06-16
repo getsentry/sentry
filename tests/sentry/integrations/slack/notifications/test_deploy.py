@@ -7,9 +7,11 @@ from sentry.models import Activity, Deploy, Release
 from sentry.notifications.notifications.activity import ReleaseActivityNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
+@region_silo_test(stable=True)
 class SlackDeployNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -39,7 +41,7 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         notification = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )

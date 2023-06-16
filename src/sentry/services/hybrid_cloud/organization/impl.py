@@ -1,181 +1,76 @@
 from __future__ import annotations
 
-import dataclasses
-from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
+from typing import Any, Iterable, List, Optional, Set, cast
+
+from django.db import IntegrityError, models, transaction
 
 from sentry import roles
+from sentry.api.serializers import serialize
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
+    Activity,
+    GroupAssignee,
+    GroupBookmark,
+    GroupSeen,
+    GroupShare,
+    GroupSubscription,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
     OrganizationStatus,
-    Project,
-    ProjectStatus,
-    ProjectTeam,
     Team,
-    TeamStatus,
 )
-from sentry.services.hybrid_cloud import logger
+from sentry.models.organizationmember import InviteStatus
+from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
-    ApiOrganization,
-    ApiOrganizationFlags,
-    ApiOrganizationInvite,
-    ApiOrganizationMember,
-    ApiOrganizationMemberFlags,
-    ApiOrganizationSummary,
-    ApiProject,
-    ApiTeam,
-    ApiTeamMember,
-    ApiUserOrganizationContext,
     OrganizationService,
+    RpcOrganizationFlagsUpdate,
+    RpcOrganizationInvite,
+    RpcOrganizationMember,
+    RpcOrganizationMemberFlags,
+    RpcOrganizationSummary,
+    RpcRegionUser,
+    RpcUserInviteContext,
+    RpcUserOrganizationContext,
 )
+from sentry.services.hybrid_cloud.organization.serial import (
+    serialize_member,
+    serialize_organization_summary,
+    serialize_rpc_organization,
+)
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
-
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
-
-
-def escape_flag_name(flag_name: str) -> str:
-    return flag_name.replace(":", "__").replace("-", "_")
-
-
-def unescape_flag_name(flag_name: str) -> str:
-    return flag_name.replace("__", ":").replace("_", "-")
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
-    @classmethod
-    def _serialize_member_flags(cls, member: OrganizationMember) -> ApiOrganizationMemberFlags:
-        result = ApiOrganizationMemberFlags()
-        for f in dataclasses.fields(ApiOrganizationMemberFlags):
-            setattr(result, f.name, bool(getattr(member.flags, unescape_flag_name(f.name))))
-        return result
-
-    @classmethod
-    def serialize_member(
-        cls,
-        member: OrganizationMember,
-    ) -> ApiOrganizationMember:
-        api_member = ApiOrganizationMember(
-            id=member.id,
-            organization_id=member.organization_id,
-            user_id=member.user.id if member.user is not None else None,
-            role=member.role,
-            has_global_access=member.has_global_access,
-            scopes=list(member.get_scopes()),
-            flags=cls._serialize_member_flags(member),
-        )
-
-        omts = OrganizationMemberTeam.objects.filter(
-            organizationmember=member, is_active=True, team__status=TeamStatus.VISIBLE
-        )
-
-        all_project_ids: Set[int] = set()
-        project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)
-        for pt in ProjectTeam.objects.filter(
-            project__status=ProjectStatus.VISIBLE, team_id__in={omt.team_id for omt in omts}
-        ):
-            all_project_ids.add(pt.project_id)
-            project_ids_by_team_id[pt.team_id].append(pt.project_id)
-
-        for omt in omts:
-            omt.organizationmember = member
-            api_member.member_teams.append(
-                cls._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
-            )
-        api_member.project_ids = list(all_project_ids)
-
-        return api_member
-
-    @classmethod
-    def _serialize_flags(cls, org: Organization) -> ApiOrganizationFlags:
-        result = ApiOrganizationFlags()
-        for f in dataclasses.fields(result):
-            setattr(result, f.name, getattr(org.flags, f.name))
-        return result
-
-    @classmethod
-    def _serialize_team(cls, team: Team) -> ApiTeam:
-        return ApiTeam(
-            id=team.id,
-            status=team.status,
-            organization_id=team.organization_id,
-            slug=team.slug,
-            org_role=team.org_role,
-        )
-
-    @classmethod
-    def _serialize_team_member(
-        cls, team_member: OrganizationMemberTeam, project_ids: Iterable[int]
-    ) -> ApiTeamMember:
-        result = ApiTeamMember(
-            id=team_member.id,
-            is_active=team_member.is_active,
-            role=team_member.get_team_role(),
-            team_id=team_member.team_id,
-            project_ids=list(project_ids),
-            scopes=list(team_member.get_scopes()),
-        )
-
-        return result
-
-    @classmethod
-    def _serialize_project(cls, project: Project) -> ApiProject:
-        return ApiProject(
-            id=project.id,
-            slug=project.slug,
-            name=project.name,
-            organization_id=project.organization_id,
-            status=project.status,
-        )
-
-    def _serialize_organization_summary(self, org: Organization) -> ApiOrganizationSummary:
-        return ApiOrganizationSummary(
-            slug=org.slug,
-            id=org.id,
-            name=org.name,
-        )
-
-    @classmethod
-    def serialize_organization(cls, org: Organization) -> ApiOrganization:
-        api_org: ApiOrganization = ApiOrganization(
-            slug=org.slug,
-            id=org.id,
-            flags=cls._serialize_flags(org),
-            name=org.name,
-            status=org.status,
-            default_role=org.default_role,
-        )
-
-        projects: List[Project] = Project.objects.filter(organization=org)
-        teams: List[Team] = Team.objects.filter(organization=org)
-        api_org.projects.extend(cls._serialize_project(project) for project in projects)
-        api_org.teams.extend(cls._serialize_team(team) for team in teams)
-        return api_org
-
     def check_membership_by_id(
         self, organization_id: int, user_id: int
-    ) -> Optional[ApiOrganizationMember]:
+    ) -> Optional[RpcOrganizationMember]:
+        from sentry.auth.access import get_cached_organization_member
+
         try:
-            member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=user_id
+            member = get_cached_organization_member(
+                user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
             return None
 
-        return self.serialize_member(member)
+        return serialize_member(member)
+
+    def serialize_organization(
+        self, *, id: int, as_user: Optional[RpcUser] = None
+    ) -> Optional[Any]:
+        org = Organization.objects.filter(id=id).first()
+        if org is None:
+            return None
+        return serialize(org, user=as_user)
 
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
-    ) -> Optional[ApiUserOrganizationContext]:
-        membership: Optional[ApiOrganizationMember] = None
+    ) -> Optional[RpcUserOrganizationContext]:
+        membership: Optional[RpcOrganizationMember] = None
         if user_id is not None:
-            try:
-                om = OrganizationMember.objects.get(organization_id=id, user_id=user_id)
-                membership = self.serialize_member(om)
-            except OrganizationMember.DoesNotExist:
-                pass
+            membership = self.check_membership_by_id(organization_id=id, user_id=user_id)
 
         try:
             query = Organization.objects.filter(id=id)
@@ -185,24 +80,167 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
-        return ApiUserOrganizationContext(
-            user_id=user_id, organization=self.serialize_organization(org), member=membership
+        return RpcUserOrganizationContext(
+            user_id=user_id, organization=serialize_rpc_organization(org), member=membership
         )
+
+    def get_org_by_slug(
+        self,
+        *,
+        slug: str,
+        user_id: Optional[int] = None,
+    ) -> Optional[RpcOrganizationSummary]:
+        query = Organization.objects.filter(slug=slug)
+        if user_id is not None:
+            query = query.filter(
+                status=OrganizationStatus.ACTIVE,
+                member_set__user_id=user_id,
+            )
+        try:
+            return serialize_organization_summary(query.get())
+        except Organization.DoesNotExist:
+            return None
 
     def check_membership_by_email(
         self, organization_id: int, email: str
-    ) -> Optional[ApiOrganizationMember]:
+    ) -> Optional[RpcOrganizationMember]:
         try:
-            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+            member = OrganizationMember.objects.get(
+                organization_id=organization_id, email__iexact=email
+            )
         except OrganizationMember.DoesNotExist:
             return None
 
-        return self.serialize_member(member)
+        return serialize_member(member)
+
+    def get_invite_by_id(
+        self,
+        *,
+        organization_id: int,
+        organization_member_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        """
+        Query for an organization member by its id.
+        """
+        query = Organization.objects.filter(id=organization_id)
+
+        try:
+            org = query.get()
+        except Organization.DoesNotExist:
+            return None
+
+        return self._get_invite(
+            organization_member_id=organization_member_id,
+            org=org,
+            user_id=user_id,
+            email=email,
+        )
+
+    def get_invite_by_slug(
+        self,
+        *,
+        slug: str,
+        organization_member_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        """
+        Query for an organization member by its slug.
+        """
+        query = Organization.objects.filter(slug=slug)
+
+        try:
+            org = query.get()
+        except Organization.DoesNotExist:
+            return None
+
+        return self._get_invite(
+            organization_member_id=organization_member_id,
+            org=org,
+            user_id=user_id,
+            email=email,
+        )
+
+    def _get_invite(
+        self,
+        *,
+        organization_member_id: Optional[int] = None,
+        org: Organization,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        """
+        Query for an organization member by its id and organization
+        """
+
+        member: RpcOrganizationMember | None = None
+        if user_id is not None:
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, user_id=user_id
+            ).first()
+        if member is None and email is not None:
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, email__iexact=email
+            ).first()
+        if member is None and organization_member_id is not None:
+            member = OrganizationMember.objects.filter(
+                organization_id=org.id, id=organization_member_id
+            ).first()
+
+        if member is None:
+            return None
+
+        return RpcUserInviteContext(
+            user_id=member.user_id,
+            organization=serialize_rpc_organization(org),
+            member=serialize_member(member),
+            invite_organization_member_id=organization_member_id,
+        )
+
+    def delete_organization_member(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> bool:
+        try:
+            member = OrganizationMember.objects.get(id=organization_member_id)
+        except OrganizationMember.DoesNotExist:
+            return False
+        num_deleted, _deleted = member.delete()
+        return num_deleted > 0
+
+    def set_user_for_organization_member(
+        self,
+        *,
+        organization_member_id: int,
+        organization_id: int,
+        user_id: int,
+    ) -> Optional[RpcOrganizationMember]:
+        with transaction.atomic():
+            try:
+                org_member = OrganizationMember.objects.get(
+                    user_id=user_id, organization_id=organization_id
+                )
+                return serialize_member(org_member)
+            except OrganizationMember.DoesNotExist:
+                try:
+                    org_member = OrganizationMember.objects.get(
+                        id=organization_member_id, organization_id=organization_id
+                    )
+                    org_member.set_user(user_id)
+                    org_member.save()
+
+                    transaction.on_commit(
+                        lambda: org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
+                    )
+                except OrganizationMember.DoesNotExist:
+                    return None
+        return serialize_member(org_member)
 
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
             org = Organization.objects.get_from_cache(slug=slug)
-            if only_visible and org.status != OrganizationStatus.VISIBLE:
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
                 raise Organization.DoesNotExist
             return cast(int, org.id)
         except Organization.DoesNotExist:
@@ -210,16 +248,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return None
 
-    def close(self) -> None:
-        pass
-
     def get_organizations(
         self,
+        *,
         user_id: Optional[int],
         scope: Optional[str],
         only_visible: bool,
         organization_ids: Optional[List[int]] = None,
-    ) -> List[ApiOrganizationSummary]:
+    ) -> List[RpcOrganizationSummary]:
         # This needs to query the control tables for organization data and not the region ones, because spanning out
         # would be very expansive.
         if user_id is not None:
@@ -227,11 +263,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         elif organization_ids is not None:
             qs = Organization.objects.filter(id__in=organization_ids)
             if only_visible:
-                qs = qs.filter(status=OrganizationStatus.VISIBLE)
+                qs = qs.filter(status=OrganizationStatus.ACTIVE)
             organizations = list(qs)
         else:
             organizations = []
-        return [self._serialize_organization_summary(o) for o in organizations]
+        return [serialize_organization_summary(o) for o in organizations]
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
@@ -257,62 +293,106 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return [r.organization for r in results]
 
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        updates = models.F("flags")
+        for (name, value) in flags.items():
+            if value is True:
+                updates = updates.bitor(Organization.flags[name])
+            elif value is False:
+                updates = updates.bitand(~Organization.flags[name])
+            else:
+                raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
+
+        Organization.objects.filter(id=organization_id).update(flags=updates)
+
     @staticmethod
-    def _deserialize_member_flags(flags: ApiOrganizationMemberFlags) -> int:
+    def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
         return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
 
     def add_organization_member(
         self,
         *,
-        organization: ApiOrganization,
-        user: APIUser,
-        flags: ApiOrganizationMemberFlags | None,
-        role: str | None,
-    ) -> ApiOrganizationMember:
-        member = OrganizationMember.objects.create(
-            organization_id=organization.id,
-            user_id=user.id,
-            flags=self._deserialize_member_flags(flags) if flags else 0,
-            role=role or organization.default_role,
-        )
-        return self.serialize_member(member)
+        organization_id: int,
+        default_org_role: str,
+        user_id: int | None = None,
+        email: str | None = None,
+        flags: Optional[RpcOrganizationMemberFlags] = None,
+        role: str | None = None,
+        inviter_id: int | None = None,
+        invite_status: int | None = None,
+    ) -> RpcOrganizationMember:
+        assert (user_id is None and email) or (
+            user_id and email is None
+        ), "Must set either user_id or email"
+        if invite_status is None:
+            invite_status = InviteStatus.APPROVED.value
 
-    def add_team_member(self, *, team_id: int, organization_member: ApiOrganizationMember) -> None:
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            org_member: Optional[OrganizationMember] = None
+            if user_id is not None:
+                org_member = OrganizationMember.objects.filter(
+                    organization_id=organization_id, user_id=user_id
+                ).first()
+            elif email is not None:
+                org_member = OrganizationMember.objects.filter(
+                    organization_id=organization_id, email=email
+                ).first()
+
+            if org_member is None:
+                org_member = OrganizationMember.objects.create(
+                    organization_id=organization_id,
+                    user_id=user_id,
+                    email=email,
+                    flags=self._deserialize_member_flags(flags) if flags else 0,
+                    role=role or default_org_role,
+                    inviter_id=inviter_id,
+                    invite_status=invite_status,
+                )
+
+            assert org_member
+            org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
+        return serialize_member(org_member)
+
+    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         OrganizationMemberTeam.objects.create(
             team_id=team_id, organizationmember_id=organization_member.id
         )
-        # It might be nice to return an ApiTeamMember to represent what we just
+        # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
 
-    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
+        team_members = OrganizationMemberTeam.objects.filter(team_id=team_id)
+        return [serialize_member(team_member.organizationmember) for team_member in team_members]
+
+    def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)
         model.save()
 
     @classmethod
-    def _serialize_invite(cls, om: OrganizationMember) -> ApiOrganizationInvite:
-        return ApiOrganizationInvite(om.id, om.token, om.email)
+    def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
+        return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
 
     def get_all_org_roles(
         self,
-        organization_member: Optional[ApiOrganizationMember] = None,
+        organization_member: Optional[RpcOrganizationMember] = None,
         member_id: Optional[int] = None,
     ) -> List[str]:
         if member_id:
             member = OrganizationMember.objects.get(id=member_id)
-            organization_member = self.serialize_member(member)
+            organization_member = serialize_member(member)
 
-        org_roles = []
+        org_roles: List[str] = []
         if organization_member:
             team_ids = [mt.team_id for mt in organization_member.member_teams]
-            org_roles = list(
+            all_roles: Set[str] = set(
                 Team.objects.filter(id__in=team_ids)
                 .exclude(org_role=None)
                 .values_list("org_role", flat=True)
-                .distinct()
             )
-            org_roles.append(organization_member.role)
+            all_roles.add(organization_member.role)
+            org_roles.extend(list(all_roles))
         return org_roles
 
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
@@ -326,3 +406,109 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 "organizationmember_id", flat=True
             )
         )
+
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        org = Organization.objects.get(id=organization_id)
+        org.default_role = default_role
+        org.save()
+        return serialize_rpc_organization(org)
+
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            org_member = OrganizationMember.objects.get(
+                organization_id=organization_id, user_id=user_id
+            )
+            org_member.remove_user()
+            org_member.save()
+        return serialize_member(org_member)
+
+    def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
+        to_member: Optional[OrganizationMember] = OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=to_user_id
+        ).first()
+
+        from_member: Optional[OrganizationMember] = OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=from_user_id
+        ).first()
+
+        if from_member is None:
+            return
+
+        if to_member is None:
+            to_member = OrganizationMember.objects.create(
+                organization_id=organization_id,
+                user_id=to_user_id,
+                role=from_member.role,
+                flags=from_member.flags,
+                has_global_access=from_member.has_global_access,
+            )
+        else:
+            if roles.get(from_member.role).priority > roles.get(to_member.role).priority:
+                to_member.role = from_member.role
+            to_member.save()
+
+        assert to_member
+
+        for team in from_member.teams.all():
+            try:
+                with transaction.atomic():
+                    OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
+            except IntegrityError:
+                pass
+
+        model_list = (
+            GroupAssignee,
+            GroupBookmark,
+            GroupSeen,
+            GroupShare,
+            GroupSubscription,
+            Activity,
+        )
+
+        for model in model_list:
+            for obj in model.objects.filter(
+                user_id=from_user_id, project__organization_id=organization_id
+            ):
+                try:
+                    with transaction.atomic():
+                        obj.update(user_id=to_user_id)
+                except IntegrityError:
+                    pass
+
+    def reset_idp_flags(self, *, organization_id: int) -> None:
+        with in_test_psql_role_override("postgres"):
+            # Flags are not replicated -- these updates are safe without outbox application.
+            OrganizationMember.objects.filter(
+                organization_id=organization_id,
+                flags=models.F("flags").bitor(OrganizationMember.flags["idp:provisioned"]),
+            ).update(
+                flags=models.F("flags")
+                .bitand(~OrganizationMember.flags["idp:provisioned"])
+                .bitand(~OrganizationMember.flags["idp:role-restricted"])
+            )
+
+    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
+        # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
+        # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
+        # the attribute we are changing never needs to produce an outbox.
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user_id=user.id).update(
+                user_is_active=user.is_active, user_email=user.email
+            )
+
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        value = orm_organization.get_option(key)
+        if value is not None and not isinstance(value, (str, int, bool)):
+            raise TypeError
+        return value
+
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+
+    def delete_option(self, *, organization_id: int, key: str) -> None:
+        orm_organization = Organization.objects.get_from_cache(id=organization_id)
+        orm_organization.delete_option(key)

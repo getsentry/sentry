@@ -53,7 +53,7 @@ describe('RadioGroup', function () {
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeEnabled();
     expect(screen.getByRole('radio', {name: 'Choice Two'})).toBeDisabled();
 
-    userEvent.hover(screen.getByRole('radio', {name: 'Choice Two'}));
+    await userEvent.hover(screen.getByRole('radio', {name: 'Choice Two'}));
     expect(
       await screen.findByText('Reason why choice two is disabled')
     ).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('RadioGroup', function () {
     expect(container).toSnapshot();
   });
 
-  it('calls onChange when clicked', function () {
+  it('calls onChange when clicked', async function () {
     const mock = jest.fn();
 
     render(
@@ -91,7 +91,7 @@ describe('RadioGroup', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('radio', {name: 'Choice Three'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Choice Three'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 });

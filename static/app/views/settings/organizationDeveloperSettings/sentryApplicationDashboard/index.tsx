@@ -8,7 +8,7 @@ import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -218,7 +218,7 @@ type InteractionsChartProps = {
     [key: string]: [number, number][];
   };
 };
-const InteractionsChart = ({data}: InteractionsChartProps) => {
+function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
       const seriesData = data[key].map(point => ({
@@ -246,7 +246,7 @@ const InteractionsChart = ({data}: InteractionsChartProps) => {
       />
     </ChartWrapper>
   );
-};
+}
 
 const Row = styled('div')`
   display: flex;

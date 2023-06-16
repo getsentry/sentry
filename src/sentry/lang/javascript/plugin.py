@@ -7,6 +7,9 @@ from .errormapping import rewrite_exception
 from .processor import JavaScriptStacktraceProcessor
 
 
+# TODO: We still need `preprocess_event` tasks and the remaining, non-symbolication specific
+# code from `lang/javascript/processor.py` to run somewhere. Unless we want whole `processor.py`
+# to be moved to Rust side, including module generation, rewriting and translations.
 def preprocess_event(data):
     rewrite_exception(data)
     translate_exception(data)
@@ -41,5 +44,10 @@ class JavascriptPlugin(Plugin2):
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
+        if data.get("processed_by_symbolicator", False) and not data.get(
+            "symbolicator_stacktraces"
+        ):
+            return []
+
         if "javascript" in platforms or "node" in platforms:
             return [JavaScriptStacktraceProcessor]

@@ -17,7 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   ReleaseComparisonChartType,
@@ -28,7 +28,7 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -814,7 +814,7 @@ function ReleaseComparisonChart({
   }
 
   function handleChartChange(chartType: ReleaseComparisonChartType) {
-    trackAdvancedAnalyticsEvent('releases.change_chart_type', {
+    trackAnalytics('releases.change_chart_type', {
       organization,
       chartType,
     });

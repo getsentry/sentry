@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ListItem from 'sentry/components/list/listItem';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactElement;

@@ -3,7 +3,7 @@ import {EntryType, Event, Frame} from 'sentry/types';
 
 import {EventDataSection} from '../../events/eventDataSection';
 
-import Line from './frame/line';
+import DeprecatedLine from './frame/deprecatedLine';
 
 type Props = {
   data: Frame;
@@ -17,7 +17,7 @@ export function Template({data, event}: Props) {
     <EventDataSection type={EntryType.TEMPLATE} title={t('Template')}>
       <div className="traceback no-exception">
         <ul>
-          <Line
+          <DeprecatedLine
             data={data}
             event={event}
             registers={{}}

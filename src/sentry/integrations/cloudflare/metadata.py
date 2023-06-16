@@ -4,12 +4,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 
 logger = logging.getLogger("sentry.integrations.cloudflare")
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class CloudflareMetadataEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 

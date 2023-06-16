@@ -7,7 +7,6 @@ import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
-  projectIds: number[];
   groupIds?: string | string[];
   replayIds?: string | string[];
   transactionNames?: string | string[];
@@ -15,13 +14,7 @@ type Options = {
 
 type CountState = Record<string, undefined | number>;
 
-function useReplaysCount({
-  groupIds,
-  organization,
-  projectIds,
-  replayIds,
-  transactionNames,
-}: Options) {
+function useReplaysCount({groupIds, organization, replayIds, transactionNames}: Options) {
   const api = useApi();
 
   const [replayCounts, setReplayCounts] = useState<CountState>({});
@@ -87,9 +80,7 @@ function useReplaysCount({
       if (txnsToFetch.length) {
         return {
           field: 'transaction' as const,
-          conditions: `event.type:transaction transaction:[${txnsToFetch
-            .map(t => `"${t}"`)
-            .join(',')}]`,
+          conditions: `transaction:[${txnsToFetch.map(t => `"${t}"`).join(',')}]`,
         };
       }
       return null;
@@ -109,7 +100,7 @@ function useReplaysCount({
           query: {
             query: query.conditions,
             statsPeriod: '14d',
-            project: projectIds,
+            project: -1,
           },
         }
       );
@@ -117,10 +108,10 @@ function useReplaysCount({
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, query, zeroCounts, projectIds]);
+  }, [api, organization.slug, query, zeroCounts]);
 
   useEffect(() => {
-    const hasSessionReplay = organization.features.includes('session-replay-ui');
+    const hasSessionReplay = organization.features.includes('session-replay');
     if (hasSessionReplay) {
       fetchReplayCount();
     }

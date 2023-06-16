@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
   onPublish?: () => void;
 };
 
-const ActionButtons = ({
+function ActionButtons({
   org,
   app,
   showPublish,
@@ -29,7 +29,7 @@ const ActionButtons = ({
   onDelete,
   disablePublishReason,
   disableDeleteReason,
-}: Props) => {
+}: Props) {
   const appDashboardButton = (
     <StyledButton
       size="xs"
@@ -86,7 +86,7 @@ const ActionButtons = ({
       {deleteButton}
     </ButtonHolder>
   );
-};
+}
 
 const ButtonHolder = styled('div')`
   flex-direction: row;

@@ -5,7 +5,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -18,7 +18,7 @@ class NoteTestCase(ActivityTestCase):
             Activity(
                 project=self.project,
                 group=self.group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.NOTE,
                 data={"text": "text", "mentions": []},
             )
@@ -26,7 +26,7 @@ class NoteTestCase(ActivityTestCase):
 
     def test_simple(self):
         # Defaults: SUBSCRIBE_ONLY and self_notifications:0
-        assert not self.email.get_participants_with_group_subscription_reason()
+        assert self.email.get_participants_with_group_subscription_reason().is_empty()
 
     def test_allow_self_notifications(self):
         NotificationSetting.objects.update_settings(
@@ -37,13 +37,12 @@ class NoteTestCase(ActivityTestCase):
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
-        participants = self.email.get_participants_with_group_subscription_reason()[
-            ExternalProviders.EMAIL
-        ]
-        assert len(participants) == 1
-        assert participants == {
-            user_service.get_user(self.user.id): GroupSubscriptionReason.implicit,
+        participants = self.email.get_participants_with_group_subscription_reason()
+        actual = dict(participants.get_participants_by_provider(ExternalProviders.EMAIL))
+        expected = {
+            RpcActor.from_orm_user(self.user): GroupSubscriptionReason.implicit,
         }
+        assert actual == expected
 
     def test_disable_self_notifications(self):
         NotificationSetting.objects.update_settings(
@@ -54,7 +53,26 @@ class NoteTestCase(ActivityTestCase):
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="0")
 
-        participants = self.email.get_participants_with_group_subscription_reason()[
-            ExternalProviders.EMAIL
-        ]
-        assert len(participants) == 0
+        participants = self.email.get_participants_with_group_subscription_reason()
+        assert len(participants.get_participants_by_provider(ExternalProviders.EMAIL)) == 0
+
+    def test_note_with_braces(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+        )
+        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        email = NoteActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user_id=self.user.id,
+                type=ActivityType.NOTE,
+                data={"text": "{abc.property}", "mentions": []},
+            )
+        )
+
+        context = email.get_context()
+        assert context["text_description"] == "{abc.property}"

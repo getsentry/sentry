@@ -3,6 +3,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
+from sentry.services.hybrid_cloud import ValueEqualityEnum
+
 """
 TODO(postgres): We've encoded these enums as integers to facilitate
 communication with the DB. We'd prefer to encode them as strings to facilitate
@@ -24,7 +26,7 @@ def get_notification_scope_name(value: int) -> Optional[str]:
     return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
-class NotificationSettingTypes(Enum):
+class NotificationSettingTypes(ValueEqualityEnum):
     """
     Each of these categories of Notification settings has at least an option for
     "on" or "off". Workflow also includes SUBSCRIBE_ONLY and Deploy also
@@ -43,6 +45,9 @@ class NotificationSettingTypes(Enum):
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
 
+    # Notification when an issue happens shortly after your release. This notification type is no longer supported.
+    ACTIVE_RELEASE = 31
+
     # Notifications that require approval like a request to invite a member
     APPROVAL = 40
 
@@ -53,6 +58,7 @@ class NotificationSettingTypes(Enum):
     QUOTA_ERRORS = 51
     QUOTA_TRANSACTIONS = 52
     QUOTA_ATTACHMENTS = 53
+    QUOTA_REPLAYS = 56
 
     # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
@@ -69,18 +75,20 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
+    NotificationSettingTypes.ACTIVE_RELEASE: "activeRelease",
     NotificationSettingTypes.APPROVAL: "approval",
     NotificationSettingTypes.QUOTA: "quota",
     NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
     NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
     NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
+    NotificationSettingTypes.QUOTA_REPLAYS: "quotaReplays",
     NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
     NotificationSettingTypes.SPIKE_PROTECTION: "spikeProtection",
 }
 
 
-class NotificationSettingOptionValues(Enum):
+class NotificationSettingOptionValues(ValueEqualityEnum):
     """
     An empty row in the DB should be represented as
     NotificationSettingOptionValues.DEFAULT.
@@ -113,7 +121,7 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
 }
 
 
-class NotificationScopeType(Enum):
+class NotificationScopeType(ValueEqualityEnum):
     USER = 0
     ORGANIZATION = 10
     PROJECT = 20
@@ -145,6 +153,7 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+    ACTIVE_RELEASE = "activeReleaseNotifications"
     APPROVAL = "approvalNotifications"
     QUOTA = "quotaNotifications"
     SPIKE_PROTECTION = "spikeProtectionNotifications"
@@ -177,6 +186,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.QUOTA_ATTACHMENTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_REPLAYS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

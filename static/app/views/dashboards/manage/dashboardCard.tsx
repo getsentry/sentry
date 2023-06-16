@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
 
 interface Props {

@@ -221,3 +221,22 @@ class MetaTests(TestCase):
             {"type": "existing", "value": "changed"},
             {"type": "additional"},
         ]
+
+    def test_add_remark(self):
+        meta = Meta()
+        meta.add_remark({"rule_id": "react", "type": "s"})
+        assert meta.get() == {
+            "rem": [["react", "s"]],
+        }
+        meta.add_remark({"rule_id": "removal-rule", "type": "x"})
+        assert meta.get() == {
+            "rem": [["react", "s"], ["removal-rule", "x"]],
+        }
+
+    def test_add_remark_with_value(self):
+        meta = Meta()
+        meta.add_remark({"rule_id": "react", "type": "s"}, "Minified React error #109")
+        assert meta.get() == {
+            "rem": [["react", "s"]],
+            "val": "Minified React error #109",
+        }

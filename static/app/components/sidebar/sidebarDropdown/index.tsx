@@ -16,7 +16,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Config, Organization, Project, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -40,7 +40,7 @@ type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   org?: Organization;
 };
 
-const SidebarDropdown = ({
+function SidebarDropdown({
   api,
   org,
   projects,
@@ -49,7 +49,7 @@ const SidebarDropdown = ({
   config,
   user,
   hideOrgLinks,
-}: Props) => {
+}: Props) {
   const handleLogout = async () => {
     await logout(api);
     window.location.assign('/auth/login/');
@@ -158,7 +158,7 @@ const SidebarDropdown = ({
                         {t('User settings')}
                       </SidebarMenuItem>
                       <SidebarMenuItem to="/settings/account/api/">
-                        {t('API keys')}
+                        {t('User auth tokens')}
                       </SidebarMenuItem>
                       {hasOrganization && (
                         <Hook
@@ -185,7 +185,7 @@ const SidebarDropdown = ({
       )}
     </DeprecatedDropdownMenu>
   );
-};
+}
 
 export default withApi(withProjects(SidebarDropdown));
 
@@ -209,6 +209,7 @@ const UserBadgeNoOverflow = styled(IdBadge)`
 
 const SidebarDropdownRoot = styled('div')`
   position: relative;
+  padding: 0 3px; /* align org icon with sidebar item icons */
 `;
 
 // So that long org names and user names do not overflow

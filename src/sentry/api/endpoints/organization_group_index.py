@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence, Type, TypeVar
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -27,6 +27,7 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
+from sentry.experiments import manager as expt_manager
 from sentry.models import (
     QUERY_STATUS_LOOKUP,
     Environment,
@@ -38,7 +39,11 @@ from sentry.models import (
 )
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import get_search_filter
+from sentry.search.snuba.executors import (
+    DEFAULT_PRIORITY_WEIGHTS,
+    PrioritySortWeights,
+    get_search_filter,
+)
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
@@ -58,6 +63,7 @@ def inbox_search(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     max_hits: Optional[int] = None,
+    actor: Optional[Any] = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
     end: Optional[datetime] = None
@@ -159,6 +165,67 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
+    @staticmethod
+    def build_better_priority_sort_kwargs(
+        request: Request, choice: str
+    ) -> Mapping[str, PrioritySortWeights]:
+        """
+        Temporary function to be used while developing the new priority sort. Parses the query params in the request.
+
+        :param logLevel: the weight (number from 0 to 10) to apply for events
+        :param hasStacktrace: the weight (number from 0 to 3) to apply for error events with stacktraces or not
+        :param eventHalflifeHours: each multiple of eventHalflifeHours halves the contribution score of an event
+        :param v2: boolean to switch between using v1 or v2 priority sort
+        :param norm: boolean to switch between normalizing the individual contribution scores to [0, 1] or not
+        """
+
+        R = TypeVar("R")
+
+        def _coerce(val: Optional[str], func: Type[R], default: R) -> R:
+            if func == bool:
+                func = lambda x: str(x).lower() == "true"
+
+            return func(val) if val is not None else default
+
+        # XXX(CEO): these default values are based on the current sort C and are subject to change
+        aggregate_kwargs = {
+            "better_priority": {
+                "log_level": _coerce(
+                    request.GET.get("logLevel"), int, DEFAULT_PRIORITY_WEIGHTS["log_level"]
+                ),
+                "has_stacktrace": _coerce(
+                    request.GET.get("hasStacktrace"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
+                ),
+                "relative_volume": _coerce(
+                    request.GET.get("relativeVolume"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
+                ),
+                "event_halflife_hours": _coerce(
+                    request.GET.get("eventHalflifeHours"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
+                ),
+                "issue_halflife_hours": _coerce(
+                    request.GET.get("issueHalflifeHours"),
+                    int,
+                    DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
+                ),
+                "v2": _coerce(request.GET.get("v2"), bool, DEFAULT_PRIORITY_WEIGHTS["v2"]),
+                "norm": _coerce(request.GET.get("norm"), bool, DEFAULT_PRIORITY_WEIGHTS["norm"]),
+            }
+        }
+
+        # XXX(CEO): these are based on the current sort D and E and are subject to change
+        if choice:
+            aggregate_kwargs["better_priority"]["issue_halflife_hours"] = 12
+        if choice == "variant1":
+            aggregate_kwargs["better_priority"]["relative_volume"] = 0
+
+        return aggregate_kwargs
+
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
@@ -170,11 +237,39 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
 
+            if query_kwargs["sort_by"] == "betterPriority":
+                choice = None
+                if features.has(
+                    "organizations:better-priority-sort-experiment",
+                    organization,
+                    actor=request.user,
+                ):
+                    choice = expt_manager.get(
+                        "PrioritySortExperiment", org=organization, actor=request.user
+                    )
+                # force into variant1 for internal testing
+                if features.has(
+                    "organizations:issue-list-better-priority-sort",
+                    organization,
+                    actor=request.user,
+                ):
+                    choice = "variant1"
+
+                if choice == "baseline":
+                    query_kwargs["sort_by"] = "date"
+                else:
+                    query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(
+                        request, choice
+                    )
+
             query_kwargs["environments"] = environments if environments else None
+
+            query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
+                query_kwargs["referrer"] = "search.group_index"
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 
@@ -244,8 +339,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -260,6 +358,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             expand=expand,
             collapse=collapse,
             project_ids=project_ids,
+            organization_id=organization.id,
         )
 
         # we ignore date range for both short id and event ids
@@ -276,7 +375,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 direct_hit_projects = (
                     set(project_ids) | request.access.project_ids_with_team_membership
                 )
-                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
+                groups = list(
+                    Group.objects.filter_by_event_id(
+                        direct_hit_projects,
+                        event_id,
+                        tenant_ids={"organization_id": organization.id},
+                    )
+                )
                 if len(groups) == 1:
                     serialized_groups = serialize(groups, request.user, serializer())
                     if event_id:
@@ -413,11 +518,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param string substatus: the new substatus for the issues. Valid values
+                                 defined in GroupSubStatus.
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
@@ -457,8 +568,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400

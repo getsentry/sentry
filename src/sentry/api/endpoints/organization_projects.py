@@ -1,7 +1,7 @@
 from typing import List
 
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,9 +14,11 @@ from sentry.api.serializers.models.project import (
     ProjectSummarySerializer,
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Project, ProjectStatus, Team
+from sentry.constants import ObjectStatus
+from sentry.models import Project, Team
 from sentry.search.utils import tokenize_query
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -29,7 +31,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, CURSOR_QUERY_PARAM],
+        parameters=[GlobalParams.ORG_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -39,46 +41,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[
-            OpenApiExample(
-                "Success",
-                value=[
-                    {
-                        "dateCreated": "2018-11-06T21:19:58.536Z",
-                        "firstEvent": None,
-                        "hasAccess": True,
-                        "id": "3",
-                        "isBookmarked": False,
-                        "isMember": True,
-                        "name": "Prime Mover",
-                        "platform": "",
-                        "platforms": [],
-                        "slug": "prime-mover",
-                        "team": {
-                            "id": "2",
-                            "name": "Powerful Abolitionist",
-                            "slug": "powerful-abolitionist",
-                        },
-                        "teams": [
-                            {
-                                "id": "2",
-                                "name": "Powerful Abolitionist",
-                                "slug": "powerful-abolitionist",
-                            }
-                        ],
-                        "environments": ["local"],
-                        "eventProcessing": {"symbolicationDegraded": False},
-                        "features": ["releases"],
-                        "firstTransactionEvent": True,
-                        "hasSessions": True,
-                        "hasProfiles": True,
-                        "hasReplays": True,
-                        "latestRelease": None,
-                        "hasUserReports": False,
-                    }
-                ],
-            )
-        ],
+        examples=OrganizationExamples.LIST_PROJECTS,
     )
     def get(self, request: Request, organization) -> Response:
         """
@@ -99,9 +62,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)
-            elif request.auth.organization is not None:
-                org = request.auth.organization
-                team_list = list(Team.objects.filter(organization=org))
+            elif request.auth.organization_id is not None:
+                org = request.auth.organization_id
+                team_list = list(Team.objects.filter(organization_id=org))
                 queryset = Project.objects.filter(teams__in=team_list)
             else:
                 return Response(
@@ -147,7 +110,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 else:
                     queryset = queryset.none()
 
-        queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
+        queryset = queryset.filter(status=ObjectStatus.ACTIVE).distinct()
 
         # TODO(davidenwang): remove this after frontend requires only paginated projects
         get_all_projects = request.GET.get("all_projects") == "1"

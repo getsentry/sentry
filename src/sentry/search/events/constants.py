@@ -32,6 +32,7 @@ TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 # Named this way in case we want to eventually do stuff like total.p50
 TOTAL_COUNT_ALIAS = "total.count"
+TOTAL_TRANSACTION_DURATION_ALIAS = "total.transaction_duration"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
@@ -39,6 +40,8 @@ MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
 TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
+DEVICE_CLASS_ALIAS = "device.class"
+TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
 
 
 class ThresholdDict(TypedDict):
@@ -129,7 +132,7 @@ PERCENT_UNITS = {"ratio", "percent"}
 NO_CONVERSION_FIELDS = {"start", "end"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter
 # In these cases we should instead treat it as a tag instead
-SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS}
+SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
 ARRAY_FIELDS = {
@@ -156,6 +159,19 @@ TIMESTAMP_FIELDS = {
     "timestamp.to_day",
 }
 NON_FAILURE_STATUS = {"ok", "cancelled", "unknown"}
+HTTP_SERVER_ERROR_STATUS = {
+    "500",
+    "501",
+    "502",
+    "503",
+    "504",
+    "505",
+    "506",
+    "507",
+    "508",
+    "510",
+    "511",
+}
 
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
@@ -210,6 +226,18 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
+METRICS_FUNCTION_ALIASES = {
+    "tps_percent_change": "eps_percent_change",
+    "tpm_percent_change": "epm_percent_change",
+}
+
+SPAN_FUNCTION_ALIASES = {
+    "sps": "eps",
+    "spm": "epm",
+    "sps_percent_change": "eps_percent_change",
+    "spm_percent_change": "epm_percent_change",
+}
+
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
     "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
@@ -222,6 +250,8 @@ METRICS_MAP = {
     "measurements.frames_slow": "d:transactions/measurements.frames_slow@none",
     "measurements.frames_total": "d:transactions/measurements.frames_total@none",
     "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
+    "measurements.time_to_initial_display": "d:transactions/measurements.time_to_initial_display@millisecond",
+    "measurements.time_to_full_display": "d:transactions/measurements.time_to_full_display@millisecond",
     "measurements.stall_count": "d:transactions/measurements.stall_count@none",
     "measurements.stall_stall_longest_time": "d:transactions/measurements.stall_longest_time@millisecond",
     "measurements.stall_stall_total_time": "d:transactions/measurements.stall_total_time@millisecond",
@@ -237,6 +267,11 @@ METRICS_MAP = {
     "spans.ui": "d:transactions/breakdowns.span_ops.ops.ui@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
+}
+SPAN_METRICS_MAP = {
+    "user": "s:spans/user@none",
+    "span.self_time": "d:spans/exclusive_time@millisecond",
+    "span.duration": "d:spans/duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

@@ -4,7 +4,7 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import FileIcon from 'sentry/components/fileIcon';
 import {ListGroupItem} from 'sentry/components/listGroup';
 import TextOverflow from 'sentry/components/textOverflow';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarUser, CommitAuthor} from 'sentry/types';
 
 type Props = {
@@ -13,17 +13,23 @@ type Props = {
   className?: string;
 };
 
-const FileChange = ({filename, authors, className}: Props) => (
-  <FileItem className={className}>
-    <Filename>
-      <StyledFileIcon fileName={filename} />
-      <TextOverflow>{filename}</TextOverflow>
-    </Filename>
-    <div>
-      <AvatarList users={authors as AvatarUser[]} avatarSize={25} typeMembers="authors" />
-    </div>
-  </FileItem>
-);
+function FileChange({filename, authors, className}: Props) {
+  return (
+    <FileItem className={className}>
+      <Filename>
+        <StyledFileIcon fileName={filename} />
+        <TextOverflow>{filename}</TextOverflow>
+      </Filename>
+      <div>
+        <AvatarList
+          users={authors as AvatarUser[]}
+          avatarSize={25}
+          typeMembers="authors"
+        />
+      </div>
+    </FileItem>
+  );
+}
 
 const FileItem = styled(ListGroupItem)`
   display: flex;

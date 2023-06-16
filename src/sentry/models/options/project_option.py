@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from django.db import models, transaction
+from django.db import models
 
 from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -51,14 +50,15 @@ OPTION_KEYS = frozenset(
         "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
         "sentry:span_attributes",
-        "sentry:performance_issue_creation_rate",
         "sentry:transaction_name_cluster_rules",
+        "sentry:span_description_cluster_rules",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
         "digests:mail:maximum_delay",
         "mail:subject_prefix",
         "mail:subject_template",
+        "filters:react-hydration-errors",
     ]
 )
 
@@ -120,18 +120,10 @@ class ProjectOptionManager(OptionManager["Project"]):
         return values
 
     def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
+        from sentry.tasks.relay import schedule_invalidate_project_config
+
         if update_reason != "projectoption.get_all_values":
-            # this hook may be called from model hooks during an
-            # open transaction. In that case, wait until the current transaction has
-            # been committed or rolled back to ensure we don't read stale data in the
-            # task.
-            #
-            # If there is no transaction open, on_commit should run immediately.
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    project_id=project_id, trigger=update_reason
-                )
-            )
+            schedule_invalidate_project_config(project_id=project_id, trigger=update_reason)
         cache_key = self._make_key(project_id)
         result = {i.key: i.value for i in self.filter(project=project_id)}
         cache.set(cache_key, result)
@@ -146,7 +138,7 @@ class ProjectOptionManager(OptionManager["Project"]):
 
 
 @region_silo_only_model
-class ProjectOption(Model):  # type: ignore
+class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.
 

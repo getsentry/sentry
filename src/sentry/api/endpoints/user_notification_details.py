@@ -22,18 +22,17 @@ from sentry.types.integrations import ExternalProviders
 class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, *args, **kwargs):
         user_options = UserOption.objects.filter(
-            user__in=item_list, organization=None, project=None
+            user__in=item_list, organization_id=None, project_id=None
         ).select_related("user")
         keys_to_user_option_objects = {user_option.key: user_option for user_option in user_options}
 
-        actor_mapping = {user.actor_id: user for user in item_list}
         notification_settings = NotificationSetting.objects._filter(
             ExternalProviders.EMAIL,
             scope_type=NotificationScopeType.USER,
-            target_ids=actor_mapping.keys(),
+            user_ids=[user.id for user in item_list],
         )
         notification_settings_as_user_options = map_notification_settings_to_legacy(
-            notification_settings, actor_mapping
+            notification_settings, user_mapping={user.id: user for user in item_list}
         )
 
         # Override deprecated UserOption rows with NotificationSettings.
@@ -106,8 +105,8 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                 user_option, _ = UserOption.objects.get_or_create(
                     key=USER_OPTION_SETTINGS[key]["key"],
                     user=user,
-                    project=None,
-                    organization=None,
+                    project_id=None,
+                    organization_id=None,
                 )
                 user_option.update(value=str(int(value)))
 

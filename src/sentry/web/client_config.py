@@ -12,9 +12,10 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
-from sentry.services.hybrid_cloud.user import UserSerializeType, user_service
+from sentry.services.hybrid_cloud.user import UserSerializeType
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import auth
-from sentry.utils.assets import get_frontend_app_asset_url
+from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import is_self_hosted
@@ -86,7 +87,7 @@ def _get_public_dsn():
 
     result = cache.get(cache_key)
     if result is None:
-        key = project_key_service.get_project_key(project_id, ProjectKeyRole.store)
+        key = project_key_service.get_project_key(project_id=project_id, role=ProjectKeyRole.store)
         if key:
             result = key.dsn_public
         else:
@@ -181,7 +182,7 @@ def get_client_config(request=None):
         "urlPrefix": options.get("system.url-prefix"),
         "version": version_info,
         "features": enabled_features,
-        "distPrefix": get_frontend_app_asset_url("sentry", ""),
+        "distPrefix": get_frontend_dist_prefix(),
         "needsUpgrade": needs_upgrade,
         "dsn": public_dsn,
         "statuspage": _get_statuspage(),
@@ -218,6 +219,16 @@ def get_client_config(request=None):
                 if settings.SENTRY_FRONTEND_WHITELIST_URLS
                 else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
             ),
+            "allowUrls": (
+                settings.SENTRY_FRONTEND_WHITELIST_URLS
+                if settings.SENTRY_FRONTEND_WHITELIST_URLS
+                else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
+            ),
+            "tracePropagationTargets": (
+                settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
+                if settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
+                else []
+            ),
         },
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
@@ -229,8 +240,11 @@ def get_client_config(request=None):
             "sentryUrl": options.get("system.url-prefix"),
         },
     }
+
+    user_details = None
     if user and user.is_authenticated:
-        (serialized_user,) = user_service.serialize_many(
+        # Fetch the user, this could be an empty result as the user could be deleted.
+        user_details = user_service.serialize_many(
             filter={"user_ids": [user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
@@ -238,12 +252,10 @@ def get_client_config(request=None):
                 user=request.user,
             ),
         )
-        context.update(
-            {
-                "isAuthenticated": True,
-                "user": serialized_user,
-            }
-        )
+
+    if user and user.is_authenticated and user_details:
+        context["isAuthenticated"] = True
+        context["user"] = user_details[0]
 
         if request.user.is_superuser:
             # Note: This intentionally does not use the "active" superuser flag as
@@ -253,6 +265,14 @@ def get_client_config(request=None):
             # This is needed in the case where you access a different org and get denied, but the UI
             # can open the sudo dialog if you are an "inactive" superuser
             context["user"]["isSuperuser"] = request.user.is_superuser
+            if superuser.ORG_ID is not None:
+                org_context = organization_service.get_organization_by_id(
+                    id=superuser.ORG_ID, user_id=None
+                )
+                if org_context and org_context.organization:
+                    context["links"]["superuserUrl"] = generate_organization_url(
+                        org_context.organization.slug
+                    )
     else:
         context.update({"isAuthenticated": False, "user": None})
 

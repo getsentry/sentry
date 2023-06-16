@@ -80,9 +80,7 @@ describe('add to dashboard modal', () => {
   };
 
   beforeEach(() => {
-    initialData = initializeOrg({
-      ...initializeOrg(),
-    });
+    initialData = initializeOrg();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -305,7 +303,7 @@ describe('add to dashboard modal', () => {
     });
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    userEvent.click(screen.getByText('Open in Widget Builder'));
+    await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboard/1/widget/new/',
       query: mockWidgetAsQueryParams,
@@ -334,7 +332,7 @@ describe('add to dashboard modal', () => {
     });
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    userEvent.click(screen.getByText('Open in Widget Builder'));
+    await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboard/1/widget/new/',
       query: expect.objectContaining({
@@ -380,7 +378,7 @@ describe('add to dashboard modal', () => {
     });
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    await userEvent.click(screen.getByText('Add + Stay in Discover'));
     expect(dashboardDetailGetMock).toHaveBeenCalled();
 
     // mocked widgets response is an empty array, assert this new widget
@@ -438,7 +436,7 @@ describe('add to dashboard modal', () => {
     });
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    await userEvent.click(screen.getByText('Add + Stay in Discover'));
     expect(dashboardDetailGetMock).toHaveBeenCalled();
 
     // mocked widgets response is an empty array, assert this new widget
@@ -519,7 +517,7 @@ describe('add to dashboard modal', () => {
     });
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    await userEvent.click(screen.getByText('Add + Stay in Discover'));
     expect(dashboardDetailGetMock).toHaveBeenCalled();
 
     // mocked widgets response is an empty array, assert this new widget

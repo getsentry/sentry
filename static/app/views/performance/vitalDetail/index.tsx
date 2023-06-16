@@ -5,12 +5,11 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
@@ -44,13 +43,19 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(this.props.location),
+    eventView: generatePerformanceVitalDetailView(
+      this.props.location,
+      this.props.organization
+    ),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(nextProps.location),
+      eventView: generatePerformanceVitalDetailView(
+        nextProps.location,
+        nextProps.organization
+      ),
     };
   }
 
@@ -59,7 +64,7 @@ class VitalDetail extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
 
-    trackAdvancedAnalyticsEvent('performance_views.vital_detail.view', {
+    trackAnalytics('performance_views.vital_detail.view', {
       organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });
@@ -83,10 +88,10 @@ class VitalDetail extends Component<Props, State> {
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
     if (hasTransactionName) {
-      return [String(name).trim(), t('Performance')].join(' - ');
+      return [String(name).trim(), t('Performance')].join(' — ');
     }
 
-    return [t('Vital Detail'), t('Performance')].join(' - ');
+    return [t('Vital Detail'), t('Performance')].join(' — ');
   }
 
   render() {
@@ -105,26 +110,23 @@ class VitalDetail extends Component<Props, State> {
     }
 
     const vitalNameQuery = decodeScalar(location.query.vitalName);
-    const vitalName =
-      Object.values(WebVital).indexOf(vitalNameQuery as WebVital) === -1
-        ? undefined
-        : (vitalNameQuery as WebVital);
+    const vitalName = !Object.values(WebVital).includes(vitalNameQuery as WebVital)
+      ? undefined
+      : (vitalNameQuery as WebVital);
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
           <PageFiltersContainer>
             <Layout.Page>
-              <NoProjectMessage organization={organization}>
-                <VitalDetailContent
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                  router={router}
-                  vitalName={vitalName || WebVital.LCP}
-                  api={api}
-                />
-              </NoProjectMessage>
+              <VitalDetailContent
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                router={router}
+                vitalName={vitalName || WebVital.LCP}
+                api={api}
+              />
             </Layout.Page>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>

@@ -12,7 +12,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.log import AuditLogEvent
+from sentry.services.hybrid_cloud.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
 
@@ -35,7 +37,7 @@ def format_scim_token_actor_name(actor):
 class AuditLogEntry(Model):
     __include_in_export__ = False
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
     # if the entry was created via a user
     actor = FlexibleForeignKey(
@@ -61,8 +63,8 @@ class AuditLogEntry(Model):
         app_label = "sentry"
         db_table = "sentry_auditlogentry"
         indexes = [
-            models.Index(fields=["organization", "datetime"]),
-            models.Index(fields=["organization", "event", "datetime"]),
+            models.Index(fields=["organization_id", "datetime"]),
+            models.Index(fields=["organization_id", "event", "datetime"]),
         ]
 
     __repr__ = sane_repr("organization_id", "type")
@@ -75,10 +77,14 @@ class AuditLogEntry(Model):
 
     def _apply_actor_label(self):
         if not self.actor_label:
-            assert self.actor or self.actor_key
-            if self.actor:
-                self.actor_label = self.actor.username
+            assert self.actor_id or self.actor_key
+            if self.actor_id:
+                # Fetch user by RPC service as
+                # Audit logs are often created in regions.
+                user = user_service.get_user(self.actor_id)
+                self.actor_label = user.username
             else:
+                # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
 
     def as_event(self) -> AuditLogEvent:
@@ -91,10 +97,10 @@ class AuditLogEntry(Model):
         return AuditLogEvent(
             actor_label=self.actor_label,
             organization_id=int(
-                self.organization.id
+                self.organization_id
             ),  # prefer raising NoneType here over actually passing through
             date_added=self.datetime or timezone.now(),
-            actor_user_id=self.actor and self.actor.id,
+            actor_user_id=self.actor_id and self.actor_id,
             target_object_id=self.target_object,
             ip_address=self.ip_address and str(self.ip_address),
             event_id=self.event and int(self.event),

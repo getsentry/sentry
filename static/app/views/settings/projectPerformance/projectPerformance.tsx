@@ -12,12 +12,22 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+
+// These labels need to be exported so that they can be used in audit logs
+export const retentionPrioritiesLabels = {
+  boostLatestRelease: t('Prioritize new releases'),
+  boostEnvironments: t('Prioritize dev environments'),
+  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
+  ignoreHealthChecks: t('Deprioritize health checks'),
+};
 
 type RouteParams = {orgId: string; projectId: string};
 
@@ -76,6 +86,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return endpoints;
   }
 
+  getRetentionPrioritiesData(...data) {
+    return {
+      dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
+        id: key,
+        active: value,
+      })),
+    };
+  }
+
   handleDelete = () => {
     const {projectId} = this.props.params;
     const {organization} = this.props;
@@ -89,10 +108,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         method: 'DELETE',
         success: () => {
-          trackAdvancedAnalyticsEvent(
-            'performance_views.project_transaction_threshold.clear',
-            {organization}
-          );
+          trackAnalytics('performance_views.project_transaction_threshold.clear', {
+            organization,
+          });
         },
         complete: () => this.fetchData(),
       }
@@ -165,6 +183,24 @@ class ProjectPerformance extends AsyncView<Props, State> {
           'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
         ),
       },
+      {
+        name: 'performanceIssueSendToPlatform',
+        type: 'boolean',
+        label: t('Send Occurrences To Platform'),
+        defaultValue: false,
+        help: t(
+          'This determines whether performance issue occurrences are sent to the issues platform.'
+        ),
+      },
+      {
+        name: 'performanceIssueCreationThroughPlatform',
+        type: 'boolean',
+        label: t('Create Issues Through Issues Platform'),
+        defaultValue: false,
+        help: t(
+          'This determines whether performance issues are created through the issues platform.'
+        ),
+      },
     ];
   }
 
@@ -174,15 +210,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'n_plus_one_db_detection_rate',
         type: 'range',
         label: t('N+1 (DB) Detection Rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
-      },
-      {
-        name: 'n_plus_one_db_issue_rate',
-        type: 'range',
-        label: t('N+1 (DB) Issue Rate'),
         min: 0.0,
         max: 1.0,
         step: 0.01,
@@ -222,6 +249,52 @@ class ProjectPerformance extends AsyncView<Props, State> {
         step: 0.01,
         defaultValue: 0,
       },
+      {
+        name: 'consecutive_http_spans_detection_enabled',
+        type: 'boolean',
+        label: t('Consecutive HTTP Spans Detection Enabled'),
+        defaultValue: true,
+      },
+    ];
+  }
+
+  get retentionPrioritiesFormFields(): Field[] {
+    return [
+      {
+        name: 'boostLatestRelease',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLatestRelease,
+        help: t(
+          'Captures more transactions for your new releases as they are being adopted'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostEnvironments',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostEnvironments,
+        help: t(
+          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostLowVolumeTransactions',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        visible: this.props.organization.features.includes(
+          'dynamic-sampling-transaction-name-priority'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'ignoreHealthChecks',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.ignoreHealthChecks,
+        help: t('Captures fewer of your health checks transactions'),
+        getData: this.getRetentionPrioritiesData,
+      },
     ];
   }
 
@@ -246,7 +319,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={requiredScopes} />
+        <PermissionAlert project={project} />
+
         <Form
           saveOnBlur
           allowUndo
@@ -256,19 +330,16 @@ class ProjectPerformance extends AsyncView<Props, State> {
           onSubmitSuccess={resp => {
             const initial = this.initialData;
             const changedThreshold = initial.metric === resp.metric;
-            trackAdvancedAnalyticsEvent(
-              'performance_views.project_transaction_threshold.change',
-              {
-                organization,
-                from: changedThreshold ? initial.threshold : initial.metric,
-                to: changedThreshold ? resp.threshold : resp.metric,
-                key: changedThreshold ? 'threshold' : 'metric',
-              }
-            );
+            trackAnalytics('performance_views.project_transaction_threshold.change', {
+              organization,
+              from: changedThreshold ? initial.threshold : initial.metric,
+              to: changedThreshold ? resp.threshold : resp.metric,
+              key: changedThreshold ? 'threshold' : 'metric',
+            });
             this.setState({threshold: resp});
           }}
         >
-          <Access access={requiredScopes}>
+          <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
                 title={t('General')}
@@ -283,6 +354,53 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
+        <Feature features={['organizations:dynamic-sampling']}>
+          <Form
+            saveOnBlur
+            allowUndo
+            initialData={
+              project.dynamicSamplingBiases?.reduce((acc, bias) => {
+                acc[bias.id] = bias.active;
+                return acc;
+              }, {}) ?? {}
+            }
+            onSubmitSuccess={(response, _instance, id, change) => {
+              ProjectsStore.onUpdateSuccess(response);
+              trackAnalytics(
+                change?.new === true
+                  ? 'dynamic_sampling_settings.priority_enabled'
+                  : 'dynamic_sampling_settings.priority_disabled',
+                {
+                  organization,
+                  project_id: project.id,
+                  id: id as DynamicSamplingBiasType,
+                }
+              );
+            }}
+            apiMethod="PUT"
+            apiEndpoint={projectEndpoint}
+          >
+            <Access access={requiredScopes} project={project}>
+              {({hasAccess}) => (
+                <JsonForm
+                  title={t('Retention Priorities')}
+                  fields={this.retentionPrioritiesFormFields}
+                  disabled={!hasAccess}
+                  renderFooter={() => (
+                    <Actions>
+                      <Button
+                        external
+                        href="https://docs.sentry.io/product/performance/performance-at-scale/"
+                      >
+                        {t('Read docs')}
+                      </Button>
+                    </Actions>
+                  )}
+                />
+              )}
+            </Access>
+          </Form>
+        </Feature>
         <Feature features={['organizations:performance-issues-dev']}>
           <Fragment>
             <Form
@@ -291,11 +409,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
               initialData={{
                 performanceIssueCreationRate:
                   this.state.project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform:
+                  this.state.project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  this.state.project.performanceIssueCreationThroughPlatform,
               }}
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - All')}
@@ -312,7 +434,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
             >
-              <Access access={requiredScopes}>
+              <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
                   <JsonForm
                     title={t('Performance Issues - Detector Settings')}

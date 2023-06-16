@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "jipJipManagementApplication",
+        "module": "com.example.api.OutboundController$$EnhancerByGuice$$ae46b1bf"
+      }
+    ]
+  },
+  "platform": "java"
+}

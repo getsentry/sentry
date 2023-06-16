@@ -7,6 +7,8 @@ from sentry.api.endpoints.organization_member.index import OrganizationMemberSer
 from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
@@ -78,7 +80,8 @@ class OrganizationMemberSerializerTest(TestCase):
             "orgRole": ["You do not have permission to set that org-level role"]
         }
 
-    def test_deprecated_org_role(self):
+    @with_feature({"organizations:team-roles": False})
+    def test_deprecated_org_role_without_flag(self):
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],
@@ -98,8 +101,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
-        assert not serializer.is_valid()
-        assert serializer.errors == {"orgRole": ["This org-level role has been deprecated"]}
+        assert serializer.is_valid()
 
     def test_invalid_team_role(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -129,7 +131,7 @@ class OrganizationMemberListTestBase(APITestCase):
 
 
 @region_silo_test(stable=True)
-class OrganizationMemberListTest(OrganizationMemberListTestBase):
+class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
 
@@ -151,6 +153,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
 
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.user2.email
+
+    def test_id_query(self):
+        member = OrganizationMember.objects.create(
+            email="billy@localhost", organization=self.organization
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"id:{member.id}"}
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == "billy@localhost"
+
+    def test_user_id_query(self):
+        user = self.create_user("zoo@localhost", username="zoo")
+        OrganizationMember.objects.create(user_id=user.id, organization=self.organization)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"user.id:{user.id}"}
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == "zoo@localhost"
 
     def test_query_null_user(self):
         OrganizationMember.objects.create(email="billy@localhost", organization=self.organization)
@@ -189,17 +212,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
+        member_team = self.create_team(organization=self.organization, org_role="member")
+        user = self.create_user("zoo@localhost", username="zoo")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="owner",
+            teams=[member_team],
+        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user2.email
+        assert response.data[1]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:owner"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == user.email
 
     def test_is_invited_query(self):
         response = self.get_success_response(
@@ -234,7 +267,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         sso_member = self.create_member(
             organization=self.organization,
             user=user,
-            email=user.email,
             invite_status=InviteStatus.APPROVED.value,
             flags=OrganizationMember.flags["sso:linked"],
         )
@@ -243,7 +275,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             self.organization.slug, qs_params={"query": "ssoLinked:true"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == sso_member.email
+        assert sso_member.email is None
+        assert response.data[0]["name"] == response.data[0]["user"]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "ssoLinked:false"}
@@ -260,20 +293,20 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         member_2fa = self.create_member(
             organization=self.organization,
             user=user,
-            email=user.email,
             invite_status=InviteStatus.APPROVED.value,
         )
 
         # Two authenticators to ensure the user list is distinct
         with exempt_from_silo_limits():
-            Authenticator.objects.create(user=member_2fa.user, type=1)
-            Authenticator.objects.create(user=member_2fa.user, type=2)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=1)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=2)
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["email"] == member_2fa.email
+        assert member_2fa.email is None
+        assert response.data[0]["name"] == response.data[0]["user"]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:false"}
@@ -330,7 +363,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert response.data["email"] == "eric@localhost"
 
     def test_valid_for_invites(self):
-        data = {"email": "foo@example.com", "role": "admin", "teams": [self.team.slug]}
+        data = {"email": "foo@example.com", "role": "manager", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             self.get_success_response(self.organization.slug, method="post", **data)
 
@@ -338,8 +371,9 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             organization=self.organization, email="foo@example.com"
         )
 
-        assert member.user is None
-        assert member.role == "admin"
+        assert member.user_id is None
+        assert member.role == "manager"
+        self.assert_org_member_mapping(org_member=member)
 
         om_teams = OrganizationMemberTeam.objects.filter(organizationmember=member.id)
 
@@ -353,7 +387,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
     def test_existing_user_for_invite(self):
         user = self.create_user("foobar@example.com")
         member = OrganizationMember.objects.create(
-            organization=self.organization, user=user, role="member"
+            organization=self.organization, user_id=user.id, role="member"
         )
 
         data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
@@ -376,6 +410,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         member = OrganizationMember.objects.get(organization=self.organization, email=email)
         assert len(mail.outbox) == 1
         assert member.role == "member"
+        self.assert_org_member_mapping(org_member=member)
 
     def test_valid_for_direct_add(self):
         user = self.create_user("baz@example.com")
@@ -387,9 +422,10 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         member = OrganizationMember.objects.get(organization=self.organization, email=user.email)
         assert len(mail.outbox) == 0
         assert member.role == "member"
+        self.assert_org_member_mapping(org_member=member)
 
     def test_invalid_user_for_direct_add(self):
-        data = {"email": "notexisting@example.com", "role": "admin", "teams": [self.team.slug]}
+        data = {"email": "notexisting@example.com", "role": "manager", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=False):
             self.get_success_response(self.organization.slug, method="post", **data)
 
@@ -397,12 +433,12 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
             organization=self.organization, email="notexisting@example.com"
         )
         assert len(mail.outbox) == 0
-        # todo(maxbittker) this test is a false positive, need to figure out why
-        assert member.role == "admin"
+        assert member.role == "manager"
+        self.assert_org_member_mapping(org_member=member)
 
 
 @region_silo_test(stable=True)
-class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
+class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
     def test_manager_invites(self):
@@ -475,28 +511,31 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
             self.get_success_response(self.organization.slug, **data)
 
         assert not OrganizationMember.objects.filter(id=invite_request.id).exists()
-        assert OrganizationMember.objects.filter(
+        org_member = OrganizationMember.objects.filter(
             organization=self.organization, email=email
-        ).exists()
+        ).get()
+        self.assert_org_member_mapping(org_member=org_member)
         assert len(mail.outbox) == 1
 
     def test_can_invite_member_with_pending_join_request(self):
         email = "test@gmail.com"
-
-        join_request = OrganizationMember.objects.create(
+        join_request = self.create_member(
             email=email,
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
+        self.assert_org_member_mapping(org_member=join_request)
 
         data = {"email": email, "role": "member", "teams": [self.team.slug]}
-        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks(), outbox_runner():
             self.get_success_response(self.organization.slug, **data)
 
         assert not OrganizationMember.objects.filter(id=join_request.id).exists()
-        assert OrganizationMember.objects.filter(
+        self.assert_org_member_mapping_not_exists(org_member=join_request)
+        org_member = OrganizationMember.objects.filter(
             organization=self.organization, email=email
-        ).exists()
+        ).get()
+        self.assert_org_member_mapping(org_member=org_member)
         assert len(mail.outbox) == 1
 
     def test_user_has_external_user_association(self):
@@ -537,7 +576,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
 
 
 @region_silo_test(stable=True)
-class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
+class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
     def test_forbid_qq(self):
@@ -555,7 +594,8 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
-        assert om.inviter == self.user
+        assert om.inviter_id == self.user.id
+        self.assert_org_member_mapping(org_member=om)
 
         mock_send_invite_email.assert_called_once_with()
 
@@ -568,7 +608,8 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == []
-        assert om.inviter == self.user
+        assert om.inviter_id == self.user.id
+        self.assert_org_member_mapping(org_member=om)
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_no_email(self, mock_send_invite_email):
@@ -584,7 +625,8 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
         assert om.email == "jane@gmail.com"
         assert om.role == "member"
         assert list(om.teams.all()) == [self.team]
-        assert om.inviter == self.user
+        assert om.inviter_id == self.user.id
+        self.assert_org_member_mapping(org_member=om)
 
         assert not mock_send_invite_email.mock_calls
 

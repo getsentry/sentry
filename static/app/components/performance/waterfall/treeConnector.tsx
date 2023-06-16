@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {getToggleTheme} from 'sentry/components/performance/waterfall/utils';
 import {IconChevron} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 export const TOGGLE_BUTTON_MAX_WIDTH = 30;
@@ -63,6 +63,7 @@ type SpanTreeTogglerAndDivProps = {
   errored: boolean;
   isExpanded: boolean;
   isSpanGroupToggler?: boolean;
+  spanBarType?: SpanBarType;
 };
 
 export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`

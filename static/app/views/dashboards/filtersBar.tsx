@@ -9,7 +9,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
@@ -57,15 +57,13 @@ export default function FiltersBar({
       </PageFilterBar>
       <Fragment>
         <FilterButtons>
-          <FilterButton>
-            <ReleasesProvider organization={organization} selection={selection}>
-              <ReleasesSelectControl
-                handleChangeFilter={onDashboardFilterChange}
-                selectedReleases={selectedReleases}
-                isDisabled={isEditingDashboard}
-              />
-            </ReleasesProvider>
-          </FilterButton>
+          <ReleasesProvider organization={organization} selection={selection}>
+            <ReleasesSelectControl
+              handleChangeFilter={onDashboardFilterChange}
+              selectedReleases={selectedReleases}
+              isDisabled={isEditingDashboard}
+            />
+          </ReleasesProvider>
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons>
@@ -100,11 +98,5 @@ const FilterButtons = styled(ButtonBar)`
     display: flex;
     align-items: flex-start;
     gap: ${space(1.5)};
-  }
-`;
-
-const FilterButton = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    max-width: 300px;
   }
 `;

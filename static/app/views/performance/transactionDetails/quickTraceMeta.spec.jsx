@@ -137,7 +137,7 @@ describe('QuickTraceMeta', function () {
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
     const qtFooter = screen.getByTestId('quick-trace-footer');
     expect(qtFooter).toHaveTextContent('Read the docs');
-    userEvent.hover(qtFooter.firstChild);
+    await userEvent.hover(qtFooter.firstChild);
     expect(
       await screen.findByText('Requires performance monitoring.')
     ).toBeInTheDocument();

@@ -6,7 +6,7 @@ import {LocationDescriptor} from 'history';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import BreadcrumbDropdown, {
   BreadcrumbDropdownProps,
 } from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
@@ -80,7 +80,7 @@ function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
+function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   if (crumbs.length === 0) {
     return null;
   }
@@ -134,7 +134,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
       })}
     </BreadcrumbList>
   );
-};
+}
 
 const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
   ${p.theme.overflowEllipsis}

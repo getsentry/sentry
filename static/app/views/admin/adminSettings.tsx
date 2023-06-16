@@ -43,6 +43,20 @@ const optionsAvailable = [
   'performance.issues.render_blocking_assets.la-rollout',
   'performance.issues.render_blocking_assets.ea-rollout',
   'performance.issues.render_blocking_assets.ga-rollout',
+  'performance.issues.m_n_plus_one_db.problem-creation',
+  'performance.issues.m_n_plus_one_db.la-rollout',
+  'performance.issues.m_n_plus_one_db.ea-rollout',
+  'performance.issues.m_n_plus_one_db.ga-rollout',
+  'performance.issues.consecutive_http.max_duration_between_spans',
+  'performance.issues.consecutive_http.consecutive_count_threshold',
+  'performance.issues.consecutive_http.span_duration_threshold',
+  'performance.issues.large_http_payload.size_threshold',
+  'profile.issues.blocked_main_thread-ingest.la-rollout',
+  'profile.issues.blocked_main_thread-ingest.ea-rollout',
+  'profile.issues.blocked_main_thread-ingest.ga-rollout',
+  'profile.issues.blocked_main_thread-ppg.la-rollout',
+  'profile.issues.blocked_main_thread-ppg.ea-rollout',
+  'profile.issues.blocked_main_thread-ppg.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -167,6 +181,46 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.render_blocking_assets.la-rollout']}
               {fields['performance.issues.render_blocking_assets.ea-rollout']}
               {fields['performance.issues.render_blocking_assets.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - MN+1 DB Detector</PanelHeader>
+              {fields['performance.issues.m_n_plus_one_db.problem-creation']}
+              {fields['performance.issues.m_n_plus_one_db.la-rollout']}
+              {fields['performance.issues.m_n_plus_one_db.ea-rollout']}
+              {fields['performance.issues.m_n_plus_one_db.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Performance Issues - Consecutive HTTP Span Detector
+              </PanelHeader>
+              {fields['performance.issues.consecutive_http.max_duration_between_spans']}
+              {fields['performance.issues.consecutive_http.consecutive_count_threshold']}
+              {fields['performance.issues.consecutive_http.span_duration_threshold']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Large HTTP Payload Detector</PanelHeader>
+              {fields['performance.issues.large_http_payload.size_threshold']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Profiling Issues - Block Main Thread Detector Ingest
+              </PanelHeader>
+              {fields['profile.issues.blocked_main_thread-ingest.la-rollout']}
+              {fields['profile.issues.blocked_main_thread-ingest.ea-rollout']}
+              {fields['profile.issues.blocked_main_thread-ingest.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Profiling Issues - Block Main Thread Detector Post Process Group
+              </PanelHeader>
+              {fields['profile.issues.blocked_main_thread-ppg.la-rollout']}
+              {fields['profile.issues.blocked_main_thread-ppg.ea-rollout']}
+              {fields['profile.issues.blocked_main_thread-ppg.ga-rollout']}
+            </Panel>
+          </Feature>
+          <Feature features={['organizations:view-hierarchies-options-dev']}>
+            <Panel>
+              <PanelHeader>View Hierarchy</PanelHeader>
             </Panel>
           </Feature>
         </Form>

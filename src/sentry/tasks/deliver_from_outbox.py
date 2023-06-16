@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Type
 
-from sentry.models import (
-    MONOLITH_REGION_NAME,
-    ControlOutbox,
-    OutboxBase,
-    RegionOutbox,
-    outbox_silo_modes,
-)
+from sentry.models import ControlOutbox, OutboxBase, RegionOutbox, outbox_silo_modes
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
@@ -32,11 +26,6 @@ def drain_outbox_shard(
     shard_identifier: int,
     region_name: str | None = None,
 ):
-    if region_name is not None and region_name != MONOLITH_REGION_NAME:
-        raise NotImplementedError(
-            "System is not prepared to run in silo mode!  RPC client implementation required."
-        )
-
     shard_outbox: OutboxBase
     if region_name is not None:
         shard_outbox = ControlOutbox(

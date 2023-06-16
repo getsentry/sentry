@@ -1,45 +1,48 @@
-import {TrendColumnField} from 'sentry/views/performance/trends/types';
+import {
+  TrendParameterColumn,
+  TrendParameterLabel,
+} from 'sentry/views/performance/trends/types';
 import {
   getCurrentTrendParameter,
   performanceTypeToTrendParameterLabel,
 } from 'sentry/views/performance/trends/utils';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 describe('Trend parameter utils', function () {
   describe('performanceTypeToTrendParameterLabel', function () {
     it('returns correct trend parameter label based on performance type', function () {
       const lcp = {
-        label: 'LCP',
-        column: TrendColumnField.LCP,
+        label: TrendParameterLabel.LCP,
+        column: TrendParameterColumn.LCP,
       };
 
       const duration = {
-        label: 'Duration',
-        column: TrendColumnField.DURATION,
+        label: TrendParameterLabel.DURATION,
+        column: TrendParameterColumn.DURATION,
       };
 
       const frontendProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.FRONTEND
+        ProjectPerformanceType.FRONTEND
       );
       expect(frontendProjectOutput).toEqual(lcp);
 
       const anyProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.ANY
+        ProjectPerformanceType.ANY
       );
       expect(anyProjectOutput).toEqual(duration);
 
       const backendProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.BACKEND
+        ProjectPerformanceType.BACKEND
       );
       expect(backendProjectOutput).toEqual(duration);
 
       const frontendOtherProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+        ProjectPerformanceType.FRONTEND_OTHER
       );
       expect(frontendOtherProjectOutput).toEqual(duration);
 
       const mobileProjectOutput = performanceTypeToTrendParameterLabel(
-        PROJECT_PERFORMANCE_TYPE.MOBILE
+        ProjectPerformanceType.MOBILE
       );
       expect(mobileProjectOutput).toEqual(duration);
     });
@@ -49,8 +52,8 @@ describe('Trend parameter utils', function () {
     it('returns trend parameter from location', () => {
       const location = TestStubs.location({query: {trendParameter: 'FCP'}});
       const expectedTrendParameter = {
-        label: 'FCP',
-        column: TrendColumnField.FCP,
+        label: TrendParameterLabel.FCP,
+        column: TrendParameterColumn.FCP,
       };
       // project with performance type 'any'
       const projects = [TestStubs.Project({id: 1, platform: null})];
@@ -62,8 +65,8 @@ describe('Trend parameter utils', function () {
     it('returns default trend parameter based on project type if no trend parameter set in location', function () {
       const location = TestStubs.location();
       const expectedTrendParameter = {
-        label: 'Duration',
-        column: TrendColumnField.DURATION,
+        label: TrendParameterLabel.DURATION,
+        column: TrendParameterColumn.DURATION,
       };
       // project with performance type 'any'
       const projects = [TestStubs.Project({id: 1, platform: null})];

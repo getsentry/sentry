@@ -15,6 +15,7 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
+    Set,
     Tuple,
     TypedDict,
     Union,
@@ -33,8 +34,8 @@ from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
-    ActorTuple,
     Commit,
     Environment,
     Group,
@@ -49,7 +50,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    SentryAppInstallationToken,
     Team,
     User,
 )
@@ -66,17 +66,19 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.issues import GroupCategory
+from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import Dataset, aliased_query, raw_query
+from sentry.utils.snuba import aliased_query, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -183,19 +185,26 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def _serialize_assigness(
-        self, actor_dict: Mapping[int, ActorTuple]
-    ) -> Mapping[int, Union[Team, Any]]:
-        actors_by_type: MutableMapping[Any, List[ActorTuple]] = defaultdict(list)
-        for actor in actor_dict.values():
-            actors_by_type[actor.type].append(actor)
+    def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
+        gas = GroupAssignee.objects.filter(group__in=item_list)
+        result: MutableMapping[int, Union[Team, Any]] = {}
+        all_team_ids: MutableMapping[int, Set[int]] = defaultdict(set)
+        all_user_ids: MutableMapping[int, Set[int]] = defaultdict(set)
 
-        resolved_actors = {}
-        for t, actors in actors_by_type.items():
-            serializable = ActorTuple.resolve_many(actors)
-            resolved_actors[t] = {actor.id: actor for actor in serializable}
+        for g in gas:
+            if g.team_id:
+                all_team_ids[g.team_id].add(g.group_id)
+            if g.user_id:
+                all_user_ids[g.user_id].add(g.group_id)
 
-        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
+        for team in Team.objects.filter(id__in=all_team_ids.keys()):
+            for group_id in all_team_ids[team.id]:
+                result[group_id] = team
+        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
+            for group_id in all_user_ids[user.id]:
+                result[group_id] = user
+
+        return result
 
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
@@ -223,24 +232,20 @@ class GroupSerializerBase(Serializer, ABC):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
 
-        assignees: Mapping[int, ActorTuple] = {
-            a.group_id: a.assigned_actor()
-            for a in GroupAssignee.objects.filter(group__in=item_list)
-        }
-        resolved_assignees = self._serialize_assigness(assignees)
+        resolved_assignees = self._serialize_assignees(item_list)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
-        actor_ids = {r[-1] for r in release_resolutions.values()}
-        actor_ids.update(r.actor_id for r in ignore_items.values())
-        if actor_ids:
+        user_ids = {r[-1] for r in release_resolutions.values()}
+        user_ids.update(r.actor_id for r in ignore_items.values() if r.actor_id is not None)
+        if user_ids:
             serialized_users = user_service.serialize_many(
-                filter={"user_ids": actor_ids, "is_active": True},
+                filter={"user_ids": user_ids, "is_active": True},
                 as_user=user,
             )
-            actors = {id: u for id, u in zip(actor_ids, serialized_users)}
+            actors = {id: u for id, u in zip(user_ids, serialized_users)}
         else:
             actors = {}
 
@@ -336,6 +341,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
             "statusDetails": status_details,
+            "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
@@ -353,7 +359,7 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
-            "issueType": obj.issue_type.name.lower(),
+            "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
 
@@ -367,12 +373,6 @@ class GroupSerializerBase(Serializer, ABC):
     @abstractmethod
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        pass
-
-    @abstractmethod
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         pass
 
@@ -432,6 +432,8 @@ class GroupSerializerBase(Serializer, ABC):
                 organization_id=obj.project.organization_id,
                 group_id=obj.id,
                 resolution_type="automatic",
+                issue_type=obj.issue_type.slug,
+                issue_category=obj.issue_category.name.lower(),
             )
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
@@ -470,25 +472,21 @@ class GroupSerializerBase(Serializer, ABC):
         if self._collapse("stats"):
             return None
 
+        if not item_list:
+            return
+
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
-        perf_issues = [
-            group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
-        ]
         generic_issues = [
-            group
-            for group in item_list
-            if group.issue_category
-            and group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+            group for group in item_list if group.issue_category != GroupCategory.ERROR
         ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
-        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
         generic_stats = (
             self._seen_stats_generic(generic_issues, user) if generic_issues else {}
         ) or {}
-        agg_stats = {**error_stats, **perf_stats, **generic_stats}
+        agg_stats = {**error_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 
@@ -529,6 +527,9 @@ class GroupSerializerBase(Serializer, ABC):
                 start=start,
                 orderby="group_id",
                 referrer="group.unhandled-flag",
+                tenant_ids={"organization_id": item_list[0].project.organization_id}
+                if item_list
+                else None,
             )
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
@@ -719,8 +720,9 @@ class GroupSerializerBase(Serializer, ABC):
             and getattr(request.user, "is_sentry_app", False)
             and is_api_token_auth(request.auth)
         ):
-            if SentryAppInstallationToken.objects.has_organization_access(
-                request.auth, organization_id
+
+            if auth_service.token_has_org_access(
+                token=AuthenticatedToken.from_token(request.auth), organization_id=organization_id
             ):
                 return True
 
@@ -769,15 +771,6 @@ class GroupSerializer(GroupSerializerBase):
             item_list, tagstore.get_groups_user_counts, tagstore.get_group_list_tag_value
         )
 
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self.__seen_stats_impl(
-            perf_issue_list,
-            tagstore.get_perf_groups_user_counts,
-            tagstore.get_perf_group_list_tag_value,
-        )
-
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
@@ -807,8 +800,12 @@ class GroupSerializer(GroupSerializerBase):
 
         project_id = issue_list[0].project_id
         item_ids = [g.id for g in issue_list]
+        tenant_ids = {"organization_id": issue_list[0].project.organization_id}
         user_counts: Mapping[int, int] = user_counts_func(
-            [project_id], item_ids, environment_ids=environment and [environment.id]
+            [project_id],
+            item_ids,
+            environment_ids=environment and [environment.id],
+            tenant_ids=tenant_ids,
         )
         first_seen: MutableMapping[int, datetime] = {}
         last_seen: MutableMapping[int, datetime] = {}
@@ -816,7 +813,12 @@ class GroupSerializer(GroupSerializerBase):
 
         if environment is not None:
             environment_seen_stats = environment_seen_stats_func(
-                [project_id], item_ids, [environment.id], "environment", environment.name
+                [project_id],
+                item_ids,
+                [environment.id],
+                "environment",
+                environment.name,
+                tenant_ids=tenant_ids,
             )
             for item_id, value in environment_seen_stats.items():
                 first_seen[item_id] = value.first_seen
@@ -852,6 +854,7 @@ class SharedGroupSerializer(GroupSerializer):
 SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
+        "substatus",
         "bookmarked_by",
         "assigned_to",
         "for_review",
@@ -872,7 +875,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
-        "date",  # We merge this with start/end, so don't want to include it as its own
+        "date",
+        "timestamp",  # We merge this with start/end, so don't want to include it as its own
         # condition
         # We don't need to filter by release stage again here since we're
         # filtering to specific groups. Saves us making a second query to
@@ -895,17 +899,33 @@ class GroupSerializerSnuba(GroupSerializerBase):
         from sentry.search.snuba.executors import get_search_filter
 
         self.environment_ids = environment_ids
-
+        self.organization_id = organization_id
         # XXX: We copy this logic from `PostgresSnubaQueryExecutor.query`. Ideally we
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.
         self.start = None
-        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
+        start_params = [
+            _f
+            for _f in [
+                start,
+                get_search_filter(search_filters, "date", ">"),
+                get_search_filter(search_filters, "timestamp", ">"),
+            ]
+            if _f
+        ]
         if start_params:
             self.start = max(_f for _f in start_params if _f)
 
         self.end = None
-        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        end_params = [
+            _f
+            for _f in [
+                end,
+                get_search_filter(search_filters, "date", "<"),
+                get_search_filter(search_filters, "timestamp", "<"),
+            ]
+            if _f
+        ]
         if end_params:
             self.end = min(end_params)
 
@@ -956,22 +976,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
             self.environment_ids,
         )
 
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
-            self._execute_perf_seen_stats_query(
-                item_list=perf_issue_list,
-                start=self.start,
-                end=self.end,
-                conditions=self.conditions,
-                environment_ids=self.environment_ids,
-            ),
-            perf_issue_list,
-            bool(self.start or self.end or self.conditions),
-            self.environment_ids,
-        )
-
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
@@ -1003,6 +1007,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
+
         return aliased_query(
             dataset=Dataset.Events,
             start=start,
@@ -1012,6 +1017,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod
@@ -1042,6 +1050,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod
@@ -1068,6 +1079,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod

@@ -1,14 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.bitbucket.integration import scopes
 from sentry.utils.http import absolute_uri
 
 from .client import BITBUCKET_KEY
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class BitbucketDescriptorEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()

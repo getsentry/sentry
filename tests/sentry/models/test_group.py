@@ -1,11 +1,13 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Group,
@@ -21,7 +23,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
+from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -141,7 +143,7 @@ class GroupTest(TestCase, SnubaTestCase):
                 group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
             )
 
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
 
@@ -161,7 +163,7 @@ class GroupTest(TestCase, SnubaTestCase):
             )
         )
 
-        group.update(status=GroupStatus.PENDING_DELETION)
+        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id, [group_short_id, group_2_short_id]
@@ -301,6 +303,44 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2.get_last_release() is None
 
+    def test_group_substatus_defaults(self):
+        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus is GroupSubStatus.ONGOING
+        for nullable_status in (
+            GroupStatus.IGNORED,
+            GroupStatus.MUTED,
+            GroupStatus.RESOLVED,
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.REPROCESSING,
+        ):
+            assert self.create_group(status=nullable_status).substatus is None
+
+    def test_group_valid_substatus(self):
+        desired_status_substatus_pairs = [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
+            (GroupStatus.IGNORED, GroupSubStatus.FOREVER),
+            (GroupStatus.IGNORED, GroupSubStatus.UNTIL_CONDITION_MET),
+            (GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING),
+        ]
+        for status, substatus in desired_status_substatus_pairs:
+            group = self.create_group(status=status, substatus=substatus)
+            assert group.substatus is substatus
+
+    @patch("sentry.models.group.logger")
+    def test_group_invalid_substatus(self, logger):
+        status_substatus_pairs = [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
+            (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
+            (GroupStatus.IGNORED, GroupSubStatus.ESCALATING),
+        ]
+
+        for status, substatus in status_substatus_pairs:
+            self.create_group(status=status, substatus=substatus)
+
+        assert logger.exception.call_count == len(status_substatus_pairs)
+
 
 @region_silo_test
 class GroupIsOverResolveAgeTest(TestCase):
@@ -363,8 +403,8 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         assert group_event.occurrence is None
 
     def test_get_latest_event_occurrence(self):
-        occurrence_data = self.build_occurrence_data()
         event_id = uuid.uuid4().hex
+        occurrence_data = self.build_occurrence_data(event_id=event_id, project_id=self.project.id)
         occurrence = process_event_and_issue_occurrence(
             occurrence_data,
             {
@@ -376,7 +416,7 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         )[0]
 
         group = Group.objects.first()
-        group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
+        group.update(type=ProfileFileIOGroupType.type_id)
 
         group_event = group.get_latest_event()
         assert group_event.event_id == event_id

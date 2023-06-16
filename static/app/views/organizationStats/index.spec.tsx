@@ -118,6 +118,7 @@ describe('OrganizationStats', function () {
         statsPeriod: '5m',
         interval: '1m',
         groupBy: ['category', 'outcome'],
+        project: [-1],
         field: ['sum(quantity)'],
       },
       UsageStatsProjects: {
@@ -167,27 +168,26 @@ describe('OrganizationStats', function () {
   /**
    * Router Handling
    */
-  it('pushes state changes to the route', () => {
+  it('pushes state changes to the route', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    userEvent.click(screen.getByText('Category'));
-    userEvent.click(screen.getByText('Attachments'));
+    await userEvent.click(screen.getByText('Category'));
+    await userEvent.click(screen.getByText('Attachments'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
       })
     );
 
-    userEvent.click(screen.getByText('Periodic'));
-    userEvent.click(screen.getByText('Cumulative'));
+    await userEvent.click(screen.getByText('Periodic'));
+    await userEvent.click(screen.getByText('Cumulative'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {transform: ChartDataTransform.CUMULATIVE},
       })
     );
-
     const inputQuery = 'proj-1';
-    userEvent.type(
+    await userEvent.type(
       screen.getByPlaceholderText('Filter your projects'),
       `${inputQuery}{enter}`
     );
@@ -336,8 +336,8 @@ describe('OrganizationStats', function () {
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
-    // Doesn't render for single project view
-    expect(screen.queryByTestId('usage-stats-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    expect(screen.getByText('All Projects')).toBeInTheDocument();
 
     expect(mockRequest).toHaveBeenCalledWith(
       endpoint,
@@ -351,6 +351,22 @@ describe('OrganizationStats', function () {
         },
       })
     );
+  });
+
+  it('renders a project when its graph icon is clicked', async () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+    });
+    await userEvent.click(screen.getByTestId('proj-1'));
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(screen.getAllByText('proj-1').length).toBe(2);
   });
 
   /**

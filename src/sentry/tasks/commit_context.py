@@ -1,17 +1,26 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
-from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    Project,
+    PullRequest,
+    Repository,
+    RepositoryProjectPathConfig,
+)
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -22,6 +31,23 @@ PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 logger = logging.getLogger(__name__)
+
+
+def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
+    from sentry.tasks.integrations.github.pr_comment import comment_workflow
+
+    pr_query = PullRequest.objects.filter(
+        organization_id=commit.organization_id, merge_commit_sha=commit.key
+    )
+    if not pr_query.exists():
+        return
+    pr = pr_query.get()
+    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30) and (
+        not pr.pullrequestcomment_set.exists()
+        or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
+    ):
+        # TODO: Debouncing Logic
+        comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(
@@ -132,7 +158,16 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_find_in_app_stacktrace_frame",
+                        "fallback": True,
                     },
+                )
+                process_suspect_commits.delay(
+                    event_id=event_id,
+                    event_platform=event_platform,
+                    event_frames=event_frames,
+                    group_id=group_id,
+                    project_id=project_id,
+                    sdk_name=sdk_name,
                 )
                 return
 
@@ -160,53 +195,90 @@ def process_commit_context(
                     extra={
                         **basic_logging_details,
                         "reason": "could_not_fetch_commit_context",
+                        "code_mappings_count": len(code_mappings),
+                        "fallback": True,
                     },
+                )
+                process_suspect_commits.delay(
+                    event_id=event_id,
+                    event_platform=event_platform,
+                    event_frames=event_frames,
+                    group_id=group_id,
+                    project_id=project_id,
+                    sdk_name=sdk_name,
                 )
                 return
 
             commit = None
-            for commit_context, selected_code_mapping in found_contexts:
+            new_commit = None
+            selected_code_mapping = None
+            for commit_context, code_mapping in found_contexts:
                 try:
                     # Find commit and break
                     commit = Commit.objects.get(
-                        repository_id=selected_code_mapping.repository_id,
+                        repository_id=code_mapping.repository_id,
                         key=commit_context.get("commitId"),
                     )
+                    if commit.message == "":
+                        commit.message = commit_context.get("commitMessage")
+                        commit.save()
+                    selected_code_mapping = code_mapping
                     break
                 except Commit.DoesNotExist:
+                    # If the commit has no date, we will not add it to avoid breaking other commit ordered-based logic.
+                    if not new_commit and commit_context.get("committedDate"):
+                        new_commit = {
+                            "context": commit_context,
+                            "repository_id": code_mapping.repository_id,
+                            "code_mapping_id": code_mapping.id,
+                        }
 
                     logger.info(
                         "process_commit_context.no_commit_in_sentry",
                         extra={
                             **basic_logging_details,
                             "sha": commit_context.get("commitId"),
-                            "repository_id": selected_code_mapping.repository_id,
-                            "code_mapping_id": selected_code_mapping.id,
+                            "repository_id": code_mapping.repository_id,
+                            "code_mapping_id": code_mapping.id,
                             "reason": "commit_sha_does_not_exist_in_sentry",
                         },
                     )
 
             if not commit:
-                # None of the commits found from the integrations' contexts exist in sentry_commit.
+                if new_commit:
+                    context = new_commit["context"]
+                    # If none of the commits exist in sentry_commit, we add the first commit we found
+                    commit_author, _ = CommitAuthor.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        email=context.get("commitAuthorEmail"),
+                        defaults={"name": context.get("commitAuthorName")},
+                    )
+                    commit = Commit.objects.create(
+                        organization_id=project.organization_id,
+                        repository_id=new_commit["repository_id"],
+                        key=context.get("commitId"),
+                        date_added=context.get("committedDate"),
+                        author=commit_author,
+                        message=context.get("commitMessage"),
+                    )
 
-                # We couldn't find the commit in Sentry, so we will debounce the task for 1 day.
-                # TODO(nisanthan): We will not get the commit history for new customers, only the commits going forward from when they installed the source-code integration. We need a long-term fix.
-                cache.set(cache_key, True, timedelta(days=1).total_seconds())
-
-                metrics.incr(
-                    "sentry.tasks.process_commit_context.aborted",
-                    tags={
-                        "detail": "commit_sha_does_not_exist_in_sentry",
-                    },
-                )
-                logger.info(
-                    "process_commit_context.aborted.no_commit_in_sentry",
-                    extra={
-                        **basic_logging_details,
-                        "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
-                    },
-                )
-                return
+                    logger.info(
+                        "process_commit_context.added_commit_to_sentry_commit",
+                        extra={
+                            **basic_logging_details,
+                            "sha": new_commit.get("commitId"),
+                            "repository_id": new_commit["repository_id"],
+                            "code_mapping_id": new_commit["code_mapping_id"],
+                            "reason": "commit_sha_does_not_exist_in_sentry_for_all_code_mappings",
+                        },
+                    )
+                else:
+                    metrics.incr(
+                        "sentry.tasks.process_commit_context.aborted",
+                        tags={
+                            "detail": "commit_sha_does_not_exist_in_sentry",
+                        },
+                    )
 
             authors = list(CommitAuthor.objects.get_many_from_cache([commit.author_id]))
             author_to_user = get_users_for_authors(commit.organization_id, authors)
@@ -214,7 +286,7 @@ def process_commit_context(
             group_owner, created = GroupOwner.objects.update_or_create(
                 group_id=group_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user_id=author_to_user.get(str(commit.author_id)).get("id"),
+                user_id=author_to_user.get(str(commit.author_id), {}).get("id"),
                 project=project,
                 organization_id=project.organization_id,
                 context={"commitId": commit.id},
@@ -222,6 +294,11 @@ def process_commit_context(
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
+
+            if features.has("organizations:pr-comment-bot", project.organization):
+                repo = Repository.objects.filter(id=commit.repository_id)
+                if repo.exists() and repo.get().provider == "integrations:github":
+                    queue_comment_task_if_needed(commit, group_owner)
 
             if created:
                 # If owners exceeds the limit, delete the oldest one.
@@ -240,6 +317,14 @@ def process_commit_context(
                 extra={
                     **basic_logging_details,
                     "group_owner_id": group_owner.id,
+                    **(
+                        {
+                            "repository_id": selected_code_mapping.repository_id,
+                            "selected_code_mapping": selected_code_mapping.id,
+                        }
+                        if selected_code_mapping is not None
+                        else {}
+                    ),
                     "reason": "created" if created else "updated",
                 },
             )
@@ -258,3 +343,20 @@ def process_commit_context(
             )
     except UnableToAcquireLock:
         pass
+    except MaxRetriesExceededError:
+        logger.info(
+            "process_commit_context.max_retries_exceeded",
+            extra={
+                **basic_logging_details,  # pyright: ignore
+                "reason": "max_retries_exceeded",
+            },
+        )
+
+        process_suspect_commits.delay(
+            event_id=event_id,
+            event_platform=event_platform,
+            event_frames=event_frames,
+            group_id=group_id,
+            project_id=project_id,
+            sdk_name=sdk_name,
+        )

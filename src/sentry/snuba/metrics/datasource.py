@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Module that gets both metadata and time series from Snuba.
 For metadata, it fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
@@ -32,7 +34,7 @@ from sentry.sentry_metrics.utils import (
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_all_mris, get_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
@@ -134,63 +136,43 @@ def get_available_derived_metrics(
 
 
 def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequence[MetricMeta]:
-    assert projects
 
-    metrics_meta = []
-    metric_ids_in_entities = {}
+    ENTITY_TO_DATASET = {
+        "sessions": {
+            "c": "metrics_counters",
+            "s": "metrics_sets",
+            "d": "metrics_distributions",
+            "g": "metrics_gauges",
+        },
+        "transactions": {
+            "c": "generic_metrics_counters",
+            "s": "generic_metrics_sets",
+            "d": "generic_metrics_distributions",
+            "g": "generic_metrics_gauges",
+        },
+    }
 
-    for metric_type in ("counter", "set", "distribution"):
-        metric_ids_in_entities.setdefault(metric_type, set())
-        org_id = projects[0].organization_id
-        for row in _get_metrics_for_entity(
-            entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            project_ids=[project.id for project in projects],
-            org_id=org_id,
-        ):
-            try:
-                mri_string = reverse_resolve(use_case_id, org_id, row["metric_id"])
-                metrics_meta.append(
-                    MetricMeta(
-                        name=get_public_name_from_mri(mri_string),
-                        type=metric_type,
-                        operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                        unit=None,  # snuba does not know the unit
-                        metric_id=row["metric_id"],
-                        mri_string=mri_string,
-                    )
-                )
-            except InvalidParams:
-                # An instance of `InvalidParams` exception is raised here when there is no reverse
-                # mapping from MRI to public name because of the naming change
-                logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
-                continue
-            metric_ids_in_entities[metric_type].add(row["metric_id"])
+    result = []
+    for mri in get_all_mris():
+        parsed = parse_mri(mri)
 
-    # In the previous loop, we find all available metric ids per entity with respect to the
-    # projects filter, and so to figure out which derived metrics are supported for these
-    # projects, we need to iterate over the list of derived metrics and generate the ids of
-    # their constituent metrics. A derived metric should be added to the response list if its
-    # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
-    # SingularEntityDerivedMetric.
-    found_derived_metrics = get_available_derived_metrics(
-        projects, metric_ids_in_entities, use_case_id
-    )
-    public_derived_metrics = get_derived_metrics(exclude_private=True)
+        if parsed.entity not in ENTITY_TO_DATASET["sessions"].keys():
+            ops = []
+        elif parsed.namespace == "sessions":
+            ops = AVAILABLE_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
+        else:
+            ops = AVAILABLE_GENERIC_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
 
-    for derived_metric_mri in found_derived_metrics:
-        derived_metric_obj = public_derived_metrics[derived_metric_mri]
-        metrics_meta.append(
+        result.append(
             MetricMeta(
-                name=get_public_name_from_mri(derived_metric_obj.metric_mri),
-                type=derived_metric_obj.result_type,
-                operations=derived_metric_obj.generate_available_operations(),
-                unit=derived_metric_obj.unit,
-                # Derived metrics won't have an id
-                metric_id=None,
-                mri_string=derived_metric_mri,
+                mri=mri,
+                unit=parsed.unit,
+                name=parsed.name,
+                operations=ops,
             )
         )
-    return sorted(metrics_meta, key=itemgetter("name"))
+
+    return result
 
 
 def get_custom_measurements(
@@ -671,8 +653,12 @@ def get_series(
     metrics_query: MetricsQuery,
     use_case_id: UseCaseKey,
     include_meta: bool = False,
+    tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Get time series for the given query"""
+
+    organization_id = projects[0].organization_id if projects else None
+    tenant_ids = tenant_ids or {"organization_id": organization_id} if organization_id else None
 
     if metrics_query.interval is not None:
         interval = metrics_query.interval
@@ -767,7 +753,10 @@ def get_series(
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
 
             request = Request(
-                dataset=Dataset.Metrics.value, app_id="default", query=initial_snuba_query
+                dataset=Dataset.Metrics.value,
+                app_id="default",
+                query=initial_snuba_query,
+                tenant_ids=tenant_ids,
             )
             initial_query_results = raw_snql_query(
                 request, use_cache=False, referrer="api.metrics.totals.initial_query"
@@ -806,7 +795,10 @@ def get_series(
                         snuba_query = _apply_group_limit_filters(snuba_query, group_limit_filters)
 
                     request = Request(
-                        dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                        dataset=Dataset.Metrics.value,
+                        app_id="default",
+                        query=snuba_query,
+                        tenant_ids=tenant_ids,
                     )
                     snuba_result = raw_snql_query(
                         request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
@@ -835,7 +827,10 @@ def get_series(
                     snuba_query = _apply_group_limit_filters(snuba_query, group_limit_filters)
 
                 request = Request(
-                    dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                    dataset=Dataset.Metrics.value,
+                    app_id="default",
+                    query=snuba_query,
+                    tenant_ids=tenant_ids,
                 )
                 snuba_result = raw_snql_query(
                     request,

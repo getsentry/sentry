@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import Text from 'sentry/components/text';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 /**
@@ -94,6 +94,7 @@ type Props = {
   background?:
     | React.ComponentType
     | React.ComponentType<{anchorRef: React.Ref<SVGForeignObjectElement>}>;
+  children?: React.ReactNode;
   /**
    * If special sizing of the details block is required you can use a custom
    * wrapper passed in here.

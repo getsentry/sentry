@@ -13,7 +13,7 @@ function ReplayCurrentUrl() {
   }
 
   const replayRecord = replay.getReplay();
-  const crumbs = replay.getRawCrumbs();
+  const crumbs = replay.getNavCrumbs();
 
   return (
     <TextCopyInput size="sm">

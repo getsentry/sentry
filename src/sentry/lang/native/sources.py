@@ -120,9 +120,10 @@ class InvalidSourcesError(Exception):
     pass
 
 
-def get_internal_source(project):
+def get_internal_url_prefix() -> str:
     """
-    Returns the source configuration for a Sentry project.
+    Returns the `internal-url-prefix` normalized in such a way that it works in local
+    development environments.
     """
     internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
@@ -133,8 +134,15 @@ def get_internal_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
+    return internal_url_prefix.rstrip("/")
+
+
+def get_internal_source(project):
+    """
+    Returns the source configuration for a Sentry project.
+    """
     sentry_source_url = "{}{}".format(
-        internal_url_prefix.rstrip("/"),
+        get_internal_url_prefix(),
         reverse(
             "sentry-api-0-dsym-files",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
@@ -145,6 +153,34 @@ def get_internal_source(project):
         "type": "sentry",
         "id": INTERNAL_SOURCE_NAME,
         "url": sentry_source_url,
+        "token": get_system_token(),
+    }
+
+
+def get_internal_artifact_lookup_source_url(project):
+    """
+    Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
+    """
+    return "{}{}".format(
+        get_internal_url_prefix(),
+        reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        ),
+    )
+
+
+def get_internal_artifact_lookup_source(project):
+    """
+    Returns the source configuration for the Sentry artifact-lookup API.
+    """
+    return {
+        "type": "sentry",
+        "id": INTERNAL_SOURCE_NAME,
+        "url": get_internal_artifact_lookup_source_url(project),
         "token": get_system_token(),
     }
 

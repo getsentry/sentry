@@ -5,14 +5,14 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
-  'data-test-id': string;
   dateUpdated: string | null;
   raw: string;
   type: 'codeowners' | 'issueowners';
   controls?: React.ReactNode[];
+  'data-test-id'?: string;
   placeholder?: string;
   provider?: string;
   repoName?: string;

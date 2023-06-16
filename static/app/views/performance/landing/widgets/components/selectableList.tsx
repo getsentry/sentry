@@ -7,7 +7,7 @@ import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   items: (() => React.ReactNode)[];
@@ -71,7 +71,7 @@ export const GrowLink = styled(Link)`
   display: inherit;
 `;
 
-export const WidgetEmptyStateWarning = () => {
+export function WidgetEmptyStateWarning() {
   return (
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
@@ -82,7 +82,7 @@ export const WidgetEmptyStateWarning = () => {
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );
-};
+}
 
 export function ListClose(props: {
   onClick: () => void;

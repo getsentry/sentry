@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarUser, Commit} from 'sentry/types';
 
 type Props = {
@@ -32,7 +32,7 @@ function LastCommit({commit, className}: Props) {
 
     const firstLine = message.split(/\n/)[0];
     if (firstLine.length > 100) {
-      let truncated = firstLine.substr(0, 90);
+      let truncated = firstLine.substring(0, 90);
       const words = truncated.split(/ /);
       // try to not have ellipsis mid-word
       if (words.length > 1) {

@@ -556,10 +556,13 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("trace.span", expected=[])
         self.run_test("trace", expected=[])
         self.run_test("event_id", expected=[])
+        self.run_test("profile_id", expected=[])
 
     def test_boolean_fields(self):
         self.run_test("error.handled", expected=[("true", None), ("false", None)])
         self.run_test("error.unhandled", expected=[("true", None), ("false", None)])
+        self.run_test("error.main_thread", expected=[("true", None), ("false", None)])
+        self.run_test("stack.in_app", expected=[("true", None), ("false", None)])
 
 
 @region_silo_test

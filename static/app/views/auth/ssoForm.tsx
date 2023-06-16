@@ -57,10 +57,12 @@ type SlugExampleProps = {
   slug: string;
 };
 
-const SlugExample = ({hostname, slug}: SlugExampleProps) => (
-  <code>
-    {hostname}/<strong>{slug}</strong>
-  </code>
-);
+function SlugExample({hostname, slug}: SlugExampleProps) {
+  return (
+    <code>
+      {hostname}/<strong>{slug}</strong>
+    </code>
+  );
+}
 
 export default SsoForm;

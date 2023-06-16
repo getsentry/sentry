@@ -1,6 +1,4 @@
-from typing import Any, Dict, Literal, Mapping, Set, TypedDict
-
-from drf_spectacular.drainage import warn
+from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
@@ -25,23 +23,54 @@ _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
 
 
-def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-    from sentry.apidocs.public_exclusion_list import (
-        EXCLUDED_FROM_PUBLIC_ENDPOINTS,
-        PUBLIC_ENDPOINTS_FROM_JSON,
+def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
+    """
+    We have a few endpoints which are wrapped by `method_dispatch`, which DRF
+    will ignore (see [0]). To still have these endpoints properly included in
+    our docs, we explicitly define them here.
+
+    XXX: This is currently just used for monitors. In the future we'll remove
+         the legacy monitor endpoints that require us to have method_dispatch
+         and we can probably remove this too.
+
+    [0]: https://github.com/encode/django-rest-framework/blob/3f8ab538c1a7e6f887af9fec41847e2d67ff674f/rest_framework/schemas/generators.py#L117-L118
+    """
+    from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
+        MonitorIngestCheckInDetailsEndpoint,
+    )
+    from sentry.monitors.endpoints.monitor_ingest_checkin_index import (
+        MonitorIngestCheckInIndexEndpoint,
+    )
+    from sentry.monitors.endpoints.organization_monitor_checkin_index import (
+        OrganizationMonitorCheckInIndexEndpoint,
     )
 
-    registered_endpoints = PUBLIC_ENDPOINTS_FROM_JSON | EXCLUDED_FROM_PUBLIC_ENDPOINTS
+    return [
+        (
+            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+            "GET",
+            OrganizationMonitorCheckInIndexEndpoint.as_view(),
+        ),
+        (
+            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+            "POST",
+            MonitorIngestCheckInIndexEndpoint.as_view(),
+        ),
+        (
+            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
+            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+            "PUT",
+            MonitorIngestCheckInDetailsEndpoint.as_view(),
+        ),
+    ]
+
+
+def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
 
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
-        view = f"{callback.__module__}.{callback.__name__}"
-
-        if callback.view_class.public and callback.view_class.private:
-            warn(  # type: ignore[no-untyped-call]
-                "both `public` and `private` cannot be defined at the same time, "
-                "please remove one of the attributes."
-            )
 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
@@ -53,23 +82,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
 
-        elif view in registered_endpoints:
-            # don't error if endpoint is added to exclusion list
+        else:
+            # if an endpoint doesn't have any registered public methods, don't check it.
             pass
 
-        elif callback.view_class.private:
-            # if the endpoint is explicitly private, that's okay.
-            pass
-        else:
-            # any new endpoint that isn't accounted for should recieve this error when building api docs
-            warn(  # type: ignore[no-untyped-call]
-                f"{view} {method} is unaccounted for. "
-                "Either document the endpoint and define the `public` attribute on the endpoint "
-                "with the public HTTP methods, "
-                "or set the `private` attribute on the endpoint to `True`. "
-                "See https://develop.sentry.dev/api/public/ for more info on "
-                "making APIs public."
-            )
+    # Register explicit ednpoints
+    filtered.extend(__get_explicit_endpoints())
 
     return filtered
 

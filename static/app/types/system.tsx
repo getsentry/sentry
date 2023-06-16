@@ -1,7 +1,7 @@
 import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
-import type exportGlobals from 'sentry/bootstrap/exportGlobals';
+import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
 import type {User} from './user';
 
@@ -27,7 +27,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportGlobals) => void;
+      onReady: (globals: typeof exportedGlobals) => void;
     };
 
 declare global {
@@ -85,6 +85,11 @@ declare global {
       };
     };
     /**
+     * Is the UI running as dev-ui proxy.
+     * Used by webpack-devserver + html-webpack
+     */
+    __SENTRY_DEV_UI?: boolean;
+    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
@@ -137,6 +142,7 @@ export interface Config {
     organizationUrl: string | undefined;
     regionUrl: string | undefined;
     sentryUrl: string;
+    superuserUrl?: string;
   };
   /**
    * This comes from django (django.contrib.messages)
@@ -146,9 +152,11 @@ export interface Config {
   privacyUrl: string | null;
 
   sentryConfig: {
+    allowUrls: string[];
     dsn: string;
     release: string;
-    whitelistUrls: string[];
+    tracePropagationTargets: string[];
+    profilesSampleRate?: number;
   };
   singleOrganization: boolean;
   superUserCookieDomain: string | null;

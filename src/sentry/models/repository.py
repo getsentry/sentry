@@ -14,6 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
 
 
@@ -28,7 +29,7 @@ class Repository(Model, PendingDeletionMixin):
     external_id = models.CharField(max_length=64, null=True)
     config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), db_index=True
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
     )
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
@@ -93,7 +94,7 @@ class Repository(Model, PendingDeletionMixin):
         return super().reset_pending_deletion_field_names(["config"])
 
 
-def on_delete(instance, actor=None, **kwargs):
+def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     """
     Remove webhooks for repository providers that use repository level webhooks.
     This is called from sentry.tasks.deletion.run_deletion()

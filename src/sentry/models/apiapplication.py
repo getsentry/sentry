@@ -1,8 +1,9 @@
+from typing import List
 from urllib.parse import urlparse
 from uuid import uuid4
 
 import petname
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -14,10 +15,13 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.types.region import find_all_region_names
 
 
 def generate_name():
-    return petname.Generate(2, " ", letters=10).title()
+    return petname.generate(2, " ", letters=10).title()
 
 
 def generate_token():
@@ -37,7 +41,7 @@ class ApiApplication(Model):
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)
     client_secret = models.TextField(default=generate_token)
-    owner = FlexibleForeignKey("sentry.User")
+    owner = FlexibleForeignKey("sentry.User", null=True)
     name = models.CharField(max_length=64, blank=True, default=generate_name)
     status = BoundedPositiveIntegerField(
         default=0,
@@ -66,6 +70,28 @@ class ApiApplication(Model):
 
     def __str__(self):
         return self.name
+
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects.remove_for_project(self)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return super().delete(**kwargs)
+
+    def outboxes_for_update(self) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.APP_SCOPE,
+                shard_identifier=self.id,
+                object_identifier=self.id,
+                category=OutboxCategory.API_APPLICATION_UPDATE,
+                region_name=region_name,
+            )
+            for region_name in find_all_region_names()
+        ]
 
     @property
     def is_active(self):

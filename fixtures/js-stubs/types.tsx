@@ -1,8 +1,23 @@
+import {EntryException} from 'sentry/types';
+import type {
+  ReplayListRecord,
+  ReplayRecord,
+  ReplaySpan,
+} from 'sentry/views/replays/types';
+
+import type {Replay} from './replay';
+
 type SimpleStub<T = any> = () => T;
 
-type OverridableStub<T = any> = (params?: Partial<T>) => T;
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type OverridableStubList<T = any> = (params?: T[]) => T[];
+type OverridableStub<Params = any, Result = Params> = (
+  params?: Partial<Params>
+) => Result;
+
+type OverridableStubList<Params = any, Result = Params> = (
+  params?: Array<Partial<Params>>
+) => Result[];
 
 type TestStubFixtures = {
   AccessRequest: OverridableStub;
@@ -20,10 +35,12 @@ type TestStubFixtures = {
   AuthProvider: OverridableStub;
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
+  AvailableNotificationActions: OverridableStub;
   BitbucketIntegrationConfig: SimpleStub;
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
   BuiltInSymbolSources: OverridableStubList;
+  CodeOwner: OverridableStub;
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
@@ -39,6 +56,7 @@ type TestStubFixtures = {
   EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
+  EventEntryExceptionGroup: SimpleStub<EntryException>;
   EventEntryStacktrace: OverridableStub;
   EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;
@@ -68,13 +86,11 @@ type TestStubFixtures = {
   Members: OverridableStubList;
   MetricRule: OverridableStub;
   MetricsField: OverridableStub;
-  MetricsFieldByMeasurementRating: OverridableStub;
-  MetricsFieldByTransactionStatus: OverridableStub;
-  MetricsFieldsByMeasurementRating: OverridableStub;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
   OrgOwnedApps: SimpleStub;
+  OrgRoleList: OverridableStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
   OrganizationIntegrations: OverridableStub;
@@ -99,7 +115,26 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReplayReaderParams: OverridableStub;
+  Replay: typeof Replay;
+  ReplayError: OverridableStub;
+  ReplayList: OverridableStubList<ReplayListRecord>;
+  ReplayRRWebDivHelloWorld: OverridableStub;
+  ReplayRRWebNode: OverridableStub;
+  ReplayRecord: OverridableStub<ReplayRecord>;
+  ReplaySegmentBreadcrumb: OverridableStub;
+  ReplaySegmentConsole: OverridableStub;
+  ReplaySegmentFullsnapshot: OverridableStub;
+  ReplaySegmentInit: OverridableStub;
+  ReplaySegmentNavigation: OverridableStub;
+  ReplaySegmentSpan: OverridableStub;
+  ReplaySpanPayload: OverridableStub<
+    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
+    ReplaySpan
+  >;
+  ReplaySpanPayloadNavigate: OverridableStub<
+    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
+    ReplaySpan
+  >;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;
@@ -127,6 +162,8 @@ type TestStubFixtures = {
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
   SourceMapArtifact: OverridableStub;
+  SourceMapsDebugIDBundles: OverridableStub;
+  SourceMapsDebugIDBundlesArtifacts: OverridableStub;
   Span: OverridableStub;
   Subscriptions: OverridableStubList;
   TagValues: OverridableStubList;
@@ -136,6 +173,7 @@ type TestStubFixtures = {
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
   TeamResolutionTime: SimpleStub;
+  TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;
   TraceError: OverridableStub;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;

@@ -5,8 +5,8 @@ import type {Commit} from './integrations';
 import type {User} from './user';
 
 export enum ReleaseStatus {
-  Active = 'open',
-  Archived = 'archived',
+  ACTIVE = 'open',
+  ARCHIVED = 'archived',
 }
 
 export type SourceMapsArchive = {
@@ -20,7 +20,7 @@ export type SourceMapsArchive = {
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
-  headers: {'Content-Type': string};
+  headers: {'Content-Type': string} | {};
   id: string;
   name: string;
   sha1: string;
@@ -123,6 +123,7 @@ export type ReleaseMeta = {
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
+  isArtifactBundle: boolean;
   projects: ReleaseProject[];
   releaseFileCount: number;
   released: string;

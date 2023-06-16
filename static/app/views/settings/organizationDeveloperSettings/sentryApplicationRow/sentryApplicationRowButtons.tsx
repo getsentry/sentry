@@ -12,16 +12,16 @@ type Props = {
   onClickPublish?: () => void;
 };
 
-const SentryApplicationRowButtons = ({
+function SentryApplicationRowButtons({
   organization,
   app,
   onClickRemove,
   onClickPublish,
-}: Props) => {
+}: Props) {
   const isInternal = app.status === 'internal';
 
   return (
-    <Access access={['org:admin']} organization={organization}>
+    <Access access={['org:admin']}>
       {({hasAccess}) => {
         let disablePublishReason = '';
         let disableDeleteReason = '';
@@ -54,6 +54,6 @@ const SentryApplicationRowButtons = ({
       }}
     </Access>
   );
-};
+}
 
 export default SentryApplicationRowButtons;

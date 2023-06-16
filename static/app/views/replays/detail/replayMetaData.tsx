@@ -1,116 +1,184 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import countBy from 'lodash/countBy';
 
-import Duration from 'sentry/components/duration';
+import Badge from 'sentry/components/badge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
-import Placeholder from 'sentry/components/placeholder';
-import Tag, {Background} from 'sentry/components/tag';
+import ContextIcon from 'sentry/components/replays/contextIcon';
+import ErrorCount from 'sentry/components/replays/header/errorCount';
+import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock} from 'sentry/icons';
-import {tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {IconCalendar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
 };
 
-function ReplayMetaData({replayRecord}: Props) {
+function ReplayMetaData({replayRecord, replayErrors}: Props) {
   const {pathname, query} = useLocation();
-  const {replaySlug} = useParams();
+  const organization = useOrganization();
   const {projects} = useProjects();
-  const [slug] = replaySlug.split(':');
 
-  const errorsTabHref = {
-    pathname,
-    query: {
-      ...query,
-      t_main: 'console',
-      f_c_logLevel: 'issue',
-      f_c_search: undefined,
-    },
-  };
+  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+
+  const errorsTabHref = hasErrorTab
+    ? {
+        pathname,
+        query: {
+          ...query,
+          t_main: 'errors',
+        },
+      }
+    : {
+        pathname,
+        query: {
+          ...query,
+          t_main: 'console',
+          f_c_logLevel: 'issue',
+          f_c_search: undefined,
+        },
+      };
+
+  const errorCountByProject = useMemo(
+    () =>
+      Object.entries(countBy(replayErrors, 'project.name'))
+        .map(([projectSlug, count]) => ({
+          project: projects.find(p => p.slug === projectSlug),
+          count,
+        }))
+        // sort to prioritize the replay errors first
+        .sort(a => (a.project?.id !== replayRecord?.project_id ? 1 : -1)),
+    [replayErrors, projects, replayRecord]
+  );
 
   return (
     <KeyMetrics>
-      {replayRecord ? (
-        <ProjectBadge
-          project={projects.find(p => p.id === replayRecord.project_id) || {slug}}
-          avatarSize={16}
+      <KeyMetricLabel>{t('OS')}</KeyMetricLabel>
+      <KeyMetricData>
+        <ContextIcon
+          name={replayRecord?.os.name ?? ''}
+          version={replayRecord?.os.version ?? undefined}
         />
-      ) : (
-        <HeaderPlaceholder />
-      )}
+      </KeyMetricData>
 
+      <KeyMetricLabel>{t('Browser')}</KeyMetricLabel>
+      <KeyMetricData>
+        <ContextIcon
+          name={replayRecord?.browser.name ?? ''}
+          version={replayRecord?.browser.version ?? undefined}
+        />
+      </KeyMetricData>
+
+      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
           <Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} shorten />
+            <TimeSince date={replayRecord.started_at} unitStyle="regular" />
           </Fragment>
         ) : (
-          <HeaderPlaceholder />
+          <HeaderPlaceholder width="80px" height="16px" />
         )}
       </KeyMetricData>
+      <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
-          <Fragment>
-            <IconClock color="gray300" />
-            <Duration
-              seconds={Math.trunc(replayRecord?.duration.asSeconds())}
-              abbreviation
-              exact
-            />
-          </Fragment>
+          <StyledLink to={errorsTabHref}>
+            {errorCountByProject.length > 0 ? (
+              <Fragment>
+                {errorCountByProject.length < 3 ? (
+                  errorCountByProject.map(({project, count}, idx) => (
+                    <ErrorCount key={idx} countErrors={count} project={project} />
+                  ))
+                ) : (
+                  <StackedErrorCount errorCounts={errorCountByProject} />
+                )}
+              </Fragment>
+            ) : (
+              <ErrorCount countErrors={0} />
+            )}
+          </StyledLink>
         ) : (
-          <HeaderPlaceholder />
+          <HeaderPlaceholder width="80px" height="16px" />
         )}
       </KeyMetricData>
-
-      {replayRecord ? (
-        <StyledLink to={errorsTabHref}>
-          <ErrorTag
-            icon={null}
-            type={replayRecord.count_errors ? 'error' : 'black'}
-            level={replayRecord.count_errors ? 'fatal' : 'default'}
-          >
-            {replayRecord.count_errors}
-          </ErrorTag>
-          {tn('Error', 'Errors', replayRecord.count_errors)}
-        </StyledLink>
-      ) : (
-        <HeaderPlaceholder />
-      )}
     </KeyMetrics>
   );
 }
 
-export const HeaderPlaceholder = styled(
-  (props: React.ComponentProps<typeof Placeholder>) => (
-    <Placeholder width="80px" height="19px" {...props} />
-  )
-)`
-  background-color: ${p => p.theme.background};
-`;
+function StackedErrorCount({
+  errorCounts,
+}: {
+  errorCounts: Array<{count: number; project: Project | undefined}>;
+}) {
+  const projectCount = errorCounts.length - 2;
+  const totalErrors = errorCounts.reduce((acc, val) => acc + val.count, 0);
+  return (
+    <Fragment>
+      <StackedProjectBadges>
+        {errorCounts.slice(0, 2).map((v, idx) => {
+          if (!v.project) {
+            return null;
+          }
 
-const KeyMetrics = styled('div')`
+          return <ProjectBadge key={idx} project={v.project} hideName disableLink />;
+        })}
+        <Badge>+{projectCount}</Badge>
+      </StackedProjectBadges>
+      <ErrorCount countErrors={totalErrors} hideIcon />
+    </Fragment>
+  );
+}
+
+const StackedProjectBadges = styled('div')`
   display: flex;
-  gap: ${space(3)};
   align-items: center;
-  justify-content: end;
-  font-size: ${p => p.theme.fontSizeMedium};
+  & * {
+    margin-left: 0;
+    margin-right: 0;
+    cursor: pointer;
+  }
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    justify-content: start;
+  & *:hover {
+    z-index: unset;
+  }
+
+  & > :not(:first-child) {
+    margin-left: -${space(0.5)};
   }
 `;
 
-const KeyMetricData = styled('div')`
-  color: ${p => p.theme.textColor};
+const KeyMetrics = styled('dl')`
+  display: grid;
+  grid-template-rows: max-content 1fr;
+  grid-template-columns: repeat(4, max-content);
+  grid-auto-flow: column;
+  gap: 0 ${space(3)};
+  align-items: center;
+  align-self: end;
+  color: ${p => p.theme.gray300};
+  margin: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    justify-self: flex-end;
+  }
+`;
+
+const KeyMetricLabel = styled('dt')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const KeyMetricData = styled('dd')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: normal;
   display: flex;
   align-items: center;
@@ -121,18 +189,6 @@ const KeyMetricData = styled('div')`
 const StyledLink = styled(Link)`
   display: flex;
   gap: ${space(1)};
-`;
-
-const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
-  ${Background} {
-    background: ${p => p.theme.level[p.level]};
-    border-color: ${p => p.theme.level[p.level]};
-    padding: 0 ${space(0.75)};
-
-    span {
-      color: ${p => p.theme.buttonCountActive} !important;
-    }
-  }
 `;
 
 export default ReplayMetaData;

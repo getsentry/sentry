@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 
 const defaultRenderCheckbox = ({checkbox}) => checkbox;
@@ -60,13 +60,13 @@ function PageFilterRow({
 const checkboxInputStyles = css`
   /* Make the hitbox of the checkbox a bit larger */
   top: -${space(2)};
-  left: -${space(2)};
-  width: 48px;
-  height: 48px;
+  left: -${space(0.5)};
+  width: 34px;
+  height: 44px;
 `;
 
 const MultiselectCheckbox = styled(Checkbox)`
-  margin: 0 ${space(1)};
+  margin: 0 ${space(0.5)};
   margin-right: ${space(0.75)};
 `;
 

@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import Integration, OrganizationIntegration
+from sentry.services.hybrid_cloud.user import RpcUser
 from social_auth.models import UserSocialAuth
 
 
@@ -76,7 +77,7 @@ class ProviderMixin:
         organization = kwargs.get("organization")
         if organization:
             has_auth = OrganizationIntegration.objects.filter(
-                integration__provider=self.auth_provider, organization=organization
+                integration__provider=self.auth_provider, organization_id=organization.id
             ).exists()
             if has_auth:
                 return False
@@ -86,7 +87,7 @@ class ProviderMixin:
 
         return not UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).exists()
 
-    def get_auth(self, user, **kwargs):
+    def get_auth(self, user: RpcUser, **kwargs):
         if self.auth_provider is None:
             return None
 
@@ -95,7 +96,7 @@ class ProviderMixin:
             try:
                 auth = UserSocialAuth.objects.get(
                     id=OrganizationIntegration.objects.filter(
-                        organization=organization, integration__provider=self.auth_provider
+                        organization_id=organization.id, integration__provider=self.auth_provider
                     ).values_list("default_auth_id", flat=True)[0]
                 )
             except UserSocialAuth.DoesNotExist:

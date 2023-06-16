@@ -67,6 +67,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import ActorTuple, Integration, PagerDutyService
+from sentry.models.actor import get_actor_id_for_user
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -169,9 +170,9 @@ class UpdateIncidentStatus(TestCase):
         assert incident.date_closed == expected_date_closed
         activity = self.get_most_recent_incident_activity(incident)
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user == user
+        assert activity.user_id == (user.id if user else None)
         if user:
-            assert IncidentSubscription.objects.filter(incident=incident, user=user).exists()
+            assert IncidentSubscription.objects.filter(incident=incident, user_id=user.id).exists()
         assert activity.value == str(status.value)
         assert activity.previous_value == str(prev_status)
         assert activity.comment == comment
@@ -338,7 +339,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.value == str(IncidentStatus.CLOSED.value)
         assert activity.previous_value == str(IncidentStatus.WARNING.value)
         self.assert_notifications_sent(activity)
@@ -348,16 +349,18 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident()
         comment = "hello"
 
-        assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+        assert not IncidentSubscription.objects.filter(
+            incident=incident, user_id=self.user.id
+        ).exists()
         self.record_event.reset_mock()
         activity = create_incident_activity(
             incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
         )
-        assert IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+        assert IncidentSubscription.objects.filter(incident=incident, user_id=self.user.id).exists()
 
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert activity.value is None
         assert activity.previous_value is None
@@ -377,11 +380,13 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident()
         mentioned_member = self.create_user()
         subscribed_mentioned_member = self.create_user()
-        IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
+        IncidentSubscription.objects.create(
+            incident=incident, user_id=subscribed_mentioned_member.id
+        )
         comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
 
         assert not IncidentSubscription.objects.filter(
-            incident=incident, user=mentioned_member
+            incident=incident, user_id=mentioned_member.id
         ).exists()
         self.record_event.reset_mock()
         activity = create_incident_activity(
@@ -392,12 +397,12 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
         )
         assert IncidentSubscription.objects.filter(
-            incident=incident, user=mentioned_member
+            incident=incident, user_id=mentioned_member.id
         ).exists()
 
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert activity.value is None
         assert activity.previous_value is None
@@ -418,7 +423,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user)[0]
+        subscription = subscribe_to_incident(incident, self.user.id)[0]
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
@@ -555,7 +560,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule_1.owner.id == self.user.actor.id
+        assert alert_rule_1.owner.id == get_actor_id_for_user(self.user)
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -852,7 +857,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
@@ -862,17 +867,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.id == self.user.actor.id
+        assert alert_rule.owner.id == get_actor_id_for_user(self.user)
 
         update_alert_rule(
             alert_rule=alert_rule,
@@ -1154,6 +1159,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
 
+    def test_exempt_service(self):
+        service_type = AlertRuleTriggerAction.Type.SENTRY_NOTIFICATION
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                trigger=self.trigger,
+                type=service_type,
+                target_type=target_type,
+                target_identifier=1,
+            )
+
     @responses.activate
     def test_slack(self):
         integration = Integration.objects.create(
@@ -1180,14 +1197,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         )
 
         action = create_alert_rule_trigger_action(
-            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
         integration = Integration.objects.create(
@@ -1205,7 +1226,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @responses.activate
@@ -1237,7 +1258,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
@@ -1250,14 +1271,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_id = "some_id"
 
         action = create_alert_rule_trigger_action(
-            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
         mock_get_channel_id.assert_called_once_with(
             self.organization, integration.id, "some_channel"
@@ -1277,7 +1302,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     def test_pagerduty(self):
@@ -1299,7 +1324,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         service = PagerDutyService.objects.create(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1309,14 +1334,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             type,
             target_type,
             target_identifier=target_identifier,
-            integration=integration,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
         assert action.target_display == "hellboi"
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
@@ -1335,7 +1360,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 type,
                 target_type,
                 target_identifier=target_identifier,
-                integration=integration,
+                integration_id=integration.id,
             )
 
 
@@ -1386,14 +1411,18 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         )
 
         action = update_alert_rule_trigger_action(
-            self.action, type, target_type, target_identifier=channel_name, integration=integration
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
         integration = Integration.objects.create(
@@ -1411,7 +1440,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @responses.activate
@@ -1443,7 +1472,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
@@ -1456,14 +1485,18 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_id = "some_id"
 
         action = update_alert_rule_trigger_action(
-            self.action, type, target_type, target_identifier=channel_name, integration=integration
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_name,
+            integration_id=integration.id,
         )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
         mock_get_channel_id.assert_called_once_with(
             self.organization, integration.id, "some_channel"
@@ -1483,7 +1516,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
-                integration=integration,
+                integration_id=integration.id,
             )
 
     def test_pagerduty(self):
@@ -1505,7 +1538,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         service = PagerDutyService.objects.create(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1515,7 +1548,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             type,
             target_type,
             target_identifier=target_identifier,
-            integration=integration,
+            integration_id=integration.id,
         )
 
         assert action.alert_rule_trigger == self.trigger
@@ -1523,7 +1556,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
         assert action.target_display == "hellboi"
-        assert action.integration == integration
+        assert action.integration_id == integration.id
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
@@ -1542,7 +1575,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=target_identifier,
-                integration=integration,
+                integration_id=integration.id,
             )
 
 
@@ -1733,206 +1766,114 @@ class TestDeduplicateTriggerActions(TestCase):
             },
         )
 
-    @cached_property
-    def critical(self):
-        return AlertRuleTrigger(label=CRITICAL_TRIGGER_LABEL)
-
-    @cached_property
-    def warning(self):
-        return AlertRuleTrigger(label=WARNING_TRIGGER_LABEL)
-
     def run_test(self, input, output):
         key = lambda action: action.id
         assert sorted(deduplicate_trigger_actions(input), key=key) == sorted(output, key=key)
 
-    def create_it_and_action(
+    def create_alert_rule_trigger_and_action(
         self,
         id,
         target_identifier,
         trigger_type=AlertRuleTriggerAction.Type.EMAIL.value,
         target_type=AlertRuleTriggerAction.TargetType.USER.value,
         warning=False,
-        status=TriggerStatus.ACTIVE.value,
+        incident_trigger_status=TriggerStatus.ACTIVE.value,
     ):
         rule = self.create_alert_rule()
-        rule_trigger = self.create_alert_rule_trigger(
+        alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=rule,
             label=WARNING_TRIGGER_LABEL if warning else CRITICAL_TRIGGER_LABEL,
             alert_threshold=100,
         )
         action = AlertRuleTriggerAction.objects.create(
             id=id,
-            alert_rule_trigger=rule_trigger,
+            alert_rule_trigger=alert_rule_trigger,
             type=trigger_type,
             integration_id=self.integration.id,
             target_type=target_type,
             target_identifier=target_identifier,
         )
-        it = IncidentTrigger.objects.create(
-            incident=self.incident, alert_rule_trigger=rule_trigger, status=status
+        IncidentTrigger.objects.create(
+            incident=self.incident,
+            alert_rule_trigger=alert_rule_trigger,
+            status=incident_trigger_status,
         )
-        return it, action
+        return alert_rule_trigger, action
 
-    @patch("sentry.incidents.logic.prioritize_actions")
-    def test_critical_only(self, prioritize_actions_patched):
-        patched_incident_triggers_input = []
-
-        action = AlertRuleTriggerAction(
-            id=1,
-            alert_rule_trigger=self.critical,
-            type=AlertRuleTriggerAction.Type.EMAIL.value,
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier="1",
+    def test_critical_only(self):
+        trigger_c, action_c = self.create_alert_rule_trigger_and_action(
+            id=1, target_identifier="asdf", warning=False
         )
-
-        prioritize_actions_patched.return_value = [action]
-        self.run_test(patched_incident_triggers_input, [action])
-
-        prioritize_actions_patched.return_value = [action, action]
-        self.run_test(patched_incident_triggers_input, [action])
-
-        other_action = AlertRuleTriggerAction(
+        AlertRuleTriggerAction.objects.create(
             id=2,
-            alert_rule_trigger=self.critical,
+            alert_rule_trigger=trigger_c,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier="2",
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="asdf",
         )
-
-        prioritize_actions_patched.return_value = [action, action, other_action]
-        self.run_test(patched_incident_triggers_input, [action, other_action])
-
-        integration_action = AlertRuleTriggerAction(
+        self.run_test([trigger_c], [action_c])
+        other_action_c = AlertRuleTriggerAction.objects.create(
             id=3,
-            alert_rule_trigger=self.critical,
-            type=AlertRuleTriggerAction.Type.SLACK.value,
-            integration_id=1,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier="D12345",
+            alert_rule_trigger=trigger_c,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
         )
-        app_action = AlertRuleTriggerAction(
+        self.run_test([trigger_c], [action_c, other_action_c])
+
+    def test_warning_only(self):
+        trigger_w, action_w = self.create_alert_rule_trigger_and_action(
+            id=1, target_identifier="asdf", warning=True
+        )
+        AlertRuleTriggerAction.objects.create(
+            id=2,
+            alert_rule_trigger=trigger_w,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="asdf",
+        )
+        self.run_test([trigger_w], [action_w])
+        other_action_w = AlertRuleTriggerAction.objects.create(
+            id=3,
+            alert_rule_trigger=trigger_w,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
+        )
+        self.run_test([trigger_w], [action_w, other_action_w])
+
+    def test_critical_and_warning(self):
+        trigger_w, action_w = self.create_alert_rule_trigger_and_action(
+            id=2, target_identifier="asdf", warning=True
+        )
+        trigger_c, action_c = self.create_alert_rule_trigger_and_action(
+            id=1, target_identifier="asdf", warning=False
+        )
+        # warning action should win over critical action
+        self.run_test([trigger_w, trigger_c], [action_w])
+
+        other_action_c = AlertRuleTriggerAction.objects.create(
+            id=3,
+            alert_rule_trigger=trigger_c,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
+        )
+        # this new critical should be preserved
+        self.run_test([trigger_w, trigger_c], [action_w, other_action_c])
+
+        other_action_w = AlertRuleTriggerAction.objects.create(
             id=4,
-            alert_rule_trigger=self.critical,
-            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
-            integration_id=1,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier="D12345",
+            alert_rule_trigger=trigger_w,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
         )
-
-        input_action_arr = [action, action, other_action, integration_action, app_action]
-        prioritize_actions_patched.return_value = input_action_arr
-        self.run_test(
-            patched_incident_triggers_input,
-            [action, other_action, integration_action, app_action],
-        )
-
-        input_action_arr = [
-            action,
-            action,
-            other_action,
-            other_action,
-            integration_action,
-            integration_action,
-            app_action,
-            app_action,
-        ]
-        prioritize_actions_patched.return_value = input_action_arr
-        self.run_test(
-            patched_incident_triggers_input,
-            [action, other_action, integration_action, app_action],
-        )
-
-    def test_critical_warning(self):
-        it_w, _ = self.create_it_and_action(id=2, target_identifier="1", warning=True)
-        it_c, action_c = self.create_it_and_action(id=1, target_identifier="1", warning=False)
-        self.run_test([it_w, it_c, it_c], [action_c])
-
-        other_it_w, other_action_w = self.create_it_and_action(
-            id=3, target_identifier="2", warning=True
-        )
-        self.run_test([it_w, it_c, it_c, other_it_w], [action_c, other_action_w])
-
-        integration_it_w, integration_action_w = self.create_it_and_action(
-            id=4,
-            trigger_type=AlertRuleTriggerAction.Type.SLACK.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=True,
-        )
-        app_it_w, app_action_w = self.create_it_and_action(
-            id=5,
-            trigger_type=AlertRuleTriggerAction.Type.MSTEAMS.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=True,
-        )
-        self.run_test(
-            [it_w, it_c, it_c, other_it_w, integration_it_w, app_it_w],
-            [action_c, other_action_w, integration_action_w, app_action_w],
-        )
-
-        integration_it_c, integration_action_c = self.create_it_and_action(
-            id=6,
-            trigger_type=AlertRuleTriggerAction.Type.SLACK.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=False,
-        )
-        app_it_c, app_action_c = self.create_it_and_action(
-            id=7,
-            trigger_type=AlertRuleTriggerAction.Type.MSTEAMS.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=False,
-        )
-        self.run_test(
-            [
-                it_w,
-                it_c,
-                it_c,
-                other_it_w,
-                integration_it_w,
-                app_it_w,
-                integration_it_c,
-                app_it_c,
-            ],
-            [action_c, other_action_w, integration_action_c, app_action_c],
-        )
-
-    def test_critical_and_warning_prioritization(self):
-        """
-        Test that ensures that the array of actions returned matches the following
-        priority ordering regardless of the ordering of the incident triggers
-        1- Critical & Active
-        2- Warning & Active
-        3- Critical & Resolved
-        4- Warning & Resolved
-        """
-        it_w, action_w = self.create_it_and_action(id=2, target_identifier="1", warning=True)
-        it_c, action_c = self.create_it_and_action(
-            id=1, target_identifier="1", warning=False, status=TriggerStatus.RESOLVED.value
-        )
-        self.run_test([it_w, it_c, it_c], [action_w])
-
-        other_it_c, other_action_c = self.create_it_and_action(
-            id=3, target_identifier="2", warning=False
-        )
-        other_it_w, other_action_w = self.create_it_and_action(
-            id=4, target_identifier="3", warning=True, status=TriggerStatus.RESOLVED.value
-        )
-        other_it_c_resolved, other_action_c_resolved = self.create_it_and_action(
-            id=5, target_identifier="4", warning=False, status=TriggerStatus.RESOLVED.value
-        )
-
-        self.run_test(
-            [it_w, it_c, other_it_c, other_it_c_resolved, other_it_w],
-            [other_action_c, action_w, other_action_c_resolved, other_action_w],
-        )
-        self.run_test(
-            [it_c, it_w, other_it_c_resolved, other_it_c, other_it_w],
-            [other_action_c, action_w, other_action_c_resolved, other_action_w],
-        )
-        self.run_test(
-            [other_it_c, it_w, other_it_c_resolved, other_it_w, it_c],
-            [other_action_c, action_w, other_action_c_resolved, other_action_w],
-        )
+        # now this should win over the new critical
+        self.run_test([trigger_w, trigger_c], [action_w, other_action_w])

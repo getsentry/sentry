@@ -5,14 +5,14 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -38,7 +38,7 @@ import {VitalWidget} from '../widgets/vitalWidget';
 
 import {ChartRowProps} from './widgetChartRow';
 
-type Props = {
+interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   defaultChartSetting: PerformanceWidgetSetting;
@@ -50,7 +50,7 @@ type Props = {
   withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
-} & ChartRowProps;
+}
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
@@ -58,7 +58,7 @@ function trackChartSettingChange(
   fromDefault: boolean,
   organization: Organization
 ) {
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.switch', {
+  trackAnalytics('performance_views.landingv3.widget.switch', {
     organization,
     from_widget: previousChartSetting,
     to_widget: chartSetting,
@@ -168,11 +168,11 @@ const _WidgetContainer = (props: Props) => {
   const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
 
   switch (widgetProps.dataType) {
-    case GenericPerformanceWidgetDataType.trends:
+    case GenericPerformanceWidgetDataType.TRENDS:
       return (
         <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.area:
+    case GenericPerformanceWidgetDataType.AREA:
       return (
         <SingleFieldAreaWidget
           {...passedProps}
@@ -180,11 +180,11 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.vitals:
+    case GenericPerformanceWidgetDataType.VITALS:
       return (
         <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.line_list:
+    case GenericPerformanceWidgetDataType.LINE_LIST:
       return (
         <LineChartListWidget
           {...passedProps}
@@ -192,24 +192,24 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.histogram:
+    case GenericPerformanceWidgetDataType.HISTOGRAM:
       return (
         <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.stacked_area:
+    case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
 };
 
-export const WidgetInteractiveTitle = ({
+export function WidgetInteractiveTitle({
   chartSetting,
   eventView,
   setChartSetting,
   allowedCharts,
   rowChartSettings,
-}) => {
+}) {
   const organization = useOrganization();
   const menuOptions: SelectOption<string>[] = [];
 
@@ -245,23 +245,25 @@ export const WidgetInteractiveTitle = ({
       value={chartSetting}
       onChange={handleChange}
       triggerProps={{borderless: true, size: 'zero'}}
+      offset={4}
     />
   );
-};
+}
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
   font-weight: normal;
-  margin: 0 -${space(0.5)};
+  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
+    padding: ${space(0.5)} ${space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
 
-export const WidgetContainerActions = ({
+export function WidgetContainerActions({
   chartSetting,
   eventView,
   setChartSetting,
@@ -273,7 +275,7 @@ export const WidgetContainerActions = ({
   eventView: EventView;
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
-}) => {
+}) {
   const organization = useOrganization();
   const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
 
@@ -314,19 +316,19 @@ export const WidgetContainerActions = ({
         label={t('Display')}
         options={menuOptions}
         value={chartSetting}
-        onChange={setChartSetting}
+        onChange={opt => setChartSetting(opt.value)}
       />
       {chartDefinition.allowsOpenInDiscover && (
         <CompositeSelect.Region
           label={t('Other')}
           options={[{label: t('Open in Discover'), value: 'open_in_discover'}]}
           value=""
-          onChange={handleWidgetActionChange}
+          onChange={opt => handleWidgetActionChange(opt.value)}
         />
       )}
     </CompositeSelect>
   );
-};
+}
 
 const getEventViewDiscoverPath = (
   organization: Organization,

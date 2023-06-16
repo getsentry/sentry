@@ -7,7 +7,7 @@ import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
 import HelpSource from 'sentry/components/search/sources/helpSource';
 import {IconWindow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type ItemRenderer = React.ComponentProps<typeof Search>['renderItem'];
 
@@ -46,15 +46,17 @@ type Props = Omit<
 >;
 
 // TODO(ts): Type based on Search props once that has types
-const HelpSearch = (props: Props) => (
-  <Search
-    {...props}
-    sources={[HelpSource]}
-    minSearch={3}
-    closeOnSelect={false}
-    renderItem={renderResult}
-  />
-);
+function HelpSearch(props: Props) {
+  return (
+    <Search
+      {...props}
+      sources={[HelpSource]}
+      minSearch={3}
+      closeOnSelect={false}
+      renderItem={renderResult}
+    />
+  );
+}
 
 const SectionHeading = styled('div')`
   display: grid;

@@ -48,6 +48,7 @@ class SegmentPluginTest(PluginTestCase):
                 "environment": "",
                 "eventId": event.event_id,
                 "exceptionType": "ValueError",
+                "level": "warning",
                 "release": "",
                 "transaction": "",
             },

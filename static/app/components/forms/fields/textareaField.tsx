@@ -3,12 +3,7 @@ import omit from 'lodash/omit';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
-import {
-  InputGroup,
-  InputTrailingItems,
-  TextArea,
-  TextAreaProps,
-} from 'sentry/components/inputGroup';
+import {InputGroup, TextAreaProps} from 'sentry/components/inputGroup';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import {InputFieldProps} from './inputField';
@@ -37,15 +32,15 @@ function TextareaField({
         name: string;
       }) => (
         <InputGroup>
-          <TextArea
+          <InputGroup.TextArea
             {...{monospace, rows, autosize, name}}
             // Do not forward required to `textarea` to avoid default browser behavior
             {...omit(fieldProps, ['onKeyDown', 'children', 'required'])}
           />
           {!hideControlState && (
-            <InputTrailingItems>
+            <InputGroup.TrailingItems>
               <FormFieldControlState model={model} name={name} />
-            </InputTrailingItems>
+            </InputGroup.TrailingItems>
           )}
         </InputGroup>
       )}

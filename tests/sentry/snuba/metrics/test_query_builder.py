@@ -6,6 +6,7 @@ from unittest import mock
 import freezegun
 import pytest
 import pytz
+import sentry_sdk
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import (
@@ -27,6 +28,7 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve,
     resolve_tag_key,
@@ -67,7 +69,7 @@ from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
-from sentry.snuba.metrics.query_builder import QueryDefinition
+from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -78,6 +80,7 @@ pytestmark = pytest.mark.sentry_metrics
 class PseudoProject:
     organization_id: int
     id: int
+    slug: str = "project-slug"
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
@@ -251,11 +254,12 @@ def test_parse_query(query_string, expected):
     use_case_id = UseCaseKey.RELEASE_HEALTH
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
         # will be values 10000, 10001 respectively
-        indexer.record(use_case_id=use_case_id, org_id=org_id, string=s)
+        indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=s)
     parsed = resolve_tags(
         use_case_id,
         org_id,
         parse_query(query_string, []),
+        [],
     )
     assert parsed == expected()
 
@@ -349,6 +353,7 @@ def test_timestamps():
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query(mock_now, mock_now2):
     # Your typical release health query querying everything
+    having = [Condition(Column("sum"), Op.GT, 1000)]
     query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -362,6 +367,7 @@ def test_build_snuba_query(mock_now, mock_now2):
         granularity=Granularity(3600),
         where=[Condition(Column("release"), Op.EQ, "staging")],
         groupby=[MetricGroupByField("environment")],
+        having=having,
     )
     snuba_queries, _ = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
@@ -419,6 +425,7 @@ def test_build_snuba_query(mock_now, mock_now2):
                     [resolve_weak(use_case_id, org_id, get_mri(metric_name))],
                 ),
             ],
+            having=having,
             # totals: MAX_POINTS // (90d * 24h)
             # series: totals * (90d * 24h)
             limit=Limit(4) if not extra_groupby else Limit(8644),
@@ -469,6 +476,88 @@ def test_build_snuba_query(mock_now, mock_now2):
             ),
         },
     }
+
+
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+@mock.patch(
+    "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
+)
+def test_build_snuba_query_mri(mock_now, mock_now2):
+    org_id = 1
+    use_case_id = UseCaseKey.RELEASE_HEALTH
+    # Your typical release health query querying everything
+    query_params = MultiValueDict(
+        {
+            "groupBy": [],
+            "field": [
+                "sum(c:sessions/session@none)",
+            ],
+            "interval": ["1d"],
+            "statsPeriod": ["2d"],
+        }
+    )
+
+    NUM_INTERVALS = 2 + 1  # period / interval_length + 1 ( add one for last partial interval)
+    TOTALS_LIMIT = MAX_POINTS // NUM_INTERVALS
+    SERIES_LIMIT = TOTALS_LIMIT * NUM_INTERVALS
+
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params, allow_mri=True)
+    query_builder = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition.to_metrics_query(), use_case_id
+    )
+    snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
+
+    assert fields_in_entities == {
+        "metrics_counters": [
+            ("sum", SessionMRI.SESSION.value, SessionMRI.SESSION.value),
+        ]
+    }
+
+    for key in ["totals", "series"]:
+        groupby = [] if key == "totals" else [Column("bucketed_time")]
+        limit = Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT)
+
+        assert snuba_queries["metrics_counters"][key] == Query(
+            match=Entity("metrics_counters"),
+            select=[
+                Function(
+                    function="sumIf",
+                    parameters=[
+                        Column("value"),
+                        Function(
+                            function="equals",
+                            parameters=[
+                                Column("metric_id"),
+                                9223372036854775809,
+                            ],
+                            alias=None,
+                        ),
+                    ],
+                    alias="c:sessions/session@none",
+                )
+            ],
+            groupby=groupby,
+            where=[
+                Condition(Column("org_id"), Op.EQ, 1),
+                Condition(Column("project_id"), Op.IN, [1]),
+                Condition(
+                    Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, 0, tzinfo=timezone.utc)
+                ),
+                Condition(
+                    Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, 0, tzinfo=timezone.utc)
+                ),
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
+                ),
+            ],
+            having=[],
+            limit=limit,
+            offset=None,
+            granularity=Granularity(query_definition.rollup),
+        )
 
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
@@ -595,6 +684,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
+                having=[],
                 limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
                 offset=None,
                 granularity=Granularity(query_definition.rollup),
@@ -625,6 +715,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
+                having=[],
                 limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
                 offset=None,
                 granularity=Granularity(query_definition.rollup),
@@ -698,6 +789,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 Column("metric_id"), Op.IN, [resolve(use_case_id, org_id, get_mri(metric_name))]
             ),
         ],
+        having=[],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
         offset=None,
@@ -726,6 +818,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 Column("metric_id"), Op.IN, [resolve(use_case_id, org_id, get_mri(metric_name))]
             ),
         ],
+        having=[],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3 * 25),  # 25 intervals so 25 times the limit for totals
         offset=None,
@@ -816,6 +909,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
                 [resolve(use_case_id, org_id, SessionMRI.RAW_DURATION.value)],
             ),
         ],
+        having=[],
         limit=Limit(3),
         offset=None,
         granularity=Granularity(query_definition.rollup),
@@ -845,6 +939,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
                 [resolve(use_case_id, org_id, SessionMRI.RAW_DURATION.value)],
             ),
         ],
+        having=[],
         limit=Limit(3 * 25),  # 25 intervals so 25 * limit for totals
         offset=None,
         granularity=Granularity(query_definition.rollup),
@@ -1428,7 +1523,11 @@ class ResolveTagsTestCase(TestCase):
         transactions = ["/foo", "/bar"]
 
         for transaction in ["transaction"] + transactions:
-            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
+            indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+                org_id=self.org_id,
+                string=transaction,
+            )
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1448,6 +1547,7 @@ class ResolveTagsTestCase(TestCase):
                     parameters=[(transaction,) for transaction in transactions],
                 ),
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1484,8 +1584,16 @@ class ResolveTagsTestCase(TestCase):
         tags = [("/foo", "ios"), ("/bar", "android")]
 
         for transaction, platform in [("transaction", "platform")] + tags:
-            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
-            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=platform)
+            indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+                org_id=self.org_id,
+                string=transaction,
+            )
+            indexer.record(
+                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+                org_id=self.org_id,
+                string=platform,
+            )
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1508,6 +1616,7 @@ class ResolveTagsTestCase(TestCase):
                     parameters=[(transaction, platform) for transaction, platform in tags],
                 ),
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1549,7 +1658,11 @@ class ResolveTagsTestCase(TestCase):
     def test_resolve_tags_with_has(self):
         tag_key = "transaction"
 
-        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=tag_key)
+        indexer.record(
+            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            org_id=self.org_id,
+            string=tag_key,
+        )
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1567,6 +1680,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.EQ,
                 rhs=1,
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1584,7 +1698,11 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_filterable_tag(self):
-        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
+        indexer.record(
+            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            org_id=self.org_id,
+            string="environment",
+        )
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1602,6 +1720,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.EQ,
                 rhs=1,
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1619,7 +1738,11 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_deep_filterable_tag(self):
-        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
+        indexer.record(
+            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            org_id=self.org_id,
+            string="environment",
+        )
 
         resolved_query = resolve_tags(
             self.use_case_id,
@@ -1642,6 +1765,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.EQ,
                 rhs=1,
             ),
+            [],
         )
 
         assert resolved_query == Condition(
@@ -1659,7 +1783,11 @@ class ResolveTagsTestCase(TestCase):
         )
 
     def test_resolve_tags_with_match_and_non_filterable_tag(self):
-        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
+        indexer.record(
+            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            org_id=self.org_id,
+            string="http_status_code",
+        )
 
         with pytest.raises(
             InvalidParams,
@@ -1682,10 +1810,15 @@ class ResolveTagsTestCase(TestCase):
                     op=Op.EQ,
                     rhs=1,
                 ),
+                [],
             )
 
     def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
-        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
+        indexer.record(
+            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            org_id=self.org_id,
+            string="http_status_code",
+        )
 
         with pytest.raises(
             InvalidParams,
@@ -1713,6 +1846,58 @@ class ResolveTagsTestCase(TestCase):
                     op=Op.EQ,
                     rhs=1,
                 ),
+                [],
+            )
+
+    @mock.patch(
+        "sentry.snuba.metrics.Project.objects.filter",
+        return_value=[PseudoProject(i, ORG_ID) for i in range(QUERY_PROJECT_LIMIT + 1)],
+    )
+    def test_resolve_tags_too_many_projects(self, projects):
+        with mock.patch.object(sentry_sdk, "capture_message") as capture_message:
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="ifNull",
+                        parameters=[
+                            Column(
+                                name="tags[project]",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=["project-slug"],
+                ),
+                [PseudoProject(1, ORG_ID)],
+            )
+
+        capture_message.assert_called_once()
+
+    @mock.patch(
+        "sentry.snuba.metrics.Project.objects.filter", return_value=[PseudoProject(1, ORG_ID)]
+    )
+    def test_resolve_tags_invalid_project_slugs(self, projects):
+        with pytest.raises(InvalidParams):
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="ifNull",
+                        parameters=[
+                            Column(
+                                name="tags[project]",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=["invalid-project-slug"],
+                ),
+                [],
             )
 
 
@@ -1764,3 +1949,44 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
     )
 
     assert field == expected_field
+
+
+@pytest.mark.parametrize(
+    "include_totals, include_series",
+    [
+        [True, False],
+        [True, True],
+        [False, True],
+    ],
+)
+def test_having_clause(include_totals, include_series):
+    """
+    Tests that the having clause ends up in the snql queries in the expected form
+    """
+    having = [Condition(Column("sum"), Op.GT, 1000)]
+
+    query_definition = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=[
+            MetricField("sum", SessionMRI.SESSION.value, alias="sum"),
+        ],
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        groupby=[MetricGroupByField("environment")],
+        having=having,
+        include_totals=include_totals,
+        include_series=include_series,
+    )
+    snuba_queries, _ = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+    ).get_snuba_queries()
+
+    queries = snuba_queries["metrics_counters"]
+    if include_totals:
+        query = queries["totals"]
+        assert query.having == having
+    if include_series:
+        query = queries["series"]
+        assert query.having == having

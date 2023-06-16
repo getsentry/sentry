@@ -7,109 +7,39 @@ import time
 from contextlib import contextmanager
 from queue import Queue
 from random import random
-from threading import Thread, local
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from threading import Thread
+from typing import Any, Callable, Generator, Optional, Tuple, Type, TypeVar, Union
 
 from django.conf import settings
 
-from sentry.metrics.base import MetricsBackend
+from sentry.metrics.base import MetricsBackend, MutableTags, Tags
+from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
 
-metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
+metrics_skip_all_internal = settings.SENTRY_METRICS_SKIP_ALL_INTERNAL
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
+
+__all__ = [
+    "add_global_tags",
+    "global_tags",
+    "incr",
+    "timer",
+    "timing",
+    "gauge",
+    "backend",
+    "MutableTags",
+]
+
 
 T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])
-
-# Note: One can pass a lot without TypeErrors, but some values such as None
-# don't actually get serialized as tags properly all the way to statsd (they
-# just get lost)
-# We still loosely type here because we have too many places where we send None
-# for a tag value, and sometimes even keys. It doesn't cause real bugs, your
-# monitoring is just slightly broken.
-TagValue = Union[str, int, float, None]
-Tags = Mapping[str, TagValue]
-MutableTags = MutableMapping[str, TagValue]
-
-_THREAD_LOCAL_TAGS = local()
-_GLOBAL_TAGS: List[Tags] = []
-
-
-def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]:
-    if _all_threads:
-        stack = _GLOBAL_TAGS
-    else:
-        if not hasattr(_THREAD_LOCAL_TAGS, "stack"):
-            stack = _THREAD_LOCAL_TAGS.stack = []
-        else:
-            stack = _THREAD_LOCAL_TAGS.stack
-
-    stack.append(tags)
-    return stack
-
-
-def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
-    """
-    Set multiple metric tags onto the global or thread-local stack which then
-    apply to all metrics.
-
-    When used in combination with the `global_tags` context manager,
-    `add_global_tags` is reverted in any wrapping invocaation of `global_tags`.
-    For example::
-
-        with global_tags(tag_a=123):
-            add_global_tags(tag_b=123)
-
-        # tag_b is no longer visible
-    """
-    _add_global_tags(_all_threads=_all_threads, **tags)
-
-
-@contextmanager
-def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
-    """
-    The context manager version of `add_global_tags` that reverts all tag
-    changes upon exit.
-
-    See docstring of `add_global_tags` for how those two methods interact.
-    """
-    stack = _add_global_tags(_all_threads=_all_threads, **tags)
-    old_len = len(stack) - 1
-
-    try:
-        yield
-    finally:
-        del stack[old_len:]
-
-
-def _get_current_global_tags() -> MutableTags:
-    rv: MutableTags = {}
-
-    for tags in _GLOBAL_TAGS:
-        rv.update(tags)
-
-    for tags in getattr(_THREAD_LOCAL_TAGS, "stack", None) or ():
-        rv.update(tags)
-
-    return rv
 
 
 def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
-    cls = import_string(settings.SENTRY_METRICS_BACKEND)
+    cls: Type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
 
-    return cls(**settings.SENTRY_METRICS_OPTIONS)
+    return MiddlewareWrapper(cls(**settings.SENTRY_METRICS_OPTIONS))
 
 
 backend = get_default_backend()
@@ -188,10 +118,6 @@ def incr(
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-
     should_send_internal = (
         not metrics_skip_all_internal
         and not skip_internal
@@ -200,10 +126,10 @@ def incr(
     )
 
     if should_send_internal:
-        internal.incr(key, instance, current_tags, amount, sample_rate)
+        internal.incr(key, instance, tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, current_tags, amount, sample_rate)
+        backend.incr(key, instance, tags, amount, sample_rate)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -218,12 +144,8 @@ def gauge(
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-
     try:
-        backend.gauge(key, value, instance, current_tags, sample_rate)
+        backend.gauge(key, value, instance, tags, sample_rate)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -236,12 +158,8 @@ def timing(
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-
     try:
-        backend.timing(key, value, instance, current_tags, sample_rate)
+        backend.timing(key, value, instance, tags, sample_rate)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -254,11 +172,8 @@ def timer(
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> Generator[MutableTags, None, None]:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-
     start = time.monotonic()
+    current_tags: MutableTags = dict(tags or ())
     try:
         yield current_tags
     except Exception:

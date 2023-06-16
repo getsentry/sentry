@@ -12,9 +12,9 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
@@ -118,11 +118,8 @@ class VitalCard extends Component<Props, State> {
   trackOpenInDiscoverClicked = () => {
     const {organization} = this.props;
     const {vitalDetails: vital} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.vitals.open_in_discover',
-      eventName: 'Performance Views: Open vitals in discover',
-      organization_id: organization.id,
+    trackAnalytics('performance_views.vitals.open_in_discover', {
+      organization,
       vital: vital.slug,
     });
   };
@@ -130,11 +127,8 @@ class VitalCard extends Component<Props, State> {
   trackOpenAllEventsClicked = () => {
     const {organization} = this.props;
     const {vitalDetails: vital} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.vitals.open_all_events',
-      eventName: 'Performance Views: Open vitals in all events',
-      organization_id: organization.id,
+    trackAnalytics('performance_views.vitals.open_all_events', {
+      organization,
       vital: vital.slug,
     });
   };
@@ -226,8 +220,8 @@ class VitalCard extends Component<Props, State> {
               .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
                 showTransactions:
                   dataFilter === 'all'
-                    ? EventsDisplayFilterName.p100
-                    : EventsDisplayFilterName.p75,
+                    ? EventsDisplayFilterName.P100
+                    : EventsDisplayFilterName.P75,
                 webVital: column as WebVital,
               })}
             onClick={this.trackOpenAllEventsClicked}

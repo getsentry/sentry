@@ -1,18 +1,25 @@
 import styled from '@emotion/styled';
 
 import ListItem from 'sentry/components/list/listItem';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
-  description: string;
   title: string;
+  'data-test-id'?: string;
+  description?: React.ReactNode;
   required?: boolean;
 }
 
-export function BuildStep({title, description, required = false, children}: Props) {
+export function BuildStep({
+  title,
+  description,
+  required = false,
+  children,
+  ...props
+}: Props) {
   return (
-    <Wrapper>
+    <Wrapper {...props}>
       <Heading>
         {title}
         {required && <RequiredBadge />}
@@ -32,8 +39,8 @@ const Heading = styled('h5')`
   color: ${p => p.theme.gray500};
 `;
 
-const SubHeading = styled('small')`
-  color: ${p => p.theme.gray300};
+export const SubHeading = styled('small')`
+  color: ${p => p.theme.gray400};
   padding: ${space(0.25)} ${space(2)} ${space(2)} 0;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

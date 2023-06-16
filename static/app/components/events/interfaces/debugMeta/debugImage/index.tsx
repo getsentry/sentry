@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/button';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 
 import layout from '../layout';

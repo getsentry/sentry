@@ -2,12 +2,14 @@ export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;
 export const DISABLED = 'Disabled' as const;
+export const PENDING_DELETION = 'Pending Deletion' as const;
 export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray300',
   [DISABLED]: 'gray300',
+  [PENDING_DELETION]: 'gray300',
   [PENDING]: 'pink300',
   [LEARN_MORE]: 'gray300',
 } as const;

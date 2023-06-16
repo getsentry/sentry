@@ -21,7 +21,7 @@ class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
             return Response(ERR_NO_SSO, status=403)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             raise ResourceDoesNotExist
 

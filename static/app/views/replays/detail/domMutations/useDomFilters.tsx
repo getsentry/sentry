@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
@@ -34,8 +34,11 @@ const FILTERS = {
 function useDomFilters({actions}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  const type = decodeList(query.f_d_type);
-  const searchTerm = decodeScalar(query.f_d_search, '').toLowerCase();
+  const type = useMemo(() => decodeList(query.f_d_type), [query.f_d_type]);
+  const searchTerm = useMemo(
+    () => decodeScalar(query.f_d_search, '').toLowerCase(),
+    [query.f_d_search]
+  );
 
   const items = useMemo(
     () =>

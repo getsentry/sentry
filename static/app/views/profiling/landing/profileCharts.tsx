@@ -7,7 +7,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -17,6 +17,8 @@ import useRouter from 'sentry/utils/useRouter';
 
 interface ProfileChartsProps {
   query: string;
+  referrer: string;
+  compact?: boolean;
   hideCount?: boolean;
   selection?: PageFilters;
 }
@@ -26,7 +28,13 @@ interface ProfileChartsProps {
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
-export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps) {
+export function ProfileCharts({
+  query,
+  referrer,
+  selection,
+  hideCount,
+  compact = false,
+}: ProfileChartsProps) {
   const router = useRouter();
   const theme = useTheme();
 
@@ -39,7 +47,7 @@ export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps)
 
   const profileStats = useProfileEventsStats({
     query,
-    referrer: 'api.profiling.landing-chart',
+    referrer,
     yAxes: seriesOrder,
   });
 
@@ -78,7 +86,7 @@ export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps)
             name: timestamps[i]!,
             // the response value contains nulls when no data
             // is available, use 0 to represent it
-            value: (value ?? 0) / 1e6, // convert ns to ms
+            value: value ?? 0,
           })),
           seriesName: rawData.axis,
           xAxisIndex: 1,
@@ -102,12 +110,12 @@ export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps)
         <StyledPanel>
           <TitleContainer>
             {!hideCount && (
-              <StyledHeaderTitle>{t('Profiles by Count')}</StyledHeaderTitle>
+              <StyledHeaderTitle compact>{t('Profiles by Count')}</StyledHeaderTitle>
             )}
-            <StyledHeaderTitle>{t('Profiles by Percentiles')}</StyledHeaderTitle>
+            <StyledHeaderTitle compact>{t('Profiles by Percentiles')}</StyledHeaderTitle>
           </TitleContainer>
           <AreaChart
-            height={300}
+            height={compact ? 150 : 300}
             series={series}
             grid={[
               {
@@ -192,7 +200,8 @@ const TitleContainer = styled('div')`
   flex-direction: row;
 `;
 
-const StyledHeaderTitle = styled(HeaderTitle)`
+const StyledHeaderTitle = styled(HeaderTitle)<{compact?: boolean}>`
   flex-grow: 1;
   margin-left: ${space(2)};
+  font-size: ${p => (p.compact ? p.theme.fontSizeSmall : undefined)};
 `;

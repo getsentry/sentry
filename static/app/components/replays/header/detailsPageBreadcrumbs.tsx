@@ -1,12 +1,13 @@
-import {ComponentProps, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Placeholder from 'sentry/components/placeholder';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
+import BaseBadge from 'sentry/components/idBadge/baseBadge';
+import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
+import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -17,7 +18,15 @@ type Props = {
 function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
-  const labelTitle = replayRecord?.user.display_name;
+
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === replayRecord?.project_id);
+
+  const labelTitle = replayRecord ? (
+    <Fragment>{getShortEventId(replayRecord?.id)}</Fragment>
+  ) : (
+    <HeaderPlaceholder width="100%" height="16px" />
+  );
 
   return (
     <Breadcrumbs
@@ -30,23 +39,15 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
           label: t('Session Replay'),
         },
         {
-          label: labelTitle ? (
+          label: (
             <Fragment>
-              {labelTitle} <ReplaysFeatureBadge />
+              {<BaseBadge displayName={labelTitle} project={project} avatarSize={16} />}
             </Fragment>
-          ) : (
-            <HeaderPlaceholder width="500px" height="24px" />
           ),
         },
       ]}
     />
   );
 }
-
-const HeaderPlaceholder = styled((props: ComponentProps<typeof Placeholder>) => (
-  <Placeholder width="100%" height="19px" {...props} />
-))`
-  background-color: ${p => p.theme.background};
-`;
 
 export default DetailsPageBreadcrumbs;

@@ -19,7 +19,7 @@ type HighlightProps = {
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
   HighlightProps;
 
-const HighlightComponent = ({className, children, disabled, text}: Props) => {
+function HighlightComponent({className, children, disabled, text}: Props) {
   // There are instances when children is not string in breadcrumbs but not caught by TS
   if (!text || disabled || typeof children !== 'string') {
     return <Fragment>{children}</Fragment>;
@@ -34,12 +34,14 @@ const HighlightComponent = ({className, children, disabled, text}: Props) => {
 
   return (
     <Fragment>
-      {children.substr(0, idx)}
-      <span className={className}>{children.substr(idx, highlightText.length)}</span>
-      {children.substr(idx + highlightText.length)}
+      {children.substring(0, idx)}
+      <span className={className}>
+        {children.substring(idx, idx + highlightText.length)}
+      </span>
+      {children.substring(idx + highlightText.length)}
     </Fragment>
   );
-};
+}
 
 const Highlight = styled(HighlightComponent)`
   font-weight: normal;

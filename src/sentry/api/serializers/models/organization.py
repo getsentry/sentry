@@ -1,15 +1,27 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
-from sentry import features, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -23,6 +35,7 @@ from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -36,7 +49,9 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    ObjectStatus,
 )
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     Organization,
@@ -46,13 +61,13 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     Team,
     TeamStatus,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import ApiOrganizationAuthConfig, auth_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
@@ -78,7 +93,7 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
 
@@ -107,7 +122,7 @@ class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
         return value
 
 
-class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
+class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
         ("name", "name"),
         ("description", "description"),
@@ -180,8 +195,27 @@ class OrganizationSerializerResponse(TypedDict):
     hasAuthProvider: bool
 
 
+class ControlSiloOrganizationSerializerResponse(TypedDict):
+    # The control silo will not, cannot, should not contain most organization data.
+    # Therefore, we need a specialized, limited via of that data.
+    id: str
+    slug: str
+    name: str
+
+
+class ControlSiloOrganizationSerializer(Serializer):
+    def serialize(
+        self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
+    ) -> ControlSiloOrganizationSerializerResponse:
+        return dict(
+            id=str(obj.id),
+            slug=obj.slug,
+            name=obj.name,
+        )
+
+
 @register(Organization)
-class OrganizationSerializer(Serializer):  # type: ignore
+class OrganizationSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -190,7 +224,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
 
-        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig] = {
+        configs_by_org_id: Mapping[int, RpcOrganizationAuthConfig] = {
             config.organization_id: config
             for config in auth_service.get_org_auth_config(
                 organization_ids=[o.id for o in item_list]
@@ -209,7 +243,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
 
     def _serialize_auth_providers(
         self,
-        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig],
+        configs_by_org_id: Mapping[int, RpcOrganizationAuthConfig],
         item_list: Sequence[Organization],
         user: User,
     ) -> Mapping[int, Any]:
@@ -339,7 +373,8 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON object
 
 
-class OnboardingTasksSerializer(Serializer):  # type: ignore
+@register(OrganizationOnboardingTask)
+class OnboardingTasksSerializer(Serializer):
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
@@ -400,6 +435,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
+    aiSuggestedSolution: bool
+    isDynamicallySampled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -415,9 +452,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        onboarding_tasks = list(
-            OrganizationOnboardingTask.objects.filter(organization=obj).select_related("user")
-        )
+        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
@@ -503,6 +538,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
+                "aiSuggestedSolution": bool(
+                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                ),
             }
         )
 
@@ -517,7 +555,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
+        context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)
+        context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+
         return context
 
 
@@ -536,9 +577,9 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         project_list = list(
-            Project.objects.filter(
-                organization=organization, status=ProjectStatus.VISIBLE
-            ).order_by("slug")
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).order_by(
+                "slug"
+            )
         )
 
         for project in project_list:
@@ -548,7 +589,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         team_list = list(
-            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).order_by(
+            Team.objects.filter(organization=organization, status=TeamStatus.ACTIVE).order_by(
                 "slug"
             )
         )
@@ -561,7 +602,10 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
-        from sentry.api.serializers.models.project import ProjectSummarySerializer
+        from sentry.api.serializers.models.project import (
+            LATEST_DEPLOYS_KEY,
+            ProjectSummarySerializer,
+        )
         from sentry.api.serializers.models.team import TeamSerializer
 
         context = cast(
@@ -573,6 +617,18 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = self._project_list(obj, access)
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
+
+        collapse_projects: Set[str] = set()
+        if killswitch_matches_context(
+            "api.organization.disable-last-deploys",
+            {
+                "organization_id": obj.id,
+            },
+        ):
+            collapse_projects = {LATEST_DEPLOYS_KEY}
+
+        context["projects"] = serialize(
+            project_list, user, ProjectSummarySerializer(access=access, collapse=collapse_projects)
+        )
 
         return context

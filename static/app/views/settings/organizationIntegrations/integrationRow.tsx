@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   IntegrationInstallationStatus,
   Organization,
@@ -53,7 +53,7 @@ const urlMap = {
   docIntegration: 'document-integrations',
 };
 
-const IntegrationRow = (props: Props) => {
+function IntegrationRow(props: Props) {
   const {
     organization,
     type,
@@ -149,7 +149,7 @@ const IntegrationRow = (props: Props) => {
       )}
     </PanelRow>
   );
-};
+}
 
 const PluginDeprecationAlertWrapper = styled('div')`
   padding: 0px ${space(3)} 0px 68px;

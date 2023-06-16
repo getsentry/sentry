@@ -87,6 +87,7 @@ describe('ProjectKeyDetails', function () {
       <ProjectKeyDetails
         routes={[]}
         organization={org}
+        project={project}
         params={{
           keyId: projectKeys[0].id,
           orgId: org.slug,
@@ -102,10 +103,10 @@ describe('ProjectKeyDetails', function () {
     expect(statsMock).toHaveBeenCalled();
   });
 
-  it('changes name', function () {
-    userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
-    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'New Name');
-    userEvent.tab();
+  it('changes name', async function () {
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'New Name');
+    await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -117,8 +118,8 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('disable and enables key', function () {
-    userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
+  it('disable and enables key', async function () {
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -127,7 +128,7 @@ describe('ProjectKeyDetails', function () {
       })
     );
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -137,11 +138,11 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('revokes a key', function () {
-    userEvent.click(screen.getByRole('button', {name: 'Revoke Key'}));
+  it('revokes a key', async function () {
+    await userEvent.click(screen.getByRole('button', {name: 'Revoke Key'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });

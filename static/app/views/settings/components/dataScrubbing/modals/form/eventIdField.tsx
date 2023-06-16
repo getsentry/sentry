@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {EventId, EventIdStatus} from '../../types';
 import {saveToSourceGroupData} from '../utils';
@@ -90,9 +90,9 @@ class EventIdField extends Component<Props, State> {
   };
 
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const {keyCode} = event;
+    const {key} = event;
 
-    if (keyCode === 13 && this.isEventIdValid()) {
+    if (key === 'Enter' && this.isEventIdValid()) {
       this.props.onUpdateEventId(this.state.value);
     }
   };

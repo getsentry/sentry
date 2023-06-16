@@ -1,0 +1,9 @@
+---
+created: '2023-02-10T15:02:32.115736Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:fingerprint:ident-shingle: "escaped"
+similarity:2020-07-23:fingerprint:ident-shingle: "{[*?]}"
+similarity:2020-07-23:message:character-5-shingle: "[*?]}"
+similarity:2020-07-23:message:character-5-shingle: "{[*?]"

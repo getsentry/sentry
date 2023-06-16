@@ -35,15 +35,15 @@ describe('AutoComplete', function () {
     autoCompleteState = [];
   });
 
-  const List = ({registerItemCount, itemCount, ...props}) => {
+  function List({registerItemCount, itemCount, ...props}) {
     useEffect(() => void registerItemCount(itemCount), [itemCount, registerItemCount]);
     return <ul {...props} />;
-  };
+  }
 
-  const Item = ({registerVisibleItem, item, index, ...props}) => {
+  function Item({registerVisibleItem, item, index, ...props}) {
     useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
     return <li {...props} />;
-  };
+  }
 
   const createComponent = props => (
     <AutoComplete {...mocks} itemToString={item => item.name} {...props}>

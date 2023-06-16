@@ -17,10 +17,10 @@ describe('Accordion', function () {
     expect(screen.queryByText('second content')).not.toBeInTheDocument();
   });
 
-  it('invokes callback on header click', function () {
+  it('invokes callback on header click', async function () {
     const spy = jest.fn();
     render(<Accordion expandedIndex={0} setExpandedIndex={spy} items={items} />);
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('button', {
         expanded: false,
       })

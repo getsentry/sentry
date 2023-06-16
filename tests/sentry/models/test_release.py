@@ -455,6 +455,7 @@ class SetCommitsTestCase(TestCase):
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
 
+        # Pull the object from the DB again to test updated attributes
         resolution = GroupResolution.objects.get(group=group)
         assert resolution.status == GroupResolution.Status.resolved
         assert resolution.release == release
@@ -607,7 +608,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])
@@ -635,7 +636,7 @@ class SetRefsTest(SetRefsTestCase):
         ]
 
         with pytest.raises(InvalidRepository):
-            self.release.set_refs(refs, self.user)
+            self.release.set_refs(refs, self.user.id)
 
         assert len(Commit.objects.all()) == 0
         assert len(ReleaseHeadCommit.objects.all()) == 0
@@ -657,7 +658,7 @@ class SetRefsTest(SetRefsTestCase):
             {"repository": "test/repo", "commit": "previous-commit-id-3..current-commit-id-3"},
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], "current-commit-id")
@@ -685,7 +686,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, False)
+        self.release.set_refs(refs, self.user.id, False)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])

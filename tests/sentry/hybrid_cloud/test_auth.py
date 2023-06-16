@@ -2,9 +2,9 @@ import pytest
 
 from sentry.models import ApiKey, AuthProvider
 from sentry.services.hybrid_cloud.auth import (
-    ApiAuthProvider,
-    ApiAuthProviderFlags,
-    ApiOrganizationAuthConfig,
+    RpcAuthProvider,
+    RpcAuthProviderFlags,
+    RpcOrganizationAuthConfig,
     auth_service,
 )
 from sentry.testutils.factories import Factories
@@ -21,10 +21,12 @@ def test_get_org_auth_config():
     Factories.create_organization()  # unrelated, not in the results.
 
     with exempt_from_silo_limits():
-        ApiKey.objects.create(organization=org_with_many_api_keys)
-        ApiKey.objects.create(organization=org_with_many_api_keys)
+        ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
+        ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ap = AuthProvider.objects.create(
-            organization=org_without_api_keys, provider="dummy", config={"domain": "olddomain.com"}
+            organization_id=org_without_api_keys.id,
+            provider="dummy",
+            config={"domain": "olddomain.com"},
         )
         ap.flags.allow_unlinked = True
         ap.save()
@@ -34,16 +36,16 @@ def test_get_org_auth_config():
     )
 
     assert sorted(result, key=lambda v: v.organization_id) == [
-        ApiOrganizationAuthConfig(
+        RpcOrganizationAuthConfig(
             organization_id=org_with_many_api_keys.id, auth_provider=None, has_api_key=True
         ),
-        ApiOrganizationAuthConfig(
+        RpcOrganizationAuthConfig(
             organization_id=org_without_api_keys.id,
-            auth_provider=ApiAuthProvider(
+            auth_provider=RpcAuthProvider(
                 id=ap.id,
                 organization_id=org_without_api_keys.id,
                 provider="dummy",
-                flags=ApiAuthProviderFlags(
+                flags=RpcAuthProviderFlags(
                     allow_unlinked=True,
                     scim_enabled=False,
                 ),

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
@@ -88,6 +90,34 @@ ISSUE_PLATFORM_MAP = {
     if col.value.issue_platform_name is not None
 }
 
+SPAN_COLUMN_MAP = {
+    # These are deprecated, keeping them for now while we migrate the frontend
+    "action": "action",
+    "description": "description",
+    "domain": "domain",
+    "group": "group",
+    "module": "module",
+    "id": "span_id",
+    "parent_span": "parent_span_id",
+    "platform": "platform",
+    "project": "project_id",
+    "span.action": "action",
+    "span.description": "description",
+    "span.domain": "domain",
+    "span.duration": "duration",
+    "span.group": "group",
+    "span.module": "module",
+    "span.op": "op",
+    "span.self_time": "exclusive_time",
+    "span.status": "span_status",
+    "timestamp": "timestamp",
+    "trace": "trace_id",
+    "transaction": "segment_name",
+    "transaction.id": "transaction_id",
+    "transaction.op": "transaction_op",
+    "user": "user",
+}
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
@@ -135,6 +165,7 @@ DATASETS = {
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
+    Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -148,6 +179,7 @@ DATASET_FIELDS = {
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
+    Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -377,6 +409,11 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
+def to_start_of_hour(dt: datetime) -> datetime:
+    """This is a function that mimics toStartOfHour from Clickhouse"""
+    return dt.replace(minute=0, second=0, microsecond=0).isoformat()
+
+
 def get_snuba_column_name(name, dataset=Dataset.Events):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
@@ -568,7 +605,7 @@ def _prepare_start_end(
     return start, end
 
 
-def _prepare_query_params(query_params):
+def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None = None):
     kwargs = deepcopy(query_params.kwargs)
     query_params_conditions = deepcopy(query_params.conditions)
 
@@ -625,6 +662,10 @@ def _prepare_query_params(query_params):
         }
     )
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+    if referrer:
+        kwargs["tenant_ids"] = kwargs["tenant_ids"] if "tenant_ids" in kwargs else dict()
+        kwargs["tenant_ids"]["referrer"] = referrer
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
@@ -709,6 +750,11 @@ def raw_query(
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
     """
+
+    if referrer:
+        kwargs["tenant_ids"] = kwargs.get("tenant_ids") or dict()
+        kwargs["tenant_ids"]["referrer"] = referrer
+
     snuba_params = SnubaQueryParams(
         dataset=dataset,
         start=start,
@@ -743,6 +789,10 @@ def raw_snql_query(
     if "consistent" in OVERRIDE_OPTIONS:
         request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
+    if referrer:
+        request.tenant_ids = request.tenant_ids or dict()
+        request.tenant_ids["referrer"] = referrer
+
     params: SnubaQueryBody = (request, lambda x: x, lambda x: x)
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
@@ -759,6 +809,12 @@ def bulk_snql_query(
     if "consistent" in OVERRIDE_OPTIONS:
         for request in requests:
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
+
+    for request in requests:
+        if referrer:
+            request.tenant_ids = request.tenant_ids or dict()
+            request.tenant_ids["referrer"] = referrer
+
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
@@ -767,7 +823,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
-        hashable = json.dumps(query, sort_keys=True)
+        hashable = json.dumps(query)
 
     # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
@@ -778,7 +834,7 @@ def bulk_raw_query(
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
-    params = [_prepare_query_params(param) for param in snuba_param_list]
+    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -791,7 +847,6 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
-
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -1170,6 +1225,21 @@ def _aliased_query_impl(**kwargs):
     return raw_query(**aliased_query_params(**kwargs))
 
 
+def resolve_conditions(
+    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
+) -> Optional[Sequence[Any]]:
+    if conditions is None:
+        return conditions
+
+    replacement_conditions = []
+    for condition in conditions:
+        replacement = resolve_condition(deepcopy(condition), column_resolver)
+        if replacement:
+            replacement_conditions.append(replacement)
+
+    return replacement_conditions
+
+
 def aliased_query_params(
     start=None,
     end=None,
@@ -1208,10 +1278,9 @@ def aliased_query_params(
             if condition_resolver
             else resolve_func
         )
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, column_resolver)
-            conditions[i] = replacement
-        conditions = [c for c in conditions if c]
+        resolved_conditions = resolve_conditions(conditions, column_resolver)
+    else:
+        resolved_conditions = conditions
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1227,7 +1296,7 @@ def aliased_query_params(
         start=start,
         end=end,
         groupby=groupby,
-        conditions=conditions,
+        conditions=resolved_conditions,
         aggregations=aggregations,
         selected_columns=selected_columns,
         filter_keys=filter_keys,
@@ -1494,8 +1563,12 @@ def is_duration_measurement(key):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
+        "measurements.time_to_initial_display",
+        "measurements.time_to_full_display",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
+        "measurements.time_to_full_display",
+        "measurements.time_to_initial_display",
     ]
 
 

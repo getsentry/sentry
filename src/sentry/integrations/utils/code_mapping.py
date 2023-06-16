@@ -22,6 +22,10 @@ FILE_PATH_PREFIX_LENGTH = {
     "./": 2,
 }
 
+# We want tasks which hit the GH API multiple times to give up if they hit too many
+# "can't reach GitHub"-type errors.
+MAX_CONNECTION_ERRORS = 10
+
 
 class Repo(NamedTuple):
     name: str
@@ -153,8 +157,8 @@ class FrameFilename:
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
 
-    def __eq__(self, other) -> bool:  # type: ignore
-        return self.full_path == other.full_path  # type: ignore
+    def __eq__(self, other) -> bool:
+        return self.full_path == other.full_path
 
 
 def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:

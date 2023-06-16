@@ -52,4 +52,4 @@ const SentryApp = {
 globals.SentryApp = SentryApp;
 Object.keys(globals).forEach(name => (window[name] = globals[name]));
 
-export default globals;
+export {globals as exportedGlobals};

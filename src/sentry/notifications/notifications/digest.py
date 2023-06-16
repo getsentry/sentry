@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from urllib.parse import urlencode
 
 from sentry.db.models import Model
 from sentry.digests import Digest
@@ -28,11 +29,12 @@ from sentry.notifications.utils.digest import (
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, Team, User
+    from sentry.models import Organization, Project
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +87,10 @@ class DigestNotification(ProjectNotification):
             date="{date_pretty}",
         )
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return ""
 
     @property
@@ -96,12 +98,23 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        return DigestNotification.build_context(
-            self.digest,
-            self.project,
-            self.project.organization,
-            get_rules(list(self.digest.keys()), self.project.organization, self.project),
+        rule_details = get_rules(list(self.digest.keys()), self.project.organization, self.project)
+        context = DigestNotification.build_context(
+            self.digest, self.project, self.project.organization, rule_details
         )
+
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
+
+        snooze_alert = len(rule_details) > 0
+        snooze_alert_urls = {
+            rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
+            for rule in rule_details
+        }
+
+        context["snooze_alert"] = snooze_alert
+        context["snooze_alert_urls"] = snooze_alert_urls
+
+        return context
 
     @staticmethod
     def build_context(
@@ -125,15 +138,14 @@ class DigestNotification(ProjectNotification):
     def get_extra_context(
         self,
         participants_by_provider_by_event: Mapping[
-            Event, Mapping[ExternalProviders, set[Team | User]]
+            Event, Mapping[ExternalProviders, set[RpcActor]]
         ],
-    ) -> Mapping[int, Mapping[str, Any]]:
+    ) -> Mapping[RpcActor, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(
             self.digest, participants_by_provider_by_event
         )
         return {
-            actor_id: get_digest_as_context(digest)
-            for actor_id, digest in personalized_digests.items()
+            actor: get_digest_as_context(digest) for actor, digest in personalized_digests.items()
         }
 
     def send(self) -> None:
@@ -155,14 +167,20 @@ class DigestNotification(ProjectNotification):
 
         # Get every actor ID for every provider as a set.
         actor_ids = set()
+        team_ids = set()
+        user_ids = set()
         combined_participants_by_provider = defaultdict(set)
         for participants_by_provider in participants_by_provider_by_event.values():
             for provider, participants in participants_by_provider.items():
                 for participant in participants:
                     actor_ids.add(participant.actor_id)
+                    if participant.actor_type == ActorType.TEAM:
+                        team_ids.add(participant.id)
+                    elif participant.actor_type == ActorType.USER:
+                        user_ids.add(participant.id)
                     combined_participants_by_provider[provider].add(participant)
 
-        if not actor_ids:
+        if not (team_ids or user_ids):
             return
 
         logger.info(
@@ -172,13 +190,24 @@ class DigestNotification(ProjectNotification):
                 "target_type": self.target_type.value,
                 "target_identifier": self.target_identifier,
                 "actor_ids": actor_ids,
+                "team_ids": team_ids,
+                "user_ids": user_ids,
             },
         )
 
         # Calculate the per-participant context.
-        extra_context: Mapping[int, Mapping[str, Any]] = {}
-        if should_get_personalized_digests(self.target_type, self.project.id):
+        extra_context: Mapping[RpcActor, Mapping[str, Any]] = {}
+        personalized_digests = should_get_personalized_digests(self.target_type, self.project.id)
+
+        if personalized_digests:
             extra_context = self.get_extra_context(participants_by_provider_by_event)
 
         for provider, participants in combined_participants_by_provider.items():
+            if personalized_digests:
+                # remove participants if the digest is empty
+                participants_to_remove = set()
+                for participant in participants:
+                    if participant not in extra_context:
+                        participants_to_remove.add(participant)
+                participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)

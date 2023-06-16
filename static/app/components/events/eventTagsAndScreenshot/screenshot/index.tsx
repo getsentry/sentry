@@ -10,9 +10,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import ImageVisualization from './imageVisualization';
 
@@ -47,7 +47,7 @@ function Screenshot({
   const [loadingImage, setLoadingImage] = useState(true);
 
   function handleDelete(screenshotAttachment) {
-    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_dropdown_deleted', {
+    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
       organization,
     });
     onDelete(screenshotAttachment.id);
@@ -130,7 +130,7 @@ function Screenshot({
                     label: t('Download'),
                     onAction: () => {
                       window.location.assign(`${downloadUrl}?download=1`);
-                      trackAdvancedAnalyticsEvent(
+                      trackAnalytics(
                         'issue_details.issue_tab.screenshot_dropdown_download',
                         {organization}
                       );

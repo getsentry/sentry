@@ -28,7 +28,6 @@ from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
     Broadcast,
-    CheckInStatus,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -39,10 +38,6 @@ from sentry.models import (
     Group,
     GroupRelease,
     GroupTombstone,
-    Monitor,
-    MonitorCheckIn,
-    MonitorStatus,
-    MonitorType,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -56,6 +51,14 @@ from sentry.models import (
     Team,
     User,
     UserReport,
+)
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+    MonitorType,
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -332,6 +335,8 @@ def main(
     load_performance_issues=False,
     slow=False,
 ):
+    from sentry.constants import ObjectStatus
+
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
@@ -363,11 +368,11 @@ def main(
         org, _ = Organization.objects.get_or_create(slug="default")
 
     OrganizationMember.objects.get_or_create(
-        user=user, organization=org, role=roles.get_top_dog().id
+        user_id=user.id, organization=org, role=roles.get_top_dog().id
     )
 
     dummy_member, _ = OrganizationMember.objects.get_or_create(
-        user=dummy_user, organization=org, defaults={"role": roles.get_default().id}
+        user_id=dummy_user.id, organization=org, defaults={"role": roles.get_default().id}
     )
     # Allow for 0 events, if you only want transactions
     event1 = event2 = event3 = event4 = event5 = None
@@ -413,32 +418,35 @@ def main(
                 if not project.flags.has_releases:
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
 
-                monitor, created = Monitor.objects.get_or_create(
+                environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
+
+                monitor, _ = Monitor.objects.get_or_create(
                     name=next(MONITOR_NAMES),
                     project_id=project.id,
                     organization_id=org.id,
                     type=MonitorType.CRON_JOB,
                     defaults={
+                        "status": ObjectStatus.DISABLED,
                         "config": {"schedule": next(MONITOR_SCHEDULES)},
+                    },
+                )
+
+                monitor_env, _ = MonitorEnvironment.objects.get_or_create(
+                    monitor=monitor,
+                    environment=environment,
+                    defaults={
+                        "status": MonitorStatus.DISABLED,
                         "next_checkin": timezone.now() + timedelta(minutes=60),
                         "last_checkin": timezone.now(),
                     },
                 )
-                if not created:
-                    if not (monitor.config or {}).get("schedule"):
-                        monitor.config = {"schedule": next(MONITOR_SCHEDULES)}
-                    monitor.update(
-                        config=monitor.config,
-                        status=MonitorStatus.OK if randint(0, 10) < 7 else MonitorStatus.ERROR,
-                        last_checkin=timezone.now(),
-                        next_checkin=monitor.get_next_scheduled_checkin(timezone.now()),
-                    )
 
                 MonitorCheckIn.objects.create(
                     project_id=monitor.project_id,
                     monitor=monitor,
+                    monitor_environment=monitor_env,
                     status=CheckInStatus.OK
-                    if monitor.status == MonitorStatus.OK
+                    if monitor_env.status == MonitorStatus.OK
                     else CheckInStatus.ERROR,
                 )
 
@@ -541,11 +549,9 @@ def main(
                     type=ActivityType.RELEASE.value,
                     project=project,
                     ident=release.version,
-                    user=user,
+                    user_id=user.id,
                     data={"version": release.version},
                 )
-
-                environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
 
                 deploy = Deploy.objects.create(
                     organization_id=project.organization_id,
@@ -743,7 +749,7 @@ def main(
         type=ActivityType.RELEASE.value,
         project=project,
         ident="4f38b65c62c4565aa94bba391ff8946922a8eed4",
-        user=user,
+        user_id=user.id,
         data={"version": "4f38b65c62c4565aa94bba391ff8946922a8eed4"},
     )
 
@@ -1048,9 +1054,9 @@ def create_mock_transactions(
                     "span_id": uuid4().hex[:16],
                     "hash": "858fea692d4d93e9",
                     "data": {
-                        "Transfer Size": 1_000_000,
-                        "Encoded Body Size": 1_000_000,
-                        "Decoded Body Size": 1_000_000,
+                        "http.transfer_size": 1_000_000,
+                        "http.response_content_length": 1_000_000,
+                        "http.decoded_response_content_length": 1_000_000,
                     },
                 },
             ]
@@ -1141,6 +1147,7 @@ def create_mock_transactions(
                     "parent_span_id": parent_span_id,
                     "span_id": uuid4().hex[:16],
                     "hash": "858fea692d4d93e8",
+                    "data": {"http.response_content_length": 1000001},
                 }
             ]
 
@@ -1160,6 +1167,58 @@ def create_mock_transactions(
                 },
             )
 
+        def load_m_n_plus_one_issue():
+            trace_id = uuid4().hex
+            transaction_user = generate_user()
+
+            parent_span_id = uuid4().hex[:16]
+            duration = 200
+
+            def make_repeating_span(i):
+                nonlocal timestamp
+                nonlocal duration
+                start_timestamp = timestamp + timedelta(milliseconds=i * (duration + 1))
+                end_timestamp = start_timestamp + timedelta(milliseconds=duration)
+                op = "http" if i % 2 == 0 else "db"
+                description = "GET /" if i % 2 == 0 else "SELECT * FROM authors WHERE id = %s"
+                hash = "63f1e89e6a073441" if i % 2 == 0 else "a109ff3ef40f7fb3"
+                return {
+                    "timestamp": end_timestamp.timestamp(),
+                    "start_timestamp": start_timestamp.timestamp(),
+                    "description": description,
+                    "op": op,
+                    "span_id": uuid4().hex[:16],
+                    "parent_span_id": parent_span_id,
+                    "hash": hash,
+                }
+
+            span_count = 10
+            repeating_spans = [make_repeating_span(i) for i in range(span_count)]
+
+            parent_span = {
+                "timestamp": (
+                    timestamp + timedelta(milliseconds=span_count * (duration + 1))
+                ).timestamp(),
+                "start_timestamp": timestamp.timestamp(),
+                "description": "execute",
+                "op": "graphql.execute",
+                "parent_span_id": uuid4().hex[:16],
+                "span_id": parent_span_id,
+                "hash": "0f43fb6f6e01ca52",
+            }
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/m_n_plus_one_db/backend/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=span_count * (duration + 1) + 100),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                spans=[parent_span] + repeating_spans,
+            )
+
         def load_performance_issues():
             print(f"    > Loading performance issues data")  # NOQA
             print(f"    > Loading n plus one issue")  # NOQA
@@ -1170,6 +1229,8 @@ def create_mock_transactions(
             load_uncompressed_asset_issue()
             print(f"    > Loading render blocking asset issue")  # NOQA
             load_render_blocking_asset_issue()
+            print(f"    > Loading MN+1 issue")  # NOQA
+            load_m_n_plus_one_issue()
 
         load_performance_issues()
 

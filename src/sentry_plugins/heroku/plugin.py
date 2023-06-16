@@ -8,10 +8,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.models import ApiKey, ProjectOption, Repository, User
+from sentry.models import ApiKey, ProjectOption, Repository
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -24,7 +25,9 @@ logger = logging.getLogger("sentry.plugins.heroku")
 class HerokuReleaseHook(ReleaseHook):
     def get_auth(self):
         try:
-            return ApiKey(organization=self.project.organization, scope_list=["project:write"])
+            return ApiKey(
+                organization_id=self.project.organization_id, scope_list=["project:write"]
+            )
         except ApiKey.DoesNotExist:
             return None
 
@@ -33,6 +36,8 @@ class HerokuReleaseHook(ReleaseHook):
 
     def is_valid_signature(self, body, heroku_hmac):
         secret = ProjectOption.objects.get_value(project=self.project, key="heroku:webhook_secret")
+        if secret is None:
+            return False
         computed_hmac = base64.b64encode(
             hmac.new(
                 key=secret.encode("utf-8"),
@@ -43,19 +48,22 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle_legacy(self, request: Request) -> Response:
-        """Code path to handle deploy hooks. Delete after Feb 17th 2023 - https://blog.heroku.com/deployhooks-sunset"""
-        email = None
-        if "user" in request.POST:
-            email = request.POST["user"]
-        elif "actor" in request.POST:
-            email = request.POST["actor"].get("email")
-        try:
-            user = User.objects.get(
-                email__iexact=email, sentry_orgmember_set__organization__project=self.project
-            )
-        except (User.DoesNotExist, User.MultipleObjectsReturned):
-            user = None
+    def handle(self, request: Request) -> Response:
+        heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
+
+        if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
+            logger.info("heroku.webhook.invalid-signature", extra={"project_id": self.project.id})
+            return HttpResponse(status=401)
+
+        body = json.loads(request.body)
+        data = body.get("data")
+        email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
+
+        users = user_service.get_many_by_email(
+            emails=[email], organization_id=self.project.organization_id
+        )
+        user = users[0] if users else None
+        if user is None:
             logger.info(
                 "owner.missing",
                 extra={
@@ -64,52 +72,25 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        self.finish_release(
-            version=request.POST.get("head_long"), url=request.POST.get("url"), owner=user
-        )
+        slug = data.get("slug")
+        if not slug:
+            logger.info("heroku.payload.missing-commit", extra={"project_id": self.project.id})
+            return HttpResponse(status=401)
 
-    def handle(self, request: Request) -> Response:
-        heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
-
-        if heroku_hmac:
-            if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
-                logger.error(
-                    "heroku.webhook.invalid-signature", extra={"project_id": self.project.id}
-                )
-                return HttpResponse(status=401)
-
-            body = json.loads(request.body)
-            data = body.get("data")
-            email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
-
-            try:
-                user = User.objects.get(
-                    email__iexact=email, sentry_orgmember_set__organization__project=self.project
-                )
-            except (User.DoesNotExist, User.MultipleObjectsReturned):
-                user = None
-                logger.info(
-                    "owner.missing",
-                    extra={
-                        "organization_id": self.project.organization_id,
-                        "project_id": self.project.id,
-                        "email": email,
-                    },
-                )
-            commit = data.get("slug", {}).get("commit")
-            app_name = data.get("app", {}).get("name")
+        commit = slug.get("commit")
+        app_name = data.get("app", {}).get("name")
+        if body.get("action") == "update":
             if app_name:
                 self.finish_release(
-                    version=commit, url=f"http://{app_name}.herokuapp.com", owner=user
+                    version=commit,
+                    url=f"http://{app_name}.herokuapp.com",
+                    owner_id=user.id if user else None,
                 )
             else:
-                self.finish_release(version=commit, owner=user)
-
-        else:
-            self.handle_legacy(request)  # TODO delete this else after Feb 17th 2023
+                self.finish_release(version=commit, owner_id=user.id if user else None)
 
     def set_refs(self, release, **values):
-        if not values.get("owner", None):
+        if not values.get("owner_id", None):
             return
         # check if user exists, and then try to get refs based on version
         repo_project_option = ProjectOption.objects.get_value(
@@ -138,7 +119,7 @@ class HerokuReleaseHook(ReleaseHook):
             else:
                 release.set_refs(
                     refs=[{"commit": release.version, "repository": repository.name}],
-                    user=values["owner"],
+                    user_id=values["owner_id"],
                     fetch=True,
                 )
         # create deploy associated with release via ReleaseDeploysEndpoint

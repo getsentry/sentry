@@ -8,13 +8,11 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.release_health.metrics_legacy import MetricsReleaseHealthLegacyBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.dataset import EntityKey
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.sessions import _make_stats
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseMetricsTestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -28,15 +26,6 @@ def parametrize_backend(cls):
 
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
-
-    class MetricsLegacyTest(BaseMetricsTestCase, cls):
-        __doc__ = f"Repeat tests from {cls} with metrics"
-        backend = MetricsReleaseHealthLegacyBackend()
-        adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
-
-    MetricsLegacyTest.__name__ = f"{cls.__name__}MetricsLegacy"
-
-    globals()[MetricsLegacyTest.__name__] = MetricsLegacyTest
 
     class MetricsLayerTest(BaseMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics layer"
@@ -1161,21 +1150,17 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         proj = self.create_project(organization=org)
 
         # Insert a different set metric:
-        self._send_buckets(
-            [
-                {
-                    "org_id": org.id,
-                    "project_id": proj.id,
-                    "metric_id": 666,  # any other metric ID
-                    "timestamp": time.time(),
-                    "tags": {},
-                    "type": "s",
-                    "value": [1, 2, 3],
-                    "retention_days": 90,
-                }
-            ],
-            entity=EntityKey.MetricsSets.value,
-        )
+        for value in 1, 2, 3:
+            self.store_metric(
+                org_id=org.id,
+                project_id=proj.id,
+                name="foobarbaz",  # any other metric ID
+                timestamp=int(time.time()),
+                tags={},
+                type="set",
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
 
         assert (
             self.backend.get_project_releases_count(
@@ -1557,7 +1542,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
     def setUp(self):

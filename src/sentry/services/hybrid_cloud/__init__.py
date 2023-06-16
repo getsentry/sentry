@@ -1,54 +1,181 @@
 from __future__ import annotations
 
 import contextlib
-import dataclasses
+import datetime
+import functools
 import inspect
 import logging
 import threading
-from abc import ABC, abstractmethod
+from enum import Enum
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     Generator,
     Generic,
-    List,
+    Iterable,
     Mapping,
+    Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
     cast,
 )
 
+import pydantic
 import sentry_sdk
-from rest_framework.request import Request
-
-from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.pagination_factory import (
-    PaginatorLike,
-    annotate_span_with_pagination_args,
-    get_cursor,
-    get_paginator,
-)
-
-logger = logging.getLogger(__name__)
 
 from sentry.silo import SiloMode
 
-if TYPE_CHECKING:
-    from sentry.api.base import Endpoint
+logger = logging.getLogger(__name__)
+
 T = TypeVar("T")
-C = TypeVar("C", bound="PatchableMixin[Any]")
+
+ArgumentDict = Mapping[str, Any]
+
+OptionValue = Union[str, int, bool, None]
+
+IDEMPOTENCY_KEY_LENGTH = 48
+REGION_NAME_LENGTH = 48
+
+DEFAULT_DATE = datetime.datetime(2000, 1, 1)
 
 
-class InterfaceWithLifecycle(ABC):
-    @abstractmethod
-    def close(self) -> None:
-        pass
+def report_pydantic_type_validation_error(
+    field: pydantic.fields.ModelField,
+    value: Any,
+    errors: pydantic.error_wrappers.ErrorList,
+    model_class: Optional[Type[Any]],
+) -> None:
+    with sentry_sdk.push_scope() as scope:
+        scope.set_context(
+            "pydantic_validation",
+            {
+                "field": field.name,
+                "value_type": str(type(value)),
+                "errors": str(errors),
+                "model_class": str(model_class),
+            },
+        )
+        logger.warning("Pydantic type validation error", exc_info=True)
 
 
-ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
+def _hack_pydantic_type_validation() -> None:
+    """Disable strict type checking on Pydantic models.
+
+    This is a temporary measure to ensure stability while we represent RpcModel
+    objects as Pydantic models. Previously, those objects were dataclasses whose type
+    annotations were checked statically but not at runtime. There may be bugs where
+    those objects are constructed with the wrong type (typically None on a
+    non-Optional field), but otherwise everything works.
+
+    To prevent these from being hard errors, override Pydantic's validation behavior.
+    Unfortunately, there is no way (that we know of) to do this only on RpcModel and
+    its subclasses. We have to kludge it by tampering with Pydantic's global
+    ModelField class, which would affect the behavior of all types extending
+    pydantic.BaseModel in the code base. (As of this writing, there are no such
+    classes other than RpcModel, but be warned.)
+
+    See https://github.com/pydantic/pydantic/issues/897
+
+    TODO: Remove this kludge when we are reasonably confident it is no longer
+          producing any warnings
+    """
+
+    builtin_validate = pydantic.fields.ModelField.validate
+
+    def validate(
+        field: pydantic.fields.ModelField,
+        value: Any,
+        *args: Any,
+        cls: Optional[Type[Union[pydantic.BaseModel, pydantic.dataclasses.Dataclass]]] = None,
+        **kwargs: Any,
+    ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
+        result, errors = builtin_validate(field, value, *args, cls=cls, **kwargs)
+        if errors:
+            report_pydantic_type_validation_error(field, value, errors, cls)
+        return result, None
+
+    functools.update_wrapper(validate, builtin_validate)
+    pydantic.fields.ModelField.validate = validate  # type: ignore
+
+
+_hack_pydantic_type_validation()
+
+
+class ValueEqualityEnum(Enum):
+    def __eq__(self, other):
+        value = other
+        if isinstance(other, Enum):
+            value = other.value
+        return self.value == value
+
+    def __hash__(self):
+        return hash(self.value)
+
+
+class RpcModel(pydantic.BaseModel):
+    """A serializable object that may be part of an RPC schema."""
+
+    class Config:
+        orm_mode = True
+        use_enum_values = True
+
+    @classmethod
+    def get_field_names(cls) -> Iterable[str]:
+        return iter(cls.__fields__.keys())
+
+    @classmethod
+    def serialize_by_field_name(
+        cls,
+        obj: Any,
+        name_transform: Callable[[str], str] | None = None,
+        value_transform: Callable[[Any], Any] | None = None,
+    ) -> RpcModel:
+        """Serialize an object with field names matching this model class.
+
+        This class method may be called only on an instantiable subclass. The
+        returned value is an instance of that subclass. The optional "transform"
+        arguments, if present, modify each field name or attribute value before it is
+        passed through to the serialized object. Raises AttributeError if the
+        argument does not have an attribute matching each field name (after
+        transformation, if any) of this RpcModel class.
+
+        This method should not necessarily be used for every serialization operation.
+        It is useful for model types, such as "flags" objects, where new fields may
+        be added in the future and we'd like them to be serialized automatically. For
+        more stable or more complex models, it is more suitable to list the fields
+        out explicitly in a constructor call.
+        """
+
+        fields = {}
+
+        for rpc_field_name in cls.get_field_names():
+            if name_transform is not None:
+                obj_field_name = name_transform(rpc_field_name)
+            else:
+                obj_field_name = rpc_field_name
+
+            try:
+                value = getattr(obj, obj_field_name)
+            except AttributeError as e:
+                msg = (
+                    f"While serializing to {cls.__name__}, could not extract "
+                    f"{obj_field_name!r} from {type(obj).__name__}"
+                )
+                if name_transform is not None:
+                    msg += f" (transformed from {rpc_field_name!r})"
+                raise AttributeError(msg) from e
+
+            if value_transform is not None:
+                value = value_transform(value)
+            fields[rpc_field_name] = value
+
+        return cls(**fields)
+
+
+ServiceInterface = TypeVar("ServiceInterface")
 
 
 class DelegatedBySiloMode(Generic[ServiceInterface]):
@@ -82,7 +209,6 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
             yield
         finally:
             with self._lock:
-                self.close(silo_mode)
                 self._singleton[silo_mode] = prev
 
     def __getattr__(self, item: str) -> Any:
@@ -92,27 +218,10 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
             if impl := self._singleton.get(cur_mode, None):
                 return getattr(impl, item)
             if con := self._constructors.get(cur_mode, None):
-                self.close(cur_mode)
                 self._singleton[cur_mode] = inst = con()
                 return getattr(inst, item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
-
-    def close(self, mode: SiloMode | None = None) -> None:
-        to_close: List[ServiceInterface] = []
-        with self._lock:
-            if mode is None:
-                to_close.extend(s for s in self._singleton.values() if s is not None)
-                self._singleton = dict()
-            else:
-                existing = self._singleton.get(mode)
-                if existing:
-                    to_close.append(existing)
-                self._singleton = self._singleton.copy()
-                self._singleton[mode] = None
-
-        for service in to_close:
-            service.close()
 
 
 hc_test_stub: Any = threading.local()
@@ -133,9 +242,6 @@ def CreateStubFromBase(
 
     def __init__(self: Any, backing_service: ServiceInterface) -> None:
         self.backing_service = backing_service
-
-    def close(self: Any) -> None:
-        self.backing_service.close()
 
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
@@ -163,7 +269,6 @@ def CreateStubFromBase(
             if getattr(getattr(Super, name), "__isabstractmethod__", False):
                 methods[name] = make_method(name)
 
-    methods["close"] = close
     methods["__init__"] = __init__
 
     return cast(
@@ -189,119 +294,19 @@ def silo_mode_delegation(
     return cast(ServiceInterface, DelegatedBySiloMode(mapping))
 
 
-@dataclasses.dataclass
-class ApiPaginationArgs:
-    encoded_cursor: str | None = None
-    per_page: int = -1
-
-    @classmethod
-    def from_endpoint_request(cls, e: Endpoint, request: Request) -> ApiPaginationArgs:
-        return ApiPaginationArgs(
-            encoded_cursor=request.GET.get(e.cursor_name), per_page=e.get_per_page(request)
-        )
-
-    def do_hybrid_cloud_pagination(
-        self,
-        *,
-        description: str,
-        paginator_cls: Type[PaginatorLike],
-        order_by: str,
-        queryset: Any,
-        cursor_cls: Type[Cursor] = Cursor,
-        count_hits: bool | None = None,
-    ) -> ApiPaginationResult:
-        cursor = get_cursor(self.encoded_cursor, cursor_cls)
-        with sentry_sdk.start_span(
-            op="hybrid_cloud.paginate.get_result",
-            description=description,
-        ) as span:
-            annotate_span_with_pagination_args(span, self.per_page)
-            paginator = get_paginator(
-                None, paginator_cls, dict(order_by=order_by, queryset=queryset.values("id"))
-            )
-            extra_args: Any = {}
-            if count_hits is not None:
-                extra_args["count_hits"] = count_hits
-
-            return ApiPaginationResult.from_cursor_result(
-                paginator.get_result(limit=self.per_page, cursor=cursor, **extra_args)
-            )
+def coerce_id_from(m: object | int | None) -> int | None:
+    if m is None:
+        return None
+    if isinstance(m, int):
+        return m
+    if hasattr(m, "id"):
+        return m.id
+    raise ValueError(f"Cannot coerce {m!r} into id!")
 
 
-@dataclasses.dataclass
-class ApiCursorState:
-    encoded: str = ""
-    has_results: bool | None = None
-
-    @classmethod
-    def from_cursor(cls, cursor: Cursor) -> ApiCursorState:
-        return ApiCursorState(encoded=str(cursor), has_results=cursor.has_results)
-
-    # Api Compatibility with Cursor
-    def __str__(self) -> str:
-        return self.encoded
-
-    def __bool__(self) -> bool:
-        return bool(self.has_results)
-
-
-@dataclasses.dataclass
-class ApiPaginationResult:
-    ids: List[int] = dataclasses.field(default_factory=list)
-    hits: int | None = None
-    max_hits: int | None = None
-    next: ApiCursorState = dataclasses.field(default_factory=lambda: ApiCursorState())
-    prev: ApiCursorState = dataclasses.field(default_factory=lambda: ApiCursorState())
-
-    @classmethod
-    def from_cursor_result(cls, cursor_result: CursorResult[Any]) -> ApiPaginationResult:
-        return ApiPaginationResult(
-            ids=[row["id"] for row in cursor_result.results],
-            hits=cursor_result.hits,
-            max_hits=cursor_result.max_hits,
-            next=ApiCursorState.from_cursor(cursor_result.next),
-            prev=ApiCursorState.from_cursor(cursor_result.prev),
-        )
-
-
-# Need a non-null default value so that we can
-# detect attributes being set to null. We're using
-# a class for this to get a reasonable repr in debugging.
-class UnsetType:
-    def __repr__(self) -> str:
-        return "Unset"
-
-
-# Protocol to be translated in the RPC layer for fields that have a default but "are not set".
-UnsetVal = UnsetType()
-Unset = Union[object, None, T]
-
-
-class PatchableMixin(Generic[T]):
-    def as_update(self) -> Mapping[str, Any]:
-        return {
-            f.name: getattr(self, f.name)
-            for f in self.patch_fields()
-            if getattr(self, f.name) is not UnsetVal
-        }
-
-    @classmethod
-    def patch_fields(cls: Type[C]) -> List[dataclasses.Field[Any]]:
-        result: List[dataclasses.Field[Any]] = []
-        for field in dataclasses.fields(cls):
-            if field.default is UnsetVal:
-                result.append(field)
-        return result
-
-    @classmethod
-    def params_from_instance(cls: Type[C], inst: T) -> Dict[str, Any]:
-        params: Dict[str, Any] = dict()
-        for field in cls.patch_fields():
-            if hasattr(inst, field.name):
-                params[field.name] = getattr(inst, field.name)
-        return params
-
-    # Subclass this to add additional members that are not 1:1 mapping from instance.
-    @classmethod
-    def from_instance(cls: Type[C], inst: T) -> C:
-        return cls(**cls.params_from_instance(inst))
+def extract_id_from(m: object | int) -> int:
+    if isinstance(m, int):
+        return m
+    if hasattr(m, "id"):
+        return m.id
+    raise ValueError(f"Cannot extract {m!r} from id!")

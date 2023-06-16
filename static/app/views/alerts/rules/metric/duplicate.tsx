@@ -85,7 +85,7 @@ class MetricRulesDuplicate extends AsyncView<Props, State> {
                 ...pick(trigger, DuplicateTriggerFields),
                 actions: trigger.actions.map(action => ({
                   inputChannelId: null,
-                  integrationId: undefined,
+                  integrationId: action.integrationId ?? undefined,
                   options: null,
                   sentryAppId: undefined,
                   unsavedId: uniqueId(),

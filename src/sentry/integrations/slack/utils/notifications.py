@@ -11,6 +11,7 @@ from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentSt
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
@@ -24,13 +25,10 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
 ) -> None:
     # Make sure organization integration is still active:
-    try:
-        integration = Integration.objects.get(
-            id=action.integration_id,
-            organizations=incident.organization,
-            status=ObjectStatus.VISIBLE,
-        )
-    except Integration.DoesNotExist:
+    integration, org_integration = integration_service.get_organization_context(
+        organization_id=incident.organization_id, integration_id=action.integration_id
+    )
+    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         # Integration removed, but rule is still active.
         return
 
@@ -53,7 +51,6 @@ def send_incident_alert_notification(
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
 
     payload = {
-        "token": integration.metadata["access_token"],
         "channel": channel,
         "text": text,
         "attachments": json.dumps([blocks]),
@@ -63,7 +60,7 @@ def send_incident_alert_notification(
         "unfurl_media": False,
     }
 
-    client = SlackClient()
+    client = SlackClient(integration_id=integration.id)
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError:
@@ -79,24 +76,18 @@ def send_slack_response(
         "text": text,
     }
 
-    client = SlackClient()
+    client = SlackClient(integration_id=integration.id)
     if params["response_url"]:
         path = params["response_url"]
-        headers = {}
 
     else:
         # Command has been invoked in a DM, not as a slash command
         # we do not have a response URL in this case
-        token = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
-        headers = {"Authorization": f"Bearer {token}"}
-        payload["token"] = token
         payload["channel"] = params["slack_id"]
         path = "/chat.postMessage"
 
     try:
-        client.post(path, headers=headers, data=payload, json=True)
+        client.post(path, data=payload, json=True)
     except ApiError as e:
         message = str(e)
         # If the user took their time to link their slack account, we may no

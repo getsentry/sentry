@@ -1,17 +1,19 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   command: string;
 };
 
-const Terminal = ({command}: Props) => (
-  <Wrapper>
-    <Prompt>{'\u0024'}</Prompt>
-    {command}
-  </Wrapper>
-);
+function Terminal({command}: Props) {
+  return (
+    <Wrapper>
+      <Prompt>{'\u0024'}</Prompt>
+      {command}
+    </Wrapper>
+  );
+}
 
 export default Terminal;
 

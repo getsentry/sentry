@@ -16,14 +16,13 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 
 
-@region_silo_test
-class GroupSerializerTest(TestCase):
+@region_silo_test(stable=True)
+class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
     def test_project(self):
         user = self.create_user()
         group = self.create_group()
@@ -142,7 +141,7 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=True
+            user_id=user.id, group=group, project=group.project, is_active=True
         )
 
         result = serialize(group, user)
@@ -154,7 +153,7 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=False
+            user_id=user.id, group=group, project=group.project, is_active=False
         )
 
         result = serialize(group, user)
@@ -250,20 +249,21 @@ class GroupSerializerTest(TestCase):
         for default_value, project_value, is_subscribed, has_details in combinations:
             UserOption.objects.clear_local_cache()
 
-            for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-                NotificationSetting.objects.update_settings(
-                    provider,
-                    NotificationSettingTypes.WORKFLOW,
-                    default_value,
-                    user=user,
-                )
-                NotificationSetting.objects.update_settings(
-                    provider,
-                    NotificationSettingTypes.WORKFLOW,
-                    project_value,
-                    user=user,
-                    project=group.project,
-                )
+            with exempt_from_silo_limits():
+                for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
+                    NotificationSetting.objects.update_settings(
+                        provider,
+                        NotificationSettingTypes.WORKFLOW,
+                        default_value,
+                        user=user,
+                    )
+                    NotificationSetting.objects.update_settings(
+                        provider,
+                        NotificationSettingTypes.WORKFLOW,
+                        project_value,
+                        user=user,
+                        project=group.project,
+                    )
 
             result = serialize(group, user)
             subscription_details = result.get("subscriptionDetails")
@@ -280,22 +280,23 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=True
+            user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.NEVER,
-            user=user,
-        )
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.NEVER,
-            user=user,
-        )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
 
         result = serialize(group, user)
         assert not result["isSubscribed"]
@@ -306,24 +307,25 @@ class GroupSerializerTest(TestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=True
+            user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.NEVER,
-            user=user,
-            project=group.project,
-        )
+        with exempt_from_silo_limits():
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+                project=group.project,
+            )
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.NEVER,
-            user=user,
-            project=group.project,
-        )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+                project=group.project,
+            )
 
         result = serialize(group, user)
         assert not result["isSubscribed"]
@@ -356,22 +358,8 @@ class GroupSerializerTest(TestCase):
         }
 
     def test_perf_issue(self):
-        cur_time = before_now(minutes=1)
-        event_data = {
-            "type": "transaction",
-            "level": "info",
-            "message": "transaction message",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            "timestamp": cur_time.timestamp(),
-            "start_timestamp": cur_time.timestamp(),
-            "received": cur_time.timestamp(),
-            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        }
-        event = self.store_event(
-            data=event_data,
-            project_id=self.project.id,
-        )
-        perf_group = event.groups[0]
+        event = self.create_performance_issue()
+        perf_group = event.group
         serialized = serialize(perf_group)
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"

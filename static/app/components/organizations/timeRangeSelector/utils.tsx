@@ -1,9 +1,17 @@
+import {Fragment} from 'react';
 import moment from 'moment';
 
+import Datetime from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
+import {DateString} from 'sentry/types';
+import {
+  DEFAULT_DAY_END_TIME,
+  DEFAULT_DAY_START_TIME,
+  getFormattedDate,
+} from 'sentry/utils/dates';
 
 import TimeRangeItemLabel from './timeRangeItemLabel';
 
@@ -122,6 +130,33 @@ export function getRelativeSummary(
   } catch {
     return 'Invalid period';
   }
+}
+
+/**
+ * Returns an absolute time range summary given the start and end timestamps. If the
+ * start/end time coincides with the default day start/end time, then the returned
+ * summary will include the date only (e.g. "Jan 1–Jan 2"). Otherwise, both the date and
+ * time will be shown (e.g. "Jan 1, 1:00 AM–Jan 2, 11:00PM").
+ */
+export function getAbsoluteSummary(
+  start: DateString,
+  end: DateString,
+  utc?: boolean | null
+) {
+  const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
+  const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
+
+  const showDateOnly =
+    startTimeFormatted === DEFAULT_DAY_START_TIME &&
+    endTimeFormatted === DEFAULT_DAY_END_TIME;
+
+  return (
+    <Fragment>
+      <Datetime date={start} dateOnly={showDateOnly} utc={!!utc} />
+      {'–'}
+      <Datetime date={end} dateOnly={showDateOnly} utc={!!utc} />
+    </Fragment>
+  );
 }
 
 export function makeItem(
@@ -261,3 +296,41 @@ export const timeRangeAutoCompleteFilter = function (
     ...options,
   });
 };
+
+/**
+ * Returns an object whose key is the arbitrary period string and whose value is a
+ * human-readable label for that period. E.g. '2h' returns {'2h': 'Last 2 hours'}.
+ */
+export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
+  // If arbitraryPeriod is invalid
+  if (!arbitraryPeriod || !STATS_PERIOD_REGEX.exec(arbitraryPeriod)) {
+    return {};
+  }
+
+  // Get the custom period label ("8D" --> "8 Days")
+  const {value, unit} = parseStatsPeriodString(arbitraryPeriod);
+  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(value)};
+}
+
+/**
+ * Returns an object with sorted relative time periods, where the period with the most
+ * recent start time comes first (e.g. 1H — 2H - 1D — 7D…)
+ */
+export function getSortedRelativePeriods(
+  relativePeriods: Record<string, React.ReactNode>
+) {
+  const entries = Object.entries(relativePeriods);
+
+  const validPeriods = entries.filter(([period]) => !!STATS_PERIOD_REGEX.exec(period));
+  const invalidPeriods = entries.filter(([period]) => !STATS_PERIOD_REGEX.exec(period));
+
+  const sortedValidPeriods = validPeriods.sort((a, b) => {
+    const [periodA] = a;
+    const [periodB] = b;
+
+    return moment(parseStatsPeriod(periodB).start).diff(
+      moment(parseStatsPeriod(periodA).start)
+    );
+  });
+  return Object.fromEntries(invalidPeriods.concat(sortedValidPeriods));
+}

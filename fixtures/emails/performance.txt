@@ -1,7 +1,7 @@
 Details
 -------
 
-http://testserver/organizations/sentry/issues/1/?referrer=alert_email&amp;alert_type=email&amp;alert_timestamp=1337&amp;alert_rule_id=1
+http://testserver/organizations/sentry/issues/x/?referrer=alert_email&amp;alert_type=email&amp;alert_timestamp=1337&amp;alert_rule_id=1
 
 
 Suspect Commits
@@ -25,6 +25,7 @@ Tags
 * level = info
 * runtime = CPython 3.8.9
 * runtime.name = CPython
+* sentry:release = 0.1
 * sentry:user = ip:127.0.0.1
 * transaction = /books/
 * url = http://127.0.0.1:9007/books/

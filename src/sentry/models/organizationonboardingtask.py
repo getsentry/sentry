@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
@@ -12,6 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class OnboardingTask:
@@ -90,14 +93,16 @@ class AbstractOnboardingTask(Model):
     STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
 
     organization = FlexibleForeignKey("sentry.Organization")
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
-    )  # user that completed
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+
+    # fields for typing
+    TASK_LOOKUP_BY_KEY: dict[str, int]
+    SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True

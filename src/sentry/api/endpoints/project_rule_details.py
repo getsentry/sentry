@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,16 +11,14 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import (
-    RuleActivity,
-    RuleActivityType,
-    RuleStatus,
-    SentryAppComponent,
+from sentry.models import RuleActivity, RuleActivityType, RuleStatus, SentryAppComponent, Team, User
+from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
-    Team,
-    User,
+    prepare_ui_component,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -49,11 +48,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = installation.prepare_ui_component(
-                    SentryAppComponent(**action.get("_sentry_app_component")),
-                    project,
+                component = SentryAppComponent(**action.get("_sentry_app_component"))
+                component = prepare_ui_component(
+                    installation,
+                    component,
+                    project.slug,
                     action.get("settings"),
                 )
+
                 if component is None:
                     errors.append(
                         {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
@@ -79,6 +81,22 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         if len(errors):
             serialized_rule["errors"] = errors
+
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=request.user.id) | Q(user_id=None), rule=rule
+        )
+        if rule_snooze.exists():
+            serialized_rule["snooze"] = True
+            snooze = rule_snooze[0]
+            if request.user.id == snooze.owner_id:
+                created_by = "You"
+            else:
+                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
+                created_by = creator_name
+            serialized_rule["snoozeCreatedBy"] = created_by
+            serialized_rule["snoozeForEveryone"] = snooze.user_id is None
+        else:
+            serialized_rule["snooze"] = False
 
         return Response(serialized_rule)
 
@@ -142,14 +160,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_sentry_app_action_creators_for_issues(kwargs.get("actions"))
+            trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
 
             if rule.data["conditions"] != kwargs["conditions"]:
                 metrics.incr("sentry.issue_alert.conditions.edited", sample_rate=1.0)
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(
-                rule=updated_rule, user=request.user, type=RuleActivityType.UPDATED.value
+                rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
             )
             self.create_audit_entry(
                 request=request,
@@ -178,7 +196,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         """
         rule.update(status=RuleStatus.PENDING_DELETION)
         RuleActivity.objects.create(
-            rule=rule, user=request.user, type=RuleActivityType.DELETED.value
+            rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )
         self.create_audit_entry(
             request=request,

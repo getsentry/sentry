@@ -2,7 +2,7 @@ import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSettings, IconUser} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
@@ -25,6 +25,7 @@ interface FlamegraphTreeTableRowProps {
   onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
+    expand: boolean,
     opts?: {expandChildren: boolean}
   ) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
@@ -57,7 +58,7 @@ export const FlamegraphTreeTableRow = forwardRef<
     const handleExpanding = useCallback(
       (evt: React.MouseEvent) => {
         evt.stopPropagation();
-        onExpandClick(node, {expandChildren: evt.metaKey});
+        onExpandClick(node, !node.expanded, {expandChildren: evt.metaKey});
       },
       [node, onExpandClick]
     );

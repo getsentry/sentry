@@ -26,7 +26,7 @@ def setup():
 
 
 @region_silo_test
-class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
+class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
     def setUp(self):
@@ -109,6 +109,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 segment_id=1,
                 trace_ids=[trace_id_2],
                 urls=["http://www.sentry.io/"],
+                error_ids=[],
             )
         )
         self.store_replays(
@@ -119,6 +120,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 segment_id=2,
                 trace_ids=[trace_id_2],
                 urls=["http://localhost:3000/"],
+                error_ids=[],
             )
         )
 

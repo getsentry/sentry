@@ -3,14 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Any, List, MutableMapping, Optional, Union
 
 import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models import ControlSiloOrganizationSerializer
 from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
-from sentry.models import AuthIdentity, Identity, Organization
+from sentry.models import AuthIdentity, Identity
+from sentry.services.hybrid_cloud.organization import organization_service
 from social_auth.models import UserSocialAuth
 
 from . import user_social_auth
@@ -55,7 +57,7 @@ class UserIdentityConfig:
     name: str
     status: Status
     is_login: bool
-    organization: Optional[Organization] = None
+    organization_id: Optional[int] = None
     date_added: Optional[datetime] = None
     date_verified: Optional[datetime] = None
     date_synced: Optional[datetime] = None
@@ -96,7 +98,7 @@ class UserIdentityConfig:
                 provider=UserIdentityProvider.adapt(identity.auth_provider.get_provider()),
                 name=identity.ident,
                 is_login=True,
-                organization=identity.auth_provider.organization,
+                organization_id=identity.auth_provider.organization_id,
                 date_added=identity.date_added,
                 date_verified=identity.last_verified,
                 date_synced=identity.last_synced,
@@ -110,6 +112,24 @@ class UserIdentityConfig:
 
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
+    def get_attrs(
+        self, item_list: List[UserIdentityConfig], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
+        result: MutableMapping[UserIdentityConfig, Any] = {}
+        organizations = {
+            o.id: o
+            for o in organization_service.get_organizations(
+                organization_ids=[i.organization_id for i in item_list],
+                scope=None,
+                user_id=None,
+                only_visible=False,
+            )
+        }
+        for item in item_list:
+            result[item] = dict(organization=organizations.get(item.organization_id))
+
+        return result
+
     def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):
         return {
             "category": obj.category,
@@ -118,7 +138,10 @@ class UserIdentityConfigSerializer(Serializer):
             "name": obj.name,
             "status": obj.status.value,
             "isLogin": obj.is_login,
-            "organization": serialize(obj.organization),
+            "organization": serialize(
+                attrs["organization"],
+                serializer=ControlSiloOrganizationSerializer(),
+            ),
             "dateAdded": serialize(obj.date_added),
             "dateVerified": serialize(obj.date_verified),
             "dateSynced": serialize(obj.date_synced),

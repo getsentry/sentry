@@ -6,7 +6,7 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 
@@ -107,7 +107,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
             },
           }}
           legend={{right: 0, top: 0}}
-          xAxis={barAxisLabel(seriesData.length)}
+          xAxis={barAxisLabel()}
           series={[
             {
               seriesName: t('Time to Resolution'),

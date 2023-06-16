@@ -5,7 +5,7 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Meta} from 'sentry/types';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
@@ -34,7 +34,7 @@ export function FrameRegisterValue({meta, value}: Props) {
           return `${parsed}`;
         case 0:
         default:
-          return `0x${('0000000000000000' + parsed.toString(16)).substr(-16)}`;
+          return `0x${parsed.toString(16).padStart(16, '0')}`;
       }
     } catch {
       return value;

@@ -26,7 +26,8 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -36,20 +37,27 @@ import {
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
+import {ExperimentAssignment} from 'sentry/types/experiments';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  enablePrioritySortByDefault,
+  getPrioritySortVariant,
+  prioritySortExperimentEnabled,
+} from 'sentry/utils/prioritySort';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withExperiment from 'sentry/utils/withExperiment';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -84,7 +92,9 @@ type Params = {
 
 type Props = {
   api: Client;
+  experimentAssignment: ExperimentAssignment['PrioritySortExperiment'];
   location: Location;
+  logExperiment: () => void;
   organization: Organization;
   params: Params;
   savedSearch: SavedSearch;
@@ -99,8 +109,6 @@ type State = {
   actionTaken: boolean;
   actionTakenGroupData: Group[];
   error: string | null;
-  // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
-  forReview: boolean;
   groupIds: string[];
   issuesLoading: boolean;
   itemsRemoved: number;
@@ -116,8 +124,6 @@ type State = {
   queryCounts: QueryCounts;
   queryMaxCount: number;
   realtimeActive: boolean;
-  // TODO(Kelly): remove reviewedIds once issue-list-removal-action feature is stable
-  reviewedIds: string[];
   selectAllActive: boolean;
   undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
@@ -144,6 +150,17 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   expand?: string | string[];
 };
 
+type BetterPriorityEndpointParams = Partial<EndpointParams> & {
+  eventHalflifeHours?: number;
+  hasStacktrace?: number;
+  issueHalflifeHours?: number;
+  logLevel?: number;
+  norm?: boolean;
+  relativeVolume?: number;
+  v2?: boolean;
+  variant?: string;
+};
+
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
@@ -156,11 +173,8 @@ class IssueListOverview extends Component<Props, State> {
 
     return {
       groupIds: [],
-      // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
-      reviewedIds: [],
       actionTaken: false,
       actionTakenGroupData: [],
-      forReview: false,
       undo: false,
       selectAllActive: false,
       realtimeActive,
@@ -191,6 +205,7 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchMemberList();
     // let custom analytics take control
     this.props.setDisableRouteAnalytics?.();
+    this.logExperiment();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -208,13 +223,6 @@ class IssueListOverview extends Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-    }
-
-    // TODO(Kelly): remove once issue-list-removal-action feature is stable
-    if (!this.props.organization.features.includes('issue-list-removal-action')) {
-      if (prevState.forReview !== this.state.forReview) {
-        this.fetchData();
-      }
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
@@ -267,6 +275,7 @@ class IssueListOverview extends Component<Props, State> {
 
   componentWillUnmount() {
     this._poller.disable();
+    SelectedGroupStore.reset();
     GroupStore.reset();
     this.props.api.clear();
     this.listener?.();
@@ -276,6 +285,12 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
+
+  logExperiment() {
+    if (prioritySortExperimentEnabled(this.props.organization)) {
+      this.props.logExperiment();
+    }
+  }
 
   getQueryFromSavedSearchOrLocation({
     savedSearch,
@@ -306,7 +321,10 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    return DEFAULT_ISSUE_STREAM_SORT;
+    const hasBetterPrioritySort = enablePrioritySortByDefault(this.props.organization);
+    return hasBetterPrioritySort
+      ? IssueSortOptions.BETTER_PRIORITY
+      : DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getQuery(): string {
@@ -327,9 +345,6 @@ class IssueListOverview extends Component<Props, State> {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
       currentPeriod = this.props.location.query.groupStatsPeriod;
-    } else if (this.getSort() === IssueSortOptions.TREND) {
-      // Default to the larger graph when sorting by relative change
-      currentPeriod = 'auto';
     } else {
       currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
     }
@@ -337,6 +352,31 @@ class IssueListOverview extends Component<Props, State> {
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
+  }
+
+  getBetterPriorityParams(): BetterPriorityEndpointParams {
+    const variant = getPrioritySortVariant(this.props.organization);
+    const query = this.props.location.query ?? {};
+    const {
+      eventHalflifeHours,
+      hasStacktrace,
+      issueHalflifeHours,
+      logLevel,
+      norm,
+      v2,
+      relativeVolume,
+    } = query;
+
+    return {
+      eventHalflifeHours,
+      hasStacktrace,
+      issueHalflifeHours,
+      logLevel,
+      norm,
+      v2,
+      relativeVolume,
+      variant,
+    };
   }
 
   getEndpointParams = (): EndpointParams => {
@@ -370,8 +410,10 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
+    const mergedParams = {...params, ...this.getBetterPriorityParams()};
+
     // only include defined values.
-    return pickBy(params, v => defined(v)) as EndpointParams;
+    return pickBy(mergedParams, v => defined(v)) as EndpointParams;
   };
 
   getSelectedProjectIds = (): string[] => {
@@ -504,12 +546,8 @@ class IssueListOverview extends Component<Props, State> {
   fetchData = (fetchAllCounts = false) => {
     const {organization} = this.props;
     const query = this.getQuery();
-    const hasIssueListRemovalAction = organization.features.includes(
-      'issue-list-removal-action'
-    );
 
-    // TODO(Kelly): update once issue-list-removal-action feature is stable
-    if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+    if (!this.state.realtimeActive) {
       if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
 
@@ -521,14 +559,13 @@ class IssueListOverview extends Component<Props, State> {
         });
       }
     } else {
-      if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
+      if (!isForReviewQuery(query)) {
         GroupStore.loadInitialData([]);
 
         this.setState({
           issuesLoading: true,
           queryCount: 0,
           itemsRemoved: 0,
-          reviewedIds: [],
           error: null,
         });
       }
@@ -538,7 +575,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      queryCount: 0,
       itemsRemoved: 0,
       error: null,
     });
@@ -610,13 +646,6 @@ class IssueListOverview extends Component<Props, State> {
         }
         GroupStore.add(data);
 
-        // TODO(Kelly): update once issue-list-removal-action feature is stable
-        if (!hasIssueListRemovalAction) {
-          if (isForReviewQuery(query)) {
-            GroupStore.remove(this.state.reviewedIds);
-          }
-        }
-
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -627,14 +656,7 @@ class IssueListOverview extends Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        // TODO(Kelly): update once issue-list-removal-action feature is stable
-        if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-          this.fetchCounts(queryCount, fetchAllCounts);
-        } else {
-          if (!this.state.forReview) {
-            this.fetchCounts(queryCount, fetchAllCounts);
-          }
-        }
+        this.fetchCounts(queryCount, fetchAllCounts);
 
         this.setState({
           error: null,
@@ -645,7 +667,7 @@ class IssueListOverview extends Component<Props, State> {
         });
 
         if (data.length === 0) {
-          trackAdvancedAnalyticsEvent('issue_search.empty', {
+          trackAnalytics('issue_search.empty', {
             organization: this.props.organization,
             search_type: 'issues',
             search_source: 'main_search',
@@ -654,7 +676,7 @@ class IssueListOverview extends Component<Props, State> {
         }
       },
       error: err => {
-        trackAdvancedAnalyticsEvent('issue_search.failed', {
+        trackAnalytics('issue_search.failed', {
           organization: this.props.organization,
           search_type: 'issues',
           search_source: 'main_search',
@@ -671,11 +693,8 @@ class IssueListOverview extends Component<Props, State> {
 
         this.resumePolling();
 
-        // TODO(Kelly): update once issue-list-removal-action feature is stable
-        if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+        if (!this.state.realtimeActive) {
           this.setState({actionTaken: false, undo: false});
-        } else {
-          this.setState({forReview: false});
         }
       },
     });
@@ -712,7 +731,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({realtimeActive: realtime});
-    trackAdvancedAnalyticsEvent('issues_stream.realtime_clicked', {
+    trackAnalytics('issues_stream.realtime_clicked', {
       organization: this.props.organization,
       enabled: realtime,
     });
@@ -728,10 +747,11 @@ class IssueListOverview extends Component<Props, State> {
     }
   };
 
-  onRealtimePoll = (data: any, _links: any) => {
+  onRealtimePoll = (data: any, {queryCount}: {queryCount: number}) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
     GroupStore.addToFront(data);
+    this.setState({queryCount});
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -740,16 +760,8 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
-    const hasIssueListRemovalAction = organization.features.includes(
-      'issue-list-removal-action'
-    );
 
-    // TODO(Kelly): update once issue-list-removal-action feature is stable
-    if (
-      hasIssueListRemovalAction &&
-      !this.state.realtimeActive &&
-      actionTakenGroupData.length > 0
-    ) {
+    if (!this.state.realtimeActive && actionTakenGroupData.length > 0) {
       const filteredItems = GroupStore.getAllItems().filter(item => {
         return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
@@ -781,7 +793,8 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, 'Ignored');
+        const hasEscalatingIssues = organization.features.includes('escalating-issues');
+        this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -826,7 +839,7 @@ class IssueListOverview extends Component<Props, State> {
       moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
     ).length;
 
-    trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+    trackAnalytics('issues_tab.viewed', {
       organization,
       tab: tab?.analyticsName,
       page: page ? parseInt(page, 10) : 0,
@@ -835,19 +848,9 @@ class IssueListOverview extends Component<Props, State> {
       num_old_issues: numOldIssues,
       num_new_issues: numNewIssues,
       num_issues: data.length,
+      sort: this.getSort(),
     });
   }
-
-  onIssueListSidebarSearch = (query: string) => {
-    trackAdvancedAnalyticsEvent('search.searched', {
-      organization: this.props.organization,
-      query,
-      search_type: 'issues',
-      search_source: 'search_builder',
-    });
-
-    this.onSearch(query);
-  };
 
   onSearch = (query: string) => {
     if (query === this.state.query) {
@@ -860,11 +863,10 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onSortChange = (sort: string) => {
-    trackAdvancedAnalyticsEvent('issues_stream.sort_changed', {
+    trackAnalytics('issues_stream.sort_changed', {
       organization: this.props.organization,
       sort,
     });
-
     this.transitionTo({sort});
   };
 
@@ -886,7 +888,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   paginationAnalyticsEvent = (direction: string) => {
-    trackAdvancedAnalyticsEvent('issues_stream.paginate', {
+    trackAnalytics('issues_stream.paginate', {
       organization: this.props.organization,
       direction,
     });
@@ -905,10 +907,11 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   transitionTo = (
-    newParams: Partial<EndpointParams> = {},
+    newParams: Partial<EndpointParams> | Partial<BetterPriorityEndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
+      ...omit(this.props.location.query, ['page', 'cursor']),
       referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,
@@ -975,7 +978,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAdvancedAnalyticsEvent('organization_saved_search.selected', {
+    trackAnalytics('organization_saved_search.selected', {
       organization: this.props.organization,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
@@ -1045,11 +1048,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onMarkReviewed = (itemIds: string[]) => {
-    const {organization} = this.props;
     const query = this.getQuery();
-    const hasIssueListRemovalAction = organization.features.includes(
-      'issue-list-removal-action'
-    );
 
     if (!isForReviewQuery(query)) {
       if (itemIds.length > 1) {
@@ -1070,13 +1069,6 @@ class IssueListOverview extends Component<Props, State> {
     if (itemIds.length && currentQueryCount) {
       const inInboxCount = itemIds.filter(id => GroupStore.get(id)?.inbox).length;
       currentQueryCount.count -= inInboxCount;
-      // TODO(Kelly): update once issue-list-removal-action feature is stable
-      if (!hasIssueListRemovalAction) {
-        this.setState({
-          reviewedIds: itemIds,
-          forReview: true,
-        });
-      }
       this.setState({
         queryCounts: {
           ...queryCounts,
@@ -1096,7 +1088,7 @@ class IssueListOverview extends Component<Props, State> {
 
   onIssueAction = (
     itemIds: string[],
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived'
   ) => {
     if (itemIds.length > 1) {
       addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
@@ -1111,9 +1103,24 @@ class IssueListOverview extends Component<Props, State> {
       });
     }
 
+    const links = parseLinkHeader(this.state.pageLinks);
+
     GroupStore.remove(itemIds);
-    this.setState({actionTaken: true});
-    this.fetchData(true);
+    const queryCount = this.state.queryCount - itemIds.length;
+    this.setState({
+      actionTaken: true,
+      queryCount,
+    });
+
+    if (GroupStore.getAllItemIds().length === 0) {
+      // If we run out of issues on the last page, navigate back a page to
+      // avoid showing an empty state - if not on the last page, just show a spinner
+      const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.fetchCounts(queryCount, true);
+    } else {
+      this.fetchData(true);
+    }
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -1129,6 +1136,32 @@ class IssueListOverview extends Component<Props, State> {
       projectIds,
       endpointParams: endpointParams as any,
     });
+  };
+
+  getPageCounts = () => {
+    const {location} = this.props;
+    const {pageLinks, queryCount, groupIds} = this.state;
+    const links = parseLinkHeader(pageLinks);
+    const queryPageInt = parseInt(location.query.page, 10);
+    // Cursor must be present for the page number to be used
+    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+
+    let numPreviousIssues = Math.min(page * MAX_ITEMS, queryCount);
+
+    // Because the query param `page` is not tied to the request, we need to
+    // validate that it's correct at the first and last page
+    if (!links?.next?.results || this.allResultsVisible()) {
+      // On last available page
+      numPreviousIssues = Math.max(queryCount - groupIds.length, 0);
+    } else if (!links?.previous?.results) {
+      // On first available page
+      numPreviousIssues = 0;
+    }
+
+    return {
+      numPreviousIssues,
+      numIssuesOnPage: groupIds.length,
+    };
   };
 
   render() {
@@ -1147,38 +1180,10 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, selection, location, router} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const {organization, selection, router} = this.props;
     const query = this.getQuery();
-    const queryPageInt = parseInt(location.query.page, 10);
-    // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
-    if (!links?.next?.results || this.allResultsVisible()) {
-      // On last available page
-      pageCount = queryCount;
-    } else if (!links?.previous?.results) {
-      // On first available page
-      pageCount = groupIds.length;
-    }
-
-    // Subtract # items that have been marked reviewed
-    pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
-    const displayCount = tct('[count] of [total]', {
-      count: pageCount,
-      total: (
-        <StyledQueryCount
-          hideParens
-          hideIfEmpty={false}
-          count={modifiedQueryCount}
-          max={queryMaxCount || 100}
-        />
-      ),
-    });
-
     const projectIds = selection?.projects?.map(p => p.toString());
 
     const showReprocessingTab = this.displayReprocessingTab();
@@ -1186,6 +1191,8 @@ class IssueListOverview extends Component<Props, State> {
       showReprocessingTab,
       query
     );
+
+    const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
     return (
       <Layout.Page>
@@ -1199,7 +1206,6 @@ class IssueListOverview extends Component<Props, State> {
           onRealtimeChange={this.onRealtimeChange}
           router={router}
           displayReprocessingTab={showReprocessingTab}
-          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
         <StyledBody>
@@ -1211,7 +1217,6 @@ class IssueListOverview extends Component<Props, State> {
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}
-                displayCount={displayCount}
                 onSelectStatsPeriod={this.onSelectStatsPeriod}
                 onMarkReviewed={this.onMarkReviewed}
                 onActionTaken={this.onActionTaken}
@@ -1232,6 +1237,7 @@ class IssueListOverview extends Component<Props, State> {
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  isLoading={this.state.issuesLoading}
                 >
                   <GroupListBody
                     memberList={this.state.memberList}
@@ -1249,9 +1255,22 @@ class IssueListOverview extends Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
+              caption={
+                !issuesLoading && modifiedQueryCount > 0
+                  ? tct('[start]-[end] of [total]', {
+                      start: numPreviousIssues + 1,
+                      end: numPreviousIssues + numIssuesOnPage,
+                      total: (
+                        <StyledQueryCount
+                          hideParens
+                          hideIfEmpty={false}
+                          count={modifiedQueryCount}
+                          max={queryMaxCount || 100}
+                        />
+                      ),
+                    })
+                  : null
+              }
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
@@ -1271,7 +1290,18 @@ class IssueListOverview extends Component<Props, State> {
 export default withRouteAnalytics(
   withApi(
     withPageFilters(
-      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+      withSavedSearches(
+        withOrganization(
+          withIssueTags(
+            withProfiler(
+              withExperiment(IssueListOverview, {
+                experiment: 'PrioritySortExperiment',
+                injectLogExperiment: true,
+              })
+            )
+          )
+        )
+      )
     )
   )
 );
@@ -1286,17 +1316,9 @@ const StyledBody = styled('div')`
   gap: 0;
   padding: 0;
 
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(max-content, 1fr);
-  grid-template-areas:
-    'saved-searches'
-    'content';
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: 1fr;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'content saved-searches';
-  }
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'content saved-searches';
 `;
 
 const StyledMain = styled('section')`

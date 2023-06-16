@@ -11,7 +11,7 @@ type Output = {
 type Props = {
   data: MemoryInfoContext;
   event: Event;
-  type: keyof typeof memoryInfoKnownDataValues;
+  type: (typeof memoryInfoKnownDataValues)[number];
 };
 
 export function getMemoryInfoKnownDataDetails({data, type}: Props): Output | undefined {

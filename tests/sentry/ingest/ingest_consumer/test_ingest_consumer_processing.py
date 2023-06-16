@@ -1,6 +1,8 @@
 import datetime
 import time
 import uuid
+import zipfile
+from io import BytesIO
 from unittest.mock import Mock
 
 import pytest
@@ -12,8 +14,17 @@ from sentry.ingest.ingest_consumer import (
     process_individual_attachment,
     process_userreport,
 )
-from sentry.models import EventAttachment, EventUser, File, UserReport
+from sentry.models import EventAttachment, EventUser, File, UserReport, create_files_from_dif_zip
 from sentry.utils import json
+
+PROGUARD_UUID = "467ade76-6d0b-11ed-a1eb-0242ac120002"
+PROGUARD_SOURCE = b"""\
+org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
+    65:65:void <init>() -> <init>
+    67:67:java.lang.Class[] getClassContext() -> a
+    69:69:java.lang.Class[] getExtraClassContext() -> a
+    65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
+"""
 
 
 def get_normalized_event(data, project):
@@ -56,7 +67,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
                 "project_id": project_id,
                 "remote_addr": "127.0.0.1",
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     (kwargs,) = preprocess_event
@@ -106,7 +117,7 @@ def test_transactions_spawn_save_event_transaction(
             "project_id": project_id,
             "remote_addr": "127.0.0.1",
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
     assert not len(preprocess_event)
     assert save_event_transaction.delay.call_args[0] == ()
@@ -138,8 +149,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": 0,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
         process_attachment_chunk(
@@ -149,8 +159,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": 1,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
     with task_runner():
@@ -171,7 +180,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                     }
                 ],
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     persisted_attachments = list(
@@ -188,6 +197,85 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
         assert file_contents.name == "lol.txt"
     else:
         assert not persisted_attachments
+
+
+@pytest.mark.django_db
+def test_deobfuscate_view_hierarchy(default_project, task_runner):
+    payload = get_normalized_event(
+        {
+            "message": "hello world",
+            "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
+        },
+        default_project,
+    )
+    event_id = payload["event_id"]
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    project_id = default_project.id
+    start_time = time.time() - 3600
+
+    # Create the proguard file
+    with zipfile.ZipFile(BytesIO(), "w") as f:
+        f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+        create_files_from_dif_zip(f, project=default_project)
+
+    expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
+    obfuscated_view_hierarchy = {
+        "rendering_system": "Test System",
+        "windows": [
+            {
+                "identifier": "parent",
+                "type": "org.a.b.g$a",
+                "children": [
+                    {
+                        "identifier": "child",
+                        "type": "org.a.b.g$a",
+                    }
+                ],
+            }
+        ],
+    }
+
+    process_attachment_chunk(
+        {
+            "payload": json.dumps_htmlsafe(obfuscated_view_hierarchy).encode(),
+            "event_id": event_id,
+            "project_id": project_id,
+            "id": attachment_id,
+            "chunk_index": 0,
+        }
+    )
+
+    with task_runner():
+        process_event(
+            {
+                "payload": json.dumps(payload),
+                "start_time": start_time,
+                "event_id": event_id,
+                "project_id": project_id,
+                "remote_addr": "127.0.0.1",
+                "attachments": [
+                    {
+                        "id": attachment_id,
+                        "name": "view_hierarchy.json",
+                        "content_type": "application/json",
+                        "attachment_type": "event.view_hierarchy",
+                        "chunks": 1,
+                    }
+                ],
+            },
+            project=default_project,
+        )
+
+    persisted_attachments = list(
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+    )
+    (attachment,) = persisted_attachments
+    file = File.objects.get(id=attachment.file_id)
+    assert file.type == "event.view_hierarchy"
+    assert file.headers == {"Content-Type": "application/json"}
+    file_contents = file.getfile()
+    assert file_contents.read() == expected_response
+    assert file_contents.name == "view_hierarchy.json"
 
 
 @pytest.mark.django_db
@@ -235,8 +323,7 @@ def test_individual_attachments(
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": i,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
     process_individual_attachment(
@@ -252,7 +339,7 @@ def test_individual_attachments(
             "event_id": event_id,
             "project_id": project_id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
@@ -304,7 +391,7 @@ def test_userreport(django_cache, default_project, monkeypatch):
             ),
             "project_id": default_project.id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     (report,) = UserReport.objects.all()
@@ -338,7 +425,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
             ),
             "project_id": default_project.id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     mgr = EventManager(data={"event_id": event_id, "user": {"email": "markus+dontatme@sentry.io"}})
@@ -376,7 +463,7 @@ def test_individual_attachments_missing_chunks(default_project, factories, monke
             "event_id": event_id,
             "project_id": project_id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))

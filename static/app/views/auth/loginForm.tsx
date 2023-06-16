@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AuthConfig} from 'sentry/types';
 
 type LoginProvidersProps = Partial<
@@ -20,30 +20,32 @@ type LoginProvidersProps = Partial<
 
 // TODO(epurkhiser): The abstraction here would be much nicer if we just
 // exposed a configuration object telling us what auth providers there are.
-const LoginProviders = ({
+function LoginProviders({
   vstsLoginLink,
   githubLoginLink,
   googleLoginLink,
-}: LoginProvidersProps) => (
-  <ProviderWrapper>
-    <ProviderHeading>{t('External Account Login')}</ProviderHeading>
-    {googleLoginLink && (
-      <Button size="sm" icon={<IconGoogle size="xs" />} href={googleLoginLink}>
-        {t('Sign in with Google')}
-      </Button>
-    )}
-    {githubLoginLink && (
-      <Button size="sm" icon={<IconGithub size="xs" />} href={githubLoginLink}>
-        {t('Sign in with GitHub')}
-      </Button>
-    )}
-    {vstsLoginLink && (
-      <Button size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
-        {t('Sign in with Azure DevOps')}
-      </Button>
-    )}
-  </ProviderWrapper>
-);
+}: LoginProvidersProps) {
+  return (
+    <ProviderWrapper>
+      <ProviderHeading>{t('External Account Login')}</ProviderHeading>
+      {googleLoginLink && (
+        <Button size="sm" icon={<IconGoogle size="xs" />} href={googleLoginLink}>
+          {t('Sign in with Google')}
+        </Button>
+      )}
+      {githubLoginLink && (
+        <Button size="sm" icon={<IconGithub size="xs" />} href={githubLoginLink}>
+          {t('Sign in with GitHub')}
+        </Button>
+      )}
+      {vstsLoginLink && (
+        <Button size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
+          {t('Sign in with Azure DevOps')}
+        </Button>
+      )}
+    </ProviderWrapper>
+  );
+}
 
 type Props = {
   authConfig: AuthConfig;

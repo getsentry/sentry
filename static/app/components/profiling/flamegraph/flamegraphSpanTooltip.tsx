@@ -5,9 +5,10 @@ import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {formatColorForSpan, Rect} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForSpan} from 'sentry/utils/profiling/gl/utils';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {
   FlamegraphTooltipColorIndicator,
@@ -60,7 +61,7 @@ export function FlamegraphSpanTooltip({
       <FlamegraphTooltipFrameMainInfo>
         <FlamegraphTooltipColorIndicator
           backgroundImage={
-            hoveredNode.node.span.op === 'missing instrumentation'
+            hoveredNode.node.span.op === 'missing span instrumentation'
               ? `url(${spansRenderer.patternDataUrl})`
               : 'none'
           }

@@ -11,7 +11,7 @@ import SelectControl, {
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props

@@ -32,7 +32,7 @@ describe('IssueListSearchBar', function () {
   });
 
   describe('updateAutoCompleteItems()', function () {
-    it('sets state with complete tag', function () {
+    it('sets state with complete tag', async function () {
       const tagValuesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/url/values/',
         method: 'GET',
@@ -43,7 +43,8 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('url:"fu"');
 
       expect(tagValuesMock).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -55,10 +56,9 @@ describe('IssueListSearchBar', function () {
       );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
     });
 
-    it('sets state when value has colon', function () {
+    it('sets state when value has colon', async function () {
       const tagValuesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/url/values/',
         method: 'GET',
@@ -69,12 +69,13 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'url:');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('url:', {delay: null});
 
       expect(tagValuesMock).toHaveBeenCalled();
     });
 
-    it('does not request values when tag is `timesSeen`', function () {
+    it('does not request values when tag is `timesSeen`', async function () {
       const tagValuesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/url/values/',
         method: 'GET',
@@ -85,14 +86,15 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'timesSeen:');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('timesSeen:', {delay: null});
 
       expect(tagValuesMock).not.toHaveBeenCalled();
     });
   });
 
   describe('Recent Searches', function () {
-    it('saves search query as a recent search', function () {
+    it('saves search query as a recent search', async function () {
       const tagValuesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/url/values/',
         method: 'GET',
@@ -109,7 +111,8 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('url:"fu"');
 
       expect(tagValuesMock).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -121,9 +124,8 @@ describe('IssueListSearchBar', function () {
       );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 
-      userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
       expect(onSearch).toHaveBeenCalledWith('url:"fu"');
 
       expect(saveRecentSearch).toHaveBeenCalledWith(
@@ -137,7 +139,7 @@ describe('IssueListSearchBar', function () {
       );
     });
 
-    it('queries for recent searches', function () {
+    it('queries for recent searches', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/url/values/',
         method: 'GET',
@@ -146,7 +148,8 @@ describe('IssueListSearchBar', function () {
 
       render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
-      userEvent.type(screen.getByRole('textbox'), 'is:');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('is:', {delay: null});
 
       expect(recentSearchMock).toHaveBeenCalledWith(
         expect.anything(),
@@ -174,28 +177,28 @@ describe('IssueListSearchBar', function () {
       const textarea = screen.getByRole('textbox');
 
       // Keyboard navigate to first item and select
-      userEvent.type(textarea, 't');
+      await userEvent.type(textarea, 't');
       await waitFor(() =>
         expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
       );
-      userEvent.keyboard('{ArrowDown}{Tab}');
+      await userEvent.keyboard('{ArrowDown}{Tab}');
       expect(textarea).not.toHaveValue('t');
       const firstItemValue = textarea.textContent;
 
       // Keyboard navigate to second item and select
-      userEvent.keyboard('{selectall}{backspace}t');
+      await userEvent.keyboard('{selectall}{backspace}t');
       await waitFor(() =>
         expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
       );
-      userEvent.keyboard('{ArrowDown}{ArrowDown}{Tab}');
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}{Tab}');
       expect(textarea).not.toHaveValue(firstItemValue);
 
       // Keyboard navigate to second item, then back to first item and select
-      userEvent.keyboard('{selectall}{backspace}t');
+      await userEvent.keyboard('{selectall}{backspace}t');
       await waitFor(() =>
         expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
       );
-      userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{Tab}');
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{Tab}');
       expect(textarea).toHaveValue(firstItemValue);
     });
   });

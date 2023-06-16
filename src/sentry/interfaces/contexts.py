@@ -175,12 +175,18 @@ class GpuContextType(ContextType):
 @contexttype
 class MonitorContextType(ContextType):
     type = "monitor"
-    context_to_tag_mapping = {"id": "{id}"}
+    context_to_tag_mapping = {"id": "{id}", "slug": "{slug}"}
 
 
 @contexttype
 class TraceContextType(ContextType):
     type = "trace"
+    context_to_tag_mapping = {}
+
+
+@contexttype
+class OtelContextType(ContextType):
+    type = "otel"
     context_to_tag_mapping = {}
 
 

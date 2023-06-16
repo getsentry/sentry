@@ -12,13 +12,13 @@ function renderComponent(eventView: EventView) {
 }
 
 describe('IncompatibleAlertQuery', () => {
-  it('should call onClose', () => {
+  it('should call onClose', async () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
     });
     const wrapper = renderComponent(eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Close'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close'}));
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
@@ -48,7 +48,9 @@ describe('IncompatibleAlertQuery', () => {
       projects: [2],
     });
     renderComponent(eventView);
-    expect(screen.getByText("An event type wasn't selected")).toBeInTheDocument();
+    expect(screen.getByText(/An event type wasn't selected/)).toHaveTextContent(
+      "An event type wasn't selected. event.type:error has been set as the default"
+    );
   });
 
   it('should warn when yAxis is not allowed', () => {
@@ -103,6 +105,8 @@ describe('IncompatibleAlertQuery', () => {
     });
     renderComponent(eventView);
     expect(screen.getByText('No project was selected')).toBeInTheDocument();
-    expect(screen.getByText("An event type wasn't selected")).toBeInTheDocument();
+    expect(screen.getByText(/An event type wasn't selected/)).toHaveTextContent(
+      "An event type wasn't selected. event.type:error has been set as the default"
+    );
   });
 });

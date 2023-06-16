@@ -80,6 +80,9 @@ class EventDataDeletionTask(BaseDeletionTask):
             limit=self.DEFAULT_CHUNK_SIZE,
             referrer="deletions.group",
             orderby=["-timestamp", "-event_id"],
+            tenant_ids={"organization_id": self.groups[0].project.organization_id}
+            if self.groups
+            else None,
         )
         if not events:
             # Remove all group events now that their node data has been removed.
@@ -151,4 +154,4 @@ class GroupDeletionTask(ModelDeletionTask):
 
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
-        ).update(status=GroupStatus.DELETION_IN_PROGRESS)
+        ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)

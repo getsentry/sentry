@@ -85,7 +85,7 @@ describe('Modals -> ScreenshotModal', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
-  it('paginates single screenshots correctly', function () {
+  it('paginates single screenshots correctly', async function () {
     const eventAttachment = TestStubs.EventAttachment();
     renderModal({
       eventAttachment,
@@ -104,7 +104,7 @@ describe('Modals -> ScreenshotModal', function () {
       groupId: 'group-id',
     });
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(screen.getByText('new event id')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
@@ -134,7 +134,7 @@ describe('Modals -> ScreenshotModal', function () {
       enablePagination: true,
       groupId: 'group-id',
     });
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     await waitFor(() => {
       expect(getAttachmentsMock).toHaveBeenCalledWith(
@@ -146,7 +146,7 @@ describe('Modals -> ScreenshotModal', function () {
     });
   });
 
-  it('renders with previous and next buttons when passed attachments and index', function () {
+  it('renders with previous and next buttons when passed attachments and index', async function () {
     const eventAttachment = TestStubs.EventAttachment();
     const attachments = [eventAttachment, TestStubs.EventAttachment({id: '2'})];
     render(
@@ -175,7 +175,7 @@ describe('Modals -> ScreenshotModal', function () {
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('1 of 2');
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
     expect(screen.getByTestId('pagination-header-text')).toHaveTextContent('2 of 2');
 

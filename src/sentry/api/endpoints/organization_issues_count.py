@@ -51,6 +51,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
 
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
+            query_kwargs["actor"] = request.user
+
             result = search.query(**query_kwargs)
             return result.hits
 
@@ -70,8 +72,12 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response([])
 
-        if len(projects) > 1 and not features.has(
-            "organizations:global-views", organization, actor=request.user
+        is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
+
+        if (
+            len(projects) > 1
+            and not features.has("organizations:global-views", organization, actor=request.user)
+            and not is_fetching_replay_data
         ):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400

@@ -5,7 +5,7 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 class BaseIncidentDetailsTest:
@@ -40,7 +40,7 @@ class BaseIncidentDetailsTest:
         assert resp.status_code == 404
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
     @freeze_time()
     def test_simple(self):
@@ -50,7 +50,8 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
 
         expected = serialize(incident)
 
-        user_data = serialize(self.user)
+        with exempt_from_silo_limits():
+            user_data = serialize(self.user)
         seen_by = [user_data]
 
         assert resp.data["id"] == expected["id"]
@@ -62,7 +63,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
     method = "put"
 
@@ -103,7 +104,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
         assert activity.value == str(status)
         assert activity.comment == comment
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
 
     def test_invalid_status(self):
         incident = self.create_incident()

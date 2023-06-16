@@ -65,7 +65,7 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
 @overload
 def get_or_create(
     client: docker.DockerClient, thing: Literal["network"], name: str
-) -> docker.modlels.networks.Network:
+) -> docker.models.networks.Network:
     ...
 
 
@@ -208,7 +208,9 @@ def up(
 
     configure()
 
-    containers = _prepare_containers(project, skip_only_if=skip_only_if, silent=True)
+    containers = _prepare_containers(
+        project, skip_only_if=(skip_only_if or len(services) > 0), silent=True
+    )
     selected_services = set()
 
     if services:
@@ -341,19 +343,9 @@ def _start_service(
     fast: bool = False,
     always_start: bool = False,
 ) -> docker.models.containers.Container | None:
-    from django.conf import settings
-
     from docker.errors import NotFound
 
     options = containers[name]
-
-    # HACK(mattrobenolt): special handle snuba backend because it needs to
-    # handle different values based on the eventstream backend
-    # For snuba, we can't run the full suite of devserver, but can only
-    # run the api.
-    if name == "snuba" and "snuba" in settings.SENTRY_EVENTSTREAM:
-        options["environment"].pop("DEFAULT_BROKERS", None)
-        options["command"] = ["devserver", "--no-workers"]
 
     for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)
@@ -499,6 +491,7 @@ def rm(project: str, services: list[str]) -> None:
     an explicit list of services to remove.
     """
     from docker.errors import NotFound
+
     from sentry.runner import configure
 
     configure()

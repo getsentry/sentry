@@ -29,7 +29,7 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   PageFilters,
@@ -38,7 +38,7 @@ import {
   ReleaseStatus,
   Tag,
 } from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -94,8 +94,8 @@ class ReleasesList extends AsyncView<Props, State> {
       adoptionStages: 1,
       status:
         activeStatus === ReleasesStatusOption.ARCHIVED
-          ? ReleaseStatus.Archived
-          : ReleaseStatus.Active,
+          ? ReleaseStatus.ARCHIVED
+          : ReleaseStatus.ACTIVE,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
@@ -247,10 +247,8 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization, selection} = this.props;
 
     if (organization.id && selection.projects[0]) {
-      trackAnalyticsEvent({
-        eventKey: `releases_list.click_add_release_health`,
-        eventName: `Releases List: Click Add Release Health`,
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('releases_list.click_add_release_health', {
+        organization,
         project_id: selection.projects[0],
       });
     }
@@ -601,7 +599,7 @@ class ReleasesList extends AsyncView<Props, State> {
                 !!releases?.length && <ReleaseArchivedNotice multi />}
 
               {error
-                ? super.renderError(new Error('Unable to load all required endpoints'))
+                ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
             </Layout.Main>
           </Layout.Body>

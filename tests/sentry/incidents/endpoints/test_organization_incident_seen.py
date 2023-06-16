@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentSeenTest(APITestCase):
     method = "post"
     endpoint = "sentry-api-0-organization-incident-seen"
@@ -42,7 +42,7 @@ class OrganizationIncidentSeenTest(APITestCase):
 
             seen_incidents = IncidentSeen.objects.filter(incident=incident)
             assert len(seen_incidents) == 1
-            assert seen_incidents[0].user == self.user
+            assert seen_incidents[0].user_id == self.user.id
 
             # mark set as seen by new_user
             resp = self.get_response(incident.organization.slug, incident.identifier)
@@ -50,8 +50,8 @@ class OrganizationIncidentSeenTest(APITestCase):
 
             seen_incidents = IncidentSeen.objects.filter(incident=incident)
             assert len(seen_incidents) == 2
-            assert seen_incidents[0].user == self.user
-            assert seen_incidents[1].user == new_user
+            assert seen_incidents[0].user_id == self.user.id
+            assert seen_incidents[1].user_id == new_user.id
 
             url = reverse(
                 "sentry-api-0-organization-incident-details",

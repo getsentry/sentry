@@ -7,5 +7,9 @@ urlpatterns = [
     url(
         r"^associate/complete/(?P<backend>[^/]+)/$", complete, name="socialauth_associate_complete"
     ),
-    url(r"^associate/(?P<backend>[^/]+)/$", auth, name="socialauth_associate"),
+    url(
+        r"^associate/(?P<backend>[^/]+)/$",
+        auth,
+        name="socialauth_associate",
+    ),
 ]

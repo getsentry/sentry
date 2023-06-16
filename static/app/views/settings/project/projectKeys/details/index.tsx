@@ -1,17 +1,18 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-import KeySettings from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   organization: Organization;
+  project: Project;
 } & RouteComponentProps<
   {
     keyId: string;
@@ -43,22 +44,29 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
     );
   };
 
+  updateData = (data: ProjectKey) => {
+    this.setState(state => {
+      return {...state, data};
+    });
+  };
+
   renderBody() {
-    const {organization, params} = this.props;
+    const {organization, project, params} = this.props;
     const {data} = this.state;
 
     return (
       <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <KeyStats api={this.api} organization={organization} params={params} />
 
         <KeySettings
-          api={this.api}
           data={data}
+          updateData={this.updateData}
           onRemove={this.handleRemove}
           organization={organization}
+          project={project}
           params={params}
         />
       </div>

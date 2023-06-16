@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from sentry import eventstore
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import GroupCategory
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
-from sentry.types.issues import GroupCategory
 from sentry.utils.validators import normalize_event_id
 
 if TYPE_CHECKING:
@@ -54,9 +54,7 @@ def get_query_builder_for_group(
     query: str, snuba_params: Mapping[str, Any], group: Group, limit: int, offset: int
 ) -> QueryBuilder:
     dataset = Dataset.IssuePlatform
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        dataset = Dataset.Transactions
-    elif group.issue_category == GroupCategory.ERROR:
+    if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     return QueryBuilder(
         dataset=dataset,

@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,8 +35,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         current_state = inbound_filters.get_filter_state(filter_id, project)
+        if isinstance(current_state, list):
+            current_state = set(current_state)
 
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
+        if isinstance(new_state, list):
+            new_state = set(new_state)
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
         returned_state = None
@@ -61,6 +67,8 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             if removed == 1:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
+        if isinstance(returned_state, Iterable):
+            returned_state = list(returned_state)
         self.create_audit_entry(
             request=request,
             organization=project.organization,

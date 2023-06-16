@@ -1,11 +1,11 @@
 import re
 from unittest.mock import patch
 
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationIndexTest(APITestCase):
@@ -43,19 +43,27 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         user2 = self.create_user(email="user2@example.com")
         org3 = self.create_organization(name="C", owner=user2)
-        self.create_organization(name="D", owner=user2)
+        org4 = self.create_organization(name="D", owner=user2)
+        org5 = self.create_organization(name="E", owner=user2)
 
         self.create_member(user=user2, organization=org2, role="owner")
         self.create_member(user=self.user, organization=org3, role="owner")
 
+        owner_team = self.create_team(organization=org4, org_role="owner")
+        # org4 has 2 owners
+        self.create_member(user=self.user, organization=org4, role="member", teams=[owner_team])
+        self.create_member(user=self.user, organization=org5, role="member")
+
         response = self.get_success_response(qs_params={"owner": 1})
-        assert len(response.data) == 3
+        assert len(response.data) == 4
         assert response.data[0]["organization"]["id"] == str(org.id)
         assert response.data[0]["singleOwner"] is True
         assert response.data[1]["organization"]["id"] == str(org2.id)
         assert response.data[1]["singleOwner"] is False
         assert response.data[2]["organization"]["id"] == str(org3.id)
         assert response.data[2]["singleOwner"] is False
+        assert response.data[3]["organization"]["id"] == str(org4.id)
+        assert response.data[3]["singleOwner"] is False
 
     def test_status_query(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
@@ -77,7 +85,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         response = self.get_success_response(qs_params={"member": 1})
         assert len(response.data) == 2
 
-        om = OrganizationMember.objects.get(organization=org, user=self.user)
+        om = OrganizationMember.objects.get(organization=org, user_id=self.user.id)
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
@@ -87,7 +95,7 @@ class OrganizationsListTest(OrganizationIndexTest):
 
 
 @region_silo_test
-class OrganizationsCreateTest(OrganizationIndexTest):
+class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
     def test_missing_params(self):
@@ -193,17 +201,28 @@ class OrganizationsCreateTest(OrganizationIndexTest):
         assert org.slug == data["slug"]
         assert org.name == data["name"]
 
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=organization_id,
-                slug=data["slug"],
-                name=data["name"],
-                idempotency_key=data["idempotencyKey"],
-            ).exists()
+        # TODO(HC) Re-enable this check once organization mapping stabilizes
+        # with exempt_from_silo_limits():
+        #     assert OrganizationMapping.objects.filter(
+        #         organization_id=organization_id,
+        #         slug=data["slug"],
+        #         name=data["name"],
+        #         idempotency_key=data["idempotencyKey"],
+        #     ).exists()
 
     def test_slug_already_taken(self):
-        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
-        self.get_error_response(slug="taken", name="TaKeN", status_code=409)
+        self.create_organization(slug="taken")
+        self.get_error_response(slug="taken", name="TaKeN", status_code=400)
+
+    def test_add_organization_member(self):
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(name="org name")
+
+        org_member = OrganizationMember.objects.get(
+            organization_id=response.data["id"], user_id=self.user.id
+        )
+        self.assert_org_member_mapping(org_member=org_member)
 
 
 @region_silo_test

@@ -10,14 +10,14 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {DebugFile, DebugFileFeature} from 'sentry/types/debugFiles';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import theme from 'sentry/utils/theme';
-import {getFileType} from 'sentry/views/settings/projectDebugFiles/utils';
+import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
 import {getFileName} from '../utils';
 
@@ -57,7 +57,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  getUplodedDebugFiles(candidates: ImageCandidates) {
+  getUploadedDebugFiles(candidates: ImageCandidates) {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
@@ -70,16 +70,30 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
 
     const {debug_id, candidates = []} = image;
 
-    const uploadedDebugFiles = this.getUplodedDebugFiles(candidates);
+    const hasUploadedDebugFiles = this.getUploadedDebugFiles(candidates);
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
 
-    if (uploadedDebugFiles) {
+    if (hasUploadedDebugFiles) {
       endpoints.push([
         'debugFiles',
         `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${debug_id}`,
         {
           query: {
-            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
+            // FIXME(swatinem): Ideally we should not filter here at all,
+            // though Symbolicator does not currently report `bcsymbolmap` and `il2cpp`
+            // candidates, and we would thus show bogus "unapplied" entries for those,
+            // which would probably confuse people more than not seeing successfully
+            // fetched candidates for those two types of files.
+            file_formats: [
+              'breakpad',
+              'macho',
+              'elf',
+              'pe',
+              'pdb',
+              'sourcebundle',
+              'wasm',
+              'portablepdb',
+            ],
           },
         },
       ]);
@@ -182,7 +196,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
         size,
         dateCreated,
         symbolType,
-        fileType: getFileType(debugFile),
+        fileType: getPrettyFileType(debugFile),
         source: INTERNAL_SOURCE,
         source_name: t('Sentry'),
       };
@@ -217,18 +231,16 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
           id: location,
           size,
           dateCreated,
-          cpuName,
         } = internalDebugFileInfo;
 
         return {
           ...debugFileOkCandidate,
-          cpuName,
           location,
           filename,
           size,
           dateCreated,
           symbolType,
-          fileType: getFileType(internalDebugFileInfo),
+          prettyFileType: getPrettyFileType(internalDebugFileInfo),
         };
       }
     );

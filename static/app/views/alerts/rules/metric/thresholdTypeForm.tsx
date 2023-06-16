@@ -4,7 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 
@@ -21,7 +21,7 @@ type Props = {
   comparisonDelta?: number;
 };
 
-const ThresholdTypeForm = ({
+function ThresholdTypeForm({
   organization,
   dataset,
   disabled,
@@ -29,7 +29,7 @@ const ThresholdTypeForm = ({
   onComparisonDeltaChange,
   onComparisonTypeChange,
   comparisonDelta,
-}: Props) => {
+}: Props) {
   if (isCrashFreeAlert(dataset)) {
     return null;
   }
@@ -92,7 +92,7 @@ const ThresholdTypeForm = ({
       </FormRow>
     </Feature>
   );
-};
+}
 
 const FormRow = styled('div')`
   display: flex;

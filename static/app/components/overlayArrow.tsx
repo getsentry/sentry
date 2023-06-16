@@ -5,15 +5,15 @@ import styled from '@emotion/styled';
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
+interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
   background?: ColorOrAlias;
   border?: ColorOrAlias;
   placement?: PopperProps<any>['placement'];
   size?: number;
   strokeWidth?: number;
-};
+}
 
-const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = (
+function BaseOverlayArrow(
   {
     size = 16,
     strokeWidth = 1,
@@ -21,9 +21,9 @@ const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = 
     background = 'backgroundElevated',
     border = 'translucentBorder',
     ...props
-  },
-  ref
-) => {
+  }: OverlayArrowProps,
+  ref: React.Ref<HTMLDivElement>
+) {
   /**
    * SVG height
    */
@@ -74,11 +74,9 @@ const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = 
       </SVG>
     </Wrap>
   );
-};
+}
 
 const OverlayArrow = forwardRef(BaseOverlayArrow);
-
-export default OverlayArrow;
 
 const Wrap = styled('div')<{size: number; placement?: PopperProps<any>['placement']}>`
   position: relative;
@@ -111,3 +109,5 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
     fill: ${p => p.theme[p.background]};
   }
 `;
+
+export {OverlayArrow, OverlayArrowProps};

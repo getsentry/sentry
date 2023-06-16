@@ -6,7 +6,7 @@ import FormField from 'sentry/components/forms/formField';
 import ListItem from 'sentry/components/list/listItem';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project, Team} from 'sentry/types';
 
 type Props = {
@@ -45,7 +45,9 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
             value={ownerId}
             project={project}
             onChange={({value}) => model.setValue('owner', value && `team:${value}`)}
-            teamFilter={(team: Team) => team.isMember || team.id === ownerId}
+            teamFilter={(team: Team) =>
+              team.isMember || team.id === ownerId || team.access.includes('team:admin')
+            }
             useId
             includeUnassigned
             disabled={disabled}

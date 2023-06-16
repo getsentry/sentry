@@ -19,6 +19,7 @@ const makeFilterProps = (
 ): ReturnType<typeof importedUsePageFilters> => {
   return {
     isReady: true,
+    shouldPersist: true,
     desyncedFilters: new Set(),
     pinnedFilters: new Set(),
     selection: {
@@ -239,7 +240,7 @@ describe('GlobalSDKUpdateAlert', () => {
       organization: TestStubs.Organization(),
     });
 
-    userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));
 
     expect(promptsActivityMock).toHaveBeenCalledWith(
       '/prompts-activity/',

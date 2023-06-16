@@ -5,7 +5,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.urls import reverse
 
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
@@ -52,7 +53,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
     def setUp(self):
         super().setUp()
         self.auth_provider = AuthProvider.objects.create(
-            provider=self.provider_name, organization=self.organization
+            provider=self.provider_name, organization_id=self.organization.id
         )
         AuthIdentity.objects.create(
             auth_provider=self.auth_provider,

@@ -13,7 +13,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Artifact} from 'sentry/types';
 
 type Props = {
@@ -24,13 +24,13 @@ type Props = {
   orgSlug: string;
 };
 
-const SourceMapsArtifactRow = ({
+function SourceMapsArtifactRow({
   artifact,
   onDelete,
   downloadUrl,
   downloadRole,
   orgSlug,
-}: Props) => {
+}: Props) {
   const {name, size, dateCreated, id, dist} = artifact;
 
   const handleDeleteClick = () => {
@@ -111,7 +111,7 @@ const SourceMapsArtifactRow = ({
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const NameColumn = styled('div')`
   display: flex;

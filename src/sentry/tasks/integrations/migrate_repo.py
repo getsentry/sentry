@@ -1,4 +1,6 @@
-from sentry.models import Integration, ObjectStatus, Organization, Repository
+from sentry.constants import ObjectStatus
+from sentry.models import Integration, Organization, Repository
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger
 
@@ -32,7 +34,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         # Check against disabled specifically -- don't want to accidentally un-delete repos.
         original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
-            repo.status = ObjectStatus.VISIBLE
+            repo.status = ObjectStatus.ACTIVE
         repo.save()
         logger.info(
             "repo.migrated",
@@ -47,5 +49,5 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         from sentry.mediators.plugins import Migrator
 
         Migrator.run(
-            integration=integration, organization=Organization.objects.get(id=organization_id)
+            integration=integration, organization=organization_service.get(id=organization_id)
         )

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconDelete} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SentryFunction} from 'sentry/types';
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
   sentryFn: SentryFunction;
 };
 
-const ActionButtons = ({org, sentryFn, onDelete}: Props) => {
+function ActionButtons({org, sentryFn, onDelete}: Props) {
   const deleteButton = (
     <StyledButton
       size="sm"
@@ -21,7 +21,7 @@ const ActionButtons = ({org, sentryFn, onDelete}: Props) => {
     />
   );
   return <ButtonHolder>{deleteButton}</ButtonHolder>;
-};
+}
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.subText};

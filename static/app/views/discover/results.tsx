@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -20,7 +20,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
@@ -32,10 +31,10 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -298,7 +297,7 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const isReplayEnabled = organization.features.includes('session-replay-ui');
+    const isReplayEnabled = organization.features.includes('session-replay');
     const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
       fields: isReplayEnabled
         ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])
@@ -343,7 +342,7 @@ export class Results extends Component<Props, State> {
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('discover_v2.results.toggle_tag_facets', {
+    trackAnalytics('discover_v2.results.toggle_tag_facets', {
       organization,
     });
     this.setState(state => {
@@ -398,7 +397,7 @@ export class Results extends Component<Props, State> {
       this.handleConfirmed();
     }
 
-    trackAdvancedAnalyticsEvent('discover_v2.y_axis_change', {
+    trackAnalytics('discover_v2.y_axis_change', {
       organization: this.props.organization,
       y_axis_value: value,
     });
@@ -538,7 +537,7 @@ export class Results extends Component<Props, State> {
             'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#beforenavigate" />
               ),
             }
           )}
@@ -585,7 +584,7 @@ export class Results extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <NoProjectMessage organization={organization}>
+        <Fragment>
           <ResultsHeader
             setSavedQuery={setSavedQuery}
             errorCode={errorCode}
@@ -683,7 +682,7 @@ export class Results extends Component<Props, State> {
               </Confirm>
             </CustomMeasurementsProvider>
           </Layout.Body>
-        </NoProjectMessage>
+        </Fragment>
       </SentryDocumentTitle>
     );
   }
@@ -759,6 +758,10 @@ function ResultsContainer(props: Props) {
 
   return (
     <PageFiltersContainer
+      disablePersistence={
+        props.organization.features.includes('discover-query') &&
+        !!(props.savedQuery || props.location.query.id)
+      }
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }

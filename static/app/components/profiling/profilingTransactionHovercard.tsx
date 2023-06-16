@@ -10,9 +10,9 @@ import {
 } from 'sentry/components/profiling/functionsMiniGrid';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {
@@ -47,7 +47,7 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
     <Link
       to={linkToSummary}
       onClick={() =>
-        trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+        trackAnalytics('profiling_views.go_to_transaction', {
           organization,
           source: 'transaction_hovercard.trigger',
         })
@@ -56,10 +56,6 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
       {transaction}
     </Link>
   );
-
-  if (!organization.features.includes('profiling-dashboard-redesign')) {
-    return triggerLink;
-  }
 
   return (
     <StyledHovercard
@@ -102,7 +98,7 @@ export function ProfilingTransactionHovercardBody({
   } = useProfilingTransactionQuickSummary({
     transaction,
     project,
-    referrer: 'api.profiling.profiling-transaction-hovercard',
+    referrer: 'api.profiling.transaction-hovercard',
   });
 
   const linkToFlamechartRoute = (
@@ -118,7 +114,7 @@ export function ProfilingTransactionHovercardBody({
   };
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_ui_events.transaction_hovercard_view', {
+    trackAnalytics('profiling_ui_events.transaction_hovercard_view', {
       organization,
     });
   }, [organization]);
@@ -132,15 +128,15 @@ export function ProfilingTransactionHovercardBody({
         >
           {latestProfile ? (
             <Link
-              to={linkToFlamechartRoute(String(latestProfile.id))}
+              to={linkToFlamechartRoute(String(latestProfile['profile.id']))}
               onClick={() =>
-                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
                   source: 'transaction_hovercard.latest_profile',
                 })
               }
             >
-              {getShortEventId(String(latestProfile!.id))}
+              {getShortEventId(String(latestProfile!['profile.id']))}
             </Link>
           ) : (
             '-'
@@ -156,20 +152,20 @@ export function ProfilingTransactionHovercardBody({
               <PerformanceDuration
                 milliseconds={
                   slowestProfileDurationMultiplier *
-                  (slowestProfile['profile.duration'] as number)
+                  (slowestProfile['transaction.duration'] as number)
                 }
                 abbreviation
               />
               <Link
-                to={linkToFlamechartRoute(String(slowestProfile.id))}
+                to={linkToFlamechartRoute(String(slowestProfile['profile.id']))}
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                  trackAnalytics('profiling_views.go_to_flamegraph', {
                     organization,
                     source: 'transaction_hovercard.slowest_profile',
                   })
                 }
               >
-                ({getShortEventId(String(slowestProfile?.id))})
+                ({getShortEventId(String(slowestProfile['profile.id']))})
               </Link>
             </Flex>
           ) : (
@@ -185,7 +181,7 @@ export function ProfilingTransactionHovercardBody({
           organization={organization}
           project={project}
           onLinkClick={() =>
-            trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+            trackAnalytics('profiling_views.go_to_flamegraph', {
               organization,
               source: 'transaction_hovercard.suspect_function',
             })

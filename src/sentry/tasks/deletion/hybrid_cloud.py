@@ -9,6 +9,7 @@ opposing silo and are stored in Tombstone rows.  Deletions that are not successf
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
 import datetime
+from dataclasses import dataclass
 from hashlib import sha1
 from typing import Any, List, Tuple, Type
 from uuid import uuid4
@@ -24,6 +25,14 @@ from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, redis
+
+
+@dataclass
+class WatermarkBatch:
+    low: int
+    up: int
+    has_more: bool
+    transaction_id: str
 
 
 def deletion_silo_modes() -> List[SiloMode]:
@@ -71,11 +80,19 @@ def set_watermark(
 
 def chunk_watermark_batch(
     prefix: str, field: HybridCloudForeignKey, manager: Manager, *, batch_size: int
-) -> Tuple[int, int, bool, str]:
+) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
     upper = manager.aggregate(Max("id"))["id__max"] or 0
     batch_upper = min(upper, lower + batch_size)
-    return lower, upper, batch_upper + batch_size < upper, transaction_id
+
+    # cap to batch size so that query timeouts don't get us.
+    capped = upper
+    if upper >= batch_upper:
+        capped = batch_upper
+
+    return WatermarkBatch(
+        low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
+    )
 
 
 @instrumented_task(
@@ -116,20 +133,22 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 ) -> None:
     try:
         model = apps.get_model(app_label=app_name, model_name=model_name)
-        field: HybridCloudForeignKey
-        for field in model._meta.fields:
+        try:
+            field = model._meta.get_field(field_name)
             if not isinstance(field, HybridCloudForeignKey):
-                continue
-            if field.name == field_name:
-                break
-        else:
+                raise Exception(f"The {field_name} field is not a HybridCloudForeignKey")
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
             raise LookupError(f"Could not find field {field_name} on model {app_name}.{model_name}")
 
         tombstone_cls: Any = TombstoneBase.class_for_silo_mode(SiloMode[silo_mode])
 
-        if _process_tombstone_reconcilition(
+        # We rely on the return value of _process_tombstone_reconciliation
+        # to short circuit the second half of this `or` so that the terminal batch
+        # also updates the tombstone watermark.
+        if _process_tombstone_reconciliation(
             field, model, tombstone_cls, True
-        ) or _process_tombstone_reconcilition(field, model, tombstone_cls, False):
+        ) or _process_tombstone_reconciliation(field, model, tombstone_cls, False):
             process_hybrid_cloud_foreign_key_cascade_batch.apply_async(
                 kwargs=dict(
                     app_name=app_name,
@@ -155,10 +174,10 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 
 # Convenience wrapper for mocking in tests
 def get_batch_size() -> int:
-    return 3000
+    return 500
 
 
-def _process_tombstone_reconcilition(
+def _process_tombstone_reconciliation(
     field: HybridCloudForeignKey,
     model: Any,
     tombstone_cls: Type[TombstoneBase],
@@ -166,31 +185,36 @@ def _process_tombstone_reconcilition(
 ) -> bool:
     from sentry import deletions
 
-    prefix = "row" if row_after_tombstone else "tombstone"
-    watermark_manager: Manager = (
-        field.model.objects if row_after_tombstone else tombstone_cls.objects
-    )
-    watermark_target: str = "r" if row_after_tombstone else "t"
+    prefix = "tombstone"
+    watermark_manager: Manager = tombstone_cls.objects
+    watermark_target = "t"
+    if row_after_tombstone:
+        prefix = "row"
+        watermark_manager = field.model.objects
+        watermark_target = "r"
 
-    low, up, has_more, tid = chunk_watermark_batch(
+    watermark_batch = chunk_watermark_batch(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
-    to_delete_ids: List[int]
-    if low < up:
-        to_delete_ids: List[int] = []
+    has_more = watermark_batch.has_more
+    to_delete_ids: List[int] = []
+
+    if watermark_batch.low < watermark_batch.up:
         oldest_seen: datetime.datetime = timezone.now()
 
         with connections[router.db_for_read(model)].cursor() as conn:
             conn.execute(
                 f"""
-                SELECT r.id, t.created_at FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
+                SELECT r.id, t.created_at
+                FROM {model._meta.db_table} r
+                JOIN {tombstone_cls._meta.db_table} t
                     ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
-                    WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
+                WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
             """,
                 {
                     "table_name": field.foreign_table_name,
-                    "low": low,
-                    "up": up,
+                    "low": watermark_batch.low,
+                    "up": watermark_batch.up,
                 },
             )
 
@@ -202,17 +226,17 @@ def _process_tombstone_reconcilition(
             task = deletions.get(
                 model=model,
                 query={"id__in": to_delete_ids},
-                transaction_id=tid,
+                transaction_id=watermark_batch.transaction_id,
             )
 
             if task.chunk():
                 has_more = True  # The current batch is not complete, rerun this task again
             else:
-                set_watermark(prefix, field, up, tid)
+                set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
         elif field.on_delete == "SET_NULL":
-            model.objects.filter(id__in=to_delete_ids).update({field.name: None})
-            set_watermark(prefix, field, up, tid)
+            model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
+            set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
         else:
             raise ValueError(

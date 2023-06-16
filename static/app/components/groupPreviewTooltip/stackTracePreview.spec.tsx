@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventError} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
@@ -16,65 +16,34 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 
 beforeEach(() => {
   MockApiClient.clearMockResponses();
+  MockApiClient.addMockResponse({
+    url: '/issues/123/',
+  });
 });
 
 describe('StackTracePreview', () => {
-  it('fetches from projects when eventId and projectSlug are provided', async () => {
-    const mockGet = MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project_slug/events/event_id/`,
-      body: makeEvent({id: 'event_id', entries: []}),
-    });
-
-    render(
-      <StackTracePreview issueId="issue" eventId="event_id" projectSlug="project_slug">
-        Preview Trigger
-      </StackTracePreview>
-    );
-
-    userEvent.hover(screen.getByText(/Preview Trigger/));
-
-    await waitFor(() => {
-      expect(mockGet).toHaveBeenCalled();
-    });
-  });
-
-  it('fetches from issues when issueId when eventId and projectSlug are not provided', async () => {
-    const mockGet = MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
-      body: makeEvent({id: 'event_id', entries: []}),
-    });
-
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
-
-    userEvent.hover(screen.getByText(/Preview Trigger/));
-
-    await waitFor(() => {
-      expect(mockGet).toHaveBeenCalled();
-    });
-  });
-
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      url: `/issues/123/events/latest/`,
       statusCode: 400,
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByText(/Failed to load stack trace/)).toBeInTheDocument();
   });
 
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
-      body: makeEvent({id: 'event_id', entries: []}),
+      url: `/issues/123/events/latest/`,
+      body: makeEvent({id: '456', entries: []}),
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(
       await screen.findByText(/There is no stack trace available for this issue./)
@@ -126,7 +95,7 @@ describe('StackTracePreview', () => {
     };
 
     const errorEvent: EventError = {
-      id: 'event_id',
+      id: '456',
       entries: [
         {
           type: EntryType.EXCEPTION,
@@ -136,15 +105,15 @@ describe('StackTracePreview', () => {
     } as EventError;
 
     MockApiClient.addMockResponse({
-      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      url: `/issues/123/events/latest/`,
       body: makeEvent(errorEvent),
     });
 
-    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>, {
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>, {
       organization: {features},
     });
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByTestId(component)).toBeInTheDocument();
   });

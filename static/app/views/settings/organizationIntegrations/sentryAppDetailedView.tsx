@@ -13,7 +13,7 @@ import Confirm from 'sentry/components/confirm';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {getSentryAppInstallStatus} from 'sentry/utils/integrationUtil';
@@ -243,7 +243,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       return (
         <Confirm
           disabled={!userHasAccess}
-          message={tct('Are you sure you want to remove the [slug] installation?', {
+          message={tct('Are you sure you want to uninstall the [slug] installation?', {
             slug: capitalizedSlug,
           })}
           onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action

@@ -33,7 +33,7 @@ describe('BookmarkStar', function () {
     });
 
     expect(screen.getByRole('button', {pressed: false})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // Visually optimistically updated
     expect(screen.getByRole('button', {pressed: true})).toBeInTheDocument();
@@ -43,14 +43,7 @@ describe('BookmarkStar', function () {
       expect.objectContaining({data: {isBookmarked: true}})
     );
 
-    // Not yet updated in the project store
-    expect(ProjectsStore.getBySlug(project.slug)?.isBookmarked).toBe(false);
-
-    // Project store is updated
-    await waitFor(() => {
-      const updatedProject = ProjectsStore.getBySlug(project.slug);
-      expect(updatedProject?.isBookmarked).toBe(true);
-    });
+    expect(ProjectsStore.getBySlug(project.slug)?.isBookmarked).toBe(true);
   });
 
   it('can unstar', async function () {
@@ -68,7 +61,7 @@ describe('BookmarkStar', function () {
     });
 
     expect(screen.getByRole('button', {pressed: true})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // Visually optimistically updated
     expect(screen.getByRole('button', {pressed: false})).toBeInTheDocument();

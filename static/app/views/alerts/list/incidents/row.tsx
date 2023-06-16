@@ -11,7 +11,7 @@ import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
@@ -48,13 +48,15 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 
   return (
     <ErrorBoundary>
-      <Title data-test-id="alert-title">
-        <Link to={alertLink}>{incident.title}</Link>
-      </Title>
+      <FlexCenter>
+        <Title data-test-id="alert-title">
+          <Link to={alertLink}>{incident.title}</Link>
+        </Title>
+      </FlexCenter>
 
       <NoWrapNumeric>
         {getDynamicText({
-          value: <TimeSince date={incident.dateStarted} extraShort />,
+          value: <TimeSince date={incident.dateStarted} unitStyle="extraShort" />,
           fixed: '1w ago',
         })}
       </NoWrapNumeric>
@@ -66,13 +68,15 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
         )}
       </NoWrapNumeric>
 
-      <ProjectBadge avatarSize={18} project={!projectsLoaded ? {slug} : project} />
+      <FlexCenter>
+        <ProjectBadge avatarSize={18} project={!projectsLoaded ? {slug} : project} />
+      </FlexCenter>
       <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 
       <FlexCenter>
         {teamActor ? (
           <Fragment>
-            <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
+            <StyledActorAvatar actor={teamActor} size={18} hasTooltip={false} />{' '}
             <TeamWrapper>{teamActor.name}</TeamWrapper>
           </Fragment>
         ) : (
@@ -88,11 +92,6 @@ const Title = styled('div')`
   min-width: 130px;
 `;
 
-const NoWrapNumeric = styled('div')`
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-`;
-
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
@@ -101,6 +100,12 @@ const FlexCenter = styled('div')`
   ${p => p.theme.overflowEllipsis}
   display: flex;
   align-items: center;
+  line-height: 1.6;
+`;
+
+const NoWrapNumeric = styled(FlexCenter)`
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 `;
 
 const TeamWrapper = styled('span')`

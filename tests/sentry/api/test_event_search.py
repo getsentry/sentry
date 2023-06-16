@@ -192,8 +192,10 @@ shared_tests_skipped = [
     "timestamp_rollup",
     "has_tag",
     "not_has_tag",
+    "supported_tags",
     "invalid_aggregate_column_with_duration_filter",
     "invalid_numeric_aggregate_filter",
+    "disallow_wildcard_filter",
 ]
 
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)

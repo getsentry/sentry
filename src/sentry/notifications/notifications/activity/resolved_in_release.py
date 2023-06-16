@@ -32,6 +32,9 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
         data = self.activity.data
-        author = self.activity.user.get_display_name()
+        if self.user:
+            author = self.user.get_display_name()
+        else:
+            author = "Unknown"
         release = data["version"] if data.get("version") else "an upcoming release"
         return f"Issue marked as resolved in {release} by {author}"

@@ -14,9 +14,11 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -100,7 +102,7 @@ class Fixtures:
             group=self.group,
             project=self.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={},
         )
 
@@ -134,7 +136,8 @@ class Fixtures:
         if organization is None:
             organization = self.organization
 
-        return Factories.create_team(organization=organization, **kwargs)
+        with outbox_runner():
+            return Factories.create_team(organization=organization, **kwargs)
 
     def create_environment(self, project=None, **kwargs):
         if project is None:
@@ -192,12 +195,8 @@ class Fixtures:
             release_id = self.release.id
         return Factories.create_release_file(release_id, file, name, dist_id)
 
-    def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
-        if org is None:
-            org = self.organization.slug
-        if release is None:
-            release = self.release.version
-        return Factories.create_artifact_bundle(org, release, *args, **kwargs)
+    def create_artifact_bundle_zip(self, org=None, release=None, *args, **kwargs):
+        return Factories.create_artifact_bundle_zip(org, release, *args, **kwargs)
 
     def create_release_archive(self, org=None, release=None, *args, **kwargs):
         if org is None:
@@ -205,6 +204,11 @@ class Fixtures:
         if release is None:
             release = self.release.version
         return Factories.create_release_archive(org, release, *args, **kwargs)
+
+    def create_artifact_bundle(self, org=None, *args, **kwargs):
+        if org is None:
+            org = self.organization
+        return Factories.create_artifact_bundle(org, *args, **kwargs)
 
     def create_code_mapping(self, project=None, repo=None, organization_integration=None, **kwargs):
         if project is None:
@@ -361,6 +365,11 @@ class Fixtures:
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
 
+    def create_notification_action(self, organization=None, projects=None, **kwargs):
+        return Factories.create_notification_action(
+            organization=organization, projects=projects, **kwargs
+        )
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
@@ -396,7 +405,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: APIUser = None,
+        user: RpcUser = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
@@ -428,7 +437,7 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = self.user.actor
+            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):

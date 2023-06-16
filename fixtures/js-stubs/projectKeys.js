@@ -7,6 +7,7 @@ export function ProjectKeys(params = []) {
         minidump:
           'http://dev.getsentry.net:8000/api/1/minidump?sentry_key=188ee45a58094d939428d8585aa6f661',
         public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
+        cdn: 'http://dev.getsentry.net:800/js-sdk-loader/188ee45a58094d939428d8585aa6f661.min.js',
         csp: 'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
         security:
           'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
@@ -20,6 +21,21 @@ export function ProjectKeys(params = []) {
       id: '188ee45a58094d939428d8585aa6f661',
       isActive: true,
       label: 'Natural Halibut',
+      browserSdkVersion: 'latest',
+      browserSdk: {
+        choices: [
+          ['latest', 'latest'],
+          ['7.x', '7.x'],
+          ['6.x', '6.x'],
+          ['5.x', '5.x'],
+          ['4.x', '4.x'],
+        ],
+      },
+      dynamicSdkLoaderOptions: {
+        hasPerformance: false,
+        hasReplay: false,
+        hasDebug: false,
+      },
     },
     ...params,
   ];

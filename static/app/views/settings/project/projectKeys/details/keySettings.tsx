@@ -1,32 +1,28 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
-import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
-import TextCopyInput from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
+import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
-  api: Client;
   data: ProjectKey;
   onRemove: () => void;
   organization: Organization;
@@ -34,27 +30,25 @@ type Props = {
     keyId: string;
     projectId: string;
   };
+  project: Project;
+  updateData: (data: ProjectKey) => void;
 };
 
-type State = {
-  error: boolean;
-  loading: boolean;
-};
+export function KeySettings({
+  onRemove,
+  organization,
+  project,
+  params,
+  data,
+  updateData,
+}: Props) {
+  const api = useApi();
 
-class KeySettings extends Component<Props, State> {
-  state: State = {
-    loading: false,
-    error: false,
-  };
+  const {keyId, projectId} = params;
+  const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
-  handleRemove = async () => {
-    if (this.state.loading) {
-      return;
-    }
-
+  const handleRemove = useCallback(async () => {
     addLoadingMessage(t('Revoking key\u2026'));
-    const {api, organization, onRemove, params} = this.props;
-    const {keyId, projectId} = params;
 
     try {
       await api.requestPromise(
@@ -67,25 +61,13 @@ class KeySettings extends Component<Props, State> {
       onRemove();
       addSuccessMessage(t('Revoked key'));
     } catch (_err) {
-      this.setState({
-        error: true,
-        loading: false,
-      });
       addErrorMessage(t('Unable to revoke key'));
     }
-  };
+  }, [organization, api, onRemove, keyId, projectId]);
 
-  render() {
-    const {keyId, projectId} = this.props.params;
-    const {data, organization} = this.props;
-    const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
-    const loaderLink = getDynamicText({
-      value: data.dsn.cdn,
-      fixed: '__JS_SDK_LOADER_URL__',
-    });
-
-    return (
-      <Access access={['project:write']}>
+  return (
+    <Fragment>
+      <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
             <Form
@@ -124,53 +106,29 @@ class KeySettings extends Component<Props, State> {
 
             <KeyRateLimitsForm
               organization={organization}
-              params={this.props.params}
+              params={params}
               data={data}
               disabled={!hasAccess}
             />
 
-            <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
-              <Panel>
-                <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
-                <PanelBody>
-                  <FieldGroup
-                    help={tct(
-                      'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                            What does the script provide?
-                          </ExternalLink>
-                        ),
-                      }
-                    )}
-                    inline={false}
-                    flexibleControlStateSize
-                  >
-                    <TextCopyInput>
-                      {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
-                    </TextCopyInput>
-                  </FieldGroup>
-                  <SelectField
-                    name="browserSdkVersion"
-                    options={
-                      data.browserSdk
-                        ? data.browserSdk.choices.map(([value, label]) => ({
-                            value,
-                            label,
-                          }))
-                        : []
-                    }
-                    placeholder={t('4.x')}
-                    allowClear={false}
-                    disabled={!hasAccess}
-                    help={t(
-                      'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
-                    )}
-                  />
-                </PanelBody>
-              </Panel>
-            </Form>
+            <Panel>
+              <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
+              <PanelBody>
+                <PanelAlert type="info" showIcon>
+                  {t(
+                    'Note that it can take a few minutes until changed options are live.'
+                  )}
+                </PanelAlert>
+
+                <LoaderSettings
+                  orgSlug={organization.slug}
+                  keyId={params.keyId}
+                  project={project}
+                  data={data}
+                  updateData={updateData}
+                />
+              </PanelBody>
+            </Panel>
 
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
@@ -190,38 +148,39 @@ class KeySettings extends Component<Props, State> {
                 />
               </PanelBody>
             </Panel>
-
-            <Access access={['project:admin']}>
-              <Panel>
-                <PanelHeader>{t('Revoke Key')}</PanelHeader>
-                <PanelBody>
-                  <FieldGroup
-                    label={t('Revoke Key')}
-                    help={t(
-                      'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
-                    )}
-                  >
-                    <div>
-                      <Confirm
-                        priority="danger"
-                        message={t(
-                          'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
-                        )}
-                        onConfirm={this.handleRemove}
-                        confirmText={t('Revoke Key')}
-                      >
-                        <Button priority="danger">{t('Revoke Key')}</Button>
-                      </Confirm>
-                    </div>
-                  </FieldGroup>
-                </PanelBody>
-              </Panel>
-            </Access>
           </Fragment>
         )}
       </Access>
-    );
-  }
-}
 
-export default KeySettings;
+      <Access access={['project:admin']} project={project}>
+        {({hasAccess}) => (
+          <Panel>
+            <PanelHeader>{t('Revoke Key')}</PanelHeader>
+            <PanelBody>
+              <FieldGroup
+                label={t('Revoke Key')}
+                help={t(
+                  'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
+                )}
+              >
+                <div>
+                  <Confirm
+                    priority="danger"
+                    message={t(
+                      'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
+                    )}
+                    onConfirm={handleRemove}
+                    confirmText={t('Revoke Key')}
+                    disabled={!hasAccess}
+                  >
+                    <Button priority="danger">{t('Revoke Key')}</Button>
+                  </Confirm>
+                </div>
+              </FieldGroup>
+            </PanelBody>
+          </Panel>
+        )}
+      </Access>
+    </Fragment>
+  );
+}

@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -9,18 +10,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export const DEFAULT_SORT = '-started_at';
-
-export const REPLAY_LIST_FIELDS = [
-  'activity',
-  'count_errors',
-  'duration',
-  'finished_at',
-  'id',
-  'project_id',
-  'started_at',
-  'urls',
-  'user',
-];
 
 type State = {
   fetchError: undefined | RequestError;
@@ -35,6 +24,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  queryReferrer?: 'issueReplays';
 };
 
 async function fetchReplayList({
@@ -42,15 +32,29 @@ async function fetchReplayList({
   organization,
   location,
   eventView,
+  queryReferrer,
 }: Props): Promise<Result> {
   try {
     const path = `/organizations/${organization.slug}/replays/`;
 
+    const payload = eventView.getEventsAPIPayload(location);
+
+    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
+    // ask the server for compound fields like `os.name`.
+    payload.field = payload.field.map(field => field.split('.')[0]);
+
+    // unique list
+    payload.field = Array.from(new Set(payload.field));
+
     const [{data}, _textStatus, resp] = await api.requestPromise(path, {
       includeAllArgs: true,
       query: {
-        ...eventView.getEventsAPIPayload(location),
+        ...payload,
         cursor: location.query.cursor,
+        // when queryReferrer === 'issueReplays' we override the global view check on the backend
+        // we also require a project param otherwise we won't yield results
+        queryReferrer,
+        project: queryReferrer === 'issueReplays' ? ALL_ACCESS_PROJECTS : payload.project,
       },
     });
 

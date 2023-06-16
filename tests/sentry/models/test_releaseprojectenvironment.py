@@ -18,7 +18,7 @@ class GetOrCreateTest(TestCase):
         )
         self.release.add_project(self.project)
         self.environment = Environment.objects.create(
-            project_id=self.project.id, organization_id=self.project.organization_id, name="prod"
+            organization_id=self.project.organization_id, name="prod"
         )
 
     def test_create(self):

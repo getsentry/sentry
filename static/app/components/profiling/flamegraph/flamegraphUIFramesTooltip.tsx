@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {toRGBAString} from 'sentry/utils/profiling/colors/utils';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {
@@ -42,13 +42,11 @@ export function FlamegraphUIFramesTooltip({
     const framesInConfigSpace = hoveredNode.map(frame => {
       return {
         type: frame.type,
-        rect: new Rect(frame.start, frame.end, frame.end - frame.start, 1).transformRect(
-          uiFramesView.configSpaceTransform
-        ),
+        rect: new Rect(frame.start, frame.end, frame.end - frame.start, 1),
       };
     });
     return framesInConfigSpace.sort((a, b) => a.type.localeCompare(b.type));
-  }, [uiFramesView, hoveredNode]);
+  }, [hoveredNode]);
 
   return (
     <BoundTooltip

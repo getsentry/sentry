@@ -1,19 +1,23 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 
-const WrappedComponent = ({data, withStaticFilters = true}) => {
-  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
-    withStaticFilters,
-  });
+function WrappedComponent({data, withStaticFilters = true}) {
+  const eventView = generatePerformanceEventView(
+    data.router.location,
+    data.projects,
+    {
+      withStaticFilters,
+    },
+    data.organization
+  );
 
   const client = new QueryClient();
 
@@ -41,7 +45,7 @@ const WrappedComponent = ({data, withStaticFilters = true}) => {
       </OrganizationContext.Provider>
     </QueryClientProvider>
   );
-};
+}
 
 const features = [
   'performance-transaction-name-only-search',
@@ -53,7 +57,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
-    // @ts-ignore no-console
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 

@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('SelectedFrameRenderer', () => {
   it('draws rect in center', () => {

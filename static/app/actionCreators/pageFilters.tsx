@@ -118,6 +118,12 @@ export type InitializeUrlStateParams = {
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   shouldForceProject?: boolean;
+  /**
+   * Whether to save changes to local storage. This setting should be page-specific:
+   * most pages should have it on (default) and some, like Dashboard Details, need it
+   * off.
+   */
+  shouldPersist?: boolean;
   showAbsolute?: boolean;
   /**
    * When used with shouldForceProject it will not persist the project id
@@ -141,6 +147,7 @@ export function initializeUrlState({
   router,
   memberProjects,
   skipLoadLastUsed,
+  shouldPersist = true,
   shouldForceProject,
   shouldEnforceSingleProject,
   defaultSelection,
@@ -243,9 +250,24 @@ export function initializeUrlState({
     project = newProject;
   }
 
-  const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
-  PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters);
-  updateDesyncedUrlState(router, shouldForceProject);
+  const pinnedFilters = organization.features.includes('new-page-filter')
+    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
+    : storedPageFilters?.pinnedFilters ?? new Set();
+
+  // We should only check and update the desync state if the site has just been loaded
+  // (not counting route changes). To check this, we can use the `isReady` state: if it's
+  // false, then the site was just loaded. Once it's true, `isReady` stays true
+  // through route changes.
+  const shouldCheckDesyncedURLState = !PageFiltersStore.getState().isReady;
+
+  PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
+
+  if (shouldCheckDesyncedURLState) {
+    checkDesyncedUrlState(router, shouldForceProject);
+  } else {
+    // Clear desync state on route changes
+    PageFiltersStore.updateDesyncedFilters(new Set());
+  }
 
   const newDatetime = {
     ...datetime,
@@ -294,7 +316,6 @@ export function updateProjects(
   if (options?.environments) {
     persistPageFilters('environments', options);
   }
-  updateDesyncedUrlState(router);
 }
 
 /**
@@ -313,7 +334,6 @@ export function updateEnvironments(
   PageFiltersStore.updateEnvironments(environment);
   updateParams({environment}, router, options);
   persistPageFilters('environments', options);
-  updateDesyncedUrlState(router);
 }
 
 /**
@@ -333,7 +353,6 @@ export function updateDateTime(
   PageFiltersStore.updateDateTime({...selection.datetime, ...datetime});
   updateParams(datetime, router, options);
   persistPageFilters('datetime', options);
-  updateDesyncedUrlState(router);
 }
 
 /**
@@ -342,6 +361,13 @@ export function updateDateTime(
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
   PageFiltersStore.pin(filter, pin);
   persistPageFilters(null, {save: true});
+}
+
+/**
+ * Changes whether any value updates will be persisted into local storage.
+ */
+export function updatePersistence(shouldPersist: boolean) {
+  PageFiltersStore.updatePersistence(shouldPersist);
 }
 
 /**
@@ -375,7 +401,7 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
  * Pinned state is always persisted.
  */
 async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
-  if (!options?.save) {
+  if (!options?.save || !PageFiltersStore.shouldPersist) {
     return;
   }
 
@@ -403,9 +429,9 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  * If shouldForceProject is enabled, then we do not record any url desync
  * for the project.
  */
-async function updateDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
+async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
-  if (!router) {
+  if (!router || !PageFiltersStore.shouldPersist) {
     return;
   }
 
@@ -479,6 +505,15 @@ async function updateDesyncedUrlState(router?: Router, shouldForceProject?: bool
   }
 
   PageFiltersStore.updateDesyncedFilters(differingFilters);
+}
+
+/**
+ * Commits the new desynced filter values and clears the desynced filters list.
+ */
+export function saveDesyncedFilters() {
+  const {desyncedFilters} = PageFiltersStore;
+  [...desyncedFilters].forEach(filter => persistPageFilters(filter, {save: true}));
+  PageFiltersStore.updateDesyncedFilters(new Set());
 }
 
 /**
@@ -562,5 +597,5 @@ export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
   updateParams(newParams, router, {
     keepCursor: true,
   });
-  updateDesyncedUrlState(router);
+  PageFiltersStore.updateDesyncedFilters(new Set());
 }

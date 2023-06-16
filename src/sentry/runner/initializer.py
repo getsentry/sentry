@@ -240,9 +240,7 @@ def configure_structlog() -> None:
     from sentry import options
     from sentry.logging import LoggingFormat
 
-    WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
     kwargs: dict[str, Any] = {
-        "context_class": WrappedDictClass,
         "wrapper_class": structlog.stdlib.BoundLogger,
         "cache_logger_on_first_use": True,
         "processors": [
@@ -372,6 +370,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     django.setup()
 
+    validate_regions(settings)
+
     monkeypatch_django_migrations()
 
     apply_legacy_settings(settings)
@@ -450,6 +450,27 @@ def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
     default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
+
+
+def validate_regions(settings: Any) -> None:
+    from sentry.types.region import Region, RegionCategory
+    from sentry.utils import json
+
+    region_config = getattr(settings, "SENTRY_REGION_CONFIG", None)
+    if not region_config:
+        return
+
+    if isinstance(region_config, str):
+        parsed = []
+        config_values = json.loads(region_config)
+        for config_value in config_values:
+            config_value["category"] = RegionCategory[config_value["category"]]
+            parsed.append(Region(**config_value))
+
+        settings.SENTRY_REGION_CONFIG = parsed
+    else:
+        for region in region_config:
+            region.validate()
 
 
 import django.db.models.base

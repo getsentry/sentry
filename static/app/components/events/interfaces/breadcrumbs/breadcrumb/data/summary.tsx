@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import ContextData from 'sentry/components/contextData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 type Props = {
@@ -51,8 +51,6 @@ const Wrapper = styled('div')`
   word-break: break-all;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
-  display: grid;
-  gap: ${space(0.5)};
   overflow: hidden;
 `;
 
@@ -73,10 +71,13 @@ const ContextDataWrapper = styled('div')`
 `;
 
 const StyledCode = styled('code')`
+  display: block;
   font-size: inherit;
   white-space: pre-wrap;
   background: none;
   padding: 0;
+  margin-bottom: ${space(0.5)};
+
   > * {
     vertical-align: middle;
   }

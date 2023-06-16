@@ -10,10 +10,11 @@ interface SortConfig {
 }
 
 const SortStrategies: Record<string, (row) => any> = {
+  method: row => row.data.method || 'GET',
   status: row => row.data.statusCode,
   description: row => row.description,
   op: row => row.op,
-  size: row => row.data.size,
+  size: row => row.data.size ?? row.data.response?.size ?? row.data.responseBodySize,
   duration: row => row.endTimestamp - row.startTimestamp,
   startTimestamp: row => row.startTimestamp,
 };
@@ -32,6 +33,7 @@ function useSortNetwork({items}: Opts) {
     's_n_by',
     DEFAULT_BY
   );
+  const {setParamValue: setDetailRow} = useUrlParams('n_detail_row', '');
 
   const sortAsc = getSortAsc();
   const sortBy = getSortBy();
@@ -56,8 +58,9 @@ function useSortNetwork({items}: Opts) {
         setSortAsc('true');
         setSortBy(fieldName);
       }
+      setDetailRow('');
     },
-    [sortConfig, setSortAsc, setSortBy]
+    [sortConfig, setSortAsc, setSortBy, setDetailRow]
   );
 
   return {

@@ -23,14 +23,18 @@ from sentry.models import (
     ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_with_outbox_message,
+)
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
 class OrganizationSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
-    idempotencyKey = serializers.CharField(max_length=32, required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -71,15 +75,15 @@ class OrganizationIndexEndpoint(Endpoint):
         if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
-            elif request.auth.organization is not None:
-                queryset = queryset.filter(id=request.auth.organization.id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         elif owner_only:
             # This is used when closing an account
-            queryset = queryset.filter(
-                member_set__role=roles.get_top_dog().id,
-                member_set__user_id=request.user.id,
-                status=OrganizationStatus.VISIBLE,
+
+            # also fetches organizations in which you are a member of an owner team
+            queryset = Organization.objects.get_organizations_where_user_is_owner(
+                user_id=request.user.id
             )
             org_results = []
             for org in sorted(queryset, key=lambda x: x.name):
@@ -103,15 +107,17 @@ class OrganizationIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
+                    user_ids = {u.id for u in user_service.get_many_by_email(emails=[value])}
                     queryset = queryset.filter(
                         Q(name__icontains=value)
                         | Q(slug__icontains=value)
-                        | Q(members__email__iexact=value)
+                        | Q(member_set__user_id__in=user_ids)
                     )
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "email":
-                    queryset = queryset.filter(in_iexact("members__email", value))
+                    user_ids = {u.id for u in user_service.get_many_by_email(emails=value)}
+                    queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(platform__in=value).values(
@@ -203,20 +209,15 @@ class OrganizationIndexEndpoint(Endpoint):
             result = serializer.validated_data
 
             try:
+
                 with transaction.atomic():
-                    org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
-
-                    organization_mapping_service.create(
-                        user=request.user,
-                        organization_id=org.id,
-                        slug=org.slug,
-                        name=org.name,
-                        idempotency_key=result.get("idempotencyKey", ""),
-                        region_name=settings.SENTRY_REGION or "us",
+                    org = create_organization_with_outbox_message(
+                        create_options={"name": result["name"], "slug": result.get("slug")}
                     )
-
                     om = OrganizationMember.objects.create(
-                        organization=org, user=request.user, role=roles.get_top_dog().id
+                        organization_id=org.id,
+                        user_id=request.user.id,
+                        role=roles.get_top_dog().id,
                     )
 
                     if result.get("defaultTeam"):
@@ -226,23 +227,24 @@ class OrganizationIndexEndpoint(Endpoint):
                             team=team, organizationmember=om, is_active=True
                         )
 
-                    org_setup_complete.send_robust(
-                        instance=org, user=request.user, sender=self.__class__
-                    )
+                om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+                org_setup_complete.send_robust(
+                    instance=org, user=request.user, sender=self.__class__
+                )
 
-                    self.create_audit_entry(
-                        request=request,
-                        organization=org,
-                        target_object=org.id,
-                        event=audit_log.get_event_id("ORG_ADD"),
-                        data=org.get_audit_log_data(),
-                    )
+                self.create_audit_entry(
+                    request=request,
+                    organization=org,
+                    target_object=org.id,
+                    event=audit_log.get_event_id("ORG_ADD"),
+                    data=org.get_audit_log_data(),
+                )
 
-                    analytics.record(
-                        "organization.created",
-                        org,
-                        actor_id=request.user.id if request.user.is_authenticated else None,
-                    )
+                analytics.record(
+                    "organization.created",
+                    org,
+                    actor_id=request.user.id if request.user.is_authenticated else None,
+                )
 
             # TODO(hybrid-cloud): We'll need to catch a more generic error
             # when the internal RPC is implemented.

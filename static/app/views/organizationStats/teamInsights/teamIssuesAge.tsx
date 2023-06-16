@@ -13,7 +13,7 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
 
@@ -113,7 +113,6 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
               legend={{right: 3, top: 0}}
               yAxis={{minInterval: 1}}
               xAxis={{
-                splitNumber: seriesData.length,
                 type: 'category',
                 min: 0,
                 axisLabel: {

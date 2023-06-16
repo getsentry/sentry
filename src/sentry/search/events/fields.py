@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
@@ -1049,7 +1049,14 @@ class NumericColumn(ColumnArg):
         "spans_exclusive_time",
     }
 
-    def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        allow_array_value: Optional[bool] = False,
+        spans: Optional[bool] = False,
+        **kwargs,
+    ):
+        self.spans = spans
         super().__init__(name, **kwargs)
         self.allow_array_value = allow_array_value
 
@@ -1057,6 +1064,10 @@ class NumericColumn(ColumnArg):
         # This method is written in this way so that `get_type` can always call
         # this even in child classes where `normalize` have been overridden.
 
+        # Shortcutting this for now
+        # TODO: handle different datasets better here
+        if self.spans and value in ["span.duration", "span.self_time"]:
+            return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
@@ -1276,7 +1287,7 @@ class DiscoverFunction:
 
     def alias_as(self, name):
         """Create a copy of this function to be used as an alias"""
-        alias = deepcopy(self)
+        alias = copy(self)
         alias.name = name
         return alias
 
@@ -2018,7 +2029,6 @@ FUNCTIONS = {
 
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
-
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 

@@ -6,6 +6,7 @@ from zipfile import ZipFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils import TestCase
@@ -266,6 +267,7 @@ class ProfilesProcessTaskTest(TestCase):
 
     def test_process_symbolicator_results_for_sample(self):
         profile = {
+            "version": 1,
             "platform": "rust",
             "profile": {
                 "frames": [
@@ -344,6 +346,76 @@ class ProfilesProcessTaskTest(TestCase):
             },
         ]
 
-        _process_symbolicator_results_for_sample(profile, stacktraces)
+        _process_symbolicator_results_for_sample(
+            profile, stacktraces, list(range(len(profile["profile"]["frames"])))
+        )
 
         assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
+
+    def test_process_symbolicator_results_for_sample_js(self):
+        profile = {
+            "version": 1,
+            "platform": "javascript",
+            "profile": {
+                "frames": [
+                    {
+                        "function": "functionA",
+                        "abs_path": "/root/functionA.js",
+                    },
+                    {
+                        "function": "functionB",
+                        "abs_path": "/root/functionB.js",
+                    },
+                    {
+                        "function": "functionC",
+                        "abs_path": "/root/functionC.js",
+                    },
+                    # frame not valid for symbolication
+                    {
+                        "function": "functionD",
+                    },
+                ],
+                "samples": [
+                    {"stack_id": 0},
+                    # a second sample with the same stack id, the stack should
+                    # not be processed a second time
+                    {"stack_id": 0},
+                ],
+                "stacks": [
+                    [0, 1, 2, 3],
+                ],
+            },
+        }
+
+        # returned from symbolicator
+        stacktraces = [
+            {
+                "frames": [
+                    {
+                        "function": "functionA",
+                        "abs_path": "/root/functionA.js",
+                        "original_index": 0,
+                    },
+                    {
+                        "function": "functionB",
+                        "abs_path": "/root/functionB.js",
+                        "original_index": 1,
+                    },
+                    {
+                        "function": "functionC",
+                        "abs_path": "/root/functionC.js",
+                        "original_index": 2,
+                    },
+                ],
+            },
+        ]
+
+        frames_sent = [
+            idx
+            for idx, frame in enumerate(profile["profile"]["frames"])
+            if is_valid_javascript_frame(frame, profile)
+        ]
+
+        _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent)
+
+        assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]

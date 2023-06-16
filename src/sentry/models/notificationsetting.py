@@ -1,3 +1,5 @@
+import sentry_sdk
+from django.conf import settings
 from django.db import models
 
 from sentry.db.models import (
@@ -8,6 +10,7 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.manager import NotificationsManager
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -56,10 +59,13 @@ class NotificationSetting(Model):
         ),
         null=False,
     )
-    # user_id, organization_id, project_id
     scope_identifier = BoundedBigIntegerField(null=False)
-    target = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=False, null=False, on_delete=models.CASCADE
+    target_id = HybridCloudForeignKey(
+        "sentry.Actor", db_index=True, unique=False, null=False, on_delete="CASCADE"
+    )
+    team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
+    user = FlexibleForeignKey(
+        settings.AUTH_USER_MODEL, null=True, db_index=True, on_delete=models.CASCADE
     )
     provider = BoundedPositiveIntegerField(
         choices=(
@@ -80,6 +86,7 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.QUOTA_ERRORS, "quotaErrors"),
             (NotificationSettingTypes.QUOTA_TRANSACTIONS, "quotaTransactions"),
             (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttacments"),
+            (NotificationSettingTypes.QUOTA_REPLAYS, "quotaReplays"),
             (NotificationSettingTypes.QUOTA_WARNINGS, "quotaWarnings"),
             (NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS, "quotaSpendAllocations"),
             (NotificationSettingTypes.SPIKE_PROTECTION, "spikeProtection"),
@@ -106,11 +113,18 @@ class NotificationSetting(Model):
             (
                 "scope_type",
                 "scope_identifier",
-                "target",
+                "target_id",
                 "provider",
                 "type",
             ),
         )
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(team_id__isnull=False, user_id__isnull=True)
+                | models.Q(team_id__isnull=True, user_id__isnull=False),
+                name="notification_team_or_user_check",
+            )
+        ]
 
     __repr__ = sane_repr(
         "scope_str",
@@ -120,6 +134,15 @@ class NotificationSetting(Model):
         "type_str",
         "value_str",
     )
+
+    def save(self, *args, **kwargs):
+        try:
+            assert not (
+                self.user_id is None and self.team_id is None
+            ), "Notification setting missing user & team"
+        except AssertionError as err:
+            sentry_sdk.capture_exception(err)
+        super().save(*args, **kwargs)
 
 
 # REQUIRED for migrations to run

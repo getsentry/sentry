@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlencode
 
 from selenium.webdriver.common.by import By
@@ -47,6 +48,15 @@ def build_url(path: str, format: str = "html") -> str:
     return f"{path}?{urlencode({'format': format, 'seed': b'123', 'is_test': True})}"
 
 
+def redact_ids(text: str) -> str:
+    issues_re = re.compile("(testserver/organizations/sentry/issues/[0-9]+/)")
+    match = issues_re.search(text)
+    if match:
+        for g in match.groups():
+            text = text.replace(g, "testserver/organizations/sentry/issues/x/")
+    return text
+
+
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -66,6 +76,9 @@ class EmailTestCase(AcceptanceTestCase):
             self.browser.wait_until("#preview")
             elem = self.browser.find_element(by=By.CSS_SELECTOR, value="#preview pre")
             text_src = elem.get_attribute("innerHTML")
+
+            # Avoid relying on IDs as this can cause flakey tests
+            text_src = redact_ids(text_src)
 
             fixture_src = read_txt_email_fixture(name)
             assert fixture_src == text_src

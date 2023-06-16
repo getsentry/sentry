@@ -79,7 +79,8 @@ class ProjectUsersTest(APITestCase):
 
         response = self.client.get(f"{self.path}?query=email:@example.com", format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_id_search(self):
         self.login_as(user=self.user)
@@ -92,7 +93,8 @@ class ProjectUsersTest(APITestCase):
 
         response = self.client.get(f"{self.path}?query=id:3", format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_ip_search(self):
         self.login_as(user=self.user)

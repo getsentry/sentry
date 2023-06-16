@@ -7,21 +7,19 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
@@ -29,7 +27,13 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertType,
+  datasetOmittedTags,
+  datasetSupportedTags,
+} from 'sentry/views/alerts/wizard/options';
+
+import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -54,13 +58,12 @@ type Props = {
   dataset: Dataset;
   disabled: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string) => void;
+  onFilterSearch: (query: string, isQueryValid) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
   projects: Project[];
   router: InjectedRouter;
-  showMEPAlertBanner: boolean;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   allowChangeEventTypes?: boolean;
@@ -145,19 +148,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
-  }
-
-  get searchSupportedTags() {
-    if (isCrashFreeAlert(this.props.dataset)) {
-      return {
-        release: {
-          key: 'release',
-          name: 'release',
-        },
-      };
-    }
-
-    return undefined;
   }
 
   renderEventTypeFilter() {
@@ -247,18 +237,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     );
   }
 
-  renderIdBadge(project: Project) {
-    return (
-      <IdBadge
-        project={project}
-        avatarProps={{consistentWidth: true}}
-        avatarSize={18}
-        disableLink
-        hideName
-      />
-    );
-  }
-
   renderProjectSelector() {
     const {
       project: _selectedProject,
@@ -267,37 +245,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization,
       disableProjectSelector,
     } = this.props;
-    const hasOpenMembership = organization.features.includes('open-membership');
-    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
-    const allProjects = projects.filter(
-      project => project.hasAccess && !project.isMember
-    );
-
-    const myProjectOptions = myProjects.map(myProject => ({
-      value: myProject.id,
-      label: myProject.slug,
-      leadingItems: this.renderIdBadge(myProject),
-    }));
-
-    const openMembershipProjects = [
-      {
-        label: t('My Projects'),
-        options: myProjectOptions,
-      },
-      {
-        label: t('All Projects'),
-        options: allProjects.map(allProject => ({
-          value: allProject.id,
-          label: allProject.slug,
-          leadingItems: this.renderIdBadge(allProject),
-        })),
-      },
-    ];
-
-    const projectOptions =
-      hasOpenMembership || isActiveSuperuser()
-        ? openMembershipProjects
-        : myProjectOptions;
+    const projectOptions = getProjectOptions({
+      organization,
+      projects,
+      isFormDisabled: disabled,
+    });
 
     return (
       <FormField
@@ -411,14 +363,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      dataset,
-      showMEPAlertBanner,
-    } = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
+      this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -430,37 +376,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
-    const transactionTags = [
-      'transaction',
-      'transaction.duration',
-      'transaction.op',
-      'transaction.status',
-    ];
-    const measurementTags = Object.values({...WebVital, ...MobileVital});
-    const eventOmitTags =
-      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
-
-    const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-
     return (
       <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {showMEPAlertBanner && hasMetricDataset && (
-          <AlertContainer>
-            <Alert type="info" showIcon>
-              {tct(
-                'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#processed-event-properties" />
-                  ),
-                }
-              )}
-            </Alert>
-          </AlertContainer>
-        )}
         {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -499,54 +419,74 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
-              <SearchContainer>
-                <StyledSearchBar
-                  searchSource="alert_builder"
-                  defaultQuery={initialData?.query ?? ''}
-                  omitTags={[
-                    'event.type',
-                    'release.version',
-                    'release.stage',
-                    'release.package',
-                    'release.build',
-                    'project',
-                    ...eventOmitTags,
-                  ]}
-                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  placeholder={this.searchPlaceholder}
-                  onChange={onChange}
-                  query={initialData.query}
-                  onKeyDown={e => {
-                    /**
-                     * Do not allow enter key to submit the alerts form since it is unlikely
-                     * users will be ready to create the rule as this sits above required fields.
-                     */
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.stopPropagation();
+            {({onChange, onBlur, onKeyDown, initialData}) => {
+              return (
+                <SearchContainer>
+                  <StyledSearchBar
+                    customInvalidTagMessage={item => {
+                      if (
+                        ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <SearchInvalidTag
+                          message={tct(
+                            "The field [field] isn't supported for performance alerts.",
+                            {
+                              field: <code>{item.desc}</code>,
+                            }
+                          )}
+                          docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                        />
+                      );
+                    }}
+                    searchSource="alert_builder"
+                    defaultQuery={initialData?.query ?? ''}
+                    omitTags={datasetOmittedTags(dataset, organization)}
+                    {...(datasetSupportedTags(dataset, organization)
+                      ? {supportedTags: datasetSupportedTags(dataset, organization)}
+                      : {})}
+                    includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                    disabled={disabled}
+                    useFormWrapper={false}
+                    organization={organization}
+                    placeholder={this.searchPlaceholder}
+                    onChange={onChange}
+                    query={initialData.query}
+                    // We only need strict validation for Transaction queries, everything else is fine
+                    highlightUnsupportedTags={
+                      organization.features.includes('alert-allow-indexed')
+                        ? false
+                        : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
+                            dataset
+                          )
                     }
+                    onKeyDown={e => {
+                      /**
+                       * Do not allow enter key to submit the alerts form since it is unlikely
+                       * users will be ready to create the rule as this sits above required fields.
+                       */
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
 
-                    onKeyDown?.(e);
-                  }}
-                  onClose={query => {
-                    onFilterSearch(query);
-                    onBlur(query);
-                  }}
-                  onSearch={query => {
-                    onFilterSearch(query);
-                    onChange(query, {});
-                  }}
-                  {...(this.searchSupportedTags
-                    ? {supportedTags: this.searchSupportedTags}
-                    : {})}
-                  hasRecentSearches={dataset !== Dataset.SESSIONS}
-                />
-              </SearchContainer>
-            )}
+                      onKeyDown?.(e);
+                    }}
+                    onClose={(query, {validSearch}) => {
+                      onFilterSearch(query, validSearch);
+                      onBlur(query);
+                    }}
+                    onSearch={query => {
+                      onFilterSearch(query, true);
+                      onChange(query, {});
+                    }}
+                    hasRecentSearches={dataset !== Dataset.SESSIONS}
+                  />
+                </SearchContainer>
+              );
+            }}
           </FormField>
         </FormRow>
       </Fragment>
@@ -565,10 +505,6 @@ const ChartPanel = styled(Panel)`
   margin-bottom: ${space(1)};
 `;
 
-const AlertContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledPanelBody = styled(PanelBody)`
   ol,
   h4 {
@@ -582,6 +518,14 @@ const SearchContainer = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+
+  ${p =>
+    p.disabled &&
+    `
+    background: ${p.theme.backgroundSecondary};
+    color: ${p.theme.disabled};
+    cursor: not-allowed;
+  `}
 `;
 
 const StyledListItem = styled(ListItem)`
@@ -604,4 +548,4 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
     `}
 `;
 
-export default withProjects(RuleConditionsForm);
+export default withApi(withProjects(RuleConditionsForm));

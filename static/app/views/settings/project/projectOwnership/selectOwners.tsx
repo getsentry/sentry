@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Member, Organization, Project, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
@@ -175,7 +175,7 @@ class SelectOwners extends Component<Props, State> {
     const excludedTeamIds = teamsInProject.map(({actor}) => actor.id);
 
     return teams
-      .filter(team => excludedTeamIds.indexOf(team.id) === -1)
+      .filter(team => !excludedTeamIds.includes(team.id))
       .map(this.createUnmentionableTeam);
   }
 
@@ -272,7 +272,7 @@ class SelectOwners extends Component<Props, State> {
         // has not registered for sentry yet, but has been invited
         members
           ? (members as Member[])
-              .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+              .filter(({user}) => user && !usersInProjectById.includes(user.id))
               .map(this.createUnmentionableUser)
           : []
       )

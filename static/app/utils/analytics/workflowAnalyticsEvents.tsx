@@ -19,17 +19,28 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
-  group_id: number;
   has_commit: boolean;
+  has_exception_group: boolean;
   has_release: boolean;
+  has_source_context: boolean;
   has_source_maps: boolean;
   has_trace: boolean;
+  is_symbolicated: boolean;
   num_commits: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
+  error_has_replay?: boolean;
+  error_has_user_feedback?: boolean;
+  event_errors?: string;
   event_platform?: string;
+  event_runtime?: string;
   event_type?: string;
+  frames_with_sourcemaps_percent?: number;
+  frames_without_source_maps_percent?: number;
+  has_graphql_request?: boolean;
+  has_otel?: boolean;
+  release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
 };
@@ -48,7 +59,6 @@ export type TeamInsightsEventParameters = {
   'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': {};
   'alert_wizard.option_selected': {alert_type: string};
-  'alert_wizard.option_viewed': {alert_type: string};
   'edit_alert_rule.add_row': {
     name: string;
     project_id: string;
@@ -58,7 +68,6 @@ export type TeamInsightsEventParameters = {
   'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
-  'issue_alert_rule_details.viewed': {rule_id: number};
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
@@ -70,7 +79,10 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | ResolutionStatus;
+    action_status_details?: string;
+    action_substatus?: string;
     assigned_suggestion_reason?: string;
+    assigned_type?: string;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};
@@ -83,6 +95,14 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
+  'issue_details.merged_tab.unmerge_clicked': {
+    /**
+     * comma separated list of event ids that were unmerged
+     */
+    event_ids_unmerged: string;
+    group_id: string;
+    total_unmerged: number;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
   };
@@ -103,6 +123,10 @@ export type TeamInsightsEventParameters = {
   'project_detail.performance_tour.close': BaseTour;
   'project_detail.releases_tour.advance': ReleasesTour;
   'project_detail.releases_tour.close': ReleasesTour;
+  'release_detail.pagination': {direction: string};
+  'releases_list.click_add_release_health': {
+    project_id: number;
+  };
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -114,13 +138,11 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_rules.viewed': 'Alert Rules: Viewed',
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
-  'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
-  'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
   'issue_details.attachment_tab.screenshot_title_clicked':
     'Attachment Tab: Screenshot title clicked',
@@ -146,6 +168,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
+  'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
@@ -155,4 +178,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
   'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
+  'release_detail.pagination': 'Release Detail: Pagination',
+  'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
 };

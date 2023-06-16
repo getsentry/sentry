@@ -4,8 +4,10 @@ from sentry.constants import DataCategory
 from sentry.models import OrganizationOption, ProjectKey
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()
@@ -86,7 +88,7 @@ class QuotaTest(TestCase):
 
     def test_get_blended_sample_rate(self):
         org = self.create_organization()
-        assert self.backend.get_blended_sample_rate(org) is None
+        assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
 
 
 @pytest.mark.parametrize(

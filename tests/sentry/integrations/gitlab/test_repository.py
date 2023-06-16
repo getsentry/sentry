@@ -9,9 +9,11 @@ from sentry.models import Identity, IdentityProvider, Integration, PullRequest, 
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
@@ -67,11 +69,15 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             json={"id": 99},
         )
 
+    @exempt_from_silo_limits()
+    def get_repository(self, **kwargs) -> Repository:
+        return Repository.objects.get(**kwargs)
+
     def assert_repository(self, repository_config, organization_id=None):
         instance = self.integration.metadata["instance"]
 
         external_id = "{}:{}".format(instance, repository_config["id"])
-        repo = Repository.objects.get(
+        repo = self.get_repository(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
             external_id=external_id,
@@ -198,7 +204,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
             status=204,
         )
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         self.provider.on_delete_repository(repo)
         assert len(responses.calls) == 1
 
@@ -212,7 +218,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
             status=404,
         )
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         self.provider.on_delete_repository(repo)
         assert len(responses.calls) == 1
 
@@ -237,7 +243,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             json=json.loads(COMMIT_DIFF_RESPONSE),
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         commits = self.provider.compare_commits(repo, "abc", "xyz")
         assert 2 == len(commits)
         for commit in commits:
@@ -252,7 +258,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             status=502,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(repo, "abc", "xyz")
 
@@ -283,7 +289,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         commits = self.provider.compare_commits(repo, None, "xyz")
         for commit in commits:
             assert_commit_shape(commit)
@@ -296,14 +302,14 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             status=502,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(repo, None, "abc")
 
     @responses.activate
     def test_pull_request_url(self):
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         pull = PullRequest(key=99)
         result = self.provider.pull_request_url(repo, pull)
         assert (
@@ -313,6 +319,6 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     @responses.activate
     def test_repository_external_slug(self):
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        repo = Repository.objects.get(pk=response.data["id"])
+        repo = self.get_repository(pk=response.data["id"])
         result = self.provider.repository_external_slug(repo)
         assert result == repo.config["project_id"]

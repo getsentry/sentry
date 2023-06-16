@@ -30,6 +30,7 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
+    DEVICE_CLASS_ALIAS,
     EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
@@ -58,6 +59,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
     TOTAL_COUNT_ALIAS,
+    TOTAL_TRANSACTION_DURATION_ALIAS,
     TRACE_PARENT_SPAN_ALIAS,
     TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
@@ -88,8 +90,8 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.referrer import Referrer
-from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -104,6 +106,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
         self.total_count: Optional[int] = None
+        self.total_sum_transaction_duration: Optional[float] = None
 
     @property
     def search_filter_converter(
@@ -150,6 +153,8 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
+            TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
+            DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
     @property
@@ -866,6 +871,35 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                 ),
                 SnQLFunction(
+                    "floored_epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "pow",
+                        [
+                            10,
+                            Function(
+                                "floor",
+                                [
+                                    Function(
+                                        "log10",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function("count", []),
+                                                    Function("divide", [args["interval"], 60]),
+                                                ],
+                                            )
+                                        ],
+                                    )
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                SnQLFunction(
                     "fn_span_exclusive_time",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
@@ -998,7 +1032,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             HTTP_STATUS_CODE_ALIAS,
         )
 
-    @cached_property  # type: ignore
+    @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
         org_id = (
             self.builder.params.organization.id
@@ -1242,6 +1276,59 @@ class DiscoverDatasetConfig(DatasetConfig):
             return Function("toUInt64", [0], alias)
         self.total_count = results["data"][0]["count"]
         return Function("toUInt64", [self.total_count], alias)
+
+    def _resolve_total_sum_transaction_duration(self, alias: str) -> SelectType:
+        """This must be cached since it runs another query"""
+        self.builder.requires_other_aggregates = True
+        if self.total_sum_transaction_duration is not None:
+            return Function("toFloat64", [self.total_sum_transaction_duration], alias)
+        # TODO[Shruthi]: Figure out parametrization of the args to sum()
+        total_query = builder.QueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["sum(transaction.duration)"],
+        )
+        total_query.columns += self.builder.resolve_groupby()
+        total_query.where = self.builder.where
+        total_results = total_query.run_query(
+            Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
+        )
+        results = total_query.process_results(total_results)
+        if len(results["data"]) != 1:
+            self.total_sum_transaction_duration = 0
+            return Function("toFloat64", [0], alias)
+        self.total_sum_transaction_duration = results["data"][0]["sum_transaction_duration"]
+        return Function("toFloat64", [self.total_sum_transaction_duration], alias)
+
+    def _resolve_device_class(self, _: str) -> SelectType:
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "in", [self.builder.column("tags[device.class]"), list(DEVICE_CLASS["low"])]
+                ),
+                "low",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["medium"]),
+                    ],
+                ),
+                "medium",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["high"]),
+                    ],
+                ),
+                "high",
+                None,
+            ],
+            DEVICE_CLASS_ALIAS,
+        )
 
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
@@ -1514,11 +1601,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        error_group_filter_values = ["" for v in value if not v or v == "unknown"]
-        perf_group_filter_values = ["" for v in value if not v or v == "unknown"]
-
-        error_groups = []
-        performance_groups = []
+        general_group_filter_values = ["" for v in value if not v or v == "unknown"]
 
         if group_short_ids and self.builder.params.organization is not None:
             try:
@@ -1529,41 +1612,17 @@ class DiscoverDatasetConfig(DatasetConfig):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                for group in groups:
-                    if group.issue_category == GroupCategory.ERROR:
-                        error_groups.append(group.id)
-                    elif group.issue_category == GroupCategory.PERFORMANCE:
-                        performance_groups.append(group.id)
-                error_groups = sorted(error_groups)
-                performance_groups = sorted(performance_groups)
+                general_group_filter_values.extend(sorted([group.id for group in groups]))
 
-                error_group_filter_values.extend(error_groups)
-                perf_group_filter_values.extend(performance_groups)
-
-        # TODO (udameli): if both groups present, return data for both
-        if error_group_filter_values:
+        if general_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
                     SearchKey("issue.id"),
                     operator,
                     SearchValue(
-                        error_group_filter_values
+                        general_group_filter_values
                         if search_filter.is_in_filter
-                        else error_group_filter_values[0]
-                    ),
-                )
-            )
-
-        # TODO (udameli): handle the has:issue case for transactions
-        if performance_groups:
-            return self.builder.convert_search_filter_to_condition(
-                SearchFilter(
-                    SearchKey("performance.issue_ids"),
-                    operator,
-                    SearchValue(
-                        perf_group_filter_values
-                        if search_filter.is_in_filter
-                        else perf_group_filter_values[0]
+                        else general_group_filter_values[0]
                     ),
                 )
             )

@@ -26,6 +26,7 @@ describe('EventEvidence', () => {
   const defaultProps = {
     event,
     group: TestStubs.Group(),
+    projectSlug: 'project-slug',
   };
 
   it('renders nothing when evidence display is empty', () => {

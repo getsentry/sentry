@@ -8,7 +8,7 @@ import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {Frame, PlatformType} from 'sentry/types';
 import {Image} from 'sentry/types/debugImage';
-import {EntryRequest} from 'sentry/types/event';
+import {EntryRequest, EntryThreads, EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -29,7 +29,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 
   // TODO(benvinegar): just gzip? what about deflate?
   const compressed = data.headers?.find(
-    h => h[0] === 'Accept-Encoding' && h[1].indexOf('gzip') !== -1
+    h => h[0] === 'Accept-Encoding' && h[1].includes('gzip')
   );
   if (compressed) {
     result += ' \\\n --compressed';
@@ -191,11 +191,29 @@ export function parseAssembly(assembly: string | null) {
 
   const pieces = assembly ? assembly.split(',') : [];
 
-  if (pieces.length === 4) {
+  if (pieces.length > 0) {
     name = pieces[0];
-    version = pieces[1].split('Version=')[1];
-    culture = pieces[2].split('Culture=')[1];
-    publicKeyToken = pieces[3].split('PublicKeyToken=')[1];
+  }
+
+  for (let i = 1; i < pieces.length; i++) {
+    const [key, value] = pieces[i].trim().split('=');
+
+    // eslint-disable-next-line default-case
+    switch (key) {
+      case 'Version':
+        version = value;
+        break;
+      case 'Culture':
+        if (value !== 'neutral') {
+          culture = value;
+        }
+        break;
+      case 'PublicKeyToken':
+        if (value !== 'null') {
+          publicKeyToken = value;
+        }
+        break;
+    }
   }
 
   return {name, version, culture, publicKeyToken};
@@ -232,4 +250,11 @@ export function isStacktraceNewestFirst() {
     default:
       return true;
   }
+}
+
+export function getCurrentThread(event: Event) {
+  const threads = event.entries?.find(entry => entry.type === EntryType.THREADS) as
+    | EntryThreads
+    | undefined;
+  return threads?.data.values?.find(thread => thread.current);
 }

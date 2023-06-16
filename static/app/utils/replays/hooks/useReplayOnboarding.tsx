@@ -5,6 +5,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -24,8 +26,14 @@ function getSelectedProjectList(
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
+export function useHasOrganizationSentAnyReplayEvents() {
+  const {projects, fetching} = useProjects();
+  const hasOrgSentReplays = useMemo(() => projects.some(p => p.hasReplays), [projects]);
+  return {hasOrgSentReplays, fetching};
+}
+
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
-  const {projects} = useProjects();
+  const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();
 
   const orgSentOneOrMoreReplayEvent = useMemo(() => {
@@ -34,24 +42,30 @@ export function useHaveSelectedProjectsSentAnyReplayEvents() {
     return hasSentOneReplay;
   }, [selection.projects, projects]);
 
-  return orgSentOneOrMoreReplayEvent;
+  return {
+    hasSentOneReplay: orgSentOneOrMoreReplayEvent,
+    fetching,
+  };
 }
 
 export function useReplayOnboardingSidebarPanel() {
   const {location} = useRouteContext();
-  const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
+  const organization = useOrganization();
 
   useEffect(() => {
-    if (hasSentOneReplay && location.hash === '#replay-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+    if (location.hash === '#replay-sidequest') {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+      trackAnalytics('replay.list-view-setup-sidebar', {
+        organization,
+      });
     }
-  }, [hasSentOneReplay, location.hash]);
+  }, [location.hash, organization]);
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
     window.location.hash = 'replay-sidequest';
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
   }, []);
 
-  return {hasSentOneReplay, activateSidebar};
+  return {activateSidebar};
 }

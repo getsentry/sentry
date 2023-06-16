@@ -2,21 +2,22 @@ import logging
 from datetime import datetime
 
 import pytz
-from django.db import IntegrityError, transaction
-from django.db.models import F, Q
+from django.db.models import F
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
+    Integration,
     OnboardingTask,
     OnboardingTaskStatus,
     Organization,
     OrganizationOnboardingTask,
-    OrganizationOption,
     Project,
 )
+from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -46,30 +47,6 @@ logger = logging.getLogger("sentry")
 START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
     2022, 12, 14, tzinfo=pytz.UTC
 )
-
-
-def try_mark_onboarding_complete(organization_id):
-    if OrganizationOption.objects.filter(
-        organization_id=organization_id, key="onboarding:complete"
-    ).exists():
-        return
-
-    completed = set(
-        OrganizationOnboardingTask.objects.filter(
-            Q(organization_id=organization_id)
-            & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
-        ).values_list("task", flat=True)
-    )
-    if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
-        try:
-            with transaction.atomic():
-                OrganizationOption.objects.create(
-                    organization_id=organization_id,
-                    key="onboarding:complete",
-                    value={"updated": timezone.now()},
-                )
-        except IntegrityError:
-            pass
 
 
 @project_created.connect(weak=False)
@@ -102,7 +79,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user=user,
+        user_id=user.id if user else None,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -110,7 +87,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user=user,
+            user_id=user.id if user else None,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -122,7 +99,7 @@ def record_raven_installed(project, user, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
-        user=user,
+        user_id=user.id if user else None,
         project_id=project.id,
     )
 
@@ -149,7 +126,7 @@ def record_first_event(project, event, **kwargs):
     )
 
     try:
-        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -160,10 +137,11 @@ def record_first_event(project, event, **kwargs):
     # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
-        user_id=user.id,
+        user_id=user.id if user else None,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
+        project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
@@ -172,10 +150,11 @@ def record_first_event(project, event, **kwargs):
         # this event only fires once per org
         analytics.record(
             "first_event.sent",
-            user_id=user.id,
+            user_id=user.id if user else None,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
+            project_platform=project.platform,
         )
         return
 
@@ -202,7 +181,7 @@ def record_first_event(project, event, **kwargs):
         if rows_affected or created:
             analytics.record(
                 "second_platform.added",
-                user_id=user.id,
+                user_id=user.id if user else None,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
@@ -270,15 +249,17 @@ def record_first_replay(project, **kwargs):
 
 
 @first_cron_monitor_created.connect(weak=False)
-def record_first_cron_monitor(project, user, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
+def record_first_cron_monitor(project, user, from_upsert, **kwargs):
+    updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
 
-    analytics.record(
-        "first_cron_monitor.created",
-        user_id=user.id if user else project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-    )
+    if updated:
+        analytics.record(
+            "first_cron_monitor.created",
+            user_id=user.id if user else project.organization.default_owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            from_upsert=from_upsert,
+        )
 
 
 @first_cron_checkin_received.connect(weak=False)
@@ -296,24 +277,24 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
+    if OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         user_id=user.id if user else None,
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
-    )
-    analytics.record(
-        "member.invited",
-        invited_member_id=member.id,
-        inviter_user_id=user.id if user else None,
-        organization_id=member.organization_id,
-        referrer=kwargs.get("referrer"),
-    )
+    ):
+        analytics.record(
+            "member.invited",
+            invited_member_id=member.id,
+            inviter_user_id=user.id if user else None,
+            organization_id=member.organization_id,
+            referrer=kwargs.get("referrer"),
+        )
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
+def record_member_joined(member, organization_id: int, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
@@ -340,7 +321,7 @@ def record_release_received(project, event, **kwargs):
     )
     if success:
         try:
-            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
@@ -350,7 +331,7 @@ def record_release_received(project, event, **kwargs):
 
         analytics.record(
             "first_release_tag.sent",
-            user_id=user.id,
+            user_id=user.id if user else None,
             project_id=project.id,
             organization_id=project.organization_id,
         )
@@ -377,7 +358,7 @@ def record_user_context_received(project, event, **kwargs):
         )
         if success:
             try:
-                user: APIUser = Organization.objects.get(
+                user: RpcUser = Organization.objects.get(
                     id=project.organization_id
                 ).get_default_owner()
             except IndexError:
@@ -389,7 +370,7 @@ def record_user_context_received(project, event, **kwargs):
 
             analytics.record(
                 "first_user_context.sent",
-                user_id=user.id,
+                user_id=user.id if user else None,
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
@@ -402,7 +383,7 @@ event_processed.connect(record_user_context_received, weak=False)
 @first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
     try:
-        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -426,10 +407,11 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         ):
             analytics.record(
                 "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=user.id,
+                user_id=user.id if user else None,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
+                project_platform=project.platform,
                 url=dict(event.tags).get("url", None),
             )
 
@@ -450,7 +432,7 @@ def record_sourcemaps_received(project, event, **kwargs):
     )
     if success:
         try:
-            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
@@ -459,7 +441,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             return
         analytics.record(
             "first_sourcemaps.sent",
-            user_id=user.id,
+            user_id=user.id if user else None,
             organization_id=project.organization_id,
             project_id=project.id,
         )
@@ -478,7 +460,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         organization_id=project.organization_id,
         task=task,
         status=status,
-        user=user,
+        user_id=user.id if user else None,
         project_id=project.id,
         data={"plugin": plugin.slug},
     )
@@ -487,7 +469,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
     analytics.record(
         "plugin.enabled",
-        user_id=user.id,
+        user_id=user.id if user else None,
         organization_id=project.organization_id,
         project_id=project.id,
         plugin=plugin.slug,
@@ -502,7 +484,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user": user,
+            "user_id": user.id if user else None,
             "project_id": project.id,
             "date_completed": timezone.now(),
         },
@@ -520,7 +502,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user": user,
+            "user_id": user.id,
             "project_id": project.id,
             "date_completed": timezone.now(),
             "data": {"plugin": plugin.slug},
@@ -554,7 +536,10 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
 
 
 @integration_added.connect(weak=False)
-def record_integration_added(integration, organization, user, **kwargs):
+def record_integration_added(
+    integration: Integration, organization: RpcOrganization, user, **kwargs
+):
+    # TODO(Leander): This function must be executed on region after being prompted by control
     task = OrganizationOnboardingTask.objects.filter(
         organization_id=organization.id,
         task=OnboardingTask.INTEGRATIONS,

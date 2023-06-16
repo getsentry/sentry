@@ -17,13 +17,13 @@ class IDPMigrationTests(TestCase):
         self.login_as(self.user)
         self.email = "test@example.com"
         self.org = self.create_organization()
-        self.provider = AuthProvider.objects.create(organization=self.org, provider="dummy")
+        self.provider = AuthProvider.objects.create(organization_id=self.org.id, provider="dummy")
 
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
     def test_send_one_time_account_confirm_link(self):
         with exempt_from_silo_limits():
-            om = OrganizationMember.objects.create(organization=self.org, user=self.user)
+            om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )

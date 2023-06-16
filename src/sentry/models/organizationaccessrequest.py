@@ -4,6 +4,8 @@ from django.urls import reverse
 
 from sentry import roles
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @region_silo_only_model
@@ -13,7 +15,7 @@ class OrganizationAccessRequest(Model):
     team = FlexibleForeignKey("sentry.Team")
     member = FlexibleForeignKey("sentry.OrganizationMember")
     # access request from a different user than the member
-    requester = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    requester_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
 
     class Meta:
         app_label = "sentry"
@@ -27,7 +29,9 @@ class OrganizationAccessRequest(Model):
         from sentry.utils.email import MessageBuilder
 
         organization = self.team.organization
-        user = self.member.user
+        user = user_service.get_user(user_id=self.member.user_id)
+        if user is None:
+            return
         email = user.email
 
         context = {
@@ -43,8 +47,9 @@ class OrganizationAccessRequest(Model):
             ),
         }
 
-        if self.requester:
-            context.update({"requester": self.requester.get_display_name()})
+        if self.requester_id:
+            requester = user_service.get_user(user_id=self.requester_id)
+            context.update({"requester": requester.get_display_name()})
 
         msg = MessageBuilder(
             subject="Sentry Access Request",
@@ -61,15 +66,16 @@ class OrganizationAccessRequest(Model):
         member_list = OrganizationMember.objects.filter(
             Q(role__in=global_roles) | Q(teams=self.team, role__in=team_roles),
             organization=self.team.organization,
-            user__isnull=False,
-        ).select_related("user")
+            user_id__isnull=False,
+        ).values_list("user_id", flat=True)
+        member_users = user_service.get_many(filter=dict(user_ids=list(member_list)))
 
-        msg.send_async([m.user.email for m in member_list])
+        msg.send_async([user.email for user in member_users])
 
     def send_approved_email(self):
         from sentry.utils.email import MessageBuilder
 
-        user = self.member.user
+        user = user_service.get_user(user_id=self.member.user_id)
         email = user.email
         organization = self.team.organization
 

@@ -52,7 +52,7 @@ class ReleaseWebhookView(View):
             # Ideally the API client would support some kind of god-mode here
             # as we've already confirmed credentials and simply want to execute
             # the view code. Instead we hack around it with an ApiKey instance
-            god = ApiKey(organization=project.organization, scope_list=["project:write"])
+            god = ApiKey(organization_id=project.organization_id, scope_list=["project:write"])
 
             resp = client.post(endpoint, data=data, auth=god)
         except client.ApiError as exc:

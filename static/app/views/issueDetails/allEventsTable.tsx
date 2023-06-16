@@ -2,11 +2,18 @@ import {useEffect, useState} from 'react';
 import {Location} from 'history';
 
 import LoadingError from 'sentry/components/loadingError';
-import {PlatformCategory, PlatformKey} from 'sentry/data/platformCategories';
+import {
+  PlatformCategory,
+  PlatformKey,
+  profiling as PROFILING_PLATFORMS,
+} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {Group, IssueCategory, Organization} from 'sentry/types';
+import {EventTransaction, Group, IssueCategory, Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
@@ -18,13 +25,39 @@ export interface Props {
   excludedTags?: string[];
 }
 
-const AllEventsTable = (props: Props) => {
+const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
+  return `/issues/${groupId}/events/latest/`;
+};
+
+function AllEventsTable(props: Props) {
   const {location, organization, issueId, excludedTags, group} = props;
+  const config = getConfigForIssueType(props.group);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);
 
+  const endpointUrl = makeGroupPreviewRequestUrl({
+    groupId: group.id,
+  });
+
+  const queryEnabled = group.issueCategory === IssueCategory.PERFORMANCE;
+  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
+    staleTime: 60000,
+    enabled: queryEnabled,
+  });
+
+  // TODO: this is a temporary way to check whether
+  // perf issue is backed by occurrences or transactions
+  // Once migration to the issue platform is complete a call to /latest should be removed
+  const groupIsOccurrenceBacked = !!data?.occurrence;
+
   const eventView: EventView = EventView.fromLocation(props.location);
+  if (
+    config.usesIssuePlatform ||
+    (group.issueCategory === IssueCategory.PERFORMANCE && groupIsOccurrenceBacked)
+  ) {
+    eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
+  }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
@@ -38,18 +71,18 @@ const AllEventsTable = (props: Props) => {
   }
 
   const idQuery =
-    group.issueCategory === IssueCategory.PERFORMANCE
+    group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked
       ? `performance.issue_ids:${issueId} event.type:transaction`
       : `issue.id:${issueId}`;
   eventView.project = [parseInt(group.project.id, 10)];
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
 
-  if (error) {
-    return <LoadingError message={error} onRetry={() => setError('')} />;
+  if (error || isLoadingError) {
+    return (
+      <LoadingError message={error || isLoadingError} onRetry={() => setError('')} />
+    );
   }
-
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
 
   return (
     <EventsTable
@@ -65,19 +98,26 @@ const AllEventsTable = (props: Props) => {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      showReplayCol={isReplayEnabled}
+      isEventLoading={queryEnabled ? isLoading : false}
     />
   );
-};
+}
 
 type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
 const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
+  const isReplayEnabled = organization.features.includes('session-replay');
+
+  // profiles only exist on transactions, so this only works with
+  // performance issues, and not errors
+  const isProfilingEnabled = isPerfIssue && organization.features.includes('profiling');
 
   const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
-    getPlatformColumns(group.project.platform ?? group.platform, {isReplayEnabled});
+    getPlatformColumns(group.project.platform ?? group.platform, {
+      isProfilingEnabled,
+      isReplayEnabled,
+    });
 
   const fields: string[] = [
     'id',
@@ -116,11 +156,8 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
 
 const getPlatformColumns = (
   platform: PlatformKey | undefined,
-  options: {isReplayEnabled: boolean}
+  options: {isProfilingEnabled: boolean; isReplayEnabled: boolean}
 ): ColumnInfo => {
-  const replayField = options.isReplayEnabled ? ['replayId'] : [];
-  const replayColumnTitle = options.isReplayEnabled ? [t('replay')] : [];
-
   const backendServerlessColumnInfo = {
     fields: ['url', 'runtime'],
     columnTitles: [t('url'), t('runtime')],
@@ -130,8 +167,8 @@ const getPlatformColumns = (
     [PlatformCategory.BACKEND]: backendServerlessColumnInfo,
     [PlatformCategory.SERVERLESS]: backendServerlessColumnInfo,
     [PlatformCategory.FRONTEND]: {
-      fields: ['url', 'browser', ...replayField],
-      columnTitles: [t('url'), t('browser'), ...replayColumnTitle],
+      fields: ['url', 'browser'],
+      columnTitles: [t('url'), t('browser')],
     },
     [PlatformCategory.MOBILE]: {
       fields: ['url'],
@@ -148,8 +185,19 @@ const getPlatformColumns = (
   };
 
   const platformCategory = platformToCategory(platform);
+  const platformColumns = categoryToColumnMap[platformCategory];
 
-  return categoryToColumnMap[platformCategory];
+  if (options.isReplayEnabled) {
+    platformColumns.fields.push('replayId');
+    platformColumns.columnTitles.push(t('replay'));
+  }
+
+  if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
+    platformColumns.columnTitles.push(t('profile'));
+    platformColumns.fields.push('profile.id');
+  }
+
+  return platformColumns;
 };
 
 export default AllEventsTable;

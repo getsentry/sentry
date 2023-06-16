@@ -138,6 +138,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               api={api}
               router={router}
               query={apiPayload.query}
+              dataset={apiPayload.dataset}
               organization={organization}
               showLegend
               yAxis={yAxisValue}
@@ -195,7 +196,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     yAxisOptions: this.getYAxisOptions(this.props.eventView),
   };
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const yAxisOptions = this.getYAxisOptions(this.props.eventView);
     const nextYAxisOptions = this.getYAxisOptions(nextProps.eventView);
 

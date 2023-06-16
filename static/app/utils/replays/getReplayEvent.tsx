@@ -1,36 +1,30 @@
+import sortedIndexBy from 'lodash/sortedIndexBy';
+
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
+  itemLookup,
   items,
   targetTimestampMs,
-  allowExact = false,
-  allowEqual = false,
 }: {
   items: T[];
   targetTimestampMs: number;
-  allowEqual?: boolean;
-  allowExact?: boolean;
+  itemLookup?: number[][];
 }) {
-  return items.reduce<T | undefined>((prev, item) => {
-    const itemTimestampMS = +new Date(item.timestamp || '');
+  if (!itemLookup || !itemLookup.length) {
+    return undefined;
+  }
 
-    if (
-      itemTimestampMS > targetTimestampMs ||
-      (!allowExact && itemTimestampMS === targetTimestampMs)
-    ) {
-      return prev;
-    }
-    if (
-      !prev ||
-      (allowEqual
-        ? itemTimestampMS >= +new Date(prev.timestamp || '')
-        : itemTimestampMS > +new Date(prev.timestamp || ''))
-    ) {
-      return item;
-    }
-    return prev;
-  }, undefined);
+  const index = sortedIndexBy(itemLookup, [targetTimestampMs], o => o[0]);
+  if (index !== undefined && index > 0) {
+    const ts = itemLookup[Math.min(index, itemLookup.length - 1)][0];
+    return items[
+      itemLookup[ts === targetTimestampMs ? index : Math.max(0, index - 1)][1]
+    ];
+  }
+
+  return undefined;
 }
 
 export function getNextReplayEvent<T extends ReplaySpan | Crumb>({

@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,7 +15,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Tag from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
@@ -77,7 +77,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   return events;
 });
 
-const ResponseCode = ({code}: {code: number}) => {
+function ResponseCode({code}: {code: number}) {
   let type: React.ComponentProps<typeof Tag>['type'] = 'error';
   if (code <= 399 && code >= 300) {
     type = 'warning';
@@ -90,10 +90,10 @@ const ResponseCode = ({code}: {code: number}) => {
       <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
     </Tags>
   );
-};
+}
 
-const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) =>
-  link ? (
+function TimestampLink({date, link}: {date: moment.MomentInput; link?: string}) {
+  return link ? (
     <ExternalLink href={link}>
       <DateTime date={date} />
       <StyledIconOpen size="xs" />
@@ -101,6 +101,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   ) : (
     <DateTime date={date} format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'} />
   );
+}
 
 type Props = AsyncComponent['props'] & {
   app: SentryApp;

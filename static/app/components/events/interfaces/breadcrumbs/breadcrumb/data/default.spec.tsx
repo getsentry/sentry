@@ -13,11 +13,9 @@ describe('Breadcrumb Data Default', function () {
   });
 
   const {organization, router} = initializeOrg({
-    ...initializeOrg(),
     router: {
       location: {query: {project: '0'}},
     },
-    project: '0',
     projects: [project],
   });
 
@@ -66,7 +64,7 @@ describe('Breadcrumb Data Default', function () {
     expect(
       screen.getByText('<sentry_ios_cocoapods.ViewController: 0x100e09ec0>')
     ).toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -105,7 +103,7 @@ describe('Breadcrumb Data Default', function () {
     expect(
       screen.queryByText('<sentry_ios_cocoapods.ViewController: 0x100e09ec0>')
     ).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

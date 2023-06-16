@@ -1,11 +1,12 @@
 from html import escape
-from pprint import saferepr
 
 from django import forms
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib import admin, messages
-from django.contrib.auth.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
+from django.contrib.auth.forms import AdminPasswordChangeForm
+from django.contrib.auth.forms import UserChangeForm as DjangoUserChangeForm
+from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
@@ -18,11 +19,9 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
 from sentry.models import (
-    ApiKey,
     AuditLogEntry,
     AuthIdentity,
     AuthProvider,
-    Option,
     Organization,
     OrganizationMember,
     Project,
@@ -34,24 +33,6 @@ csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 
-class OptionAdmin(admin.ModelAdmin):
-    list_display = ("key", "last_updated")
-    fields = ("key", "value_repr", "last_updated")
-    readonly_fields = ("key", "value_repr", "last_updated")
-    search_fields = ("key",)
-
-    def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
-            escape(saferepr(instance.value))
-        )
-
-    value_repr.short_description = "Value"
-    value_repr.allow_tags = True
-
-
-admin.site.register(Option, OptionAdmin)
-
-
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "organization", "status", "date_added")
     list_filter = ("status", "public")
@@ -61,13 +42,6 @@ class ProjectAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Project, ProjectAdmin)
-
-
-class OrganizationApiKeyInline(admin.TabularInline):
-    model = ApiKey
-    extra = 1
-    fields = ("label", "key", "status", "allowed_origins", "date_added")
-    raw_id_fields = ("organization",)
 
 
 class OrganizationProjectInline(admin.TabularInline):
@@ -87,8 +61,8 @@ class OrganizationTeamInline(admin.TabularInline):
 class OrganizationMemberInline(admin.TabularInline):
     model = OrganizationMember
     extra = 1
-    fields = ("user", "organization", "role")
-    raw_id_fields = ("user", "organization")
+    fields = ("organization", "role")
+    raw_id_fields = ("organization",)
 
 
 class OrganizationUserInline(OrganizationMemberInline):
@@ -111,7 +85,6 @@ class OrganizationAdmin(admin.ModelAdmin):
         OrganizationMemberInline,
         OrganizationTeamInline,
         OrganizationProjectInline,
-        OrganizationApiKeyInline,
     )
 
 
@@ -119,9 +92,7 @@ admin.site.register(Organization, OrganizationAdmin)
 
 
 class AuthProviderAdmin(admin.ModelAdmin):
-    list_display = ("organization", "provider", "date_added")
-    search_fields = ("organization__name",)
-    raw_id_fields = ("organization", "default_teams")
+    list_display = ("organization_id", "provider", "date_added")
     list_filter = ("provider",)
 
 
@@ -159,7 +130,7 @@ class TeamAdmin(admin.ModelAdmin):
 admin.site.register(Team, TeamAdmin)
 
 
-class UserChangeForm(UserChangeForm):
+class UserChangeForm(DjangoUserChangeForm):
     username = forms.RegexField(
         label=_("Username"),
         max_length=128,
@@ -173,7 +144,7 @@ class UserChangeForm(UserChangeForm):
     )
 
 
-class UserCreationForm(UserCreationForm):
+class UserCreationForm(DjangoUserCreationForm):
     username = forms.RegexField(
         label=_("Username"),
         max_length=128,
@@ -206,7 +177,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ("is_staff", "is_superuser", "is_active", "is_managed")
     search_fields = ("username", "name", "email")
     ordering = ("username",)
-    inlines = (OrganizationUserInline, AuthIdentityInline)
+    inlines = (AuthIdentityInline,)
 
     def get_fieldsets(self, request, obj=None):
         if not obj:
@@ -325,12 +296,12 @@ admin.site.register(User, UserAdmin)
 
 
 class AuditLogEntryAdmin(admin.ModelAdmin):
-    list_display = ("event", "organization", "actor", "datetime")
-    list_filter = ("event", "datetime")
-    search_fields = ("actor__email", "organization__name", "organization__slug")
-    raw_id_fields = ("organization", "actor", "target_user")
+    list_display = ("event", "organization_id", "actor", "datetime")
+    list_filter = ("event", "datetime", "organization_id")
+    search_fields = ("actor__email",)
+    raw_id_fields = ("actor", "target_user")
     readonly_fields = (
-        "organization",
+        "organization_id",
         "actor",
         "actor_key",
         "target_object",

@@ -1,7 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
 import RawContent from './rawContent';
@@ -12,13 +12,13 @@ type Props = {
   newestFirst: boolean;
   platform: PlatformType;
   projectSlug: Project['slug'];
-  stackType: STACK_TYPE;
+  stackType: StackType;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
-  stackView?: STACK_VIEW;
+  stackView?: StackView;
 } & Pick<ExceptionType, 'values'>;
 
-function Exception({
+export function ExceptionContent({
   stackView,
   stackType,
   projectSlug,
@@ -32,7 +32,7 @@ function Exception({
 }: Props) {
   return (
     <ErrorBoundary mini>
-      {stackView === STACK_VIEW.RAW ? (
+      {stackView === StackView.RAW ? (
         <RawContent
           eventId={event.id}
           projectSlug={projectSlug}
@@ -57,5 +57,3 @@ function Exception({
     </ErrorBoundary>
   );
 }
-
-export default Exception;

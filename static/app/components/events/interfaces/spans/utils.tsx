@@ -10,11 +10,10 @@ import moment from 'moment';
 import {Organization} from 'sentry/types';
 import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {WebVital} from 'sentry/utils/fields';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -33,20 +32,6 @@ import {
 
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
-
-export const setSpansOnTransaction = (spanCount: number) => {
-  const transaction = getPerformanceTransaction();
-
-  if (!transaction || spanCount === 0) {
-    return;
-  }
-
-  const spanCountGroups = [10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1001];
-  const spanGroup = spanCountGroups.find(g => spanCount <= g) || -1;
-
-  transaction.setTag('ui.spanCount', spanCount);
-  transaction.setTag('ui.spanCount.grouped', `<=${spanGroup}`);
-};
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
@@ -88,10 +73,10 @@ const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   return spanBounds;
 };
 
-export enum TimestampStatus {
-  Stable,
-  Reversed,
-  Equal,
+enum TimestampStatus {
+  STABLE = 0,
+  REVERSED = 1,
+  EQUAL = 2,
 }
 
 export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
@@ -99,14 +84,14 @@ export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus
   const endTimestamp: number = spanBounds.endTimestamp;
 
   if (startTimestamp < endTimestamp) {
-    return TimestampStatus.Stable;
+    return TimestampStatus.STABLE;
   }
 
   if (startTimestamp === endTimestamp) {
-    return TimestampStatus.Equal;
+    return TimestampStatus.EQUAL;
   }
 
-  return TimestampStatus.Reversed;
+  return TimestampStatus.REVERSED;
 };
 
 // given the start and end trace timestamps, and the view window, we want to generate a function
@@ -169,7 +154,7 @@ export const boundsGenerator = (bounds: {
     const isSpanVisibleInView = end > 0 && start < 1;
 
     switch (timestampStatus) {
-      case TimestampStatus.Equal: {
+      case TimestampStatus.EQUAL: {
         return {
           type: 'TIMESTAMPS_EQUAL',
           start,
@@ -181,7 +166,7 @@ export const boundsGenerator = (bounds: {
           isSpanVisibleInView: end >= 0 && start <= 1,
         };
       }
-      case TimestampStatus.Reversed: {
+      case TimestampStatus.REVERSED: {
         return {
           type: 'TIMESTAMPS_REVERSED',
           start,
@@ -189,7 +174,7 @@ export const boundsGenerator = (bounds: {
           isSpanVisibleInView,
         };
       }
-      case TimestampStatus.Stable: {
+      case TimestampStatus.STABLE: {
         return {
           type: 'TIMESTAMPS_STABLE',
           start,
@@ -298,6 +283,22 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   }
 
   return span.parent_span_id;
+}
+
+export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
+  const label = span?.description ?? getSpanID(span);
+
+  if (!isGapSpan(span)) {
+    if (span.op === 'http.client') {
+      try {
+        return decodeURIComponent(label);
+      } catch {
+        // Do nothing
+      }
+    }
+  }
+
+  return label;
 }
 
 export function getTraceContext(
@@ -495,10 +496,12 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.ember',
     'sentry.javascript.vue',
     'sentry.javascript.angular',
+    'sentry.javascript.angular-ivy',
     'sentry.javascript.nextjs',
     'sentry.javascript.electron',
     'sentry.javascript.remix',
     'sentry.javascript.svelte',
+    'sentry.javascript.sveltekit',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -515,14 +518,14 @@ type Measurements = {
   };
 };
 
-type VerticalMark = {
+export type VerticalMark = {
   failedThreshold: boolean;
   marks: Measurements;
 };
 
 function hasFailedThreshold(marks: Measurements): boolean {
   const names = Object.keys(marks);
-  const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+  const records = Object.values(VITAL_DETAILS).filter(vital =>
     names.includes(vital.slug)
   );
 
@@ -536,14 +539,15 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction,
+  event: EventTransaction | TraceFullDetailed,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
-  if (!event.measurements || !event.startTimestamp) {
+  const startTimestamp =
+    (event as EventTransaction).startTimestamp ||
+    (event as TraceFullDetailed).start_timestamp;
+  if (!event.measurements || !startTimestamp) {
     return new Map();
   }
-
-  const {startTimestamp} = event;
 
   // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
   const allowedVitals = new Set<string>([
@@ -552,6 +556,8 @@ export function getMeasurements(
     WebVital.FID,
     WebVital.LCP,
     WebVital.TTFB,
+    MobileVital.TIME_TO_FULL_DISPLAY,
+    MobileVital.TIME_TO_INITIAL_DISPLAY,
   ]);
 
   const measurements = Object.keys(event.measurements)
@@ -593,7 +599,7 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
 
         verticalMark.marks = {
           ...verticalMark.marks,
@@ -613,7 +619,7 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
 
     const marks = {
       [name]: {
@@ -706,7 +712,7 @@ export function scrollToSpan(
       hash,
     });
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.anchor_span', {
+    trackAnalytics('performance_views.event_details.anchor_span', {
       organization,
       span_id: spanId,
     });
@@ -855,7 +861,10 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     };
   }
 
-  const newTimestamps = startStrings.reduce(
+  const newTimestamps = startStrings.reduce<{
+    end: string[];
+    start: string[];
+  }>(
     (acc, startString, index) => {
       if (startString.length > endStrings[index].length) {
         acc.start.push(startString);
@@ -875,10 +884,7 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
       acc.end.push(endStrings[index]);
       return acc;
     },
-    {start: [], end: []} as {
-      end: string[];
-      start: string[];
-    }
+    {start: [], end: []}
   );
 
   return {

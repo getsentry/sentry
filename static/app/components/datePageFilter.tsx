@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Datetime from 'sentry/components/dateTime';
+import {DatePageFilter as NewDatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
-import space from 'sentry/styles/space';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
@@ -29,7 +29,7 @@ type Props = Omit<
   resetParamsOnChange?: string[];
 };
 
-function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
+function OldDatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
   const router = useRouter();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
@@ -74,14 +74,14 @@ function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
         isOpen={isOpen}
         highlighted={desyncedFilters.has('datetime')}
         data-test-id="page-filter-timerange-selector"
-        {...getActorProps()}
-      >
-        <DropdownTitle>
+        icon={
           <PageFilterPinIndicator filter="datetime">
             <IconCalendar />
           </PageFilterPinIndicator>
-          <TitleContainer>{label}</TitleContainer>
-        </DropdownTitle>
+        }
+        {...getActorProps()}
+      >
+        <TitleContainer>{label}</TitleContainer>
       </PageFilterDropdownButton>
     );
   };
@@ -104,18 +104,18 @@ function DatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
 }
 
 const TitleContainer = styled('div')`
-  flex: 1 1 0%;
-  margin-left: ${space(1)};
   text-align: left;
   ${p => p.theme.overflowEllipsis}
 `;
 
-const DropdownTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  width: max-content;
-  min-width: 0;
-`;
+function DatePageFilter(props: Props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('new-page-filter')) {
+    return <NewDatePageFilter {...props} />;
+  }
+
+  return <OldDatePageFilter {...props} />;
+}
 
 export default DatePageFilter;

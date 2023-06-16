@@ -108,9 +108,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not created:
             return
 
-        requester = request.user if request.user != member.user else None
+        requester = request.user.id if request.user.id != member.user_id else None
         if requester:
-            omt.update(requester=requester)
+            omt.update(requester_id=requester)
 
         omt.send_request_email()
 
@@ -179,7 +179,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=omt.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
             data=omt.get_audit_log_data(),
         )
@@ -283,7 +283,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 request=request,
                 organization=organization,
                 target_object=omt.id,
-                target_user=member.user,
+                target_user_id=member.user_id,
                 event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                 data=omt.get_audit_log_data(),
             )

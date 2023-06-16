@@ -3,7 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('flamegraphCanvas', () => {
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('flamegraphCanvas', () => {
 
   it('initializes logicalToPhysicalSpace', () => {
     window.devicePixelRatio = 2;
-    // @ts-ignore partial mock
+    // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
     const canvas = makeCanvasMock({
       getContext: jest.fn().mockReturnValue(context),
@@ -54,7 +54,7 @@ describe('flamegraphCanvas', () => {
 
   it('initializes physicalToLogicalSpace', () => {
     window.devicePixelRatio = 2;
-    // @ts-ignore partial mock
+    // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
     const canvas = makeCanvasMock({
       getContext: jest.fn().mockReturnValue(context),
@@ -68,7 +68,6 @@ describe('flamegraphCanvas', () => {
   });
 
   it('handles resize events by updating space', () => {
-    // @ts-ignore partial canvas mock
     const canvas = makeCanvasMock({
       width: 100,
       height: 100,

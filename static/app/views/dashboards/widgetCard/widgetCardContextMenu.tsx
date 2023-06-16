@@ -10,10 +10,10 @@ import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/uti
 import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
@@ -98,7 +98,7 @@ function WidgetCardContextMenu({
                   isMetricsData === false &&
                   metricSettingContext &&
                   metricSettingContext.metricSettingState !==
-                    MEPState.transactionsOnly && (
+                    MEPState.TRANSACTIONS_ONLY && (
                     <SampledTag
                       tooltipText={t('This widget is only applicable to indexed events.')}
                     >
@@ -168,14 +168,14 @@ function WidgetCardContextMenu({
         to: widget.queries.length === 1 ? discoverPath : undefined,
         onAction: () => {
           if (widget.queries.length === 1) {
-            trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
+            trackAnalytics('dashboards_views.open_in_discover.opened', {
               organization,
               widget_type: widget.displayType,
             });
             return;
           }
 
-          trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+          trackAnalytics('dashboards_views.query_selector.opened', {
             organization,
             widget_type: widget.displayType,
           });
@@ -238,7 +238,8 @@ function WidgetCardContextMenu({
                   organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
                 metricSettingContext &&
-                metricSettingContext.metricSettingState !== MEPState.transactionsOnly && (
+                metricSettingContext.metricSettingState !==
+                  MEPState.TRANSACTIONS_ONLY && (
                   <SampledTag
                     tooltipText={t('This widget is only applicable to indexed events.')}
                   >
@@ -288,9 +289,11 @@ const ContextWrapper = styled('div')`
   align-items: center;
   height: ${space(3)};
   margin-left: ${space(1)};
+  gap: ${space(0.25)};
 `;
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
+  display: flex;
   & > button {
     z-index: auto;
   }

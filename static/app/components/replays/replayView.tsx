@@ -14,11 +14,9 @@ function ReplayView({toggleFullscreen}: Props) {
   return (
     <Fragment>
       <ReplayCurrentUrl />
-      <FluidHeight>
-        <Panel>
-          <ReplayPlayer />
-        </Panel>
-      </FluidHeight>
+      <Panel>
+        <ReplayPlayer />
+      </Panel>
       <ReplayController toggleFullscreen={toggleFullscreen} />
     </Fragment>
   );

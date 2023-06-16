@@ -103,7 +103,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(
       screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
     ).toBeInTheDocument();
-    userEvent.hover(screen.getByTitle('dashboard user'));
+    await userEvent.hover(screen.getByTitle('dashboard user'));
     expect(await screen.findByText('Assigned to dashboard user')).toBeInTheDocument();
   });
 
@@ -125,11 +125,11 @@ describe('Dashboards > IssueWidgetCard', function () {
       {context: routerContext}
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
 
     expect(screen.getByText('Open in Issues')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Issues'));
+    await userEvent.click(screen.getByText('Open in Issues'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/?environment=prod&project=1&query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
@@ -153,9 +153,9 @@ describe('Dashboards > IssueWidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -177,9 +177,9 @@ describe('Dashboards > IssueWidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 

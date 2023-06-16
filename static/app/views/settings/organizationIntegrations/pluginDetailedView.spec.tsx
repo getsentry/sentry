@@ -81,7 +81,7 @@ describe('PluginDetailedView', function () {
 
     expect(screen.getByText('Installed')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
 
     renderGlobalModal();
 
@@ -90,7 +90,6 @@ describe('PluginDetailedView', function () {
 
   it('view configurations', function () {
     const {route, router, organization} = initializeOrg({
-      ...initializeOrg(),
       router: {location: {query: {tab: 'configurations'}}},
     });
 

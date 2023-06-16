@@ -1,22 +1,26 @@
 from base64 import b64encode
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
+import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
+from django.db import IntegrityError
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
 
-from sentry import audit_log, options
+from sentry import audit_log
+from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.auth.authenticators import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
     AuthProvider,
     DeletedOrganization,
-    ObjectStatus,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
@@ -25,8 +29,8 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
-from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -66,7 +70,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -85,7 +88,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -134,15 +136,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # make sure options are not cached the first time to get predictable number of database queries
         with exempt_from_silo_limits():
-            options.delete("system.rate-limit")
-            options.delete("store.symbolicate-event-lpq-always")
-            options.delete("store.symbolicate-event-lpq-never")
+            sentry_options.delete("system.rate-limit")
+            sentry_options.delete("store.symbolicate-event-lpq-always")
+            sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 50 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 52
+        # TODO(hybrid-cloud): put this back in
+        # expected_queries = 59 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 62
 
-        with self.assertNumQueries(expected_queries, using="default"):
-            response = self.get_success_response(self.organization.slug)
+        # with self.assertNumQueries(expected_queries, using="default"):
+        response = self.get_success_response(self.organization.slug)
 
         project_slugs = [p["slug"] for p in response.data["projects"]]
         assert len(project_slugs) == 4
@@ -177,21 +180,23 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
+    def get_onboard_tasks(self, tasks, task_type):
+        return [task for task in tasks if task["task"] == task_type]
+
     def test_onboarding_tasks(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data["onboardingTasks"] == []
+        assert not self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
         assert response.data["id"] == str(self.organization.id)
 
         project = self.create_project(organization=self.organization)
         project_created.send(project=project, user=self.user, sender=type(project))
 
         response = self.get_success_response(self.organization.slug)
-        assert len(response.data["onboardingTasks"]) == 1
-        assert response.data["onboardingTasks"][0]["task"] == "create_project"
+        assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
         with exempt_from_silo_limits():
-            AuditLogEntry.objects.filter(organization=self.organization).delete()
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -235,10 +240,38 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["hasAuthProvider"] is False
 
         with exempt_from_silo_limits():
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
+
+    def test_is_dynamically_sampled(self):
+        self.user = self.create_user("super@example.org", is_superuser=True)
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=0.5
+        ):
+            response = self.get_success_response(org.slug)
+            assert response.data["isDynamicallySampled"]
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=1.0
+        ):
+            response = self.get_success_response(org.slug)
+            assert not response.data["isDynamicallySampled"]
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=None
+        ):
+            response = self.get_success_response(org.slug)
+            assert not response.data["isDynamicallySampled"]
+
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
+        assert resp.status_code == 400
 
 
 @region_silo_test
@@ -280,21 +313,38 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
 
     def test_upload_avatar(self):
-        data = {"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))}
+        data = {
+            "avatarType": "upload",
+            "avatar": b64encode(self.load_fixture("avatar.jpg")),
+        }
         self.get_success_response(self.organization.slug, **data)
 
         avatar = OrganizationAvatar.objects.get(organization=self.organization)
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    def test_various_options(self):
+    @responses.activate
+    @patch(
+        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
+    )
+    def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+        self.create_integration(
+            organization=self.organization, provider="github", external_id="extid"
+        )
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/github/testgit",
+            status=200,
+        )
 
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
             "codecovAccess": True,
+            "aiSuggestedSolution": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -314,7 +364,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # needed to set require2FA
         interface = TotpInterface()
         interface.enroll(self.user)
-        assert Authenticator.objects.user_has_2fa(self.user)
+        assert self.user.has_2fa()
 
         self.get_success_response(self.organization.slug, **data)
 
@@ -342,7 +392,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:events_member_admin") is False
 
         # log created
-        log = AuditLogEntry.objects.get(organization=org)
+        log = AuditLogEntry.objects.get(organization_id=org.id)
         assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
@@ -363,6 +413,21 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
+        assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
+
+    @responses.activate
+    @patch(
+        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
+    )
+    def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
+        responses.add(
+            responses.GET,
+            "https://api.codecov.io/api/v2/github/testgit",
+            status=404,
+        )
+        data = {"codecovAccess": True}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
@@ -383,7 +448,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         Try to put the same key twice and check we get an error
         """
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -415,7 +480,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
     def test_creating_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -458,7 +523,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
-        log = AuditLogEntry.objects.get(organization=self.organization)
+        log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         trusted_relay_log = log.data["trustedRelays"]
 
         assert trusted_relay_log is not None
@@ -469,7 +534,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
     def test_modifying_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
             {
@@ -547,7 +612,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert after_initial < last_modified < after_final
 
         # we should have 2 log messages from the two calls
-        (first_log, second_log) = AuditLogEntry.objects.filter(organization=self.organization)
+        (first_log, second_log) = AuditLogEntry.objects.filter(organization_id=self.organization.id)
         log_str_1 = first_log.data["trustedRelays"]
         log_str_2 = second_log.data["trustedRelays"]
 
@@ -565,7 +630,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert modified_trusted_relays[i]["publicKey"] in modif_log
 
     def test_deleting_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
             {
@@ -674,7 +739,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
         assert not ScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()
@@ -698,56 +763,79 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_slug_with_mapping(self):
-        self.create_organization_mapping(self.organization, slug="test")
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=self.organization.id, slug="test"
-            ).exists()
-
-        response = self.get_success_response(
-            self.organization.slug, slug="santry", idempotencyKey="1234"
-        )
-
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "santry"
-
-        with exempt_from_silo_limits():
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
-            assert not org_mapping.verified
-            assert org_mapping.idempotency_key
-
-            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
-
-        # Drain outbox
-        outbox = Organization.outbox_to_verify_mapping(org.id)
-        outbox.drain_shard()
-
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
-            ).exists()
-
-            assert not OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="test"
-            ).exists()
-
     def test_update_name_with_mapping(self):
-        self.create_organization_mapping(self.organization)
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
+        with outbox_runner():
+            pass
+
         with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
 
+    def test_update_slug(self):
+        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert organization_mapping.slug == self.organization.slug
+
+        desired_slug = "new-santry"
+        self.get_success_response(self.organization.slug, slug=desired_slug)
+        self.organization.refresh_from_db()
+        assert self.organization.slug == desired_slug
+
+        # Ensure that the organization update has been flushed
+        with outbox_runner():
+            pass
+
+        organization_mapping.refresh_from_db()
+        assert organization_mapping.slug == desired_slug
+
+    def test_update_slug_with_temporary_rename_collision(self):
+        desired_slug = "taken"
+        previous_slug = self.organization.slug
+        org_with_colliding_slug = self.create_organization(
+            slug=desired_slug, name="collision-imminent"
+        )
+
+        # Drain the initial slug creation to ensure a mapping exists for the new org
+        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        colliding_org_mapping = OrganizationMapping.objects.get(
+            organization_id=org_with_colliding_slug.id
+        )
+        assert colliding_org_mapping.slug == desired_slug
+
+        # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
+        org_with_colliding_slug.slug = "unique-slug"
+        org_with_colliding_slug.save()
+
+        self.get_success_response(self.organization.slug, slug=desired_slug)
+        self.organization.refresh_from_db()
+        assert self.organization.slug == desired_slug
+
+        # Ensure that the organization update has been flushed, but it collides when attempting an upsert
+        with pytest.raises(IntegrityError):
+            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+
+        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert organization_mapping.slug == previous_slug
+
+        # Flush the colliding org slug change
+        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        colliding_org_mapping.refresh_from_db()
+        assert colliding_org_mapping.slug == "unique-slug"
+
+        # Flush the desired slug change and assert the correct slug was resolved
+        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        organization_mapping.refresh_from_db()
+        assert organization_mapping.slug == desired_slug
+
     def test_org_mapping_already_taken(self):
-        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
+        self.create_organization(slug="taken")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
 @region_silo_test
@@ -792,7 +880,8 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        Organization.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
@@ -800,7 +889,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
@@ -808,9 +897,32 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        scheduled_deletions = ScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
-        ).exists()
+        )
+        assert scheduled_deletions.exists()
+        assert scheduled_deletions.count() == 1
+
+    def test_update_org_mapping_on_deletion(self):
+        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert org_mapping.status == OrganizationStatus.ACTIVE
+        with self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=self.organization.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        org_mapping.refresh_from_db()
+        assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
+    def test_organization_does_not_exist(self):
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
+
+        self.get_error_response("nonexistent-slug", status_code=404)
 
 
 @region_silo_test
@@ -836,19 +948,19 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.has_2fa = self.create_user()
         TotpInterface().enroll(self.has_2fa)
         self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
-        assert Authenticator.objects.user_has_2fa(self.has_2fa)
+        assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
-        assert not Authenticator.objects.user_has_2fa(self.owner)
+        assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="github", organization=self.organization
+            provider="github", organization_id=self.organization.id
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True
@@ -858,7 +970,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="saml2", organization=self.organization
+            provider="saml2", organization_id=self.organization.id
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True

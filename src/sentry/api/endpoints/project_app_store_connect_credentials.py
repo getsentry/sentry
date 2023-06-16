@@ -1,4 +1,4 @@
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 
 """Sentry API to manage the App Store Connect credentials for a project.
 
@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
 
 
-class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -79,8 +79,8 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ign
     id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
-@pending_silo_endpoint
-class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -180,7 +180,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(result, status=200)
 
 
-class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectCreateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -194,8 +194,8 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: igno
     bundleId = serializers.CharField(min_length=1, required=True)
 
 
-@pending_silo_endpoint
-class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -250,7 +250,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response({"id": validated_config.id}, status=200)
 
 
-class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -268,8 +268,8 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
         return validate_secret(private_key_json)
 
 
-@pending_silo_endpoint
-class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -330,8 +330,8 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(symbol_source_config.to_redacted_json(), status=200)
 
 
-@pending_silo_endpoint
-class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     """Triggers an immediate check for new App Store Connect builds.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
@@ -346,7 +346,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
     """
 
     permission_classes = [StrictProjectPermission]
-    private = True
+
     enforce_rate_limit = True
 
     # At the time of writing the App Store Connect API has a rate limit of 3600 requests/h
@@ -380,8 +380,8 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
         return Response(status=200)
 
 
-@pending_silo_endpoint
-class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
+@region_silo_endpoint
+class AppStoreConnectStatusEndpoint(ProjectEndpoint):
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 

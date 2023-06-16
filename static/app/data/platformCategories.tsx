@@ -55,6 +55,7 @@ export const frontend = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'unity',
 ] as const;
 
@@ -215,16 +216,21 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'minidump',
 ]);
 
-export const profiling = [
+export const profiling: PlatformKey[] = [
   // mobile
   'android',
   'apple-ios',
+  // go
+  'go',
   // nodejs
   'node',
   'node-express',
   'node-koa',
   'node-connect',
-  // python, WSGI only
+  'javascript-nextjs',
+  'javascript-remix',
+  'javascript-sveltekit',
+  // python
   'python',
   'python-django',
   'python-flask',
@@ -239,7 +245,15 @@ export const profiling = [
   'python-rq',
   // rust
   'rust',
-] as const;
+  // php
+  'php',
+  'php-laravel',
+  'php-symfony2',
+  // ruby
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
+];
 
 export const releaseHealth: PlatformKey[] = [
   // frontend
@@ -254,6 +268,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   // mobile
   'android',
   'apple-ios',
@@ -300,6 +315,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript-vue',
   'javascript',
 ];
@@ -320,6 +336,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript-vue',
   'javascript',
 ];
@@ -342,3 +359,10 @@ export type PlatformKey =
   | 'other';
 
 export default categoryList;
+
+export type Platform = {
+  key: PlatformKey;
+  id?: string;
+  link?: string | null;
+  name?: string;
+};

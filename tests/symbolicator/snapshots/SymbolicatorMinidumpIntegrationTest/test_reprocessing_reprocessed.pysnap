@@ -24,7 +24,7 @@ debug_meta:
           has_symbols: true
           has_unwind_info: true
         status: ok
-      location: sentry://project_debug_file/4
+      location: sentry://project_debug_file/x
       source: sentry:project
       source_name: Sentry
       unwind:

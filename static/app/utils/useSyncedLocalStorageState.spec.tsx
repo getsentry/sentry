@@ -8,29 +8,29 @@ describe('useSyncedLocalStorageState', function () {
     localStorageWrapper.clear();
   });
 
-  const Toggle = () => {
+  function Toggle() {
     const [value, setValue] = useSyncedLocalStorageState<boolean>('key', false);
 
     return <button onClick={() => setValue(!value)}>{value ? 'On' : 'Off'}</button>;
-  };
+  }
 
-  const Text = () => {
+  function Text() {
     const [value] = useSyncedLocalStorageState<boolean>('key', false);
 
     return <div>{value ? 'Value is on' : 'Value is off'}</div>;
-  };
+  }
 
   it('responds to changes in multiple components', async function () {
     localStorageWrapper.setItem('key', 'true');
 
-    const TestComponent = () => {
+    function TestComponent() {
       return (
         <div>
           <Toggle />
           <Text />
         </div>
       );
-    };
+    }
 
     render(<TestComponent />);
 
@@ -39,7 +39,7 @@ describe('useSyncedLocalStorageState', function () {
     expect(screen.getByText('Value is on')).toBeInTheDocument();
 
     // After clicking the button, they both should be 'Off'
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(screen.getByRole('button', {name: 'Off'})).toBeInTheDocument();
     expect(screen.getByText('Value is off')).toBeInTheDocument();
 

@@ -1,11 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
   it('display redacted values from exception entry', async function () {
@@ -15,11 +15,9 @@ describe('Exception Content', function () {
     });
 
     const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {query: {project: '0'}},
       },
-      project: '0',
       projects: [project],
     });
 
@@ -105,12 +103,12 @@ describe('Exception Content', function () {
 
     render(
       <Content
-        type={STACK_TYPE.ORIGINAL}
+        type={StackType.ORIGINAL}
         groupingCurrentLevel={0}
         hasHierarchicalGrouping
         newestFirst
         platform="python"
-        stackView={STACK_VIEW.APP}
+        stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
         meta={event._meta.entries[0].data.values}
@@ -121,7 +119,7 @@ describe('Exception Content', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
       await screen.findByText(
@@ -144,5 +142,79 @@ describe('Exception Content', function () {
       'href',
       '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
+  });
+
+  describe('exception groups', function () {
+    const event = TestStubs.Event({entries: [TestStubs.EventEntryExceptionGroup()]});
+    const project = TestStubs.Project();
+
+    const defaultProps = {
+      type: StackType.ORIGINAL,
+      hasHierarchicalGrouping: false,
+      newestFirst: true,
+      platform: 'python' as const,
+      stackView: StackView.APP,
+      event,
+      values: event.entries[0].data.values,
+      projectSlug: project.slug,
+    };
+
+    it('displays exception group tree under first exception', function () {
+      render(<Content {...defaultProps} />);
+
+      const exceptions = screen.getAllByTestId('exception-value');
+
+      // First exception should be the parent ExceptionGroup
+      expect(within(exceptions[0]).getByText('ExceptionGroup 1')).toBeInTheDocument();
+      expect(
+        within(exceptions[0]).getByRole('heading', {name: 'ExceptionGroup 1'})
+      ).toBeInTheDocument();
+    });
+
+    it('displays exception group tree in first frame when there is no other context', function () {
+      render(<Content {...defaultProps} />);
+
+      const exceptions = screen.getAllByTestId('exception-value');
+
+      const exceptionGroupWithNoContext = exceptions[2];
+      expect(
+        within(exceptionGroupWithNoContext).getByText('Related Exceptions')
+      ).toBeInTheDocument();
+    });
+
+    it('collapses sub-groups by default', async function () {
+      render(<Content {...defaultProps} />);
+
+      // There are 4 values, but 1 should be hidden
+      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /show 1 related exception/i})
+      );
+
+      // After expanding, ValueError should be visible
+      expect(screen.getAllByTestId('exception-value').length).toBe(4);
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /hide 1 related exception/i})
+      );
+
+      // After collapsing, ValueError should be gone again
+      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+    });
+
+    it('auto-opens sub-groups when clicking link in tree', async function () {
+      render(<Content {...defaultProps} />);
+
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /ValueError: test/i}));
+
+      // After expanding, ValueError should be visible
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+    });
   });
 });

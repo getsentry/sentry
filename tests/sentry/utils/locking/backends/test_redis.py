@@ -3,18 +3,21 @@ from unittest import TestCase
 
 import pytest
 
-from sentry.utils.locking.backends.redis import RedisLockBackend
-from sentry.utils.redis import clusters
+from sentry.utils.locking.backends.redis import RedisClusterLockBackend, RedisLockBackend
+from sentry.utils.redis import clusters, redis_clusters
 
 
-class RedisLockBackendTestCase(TestCase):
-    @cached_property
+class RedisBackendTestCaseBase:
+
+    backend_class = None
+
+    @property
     def cluster(self):
         return clusters.get("default")
 
-    @cached_property
+    @property
     def backend(self):
-        return RedisLockBackend(self.cluster)
+        return self.backend_class(self.cluster, uuid="09cd7348c93f4198995177a57216e620")
 
     def test_success(self):
         key = "\U0001F4A9"
@@ -23,7 +26,13 @@ class RedisLockBackendTestCase(TestCase):
         client = self.backend.get_client(key)
 
         self.backend.acquire(key, duration)
-        assert client.get(full_key) == self.backend.uuid.encode("utf-8")
+
+        val = client.get(full_key)
+        if isinstance(val, bytes):
+            val = val.decode("utf-8")
+
+        assert val == self.backend.uuid
+
         assert duration - 2 < float(client.ttl(full_key)) <= duration
 
         self.backend.release(key)
@@ -33,7 +42,7 @@ class RedisLockBackendTestCase(TestCase):
         key = "lock"
         duration = 60
 
-        other_cluster = RedisLockBackend(self.cluster)
+        other_cluster = self.backend_class(self.cluster)
         other_cluster.acquire(key, duration)
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)
@@ -60,4 +69,20 @@ class RedisLockBackendTestCase(TestCase):
         self.backend.release(key)
 
     def test_cluster_as_str(self):
-        assert RedisLockBackend(cluster="default").cluster == self.cluster
+        assert self.backend_class(cluster="default").cluster == self.cluster
+
+
+class RedisLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
+    backend_class = RedisLockBackend
+
+    @cached_property
+    def cluster(self):
+        return clusters.get("default")
+
+
+class RedisClusterLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
+    backend_class = RedisClusterLockBackend
+
+    @cached_property
+    def cluster(self):
+        return redis_clusters.get("default")

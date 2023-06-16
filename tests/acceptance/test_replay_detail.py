@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytest
 
@@ -13,7 +12,7 @@ from sentry.replays.testutils import (
 )
 from sentry.testutils import ReplaysAcceptanceTestCase
 
-FEATURE_NAME = ["organizations:session-replay", "organizations:session-replay-ui"]
+FEATURE_NAME = ["organizations:session-replay"]
 
 
 class ReplayDetailTest(ReplaysAcceptanceTestCase):
@@ -30,7 +29,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
-        replay_id = uuid4().hex
+        replay_id = "b58a67446c914f44a4e329763420047b"
         seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
         seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
         self.store_replays(

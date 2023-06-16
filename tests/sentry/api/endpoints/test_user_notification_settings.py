@@ -2,6 +2,7 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -100,14 +101,6 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         response = self.get_success_response("me")
 
         assert other_project.id not in response.data["workflow"]["project"]
-
-
-class UserNotificationSettingsTestBase(APITestCase):
-    endpoint = "sentry-api-0-user-notification-settings"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(self.user)
 
 
 @control_silo_test
@@ -214,7 +207,7 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
 
 
 @control_silo_test
-class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
+class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
     method = "put"
 
     def test_simple(self):
@@ -224,7 +217,7 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                user=self.user,
+                actor=RpcActor.from_orm_user(self.user),
             )
             == NotificationSettingOptionValues.DEFAULT
         )
@@ -239,7 +232,7 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                user=self.user,
+                actor=RpcActor.from_orm_user(self.user),
             )
             == NotificationSettingOptionValues.ALWAYS
         )

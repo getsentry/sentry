@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
@@ -33,7 +33,7 @@ describe('GroupTagValues', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('navigates to issue details events tab with correct query params', () => {
+  it('navigates to issue details events tab with correct query params', async () => {
     const {routerContext, router, project} = init('user');
 
     MockApiClient.addMockResponse({
@@ -44,8 +44,12 @@ describe('GroupTagValues', () => {
       context: routerContext,
     });
 
-    userEvent.click(screen.getByLabelText('Show more'));
-    userEvent.click(screen.getByText('Search All Issues with Tag Value'));
+    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(
+      within(
+        screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
+      ).getByRole('link')
+    );
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',

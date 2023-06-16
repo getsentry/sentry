@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.models import ActorTuple, OrganizationMember, Team, User
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class ActorField(serializers.Field):
@@ -25,7 +25,7 @@ class ActorField(serializers.Field):
                 "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
             )
         try:
-            obj: APIUser | Team = actor.resolve()
+            obj: RpcUser | Team = actor.resolve()
         except (Team.DoesNotExist, User.DoesNotExist):
             raise serializers.ValidationError(f"{actor.type.__name__} does not exist")
 

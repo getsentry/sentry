@@ -217,8 +217,6 @@ def js_lint_format(file_list=None):
 
     js_file_list = get_js_files(file_list)
 
-    # manually exclude some bad files
-    js_file_list = [x for x in js_file_list if "/javascript/example-project/" not in x]
     cmd = [eslint_path, "--fix"]
 
     has_package_json_errors = (

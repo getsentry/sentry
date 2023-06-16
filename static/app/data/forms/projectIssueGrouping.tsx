@@ -5,7 +5,7 @@ import {GroupingConfigItem} from 'sentry/components/events/groupingInfo';
 import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import marked from 'sentry/utils/marked';
 
 // Export route to make these forms searchable by label/help

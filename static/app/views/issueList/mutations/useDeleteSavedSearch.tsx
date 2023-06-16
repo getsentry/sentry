@@ -1,7 +1,13 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {SavedSearch} from 'sentry/types';
-import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  getApiQueryData,
+  setApiQueryData,
+  useMutation,
+  UseMutationOptions,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchSavedSearchesForOrgQueryKey} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -42,11 +48,13 @@ export const useDeleteSavedSearchOptimistic = (
         makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug})
       );
 
-      const previousSavedSearches = queryClient.getQueryData<SavedSearch[]>(
+      const previousSavedSearches = getApiQueryData<SavedSearch[]>(
+        queryClient,
         makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug})
       );
 
-      queryClient.setQueryData(
+      setApiQueryData(
+        queryClient,
         makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug}),
         oldData => {
           if (!Array.isArray(oldData)) {
@@ -65,7 +73,8 @@ export const useDeleteSavedSearchOptimistic = (
       addErrorMessage(t('Failed to delete saved search.'));
 
       if (context) {
-        queryClient.setQueryData(
+        setApiQueryData(
+          queryClient,
           makeFetchSavedSearchesForOrgQueryKey({orgSlug: variables.orgSlug}),
           context.previousSavedSearches
         );

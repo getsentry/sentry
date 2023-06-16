@@ -106,7 +106,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
-      userEvent.click(await screen.findByTestId('install'));
+      await userEvent.click(await screen.findByTestId('install'));
 
       expect(installMock).toHaveBeenCalledWith(
         installUrl,

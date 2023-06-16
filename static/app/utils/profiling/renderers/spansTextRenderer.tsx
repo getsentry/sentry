@@ -4,18 +4,16 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {
   computeHighlightedBounds,
   ELLIPSIS,
-  findRangeBinarySearch,
   getContext,
   lowerBound,
-  Rect,
   resizeCanvasToDisplaySize,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;
@@ -146,19 +144,22 @@ class SpansTextRenderer extends TextRenderer {
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          const highlightedBounds = computeHighlightedBounds(frameResults.match, trim);
+          for (let i = 0; i < frameResults.match.length; i++) {
+            const match = frameResults.match[i];
+            const highlightedBounds = computeHighlightedBounds(match, trim);
 
-          const frontMatter = trim.text.slice(0, highlightedBounds[0]);
-          const highlightWidth = this.measureAndCacheText(
-            trim.text.substring(highlightedBounds[0], highlightedBounds[1])
-          ).width;
+            const frontMatter = trim.text.slice(0, highlightedBounds[0]);
+            const highlightWidth = this.measureAndCacheText(
+              trim.text.substring(highlightedBounds[0], highlightedBounds[1])
+            ).width;
 
-          this.context.fillRect(
-            x + this.measureAndCacheText(frontMatter).width,
-            y + TEXT_Y_POSITION,
-            highlightWidth,
-            FONT_SIZE
-          );
+            this.context.fillRect(
+              x + this.measureAndCacheText(frontMatter).width,
+              y + TEXT_Y_POSITION,
+              highlightWidth,
+              FONT_SIZE
+            );
+          }
         }
       }
 

@@ -7,7 +7,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
-from sentry.models import NotificationSetting, Project, UserEmail, UserOption
+from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.notifications.utils.legacy_mappings import (
     get_option_value_from_int,
@@ -155,17 +155,12 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         if len(emails) != len(emails_to_check):
             return Response({"detail": INVALID_EMAIL_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = [int(id) for id in data.keys()]
-        projects_map = {
-            int(project.id): project for project in Project.objects.filter(id__in=project_ids)
-        }
-
         with transaction.atomic():
             for id, value in data.items():
                 user_option, CREATED = UserOption.objects.get_or_create(
                     user=user,
                     key="mail:email",
-                    project=projects_map[int(id)],
+                    project_id=int(id),
                 )
                 user_option.update(value=str(value))
 

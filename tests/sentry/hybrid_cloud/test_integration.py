@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
@@ -10,9 +11,13 @@ from sentry.integrations.base import IntegrationFeatures
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
-    APIIntegration,
-    APIOrganizationIntegration,
+    RpcIntegration,
+    RpcOrganizationIntegration,
     integration_service,
+)
+from sentry.services.hybrid_cloud.integration.serial import (
+    serialize_integration,
+    serialize_organization_integration,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
@@ -62,7 +67,7 @@ class BaseIntegrationServiceTest(TestCase):
 
     def verify_result(
         self,
-        result: List[APIIntegration | APIOrganizationIntegration],
+        result: List[RpcIntegration | RpcOrganizationIntegration],
         expected: List[Integration | OrganizationIntegration],
     ):
         """Ensures APIModels in result, match the Models in expected"""
@@ -70,12 +75,12 @@ class BaseIntegrationServiceTest(TestCase):
         result_ids = [api_item.id for api_item in result]
         assert all([item.id in result_ids for item in expected])
 
-    def verify_integration_result(self, result: APIIntegration, expected: Integration):
+    def verify_integration_result(self, result: RpcIntegration, expected: Integration):
         serialized_fields = ["id", "provider", "external_id", "name", "metadata", "status"]
         for field in serialized_fields:
             assert getattr(result, field) == getattr(expected, field)
 
-    def verify_org_integration_result(self, result: APIIntegration, expected: Integration):
+    def verify_org_integration_result(self, result: RpcIntegration, expected: Integration):
         serialized_fields = [
             "id",
             "default_auth_id",
@@ -92,7 +97,7 @@ class BaseIntegrationServiceTest(TestCase):
 @all_silo_test(stable=True)
 class IntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_integration(self):
-        api_integration1 = integration_service._serialize_integration(self.integration1)
+        api_integration1 = serialize_integration(self.integration1)
         self.verify_integration_result(result=api_integration1, expected=self.integration1)
 
     def test_get_integrations(self):
@@ -144,6 +149,10 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_integration()
         assert result is None
 
+        # non-unique result
+        with pytest.raises(Integration.MultipleObjectsReturned):
+            integration_service.get_integration(organization_id=self.organization.id)
+
     def test_update_integrations(self):
         new_metadata = {"new": "data"}
         integrations = [self.integration1, self.integration3]
@@ -156,7 +165,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             assert i.metadata == new_metadata
 
     def test_get_installation(self):
-        api_integration1 = integration_service._serialize_integration(integration=self.integration1)
+        api_integration1 = serialize_integration(integration=self.integration1)
         api_install = integration_service.get_installation(
             integration=api_integration1, organization_id=self.organization.id
         )
@@ -166,9 +175,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
     def test_has_feature(self):
         for feature in IntegrationFeatures:
-            api_integration2 = integration_service._serialize_integration(
-                integration=self.integration2
-            )
+            api_integration2 = serialize_integration(integration=self.integration2)
             integration_has_feature = self.integration2.has_feature(feature)
             api_integration_has_feature = integration_service.has_feature(
                 provider=api_integration2.provider, feature=feature
@@ -179,11 +186,9 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 @all_silo_test(stable=True)
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_org_integration(self):
-        api_org_integration1 = integration_service._serialize_organization_integration(
-            self.org_integration1
-        )
+        rpc_org_integration1 = serialize_organization_integration(self.org_integration1)
         self.verify_org_integration_result(
-            result=api_org_integration1, expected=self.org_integration1
+            result=rpc_org_integration1, expected=self.org_integration1
         )
 
     def test_get_organization_integrations(self):

@@ -7,10 +7,11 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
@@ -59,8 +60,9 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     // only tied to a user
-    trackAdvancedAnalyticsEvent('notification_settings.index_page_viewed', {
+    trackAnalytics('notification_settings.index_page_viewed', {
       organization: null,
     });
   }
@@ -185,8 +187,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   renderBody() {
     return (
       <Fragment>
-        <SettingsPageHeader title="Notifications" />
-        <TextBlock>Personal notifications sent by email or an integration.</TextBlock>
+        <SentryDocumentTitle title={t('Notifications')} />
+        <SettingsPageHeader title={t('Notifications')} />
+        <TextBlock>
+          {t('Personal notifications sent by email or an integration.')}
+        </TextBlock>
         <Form
           model={this.model}
           saveOnBlur

@@ -15,7 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -65,6 +65,8 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     isSelfHosted,
     organizationSettingsUrl,
   };
+
+  const hasOrgAuthTokens = organization?.features.includes('org-auth-tokens');
 
   const myAccount = (
     <GridPanel>
@@ -215,12 +217,19 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
       <HomePanelBody>
         <h3>{t('Quick links')}:</h3>
         <ul>
+          {hasOrgAuthTokens && (
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}auth-tokens/`}>
+                {t('Organization Auth Tokens')}
+              </HomeLink>
+            </li>
+          )}
           <li>
-            <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
+            <HomeLink to={LINKS.API}>{t('User Auth Tokens')}</HomeLink>
           </li>
           <li>
             <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
-              {t('Your Integrations')}
+              {t('Custom Integrations')}
             </HomeLink>
           </li>
           <li>

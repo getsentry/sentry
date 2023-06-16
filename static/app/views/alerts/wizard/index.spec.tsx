@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
-  it('sets crash free dataset to metrics', () => {
+  it('sets crash free dataset to metrics', async () => {
     const {organization, project, router, routerContext} = initializeOrg({
       organization: {
         features: [
@@ -33,8 +33,8 @@ describe('AlertWizard', () => {
       {context: routerContext, organization}
     );
 
-    userEvent.click(screen.getByText('Crash Free Session Rate'));
-    userEvent.click(screen.getByText('Set Conditions'));
+    await userEvent.click(screen.getByText('Crash Free Session Rate'));
+    await userEvent.click(screen.getByText('Set Conditions'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/metric/',
       query: {

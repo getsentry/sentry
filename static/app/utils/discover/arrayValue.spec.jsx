@@ -14,12 +14,12 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('three')).toBeInTheDocument();
   });
 
-  it('renders all elements when expanded', function () {
+  it('renders all elements when expanded', async function () {
     render(<ArrayValue value={['one', 'two', 'three', '', null]} />);
 
     // Should have a button
     let button = screen.getByRole('button');
-    userEvent.click(button);
+    await userEvent.click(button);
 
     // Button text should update.
     button = screen.getByRole('button');

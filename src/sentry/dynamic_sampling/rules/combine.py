@@ -1,29 +1,37 @@
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
-from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
-    BoostKeyTransactionsBias,
-)
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
+from sentry.dynamic_sampling.rules.biases.boost_low_volume_projects_bias import (
+    BoostLowVolumeProjectsBias,
+)
+from sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias import (
+    BoostLowVolumeTransactionsBias,
+)
+from sentry.dynamic_sampling.rules.biases.boost_replay_id_bias import BoostReplayIdBias
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
-from sentry.dynamic_sampling.rules.biases.uniform_bias import UniformBias
+from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
 from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
 from sentry.dynamic_sampling.rules.utils import RuleType
+from sentry.models import Organization
 
 
-def get_relay_biases_combinator() -> BiasesCombinator:
-    # The default combinator is the ordered combinator, which will keep the insertion order of the rules.
+def get_relay_biases_combinator(_: Organization) -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
 
-    # The combination depends on the default_combinator used but in case of the ordered combinator the first combined
-    # rule will be the first rule in the output (e.g., UNIFORM_RULE will be the last).
-    #
-    # The ordering is very important, especially because relay performs matching following a FIFO matching algorithm.
-    #
-    # If you need to add any new bias, add it here after having created all the necessary classes.
-    default_combinator.add(RuleType.BOOST_KEY_TRANSACTIONS_RULE, BoostKeyTransactionsBias())
-    default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
     default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
+
+    # TODO: rethink how to add this rule in case we agree on keeping the sliding window org.
+    default_combinator.add_if(
+        RuleType.RECALIBRATION_RULE,
+        RecalibrationBias(),
+        lambda: False,
+    )
+    default_combinator.add(RuleType.BOOST_REPLAY_ID_RULE, BoostReplayIdBias())
+    default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
     default_combinator.add(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
-    default_combinator.add(RuleType.UNIFORM_RULE, UniformBias())
+    default_combinator.add(
+        RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE, BoostLowVolumeTransactionsBias()
+    )
+    default_combinator.add(RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE, BoostLowVolumeProjectsBias())
 
     return default_combinator

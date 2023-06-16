@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -11,13 +11,8 @@ type Props = {
   withIcon?: boolean;
 };
 
-const EmptyStateWarning = ({
-  small = false,
-  withIcon = true,
-  children,
-  className,
-}: Props) =>
-  small ? (
+function EmptyStateWarning({small = false, withIcon = true, children, className}: Props) {
+  return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
         {withIcon && <StyledIconSearch color="gray300" size="lg" />}
@@ -30,6 +25,7 @@ const EmptyStateWarning = ({
       {children}
     </EmptyStreamWrapper>
   );
+}
 
 const EmptyStreamWrapper = styled('div')`
   text-align: center;

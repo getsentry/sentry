@@ -10,6 +10,7 @@ ANY = object()
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
     from sentry.models import Environment, Group, Project
+    from sentry.search.snuba.executors import PrioritySortWeights
     from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -34,5 +35,8 @@ class SearchBackend(Service):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
         raise NotImplementedError

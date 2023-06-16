@@ -20,7 +20,6 @@ describe('OrganizationApiKeysList', function () {
     ];
 
     const {organization, router, route} = initializeOrg({
-      ...initializeOrg(),
       router: {routes},
     });
 
@@ -42,7 +41,7 @@ describe('OrganizationApiKeysList', function () {
     );
 
     // Click remove button
-    userEvent.click(await screen.findByTitle('Remove API Key?'));
+    await userEvent.click(await screen.findByTitle('Remove API Key?'));
 
     // expect a modal
     renderGlobalModal();

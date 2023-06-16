@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
@@ -8,23 +7,14 @@ import releasesImg from 'sentry-images/spot/releases.svg';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ResourceCard from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 type Props = {
   organization: Organization;
 };
 
-function Resources({organization}: Props) {
-  useEffect(() => {
-    trackAnalyticsEvent({
-      eventKey: 'orgdash.resources_shown',
-      eventName: 'Projects Dashboard: Resources Shown',
-      organization_id: organization.id,
-    });
-  });
-
+function Resources(_props: Props) {
   return (
     <ResourcesWrapper data-test-id="resources">
       <Layout.Title withMargins>{t('Resources')}</Layout.Title>

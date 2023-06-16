@@ -17,13 +17,15 @@ from sentry.api.serializers.models.group import (
     snuba_tsdb,
 )
 from sentry.constants import StatsPeriod
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
-from sentry.types.issues import GroupCategory
+from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.snuba import resolve_column, resolve_conditions
 
 
 @dataclass
@@ -53,7 +55,9 @@ class GroupStatsMixin:
     CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     @abstractmethod
-    def query_tsdb(self, groups: Sequence[Group], query_params: MutableMapping[str, Any]):
+    def query_tsdb(
+        self, groups: Sequence[Group], query_params: MutableMapping[str, Any], user=None
+    ):
         pass
 
     def get_stats(
@@ -99,7 +103,7 @@ class GroupStatsMixin:
                     "rollup": int(interval.total_seconds()),
                 }
 
-            return self.query_tsdb(item_list, query_params, **kwargs)
+            return self.query_tsdb(item_list, query_params, user=user, **kwargs)
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
@@ -147,17 +151,19 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 
         return result
 
-    def query_tsdb(self, groups: Sequence[Group], query_params, **kwargs):
+    def query_tsdb(self, groups: Sequence[Group], query_params, user=None, **kwargs):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
             stats = {g.id: tsdb.make_series(0, **query_params) for g in groups}
         else:
+            org_id = groups[0].project.organization_id if groups else None
             stats = tsdb.get_range(
                 model=tsdb.models.group,
                 keys=[g.id for g in groups],
                 environment_ids=environment and [environment.id],
                 **query_params,
+                tenant_ids={"organization_id": org_id} if org_id else None,
             )
 
         return stats
@@ -332,43 +338,56 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return result
 
     def query_tsdb(
-        self, groups: Sequence[Group], query_params, conditions=None, environment_ids=None, **kwargs
+        self,
+        groups: Sequence[Group],
+        query_params,
+        conditions=None,
+        environment_ids=None,
+        user=None,
+        **kwargs,
     ):
-        error_issue_ids, perf_issue_ids, generic_issue_ids = [], [], []
+        if not groups:
+            return
+
+        error_issue_ids, generic_issue_ids = [], []
         for group in groups:
             if GroupCategory.ERROR == group.issue_category:
                 error_issue_ids.append(group.id)
-            elif GroupCategory.PERFORMANCE == group.issue_category:
-                perf_issue_ids.append(group.id)
-            elif group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE):
+            else:
                 generic_issue_ids.append(group.id)
 
-        results = {}
+        error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
+        issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
+
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            conditions=conditions,
+            tenant_ids={"organization_id": self.organization_id},
             **query_params,
         )
+
+        results = {}
+
         if error_issue_ids:
-            results.update(get_range(model=snuba_tsdb.models.group, keys=error_issue_ids))
-        if perf_issue_ids:
             results.update(
-                get_range(model=snuba_tsdb.models.group_performance, keys=perf_issue_ids)
+                get_range(
+                    model=snuba_tsdb.models.group, keys=error_issue_ids, conditions=error_conditions
+                )
             )
         if generic_issue_ids:
-            results.update(get_range(model=snuba_tsdb.models.group_generic, keys=generic_issue_ids))
+            results.update(
+                get_range(
+                    model=snuba_tsdb.models.group_generic,
+                    keys=generic_issue_ids,
+                    conditions=issue_conditions,
+                )
+            )
         return results
 
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
-
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self.__seen_stats_impl(perf_issue_list, self._execute_perf_seen_stats_query)
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user

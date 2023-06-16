@@ -5,9 +5,16 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
+import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
+import {
+  getMeasurementBounds,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  transactionTargetHash,
+  VerticalMark,
+} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
   RowCell,
@@ -40,6 +47,7 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFullDetailed} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
@@ -53,6 +61,7 @@ const MARGIN_LEFT = 0;
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingDepths: TreeDepth[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   hasGuideAnchor: boolean;
   index: number;
   isExpanded: boolean;
@@ -67,6 +76,7 @@ type Props = {
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
+  measurements?: Map<number, VerticalMark>;
 };
 
 type State = {
@@ -138,6 +148,39 @@ class TransactionBar extends Component<Props, State> {
     const {onWheel} = this.props;
     onWheel(event.deltaX);
   };
+
+  renderMeasurements() {
+    const {measurements, generateBounds} = this.props;
+    if (!measurements) {
+      return null;
+    }
+
+    return (
+      <Fragment>
+        {Array.from(measurements.values()).map(verticalMark => {
+          const mark = Object.values(verticalMark.marks)[0];
+          const {timestamp} = mark;
+          const bounds = getMeasurementBounds(timestamp, generateBounds);
+
+          const shouldDisplay = defined(bounds.left) && defined(bounds.width);
+
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
+            return null;
+          }
+
+          return (
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+              }}
+              failedThreshold={verticalMark.failedThreshold}
+            />
+          );
+        })}
+      </Fragment>
+    );
+  }
 
   renderConnector(hasToggle: boolean) {
     const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = this.props;
@@ -251,7 +294,7 @@ class TransactionBar extends Component<Props, State> {
       this.props;
     const left = this.getCurrentOffset();
     const errored = isTraceFullDetailed(transaction)
-      ? transaction.errors.length > 0
+      ? transaction.errors.length + transaction.performance_issues.length > 0
       : false;
 
     const content = isTraceFullDetailed(transaction) ? (
@@ -386,7 +429,10 @@ class TransactionBar extends Component<Props, State> {
   renderErrorBadge() {
     const {transaction} = this.props;
 
-    if (!isTraceFullDetailed(transaction) || !transaction.errors.length) {
+    if (
+      !isTraceFullDetailed(transaction) ||
+      !(transaction.errors.length + transaction.performance_issues.length)
+    ) {
       return null;
     }
 
@@ -397,7 +443,7 @@ class TransactionBar extends Component<Props, State> {
     const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
-    // Use 1 as the difference in the event that startTimestamp === endTimestamp
+    // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
     const startPosition = Math.abs(
       transaction.start_timestamp - traceInfo.startTimestamp
@@ -414,6 +460,7 @@ class TransactionBar extends Component<Props, State> {
           width: toPercent(widthPercentage || 0),
         }}
       >
+        {this.renderPerformanceIssues()}
         <DurationPill
           durationDisplay={getDurationDisplay({
             left: startPercentage,
@@ -425,6 +472,35 @@ class TransactionBar extends Component<Props, State> {
         </DurationPill>
       </RowRectangle>
     );
+  }
+
+  renderPerformanceIssues() {
+    const {transaction, barColor} = this.props;
+    if (!isTraceFullDetailed(transaction)) {
+      return null;
+    }
+
+    const rows: React.ReactElement[] = [];
+    // Use 1 as the difference in the case that startTimestamp === endTimestamp
+    const delta = Math.abs(transaction.timestamp - transaction.start_timestamp) || 1;
+    for (let i = 0; i < transaction.performance_issues.length; i++) {
+      const issue = transaction.performance_issues[i];
+      const startPosition = Math.abs(issue.start - transaction.start_timestamp);
+      const startPercentage = startPosition / delta;
+      const duration = Math.abs(issue.end - issue.start);
+      const widthPercentage = duration / delta;
+      rows.push(
+        <RowRectangle
+          style={{
+            backgroundColor: barColor,
+            left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
+            width: toPercent(widthPercentage || 0),
+          }}
+          spanBarType={SpanBarType.AFFECTED}
+        />
+      );
+    }
+    return rows;
   }
 
   renderHeader({
@@ -472,6 +548,7 @@ class TransactionBar extends Component<Props, State> {
         >
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
             {this.renderRectangle()}
+            {this.renderMeasurements()}
           </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}

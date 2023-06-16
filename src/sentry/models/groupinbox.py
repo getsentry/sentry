@@ -5,6 +5,7 @@ import jsonschema
 from django.db import models
 from django.utils import timezone
 
+from sentry import features
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -27,10 +28,14 @@ INBOX_REASON_DETAILS = {
 
 class GroupInboxReason(Enum):
     NEW = 0
-    UNIGNORED = 1
     REGRESSION = 2
     MANUAL = 3
     REPROCESSED = 4
+    ESCALATING = 5
+    ONGOING = 6
+
+    # DEPRECATED: Use ONGOING instead
+    UNIGNORED = 1
 
 
 class GroupInboxRemoveAction(Enum):
@@ -81,8 +86,8 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    # Ignore new issues, too many events
     if reason is not GroupInboxReason.NEW:
+        # Ignore new issues, too many events
         inbox_in.send_robust(
             project=group.project,
             user=None,
@@ -94,6 +99,12 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group, action=None, user=None, referrer=None):
+    # The MARK_REVIEWED feature is going away as part of the issue states project
+    if action == GroupInboxRemoveAction.MARK_REVIEWED and features.has(
+        "organizations:remove-mark-reviewed", group.project.organization
+    ):
+        return
+
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
@@ -103,7 +114,7 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 project_id=group_inbox.group.project_id,
                 group_id=group_inbox.group_id,
                 type=ActivityType.MARK_REVIEWED.value,
-                user=user,
+                user_id=user.id,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
 

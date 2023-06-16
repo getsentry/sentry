@@ -42,6 +42,7 @@ export function toggleLocaleDebug() {
  * Global Jed locale object loaded with translations via setLocale
  */
 let i18n: Jed | null = null;
+const staticTranslations = new Set<string>();
 
 /**
  * Set the current application locale.
@@ -50,7 +51,7 @@ let i18n: Jed | null = null;
  * translation functions, as this mutates a singleton translation object used
  * to lookup translations at runtime.
  */
-export function setLocale(translations: any) {
+export function setLocale(translations: any): Jed {
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
@@ -78,6 +79,14 @@ function getClient(): Jed | null {
   }
 
   return i18n;
+}
+
+export function isStaticString(formatString: string): boolean {
+  if (formatString.trim() === '') {
+    return false;
+  }
+
+  return staticTranslations.has(formatString);
 }
 
 /**
@@ -182,7 +191,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
-      const substr = template.substr(pos, match.index - pos);
+      const substr = template.substring(pos, match.index);
       if (substr !== '') {
         buf.push(substr);
       }
@@ -209,7 +218,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      const rest = template.substr(pos);
+      const rest = template.substring(pos);
       if (rest) {
         buf.push(rest);
       }
@@ -271,9 +280,9 @@ export function renderTemplate(
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
  * currently enabled. See setLocaleDebug and toggleLocaleDebug.
  */
-function mark(node: React.ReactNode): string {
+function mark<T extends React.ReactNode>(node: T): T {
   if (!LOCALE_DEBUG) {
-    return node as string;
+    return node;
   }
 
   // TODO(epurkhiser): Explain why we manually create a react node and assign
@@ -293,7 +302,7 @@ function mark(node: React.ReactNode): string {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as unknown as string;
+  return proxy as T;
 }
 
 /**
@@ -324,13 +333,14 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
+    staticTranslations.add(val);
     return mark(val);
   }
 
   // XXX(ts): It IS possible to use gettext in such a way that it will return a
   // React.ReactNodeArray, however we currently rarely (if at all) use it in
   // this way, and usually just expect strings back.
-  return mark(format(val, args));
+  return mark(format(val, args) as string);
 }
 
 /**
@@ -390,9 +400,9 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 export function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): string {
+): JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
+  return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
 }
 
 /**

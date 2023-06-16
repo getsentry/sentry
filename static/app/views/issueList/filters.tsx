@@ -4,34 +4,13 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import space from 'sentry/styles/space';
-import {useExperiment} from 'sentry/utils/useExperiment';
-import useOrganization from 'sentry/utils/useOrganization';
+import {space} from 'sentry/styles/space';
+import IssueCategoryFilter from 'sentry/views/issueList/issueCategoryFilter';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
-
-import IssueListSearchBar from './searchBar';
 
 interface Props {
   onSearch: (query: string) => void;
   query: string;
-}
-
-function IssueSearch({query, onSearch}: Props) {
-  const organization = useOrganization();
-  const {experimentAssignment} = useExperiment('SavedIssueSearchesLocationExperiment');
-  if (experimentAssignment === 1) {
-    return <IssueSearchWithSavedSearches {...{query, onSearch}} />;
-  }
-
-  return (
-    <StyledIssueListSearchBar
-      searchSource="main_search"
-      organization={organization}
-      query={query || ''}
-      onSearch={onSearch}
-      excludedTags={['environment']}
-    />
-  );
 }
 
 function IssueListFilters({query, onSearch}: Props) {
@@ -40,9 +19,11 @@ function IssueListFilters({query, onSearch}: Props) {
       <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter />
+        <IssueCategoryFilter query={query} onSearch={onSearch} />
       </StyledPageFilterBar>
-      <IssueSearch {...{query, onSearch}} />
+
+      <IssueSearchWithSavedSearches {...{query, onSearch}} />
     </SearchContainer>
   );
 }
@@ -61,21 +42,25 @@ const SearchContainer = styled('div')`
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  flex: 0 1 0;
+  display: flex;
+  flex-basis: content;
   width: 100%;
-  max-width: 30rem;
-`;
+  max-width: 43rem;
+  align-self: flex-start;
 
-const StyledIssueListSearchBar = styled(IssueListSearchBar)`
-  flex: 1;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-width: 20rem;
+  > div > button {
+    width: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    min-width: 30rem;
+  & > * {
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:nth-last-child(2) {
+      min-width: 6.5rem;
+    }
+
+    &:last-child {
+      min-width: 0;
+    }
   }
 `;
 

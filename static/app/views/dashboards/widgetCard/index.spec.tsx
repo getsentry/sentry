@@ -1,6 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -12,6 +11,7 @@ import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -37,6 +37,7 @@ describe('Dashboards > WidgetCard', function () {
 
   const multipleQueryWidget: Widget = {
     title: 'Errors',
+    description: 'Valid widget description',
     interval: '5m',
     displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
@@ -113,9 +114,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
       isMetricsData: false,
       organization,
@@ -140,12 +141,32 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
+  });
+
+  it('renders widget description in dashboard', async function () {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={multipleQueryWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
   it('Opens in Discover with World Map', async function () {
@@ -176,9 +197,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
@@ -215,9 +236,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
@@ -251,9 +272,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
@@ -288,9 +309,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByText('Open in Discover'));
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
@@ -318,9 +339,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -346,9 +367,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
@@ -374,9 +395,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Edit Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Edit Widget'));
+    await userEvent.click(screen.getByText('Edit Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -402,85 +423,86 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Delete Widget'));
+    await userEvent.click(screen.getByText('Delete Widget'));
     // Confirm Modal
     renderGlobalModal();
     await screen.findByRole('dialog');
 
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock).toHaveBeenCalled();
   });
 
   it('calls events with a limit of 20 items', async function () {
     const mock = jest.fn();
-    await act(async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={{
-            ...multipleQueryWidget,
-            displayType: DisplayType.TABLE,
-            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-          }}
-          selection={selection}
-          isEditing={false}
-          onDelete={mock}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-          tableItemLimit={20}
-        />
-      );
-      await tick();
-    });
-    expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          per_page: 20,
-        }),
-      })
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
     );
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 20,
+          }),
+        })
+      );
+    });
   });
 
   it('calls events with a default limit of 5 items', async function () {
     const mock = jest.fn();
-    await act(async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={{
-            ...multipleQueryWidget,
-            displayType: DisplayType.TABLE,
-            queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
-          }}
-          selection={selection}
-          isEditing={false}
-          onDelete={mock}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-        />
-      );
-      await tick();
-    });
-    expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          per_page: 5,
-        }),
-      })
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+      />
     );
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 5,
+          }),
+        })
+      );
+    });
   });
 
   it('has sticky table headers', async function () {
@@ -500,25 +522,24 @@ describe('Dashboards > WidgetCard', function () {
         },
       ],
     };
-    await act(async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={tableWidget}
-          selection={selection}
-          isEditing={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-          tableItemLimit={20}
-        />
-      );
-      await tick();
-    });
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={tableWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
     expect(SimpleTableChart).toHaveBeenCalledWith(
@@ -581,7 +602,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
@@ -620,17 +641,13 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await waitFor(() => {
-      // Badge in the widget header
-      expect(screen.getByText('Indexed')).toBeInTheDocument();
-    });
+    // Badge in the widget header
+    expect(await screen.findByText('Indexed')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(
-        // Alert below the widget
-        screen.getByText(/we've automatically adjusted your results/i)
-      ).toBeInTheDocument();
-    });
+    expect(
+      // Alert below the widget
+      await screen.findByText(/we've automatically adjusted your results/i)
+    ).toBeInTheDocument();
   });
 
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
@@ -655,7 +672,7 @@ describe('Dashboards > WidgetCard', function () {
           },
           units: {
             time: null,
-            p95_measurements_custom: 'minute',
+            p95_measurements_custom: 'millisecond',
           },
           isMetricsData: true,
           tips: {},
@@ -699,10 +716,105 @@ describe('Dashboards > WidgetCard', function () {
     const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
     expect(tooltip).toBeDefined();
     expect(yAxis).toBeDefined();
-    // @ts-ignore
+    // @ts-expect-error
     expect(tooltip.valueFormatter(24, 'p95(measurements.custom)')).toEqual('24.00ms');
-    // @ts-ignore
+    // @ts-expect-error
     expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
+  });
+
+  it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
+    const spy = jest.spyOn(LineChart, 'LineChart');
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [
+            1658262600,
+            [
+              {
+                count: 40 * SECOND,
+              },
+            ],
+          ],
+          [
+            1658262601,
+            [
+              {
+                count: 50 * SECOND,
+              },
+            ],
+          ],
+          [
+            1658262602,
+            [
+              {
+                count: MINUTE,
+              },
+            ],
+          ],
+          [
+            1658262603,
+            [
+              {
+                count: 1.3 * MINUTE,
+              },
+            ],
+          ],
+        ],
+        meta: {
+          fields: {
+            time: 'date',
+            p50_transaction_duration: 'duration',
+          },
+          units: {
+            time: null,
+            p50_transaction_duration: 'millisecond',
+          },
+          isMetricsData: false,
+          tips: {},
+        },
+      },
+    });
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          title: '',
+          interval: '5m',
+          widgetType: WidgetType.DISCOVER,
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              conditions: '',
+              name: '',
+              fields: [],
+              columns: [],
+              aggregates: ['p50(transaction.duration)'],
+              orderby: '',
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+    await waitFor(function () {
+      expect(eventsStatsMock).toHaveBeenCalled();
+    });
+    const {yAxis} = spy.mock.calls.pop()?.[0] ?? {};
+    expect(yAxis).toBeDefined();
+
+    // @ts-expect-error
+    expect(yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')).toEqual('60s');
+    expect((yAxis as any).minInterval).toEqual(SECOND);
   });
 
   it('displays indexed badge in preview mode', async function () {

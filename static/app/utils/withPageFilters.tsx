@@ -17,7 +17,7 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
 ) {
   type Props = Omit<P, keyof InjectedPageFiltersProps> & InjectedPageFiltersProps;
 
-  const WithPageFilters: React.FC<Props> = props => {
+  function WithPageFilters(props: Props) {
     const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
 
     const selectionProps = {
@@ -26,7 +26,7 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
     };
 
     return <WrappedComponent {...selectionProps} {...(props as P)} />;
-  };
+  }
 
   const displayName = getDisplayName(WrappedComponent);
   WithPageFilters.displayName = `withPageFilters(${displayName})`;

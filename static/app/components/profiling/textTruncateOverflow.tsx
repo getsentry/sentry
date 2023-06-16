@@ -1,7 +1,7 @@
 import {ComponentProps, ElementType} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type TextOverflowProps<T extends ElementType> = ComponentProps<T> & {
   children: string;

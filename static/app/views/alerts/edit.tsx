@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueEditor from 'sentry/views/alerts/rules/issue';
@@ -37,7 +37,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
-    trackAdvancedAnalyticsEvent('edit_alert_rule.viewed', {
+    trackAnalytics('edit_alert_rule.viewed', {
       organization,
       project_id: project.id,
       alert_type: this.getAlertType(),
@@ -60,8 +60,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, location, organization, project, routes, members} =
-      this.props;
+    const {hasMetricAlerts, organization, project, members} = this.props;
     const alertType = this.getAlertType();
 
     return (
@@ -77,8 +76,6 @@ class ProjectAlertsEditor extends Component<Props, State> {
               organization={organization}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}
-              routes={routes}
-              location={location}
             />
             <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>

@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 from sentry.models import Project
 from sentry.replays.testutils import mock_replay
 from sentry.testutils import ReplaysAcceptanceTestCase
 
-FEATURE_NAME = ["organizations:session-replay", "organizations:session-replay-ui"]
+FEATURE_NAME = ["organizations:session-replay"]
 
 
 class ReplayListTest(ReplaysAcceptanceTestCase):
@@ -25,7 +24,11 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
 
         seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
         seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
-        for replay_id in [uuid4().hex, uuid4().hex, uuid4().hex]:
+        for replay_id in [
+            "3dfe4aae8e4941feb0e4a18cb2a14777",
+            "8273c28ecf9649f198736bc1c56adf71",
+            "3b7a731012aa494bad541625637e5ea1",
+        ]:
             self.store_replays(
                 [
                     mock_replay(

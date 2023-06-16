@@ -11,6 +11,7 @@ import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 
 import {DatasetConfig} from '../datasetConfig/base';
 import {
@@ -210,17 +211,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   applyDashboardFilters(widget: Widget): Widget {
     const {dashboardFilters} = this.props;
 
-    let dashboardFilterConditions = '';
-    if (dashboardFilters) {
-      for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
-        if (activeFilters.length === 1) {
-          dashboardFilterConditions += `${key}:${activeFilters[0]} `;
-        } else if (activeFilters.length > 1) {
-          dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
-        }
-      }
-    }
-
+    const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
     widget.queries.forEach(query => {
       query.conditions =
         query.conditions +

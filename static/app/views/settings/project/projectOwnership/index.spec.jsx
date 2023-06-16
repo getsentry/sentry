@@ -58,10 +58,26 @@ describe('Project Ownership', () => {
         screen.queryByRole('button', {name: 'Add CODEOWNERS'})
       ).not.toBeInTheDocument();
     });
+
+    it('renders allows users to edit ownership rules', () => {
+      render(
+        <ProjectOwnership
+          params={{projectId: project.slug}}
+          organization={org}
+          project={project}
+        />,
+        {organization: TestStubs.Organization({access: ['project:read']})}
+      );
+
+      expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();
+      expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
+      // eslint-disable-next-line jest-dom/prefer-in-document
+      expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);
+    });
   });
 
   describe('with codeowners', () => {
-    it('codeowners button opens modal', () => {
+    it('codeowners button opens modal', async () => {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
@@ -76,10 +92,10 @@ describe('Project Ownership', () => {
       );
 
       // Renders button
-      expect(screen.getByRole('button', {name: 'Add CODEOWNERS'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Import CODEOWNERS'})).toBeInTheDocument();
 
       // Opens modal
-      userEvent.click(screen.getByRole('button', {name: 'Add CODEOWNERS'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
       expect(openModal).toHaveBeenCalled();
     });
   });
@@ -105,8 +121,8 @@ describe('Project Ownership', () => {
       );
 
       // Switch to Assign To Issue Owner
-      userEvent.click(screen.getByText('Auto-assign to suspect commits'));
-      userEvent.click(screen.getByText('Auto-assign to issue owner'));
+      await userEvent.click(screen.getByText('Auto-assign to suspect commits'));
+      await userEvent.click(screen.getByText('Auto-assign to issue owner'));
 
       await waitFor(() => {
         expect(updateOwnership).toHaveBeenCalledWith(

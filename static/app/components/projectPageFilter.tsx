@@ -8,13 +8,13 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
+import {ProjectPageFilter as NewProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -78,7 +78,7 @@ type Props = {
   specificProjectSlugs?: string[];
 };
 
-function ProjectPageFilter({
+function OldProjectPageFilter({
   specificProjectSlugs,
   maxTitleLength = 25,
   resetParamsOnChange = [],
@@ -172,14 +172,12 @@ function ProjectPageFilter({
           highlighted={desyncedFilters.has('projects')}
           data-test-id="page-filter-project-selector"
           disabled={disabled}
+          icon={<PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>}
         >
-          <DropdownTitle>
-            <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
-            <TitleContainer>{title}</TitleContainer>
-            {selectedProjects.length > projectsToShow.length && (
-              <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-            )}
-          </DropdownTitle>
+          <TitleContainer>{title}</TitleContainer>
+          {selectedProjects.length > projectsToShow.length && (
+            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+          )}
         </PageFilterDropdownButton>
       </GuideAnchor>
     );
@@ -187,14 +185,12 @@ function ProjectPageFilter({
 
   const customLoadingIndicator = (
     <PageFilterDropdownButton
+      icon={<IconProject />}
       showChevron={false}
       disabled
       data-test-id="page-filter-project-selector-loading"
     >
-      <DropdownTitle>
-        <IconProject />
-        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
-      </DropdownTitle>
+      <TitleContainer>{t('Loading\u2026')}</TitleContainer>
     </PageFilterDropdownButton>
   );
 
@@ -215,25 +211,23 @@ function ProjectPageFilter({
   );
 }
 
-const TitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1 1 0%;
-  margin-left: ${space(1)};
+const TitleContainer = styled('span')`
   text-align: left;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const DropdownTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  width: max-content;
-  min-width: 0;
 `;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
 `;
+
+function ProjectPageFilter(props: Props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('new-page-filter')) {
+    return <NewProjectPageFilter {...props} />;
+  }
+
+  return <OldProjectPageFilter {...props} />;
+}
 
 export default ProjectPageFilter;

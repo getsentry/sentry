@@ -13,11 +13,9 @@ describe('Breadcrumb Data Http', function () {
   });
 
   const {organization, router} = initializeOrg({
-    ...initializeOrg(),
     router: {
       location: {query: {project: '0'}},
     },
-    project: '0',
     projects: [project],
   });
 
@@ -60,7 +58,7 @@ describe('Breadcrumb Data Http', function () {
 
     expect(screen.getByText('POST')).toBeInTheDocument();
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -91,7 +89,7 @@ describe('Breadcrumb Data Http', function () {
     );
 
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

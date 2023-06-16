@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -14,14 +14,14 @@ import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionS
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
   ActivityCell,
+  BrowserCell,
   DurationCell,
   ErrorCountCell,
-  ProjectCell,
-  SessionCell,
-  StartedAtCell,
+  OSCell,
+  ReplayCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -29,17 +29,25 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumn[];
+  emptyMessage?: ReactNode;
 };
 
-function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Props) {
+function ReplayTable({
+  fetchError,
+  isFetching,
+  replays,
+  sort,
+  visibleColumns,
+  emptyMessage,
+}: Props) {
   const routes = useRoutes();
   const location = useLocation();
   const organization = useOrganization();
 
-  const tableHeaders = visibleColumns.map(column => (
-    <HeaderCell key={column} column={column} sort={sort} />
-  ));
+  const tableHeaders = visibleColumns
+    .filter(Boolean)
+    .map(column => <HeaderCell key={column} column={column} sort={sort} />);
 
   if (fetchError && !isFetching) {
     return (
@@ -47,6 +55,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
         headers={tableHeaders}
         isLoading={false}
         visibleColumns={visibleColumns}
+        data-test-id="replay-table"
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -68,15 +77,33 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       isEmpty={replays?.length === 0}
       isLoading={isFetching}
       visibleColumns={visibleColumns}
+      disablePadding
+      data-test-id="replay-table"
+      emptyMessage={emptyMessage}
     >
       {replays?.map(replay => {
         return (
           <Fragment key={replay.id}>
             {visibleColumns.map(column => {
               switch (column) {
-                case ReplayColumns.session:
+                case ReplayColumn.ACTIVITY:
+                  return <ActivityCell key="activity" replay={replay} />;
+
+                case ReplayColumn.BROWSER:
+                  return <BrowserCell key="browser" replay={replay} />;
+
+                case ReplayColumn.COUNT_ERRORS:
+                  return <ErrorCountCell key="countErrors" replay={replay} />;
+
+                case ReplayColumn.DURATION:
+                  return <DurationCell key="duration" replay={replay} />;
+
+                case ReplayColumn.OS:
+                  return <OSCell key="os" replay={replay} />;
+
+                case ReplayColumn.REPLAY:
                   return (
-                    <SessionCell
+                    <ReplayCell
                       key="session"
                       replay={replay}
                       eventView={eventView}
@@ -84,9 +111,8 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
                       referrer={referrer}
                     />
                   );
-                case ReplayColumns.projectId:
-                  return <ProjectCell key="projectId" replay={replay} />;
-                case ReplayColumns.slowestTransaction:
+
+                case ReplayColumn.SLOWEST_TRANSACTION:
                   return (
                     <TransactionCell
                       key="slowestTransaction"
@@ -94,14 +120,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
                       organization={organization}
                     />
                   );
-                case ReplayColumns.startedAt:
-                  return <StartedAtCell key="startedAt" replay={replay} />;
-                case ReplayColumns.duration:
-                  return <DurationCell key="duration" replay={replay} />;
-                case ReplayColumns.countErrors:
-                  return <ErrorCountCell key="countErrors" replay={replay} />;
-                case ReplayColumns.activity:
-                  return <ActivityCell key="activity" replay={replay} />;
+
                 default:
                   return null;
               }
@@ -114,11 +133,12 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
 }
 
 const StyledPanelTable = styled(PanelTable)<{
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumn[];
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns
-      .map(column => (column === 'session' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .filter(Boolean)
+      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
       .join(' ')};
 `;
 

@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:28.375251Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -25,7 +23,7 @@ app:
               "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -34,7 +32,7 @@ app:
               "mockConstructor [as captureException]"
             context-line*
               "return fn.apply(this, arguments);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -43,7 +41,7 @@ app:
               "<anonymous>"
             context-line*
               "})();"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -52,7 +50,7 @@ app:
               "finalReturnValue"
             context-line*
               "return specificMockImpl.apply(this, arguments);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "jest-mock.build:index"
             filename (module takes precedence)

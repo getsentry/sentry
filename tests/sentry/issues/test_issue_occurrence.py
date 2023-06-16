@@ -1,30 +1,36 @@
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
         self.assert_occurrences_identical(
             occurrence, IssueOccurrence.from_dict(occurrence.to_dict())
         )
 
+    def test_level_default(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence_data["level"] = None
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.level == DEFAULT_LEVEL
+
 
 @region_silo_test
-class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
-        occurrence.save(self.project.id)
-        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
+        occurrence.save()
+        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
 
 
 @region_silo_test
-class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)
         occurrence = self.build_occurrence(evidence_display=[important_evidence])

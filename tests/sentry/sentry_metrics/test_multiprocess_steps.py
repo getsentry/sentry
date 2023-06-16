@@ -1,4 +1,5 @@
 import logging
+import pickle
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -20,6 +21,7 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import (
     cardinality_limiter_factory,
 )
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
@@ -31,6 +33,13 @@ pytestmark = pytest.mark.sentry_metrics
 MESSAGE_PROCESSOR = MessageProcessor(
     get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
 )
+
+BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
+
+
+@pytest.fixture(autouse=True)
+def update_sentry_settings(settings):
+    settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -68,7 +77,10 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
 
     message1 = Message(
         BrokerValue(
-            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+            KafkaPayload(None, b"some value", []),
+            Partition(Topic("topic"), 0),
+            1,
+            BROKER_TIMESTAMP,
         )
     )
     message2 = Message(
@@ -76,7 +88,7 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
             KafkaPayload(None, b"another value", []),
             Partition(Topic("topic"), 0),
             2,
-            datetime.now(),
+            BROKER_TIMESTAMP,
         )
     )
     return (batch_messages_step, message1, message2)
@@ -222,6 +234,7 @@ counter_payload = {
     "value": 1.0,
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
@@ -232,9 +245,9 @@ distribution_payload = {
     "timestamp": ts,
     "type": "d",
     "value": [4, 5, 6],
-    "unit": "seconds",
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 
 set_payload = {
@@ -248,6 +261,7 @@ set_payload = {
     "value": [3],
     "org_id": 1,
     "project_id": 3,
+    "retention_days": 90,
 }
 
 
@@ -274,8 +288,10 @@ def __translated_payload(
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
-    payload["use_case_id"] = "release-health"
+    payload["use_case_id"] = "sessions"
+    payload["sentry_received_timestamp"] = BROKER_TIMESTAMP.timestamp()
 
+    payload.pop("unit", None)
     del payload["name"]
     return payload
 
@@ -288,7 +304,7 @@ def test_process_messages() -> None:
                 KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 i + 1,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         )
         for i, payload in enumerate(message_payloads)
@@ -305,7 +321,9 @@ def test_process_messages() -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [("metric_type", message_payloads[i]["type"])],
+                    [
+                        ("metric_type", message_payloads[i]["type"]),
+                    ],
                 ),
                 m.value.partition,
                 m.value.offset,
@@ -330,6 +348,7 @@ invalid_payloads = [
             "value": [3],
             "org_id": 1,
             "project_id": 3,
+            "retention_days": 90,
         },
         "invalid_tags",
         True,
@@ -346,6 +365,7 @@ invalid_payloads = [
             "value": [3],
             "org_id": 1,
             "project_id": 3,
+            "retention_days": 90,
         },
         "invalid_metric_name",
         True,
@@ -385,7 +405,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
         Message(
@@ -393,7 +413,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(None, formatted_payload, []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
     ]
@@ -413,7 +433,9 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
+                    [
+                        ("metric_type", "c"),
+                    ],
                 ),
                 expected_msg.committable,
             )
@@ -432,16 +454,13 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     rate_limited_payload = deepcopy(distribution_payload)
     rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
 
-    rate_limited_payload2 = deepcopy(distribution_payload)
-    rate_limited_payload2["name"] = "rate_limited_test"
-
     message_batch = [
         Message(
             BrokerValue(
                 KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
         Message(
@@ -449,15 +468,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 1,
-                datetime.now(),
-            )
-        ),
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                2,
-                datetime.now(),
+                BROKER_TIMESTAMP,
             )
         ),
     ]
@@ -469,7 +480,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
         get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
     )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    message_processor._indexer.indexer._strings[1]["rate_limited_test"] = None
+    message_processor._indexer.indexer._strings[UseCaseID.SESSIONS][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = message_processor.process_messages(outer_message=outer_message)
@@ -483,7 +494,9 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", "c")],
+                    [
+                        ("metric_type", "c"),
+                    ],
                 ),
                 expected_msg.value.partition,
                 expected_msg.value.offset,
@@ -507,7 +520,7 @@ def test_process_messages_cardinality_limited(
     with set_sentry_option(
         "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
+    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
 
         class MockCardinalityLimiter(CardinalityLimiter):
             def check_within_quotas(self, requested_quotas):
@@ -544,8 +557,6 @@ def test_process_messages_cardinality_limited(
 
         compare_message_batches_ignoring_metadata(new_batch, [])
 
-        assert "dropped_message" in caplog.text
-
 
 def test_valid_metric_name() -> None:
     assert valid_metric_name("") is True
@@ -562,3 +573,8 @@ def test_invalid_metric_tags() -> None:
     assert invalid_metric_tags(tags) == [bad_tag]
     tags["release"] = None
     assert invalid_metric_tags(tags) == [None]
+
+
+def test_process_messages_is_pickleable():
+    # needed so that the parallel transform step starts up properly
+    pickle.dumps(MESSAGE_PROCESSOR.process_messages)

@@ -16,7 +16,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
@@ -206,7 +206,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             period="7d"
             legend={{right: 3, top: 0}}
             yAxis={{minInterval: 1}}
-            xAxis={barAxisLabel(seriesData.length)}
+            xAxis={barAxisLabel()}
             series={[
               {
                 seriesName: t('This Period'),

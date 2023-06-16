@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Entry,
   Event,
@@ -23,7 +24,6 @@ import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
 import {EventErrors} from './eventErrors';
-import {EventEvidence} from './eventEvidence';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
@@ -31,7 +31,6 @@ import {EventViewHierarchy} from './eventViewHierarchy';
 import {EventGroupingInfo} from './groupingInfo';
 import {EventPackageData} from './packageData';
 import {EventRRWebIntegration} from './rrwebIntegration';
-import {EventSdkUpdates} from './sdkUpdates';
 import {DataSection} from './styles';
 import {EventUserFeedback} from './userFeedback';
 
@@ -49,7 +48,7 @@ type Props = {
   showTagSummary?: boolean;
 };
 
-const EventEntries = ({
+function EventEntries({
   organization,
   project,
   location,
@@ -58,7 +57,7 @@ const EventEntries = ({
   className,
   isShare = false,
   showTagSummary = true,
-}: Props) => {
+}: Props) {
   const orgSlug = organization.slug;
   const projectSlug = project.slug;
   const orgFeatures = organization?.features ?? [];
@@ -102,7 +101,7 @@ const EventEntries = ({
           isShare={isShare}
         />
       )}
-      <EventEvidence event={event} group={group} />
+      <EventEvidence event={event} projectSlug={project.slug} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
@@ -117,7 +116,6 @@ const EventEntries = ({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      {!isShare && <EventSdkUpdates event={event} />}
       {!isShare && event.groupID && (
         <EventGroupingInfo
           projectSlug={projectSlug}
@@ -125,6 +123,7 @@ const EventEntries = ({
           showGroupingConfig={
             orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
           }
+          group={group}
         />
       )}
       {!isShare && (
@@ -132,7 +131,7 @@ const EventEntries = ({
       )}
     </div>
   );
-};
+}
 
 function Entries({
   definedEvent,

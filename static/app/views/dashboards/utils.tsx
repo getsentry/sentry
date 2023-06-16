@@ -36,7 +36,7 @@ import {
   isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import {
@@ -355,7 +355,7 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        dataset: 'metricsEnhanced',
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
       }
     : {};
 }
@@ -412,7 +412,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
       );
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
-          parsedCondition.type === Token.Filter &&
+          parsedCondition.type === Token.FILTER &&
           parsedCondition.key?.text === 'transaction'
       );
       return transactionSelected || transactionUsedInFilter;
@@ -536,4 +536,20 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
     }
   });
   return !isEmpty(dashboardFilters) ? dashboardFilters : null;
+}
+
+export function dashboardFiltersToString(
+  dashboardFilters: DashboardFilters | null | undefined
+): string {
+  let dashboardFilterConditions = '';
+  if (dashboardFilters) {
+    for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+      if (activeFilters.length === 1) {
+        dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+      } else if (activeFilters.length > 1) {
+        dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
+      }
+    }
+  }
+  return dashboardFilterConditions;
 }

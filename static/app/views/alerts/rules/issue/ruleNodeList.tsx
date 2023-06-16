@@ -1,10 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   IssueAlertRuleAction,
@@ -18,11 +17,11 @@ import {
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+import {REAPPEARED_EVENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {AlertRuleComparisonType} from '../metric/types';
 
-import RuleNode from './ruleNode';
+import RuleNode, {hasStreamlineTargeting} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -54,27 +53,38 @@ type Props = {
 };
 
 const createSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[]
-): Array<{label: React.ReactNode; value: IssueAlertRuleActionTemplate}> => {
+  actions: IssueAlertRuleActionTemplate[],
+  organization: Organization
+): Array<{
+  label: React.ReactNode;
+  value: IssueAlertRuleActionTemplate;
+}> => {
   return actions.map(node => {
-    const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
-
     if (node.id.includes('NotifyEmailAction')) {
+      let label = t('Issue Owners, Team, or Member');
+      if (hasStreamlineTargeting(organization)) {
+        label = t('Suggested Assignees, Team, or Member');
+      }
       return {
         value: node,
-        label: t('Issue Owners, Team, or Member'),
+        label,
+      };
+    }
+
+    if (
+      node.id === REAPPEARED_EVENT_CONDITION &&
+      organization.features.includes('escalating-issues')
+    ) {
+      const label = t('The issue changes state from archived to escalating');
+      return {
+        value: node,
+        label,
       };
     }
 
     return {
       value: node,
-      plainTextLabel: node.prompt ?? node.label,
-      label: (
-        <Fragment>
-          {isNew && <StyledFeatureBadge type="new" noTooltip />}
-          {node.prompt ?? node.label}
-        </Fragment>
-      ),
+      label: node.prompt ?? node.label,
     };
   });
 };
@@ -90,7 +100,10 @@ const groupLabels = {
 /**
  * Group options by category
  */
-const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
+const groupSelectOptions = (
+  actions: IssueAlertRuleActionTemplate[],
+  organization: Organization
+) => {
   const grouped = actions.reduce<
     Record<
       keyof typeof groupLabels,
@@ -128,7 +141,10 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
   return Object.entries(grouped)
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
-      return {label: groupLabels[key], options: createSelectOptions(values)};
+      return {
+        label: groupLabels[key],
+        options: createSelectOptions(values, organization),
+      };
     });
 };
 
@@ -245,8 +261,8 @@ class RuleNodeList extends Component<Props> {
 
     const options =
       selectType === 'grouped'
-        ? groupSelectOptions(enabledNodes)
-        : createSelectOptions(enabledNodes);
+        ? groupSelectOptions(enabledNodes, organization)
+        : createSelectOptions(enabledNodes, organization);
 
     return (
       <Fragment>
@@ -300,8 +316,4 @@ const RuleNodes = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-auto-flow: row;
   }
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin: 0 ${space(1)} 0 0;
 `;

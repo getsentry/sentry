@@ -1,62 +1,141 @@
-import {lastOfArray} from 'sentry/utils';
+import {defined, lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
 import {createSentrySampleProfileFrameIndex} from './utils';
 
+type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & {
+  weight: number;
+};
+
 function sortSentrySampledProfileSamples(
-  samples: Readonly<Profiling.SentrySampledProfile['profile']['samples']>
+  samples: Readonly<WeightedSample[]>,
+  stacks: Profiling.SentrySampledProfile['profile']['stacks'],
+  frames: Profiling.SentrySampledProfile['profile']['frames']
 ) {
+  const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
+    const frameA = frames[a];
+    const frameB = frames[b];
+
+    if (defined(frameA.function) && defined(frameB.function)) {
+      // sort alphabetically first
+      const ret = frameA.function.localeCompare(frameB.function);
+      if (ret !== 0) {
+        return ret;
+      }
+
+      // break ties using the line number
+      if (defined(frameA.lineno) && defined(frameB.lineno)) {
+        return frameA.lineno - frameB.lineno;
+      }
+
+      if (defined(frameA.lineno)) {
+        return -1;
+      }
+
+      if (defined(frameB.lineno)) {
+        return 1;
+      }
+    } else if (defined(frameA.function)) {
+      // if only frameA is defined, it goes first
+      return -1;
+    } else if (defined(frameB.function)) {
+      // if only frameB is defined, it goes first
+      return 1;
+    }
+
+    // if neither functions are defined, they're treated as equal
+    return 0;
+  });
+
+  const framesMapping = frameIds.reduce((acc, frameId, idx) => {
+    acc[frameId] = idx;
+    return acc;
+  }, {});
+
   return [...samples].sort((a, b) => {
-    return a.stack_id - b.stack_id;
+    // same stack id, these are the same
+    if (a.stack_id === b.stack_id) {
+      return 0;
+    }
+
+    const stackA = stacks[a.stack_id];
+    const stackB = stacks[b.stack_id];
+    const minDepth = Math.min(stackA.length, stackB.length);
+
+    for (let i = 0; i < minDepth; i++) {
+      // we iterate from the end of each stack because that's where the main function is
+      const frameIdA = stackA[stackA.length - i - 1];
+      const frameIdB = stackB[stackB.length - i - 1];
+
+      // same frame id, so check the next frame in the stack
+      if (frameIdA === frameIdB) {
+        continue;
+      }
+
+      const frameIdxA = framesMapping[frameIdA];
+      const frameIdxB = framesMapping[frameIdB];
+
+      // same frame idx, so check the next frame in the stack
+      if (frameIdxA === frameIdxB) {
+        continue;
+      }
+
+      return frameIdxA - frameIdxB;
+    }
+
+    // if all frames up to the depth of the shorter stack matches,
+    // then the deeper stack goes first
+    return stackB.length - stackA.length;
   });
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
-// We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SentrySampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SentrySampledProfile,
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>,
     options: {type: 'flamechart' | 'flamegraph'}
   ): Profile {
-    const {stacks, thread_metadata = {}} = sampledProfile.profile;
+    const weightedSamples: WeightedSample[] = sampledProfile.profile.samples.map(
+      (sample, i) => {
+        // falling back to the current sample timestamp has the effect
+        // of giving the last sample a weight of 0
+        const nextSample = sampledProfile.profile.samples[i + 1] ?? sample;
+        return {
+          ...sample,
+          weight: nextSample.elapsed_since_start_ns - sample.elapsed_since_start_ns,
+        };
+      }
+    );
+
+    const {frames, stacks} = sampledProfile.profile;
     const samples =
       options.type === 'flamegraph'
-        ? sortSentrySampledProfileSamples(sampledProfile.profile.samples)
-        : sampledProfile.profile.samples;
+        ? sortSentrySampledProfileSamples(weightedSamples, stacks, frames)
+        : weightedSamples;
 
-    const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
-    const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
+    const startedAt = samples[0].elapsed_since_start_ns;
+    const endedAt = samples[samples.length - 1].elapsed_since_start_ns;
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
       throw TypeError('startedAt or endedAt is NaN');
     }
-    const threadId = parseInt(samples[0].thread_id, 10);
-    const threadName = `thread: ${
-      thread_metadata[samples[0].thread_id]?.name || threadId
-    }`;
-    const profileTransactionName = sampledProfile.transactions?.[0]?.name;
+
+    const {threadId, threadName} = getThreadData(sampledProfile);
+
     const profile = new SentrySampledProfile({
       duration: endedAt - startedAt,
       startedAt,
       endedAt,
       unit: 'nanoseconds',
-      name: profileTransactionName
-        ? `${profileTransactionName} (${threadName})`
-        : threadName,
+      name: threadName,
       threadId,
       type: options.type,
     });
 
-    let previousSampleWeight = 0;
-
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
       const stack = stacks[sample.stack_id];
-      const sampleWeight = parseInt(sample.elapsed_since_start_ns, 10);
 
       profile.appendSampleWithWeight(
         stack.map(n => {
@@ -66,10 +145,8 @@ export class SentrySampledProfile extends Profile {
 
           return frameIndex[n];
         }),
-        sampleWeight - previousSampleWeight
+        sample.weight
       );
-
-      previousSampleWeight = sampleWeight;
     }
 
     return profile.build();
@@ -100,7 +177,7 @@ export class SentrySampledProfile extends Profile {
         parent.children.push(node);
       }
 
-      node.addToTotalWeight(weight);
+      node.totalWeight += weight;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -109,8 +186,8 @@ export class SentrySampledProfile extends Profile {
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(framesInStack[start]);
+          framesInStack[start].recursive = node;
+          node.recursive = framesInStack[start];
           break;
         }
         start--;
@@ -119,7 +196,7 @@ export class SentrySampledProfile extends Profile {
       framesInStack.push(node);
     }
 
-    node.addToSelfWeight(weight);
+    node.selfWeight += weight;
     this.minFrameDuration = Math.min(weight, this.minFrameDuration);
 
     // Lock the stack node, so we make sure we dont mutate it in the future.
@@ -129,11 +206,11 @@ export class SentrySampledProfile extends Profile {
       child.lock();
     }
 
-    node.frame.addToSelfWeight(weight);
+    node.frame.selfWeight += weight;
 
     for (const stackNode of framesInStack) {
-      stackNode.frame.addToTotalWeight(weight);
-      stackNode.incrementCount();
+      stackNode.frame.totalWeight += weight;
+      stackNode.count++;
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
@@ -162,4 +239,39 @@ export class SentrySampledProfile extends Profile {
 
     return this;
   }
+}
+
+const COCOA_MAIN_THREAD = 'com.apple.main-thread';
+
+function getThreadData(profile: Profiling.SentrySampledProfile): {
+  threadId: number;
+  threadName: string;
+} {
+  const {samples, queue_metadata = {}, thread_metadata = {}} = profile.profile;
+  const sample = samples[0];
+  const threadId = parseInt(sample.thread_id, 10);
+
+  const threadName = thread_metadata?.[threadId]?.name;
+  if (threadName) {
+    return {threadId, threadName};
+  }
+
+  // cocoa has a queue address that we fall back to to try to get a thread name
+  // is this the only platform string to check for?
+  if (profile.platform === 'cocoa') {
+    // only the active thread should get the main thread name
+    if (threadId === profile.transaction.active_thread_id) {
+      return {threadId, threadName: COCOA_MAIN_THREAD};
+    }
+
+    const queueName =
+      sample.queue_address && queue_metadata?.[sample.queue_address]?.label;
+
+    // if a queue has the main thread name, we discard it
+    if (queueName && queueName !== COCOA_MAIN_THREAD) {
+      return {threadId, threadName: queueName};
+    }
+  }
+
+  return {threadId, threadName: ''};
 }

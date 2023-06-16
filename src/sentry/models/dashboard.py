@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 
 
@@ -28,7 +29,7 @@ class Dashboard(Model):
     __include_in_export__ = True
 
     title = models.CharField(max_length=255)
-    created_by = FlexibleForeignKey("sentry.User")
+    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)

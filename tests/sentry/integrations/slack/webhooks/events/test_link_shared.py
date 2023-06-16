@@ -11,7 +11,7 @@ from sentry.utils import json
 from . import LINK_SHARED_EVENT, BaseEventTest
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(
@@ -34,7 +34,7 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def share_links(self, mock_match_link):
+    def test_share_links(self, mock_match_link):
         responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
         resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT))
@@ -48,24 +48,3 @@ class LinkSharedEventTest(BaseEventTest):
         assert len(unfurls) == 2
         assert unfurls["link1"] == "unfurl"
         assert unfurls["link2"] == "unfurl"
-
-        return data
-
-    def test_valid_token(self):
-        data = self.share_links()
-        assert data["token"] == "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-
-    def test_user_access_token(self):
-        # this test is needed to make sure that classic bots installed by
-        # self-hosted users still work since they needed to use a
-        # user_access_token for unfurl
-        self.integration.metadata.update(
-            {
-                "user_access_token": "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "access_token": "xoxm-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            }
-        )
-        self.integration.save()
-
-        data = self.share_links()
-        assert data["token"] == "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"

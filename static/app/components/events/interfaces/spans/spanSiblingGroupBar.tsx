@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
@@ -7,7 +8,7 @@ import {
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {SpanGroupBar} from './spanGroupBar';
@@ -35,11 +36,12 @@ export type SpanSiblingGroupBarProps = {
   occurrence: number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  span: Readonly<ProcessedSpanType>;
+  span: ProcessedSpanType;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
   toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
   treeDepth: number;
+  spanBarType?: SpanBarType;
 };
 
 export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
@@ -59,6 +61,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     removeContentSpanBarRef,
     isEmbeddedSpanTree,
     didAnchoredSpanMount,
+    spanBarType,
   } = props;
 
   const organization = useOrganization();
@@ -129,11 +132,13 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
             key={index}
             spanGrouping={spanGrouping}
             bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
+            spanBarType={spanBarType}
           />
         ))}
         <SpanRectangleOverlay
           spanGrouping={spanGrouping}
           bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
+          spanBarType={spanBarType}
         />
       </Fragment>
     );
@@ -150,10 +155,9 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       toggleSpanGroup={() => {
         toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence);
         isEmbeddedSpanTree &&
-          trackAdvancedAnalyticsEvent(
-            'issue_details.performance.autogrouped_siblings_toggle',
-            {organization}
-          );
+          trackAnalytics('issue_details.performance.autogrouped_siblings_toggle', {
+            organization,
+          });
       }}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
@@ -163,6 +167,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       removeContentSpanBarRef={removeContentSpanBarRef}
       didAnchoredSpanMount={didAnchoredSpanMount}
       getCurrentLeftPos={getCurrentLeftPos}
+      spanBarType={spanBarType}
     />
   );
 }

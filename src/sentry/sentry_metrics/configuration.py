@@ -8,7 +8,6 @@ from enum import Enum
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
-from arroyo import configure_metrics
 
 
 class UseCaseKey(Enum):
@@ -26,7 +25,6 @@ PERFORMANCE_CS_NAMESPACE = "performance.cs"
 
 
 class IndexerStorage(Enum):
-    CLOUDSPANNER = "cloudspanner"
     POSTGRES = "postgres"
     MOCK = "mock"
 
@@ -43,6 +41,7 @@ class MetricsIngestConfiguration:
     writes_limiter_namespace: str
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
+
     index_tag_values_option_name: Optional[str] = None
     is_output_sliced: Optional[bool] = False
 
@@ -94,39 +93,6 @@ def get_ingest_config(
             )
         )
 
-        _register_ingest_config(
-            MetricsIngestConfiguration(
-                db_backend=IndexerStorage.CLOUDSPANNER,
-                # todo: set cloudspanner options of db and instance ids
-                db_backend_options=settings.SENTRY_METRICS_INDEXER_SPANNER_OPTIONS,
-                input_topic=settings.KAFKA_INGEST_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-                internal_metrics_tag="release-health-spanner",
-                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
-                writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-            )
-        )
-
-        _register_ingest_config(
-            MetricsIngestConfiguration(
-                db_backend=IndexerStorage.CLOUDSPANNER,
-                # todo: set cloudspanner options of db and instance ids
-                db_backend_options=settings.SENTRY_METRICS_INDEXER_SPANNER_OPTIONS,
-                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
-                use_case_id=UseCaseKey.PERFORMANCE,
-                internal_metrics_tag="perf-spanner",
-                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
-                writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
-            )
-        )
-
     if db_backend == IndexerStorage.MOCK:
         _register_ingest_config(
             MetricsIngestConfiguration(
@@ -146,27 +112,29 @@ def get_ingest_config(
     return _METRICS_INGEST_CONFIG_BY_USE_CASE[(use_case_key, db_backend)]
 
 
-def initialize_sentry_and_global_consumer_state(config: MetricsIngestConfiguration) -> None:
+def initialize_subprocess_state(config: MetricsIngestConfiguration) -> None:
     """
-    Initialization function for subprocesses spawned by the parallel indexer.
-
-    It does the same thing as `initialize_global_consumer_state` except it
-    initializes the Sentry Django app from scratch as well.
+    Initialization function for the subprocesses of the metrics indexer.
 
     `config` is pickleable, and this function lives in a module that can be
     imported without any upfront initialization of the Django app. Meaning that
     an object like
     `functools.partial(initialize_sentry_and_global_consumer_state, config)` is
     pickleable as well (which we pass as initialization callback to arroyo).
+
+    This function should ideally be kept minimal and not contain too much
+    logic. Commonly reusable bits should be added to
+    sentry.utils.arroyo.RunTaskWithMultiprocessing.
+
+    We already rely on sentry.utils.arroyo.RunTaskWithMultiprocessing to copy
+    statsd tags into the subprocess, eventually we should do the same for
+    Sentry tags.
     """
-    from sentry.runner import configure
 
-    configure()
-
-    initialize_global_consumer_state(config)
+    sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
 
 
-def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None:
+def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
     """
     Initialization function for the main process of the metrics indexer.
 
@@ -176,13 +144,8 @@ def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
 
-    from sentry.utils.metrics import add_global_tags, backend
+    from sentry.utils.metrics import add_global_tags
 
     global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
 
     add_global_tags(_all_threads=True, **global_tag_map)
-
-    from sentry.utils.arroyo import MetricsWrapper
-
-    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer", tags=global_tag_map)
-    configure_metrics(metrics_wrapper)

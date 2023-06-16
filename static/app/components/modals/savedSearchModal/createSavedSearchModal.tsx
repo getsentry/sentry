@@ -8,7 +8,8 @@ import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -18,28 +19,23 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
-function getSortOptions(organization: Organization) {
-  return organization?.features?.includes('issue-list-trend-sort')
-    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
-    : DEFAULT_SORT_OPTIONS;
-}
-
 function validateSortOption({
-  organization,
   sort,
+  organization,
 }: {
   organization: Organization;
   sort?: string;
 }) {
-  if (getSortOptions(organization).find(option => option === sort)) {
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
+  if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
 
@@ -61,8 +57,8 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({organization, sort}),
-    visibility: SavedSearchVisibility.Owner,
+    sort: validateSortOption({sort, organization}),
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (
@@ -76,7 +72,7 @@ export function CreateSavedSearchModal({
 
     addLoadingMessage(t('Saving Changes'));
 
-    trackAdvancedAnalyticsEvent('search.saved_search_create', {
+    trackAnalytics('search.saved_search_create', {
       name: data.name,
       organization,
       query: data.query,

@@ -9,7 +9,7 @@ import {
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps &

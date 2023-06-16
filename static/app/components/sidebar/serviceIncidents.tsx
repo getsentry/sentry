@@ -22,7 +22,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SentryServiceStatus} from 'sentry/types';
 import marked from 'sentry/utils/marked';
 
@@ -76,7 +76,7 @@ function ServiceIncidents({
     return null;
   }
 
-  const active = currentPanel === SidebarPanelKey.ServiceIncidents;
+  const active = currentPanel === SidebarPanelKey.SERVICE_INCIDENTS;
   const isEmpty = !serviceStatus.incidents || serviceStatus.incidents.length === 0;
 
   if (isEmpty) {

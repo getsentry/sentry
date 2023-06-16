@@ -35,7 +35,7 @@ from sentry.models import (
 )
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -44,7 +44,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.tasks.integrations import migrate_issues
-from sentry.utils.decorators import classproperty
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -274,11 +273,6 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     issues_ignored_fields_key = "issues_ignored_fields"
 
     default_identity = None
-
-    @classproperty
-    def use_email_scope(cls):
-        # jira server doesn't need the email scope since it's not restricted by GDPR
-        return False
 
     def get_client(self):
         if self.default_identity is None:
@@ -964,7 +958,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[APIUser],
+        user: Optional[RpcUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -982,12 +976,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     continue
                 for possible_user in possible_users:
                     email = possible_user.get("emailAddress")
-                    # pull email from API if we can use it
-                    if not email and self.use_email_scope:
-                        account_id = possible_user.get("accountId")
-                        email = client.get_email(account_id)
                     # match on lowercase email
-                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break

@@ -8,72 +8,74 @@ type Props = {
   animateVariant: AnimationControls;
 } & HTMLAttributes<HTMLDivElement>;
 
-const PageCorners = ({animateVariant, ...rest}: Props) => (
-  <Container {...rest}>
-    <TopRight
-      key="tr"
-      width="874"
-      height="203"
-      viewBox="0 0 874 203"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      animate={animateVariant}
-    >
-      <path
-        d="M36.5 0H874v203l-288.7-10-7-114-180.2-4.8-3.6-35.2-351.1 2.5L36.5 0z"
-        fill="currentColor"
-      />
-      <path
-        d="M535.5 111.5v-22l31.8 1 .7 21.5-32.5-.5zM4 43.5L0 21.6 28.5 18l4.2 24.7-28.7.8z"
-        fill="currentColor"
-      />
-    </TopRight>
-    <BottomLeft
-      key="bl"
-      width="494"
-      height="141"
-      viewBox="0 0 494 141"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      animate={animateVariant}
-    >
-      <path d="M494 141H-1V7l140-7v19h33l5 82 308 4 9 36z" fill="currentColor" />
-      <path d="M219 88h-30l-1-19 31 3v16z" fill="currentColor" />
-    </BottomLeft>
-    <TopLeft
-      key="tl"
-      width="414"
-      height="118"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      animate={animateVariant}
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M414 0H0v102h144l5-69 257-3 8-30zM0 112v-10h117v16L0 112z"
-        fill="currentColor"
-      />
-      <path d="M184 44h-25l-1 16 26-2V44z" fill="currentColor" />
-    </TopLeft>
-    <BottomRight
-      key="br"
-      width="650"
-      height="151"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      animate={animateVariant}
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M27 151h623V0L435 7l-5 85-134 4-3 26-261-2-5 31z"
-        fill="currentColor"
-      />
-      <path d="M398 68v16h24l1-16h-25zM3 119l-3 16 21 3 3-19H3z" fill="currentColor" />
-    </BottomRight>
-  </Container>
-);
+function PageCorners({animateVariant, ...rest}: Props) {
+  return (
+    <Container {...rest}>
+      <TopRight
+        key="tr"
+        width="874"
+        height="203"
+        viewBox="0 0 874 203"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        animate={animateVariant}
+      >
+        <path
+          d="M36.5 0H874v203l-288.7-10-7-114-180.2-4.8-3.6-35.2-351.1 2.5L36.5 0z"
+          fill="currentColor"
+        />
+        <path
+          d="M535.5 111.5v-22l31.8 1 .7 21.5-32.5-.5zM4 43.5L0 21.6 28.5 18l4.2 24.7-28.7.8z"
+          fill="currentColor"
+        />
+      </TopRight>
+      <BottomLeft
+        key="bl"
+        width="494"
+        height="141"
+        viewBox="0 0 494 141"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        animate={animateVariant}
+      >
+        <path d="M494 141H-1V7l140-7v19h33l5 82 308 4 9 36z" fill="currentColor" />
+        <path d="M219 88h-30l-1-19 31 3v16z" fill="currentColor" />
+      </BottomLeft>
+      <TopLeft
+        key="tl"
+        width="414"
+        height="118"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        animate={animateVariant}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M414 0H0v102h144l5-69 257-3 8-30zM0 112v-10h117v16L0 112z"
+          fill="currentColor"
+        />
+        <path d="M184 44h-25l-1 16 26-2V44z" fill="currentColor" />
+      </TopLeft>
+      <BottomRight
+        key="br"
+        width="650"
+        height="151"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        animate={animateVariant}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M27 151h623V0L435 7l-5 85-134 4-3 26-261-2-5 31z"
+          fill="currentColor"
+        />
+        <path d="M398 68v16h24l1-16h-25zM3 119l-3 16 21 3 3-19H3z" fill="currentColor" />
+      </BottomRight>
+    </Container>
+  );
+}
 
 export default PageCorners;
 

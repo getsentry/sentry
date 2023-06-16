@@ -35,6 +35,10 @@ export type FormOptions = {
    */
   initialData?: Record<string, FieldValue>;
   /**
+   * Custom transformer function for use with the error response
+   */
+  mapFormErrors?: (responseJson: any) => any;
+  /**
    * Callback triggered when a field changes value
    */
   onFieldChange?: (id: string, finalValue: FieldValue) => void;
@@ -252,8 +256,11 @@ class FormModel {
    * Remove a field from the descriptor map and errors.
    */
   removeField(id: string) {
+    this.fields.delete(id);
+    this.fieldState.delete(id);
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
+    delete this.initialData[id];
   }
 
   /**
@@ -285,8 +292,15 @@ class FormModel {
     return fieldState[key];
   }
 
-  getValue(id: string) {
-    return this.fields.has(id) ? this.fields.get(id) : '';
+  getValue<T = FieldValue>(id: string, defaultValue?: T): T {
+    if (this.fields.has(id)) {
+      return this.fields.get(id) as T;
+    }
+
+    // XXX(epurkhiser): When you don't specify a default value it WILL become a
+    // empty string, which is not correctly accounted for in the types. We're
+    // doing this for legacy reasons
+    return defaultValue ?? ('' as T);
   }
 
   getTransformedValue(id: string) {
@@ -746,12 +760,12 @@ class FormModel {
 
   submitError(err: {responseJSON?: any}) {
     this.formState = FormState.ERROR;
-    this.formErrors = this.mapFormErrors(err.responseJSON);
-    this.handleErrorResponse({responseJSON: this.formErrors});
-  }
 
-  mapFormErrors(responseJSON?: any) {
-    return responseJSON;
+    this.formErrors = this.options.mapFormErrors
+      ? this.options.mapFormErrors(err.responseJSON)
+      : err.responseJSON;
+
+    this.handleErrorResponse({responseJSON: this.formErrors});
   }
 }
 

@@ -13,7 +13,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {ColorOrAlias} from 'sentry/utils/theme';
@@ -134,7 +134,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             period="7d"
             legend={{right: 0, top: 0}}
             yAxis={{minInterval: 1}}
-            xAxis={barAxisLabel(seriesData.length)}
+            xAxis={barAxisLabel()}
             series={[
               {
                 seriesName: t('Alerts Triggered'),

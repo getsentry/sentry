@@ -34,7 +34,7 @@ import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {EChartClickHandler} from 'sentry/types/echarts';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -209,7 +209,6 @@ class ReleasesAdoptionChart extends Component<Props> {
                           type: 'value',
                           interval: 10,
                           splitNumber: 10,
-                          data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                           axisLabel: {
                             formatter: '{value}%',
                           },
@@ -219,7 +218,6 @@ class ReleasesAdoptionChart extends Component<Props> {
                           min: xAxisData[0],
                           max: xAxisData[numDataPoints - 1],
                           type: 'time',
-                          data: xAxisData,
                         }}
                         tooltip={{
                           formatter: seriesParams => {

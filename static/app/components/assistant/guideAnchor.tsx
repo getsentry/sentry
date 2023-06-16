@@ -16,12 +16,13 @@ import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 
 type Props = {
   target: string;
+  children?: React.ReactNode;
   /**
    * Hovercard renders the container
    */

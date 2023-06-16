@@ -2,29 +2,35 @@ import {Fragment} from 'react';
 import {RouteComponentProps, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconEllipsis, IconMail, IconOpen, IconPlay} from 'sentry/icons';
+import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {
+  Group,
+  Organization,
+  Project,
+  SavedQueryVersions,
+  Tag,
+  TagValue,
+} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -37,6 +43,7 @@ type RouteParams = {
 type Props = {
   baseUrl: string;
   group: Group;
+  organization: Organization;
   environments?: string[];
   project?: Project;
 } & RouteComponentProps<RouteParams, {}>;
@@ -76,12 +83,13 @@ class GroupTagValues extends AsyncComponent<
 
   renderResults() {
     const {
-      routes,
       baseUrl,
       project,
       environments: environment,
       group,
+      location: {query},
       params: {orgId, tagKey},
+      organization,
     } = this.props;
     const {tagValueList, tag} = this.state;
     const discoverFields = [
@@ -91,6 +99,8 @@ class GroupTagValues extends AsyncComponent<
       'user.display',
       'timestamp',
     ];
+
+    const globalSelectionParams = extractSelectionParameters(query);
 
     return tagValueList?.map((tagValue, tagValueIdx) => {
       const pct = tag?.totalValues
@@ -149,14 +159,6 @@ class GroupTagValues extends AsyncComponent<
                 <IconOpen size="xs" color="gray300" />
               </StyledExternalLink>
             )}
-            {key === 'replayId' ? (
-              <ReplayButton
-                project={project}
-                routes={routes}
-                orgId={orgId}
-                tagValue={tagValue}
-              />
-            ) : null}
           </NameColumn>
           <RightAlignColumn>{pct}</RightAlignColumn>
           <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
@@ -164,36 +166,35 @@ class GroupTagValues extends AsyncComponent<
             <TimeSince date={tagValue.lastSeen} />
           </RightAlignColumn>
           <RightAlignColumn>
-            <DropdownLink
-              anchorRight
-              alwaysRenderMenu={false}
-              caret={false}
-              title={
-                <Button
-                  tooltipProps={{
-                    containerDisplayMode: 'flex',
-                  }}
-                  size="sm"
-                  aria-label={t('Show more')}
-                  icon={<IconEllipsis size="xs" />}
-                />
-              }
-            >
-              <Feature features={['organizations:discover-basic']}>
-                <li>
-                  <Link to={discoverView.getResultsViewUrlTarget(orgId)}>
-                    {t('Open in Discover')}
-                  </Link>
-                </li>
-              </Feature>
-              <li>
-                <GlobalSelectionLink
-                  to={{pathname: issuesPath, query: {query: issuesQuery}}}
-                >
-                  {t('Search All Issues with Tag Value')}
-                </GlobalSelectionLink>
-              </li>
-            </DropdownLink>
+            <DropdownMenu
+              size="sm"
+              position="bottom-end"
+              triggerProps={{
+                size: 'xs',
+                showChevron: false,
+                icon: <IconEllipsis size="xs" />,
+                'aria-label': t('More'),
+              }}
+              items={[
+                {
+                  key: 'open-in-discover',
+                  label: t('Open in Discover'),
+                  to: discoverView.getResultsViewUrlTarget(orgId),
+                  hidden: !organization.features.includes('discover-basic'),
+                },
+                {
+                  key: 'search-issues',
+                  label: t('Search All Issues with Tag Value'),
+                  to: {
+                    pathname: issuesPath,
+                    query: {
+                      ...globalSelectionParams, // preserve page filter selections
+                      query: issuesQuery,
+                    },
+                  },
+                },
+              ]}
+            />
           </RightAlignColumn>
         </Fragment>
       );
@@ -256,7 +257,7 @@ class GroupTagValues extends AsyncComponent<
               </Button>
               <DataExport
                 payload={{
-                  queryType: ExportQueryType.IssuesByTag,
+                  queryType: ExportQueryType.ISSUES_BY_TAG,
                   queryInfo: {
                     project: group.project.id,
                     group: group.id,
@@ -292,30 +293,7 @@ class GroupTagValues extends AsyncComponent<
   }
 }
 
-export default withSentryRouter(GroupTagValues);
-
-function ReplayButton({project, routes, orgId, tagValue}) {
-  const replaySlug = `${project?.slug}:${tagValue.value}`;
-  const referrer = getRouteStringFromRoutes(routes);
-
-  const target = {
-    pathname: `/organizations/${orgId}/replays/${replaySlug}/`,
-    query: {
-      referrer,
-    },
-  };
-  return (
-    <RightAligned>
-      <Tooltip title={t('View Replay')}>
-        <Link to={target}>
-          <Button size="xs" aria-label={t('View Replay')}>
-            <IconPlay size="xs" />
-          </Button>
-        </Link>
-      </Tooltip>
-    </RightAligned>
-  );
-}
+export default withSentryRouter(withOrganization(GroupTagValues));
 
 const TitleWrapper = styled('div')`
   display: flex;
@@ -355,13 +333,6 @@ const StyledSortLink = styled(Link)`
   :hover {
     color: inherit;
   }
-`;
-
-const RightAligned = styled('div')`
-  display: block;
-  flex-grow: 1;
-  text-align: right;
-  padding-left: ${space(0.5)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

@@ -7,9 +7,18 @@ from .uninstalled import BitbucketUninstalledEndpoint
 from .webhook import BitbucketWebhookEndpoint
 
 urlpatterns = [
-    url(r"^descriptor/$", BitbucketDescriptorEndpoint.as_view()),
-    url(r"^installed/$", BitbucketInstalledEndpoint.as_view()),
-    url(r"^uninstalled/$", BitbucketUninstalledEndpoint.as_view()),
+    url(
+        r"^descriptor/$",
+        BitbucketDescriptorEndpoint.as_view(),
+    ),
+    url(
+        r"^installed/$",
+        BitbucketInstalledEndpoint.as_view(),
+    ),
+    url(
+        r"^uninstalled/$",
+        BitbucketUninstalledEndpoint.as_view(),
+    ),
     url(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
         BitbucketWebhookEndpoint.as_view(),

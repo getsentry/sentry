@@ -4,7 +4,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -22,9 +22,8 @@ import {
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,14 +31,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 const SECOND = 1000;
 
 const COMPACT_WIDTH_BREAKPOINT = 500;
-
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.INIT,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
 
 interface Props {
   speedOptions?: number[];
@@ -92,9 +83,8 @@ function ReplayPlayPauseBar() {
           if (!startTimestampMs) {
             return;
           }
-          const transformedCrumbs = replay?.getRawCrumbs() || [];
           const next = getNextReplayEvent({
-            items: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
+            items: replay?.getUserActionCrumbs() || [],
             targetTimestampMs: startTimestampMs + currentTime,
           });
 
@@ -127,7 +117,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
       <CompositeSelect.Region
         label={t('Playback Speed')}
         value={speed}
-        onChange={val => setSpeed(val)}
+        onChange={opt => setSpeed(opt.value)}
         options={speedOptions.map(option => ({
           label: `${option}x`,
           value: option,
@@ -137,8 +127,8 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         aria-label={t('Fast-Forward Inactivity')}
         multiple
         value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
-        onChange={value => {
-          toggleSkipInactive(value.length > 0);
+        onChange={opts => {
+          toggleSkipInactive(opts.length > 0);
         }}
         options={[
           {
@@ -151,10 +141,10 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   );
 }
 
-const ReplayControls = ({
+function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
-}: Props) => {
+}: Props) {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
@@ -166,7 +156,7 @@ const ReplayControls = ({
 
   const handleFullscreenToggle = () => {
     if (toggleFullscreen) {
-      trackAdvancedAnalyticsEvent('replay.toggle-fullscreen', {
+      trackAnalytics('replay.toggle-fullscreen', {
         organization,
         user_email: config.user.email,
         fullscreen: !isFullscreen,
@@ -213,7 +203,7 @@ const ReplayControls = ({
       </ButtonBar>
     </ButtonGrid>
   );
-};
+}
 
 const ButtonGrid = styled('div')<{isCompact: boolean}>`
   display: flex;

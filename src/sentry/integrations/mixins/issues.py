@@ -6,8 +6,9 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.utils import where_should_sync
-from sentry.models import ExternalIssue, GroupLink, User, UserOption
+from sentry.models import ExternalIssue, GroupLink, UserOption
 from sentry.models.project import Project
 from sentry.notifications.utils import (
     get_notification_group_title,
@@ -17,7 +18,7 @@ from sentry.notifications.utils import (
     get_span_evidence_value_problem,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
@@ -99,17 +100,26 @@ class IssueBasicMixin:
         an integration's ticket description. Each integration will need to take
         this data and format it appropriately.
         """
-        spans, matched_problem = get_span_and_problem(event)
-        if not matched_problem:
-            return ""
+        if isinstance(event, GroupEvent) and event.occurrence is not None:
+            transaction_name = event.occurrence.evidence_data.get("transaction_name", "")
+            parent_span = event.occurrence.evidence_data.get("parent_span", "")
+            repeating_spans = event.occurrence.evidence_data.get("repeating_spans", "")
+            num_repeating_spans = event.occurrence.evidence_data.get("num_repeating_spans", 0)
 
-        parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-        transaction_name = get_span_evidence_value_problem(matched_problem)
-        parent_span = get_span_evidence_value(parent_span)
-        repeating_spans = get_span_evidence_value(repeating_spans)
-        num_repeating_spans = (
-            str(len(matched_problem.offender_span_ids)) if matched_problem.offender_span_ids else ""
-        )
+        else:
+            spans, matched_problem = get_span_and_problem(event)
+            if not matched_problem:
+                return ""
+
+            parent_span, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+            transaction_name = get_span_evidence_value_problem(matched_problem)
+            parent_span = get_span_evidence_value(parent_span)
+            repeating_spans = get_span_evidence_value(repeating_spans)
+            num_repeating_spans = (
+                str(len(matched_problem.offender_span_ids))
+                if matched_problem.offender_span_ids
+                else ""
+            )
         return (transaction_name, parent_span, num_repeating_spans, repeating_spans)
 
     def get_create_issue_config(self, group, user, **kwargs):
@@ -164,7 +174,7 @@ class IssueBasicMixin:
         """
         return []
 
-    def store_issue_last_defaults(self, project: Project, user: APIUser, data):
+    def store_issue_last_defaults(self, project: Project, user: RpcUser, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
@@ -373,7 +383,7 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)
-        if key is None:
+        if key is None or self.org_integration is None:
             return False
         value: bool = self.org_integration.config.get(key, False)
         return value
@@ -381,7 +391,7 @@ class IssueSyncMixin(IssueBasicMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: User | None,
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -9,7 +9,9 @@ type Props = {
   children: string;
 };
 
-const CommandLine = ({children}: Props) => <Wrapper>{children}</Wrapper>;
+function CommandLine({children}: Props) {
+  return <Wrapper>{children}</Wrapper>;
+}
 
 export default CommandLine;
 

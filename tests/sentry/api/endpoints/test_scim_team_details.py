@@ -1,11 +1,13 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models import OrganizationMemberTeam, Team, TeamStatus
 from sentry.testutils import SCIMTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test
+@control_silo_test
 class SCIMTeamDetailsTests(SCIMTestCase):
     def test_team_details_404(self):
         url = reverse(
@@ -51,7 +53,30 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
 
-    def test_scim_team_details_patch_replace_rename_team(self):
+    def test_scim_team_details_invalid_patch_op(self):
+        team = self.create_team(organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {
+                        "op": "invalid",
+                        "value": {
+                            "id": str(team.id),
+                            "displayName": "newName",
+                        },
+                    }
+                ],
+            },
+        )
+        assert response.status_code == 400, response.content
+
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_scim_team_details_patch_replace_rename_team(self, mock_metrics):
         team = self.create_team(organization=self.organization)
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
@@ -75,6 +100,9 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert Team.objects.get(id=team.id).slug == "newname"
         assert Team.objects.get(id=team.id).name == "newName"
         assert Team.objects.get(id=team.id).idp_provisioned
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.update", tags={"organization": self.organization}
+        )
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -237,7 +265,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             url,
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                "Operations": [{}] * 101,
+                "Operations": [{"op": "replace"}] * 101,
             },
         )
 
@@ -280,14 +308,15 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             url,
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                "Operations": [{"op": "replace", "path": "displayName", "value": "theNewName"}],
+                "Operations": [{"op": "Replace", "path": "displayName", "value": "theNewName"}],
             },
         )
         assert response.status_code == 204, response.content
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_delete_team(self):
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_delete_team(self, mock_metrics):
         team = self.create_team(organization=self.organization)
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
@@ -296,6 +325,9 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.delete", tags={"organization": self.organization}
+        )
 
     def test_remove_member_azure(self):
         member1 = self.create_member(

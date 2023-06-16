@@ -47,10 +47,10 @@ describe('DatePageFilter', function () {
 
     // Open time period dropdown
     expect(screen.getByText('7D')).toBeInTheDocument();
-    userEvent.click(screen.getByText('7D'));
+    await userEvent.click(screen.getByText('7D'));
 
     // Click 30 day period
-    userEvent.click(screen.getByText('Last 30 days'));
+    await userEvent.click(screen.getByText('Last 30 days'));
 
     // Confirm selection changed visible text and query params
     expect(await screen.findByText('30D')).toBeInTheDocument();
@@ -59,6 +59,7 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
@@ -88,11 +89,11 @@ describe('DatePageFilter', function () {
     );
 
     // Open time period dropdown
-    userEvent.click(screen.getByText('7D'));
+    await userEvent.click(screen.getByText('7D'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton);
+    await userEvent.click(pinButton);
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 

@@ -9,10 +9,10 @@ from rest_framework.response import Response
 
 from sentry import eventstream
 from sentry.api.base import audit_logger
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, GroupHash, GroupInbox, GroupStatus, Project
 from sentry.signals import issue_deleted
 from sentry.tasks.deletion import delete_groups as delete_groups_task
-from sentry.types.issues import GroupCategory
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -37,7 +37,7 @@ def delete_group_list(
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-    ).update(status=GroupStatus.PENDING_DELETION)
+    ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
     eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex

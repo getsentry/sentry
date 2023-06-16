@@ -46,6 +46,10 @@ type SampleEvent = {
   source: string;
 };
 
+type SetupWizard = {
+  project_platform?: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'assistant.guide_cued': {
@@ -85,15 +89,13 @@ export type GrowthEventParameters = {
     preset: string;
   };
   'growth.onboarding_clicked_instrument_app': {source?: string};
-  'growth.onboarding_clicked_project_in_sidebar': {platform: string};
   'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
-    project_index: number;
+    project_id: string;
   };
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_set_up_your_project': PlatformParam;
-  'growth.onboarding_set_up_your_projects': {platform_count: number; platforms: string};
   'growth.onboarding_start_onboarding': {
     source?: string;
   };
@@ -140,6 +142,10 @@ export type GrowthEventParameters = {
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
+  'setup_wizard.clicked_viewed_docs': SetupWizard;
+  'setup_wizard.clicked_viewed_issues': SetupWizard;
+  'setup_wizard.complete': SetupWizard;
+  'setup_wizard.viewed': SetupWizard;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -160,8 +166,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
-  'growth.onboarding_set_up_your_projects':
-    'Growth: Onboarding Click Set Up Your Projects',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
@@ -184,7 +188,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.demo_modal_clicked_close': 'Growth: Demo Modal Clicked Close',
   'growth.demo_modal_clicked_demo': 'Growth: Demo Modal Clicked Demo',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
-  'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
   'growth.sample_transaction_docs_link_clicked':
     'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':
@@ -208,4 +211,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.end_modal_restart_tours': 'Growth: End Modal Restart Tours',
   'growth.end_modal_close': 'Growth: End Modal Close',
   'growth.end_modal_signup': 'Growth: End Modal Signup',
+  'setup_wizard.viewed': 'Setup Wizard: Viewed',
+  'setup_wizard.complete': 'Setup Wizard: Complete',
+  'setup_wizard.clicked_viewed_issues': 'Setup Wizard: Clicked Viewed Issues',
+  'setup_wizard.clicked_viewed_docs': 'SetupW izard: Clicked Viewed Docs',
 };

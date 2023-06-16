@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import functools
 import itertools
@@ -164,25 +166,11 @@ class SnubaTSDB(BaseTSDB):
     non_outcomes_snql_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, []),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, []),
-        TSDBModel.group_performance: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            None,
-            [],
-            [Function("arrayJoin", [Column("group_ids")], "group_id")],
-        ),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, []
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
             snuba.Dataset.Events, "group_id", "tags[sentry:user]", []
-        ),
-        TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
-            snuba.Dataset.Transactions,
-            "group_id",
-            "tags[sentry:user]",
-            [],
-            [Function("arrayJoin", [Column("group_ids")], "group_id")],
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "tags[sentry:user]", []
@@ -272,6 +260,8 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids: dict[str, str | int] = None,
+        referrer_suffix: Optional[str] = None,
     ):
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
@@ -307,6 +297,8 @@ class SnubaTSDB(BaseTSDB):
                     model in (TSDBModel.group_generic, TSDBModel.users_affected_by_generic_group)
                 ),
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
+                tenant_ids=tenant_ids,
+                referrer_suffix=referrer_suffix,
             )
         else:
             return self.__get_data_legacy(
@@ -322,6 +314,8 @@ class SnubaTSDB(BaseTSDB):
                 conditions,
                 use_cache,
                 jitter_value,
+                tenant_ids,
+                referrer_suffix,
             )
 
     def __get_data_snql(
@@ -340,6 +334,8 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
         is_grouprelease: bool = False,
+        tenant_ids: dict[str, str | int] = None,
+        referrer_suffix: Optional[str] = None,
     ):
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
@@ -448,10 +444,14 @@ class SnubaTSDB(BaseTSDB):
                     granularity=Granularity(rollup),
                     limit=Limit(limit),
                 ),
+                tenant_ids=tenant_ids or dict(),
             )
-            query_result = raw_snql_query(
-                snql_request, referrer=f"tsdb-modelid:{model.value}", use_cache=use_cache
-            )
+            referrer = f"tsdb-modelid:{model.value}"
+
+            if referrer_suffix:
+                referrer += f".{referrer_suffix}"
+
+            query_result = raw_snql_query(snql_request, referrer, use_cache=use_cache)
             if manual_group_on_time:
                 translated_results = {"data": query_result["data"]}
             else:
@@ -489,6 +489,8 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
+        referrer_suffix=None,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -580,6 +582,11 @@ class SnubaTSDB(BaseTSDB):
             orderby.append(model_group)
 
         if keys:
+            referrer = f"tsdb-modelid:{model.value}"
+
+            if referrer_suffix:
+                referrer += f".{referrer_suffix}"
+
             query_func_without_selected_columns = functools.partial(
                 snuba.query,
                 dataset=model_dataset,
@@ -592,9 +599,10 @@ class SnubaTSDB(BaseTSDB):
                 rollup=rollup,
                 limit=limit,
                 orderby=orderby,
-                referrer=f"tsdb-modelid:{model.value}",
+                referrer=referrer,
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
                 use_cache=use_cache,
+                tenant_ids=tenant_ids or dict(),
             )
             if model_query_settings.selected_columns:
                 result = query_func_without_selected_columns(
@@ -705,6 +713,8 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
+        referrer_suffix=None,
     ):
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
@@ -726,6 +736,8 @@ class SnubaTSDB(BaseTSDB):
             conditions=conditions,
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -734,7 +746,7 @@ class SnubaTSDB(BaseTSDB):
         return {k: sorted(result[k].items()) for k in result}
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
     ):
         result = self.get_data(
             model,
@@ -745,6 +757,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="uniq",
             group_on_time=True,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -762,6 +775,8 @@ class SnubaTSDB(BaseTSDB):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
+        referrer_suffix=None,
     ):
         return self.get_data(
             model,
@@ -773,10 +788,12 @@ class SnubaTSDB(BaseTSDB):
             aggregation="uniq",
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
         )
 
     def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
     ):
         return self.get_data(
             model,
@@ -787,10 +804,19 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="uniq",
             group_on_model=False,
+            tenant_ids=tenant_ids,
         )
 
     def get_most_frequent(
-        self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=10,
+        environment_id=None,
+        tenant_ids=None,
     ):
         aggregation = f"topK({limit})"
         result = self.get_data(
@@ -801,6 +827,7 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             [environment_id] if environment_id is not None else None,
             aggregation=aggregation,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:[top1, ...]}
@@ -813,7 +840,15 @@ class SnubaTSDB(BaseTSDB):
         return result
 
     def get_most_frequent_series(
-        self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        limit=10,
+        environment_id=None,
+        tenant_ids=None,
     ):
         aggregation = f"topK({limit})"
         result = self.get_data(
@@ -825,6 +860,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation=aggregation,
             group_on_time=True,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:[top1, ...]}}
@@ -838,7 +874,9 @@ class SnubaTSDB(BaseTSDB):
             for k in result.keys()
         }
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         result = self.get_data(
             model,
             items,
@@ -848,6 +886,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="count()",
             group_on_time=True,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:{agg:count}}}
@@ -855,7 +894,9 @@ class SnubaTSDB(BaseTSDB):
         #    {group: [(timestamp, {agg: count, ...}), ...]}
         return {k: sorted(result[k].items()) for k in result}
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_totals(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         return self.get_data(
             model,
             items,
@@ -864,6 +905,7 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             [environment_id] if environment_id is not None else None,
             aggregation="count()",
+            tenant_ids=tenant_ids,
         )
 
     def flatten_keys(self, items):

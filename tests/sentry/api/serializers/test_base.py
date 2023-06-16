@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, serialize
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class Foo:
@@ -32,6 +33,7 @@ class ParentSerializer(Serializer):
         }
 
 
+@control_silo_test(stable=True)
 class BaseSerializerTest(TestCase):
     def test_serialize(self):
         assert serialize([]) == []

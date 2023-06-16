@@ -29,7 +29,7 @@ describe('NumberField', function () {
       expect(screen.getByRole('spinbutton')).toHaveValue(5);
     });
 
-    it('doesnt save `NaN` when new value is empty string', function () {
+    it('doesnt save `NaN` when new value is empty string', async function () {
       render(
         <Form initialData={{fieldName: 5}}>
           <NumberField name="fieldName" defaultValue="5" />
@@ -38,7 +38,7 @@ describe('NumberField', function () {
 
       expect(screen.getByRole('spinbutton')).toHaveValue(5);
 
-      userEvent.clear(screen.getByRole('spinbutton'));
+      await userEvent.clear(screen.getByRole('spinbutton'));
       expect(screen.getByRole('spinbutton')).toHaveValue(null);
     });
   });

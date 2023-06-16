@@ -6,7 +6,7 @@ import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
 /**
@@ -34,11 +34,11 @@ type Props = {
   labels?: [string, string, string, string, string];
 };
 
-const PasswordStrength = ({
+function PasswordStrength({
   value,
   labels = ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'],
   colors = [theme.red300, theme.red300, theme.yellow300, theme.green300, theme.green300],
-}: Props) => {
+}: Props) {
   if (value === '') {
     return null;
   }
@@ -74,7 +74,7 @@ const PasswordStrength = ({
       </StrengthLabel>
     </Fragment>
   );
-};
+}
 
 const StrengthProgress = styled('div')`
   background: ${theme.gray200};

@@ -13,8 +13,8 @@ from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident, User
-from sentry.models import ApiKey, Organization
+from sentry.incidents.models import AlertRule, Incident
+from sentry.models import ApiKey, Organization, User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
@@ -63,7 +63,7 @@ def fetch_metric_alert_sessions_data(
 ) -> Any:
     try:
         resp = client.get(
-            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/sessions/",
             params={
@@ -89,7 +89,7 @@ def fetch_metric_alert_events_timeseries(
 ) -> List[Any]:
     try:
         resp = client.get(
-            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
@@ -125,7 +125,7 @@ def fetch_metric_alert_incidents(
 ) -> List[Any]:
     try:
         resp = client.get(
-            auth=ApiKey(organization=organization, scope_list=["org:read"]),
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/incidents/",
             params={
@@ -190,7 +190,11 @@ def build_metric_alert_chart(
 
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
     # If we allow alerts to be across multiple orgs this will break
-    project_id = snuba_query.subscriptions.first().project_id
+    first_subscription_or_none = snuba_query.subscriptions.first()
+    if first_subscription_or_none is None:
+        return None
+
+    project_id = first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
     query = (

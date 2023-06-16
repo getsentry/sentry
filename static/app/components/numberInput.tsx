@@ -1,16 +1,15 @@
-import {forwardRef, ForwardRefRenderFunction, useRef} from 'react';
+import {forwardRef, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useLocale} from '@react-aria/i18n';
-import {useNumberField} from '@react-aria/numberfield';
+import {AriaNumberFieldProps, useNumberField} from '@react-aria/numberfield';
 import {useNumberFieldState} from '@react-stately/numberfield';
-import {AriaNumberFieldProps} from '@react-types/numberfield';
 
 import {Button} from 'sentry/components/button';
 import {InputStylesProps} from 'sentry/components/input';
-import {Input, InputGroup, InputTrailingItems} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {FormSize} from 'sentry/utils/theme';
 
@@ -24,7 +23,7 @@ export interface NumberInputProps
   max?: number;
   min?: number;
 }
-const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputProps> = (
+function BaseNumberInput(
   {
     disabled,
     readOnly,
@@ -36,9 +35,9 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
     nativeSize,
     className,
     ...props
-  },
-  forwardedRef
-) => {
+  }: NumberInputProps,
+  forwardedRef: React.Ref<HTMLInputElement>
+) {
   const ref = useRef<HTMLInputElement>(null);
 
   const ariaProps = {
@@ -68,7 +67,7 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
 
   return (
     <InputGroup {...groupProps}>
-      <Input
+      <InputGroup.Input
         {...inputProps}
         ref={mergeRefs([ref, forwardedRef])}
         placeholder={placeholder}
@@ -77,7 +76,7 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
         monospace={monospace}
         className={className}
       />
-      <InputTrailingItems>
+      <InputGroup.TrailingItems>
         <StepWrap size={size}>
           <StepButton ref={incrementButtonRef} size="zero" borderless {...incrementProps}>
             <StyledIconChevron direction="up" />
@@ -86,10 +85,10 @@ const BaseNumberInput: ForwardRefRenderFunction<HTMLInputElement, NumberInputPro
             <StyledIconChevron direction="down" />
           </StepButton>
         </StepWrap>
-      </InputTrailingItems>
+      </InputGroup.TrailingItems>
     </InputGroup>
   );
-};
+}
 
 const NumberInput = forwardRef(BaseNumberInput);
 

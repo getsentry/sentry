@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
 import LetterAvatar from 'sentry/components/letterAvatar';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {Avatar} from 'sentry/types';
 
 import Gravatar from './gravatar';
@@ -24,7 +24,7 @@ const StyledBaseAvatar = styled('span')<{
 }>`
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
-  border: ${p => (p.suggested ? `2px solid ${p.theme.background}` : 'none')};
+  border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
 `;
 
@@ -100,7 +100,7 @@ type BaseProps = DefaultProps & {
   /**
    * Additional props for the tooltip
    */
-  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
   uploadId?: string | null | undefined;
 };
 

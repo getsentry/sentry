@@ -8,25 +8,29 @@ reset="$(tput sgr0)"
 files_changed_upstream="$(mktemp)"
 trap "rm -f ${files_changed_upstream}" EXIT
 
-git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
+git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD >"$files_changed_upstream"
 
 grep --quiet 'requirements-dev-frozen.txt' "$files_changed_upstream" && py="install-py-dev "
-grep --quiet 'yarn.lock' "$files_changed_upstream"                   && js="install-js-dev "
-grep --quiet 'migrations' "$files_changed_upstream"                  && migrations="apply-migrations "
+grep --quiet 'yarn.lock' "$files_changed_upstream" && js="install-js-dev "
+grep --quiet 'migrations' "$files_changed_upstream" && migrations="apply-migrations "
 
 [[ "$pc" || "$py" || "$js" || "$migrations" ]] && needs_update=1
-update_command="make ${pc}${py}${js}${migrations}"
 
-[[ "$needs_update" ]] && cat <<EOF
+if [[ "$needs_update" ]]; then
+  update_command="make ${pc}${py}${js}${migrations}"
+
+  cat <<EOF
 
 [${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
 
     ${red}${bold}${update_command}${reset}
 
-${yellow}If you want these commands to automatically be executed after pulling code you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}
-
 EOF
 
-if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" && "$needs_update" ]]; then
-  $update_command
+  if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" ]]; then
+    echo "${yellow}Automatically running update command because SENTRY_POST_MERGE_AUTO_UPDATE is set.${reset}"
+    $update_command
+  else
+    echo "${yellow}If you want these commands to be executed automatically after pulling code, you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}"
+  fi
 fi

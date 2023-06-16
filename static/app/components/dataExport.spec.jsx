@@ -47,7 +47,7 @@ describe('DataExport', function () {
     expect(screen.getByText(/This is an example string/)).toBeInTheDocument();
   });
 
-  it('should respect the disabled prop and not be clickable', function () {
+  it('should respect the disabled prop and not be clickable', async function () {
     const postDataExport = MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
@@ -58,7 +58,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(postDataExport).not.toHaveBeenCalled();
     expect(screen.getByRole('button')).toBeDisabled();
   });
@@ -73,7 +73,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     expect(postDataExport).toHaveBeenCalledWith(
       `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
@@ -104,7 +104,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByText(/Export All to CSV/));
+    await userEvent.click(screen.getByText(/Export All to CSV/));
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeDisabled();
     });
@@ -127,7 +127,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
@@ -152,7 +152,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith('uh oh');

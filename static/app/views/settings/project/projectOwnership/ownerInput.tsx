@@ -4,12 +4,16 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import TextArea from 'sentry/components/forms/controls/textarea';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import RuleBuilder from './ruleBuilder';
 
@@ -20,8 +24,14 @@ const defaultProps = {
 };
 
 type Props = {
+  dateUpdated: string | null;
   initialText: string;
+  onCancel: () => void;
   organization: Organization;
+  /**
+   * Used for analytics
+   */
+  page: 'issue_details' | 'project_settings';
   project: Project;
   onSave?: (text: string | null) => void;
 } & typeof defaultProps;
@@ -58,7 +68,7 @@ class OwnerInput extends Component<Props, State> {
   }
 
   handleUpdateOwnership = () => {
-    const {organization, project, onSave} = this.props;
+    const {organization, project, onSave, page, initialText} = this.props;
     const {text} = this.state;
     this.setState({error: null});
 
@@ -81,6 +91,13 @@ class OwnerInput extends Component<Props, State> {
           },
           () => onSave && onSave(text)
         );
+        trackIntegrationAnalytics('project_ownership.saved', {
+          page,
+          organization,
+          net_change:
+            (text?.split('\n').filter(x => x).length ?? 0) -
+            initialText.split('\n').filter(x => x).length,
+        });
       })
       .catch(error => {
         this.setState({error: error.responseJSON});
@@ -148,19 +165,26 @@ class OwnerInput extends Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText} = this.props;
+    const {project, organization, disabled, urls, paths, initialText, dateUpdated} =
+      this.props;
     const {hasChanges, text, error} = this.state;
+
+    const hasStreamlineTargetingFeature = organization.features.includes(
+      'streamline-targeting-context'
+    );
 
     return (
       <Fragment>
-        <RuleBuilder
-          urls={urls}
-          paths={paths}
-          organization={organization}
-          project={project}
-          onAddRule={this.handleAddRule.bind(this)}
-          disabled={disabled}
-        />
+        {!hasStreamlineTargetingFeature && (
+          <RuleBuilder
+            urls={urls}
+            paths={paths}
+            organization={organization}
+            project={project}
+            onAddRule={this.handleAddRule.bind(this)}
+            disabled={disabled}
+          />
+        )}
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
@@ -169,37 +193,52 @@ class OwnerInput extends Component<Props, State> {
             }
           }}
         >
-          <StyledTextArea
-            aria-label={t('Ownership Rules')}
-            placeholder={
-              '#example usage\n' +
-              'path:src/example/pipeline/* person@sentry.io #infra\n' +
-              'module:com.module.name.example #sdks\n' +
-              'url:http://example.com/settings/* #product\n' +
-              'tags.sku_class:enterprise #enterprise'
-            }
-            autosize
-            monospace
-            onChange={this.handleChange}
-            disabled={disabled}
-            value={defined(text) ? text : initialText}
-            spellCheck="false"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-          />
+          <Panel>
+            <PanelHeader>
+              {t('Ownership Rules')}
+
+              {dateUpdated && (
+                <SyncDate>
+                  {t('Last Edited')} <TimeSince date={dateUpdated} />
+                </SyncDate>
+              )}
+            </PanelHeader>
+            <PanelBody>
+              <StyledTextArea
+                aria-label={t('Ownership Rules')}
+                placeholder={
+                  '#example usage\n' +
+                  'path:src/example/pipeline/* person@sentry.io #infra\n' +
+                  'module:com.module.name.example #sdks\n' +
+                  'url:http://example.com/settings/* #product\n' +
+                  'tags.sku_class:enterprise #enterprise'
+                }
+                monospace
+                onChange={this.handleChange}
+                disabled={disabled}
+                value={defined(text) ? text : initialText}
+                spellCheck="false"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+              />
+            </PanelBody>
+          </Panel>
           <ActionBar>
             <div>{this.parseError(error)}</div>
-            <SaveButton>
+            <ButtonBar gap={1}>
+              <Button type="button" size="sm" onClick={this.props.onCancel}>
+                {t('Cancel')}
+              </Button>
               <Button
                 size="sm"
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
                 disabled={disabled || !hasChanges}
               >
-                {t('Save Changes')}
+                {t('Save')}
               </Button>
-            </SaveButton>
+            </ButtonBar>
           </ActionBar>
         </div>
       </Fragment>
@@ -214,6 +253,7 @@ const ActionBar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-top: 10px;
 `;
 
 const SyntaxOverlay = styled('div')<{line: number}>`
@@ -226,28 +266,32 @@ const SyntaxOverlay = styled('div')<{line: number}>`
   pointer-events: none;
 `;
 
-const SaveButton = styled('div')`
-  text-align: end;
-  padding-top: 10px;
-`;
-
 const StyledTextArea = styled(TextArea)`
   min-height: 140px;
   overflow: auto;
   outline: 0;
   width: 100%;
   resize: none;
-  margin: 0;
+  margin: 1px 0 0 0;
   word-break: break-all;
   white-space: pre-wrap;
   padding-top: ${TEXTAREA_PADDING}px;
   line-height: ${TEXTAREA_LINE_HEIGHT}px;
+  height: 450px;
+  border-width: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 `;
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
   font-weight: bold;
   margin-top: 12px;
+`;
+
+const SyncDate = styled('div')`
+  font-weight: normal;
+  text-transform: none;
 `;
 
 export default OwnerInput;

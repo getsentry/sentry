@@ -1,5 +1,6 @@
 import {JsonFormObject} from 'sentry/components/forms/types';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import {MemberRole} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
 
@@ -35,7 +36,25 @@ const formGroups: JsonFormObject[] = [
         name: 'isEarlyAdopter',
         type: 'boolean',
         label: t('Early Adopter'),
-        help: t("Opt-in to new features before they're released to the public"),
+        help: tct("Opt-in to [link:new features] before they're released to the public", {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
+          ),
+        }),
+      },
+      {
+        name: 'aiSuggestedSolution',
+        type: 'boolean',
+        label: t('AI Suggested Solution'),
+        visible: ({features}) => features.has('open-ai-suggestion'),
+        help: tct(
+          'Opt-in to [link:ai suggested solution] to get AI help on how to solve an issue.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+            ),
+          }
+        ),
       },
     ],
   },

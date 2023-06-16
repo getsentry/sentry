@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import time
 from typing import List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
-from django.http import Http404
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration, Organization
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -33,8 +35,8 @@ def strip_channel_name(name: str) -> str:
 
 
 def get_channel_id(
-    organization: "Organization",
-    integration: "Integration",
+    organization: Organization,
+    integration: Integration | RpcIntegration,
     channel_name: str,
     use_async_lookup: bool = False,
 ) -> Tuple[str, Optional[str], bool]:
@@ -71,19 +73,11 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
     """
-    try:
-        integration = Integration.objects.get(id=integration_id)
-    except Integration.DoesNotExist:
-        raise Http404
-
-    token = integration.metadata["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
     # The empty string should be converted to None
     payload = {"channel": input_channel_id or None}
-    client = SlackClient()
-
+    client = SlackClient(integration_id=integration_id)
     try:
-        results = client.get("/conversations.info", headers=headers, params=payload)
+        results = client.get("/conversations.info", params=payload)
     except ApiError as e:
         if e.text == "channel_not_found":
             raise ValidationError("Channel not found. Invalid ID provided.")
@@ -105,7 +99,7 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
 
 
 def get_channel_id_with_timeout(
-    integration: "Integration",
+    integration: Integration | RpcIntegration,
     name: Optional[str],
     timeout: int,
 ) -> Tuple[str, Optional[str], bool]:
@@ -120,8 +114,6 @@ def get_channel_id_with_timeout(
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    headers = {"Authorization": f"Bearer {integration.metadata['access_token']}"}
-
     payload = {
         "exclude_archived": False,
         "exclude_members": True,
@@ -132,7 +124,7 @@ def get_channel_id_with_timeout(
 
     time_to_quit = time.time() + timeout
 
-    client = SlackClient()
+    client = SlackClient(integration_id=integration.id)
     id_data: Optional[Tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
@@ -142,9 +134,7 @@ def get_channel_id_with_timeout(
             endpoint = f"/{list_type}.list"
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(
-                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
-                )
+                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
             except ApiRateLimitedError as e:
                 logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
                 raise e

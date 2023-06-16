@@ -83,7 +83,7 @@ def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
     org = user.get_orgs()[0]
     provider = AuthProvider.objects.create(
-        organization=org, provider="google", config={"domain": "olddomain.com"}
+        organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
     AuthIdentity.objects.create(user=user, auth_provider=provider, ident="me@google.com", data={})
     return request, user
@@ -127,3 +127,15 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         assert get_client_config(request) == base_line
+
+
+@pytest.mark.django_db(transaction=True)
+def test_client_config_deleted_user():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    user.delete()
+
+    result = get_client_config(request)
+    assert result["isAuthenticated"] is False
+    assert result["user"] is None

@@ -1,8 +1,8 @@
-from sentry.lang.native.utils import get_sdk_from_event, is_minidump_event
+from sentry.lang.native.utils import get_os_from_event, is_minidump_event
 
 
-def test_get_sdk_from_event():
-    sdk_info = get_sdk_from_event(
+def test_get_os_from_event():
+    os = get_os_from_event(
         {
             "debug_meta": {
                 "sdk_info": {
@@ -14,19 +14,12 @@ def test_get_sdk_from_event():
             }
         }
     )
-    assert sdk_info["sdk_name"] == "iOS"
-    assert sdk_info["version_major"] == 9
-    assert sdk_info["version_minor"] == 3
-    assert sdk_info["version_patchlevel"] == 0
+    assert os == "ios"
 
-    sdk_info = get_sdk_from_event(
+    os = get_os_from_event(
         {"contexts": {"os": {"type": "os", "name": "iOS", "version": "9.3.1.1234"}}}
     )
-
-    assert sdk_info["sdk_name"] == "iOS"
-    assert sdk_info["version_major"] == 9
-    assert sdk_info["version_minor"] == 3
-    assert sdk_info["version_patchlevel"] == 1
+    assert os == "ios"
 
 
 def test_is_minidump():

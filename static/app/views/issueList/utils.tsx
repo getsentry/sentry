@@ -7,6 +7,10 @@ export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
+  NEW = 'is:new',
+  ARCHIVED = 'is:archived',
+  ESCALATING = 'is:escalating',
+  ONGOING = 'is:ongoing',
   REPROCESSING = 'is:reprocessing',
 }
 
@@ -38,11 +42,12 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
       {
-        name: t('All Unresolved'),
+        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
@@ -55,10 +60,49 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle:
-          t(`Issues are marked for review when they are created, unresolved, or unignored.
+        tooltipTitle: hasEscalatingIssuesUi
+          ? t(
+              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+            )
+          : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
           Issues are automatically marked reviewed in 7 days.`),
+      },
+    ],
+    [
+      Query.NEW,
+      {
+        name: t('New'),
+        analyticsName: 'new',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ESCALATING,
+      {
+        name: t('Escalating'),
+        analyticsName: 'escalating',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ONGOING,
+      {
+        name: t('Ongoing'),
+        analyticsName: 'ongoing',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ARCHIVED,
+      {
+        name: t('Archived'),
+        analyticsName: 'archived',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
       },
     ],
     [
@@ -67,7 +111,7 @@ export function getTabs(organization: Organization) {
         name: t('Ignored'),
         analyticsName: 'ignored',
         count: true,
-        enabled: true,
+        enabled: !hasEscalatingIssuesUi,
         tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
       },
@@ -122,9 +166,9 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
+  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
-  TREND = 'trend',
   INBOX = 'inbox',
 }
 
@@ -140,12 +184,12 @@ export function getSortLabel(key: string) {
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
       return t('Priority');
+    case IssueSortOptions.BETTER_PRIORITY:
+      return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:
       return t('Users');
-    case IssueSortOptions.TREND:
-      return t('Relative Change');
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.DATE:

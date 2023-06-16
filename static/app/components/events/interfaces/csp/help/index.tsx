@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import effectiveDirectives from './effectiveDirectives';
 
@@ -16,7 +16,7 @@ export type HelpProps = {
   };
 };
 
-const CSPHelp = ({data: {effective_directive: key}}: HelpProps) => {
+function CSPHelp({data: {effective_directive: key}}: HelpProps) {
   const getHelp = () => ({
     __html: effectiveDirectives[key],
   });
@@ -56,7 +56,7 @@ const CSPHelp = ({data: {effective_directive: key}}: HelpProps) => {
       </StyledP>
     </div>
   );
-};
+}
 
 export default CSPHelp;
 

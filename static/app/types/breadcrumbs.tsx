@@ -35,6 +35,8 @@ interface BreadcrumbTypeBase {
   category?: string | null;
   event_id?: string | null;
   message?: string;
+  messageFormat?: 'sql';
+  messageRaw?: string;
   timestamp?: string;
 }
 
@@ -56,6 +58,15 @@ export interface BreadcrumbTypeNavigation extends BreadcrumbTypeBase {
     from?: string;
     to?: string;
   };
+}
+
+export interface BreadcrumbTypeInit extends BreadcrumbTypeBase {
+  data: {
+    action: 'replay-init';
+    label: string;
+    url: string;
+  };
+  type: BreadcrumbType.INIT;
 }
 
 export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {

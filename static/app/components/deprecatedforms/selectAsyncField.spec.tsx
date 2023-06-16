@@ -27,7 +27,7 @@ describe('SelectAsyncField', function () {
     render(<SelectAsyncField {...defaultProps} />);
 
     selectEvent.openMenu(screen.getByText('Select me'));
-    userEvent.type(screen.getByRole('textbox'), 'baz');
+    await userEvent.type(screen.getByRole('textbox'), 'baz');
 
     expect(api).toHaveBeenCalled();
 
@@ -44,7 +44,7 @@ describe('SelectAsyncField', function () {
     );
 
     selectEvent.openMenu(screen.getByText('Select me'));
-    userEvent.type(screen.getByRole('textbox'), 'baz');
+    await userEvent.type(screen.getByRole('textbox'), 'baz');
 
     await selectEvent.select(screen.getByText('Select me'), 'Baz Label');
 
@@ -52,7 +52,7 @@ describe('SelectAsyncField', function () {
       fieldName: 'baz',
     });
 
-    userEvent.click(screen.getByRole('button', {name: /save/i}));
+    await userEvent.click(screen.getByRole('button', {name: /save/i}));
 
     expect(submitMock).toHaveBeenCalledWith(
       {

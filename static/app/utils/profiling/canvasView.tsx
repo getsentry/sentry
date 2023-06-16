@@ -3,9 +3,9 @@ import {mat3, vec2} from 'gl-matrix';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
-  Rect,
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export class CanvasView<T extends {configSpace: Rect}> {
   configView: Rect = Rect.Empty();
@@ -71,6 +71,18 @@ export class CanvasView<T extends {configSpace: Rect}> {
       throw new Error('View min width cannot be negative');
     }
     this.minWidth = minWidth;
+  }
+
+  isViewAtTopEdgeOf(space: Rect): boolean {
+    return this.inverted
+      ? space.bottom === this.configView.bottom
+      : space.top === this.configView.top;
+  }
+
+  isViewAtBottomEdgeOf(space: Rect): boolean {
+    return this.inverted
+      ? space.top === this.configView.top
+      : space.bottom === this.configView.bottom;
   }
 
   private _initConfigSpace(canvas: FlamegraphCanvas): void {

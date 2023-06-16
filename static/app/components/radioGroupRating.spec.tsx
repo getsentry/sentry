@@ -26,7 +26,7 @@ const options: RadioGroupRatingProps['options'] = {
 };
 
 describe('RadioGroupRating', function () {
-  it('render numerical labels', function () {
+  it('render numerical labels', async function () {
     const handleChange = jest.fn();
 
     render(
@@ -57,7 +57,7 @@ describe('RadioGroupRating', function () {
     });
 
     // Click on the first option
-    userEvent.click(screen.getByLabelText(`Select option ${options[0].label}`));
+    await userEvent.click(screen.getByLabelText(`Select option ${options[0].label}`));
     expect(handleChange).toHaveBeenCalledWith('0');
   });
 });

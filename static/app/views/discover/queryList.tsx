@@ -14,9 +14,9 @@ import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -174,23 +174,18 @@ class QueryList extends Component<Props> {
               router,
             }),
         },
-
-        ...(organization.features.includes('discover-query-builder-as-landing-page')
-          ? [
-              {
-                key: 'set-as-default',
-                label: t('Set as Default'),
-                onAction: () => {
-                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
-                  trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
-                    organization,
-                    source: 'context-menu',
-                    type: 'prebuilt-query',
-                  });
-                },
-              },
-            ]
-          : []),
+        {
+          key: 'set-as-default',
+          label: t('Set as Default'),
+          onAction: () => {
+            handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+            trackAnalytics('discover_v2.set_as_default', {
+              organization,
+              source: 'context-menu',
+              type: 'prebuilt-query',
+            });
+          },
+        },
       ];
 
       return (
@@ -210,7 +205,7 @@ class QueryList extends Component<Props> {
             />
           )}
           onEventClick={() => {
-            trackAdvancedAnalyticsEvent('discover_v2.prebuilt_query_click', {
+            trackAnalytics('discover_v2.prebuilt_query_click', {
               organization,
               query_name: eventView.name,
             });
@@ -266,22 +261,18 @@ class QueryList extends Component<Props> {
               },
             ]
           : []),
-        ...(organization.features.includes('discover-query-builder-as-landing-page')
-          ? [
-              {
-                key: 'set-as-default',
-                label: t('Set as Default'),
-                onAction: () => {
-                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
-                  trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
-                    organization,
-                    source: 'context-menu',
-                    type: 'saved-query',
-                  });
-                },
-              },
-            ]
-          : []),
+        {
+          key: 'set-as-default',
+          label: t('Set as Default'),
+          onAction: () => {
+            handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+            trackAnalytics('discover_v2.set_as_default', {
+              organization,
+              source: 'context-menu',
+              type: 'saved-query',
+            });
+          },
+        },
         {
           key: 'duplicate',
           label: t('Duplicate Query'),
@@ -306,7 +297,7 @@ class QueryList extends Component<Props> {
           createdBy={eventView.createdBy}
           dateStatus={dateStatus}
           onEventClick={() => {
-            trackAdvancedAnalyticsEvent('discover_v2.saved_query_click', {organization});
+            trackAnalytics('discover_v2.saved_query_click', {organization});
           }}
           renderGraph={() => (
             <MiniGraph

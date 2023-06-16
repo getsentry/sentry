@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
@@ -13,8 +16,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -146,11 +150,16 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization=organization
+                integration=integration, organization_id=organization.id
             )
         except OrganizationIntegration.DoesNotExist:
             logger.exception("The PagerDuty post_install step failed.")
@@ -159,7 +168,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         with transaction.atomic():
             for service in services:
                 PagerDutyService.objects.create_or_update(
-                    organization_integration=org_integration,
+                    organization_integration_id=org_integration.id,
                     integration_key=service["integration_key"],
                     service_name=service["name"],
                 )

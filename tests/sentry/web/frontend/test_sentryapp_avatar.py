@@ -4,9 +4,11 @@ from django.urls import reverse
 
 from sentry.models import File, SentryAppAvatar
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
+@control_silo_test
 class SentryAppAvatarTest(APITestCase):
     def test_headers(self):
         sentry_app = self.create_sentry_app(name="Meow", organization=self.organization)

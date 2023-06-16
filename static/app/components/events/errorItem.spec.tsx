@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {ErrorItem} from 'sentry/components/events/errorItem';
 
 describe('Issue error item', function () {
-  it('expand subitems', function () {
+  it('expand subitems', async function () {
     render(
       <ErrorItem
         error={{
@@ -21,7 +21,7 @@ describe('Issue error item', function () {
 
     expect(screen.queryByText('Mapping Uuid')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByLabelText('Expand'));
+    await userEvent.click(screen.getByLabelText('Expand'));
 
     expect(screen.getByText('Mapping Uuid')).toBeInTheDocument();
   });
@@ -44,13 +44,13 @@ describe('Issue error item', function () {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Expand'));
+    await userEvent.click(screen.getByLabelText('Expand'));
 
     expect(screen.getByText('File Name')).toBeInTheDocument();
     expect(screen.getByText('File Path')).toBeInTheDocument();
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
       await screen.findByText(

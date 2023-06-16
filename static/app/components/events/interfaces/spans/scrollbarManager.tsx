@@ -1,5 +1,4 @@
 import {Component, createContext, createRef} from 'react';
-import throttle from 'lodash/throttle';
 
 import {
   TOGGLE_BORDER_BOX,
@@ -305,9 +304,6 @@ export class Provider extends Component<Props, State> {
       spanBarDOM.style.transformOrigin = 'left';
     });
   };
-
-  // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
-  throttledScroll = throttle(this.performScroll, 500, {trailing: true});
 
   onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {

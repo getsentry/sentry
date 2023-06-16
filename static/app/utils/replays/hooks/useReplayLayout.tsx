@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
@@ -20,7 +20,7 @@ export enum LayoutKey {
    *│           >        │
    *└───────────┴────────┘
    */
-  no_video = 'no_video',
+  NO_VIDEO = 'no_video',
   /**
    * ### Video Only
    *┌────────────────────┐
@@ -33,7 +33,7 @@ export enum LayoutKey {
    *│                    │
    *└────────────────────┘
    */
-  video_only = 'video_only',
+  VIDEO_ONLY = 'video_only',
   /**
    * ### Topbar
    *┌────────────────────┐
@@ -46,7 +46,7 @@ export enum LayoutKey {
    *│                    │
    *└────────────────────┘
    */
-  topbar = 'topbar',
+  TOPBAR = 'topbar',
   /**
    * ### Sidebar Left
    * ┌───────────────────┐
@@ -59,14 +59,14 @@ export enum LayoutKey {
    * │ Tabs   >          │
    * └────────┴──────────┘
    */
-  sidebar_left = 'sidebar_left',
+  SIDEBAR_LEFT = 'sidebar_left',
 }
 
 function isLayout(val: string): val is LayoutKey {
   return val in LayoutKey;
 }
 
-function useActiveReplayTab() {
+function useReplayLayout() {
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
   const defaultLayout = getDefaultLayout(collapsed);
   const organization = useOrganization();
@@ -86,7 +86,7 @@ function useActiveReplayTab() {
         const chosenLayout = isLayout(value) ? value : defaultLayout;
 
         setParamValue(chosenLayout);
-        trackAdvancedAnalyticsEvent('replay.details-layout-changed', {
+        trackAnalytics('replay.details-layout-changed', {
           organization,
           default_layout: defaultLayout,
           chosen_layout: chosenLayout,
@@ -97,4 +97,4 @@ function useActiveReplayTab() {
   };
 }
 
-export default useActiveReplayTab;
+export default useReplayLayout;

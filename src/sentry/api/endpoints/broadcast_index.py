@@ -129,13 +129,13 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
                 unseen_queryset = queryset
             else:
                 unseen_queryset = queryset.exclude(
-                    id__in=queryset.filter(broadcastseen__user=request.user).values("id")
+                    id__in=queryset.filter(broadcastseen__user_id=request.user.id).values("id")
                 )
 
             for broadcast in unseen_queryset:
                 try:
                     with transaction.atomic():
-                        BroadcastSeen.objects.create(broadcast=broadcast, user=request.user)
+                        BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
                 except IntegrityError:
                     pass
 
@@ -172,7 +172,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         if result.get("hasSeen"):
             try:
                 with transaction.atomic():
-                    BroadcastSeen.objects.create(broadcast=broadcast, user=request.user)
+                    BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
                 pass
 

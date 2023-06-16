@@ -17,7 +17,7 @@ class UnassignedActivityNotification(GroupActivityNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        user = self.activity.user
+        user = self.user
         if user:
             author = user.name or user.email
         else:

@@ -10,7 +10,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   MEPState,
@@ -26,7 +26,7 @@ import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {getLandingDisplayFromParam} from './landing/utils';
-import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
+import {generatePerformanceEventView, getDefaultStatsPeriod} from './data';
 import {PerformanceLanding} from './landing';
 import {
   addRoutePerformanceContext,
@@ -53,9 +53,14 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
   const [state, setState] = useState<State>({error: undefined});
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generatePerformanceEventView(location, projects, {
-    withStaticFilters,
-  });
+  const eventView = generatePerformanceEventView(
+    location,
+    projects,
+    {
+      withStaticFilters,
+    },
+    organization
+  );
 
   function getOnboardingProject(): Project | undefined {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.
@@ -138,7 +143,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   }
 
   function handleSearch(searchQuery: string, currentMEPState?: MEPState) {
-    trackAdvancedAnalyticsEvent('performance_views.overview.search', {organization});
+    trackAnalytics('performance_views.overview.search', {organization});
 
     browserHistory.push({
       pathname: location.pathname,
@@ -161,7 +166,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
               start: null,
               end: null,
               utc: false,
-              period: DEFAULT_STATS_PERIOD,
+              period: getDefaultStatsPeriod(organization),
             },
           }}
         >

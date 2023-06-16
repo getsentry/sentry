@@ -24,7 +24,7 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupReprocessing,
@@ -35,7 +35,7 @@ import {
   User,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -131,14 +131,14 @@ function BaseGroupRow({
 
   const trackClick = useCallback(() => {
     if (query === Query.FOR_REVIEW) {
-      trackAdvancedAnalyticsEvent('inbox_tab.issue_clicked', {
+      trackAnalytics('inbox_tab.issue_clicked', {
         organization,
         group_id: group.id,
       });
     }
 
     if (query !== undefined) {
-      trackAdvancedAnalyticsEvent('issues_stream.issue_clicked', sharedAnalytics);
+      trackAnalytics('issues_stream.issue_clicked', sharedAnalytics);
     }
   }, [organization, group.id, query, sharedAnalytics]);
 
@@ -146,7 +146,7 @@ function BaseGroupRow({
     useCallback(
       (type, _assignee, suggestedAssignee) => {
         if (query !== undefined) {
-          trackAdvancedAnalyticsEvent('issues_stream.issue_assigned', {
+          trackAnalytics('issues_stream.issue_assigned', {
             ...sharedAnalytics,
             did_assign_suggestion: !!suggestedAssignee,
             assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
@@ -210,7 +210,7 @@ function BaseGroupRow({
       isFiltered && typeof query === 'string' ? query : ''
     );
     const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
     );
     const filteredQuery = joinQuery(filteredTerms, true);
 
@@ -225,7 +225,7 @@ function BaseGroupRow({
         name: group.title || group.type,
         fields: ['title', 'release', 'environment', 'user', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${group.id}${filteredQuery}`,
+        query: `issue:${group.shortId}${filteredQuery}`,
         version: 2,
       };
 
@@ -247,6 +247,7 @@ function BaseGroupRow({
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
       query: {
         referrer,
+        stream_index: index,
         ...commonQuery,
         query: filteredQuery,
       },
@@ -309,6 +310,7 @@ function BaseGroupRow({
   const groupCategoryCountTitles: Record<IssueCategory, string> = {
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
+    [IssueCategory.PROFILE]: t('Profile Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -395,10 +397,10 @@ function BaseGroupRow({
     <Placeholder height="18px" />
   ) : (
     <TimeSince
-      tooltipTitle={t('Last Triggered')}
+      tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
-      shorten
+      unitStyle="short"
     />
   );
 
@@ -431,7 +433,6 @@ function BaseGroupRow({
         <EventOrGroupHeader
           index={index}
           organization={organization}
-          includeLink
           data={group}
           query={query}
           size="normal"

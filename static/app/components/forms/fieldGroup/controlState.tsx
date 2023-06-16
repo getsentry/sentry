@@ -5,7 +5,7 @@ import Spinner from 'sentry/components/forms/spinner';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export interface ControlStateProps {
   /**
@@ -29,38 +29,35 @@ export interface ControlStateProps {
 /**
  * ControlState (i.e. loading/error icons) for form fields
  */
-const ControlState = ({
-  isSaving,
-  isSaved,
-  error,
-  hideErrorMessage,
-}: ControlStateProps) => (
-  <Fragment>
-    {isSaving ? (
-      <ControlStateWrapper>
-        <FormSpinner data-test-id="saving" />
-      </ControlStateWrapper>
-    ) : isSaved ? (
-      <ControlStateWrapper>
-        <StyledIconCheckmark color="success" size="sm" />
-      </ControlStateWrapper>
-    ) : null}
+function ControlState({isSaving, isSaved, error, hideErrorMessage}: ControlStateProps) {
+  return (
+    <Fragment>
+      {isSaving ? (
+        <ControlStateWrapper>
+          <FormSpinner data-test-id="saving" />
+        </ControlStateWrapper>
+      ) : isSaved ? (
+        <ControlStateWrapper>
+          <StyledIconCheckmark color="success" size="sm" />
+        </ControlStateWrapper>
+      ) : null}
 
-    {error ? (
-      <ControlStateWrapper>
-        <Tooltip
-          position="bottom"
-          offset={8}
-          title={!hideErrorMessage && error}
-          forceVisible
-          skipWrapper
-        >
-          <StyledIconWarning color="error" size="sm" />
-        </Tooltip>
-      </ControlStateWrapper>
-    ) : null}
-  </Fragment>
-);
+      {error ? (
+        <ControlStateWrapper>
+          <Tooltip
+            position="bottom"
+            offset={8}
+            title={!hideErrorMessage && error}
+            forceVisible
+            skipWrapper
+          >
+            <StyledIconWarning color="error" size="sm" />
+          </Tooltip>
+        </ControlStateWrapper>
+      ) : null}
+    </Fragment>
+  );
+}
 
 const ControlStateWrapper = styled('div')`
   display: grid;

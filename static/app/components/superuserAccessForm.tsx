@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Client} from 'sentry/api';
@@ -7,12 +8,12 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
-import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -62,7 +63,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const suReason = superuserReason || data.superuserReason;
 
     if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError(ErrorCodes.noAuthenticator);
+      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
 
@@ -105,18 +106,18 @@ class SuperuserAccessForm extends Component<Props, State> {
     let errorType = '';
     if (err.status === 403) {
       if (err.responseJSON.detail.code === 'no_u2f') {
-        errorType = ErrorCodes.noAuthenticator;
+        errorType = ErrorCodes.NO_AUTHENTICATOR;
       } else {
-        errorType = ErrorCodes.invalidPassword;
+        errorType = ErrorCodes.INVALID_PASSWORD;
       }
     } else if (err.status === 401) {
-      errorType = ErrorCodes.invalidSSOSession;
+      errorType = ErrorCodes.INVALID_SSO_SESSION;
     } else if (err.status === 400) {
-      errorType = ErrorCodes.invalidAccessCategory;
-    } else if (err === ErrorCodes.noAuthenticator) {
-      errorType = ErrorCodes.noAuthenticator;
+      errorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
+    } else if (err === ErrorCodes.NO_AUTHENTICATOR) {
+      errorType = ErrorCodes.NO_AUTHENTICATOR;
     } else {
-      errorType = ErrorCodes.unknownError;
+      errorType = ErrorCodes.UNKNOWN_ERROR;
     }
     this.setState({
       error: true,
@@ -132,7 +133,14 @@ class SuperuserAccessForm extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign('/auth/login/');
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
+      window.location.assign(redirectURL);
+      return;
+    }
+    window.location.assign(authLoginPath);
   };
 
   async getAuthenticators() {
@@ -148,7 +156,7 @@ class SuperuserAccessForm extends Component<Props, State> {
 
   render() {
     const {authenticators, error, errorType, showAccessForms} = this.state;
-    if (errorType === ErrorCodes.invalidSSOSession) {
+    if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
     }

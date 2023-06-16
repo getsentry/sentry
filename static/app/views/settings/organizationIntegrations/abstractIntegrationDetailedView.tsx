@@ -14,7 +14,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -58,6 +58,7 @@ class AbstractIntegrationDetailedView<
   tabs: Tab[] = ['overview', 'configurations'];
 
   componentDidMount() {
+    super.componentDidMount();
     const {location} = this.props;
     const value = location.query.tab === 'configurations' ? 'configurations' : 'overview';
     // eslint-disable-next-line react/no-did-mount-set-state
@@ -202,15 +203,14 @@ class AbstractIntegrationDetailedView<
   ) => {
     options = options || {};
     // If we use this intermediate type we get type checking on the things we care about
-    const params = {
+    trackIntegrationAnalytics(eventKey, {
       view: 'integrations_directory_integration_detail',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', // pending counts as installed here
       organization: this.props.organization,
       ...options,
-    };
-    trackIntegrationAnalytics(eventKey, params);
+    });
   };
 
   // Returns the props as needed by the hooks integrations:feature-gates
@@ -259,14 +259,13 @@ class AbstractIntegrationDetailedView<
   }
 
   renderAddInstallButton(hideButtonIfDisabled = false) {
-    const {organization} = this.props;
     const {IntegrationFeatures} = getIntegrationFeatureGate();
 
     return (
       <IntegrationFeatures {...this.featureProps}>
         {({disabled, disabledReason}) => (
           <DisableWrapper>
-            <Access organization={organization} access={['org:integrations']}>
+            <Access access={['org:integrations']}>
               {({hasAccess}) => (
                 <Tooltip
                   title={t(

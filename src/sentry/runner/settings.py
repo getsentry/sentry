@@ -109,6 +109,7 @@ def configure(ctx, py, yaml, skip_service_validation=False):
         ("application/x-font-ttf", "ttc"),
         ("font/opentype", "otf"),
         ("image/svg+xml", "svg"),
+        ("text/plain", "log"),
     ):
         mimetypes.add_type(type, "." + ext)
 

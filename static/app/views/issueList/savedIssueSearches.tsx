@@ -11,11 +11,11 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {IconAdd, IconEllipsis} from 'sentry/icons';
+import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
@@ -41,32 +41,32 @@ type CreateNewSavedSearchButtonProps = Pick<
 
 const MAX_SHOWN_SEARCHES = 4;
 
-const SavedSearchItemDescription = ({
+function SavedSearchItemDescription({
   savedSearch,
-}: Pick<SavedSearchItemProps, 'savedSearch'>) => {
+}: Pick<SavedSearchItemProps, 'savedSearch'>) {
   if (savedSearch.isGlobal) {
     return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
   }
 
   return (
     <SavedSearchItemVisbility>
-      {savedSearch.visibility === SavedSearchVisibility.Organization
+      {savedSearch.visibility === SavedSearchVisibility.ORGANIZATION
         ? t('Anyone in organization can see but not edit')
         : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
   );
-};
+}
 
-const SavedSearchItem = ({
+function SavedSearchItem({
   organization,
   onSavedSearchSelect,
   savedSearch,
-}: SavedSearchItemProps) => {
+}: SavedSearchItemProps) {
   const {mutate: deleteSavedSearch} = useDeleteSavedSearchOptimistic();
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
   const canEdit =
-    savedSearch.visibility === SavedSearchVisibility.Owner || hasOrgWriteAccess;
+    savedSearch.visibility === SavedSearchVisibility.OWNER || hasOrgWriteAccess;
 
   const actions: MenuItemProps[] = [
     {
@@ -131,7 +131,7 @@ const SavedSearchItem = ({
       )}
     </SearchListItem>
   );
-};
+}
 
 function CreateNewSavedSearchButton({
   organization,
@@ -139,7 +139,7 @@ function CreateNewSavedSearchButton({
   sort,
 }: CreateNewSavedSearchButtonProps) {
   const onClick = () => {
-    trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+    trackAnalytics('search.saved_search_open_create_modal', {
       organization,
     });
     openModal(deps => (
@@ -148,22 +148,18 @@ function CreateNewSavedSearchButton({
   };
 
   return (
-    <Button
-      aria-label={t('Create a new saved search')}
-      onClick={onClick}
-      icon={<IconAdd size="sm" />}
-      borderless
-      size="sm"
-    />
+    <Button onClick={onClick} priority="link" size="sm">
+      {t('Add saved search')}
+    </Button>
   );
 }
 
-const SavedIssueSearches = ({
+function SavedIssueSearches({
   organization,
   onSavedSearchSelect,
   query,
   sort,
-}: SavedIssueSearchesProps) => {
+}: SavedIssueSearchesProps) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
@@ -176,17 +172,9 @@ const SavedIssueSearches = ({
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
-  const isAboveContent = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const onClickSavedSearch = (savedSearch: SavedSearch) => {
-    // On small screens, the sidebar appears above the issue list, so we
-    // will close it automatically for convenience.
-    if (isAboveContent) {
-      setIsOpen(false);
-    }
-    onSavedSearchSelect(savedSearch);
-  };
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
-  if (!isOpen) {
+  if (!isOpen || isMobile) {
     return null;
   }
 
@@ -223,14 +211,22 @@ const SavedIssueSearches = ({
       <Fragment>
         <HeadingContainer>
           <Heading>{t('Saved Searches')}</Heading>
-          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+          <Button
+            aria-label={t('Collapse sidebar')}
+            borderless
+            onClick={() => setIsOpen(false)}
+            icon={<IconClose size="sm" />}
+          />
         </HeadingContainer>
+        <CreateSavedSearchWrapper>
+          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+        </CreateSavedSearchWrapper>
         <SearchesContainer>
           {shownOrgSavedSearches.map(item => (
             <SavedSearchItem
               key={item.id}
               organization={organization}
-              onSavedSearchSelect={onClickSavedSearch}
+              onSavedSearchSelect={onSavedSearchSelect}
               savedSearch={item}
             />
           ))}
@@ -259,7 +255,7 @@ const SavedIssueSearches = ({
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
-                onSavedSearchSelect={onClickSavedSearch}
+                onSavedSearchSelect={onSavedSearchSelect}
                 savedSearch={item}
               />
             ))}
@@ -268,7 +264,7 @@ const SavedIssueSearches = ({
       )}
     </StyledSidebar>
   );
-};
+}
 
 const StyledSidebar = styled('aside')`
   grid-area: saved-searches;
@@ -302,6 +298,11 @@ const HeadingContainer = styled('div')`
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
+`;
+
+const CreateSavedSearchWrapper = styled('div')`
+  padding: 0 ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const SearchesContainer = styled('ul')`

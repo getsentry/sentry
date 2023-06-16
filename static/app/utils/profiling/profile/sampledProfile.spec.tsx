@@ -148,7 +148,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -169,7 +169,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
       true
     );
   });

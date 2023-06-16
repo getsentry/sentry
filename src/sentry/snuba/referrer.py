@@ -2,7 +2,7 @@ import enum
 import logging
 from enum import Enum, unique
 from itertools import chain
-from typing import Optional
+from typing import Mapping, Optional
 
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -49,6 +49,9 @@ class ReferrerBase(Enum):
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
     API_DASHBOARDS_WORLDMAPWIDGET = "api.dashboards.worldmapwidget"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
+    API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
+        "api.discover.total-sum-transaction-duration-field"
+    )
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
     API_DISCOVER_DAILYTOP5_CHART = "api.discover.dailytop5-chart"
@@ -69,6 +72,9 @@ class ReferrerBase(Enum):
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
     API_GROUP_EVENTS_PERFORMANCE = "api.group-events.performance"
     API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = "api.group_hashes_levels.get_level_new_issues"
+    API_GROUP_HASHES_LEVELS_GET_HASH_FOR_PARENT_LEVEL = (
+        "api.group_hashes_levels.get_hash_for_parent_level"
+    )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
@@ -122,6 +128,9 @@ class ReferrerBase(Enum):
     )
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
+    )
+    API_PERFORMANCE_EVENTS_FACETS_STATS = (
+        "api.organization-events-facets-stats-performance.top-tags"
     )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
@@ -315,7 +324,20 @@ class ReferrerBase(Enum):
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
+    API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
+    API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
+    API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
+    API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
+    API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
+    API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
+    API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
+    API_PROFILING_SUSPECT_FUNCTIONS_LIST = "api.profiling.suspect-functions.list"
+    API_PROFILING_SUSPECT_FUNCTIONS_TOTALS = "api.profiling.suspect-functions.totals"
+    API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
+    API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
+    API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -326,8 +348,20 @@ class ReferrerBase(Enum):
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
+        "api.trends.get-event-statsv2.top-events.metrics-enhanced.primary"
+    )
+    API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_METRICS_ENHANCED = (
+        "api.trends.get-event-statsv2.top-events.metrics-enhanced"
+    )
+    API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES = "api.trends.get-event-statsv2.timeseries"
+    API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES_METRICS_ENHANCED = (
+        "api.trends.get-event-statsv2.timeseries.metrics-enhanced"
+    )
     API_TRENDS_GET_PERCENTAGE_CHANGE = "api.trends.get-percentage-change"
     API_VROOM = "api.vroom"
+    BACKFILL_PERF_ISSUE_EVENTS = "migration.backfill_perf_issue_events_issue_platform"
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
@@ -349,6 +383,24 @@ class ReferrerBase(Enum):
     DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
         "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
     )
+    DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
+        "dynamic_sampling.counters.get_org_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_orgs_with_count_per_root_total_volumes"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
+        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS = "dynamic_sampling.counters.get_active_orgs"
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
+        "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
     EVENTSTORE_GET_NEXT_OR_PREV_EVENT_ID = "eventstore.get_next_or_prev_event_id"
@@ -364,10 +416,11 @@ class ReferrerBase(Enum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
-    GROUP_GET_LATEST = "group.get_latest"
+    GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
+    IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -452,6 +505,8 @@ class ReferrerBase(Enum):
     )
     REPLAYS_QUERY_QUERY_REPLAYS_COUNT = "replays.query.query_replays_count"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
+    REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
+    REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
@@ -462,11 +517,16 @@ class ReferrerBase(Enum):
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
+    SEARCH_GROUP_INDEX = "search.group_index"
+    SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_error_seen_stats_query"
+        "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_PERF_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_perf_seen_stats_query"
+        "serializers.GroupSerializerSnuba._execute_perf_seen_stats_query"
+    )
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_GENERIC_SEEN_STATS_QUERY = (
+        "serializers.GroupSerializerSnuba._execute_generic_seen_stats_query"
     )
     SESSIONS_CRASH_FREE_BREAKDOWN = "sessions.crash-free-breakdown"
     SESSIONS_GET_ADOPTION = "sessions.get-adoption"
@@ -492,17 +552,16 @@ class ReferrerBase(Enum):
         "snuba.sessions.check_releases_have_health_data"
     )
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
+    SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore._get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
-    TAGSTORE__GET_TAG_KEYS = "tagstore._get_tag_keys"
+    TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
-    TAGSTORE_GET_PERF_GROUP_LIST_TAG_VALUE = "tagstore.get_perf_group_list_tag_value"
-    TAGSTORE_GET_PERF_GROUPS_USER_COUNTS = "tagstore.get_perf_groups_user_counts"
     TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
     TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
@@ -531,8 +590,35 @@ TSDBModelReferrer = enum.Enum(
     {f"TSDB_MODELID_{model.value}": f"tsdb-modelid:{model.value}" for model in TSDBModel},
 )
 
+# specific suffixes that apply to tsdb-modelid referrers, these are optional
+# and are passed around through using `referrer_suffix`.
+TSDB_MODEL_TO_SUFFIXES = {
+    TSDBModel.group: {
+        "frequency_snoozes",
+        "alert_event_frequency",
+        "alert_event_frequency_percent",
+    },
+    TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
+}
+
+
+def generate_enums() -> Mapping[str, str]:
+    enums = {}
+    for model, suffixes in TSDB_MODEL_TO_SUFFIXES.items():
+        for suffix in suffixes:
+            enums[f"TSDB_MODELID_{model.value}_{suffix}"] = f"tsdb-modelid:{model.value}.{suffix}"
+    return enums
+
+
+TSDBModelSuffixReferrer = enum.Enum(
+    "TSDBModelSuffixReferrer",
+    generate_enums(),
+)
+
+
 Referrer = enum.Enum(
-    "Referrer", [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer)]
+    "Referrer",
+    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModelSuffixReferrer)],
 )
 
 

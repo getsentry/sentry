@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from django.template.defaultfilters import slugify
+from django.utils.text import slugify
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -37,7 +37,7 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
-    private = True
+
     # Creating a new sentry function
 
     def post(self, request, organization):

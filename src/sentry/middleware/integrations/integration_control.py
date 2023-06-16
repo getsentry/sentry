@@ -5,19 +5,28 @@ import re
 from typing import Mapping, Type
 
 from sentry.silo import SiloMode
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
-from .parsers import SlackRequestParser
+from .parsers import GithubRequestParser, GitlabRequestParser, JiraRequestParser, SlackRequestParser
 from .parsers.base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
+ACTIVE_PARSERS = [
+    GithubRequestParser,
+    GitlabRequestParser,
+    JiraRequestParser,
+    SlackRequestParser,
+]
+
 
 class IntegrationControlMiddleware:
-    webhook_prefix: str = "/extensions/"
+    integration_prefix: str = "/extensions/"
+    """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
+    setup_suffix: str = "/setup/"
+    """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
 
     integration_parsers: Mapping[str, Type[BaseRequestParser]] = {
-        EXTERNAL_PROVIDERS[ExternalProviders.SLACK]: SlackRequestParser,
+        parser.provider: parser for parser in ACTIVE_PARSERS
     }
 
     def __init__(self, get_response):
@@ -28,8 +37,8 @@ class IntegrationControlMiddleware:
         Parses the provider out of the request path
             e.g. `/extensions/slack/commands/` -> `slack`
         """
-        webhook_prefix_regex = re.escape(self.webhook_prefix)
-        provider_regex = rf"^{webhook_prefix_regex}(\w+)"
+        integration_prefix_regex = re.escape(self.integration_prefix)
+        provider_regex = rf"^{integration_prefix_regex}(\w+)"
         result = re.search(provider_regex, request.path)
         if not result:
             logger.error(
@@ -44,8 +53,9 @@ class IntegrationControlMiddleware:
         Determines whether this middleware will operate or just pass the request along.
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
-        is_external = request.path.startswith(self.webhook_prefix)
-        return is_correct_silo and is_external
+        is_integration = request.path.startswith(self.integration_prefix)
+        is_not_setup = not request.path.endswith(self.setup_suffix)
+        return is_correct_silo and is_integration and is_not_setup
 
     def __call__(self, request):
         if not self._should_operate(request):

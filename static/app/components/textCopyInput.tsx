@@ -2,16 +2,9 @@ import {useCallback, useRef} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
-import {
-  Input,
-  InputGroup,
-  InputProps,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
-import {IconCopy} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {InputGroup, InputProps} from 'sentry/components/inputGroup';
+import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 interface Props extends Omit<InputProps, 'onCopy'> {
@@ -21,7 +14,7 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   children: string;
   className?: string;
   disabled?: boolean;
-  onCopy?: (value: string, event: React.MouseEvent) => void;
+  onCopy?: (value: string) => void;
   /**
    * Always show the ending of a long overflowing text in input
    */
@@ -62,24 +55,6 @@ function TextCopyInput({
   }, [rtl]);
 
   /**
-   * Select text when copy button is clicked
-   */
-  const handleCopyClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (!textRef.current) {
-        return;
-      }
-
-      handleSelectText();
-
-      onCopy?.(children, e);
-
-      e.stopPropagation();
-    },
-    [handleSelectText, children, onCopy]
-  );
-
-  /**
    * We are using direction: rtl; to always show the ending of a long overflowing text in input.
    *
    * This however means that the trailing characters with BiDi class O.N. ('Other Neutrals') goes to the other side.
@@ -102,25 +77,25 @@ function TextCopyInput({
         rtl={rtl}
         {...inputProps}
       />
-      <InputTrailingItems>
-        <Clipboard hideUnsupported value={children}>
-          <StyledCopyButton borderless disabled={disabled} onClick={handleCopyClick}>
-            <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
-          </StyledCopyButton>
-        </Clipboard>
-      </InputTrailingItems>
+      <InputGroup.TrailingItems>
+        <StyledCopyButton
+          borderless
+          iconSize={size === 'xs' ? 'xs' : 'sm'}
+          onCopy={onCopy}
+          text={children}
+        />
+      </InputGroup.TrailingItems>
     </InputGroup>
   );
 }
 
 export default TextCopyInput;
 
-const StyledInput = styled(Input)<{rtl?: boolean}>`
+const StyledInput = styled(InputGroup.Input)<{rtl?: boolean}>`
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
 `;
 
-const StyledCopyButton = styled(Button)`
-  color: ${p => p.theme.subText};
+const StyledCopyButton = styled(CopyToClipboardButton)`
   padding: ${space(0.5)};
   min-height: 0;
   height: auto;

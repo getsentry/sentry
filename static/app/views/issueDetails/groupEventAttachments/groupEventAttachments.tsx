@@ -11,7 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 // eslint-disable-next-line no-restricted-imports

@@ -1,42 +1,29 @@
 import {Location} from 'history';
 
 import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {AggregationKeyWithAlias, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   canUseMetricsData,
   MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
-import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 
-export const DISPLAY_MAP_DENY_LIST = [DisplayModes.TREND, DisplayModes.LATENCY];
-
-export function canUseTransactionMetricsData(organization, location) {
+export function canUseTransactionMetricsData(
+  organization: Organization,
+  mepDataContext: MetricsEnhancedPerformanceDataContext
+) {
   const isUsingMetrics = canUseMetricsData(organization);
 
   if (!isUsingMetrics) {
     return false;
   }
 
-  const display = decodeScalar(
-    location.query.display,
-    DisplayModes.DURATION
-  ) as DisplayModes;
-  const breakdown = decodeScalar(location.query.breakdown, '');
-  const query = decodeScalar(location.query.query, '');
-
-  // certain charts aren't compatible with metrics
-  if (DISPLAY_MAP_DENY_LIST.includes(display)) {
-    return false;
-  }
-
-  // span op breakdown filters aren't compatible with metrics
-  if (breakdown) {
-    return false;
-  }
-
-  // in the short term, using any filter will force indexed event search
-  if (query) {
+  if (mepDataContext.isMetricsData === false) {
     return false;
   }
 
@@ -44,25 +31,41 @@ export function canUseTransactionMetricsData(organization, location) {
 }
 
 export function getTransactionMEPParamsIfApplicable(
-  mepContext: MetricsEnhancedSettingContext,
-  organization: Organization,
-  location: Location,
-  unfiltered: boolean = false
+  mepSetting: MetricsEnhancedSettingContext,
+  mepCardinality: MetricsCardinalityContext,
+  organization: Organization
 ) {
-  if (!organization.features.includes('performance-metrics-backed-transaction-summary')) {
+  if (!canUseMetricsData(organization)) {
     return undefined;
   }
 
-  if (!unfiltered && !canUseTransactionMetricsData(organization, location)) {
+  if (mepCardinality.outcome?.forceTransactionsOnly) {
     return undefined;
   }
 
-  return getMEPQueryParams(mepContext);
+  return getMEPQueryParams(mepSetting, true);
 }
 
-export function canUseMetricsInTransactionSummary(organization: Organization) {
-  return (
-    canUseMetricsData(organization) &&
-    organization.features.includes('performance-metrics-backed-transaction-summary')
-  );
+export function getUnfilteredTotalsEventView(
+  eventView: EventView,
+  location: Location,
+  fields: AggregationKeyWithAlias[]
+): EventView {
+  const totalsColumns: QueryFieldValue[] = fields.map(field => ({
+    kind: 'function',
+    function: [field, '', undefined, undefined],
+  }));
+
+  const transactionName = decodeScalar(location.query.transaction);
+  const conditions = new MutableSearch('');
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  if (transactionName) {
+    conditions.setFilterValues('transaction', [transactionName]);
+  }
+
+  const unfilteredEventView = eventView.withColumns([...totalsColumns]);
+  unfilteredEventView.query = conditions.formatString();
+
+  return unfilteredEventView;
 }

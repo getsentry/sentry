@@ -4,8 +4,9 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -20,20 +21,19 @@ class DummyRequestNotification(OrganizationRequestNotification):
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
+@control_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()
         self.create_member(user=self.user2, organization=self.organization)
+        self.user_actors = {RpcActor.from_orm_user(user) for user in (self.user, self.user2)}
 
     def test_default_to_slack(self):
         notification = DummyRequestNotification(self.organization, self.user)
 
-        api_user = user_service.get_user(self.user.id)
-        api_user_2 = user_service.get_user(self.user2.id)
-
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {api_user, api_user_2},
-            ExternalProviders.SLACK: {api_user, api_user_2},
+            ExternalProviders.EMAIL: self.user_actors,
+            ExternalProviders.SLACK: self.user_actors,
         }
 
     def test_turn_off_settings(self):
@@ -41,22 +41,19 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
         )
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user2,
+            actor=RpcActor.from_orm_user(self.user2),
         )
 
         notification = DummyRequestNotification(self.organization, self.user)
 
-        api_user = user_service.get_user(self.user.id)
-        api_user_2 = user_service.get_user(self.user2.id)
-
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {api_user, api_user_2},
-            ExternalProviders.SLACK: {api_user, api_user_2},
+            ExternalProviders.EMAIL: self.user_actors,
+            ExternalProviders.SLACK: self.user_actors,
         }

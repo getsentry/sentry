@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect, {
+import {
+  CompactSelect,
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
@@ -16,7 +17,10 @@ type BaseProps = {
 };
 
 interface SingleProps
-  extends Omit<SingleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+  extends Omit<
+      SingleSelectProps<string>,
+      'onChange' | 'defaultValue' | 'multiple' | 'title'
+    >,
     BaseProps {
   onChange: (value: string) => void;
   selected: string;
@@ -25,7 +29,10 @@ interface SingleProps
 }
 
 interface MultipleProps
-  extends Omit<MultipleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+  extends Omit<
+      MultipleSelectProps<string>,
+      'onChange' | 'defaultValue' | 'multiple' | 'title'
+    >,
     BaseProps {
   multiple: true;
   onChange: (value: string[]) => void;
@@ -41,11 +48,13 @@ function OptionSelector({
   featureType,
   multiple,
   defaultValue,
+  closeOnSelect,
   ...rest
 }: SingleProps | MultipleProps) {
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
+      textValue: String(opt.label),
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);
@@ -60,6 +69,7 @@ function OptionSelector({
         onChange: (sel: SelectOption<string>[]) => {
           onChange?.(sel.map(o => o.value));
         },
+        closeOnSelect,
       };
     }
 
@@ -68,8 +78,9 @@ function OptionSelector({
       value: selected,
       defaultValue,
       onChange: opt => onChange?.(opt.value),
+      closeOnSelect,
     };
-  }, [multiple, selected, defaultValue, onChange]);
+  }, [multiple, selected, defaultValue, onChange, closeOnSelect]);
 
   function isOptionDisabled(option) {
     return (

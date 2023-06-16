@@ -5,8 +5,10 @@ from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class BitbucketServerIntegrationTest(IntegrationTestCase):
     provider = BitbucketServerIntegrationProvider
 
@@ -264,7 +266,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert integration.metadata["verify_ssl"] is False
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert org_integration.config == {}
 

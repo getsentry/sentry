@@ -1,6 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
+import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export class FlamegraphCanvas {
   canvas: HTMLCanvasElement;

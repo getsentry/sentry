@@ -221,6 +221,9 @@ FILTERABLE_TAGS = {
     "tags[browser.name]",
     "tags[os.name]",
     "tags[release]",
+    "tags[histogram_outlier]",
+    "tags[geo.country_code]",
+    "tags[http.status_code]",
 }
 
 

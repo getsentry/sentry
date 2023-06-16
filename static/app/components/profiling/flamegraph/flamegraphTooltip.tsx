@@ -5,15 +5,16 @@ import {vec2} from 'gl-matrix';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
@@ -55,6 +56,8 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
     ).transformRect(props.flamegraphView.configSpaceTransform);
   }, [props.flamegraphView, props.frame]);
 
+  const isCount = props.flamegraphRenderer.flamegraph.profile.unit === 'count';
+
   return (
     <BoundTooltip
       bounds={props.canvasBounds}
@@ -67,6 +70,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {isCount && t('samples') + ' '}
         {formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
@@ -79,20 +83,27 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
             {t('source')}:{formatFileNameAndLineColumn(props.frame)}
           </Fragment>
         )}
+        <FlamegraphTooltipTimelineInfo>
+          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
+        </FlamegraphTooltipTimelineInfo>
       </FlamegraphTooltipTimelineInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.right)}
-        {props.frame.frame.inline ? (
-          <FlamegraphInlineIndicator>
-            <IconLightning width={10} />
-            {t('inline frame')}
-          </FlamegraphInlineIndicator>
-        ) : (
-          ''
-        )}
-      </FlamegraphTooltipTimelineInfo>
+      {!isCount && (
+        <FlamegraphTooltipTimelineInfo>
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
+          {' \u2014 '}
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(
+            frameInConfigSpace.right
+          )}
+          {props.frame.frame.inline ? (
+            <FlamegraphInlineIndicator>
+              <IconLightning width={10} />
+              {t('inline frame')}
+            </FlamegraphInlineIndicator>
+          ) : (
+            ''
+          )}
+        </FlamegraphTooltipTimelineInfo>
+      )}
     </BoundTooltip>
   );
 }

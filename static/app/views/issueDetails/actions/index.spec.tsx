@@ -13,6 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {IssueCategory} from 'sentry/types';
+import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
 const project = TestStubs.ProjectDetails({
@@ -36,10 +37,15 @@ const organization = TestStubs.Organization({
 });
 
 describe('GroupActions', function () {
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
   beforeEach(function () {
     ConfigStore.init();
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
+  });
+  afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   describe('render()', function () {
@@ -66,7 +72,7 @@ describe('GroupActions', function () {
       });
     });
 
-    it('can subscribe', function () {
+    it('can subscribe', async function () {
       render(
         <GroupActions
           group={group}
@@ -75,7 +81,7 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -107,10 +113,10 @@ describe('GroupActions', function () {
         />
       );
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByLabelText('More Actions'));
 
       const bookmark = await screen.findByTestId('bookmark');
-      userEvent.click(bookmark);
+      await userEvent.click(bookmark);
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -137,7 +143,7 @@ describe('GroupActions', function () {
         />
       );
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByLabelText('More Actions'));
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
@@ -160,11 +166,11 @@ describe('GroupActions', function () {
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
 
-      userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByLabelText('More Actions'));
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
-      userEvent.click(reprocessActionButton);
+      await userEvent.click(reprocessActionButton);
       await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
   });
@@ -193,8 +199,8 @@ describe('GroupActions', function () {
       {organization: org}
     );
 
-    userEvent.click(screen.getByLabelText('More Actions'));
-    userEvent.click(await screen.findByText('Share'));
+    await userEvent.click(screen.getByLabelText('More Actions'));
+    await userEvent.click(await screen.findByText('Share'));
 
     const modal = screen.getByRole('dialog');
     expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
@@ -229,15 +235,15 @@ describe('GroupActions', function () {
       {organization: org}
     );
 
-    userEvent.click(screen.getByLabelText('More Actions'));
-    userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    await userEvent.click(screen.getByLabelText('More Actions'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     const modal = screen.getByRole('dialog');
     expect(
       within(modal).getByText(/Deleting this issue is permanent/)
     ).toBeInTheDocument();
 
-    userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+    await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
 
     expect(deleteMock).toHaveBeenCalled();
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -246,7 +252,7 @@ describe('GroupActions', function () {
     });
   });
 
-  it('resolves and unresolves issue', () => {
+  it('resolves and unresolves issue', async () => {
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',
@@ -263,11 +269,17 @@ describe('GroupActions', function () {
       {organization}
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
       expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_type: 'resolved',
+      })
     );
 
     rerender(
@@ -279,11 +291,50 @@ describe('GroupActions', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
       expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+    );
+  });
+
+  it('can archive issue', async () => {
+    const org = {...organization, features: ['escalating-issues']};
+    const issuesApi = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    render(
+      <GroupActions
+        group={group}
+        project={project}
+        organization={org}
+        disabled={false}
+      />,
+      {organization: org}
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
+
+    expect(issuesApi).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          status: 'ignored',
+          statusDetails: {},
+          substatus: 'archived_until_escalating',
+        },
+      })
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_substatus: 'archived_until_escalating',
+        action_type: 'ignored',
+      })
     );
   });
 });

@@ -99,7 +99,7 @@ describe('TeamMisery', () => {
     expect(screen.getAllByText('0% change')).toHaveLength(3);
 
     expect(screen.getByText('Show 7 More')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Show 7 More'));
+    await userEvent.click(screen.getByText('Show 7 More'));
     expect(screen.getAllByText('0% change')).toHaveLength(noChangeItems);
   });
 

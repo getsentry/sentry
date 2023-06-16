@@ -9,19 +9,13 @@ from freezegun import freeze_time
 from pytz import UTC
 
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import (
-    Environment,
-    Integration,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleFireHistory,
-    RuleStatus,
-    User,
-)
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 
@@ -34,7 +28,8 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        assert rule.owner == User.objects.get(id=owner_id).actor
+        with exempt_from_silo_limits():
+            assert Actor.objects.get(id=rule.owner_id)
     else:
         assert rule.owner is None
 
@@ -70,6 +65,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
+@region_silo_test(stable=True)
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
@@ -96,7 +92,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -141,6 +137,39 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["id"] == conditions[0]["id"]
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
+    def test_with_snooze_rule(self):
+        RuleSnooze.objects.create(
+            user_id=self.user.id,
+            owner_id=self.user.id,
+            rule=self.rule,
+            until=None,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == "You"
+        assert not response.data["snoozeForEveryone"]
+
+    def test_with_snooze_rule_everyone(self):
+        user2 = self.create_user("user2@example.com")
+
+        RuleSnooze.objects.create(
+            owner_id=user2.id,
+            rule=self.rule,
+            until=None,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
+        assert response.data["snoozeForEveryone"]
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
@@ -187,6 +216,35 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             == self.sentry_app_installation.uuid
         )
         assert response.data["actions"][0]["disabled"] is True
+
+    def test_with_deleted_sentry_app(self):
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "123-uuid-does-not-exist",
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"summary": "Something happened here..."},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Nisanthan"},
+                ],
+            }
+        ]
+        data = {
+            "conditions": [],
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Action with deleted SentryApp is removed
+        assert response.data["actions"] == []
 
     @freeze_time()
     def test_last_triggered(self):
@@ -259,7 +317,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -566,7 +624,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filterMatch": "any",
             "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
             "actions": [],
-            "owner": new_user.actor.get_actor_identifier(),
+            "owner": get_actor_for_user(new_user).get_actor_identifier(),
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
@@ -706,7 +764,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 

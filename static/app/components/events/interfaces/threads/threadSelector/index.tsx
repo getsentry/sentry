@@ -4,8 +4,10 @@ import partition from 'lodash/partition';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {t} from 'sentry/locale';
 import {Event, ExceptionType, Thread} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
 import filterThreadInfo from './filterThreadInfo';
@@ -24,17 +26,25 @@ type Props = {
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
-const ThreadSelector = ({
+function ThreadSelector({
   threads,
   event,
   exception,
   activeThread,
   onChange,
   fullWidth = false,
-}: Props) => {
+}: Props) {
+  const hasThreadStates = threads.some(thread =>
+    defined(getMappedThreadState(thread.state))
+  );
+
   const getDropDownItem = (thread: Thread) => {
-    const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
-    const threadInfo = {label, filename};
+    const {label, filename, crashedInfo, state} = filterThreadInfo(
+      event,
+      thread,
+      exception
+    );
+    const threadInfo = {label, filename, state};
     return {
       value: `#${thread.id}: ${thread.name} ${label} ${filename}`,
       threadInfo,
@@ -46,6 +56,7 @@ const ThreadSelector = ({
           name={thread.name}
           crashed={thread.crashed}
           crashedInfo={crashedInfo}
+          hasThreadStates={hasThreadStates}
         />
       ),
     };
@@ -76,7 +87,7 @@ const ThreadSelector = ({
           searchPlaceholder={t('Filter Threads')}
           emptyMessage={t('You have no threads')}
           noResultsMessage={t('No threads found')}
-          menuHeader={<Header />}
+          menuHeader={<Header hasThreadStates={hasThreadStates} />}
           rootClassName={
             fullWidth
               ? css`
@@ -92,11 +103,13 @@ const ThreadSelector = ({
               {selectedItem ? (
                 <SelectedOption
                   id={selectedItem.thread.id}
+                  name={selectedItem.thread.name}
                   details={selectedItem.threadInfo}
                 />
               ) : (
                 <SelectedOption
                   id={activeThread.id}
+                  name={activeThread.name}
                   details={filterThreadInfo(event, activeThread, exception)}
                 />
               )}
@@ -106,7 +119,7 @@ const ThreadSelector = ({
       )}
     </ClassNames>
   );
-};
+}
 
 export default ThreadSelector;
 
@@ -127,9 +140,4 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
   width: 100%;
   min-width: 150px;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    > *:first-child {
-      width: auto;
-    }
-  }
 `;

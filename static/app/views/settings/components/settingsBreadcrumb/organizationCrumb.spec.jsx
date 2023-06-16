@@ -3,7 +3,8 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -18,21 +19,21 @@ describe('OrganizationCrumb', function () {
     }),
   ];
 
-  const switchOrganization = () => {
-    userEvent.hover(screen.getByRole('link'));
-    userEvent.click(screen.getAllByRole('option')[1]);
+  beforeEach(() => {
+    OrganizationsStore.init();
+    OrganizationsStore.load(organizations);
+  });
+
+  const switchOrganization = async () => {
+    await userEvent.hover(screen.getByRole('link'));
+    await userEvent.click(screen.getAllByRole('option')[1]);
   };
 
   const renderComponent = props =>
-    render(
-      <OrganizationCrumb
-        organizations={organizations}
-        organization={organization}
-        params={{orgId: organization.slug}}
-        {...props}
-      />,
-      {context: routerContext}
-    );
+    render(<OrganizationCrumb params={{orgId: organization.slug}} {...props} />, {
+      context: routerContext,
+      organization,
+    });
 
   beforeEach(function () {
     initialData = window.__initialData;
@@ -43,7 +44,7 @@ describe('OrganizationCrumb', function () {
     window.__initalData = initialData;
   });
 
-  it('switches organizations on settings index', function () {
+  it('switches organizations on settings index', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -56,12 +57,12 @@ describe('OrganizationCrumb', function () {
     const route = routes[6];
 
     renderComponent({routes, route});
-    switchOrganization();
+    await switchOrganization();
 
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
   });
 
-  it('switches organizations while on API Keys Details route', function () {
+  it('switches organizations while on API Keys Details route', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -77,12 +78,12 @@ describe('OrganizationCrumb', function () {
     const route = routes[6];
 
     renderComponent({routes, route});
-    switchOrganization();
+    await switchOrganization();
 
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
   });
 
-  it('switches organizations while on API Keys List route', function () {
+  it('switches organizations while on API Keys List route', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -97,12 +98,12 @@ describe('OrganizationCrumb', function () {
     const route = routes[6];
 
     renderComponent({routes, route});
-    switchOrganization();
+    await switchOrganization();
 
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
   });
 
-  it('switches organizations while in Project Client Keys Details route', function () {
+  it('switches organizations while in Project Client Keys Details route', async function () {
     const routes = [
       {path: '/', childRoutes: []},
       {path: '/settings/', name: 'Settings', childRoutes: []},
@@ -122,12 +123,12 @@ describe('OrganizationCrumb', function () {
       routes,
       route,
     });
-    switchOrganization();
+    await switchOrganization();
 
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
   });
 
-  it('switches organizations for child route with customer domains', function () {
+  it('switches organizations for child route with customer domains', async function () {
     window.__initialData = {
       customerDomain: {
         subdomain: 'albertos-apples',
@@ -160,8 +161,10 @@ describe('OrganizationCrumb', function () {
       }),
     ];
 
-    renderComponent({routes, route, organizations: orgs});
-    switchOrganization();
+    OrganizationsStore.load(orgs);
+
+    renderComponent({routes, route});
+    await switchOrganization();
 
     // The double slug doesn't actually show up as we have more routing context present.
     expect(window.location.assign).toHaveBeenCalledWith(

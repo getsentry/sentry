@@ -1,9 +1,11 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
-import {IconChevron} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
@@ -31,7 +33,7 @@ export function searchFrameFzf(
 
   matches.set(getFlamegraphFrameSearchId(frame), {
     frame,
-    match: match.matches[0],
+    match: match.matches,
   });
   return match;
 }
@@ -49,7 +51,7 @@ export function searchSpanFzf(
 
   matches.set(span.node.span.span_id, {
     span,
-    match: match.matches[0],
+    match: match.matches,
   });
   return match;
 }
@@ -60,17 +62,22 @@ export function searchFrameRegExp(
   query: string,
   flags: string
 ) {
-  const regExp = new RegExp(query, flags ?? 'g');
-  const reMatches = Array.from(frame.frame.name.matchAll(regExp));
-  const match = findBestMatchFromRegexpMatchArray(reMatches);
+  const regExp = new RegExp(query, flags || 'g');
+  const stringMatches = frame.frame.name.matchAll(regExp);
 
-  if (match === null) {
+  if (!stringMatches) {
+    return null;
+  }
+
+  const match = findBestMatchFromRegexpMatchArray(stringMatches);
+
+  if (!match) {
     return match;
   }
 
   matches.set(getFlamegraphFrameSearchId(frame), {
     frame,
-    match,
+    match: [match],
   });
   return match;
 }
@@ -81,19 +88,54 @@ export function searchSpanRegExp(
   query: string,
   flags: string
 ) {
-  const regExp = new RegExp(query, flags ?? 'g');
-  const reMatches = Array.from(span.text.matchAll(regExp));
-  const match = findBestMatchFromRegexpMatchArray(reMatches);
+  const regExp = new RegExp(query, flags || 'g');
+  const stringMatches = span.text.matchAll(regExp);
 
-  if (match === null) {
+  if (!stringMatches) {
+    return null;
+  }
+
+  const match = findBestMatchFromRegexpMatchArray(stringMatches);
+
+  if (!match) {
     return match;
   }
 
   matches.set(span.node.span.span_id, {
     span,
-    match,
+    match: [match],
   });
   return match;
+}
+
+function findBestMatchFromRegexpMatchArray(
+  matches: IterableIterator<RegExpMatchArray>
+): [number, number] | null {
+  let bestMatch: [number, number] | null = null;
+  let bestMatchLength = 0;
+  let bestMatchStart = -1;
+
+  for (const match of matches) {
+    const index = match.index;
+
+    if (index === undefined) {
+      continue;
+    }
+    const length = match[0].length;
+
+    // We only override the match if the match is longer than the current best match
+    // or if the matches are the same length, but the start is earlier in the string
+    if (
+      length > bestMatchLength ||
+      (length === bestMatchLength && index < bestMatchStart)
+    ) {
+      bestMatch = [index, index + length];
+      bestMatchLength = length;
+      bestMatchStart = index;
+    }
+  }
+
+  return bestMatch;
 }
 
 function yieldingRafFrameSearch(
@@ -121,6 +163,8 @@ function yieldingRafFrameSearch(
   const lowercaseQuery = query.toLowerCase();
   const [_, lookup, flags] = isRegExpSearch ? regexp : ['', '', ''];
 
+  const forcedGlobalFlags = flags && flags.includes('g') ? flags : (flags || '') + 'g';
+
   const searchFramesFunction = isRegExpSearch ? searchFrameRegExp : searchFrameFzf;
   const searchSpansFunction = isRegExpSearch ? searchSpanRegExp : searchSpanFzf;
   const searchQuery = isRegExpSearch ? lookup : lowercaseQuery;
@@ -129,12 +173,22 @@ function yieldingRafFrameSearch(
     const start = performance.now();
 
     while (processedSpans < spansToProcess && performance.now() - start < budget) {
-      searchSpansFunction(spans[processedSpans]!, results.spans, searchQuery, flags);
+      searchSpansFunction(
+        spans[processedSpans]!,
+        results.spans,
+        searchQuery,
+        forcedGlobalFlags
+      );
       processedSpans++;
     }
 
     while (processedFrames < framesToProcess && performance.now() - start < budget) {
-      searchFramesFunction(frames[processedFrames]!, results.frames, searchQuery, flags);
+      searchFramesFunction(
+        frames[processedFrames]!,
+        results.frames,
+        searchQuery,
+        forcedGlobalFlags
+      );
       processedFrames++;
     }
 
@@ -164,36 +218,6 @@ function sortFrameResults(
         ? numericSort(a.depth, b.depth, 'asc')
         : numericSort(a.start, b.start, 'asc')
     );
-}
-
-function findBestMatchFromRegexpMatchArray(
-  matches: RegExpMatchArray[]
-): [number, number] | null {
-  let bestMatch: [number, number] | null = null;
-  let bestMatchLength = 0;
-  let bestMatchStart = -1;
-
-  for (let i = 0; i < matches.length; i++) {
-    const match = matches[i]!; // iterating over a non empty array
-    const index = match.index;
-    if (index === undefined) {
-      continue;
-    }
-    const length = match[0].length;
-
-    // We only override the match if the match is longer than the current best match
-    // or if the matches are the same length, but the start is earlier in the string
-    if (
-      length > bestMatchLength ||
-      (length === bestMatchLength && index < bestMatchStart)
-    ) {
-      bestMatch = [index, index + length];
-      bestMatchLength = length;
-      bestMatchStart = index;
-    }
-  }
-
-  return bestMatch;
 }
 
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
@@ -228,7 +252,6 @@ function FlamegraphSearch({
 }: FlamegraphSearchProps): React.ReactElement | null {
   const search = useFlamegraphSearch();
   const dispatch = useDispatchFlamegraphState();
-  const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
 
   const allFlamegraphFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
@@ -288,7 +311,7 @@ function FlamegraphSearch({
         allFlamegraphFrames,
         results => {
           dispatch({
-            type: 'set results',
+            type: 'set search results',
             payload: {
               results,
               query,
@@ -301,12 +324,19 @@ function FlamegraphSearch({
   );
 
   useEffect(() => {
-    if (didInitialSearch || allFlamegraphFrames.length === 0) {
+    if (allFlamegraphFrames.length === 0) {
       return;
     }
+
+    if (!search.query) {
+      return;
+    }
+
     handleChange(search.query);
-    setDidInitialSearch(true);
-  }, [didInitialSearch, handleChange, allFlamegraphFrames, search.query]);
+    // Dont fire on query changes, we just want this to fire on initial load
+    // as the spans and frames eventually get loaded into the view
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleChange, allFlamegraphFrames, spans]);
 
   const onNextSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
@@ -366,7 +396,7 @@ function FlamegraphSearch({
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       trailing={
-        search.query && (
+        search.query ? (
           <Fragment>
             <StyledTrailingText>
               {`${
@@ -375,14 +405,14 @@ function FlamegraphSearch({
                   : '-'
               }/${search.results.frames.size}`}
             </StyledTrailingText>
-            <SearchBarTrailingButton
+            <StyledSearchBarTrailingButton
               size="zero"
               borderless
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               onClick={onPreviousSearchClick}
             />
-            <SearchBarTrailingButton
+            <StyledSearchBarTrailingButton
               size="zero"
               borderless
               icon={<IconChevron size="xs" direction="down" />}
@@ -390,11 +420,23 @@ function FlamegraphSearch({
               onClick={onNextSearchClick}
             />
           </Fragment>
+        ) : (
+          <Tooltip title={t(`Also supports regular expressions, e.g. /^functionName/i`)}>
+            <StyledIconInfo size="xs" color="gray300" />
+          </Tooltip>
         )
       }
     />
   );
 }
+
+const StyledIconInfo = styled(IconInfo)`
+  transform: translateY(1px);
+`;
+
+const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
+  padding: 0;
+`;
 
 const StyledTrailingText = styled('span')`
   color: ${p => p.theme.subText};
@@ -403,6 +445,10 @@ const StyledTrailingText = styled('span')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1 1 100%;
+
+  > div > div:last-child {
+    gap: ${space(0.25)};
+  }
 `;
 
 export {FlamegraphSearch};

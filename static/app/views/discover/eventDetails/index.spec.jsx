@@ -276,9 +276,7 @@ describe('Discover > EventDetails', function () {
 
   it('links back to the homepage if the query param contains homepage flag', async () => {
     const {organization, router, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({
-        features: ['discover-query-builder-as-landing-page'],
-      }),
+      organization: TestStubs.Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',

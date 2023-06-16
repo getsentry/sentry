@@ -1,7 +1,5 @@
 from collections import defaultdict
 
-from django.db.models.query import prefetch_related_objects
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
@@ -11,7 +9,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -38,6 +36,7 @@ class DashboardWidgetSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
@@ -71,7 +70,6 @@ class DashboardWidgetQuerySerializer(Serializer):
 class DashboardListSerializer(Serializer):
     def get_attrs(self, item_list, user):
         item_dict = {i.id: i for i in item_list}
-        prefetch_related_objects(item_list, "created_by")
 
         widgets = (
             DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys())
@@ -103,7 +101,9 @@ class DashboardListSerializer(Serializer):
             for user in user_service.serialize_many(
                 filter={
                     "user_ids": [
-                        dashboard.created_by_id for dashboard in item_list if dashboard.created_by
+                        dashboard.created_by_id
+                        for dashboard in item_list
+                        if dashboard.created_by_id
                     ]
                 },
                 as_user=user,

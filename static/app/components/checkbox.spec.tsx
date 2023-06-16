@@ -50,11 +50,11 @@ describe('Checkbox', function () {
       );
     }
 
-    it('toggles on click', function () {
+    it('toggles on click', async function () {
       render(<CheckboxWithLabel />);
 
       expect(screen.getByRole('checkbox')).not.toBeChecked();
-      userEvent.click(screen.getByLabelText('Label text'));
+      await userEvent.click(screen.getByLabelText('Label text'));
       expect(screen.getByRole('checkbox')).toBeChecked();
     });
   });

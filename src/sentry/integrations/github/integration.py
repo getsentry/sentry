@@ -3,14 +3,15 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
+from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
@@ -22,19 +23,18 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models import Integration, Organization, OrganizationIntegration, Repository
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils import jwt
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
-from .utils import get_jwt
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -108,12 +108,20 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
-        return GitHubAppsClient(integration=self.model)
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+        return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
-        gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
-        extra = {"gh_org": gh_org, "metadata": self.model.metadata}
+        domain_name = self.model.metadata["domain_name"]
+        extra = {"metadata": self.model.metadata}
+        if domain_name.find("github.com/") == -1:
+            logger.warning("We currently only support github.com domains.", extra=extra)
+            return trees
+
+        gh_org = domain_name.split("github.com/")[1]
+        extra.update({"gh_org": gh_org})
         organization_context = organization_service.get_organization_by_id(
             id=self.org_integration.organization_id, user_id=None
         )
@@ -164,12 +172,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_unmigratable_repositories(self) -> Sequence[Repository]:
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
-        existing_repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="github"
+        existing_repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["github"]
         )
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
@@ -202,7 +210,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             # make sure installation has access to this specific repo
             # use hooks endpoint since we explicitly ask for those permissions
             # when installing the app (commits can be accessed for public repos)
-            # https://developer.github.com/v3/repos/hooks/#list-hooks
+            # https://docs.github.com/en/rest/webhooks/repo-config#list-hooks
             client.repo_hooks(repo.config["name"])
         except ApiError:
             return False
@@ -215,12 +223,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not lineno:
             return None
         try:
-            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+
+            if blame_range is None:
+                return None
         except ApiError as e:
             raise e
 
         try:
-            commit = max(
+            commit: Mapping[str, Any] = max(
                 (
                     blame
                     for blame in blame_range
@@ -229,7 +242,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
+                default={},
             )
+            if not commit:
+                return None
         except (ValueError, IndexError):
             return None
 
@@ -246,7 +262,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             }
 
 
-class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
+class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
@@ -263,24 +279,27 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_client(self) -> GitHubClientMixin:
+        # XXX: This is very awkward behaviour as we're not passing the client an Integration
+        # object it expects. Instead we're passing the Installation object and hoping the client
+        # doesn't try to invoke any bad fields/attributes on it.
         return GitHubAppsClient(integration=self.integration_cls)
 
     def post_install(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["github", "integrations:github"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["github", "integrations:github"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }
@@ -291,15 +310,7 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(get_jwt()))
-
-        resp: Mapping[str, Any] = client.get(
-            f"/app/installations/{installation_id}", headers=headers
-        )
+        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
@@ -363,13 +374,21 @@ class GitHubInstallationRedirect(PipelineView):
                 ).exists()
 
             if integration_pending_deletion_exists:
+                document_origin = "document.origin"
+                if self.active_organization and features.has(
+                    "organizations:customer-domains", self.active_organization.organization
+                ):
+                    document_origin = (
+                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+                    )
                 return render_to_response(
                     "sentry/integrations/integration-pending-deletion.html",
                     context={
                         "payload": {
                             "success": False,
                             "data": {"error": _("GitHub installation pending deletion.")},
-                        }
+                        },
+                        "document_origin": document_origin,
                     },
                     request=request,
                 )
@@ -385,6 +404,13 @@ class GitHubInstallationRedirect(PipelineView):
                 return pipeline.next_step()
 
             if installations_exist:
+                document_origin = "document.origin"
+                if self.active_organization and features.has(
+                    "organizations:customer-domains", self.active_organization.organization
+                ):
+                    document_origin = (
+                        f'"{generate_organization_url(self.active_organization.organization.slug)}"'
+                    )
                 return render_to_response(
                     "sentry/integrations/github-integration-exists-on-another-org.html",
                     context={
@@ -393,7 +419,8 @@ class GitHubInstallationRedirect(PipelineView):
                             "data": {
                                 "error": _("Github installed on another Sentry organization.")
                             },
-                        }
+                        },
+                        "document_origin": document_origin,
                     },
                     request=request,
                 )

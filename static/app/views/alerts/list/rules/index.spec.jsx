@@ -4,12 +4,12 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg({
@@ -81,7 +81,7 @@ describe('AlertRulesList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    trackAdvancedAnalyticsEvent.mockClear();
+    trackAnalytics.mockClear();
   });
 
   it('displays list', async () => {
@@ -98,7 +98,7 @@ describe('AlertRulesList', () => {
 
     expect(screen.getAllByTestId('badge-display-name')[0]).toHaveTextContent('earth');
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rules.viewed',
       expect.objectContaining({
         sort: 'incident_status,date_triggered',
@@ -129,7 +129,7 @@ describe('AlertRulesList', () => {
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
-    userEvent.click(btn, {skipHover: true});
+    await userEvent.click(btn, {skipHover: true});
 
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
     expect(within(assignee).getByText('Unassigned')).toBeInTheDocument();
@@ -148,8 +148,8 @@ describe('AlertRulesList', () => {
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
-    userEvent.click(btn, {skipHover: true});
-    userEvent.click(screen.getByText('#team-slug'));
+    await userEvent.click(btn, {skipHover: true});
+    await userEvent.click(screen.getByText('#team-slug'));
 
     expect(assignMock).toHaveBeenCalledWith(
       '/projects/org-slug/earth/rules/123/',
@@ -161,10 +161,10 @@ describe('AlertRulesList', () => {
 
   it('displays dropdown context menu with actions', async () => {
     createWrapper();
-    const actions = (await screen.findAllByRole('button', {name: 'Show more'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
-    userEvent.click(actions);
+    await userEvent.click(actions);
 
     expect(screen.getByText('Edit')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
@@ -173,15 +173,15 @@ describe('AlertRulesList', () => {
 
   it('sends user to new alert page on duplicate action', async () => {
     createWrapper();
-    const actions = (await screen.findAllByRole('button', {name: 'Show more'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
-    userEvent.click(actions);
+    await userEvent.click(actions);
 
     const duplicate = await screen.findByText('Duplicate');
     expect(duplicate).toBeInTheDocument();
 
-    userEvent.click(duplicate);
+    await userEvent.click(duplicate);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/issue/',
@@ -231,13 +231,12 @@ describe('AlertRulesList', () => {
       access: [],
     };
 
-    const {rerender} = createWrapper({organization: noAccessOrg});
+    render(getComponent({organization: noAccessOrg}), {
+      context: TestStubs.routerContext([{organization: noAccessOrg}]),
+      organization: noAccessOrg,
+    });
 
     expect(await screen.findByLabelText('Create Alert')).toBeDisabled();
-
-    // Enabled with access
-    rerender(getComponent());
-    expect(await screen.findByLabelText('Create Alert')).toBeEnabled();
   });
 
   it('searches by name', async () => {
@@ -247,7 +246,7 @@ describe('AlertRulesList', () => {
     expect(search).toBeInTheDocument();
 
     const testQuery = 'test name';
-    userEvent.type(search, `${testQuery}{enter}`);
+    await userEvent.type(search, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -270,11 +269,11 @@ describe('AlertRulesList', () => {
       getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
     );
 
-    userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
 
     // Uncheck myteams
     const myTeams = await screen.findAllByText('My Teams');
-    userEvent.click(myTeams[1]);
+    await userEvent.click(myTeams[1]);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -323,7 +322,7 @@ describe('AlertRulesList', () => {
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
-    userEvent.click(screen.getByLabelText('Next'));
+    await userEvent.click(screen.getByLabelText('Next'));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

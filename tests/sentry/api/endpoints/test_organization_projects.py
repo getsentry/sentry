@@ -19,7 +19,9 @@ class OrganizationProjectsTestBase(APITestCase):
 
     def test_api_key(self):
         with exempt_from_silo_limits():
-            key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["org:read"]
+            )
 
         project = self.create_project(teams=[self.team])
 

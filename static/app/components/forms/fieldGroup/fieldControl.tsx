@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import FieldControlState from './fieldControlState';
 import {FieldGroupProps} from './types';
@@ -16,24 +16,26 @@ type FieldControlProps = Pick<
   children: React.ReactNode;
 };
 
-const FieldControl = ({
+function FieldControl({
   inline,
   alignRight,
   controlState,
   children,
   hideControlState,
   flexibleControlStateSize,
-}: FieldControlProps) => (
-  <FieldControlWrapper inline={inline}>
-    <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
+}: FieldControlProps) {
+  return (
+    <FieldControlWrapper inline={inline}>
+      <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
 
-    {!hideControlState && (
-      <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
-        {controlState}
-      </FieldControlState>
-    )}
-  </FieldControlWrapper>
-);
+      {!hideControlState && (
+        <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
+          {controlState}
+        </FieldControlState>
+      )}
+    </FieldControlWrapper>
+  );
+}
 
 export default FieldControl;
 

@@ -1,38 +1,37 @@
+import datetime
 import uuid
-from io import BytesIO
 
 from django.urls import reverse
 
-from sentry.models import File
-from sentry.replays.models import ReplayRecordingSegment
-from sentry.testutils import APITestCase
+from sentry.replays.lib.storage import (
+    FilestoreBlob,
+    RecordingSegmentStorageMeta,
+    StorageBlob,
+    make_filename,
+)
+from sentry.replays.testutils import mock_replay
+from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.silo import region_silo_test
 
 
-class ReplayRecordingSegmentDetailsTestCase(APITestCase):
+class EnvironmentMixin:
     endpoint = "sentry-api-0-project-replay-recording-segment-details"
 
     def setUp(self):
         super().setUp()
-
-        self.file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
-        self.file.putfile(BytesIO(b"replay-recording-segment"))
-
-        replay_id = uuid.uuid4().hex
-
-        self.recording_segment = ReplayRecordingSegment.objects.create(
-            replay_id=replay_id,
-            project_id=self.project.id,
-            segment_id=0,
-            file_id=self.file.id,
-        )
+        self.replay_id = uuid.uuid4().hex
+        self.segment_id = 0
+        self.segment_data = b"[{hello: world}]"
+        self.segment_data_size = len(self.segment_data)
+        self.init_environment()
 
         self.url = reverse(
             self.endpoint,
             args=(
                 self.organization.slug,
                 self.project.slug,
-                replay_id,
-                self.recording_segment.segment_id,
+                self.replay_id,
+                self.segment_id,
             ),
         )
 
@@ -43,10 +42,10 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
             response = self.client.get(self.url)
 
             assert response.status_code == 200, response.content
-            assert response.data["data"]["replayId"] == self.recording_segment.replay_id
-            assert response.data["data"]["segmentId"] == self.recording_segment.segment_id
-            assert response.data["data"]["projectId"] == str(self.recording_segment.project_id)
-            assert response.data["data"]["dateAdded"] == self.recording_segment.date_added
+            assert response.data["data"]["replayId"] == self.replay_id
+            assert response.data["data"]["segmentId"] == self.segment_id
+            assert response.data["data"]["projectId"] == str(self.project.id)
+            assert "dateAdded" in response.data["data"]
 
     def test_get_replay_recording_segment_download(self):
         self.login_as(user=self.user)
@@ -57,8 +56,48 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
             assert response.status_code == 200, response.content
             assert (
                 response.get("Content-Disposition")
-                == f'attachment; filename="{self.recording_segment.replay_id}-{self.recording_segment.segment_id}"'
+                == f'attachment; filename="{self.segment_filename}"'
             )
-            assert response.get("Content-Length") == str(self.file.size)
-            assert response.get("Content-Type") == "application/octet-stream"
-            assert b"replay-recording-segment" == b"".join(response.streaming_content)
+            assert response.get("Content-Length") == str(self.segment_data_size)
+            assert response.get("Content-Type") == "application/json"
+            assert self.segment_data == b"".join(response.streaming_content)
+
+
+@region_silo_test
+class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCase):
+    def init_environment(self):
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=self.segment_id,
+            retention_days=None,
+        )
+
+        self.segment_filename = make_filename(metadata)
+        FilestoreBlob().set(metadata, self.segment_data)
+
+
+@region_silo_test
+class StorageReplayRecordingSegmentDetailsTestCase(
+    EnvironmentMixin, APITestCase, ReplaysSnubaTestCase
+):
+    def init_environment(self):
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=self.segment_id,
+            retention_days=30,
+        )
+
+        self.segment_filename = make_filename(metadata)
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                metadata.project_id,
+                metadata.replay_id,
+                segment_id=metadata.segment_id,
+                retention_days=metadata.retention_days,
+            )
+        )
+        StorageBlob().set(metadata, self.segment_data)

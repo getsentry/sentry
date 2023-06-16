@@ -186,7 +186,6 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             quote(self.key.dsn_public),
         )
         self.environment = Environment.objects.create(
-            project_id=self.project.id,
             organization_id=self.project.organization_id,
             name="production",
         )

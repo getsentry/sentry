@@ -43,6 +43,11 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   isSubmenu?: boolean;
   /**
+   * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
+   * to enable search & keyboard select.
+   */
+  label?: MenuListItemProps['label'];
+  /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
@@ -52,6 +57,11 @@ export interface MenuItemProps extends MenuListItemProps {
    * if `children` is defined and `isSubmenu` is true)
    */
   submenuTitle?: string;
+  /**
+   * A plain text version of the `label` prop if the label is not a string. Used for
+   * filtering and keyboard select (quick-focusing on options by typing the first letter).
+   */
+  textValue?: string;
   /**
    * Destination if this menu item is a link.
    */
@@ -90,17 +100,23 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
-  HTMLLIElement,
-  DropdownMenuItemProps
-> = (
-  {node, state, closeOnSelect, onClose, showDivider, renderAs = 'li', ...props},
-  forwardedRef
-) => {
+function BaseDropdownMenuItem(
+  {
+    node,
+    state,
+    closeOnSelect,
+    onClose,
+    showDivider,
+    renderAs = 'li',
+    ...props
+  }: DropdownMenuItemProps,
+  forwardedRef: React.Ref<HTMLLIElement>
+) {
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, ...itemProps} = node.value;
+  const {key, onAction, to, label, isSubmenu, trailingItems, ...itemProps} =
+    node.value ?? {};
   const {size} = node.props;
 
   const actionHandler = () => {
@@ -108,10 +124,10 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
       return;
     }
     if (isSubmenu) {
-      state.selectionManager.select(node.key);
+      state.selectionManager.toggleSelection(node.key);
       return;
     }
-    onAction?.(key);
+    key && onAction?.(key);
   };
 
   // Open submenu on hover
@@ -129,7 +145,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
 
     if (isHovered && isFocused) {
       if (isSubmenu) {
-        state.selectionManager.select(node.key);
+        state.selectionManager.replaceSelection(node.key);
         return;
       }
       state.selectionManager.clearSelection();
@@ -157,7 +173,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
       }
 
       if (e.key === 'ArrowRight' && isSubmenu) {
-        state.selectionManager.select(node.key);
+        state.selectionManager.replaceSelection(node.key);
         return;
       }
 
@@ -206,20 +222,22 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<
       innerWrapProps={innerWrapProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      trailingItems={
+        isSubmenu ? (
+          <Fragment>
+            {trailingItems}
+            <IconChevron size="xs" direction="right" aria-hidden="true" />
+          </Fragment>
+        ) : (
+          trailingItems
+        )
+      }
       size={size}
       {...mergedProps}
       {...itemProps}
-      {...(isSubmenu && {
-        trailingItems: (
-          <Fragment>
-            {itemProps.trailingItems}
-            <IconChevron size="xs" direction="right" aria-hidden="true" />
-          </Fragment>
-        ),
-      })}
     />
   );
-};
+}
 
 const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
 

@@ -8,7 +8,8 @@ import {getTranslationMatrixFromPhysicalSpace} from 'sentry/utils/profiling/gl/u
 export function useCanvasScroll(
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null,
-  canvasPoolManager: CanvasPoolManager
+  canvasPoolManager: CanvasPoolManager,
+  disablePanX: boolean = false
 ) {
   const onCanvasScroll = useCallback(
     (evt: WheelEvent) => {
@@ -16,12 +17,38 @@ export function useCanvasScroll(
         return;
       }
 
+      const direction =
+        Math.abs(evt.deltaY) > Math.abs(evt.deltaX) ? 'vertical' : 'horizontal';
+      const scrollDirection = evt.deltaY > 0 ? 'down' : 'up';
+
+      if (
+        view.isViewAtTopEdgeOf(view.configSpace) &&
+        direction === 'vertical' &&
+        scrollDirection === 'up'
+      ) {
+        return;
+      }
+      if (
+        view.isViewAtBottomEdgeOf(view.configSpace) &&
+        direction === 'vertical' &&
+        scrollDirection === 'down'
+      ) {
+        return;
+      }
+
+      // Prevent scrolling the page and only scroll the canvas
+      evt.preventDefault();
       canvasPoolManager.dispatch('transform config view', [
-        getTranslationMatrixFromPhysicalSpace(evt.deltaX, evt.deltaY, view, canvas),
+        getTranslationMatrixFromPhysicalSpace(
+          disablePanX ? 0 : evt.deltaX,
+          evt.deltaY,
+          view,
+          canvas
+        ),
         view,
       ]);
     },
-    [canvas, view, canvasPoolManager]
+    [canvas, view, canvasPoolManager, disablePanX]
   );
 
   return onCanvasScroll;

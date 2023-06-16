@@ -25,20 +25,27 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    if OrganizationMember.objects.filter(
-        Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
+    om = OrganizationMember.objects.filter(
+        Q(email__iexact=email)
+        | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
         organization=organization,
-    ).exists():
+    ).first()
+    if om:
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return
 
     try:
-        return OrganizationMember.objects.create(
-            organization=organization,
+        om = OrganizationMember.objects.create(
+            organization_id=organization.id,
+            role=organization.default_role,
             email=email,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
     except IntegrityError:
         pass
+
+    om.outbox_for_update().drain_shard(max_updates_to_drain=10)
+    return om
 
 
 @region_silo_endpoint

@@ -5,7 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -55,7 +55,7 @@ function TransactionEvents(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Events}
+      tab={Tab.EVENTS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={EventsContentWrapper}
@@ -95,13 +95,10 @@ function EventsContentWrapper(props: ChildProps) {
   const onChangeSpanOperationBreakdownFilter = (
     newFilter: SpanOperationBreakdownFilter
   ) => {
-    trackAdvancedAnalyticsEvent(
-      'performance_views.transactionEvents.ops_filter_dropdown.selection',
-      {
-        organization,
-        action: newFilter as string,
-      }
-    );
+    trackAnalytics('performance_views.transactionEvents.ops_filter_dropdown.selection', {
+      organization,
+      action: newFilter as string,
+    });
 
     // Check to see if the current table sort matches the EventsDisplayFilter.
     // If it does, we can re-sort using the new SpanOperationBreakdownFilter
@@ -124,7 +121,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...sortQuery,
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
     browserHistory.push({
@@ -134,7 +131,7 @@ function EventsContentWrapper(props: ChildProps) {
   };
 
   const onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
-    trackAdvancedAnalyticsEvent(
+    trackAnalytics(
       'performance_views.transactionEvents.display_filter_dropdown.selection',
       {
         organization,
@@ -147,7 +144,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...filterEventsDisplayToLocationQuery(newFilterName, spanOperationBreakdownFilter),
     };
 
-    if (newFilterName === EventsDisplayFilterName.p100) {
+    if (newFilterName === EventsDisplayFilterName.P100) {
       delete nextQuery.showTransaction;
     }
 
@@ -219,7 +216,6 @@ function getWebVital(location: Location): WebVital | undefined {
 
 function generateEventView({
   location,
-  organization,
   transactionName,
 }: {
   location: Location;
@@ -247,11 +243,8 @@ function generateEventView({
     'trace',
     'timestamp',
   ];
-  if (organization.features.includes('session-replay-ui')) {
-    fields.push('replayId');
-  }
   const breakdown = decodeFilterFromLocation(location);
-  if (breakdown !== SpanOperationBreakdownFilter.None) {
+  if (breakdown !== SpanOperationBreakdownFilter.NONE) {
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS);

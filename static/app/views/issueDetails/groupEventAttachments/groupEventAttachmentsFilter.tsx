@@ -4,7 +4,7 @@ import xor from 'lodash/xor';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,7 +17,7 @@ type Props = {
   project: Project;
 };
 
-const GroupEventAttachmentsFilter = (props: Props) => {
+function GroupEventAttachmentsFilter(props: Props) {
   const {project} = props;
   const {query, pathname} = useLocation();
   const router = useRouter();
@@ -79,7 +79,7 @@ const GroupEventAttachmentsFilter = (props: Props) => {
       </SegmentedControl>
     </FilterWrapper>
   );
-};
+}
 
 const FilterWrapper = styled('div')`
   display: flex;

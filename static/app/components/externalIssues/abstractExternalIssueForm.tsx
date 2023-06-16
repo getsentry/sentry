@@ -314,9 +314,7 @@ export default class AbstractExternalIssueForm<
   };
 
   renderComponent() {
-    return this.state.error
-      ? this.renderError(new Error('Unable to load all required endpoints'))
-      : this.renderBody();
+    return this.state.error ? this.renderError() : this.renderBody();
   }
 
   renderForm = (
@@ -337,7 +335,9 @@ export default class AbstractExternalIssueForm<
 
     return (
       <Fragment>
-        <Header closeButton>{this.getTitle()}</Header>
+        <Header closeButton>
+          <h4>{this.getTitle()}</h4>
+        </Header>
         {this.renderNavTabs()}
         <Body>
           {this.shouldRenderLoading ? (

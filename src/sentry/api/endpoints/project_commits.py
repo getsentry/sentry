@@ -10,7 +10,7 @@ from sentry.models import Commit
 
 @region_silo_endpoint
 class ProjectCommitsEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

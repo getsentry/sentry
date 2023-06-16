@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import withApi from 'sentry/utils/withApi';

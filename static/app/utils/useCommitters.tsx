@@ -1,5 +1,5 @@
 import type {Committer} from 'sentry/types';
-import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 import useOrganization from './useOrganization';
 
@@ -16,14 +16,14 @@ const makeCommittersQueryKey = (
   orgSlug: string,
   projectSlug: string,
   eventId: string
-): QueryKey => [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/committers/`];
+): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/events/${eventId}/committers/`];
 
 function useCommitters(
   {eventId, projectSlug}: UseCommittersProps,
-  options: Partial<UseQueryOptions<CommittersResponse>> = {}
+  options: Partial<UseApiQueryOptions<CommittersResponse>> = {}
 ) {
   const org = useOrganization();
-  return useQuery<CommittersResponse>(
+  return useApiQuery<CommittersResponse>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
     {
       staleTime: Infinity,

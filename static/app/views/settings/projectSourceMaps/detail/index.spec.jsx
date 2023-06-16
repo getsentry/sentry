@@ -67,7 +67,7 @@ describe('ProjectSourceMapsDetail', () => {
     );
   });
 
-  it('deletes all artifacts', () => {
+  it('deletes all artifacts', async () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -81,10 +81,10 @@ describe('ProjectSourceMapsDetail', () => {
     render(<ProjectSourceMapsDetail {...props} />);
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Remove All Artifacts'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove All Artifacts'}));
 
     // Confirm Modal
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(deleteMock).toHaveBeenCalledWith(
       archiveDeleteEndpoint,
@@ -94,7 +94,7 @@ describe('ProjectSourceMapsDetail', () => {
     );
   });
 
-  it('filters artifacts', () => {
+  it('filters artifacts', async () => {
     const mockRouter = {push: jest.fn()};
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -117,15 +117,15 @@ describe('ProjectSourceMapsDetail', () => {
     );
 
     const filterInput = screen.getByPlaceholderText('Filter artifacts');
-    userEvent.clear(filterInput);
-    userEvent.type(filterInput, 'defg{enter}');
+    await userEvent.clear(filterInput);
+    await userEvent.type(filterInput, 'defg{enter}');
 
     expect(mockRouter.push).toHaveBeenCalledWith({
       query: {cursor: undefined, query: 'defg'},
     });
   });
 
-  it('deletes single artifact', () => {
+  it('deletes single artifact', async () => {
     const artifact = TestStubs.SourceMapArtifact();
 
     MockApiClient.addMockResponse({
@@ -141,10 +141,10 @@ describe('ProjectSourceMapsDetail', () => {
     render(<ProjectSourceMapsDetail {...props} />);
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Remove Artifact'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove Artifact'}));
 
     // Confirm Modal
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(deleteMock).toHaveBeenCalled();
   });

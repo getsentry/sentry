@@ -22,10 +22,12 @@ from sentry.middleware.ratelimit import (
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
+@control_silo_test(stable=True)
 class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
 
@@ -55,7 +57,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
         # there should only be one record created so just grab the first one
         install = SentryAppInstallation.objects.get(
-            sentry_app=internal_integration.id, organization=self.organization
+            sentry_app=internal_integration.id, organization_id=self.organization.id
         )
         token = install.api_token
 
@@ -203,7 +205,7 @@ class RatelimitMiddlewareTest(TestCase):
 
         # Test for apikey
         api_key = ApiKey.objects.create(
-            organization=self.organization, scope_list=["project:write"]
+            organization_id=self.organization.id, scope_list=["project:write"]
         )
         request.user = AnonymousUser()
         request.auth = api_key

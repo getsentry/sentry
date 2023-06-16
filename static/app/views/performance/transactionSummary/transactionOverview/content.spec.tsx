@@ -16,17 +16,15 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     features,
     projects: [project],
   });
-  const initialOrgData = {
+  const initialData = initializeOrg({
     organization,
     router: {
       location: {
         query: {...query},
       },
     },
-    project: parseInt(project.id, 10),
     projects: [],
-  };
-  const initialData = initializeOrg(initialOrgData);
+  });
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
@@ -38,7 +36,7 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     initialData.router.location
   );
 
-  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.None;
+  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
 
   return {
@@ -50,13 +48,13 @@ function initialize(project, query, additionalFeatures: string[] = []) {
   };
 }
 
-const WrappedComponent = ({
+function WrappedComponent({
   organization,
   router,
   ...props
 }: React.ComponentProps<typeof SummaryContent> & {
   router: InjectedRouter<Record<string, string>, any>;
-}) => {
+}) {
   return (
     <OrganizationContext.Provider value={organization}>
       <RouteContext.Provider value={{router, ...router}}>
@@ -66,7 +64,7 @@ const WrappedComponent = ({
       </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 describe('Transaction Summary Content', function () {
   beforeEach(function () {
@@ -128,6 +126,10 @@ describe('Transaction Summary Content', function () {
           p99ExclusiveTime: null,
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/profiling/functions/`,
+      body: {functions: []},
     });
   });
 

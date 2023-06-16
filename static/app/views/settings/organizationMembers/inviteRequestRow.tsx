@@ -11,7 +11,7 @@ import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Member, Organization, OrgRole} from 'sentry/types';
 
 type Props = {
@@ -32,7 +32,7 @@ const InviteModalHook = HookOrDefault({
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
-const InviteRequestRow = ({
+function InviteRequestRow({
   inviteRequest,
   inviteRequestBusy,
   organization,
@@ -40,7 +40,7 @@ const InviteRequestRow = ({
   onDeny,
   onUpdate,
   allRoles,
-}: Props) => {
+}: Props) {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
   const {access} = organization;
@@ -160,7 +160,7 @@ const InviteRequestRow = ({
       {hookRenderer}
     </InviteModalHook>
   );
-};
+}
 
 const JoinRequestIndicator = styled(Tag)`
   text-transform: uppercase;

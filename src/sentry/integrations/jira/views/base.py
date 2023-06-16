@@ -1,17 +1,51 @@
+from csp.middleware import CSPMiddleware
+from django.conf import settings
 from django.views.generic import View
 
 from sentry import options
 from sentry.web.helpers import render_to_response
 
 
-class JiraBaseHook(View):
+class JiraSentryUIBaseView(View):
+    """
+    Base class for the UI of the Sentry integration in Jira.
+    """
+
     def get_response(self, context):
+        """
+        Wrap the HTML rendered using the template at `self.html_file` in a Response and
+        add the requisite CSP headers before returning it.
+        """
+
         context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
-        response = render_to_response(self.html_file, context, self.request)
         sources = [
             self.request.GET.get("xdm_e"),
             options.get("system.url-prefix"),
         ]
-        sources_string = " ".join(s for s in sources if s)  # Filter out None
-        response["Content-Security-Policy"] = f"frame-ancestors 'self' {sources_string}"
+        sources = [s for s in sources if s and ";" not in s]  # Filter out None and invalid sources
+
+        if "csp.middleware.CSPMiddleware" in settings.MIDDLEWARE:
+            csp_frame_ancestors = [
+                "'self'",
+            ] + sources
+            csp_style_src = list(settings.CSP_STYLE_SRC)
+
+            if settings.STATIC_FRONTEND_APP_URL.startswith("https://"):
+                origin = "/".join(settings.STATIC_FRONTEND_APP_URL.split("/")[0:3])
+                csp_style_src.append(origin)
+
+            middleware = CSPMiddleware()
+            middleware.process_request(self.request)  # adds nonce
+
+            response = render_to_response(self.html_file, context, self.request)
+            response._csp_replace = {
+                "frame-ancestors": csp_frame_ancestors,
+                "style-src": csp_style_src,
+            }
+
+            middleware.process_response(self.request, response)
+        else:
+            response = render_to_response(self.html_file, context, self.request)
+            sources_string = " ".join(sources)
+            response["Content-Security-Policy"] = f"frame-ancestors 'self' {sources_string}"
         return response

@@ -48,7 +48,7 @@ describe('AccountIdentities', function () {
     expect(container).toSnapshot();
   });
 
-  it('disconnects identity', function () {
+  it('disconnects identity', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -77,10 +77,10 @@ describe('AccountIdentities', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Disconnect'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Disconnect'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(

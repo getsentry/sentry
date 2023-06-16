@@ -7,10 +7,11 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import Line from '../../frame/line';
+import DeprecatedLine from '../../frame/deprecatedLine';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
@@ -26,7 +27,10 @@ type Props = {
   platform: PlatformType;
   className?: string;
   debugFrames?: StacktraceFilenameQuery[];
+  hideIcon?: boolean;
   isHoverPreviewed?: boolean;
+  maxDepth?: number;
+  mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
@@ -139,8 +143,10 @@ class Content extends Component<Props, State> {
       platform,
       includeSystemFrames,
       isHoverPreviewed,
+      maxDepth,
       meta,
       debugFrames,
+      hideIcon,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -165,7 +171,7 @@ class Content extends Component<Props, State> {
       lastFrameIdx = (data.frames ?? []).length - 1;
     }
 
-    const frames: React.ReactElement[] = [];
+    let frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
     const maxLengthOfAllRelativeAddresses = (data.frames ?? []).reduce(
@@ -192,6 +198,9 @@ class Content extends Component<Props, State> {
     );
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
+    const mechanism =
+      platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
+    const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
@@ -212,7 +221,7 @@ class Content extends Component<Props, State> {
         const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
 
         frames.push(
-          <Line
+          <DeprecatedLine
             key={frameIdx}
             event={event}
             data={frame}
@@ -233,10 +242,10 @@ class Content extends Component<Props, State> {
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
-            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
             frameMeta={meta?.frames?.[frameIdx]}
             registersMeta={meta?.registers}
             debugFrames={debugFrames}
+            isANR={isANR}
           />
         );
       }
@@ -257,6 +266,10 @@ class Content extends Component<Props, State> {
       });
     }
 
+    if (defined(maxDepth)) {
+      frames = frames.slice(-maxDepth);
+    }
+
     if (newestFirst) {
       frames.reverse();
     }
@@ -266,7 +279,7 @@ class Content extends Component<Props, State> {
 
     return (
       <Wrapper className={className} data-test-id="stack-trace-content">
-        <StacktracePlatformIcon platform={platformIcon} />
+        {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
         <GuideAnchor target="stack_trace">
           <StyledList data-test-id="frames">{frames}</StyledList>
         </GuideAnchor>

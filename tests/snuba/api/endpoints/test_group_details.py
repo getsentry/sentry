@@ -12,11 +12,12 @@ from sentry.models import (
 )
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_multiple_environments(self):
         group = self.create_group()
@@ -183,7 +184,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project=event.project,
             organization=event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user=self.user,
+            user_id=self.user.id,
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -191,6 +192,22 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert len(response.data["owners"]) == 1
         assert response.data["owners"][0]["owner"] == f"user:{self.user.id}"
         assert response.data["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+
+    def test_group_expand_forecasts(self):
+        with Feature("organizations:escalating-issues"):
+            self.login_as(user=self.user)
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            group = event.group
+            url = f"/api/0/issues/{group.id}/?expand=forecast"
+
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["forecast"] is not None
+            assert response.data["forecast"]["data"] is not None
+            assert response.data["forecast"]["date_added"] is not None
 
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)

@@ -3,11 +3,12 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {getItem} from 'sentry/utils/localStorage';
+import {getItem, setItem} from 'sentry/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -143,6 +144,7 @@ describe('PageFiltersContainer', function () {
         isReady: true,
         desyncedFilters: new Set(),
         pinnedFilters: new Set(),
+        shouldPersist: true,
         selection: {
           datetime: {
             period: '14d',
@@ -174,6 +176,7 @@ describe('PageFiltersContainer', function () {
         isReady: true,
         desyncedFilters: new Set(),
         pinnedFilters: new Set(),
+        shouldPersist: true,
         selection: {
           datetime: {
             period: '14d',
@@ -203,6 +206,7 @@ describe('PageFiltersContainer', function () {
         isReady: true,
         desyncedFilters: new Set(),
         pinnedFilters: new Set(),
+        shouldPersist: true,
         selection: {
           datetime: {
             period: '14d',
@@ -247,6 +251,7 @@ describe('PageFiltersContainer', function () {
       isReady: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
+      shouldPersist: true,
       selection: {
         datetime: {
           period: '7d',
@@ -419,6 +424,40 @@ describe('PageFiltersContainer', function () {
     expect(screen.getByRole('button', {name: 'Restore old values'})).toBeInTheDocument();
   });
 
+  it('does not update local storage when disablePersistence is true', async function () {
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['global-views'],
+      },
+      router: {
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
+        location: {pathname: '/test', query: {project: []}},
+      },
+    });
+
+    renderComponent(
+      <PageFiltersContainer disablePersistence />,
+      initializationObj.routerContext,
+      initializationObj.organization
+    );
+
+    await act(async () => {
+      globalActions.updateProjects([1], initializationObj.router, {save: true});
+
+      // page filter values are asynchronously persisted to local storage after a tick,
+      // so we need to wait before checking for commits to local storage
+      await tick();
+    });
+
+    // Store value was updated
+    expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
+
+    // But local storage wasn't updated
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
   /**
    * GSH: (no global-views)
    * - mounts with no state from router
@@ -524,6 +563,39 @@ describe('PageFiltersContainer', function () {
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {environment: [], project: ['1']},
+        })
+      );
+    });
+
+    it('selects a project if user is superuser and belongs to no projects', function () {
+      ConfigStore.init();
+      ConfigStore.loadInitialData(
+        TestStubs.Config({
+          user: TestStubs.User({isSuperuser: true}),
+        })
+      );
+      const project = TestStubs.Project({id: '3', isMember: false});
+      const org = TestStubs.Organization({projects: [project]});
+
+      ProjectsStore.loadInitialData(org.projects);
+
+      const initializationObj = initializeOrg({
+        organization: org,
+        router: {
+          params: {orgId: 'org-slug'},
+          location: {pathname: '/test', query: {}},
+        },
+      });
+
+      renderComponent(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
+      );
+
+      expect(initializationObj.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {environment: [], project: ['3']},
         })
       );
     });

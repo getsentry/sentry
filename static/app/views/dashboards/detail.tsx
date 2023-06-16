@@ -2,6 +2,7 @@ import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 
 import {
@@ -24,10 +25,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -98,6 +99,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
+  children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
@@ -187,7 +189,7 @@ class DashboardDetail extends Component<Props, State> {
             }
           },
         });
-        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
+        trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
           widget_type: widget.widgetType ?? WidgetType.DISCOVER,
           display_type: widget.displayType,
@@ -266,7 +268,7 @@ class DashboardDetail extends Component<Props, State> {
 
   onEdit = () => {
     const {dashboard, organization} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards2.edit.start', {organization});
+    trackAnalytics('dashboards2.edit.start', {organization});
 
     this.setState({
       dashboardState: DashboardState.EDIT,
@@ -321,7 +323,7 @@ class DashboardDetail extends Component<Props, State> {
       deleteDashboard(api, organization.slug, dashboard.id)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
-          trackAdvancedAnalyticsEvent('dashboards2.delete', {organization});
+          trackAnalytics('dashboards2.delete', {organization});
           browserHistory.replace({
             pathname: `/organizations/${organization.slug}/dashboards/`,
             query: location.query,
@@ -363,14 +365,14 @@ class DashboardDetail extends Component<Props, State> {
       }
     }
     if (params.dashboardId) {
-      trackAdvancedAnalyticsEvent('dashboards2.edit.cancel', {organization});
+      trackAnalytics('dashboards2.edit.cancel', {organization});
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
       });
       return;
     }
-    trackAdvancedAnalyticsEvent('dashboards2.create.cancel', {organization});
+    trackAnalytics('dashboards2.create.cancel', {organization});
     browserHistory.replace(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/`,
@@ -397,7 +399,15 @@ class DashboardDetail extends Component<Props, State> {
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
-    if (!isEqual(activeFilters, dashboard.filters)) {
+    if (
+      !isEqualWith(activeFilters, dashboard.filters, (a, b) => {
+        // This is to handle the case where dashboard filters has release:[] and the new filter is release:""
+        if (a.length === 0 && b.length === 0) {
+          return a === b;
+        }
+        return undefined;
+      })
+    ) {
       browserHistory.push({
         ...location,
         query: {
@@ -448,6 +458,7 @@ class DashboardDetail extends Component<Props, State> {
           return;
         }
       },
+      // `updateDashboard` does its own error handling
       () => undefined
     );
   };
@@ -494,7 +505,7 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           if (this.isPreview) {
-            trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+            trackAnalytics('dashboards_manage.templates.add', {
               organization,
               dashboard_id: dashboard.id,
               dashboard_title: dashboard.title,
@@ -514,7 +525,7 @@ class DashboardDetail extends Component<Props, State> {
           ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-              trackAdvancedAnalyticsEvent('dashboards2.create.complete', {organization});
+              trackAnalytics('dashboards2.create.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
               });
@@ -550,7 +561,7 @@ class DashboardDetail extends Component<Props, State> {
                 onDashboardUpdate(newDashboard);
               }
               addSuccessMessage(t('Dashboard updated'));
-              trackAdvancedAnalyticsEvent('dashboards2.edit.complete', {organization});
+              trackAnalytics('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
@@ -568,6 +579,7 @@ class DashboardDetail extends Component<Props, State> {
                 return;
               }
             },
+            // `updateDashboard` does its own error handling
             () => undefined
           );
 
@@ -628,6 +640,7 @@ class DashboardDetail extends Component<Props, State> {
       <PageFiltersContainer
         desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
         hideDesyncRevertButton
+        disablePersistence
         defaultSelection={{
           datetime: {
             start: null,
@@ -738,7 +751,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
-    const eventView = generatePerformanceEventView(location, projects);
+    const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
     const isDashboardUsingTransaction = dashboard.widgets.some(
       isWidgetUsingTransactionName
@@ -749,6 +762,7 @@ class DashboardDetail extends Component<Props, State> {
         <PageFiltersContainer
           desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
           hideDesyncRevertButton
+          disablePersistence
           defaultSelection={{
             datetime: {
               start: null,
@@ -873,6 +887,7 @@ class DashboardDetail extends Component<Props, State> {
                                     })
                                   );
                                 },
+                                // `updateDashboard` does its own error handling
                                 () => undefined
                               );
                             }}

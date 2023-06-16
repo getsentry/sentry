@@ -2,35 +2,34 @@ import {useCallback} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LazyLoad from 'sentry/components/lazyLoad';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 type Props = {
   event: Event;
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   replayId: undefined | string;
 };
 
-export default function EventReplay({replayId, orgSlug, projectSlug, event}: Props) {
-  const hasSentOneReplay = useHaveSelectedProjectsSentAnyReplayEvents();
+export default function EventReplay({replayId, organization, projectSlug, event}: Props) {
+  const hasReplaysFeature = organization.features.includes('session-replay');
+  const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
 
-  const supportsReplay = projectSupportsReplay({
-    id: event.projectID,
-    slug: event.projectSlug || '',
-    platform: event.platform as PlatformKey,
-  });
+  const project = useProjectFromSlug({organization, projectSlug});
+  const isReplayRelated = projectCanLinkToReplay(project);
 
-  if (!supportsReplay) {
+  if (!hasReplaysFeature || fetching || !isReplayRelated) {
     return null;
   }
 
-  if (!hasSentOneReplay) {
+  if (!hasOrgSentReplays) {
     return (
       <ErrorBoundary mini>
         <LazyLoad component={onboardingPanel} />
@@ -47,7 +46,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug, event}: Pro
       <LazyLoad
         component={replayPreview}
         replaySlug={`${projectSlug}:${replayId}`}
-        orgSlug={orgSlug}
+        orgSlug={organization.slug}
         event={event}
       />
     </ErrorBoundary>

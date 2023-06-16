@@ -30,7 +30,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
-            Q(user__isnull=True),
+            Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
             | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
             organization=organization,
@@ -76,10 +76,10 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         with transaction.atomic():
             om = OrganizationMember.objects.create(
-                organization=organization,
+                organization_id=organization.id,
+                role=result["role"] or organization.default_role,
                 email=result["email"],
-                role=result["role"],
-                inviter=request.user,
+                inviter_id=request.user.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
@@ -90,14 +90,15 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 ]
                 save_team_assignments(om, teams)
 
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                data=om.get_audit_log_data(),
-                event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
-            )
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=om.id,
+            data=om.get_audit_log_data(),
+            event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
+        )
 
+        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
         async_send_notification(InviteRequestNotification, om, request.user)
 
         return Response(serialize(om), status=201)

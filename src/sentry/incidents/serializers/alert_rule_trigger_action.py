@@ -15,7 +15,9 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
+from sentry.models import OrganizationMember, Team
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -34,6 +36,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     target_type = serializers.CharField()
     sentry_app_config = serializers.JSONField(required=False)  # array of dicts
     sentry_app_installation_uuid = serializers.CharField(required=False)
+
+    integration = serializers.IntegerField(source="integration_id", required=False, allow_null=True)
+    sentry_app = serializers.IntegerField(source="sentry_app_id", required=False, allow_null=True)
 
     class Meta:
         model = AlertRuleTriggerAction
@@ -104,17 +109,15 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
-                try:
-                    user = User.objects.get(id=identifier)
-                except User.DoesNotExist:
+                if user_service.get_user(user_id=identifier) is None:
                     raise serializers.ValidationError("User does not exist")
 
                 if not OrganizationMember.objects.filter(
-                    organization=self.context["organization"], user=user
+                    organization=self.context["organization"], user_id=identifier
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
-            if not attrs.get("integration"):
+            if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
@@ -122,7 +125,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
             sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")
 
-            if not attrs.get("sentry_app"):
+            if not attrs.get("sentry_app_id"):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
@@ -132,9 +135,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
-                try:
-                    SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
-                except SentryAppInstallation.DoesNotExist:
+                installations = app_service.get_many(
+                    filter=dict(uuids=[sentry_app_installation_uuid])
+                )
+                if not installations:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
                     )
@@ -147,7 +151,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
+            validate_channel_id(identifier, attrs["integration_id"], attrs["input_channel_id"])
         return attrs
 
     def create(self, validated_data):

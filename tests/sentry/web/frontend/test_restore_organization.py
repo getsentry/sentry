@@ -61,6 +61,31 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context["deleting_organization"] == self.organization
         assert resp.context["pending_deletion"] is False
 
+    def test_renders_with_context_customer_domain(self):
+        path = reverse("sentry-customer-domain-restore-organization")
+
+        resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, "sentry/restore-organization.html")
+
+        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["pending_deletion"] is True
+
+        Organization.objects.filter(id=self.organization.id).update(
+            status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+
+        resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, "sentry/restore-organization.html")
+
+        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["pending_deletion"] is False
+
     def test_success(self):
         resp = self.client.post(self.path)
 
@@ -68,7 +93,7 @@ class RemoveOrganizationTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
 
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
 
     def test_too_late_still_restores(self):
         Organization.objects.filter(id=self.organization.id).update(
@@ -81,7 +106,7 @@ class RemoveOrganizationTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
 
-        assert org.status == OrganizationStatus.VISIBLE
+        assert org.status == OrganizationStatus.ACTIVE
 
     def test_org_already_deleted(self):
         assert ScheduledDeletion.objects.count() == 0

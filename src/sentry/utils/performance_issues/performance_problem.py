@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
+from sentry.issues.issue_occurrence import IssueEvidence
 
 
 @dataclass
@@ -15,6 +16,14 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     # The actual bad spans
     offender_span_ids: Sequence[str]
+    # Evidence to be used for the group
+    # TODO make evidence_data and evidence_display required once all detectors have been migrated to platform
+    # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
+    # since there's legacy data in there that won't have these fields.
+    # So until we disable transaction based perf issues we'll need to keep this optional.
+    evidence_data: Optional[Mapping[str, Any]]
+    # User-friendly evidence to be displayed directly
+    evidence_display: Optional[Sequence[IssueEvidence]]
 
     def to_dict(
         self,
@@ -23,15 +32,17 @@ class PerformanceProblem:
             "fingerprint": self.fingerprint,
             "op": self.op,
             "desc": self.desc,
-            "type": self.type.value,
+            "type": self.type.type_id,
             "parent_span_ids": self.parent_span_ids,
             "cause_span_ids": self.cause_span_ids,
             "offender_span_ids": self.offender_span_ids,
+            "evidence_data": self.evidence_data,
+            "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
         }
 
     @property
     def title(self) -> str:
-        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
+        return self.type.description
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -39,10 +50,15 @@ class PerformanceProblem:
             data["fingerprint"],
             data["op"],
             data["desc"],
-            GroupType(data["type"]),
+            get_group_type_by_type_id(data["type"]),
             data["parent_span_ids"],
             data["cause_span_ids"],
             data["offender_span_ids"],
+            data.get("evidence_data", {}),
+            [
+                IssueEvidence(evidence["name"], evidence["value"], evidence["important"])
+                for evidence in data.get("evidence_display", [])
+            ],
         )
 
     def __eq__(self, other):

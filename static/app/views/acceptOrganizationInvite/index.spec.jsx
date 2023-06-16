@@ -48,13 +48,9 @@ describe('AcceptOrganizationInvite', function () {
 
     const joinButton = getJoinButton();
 
-    userEvent.click(joinButton);
+    await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
-    expect(joinButton).toBeDisabled();
-
-    await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
-    );
+    expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
   it('can accept invitation on customer-domains', async function () {
@@ -87,13 +83,9 @@ describe('AcceptOrganizationInvite', function () {
 
     const joinButton = getJoinButton();
 
-    userEvent.click(joinButton);
+    await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
-    expect(joinButton).toBeDisabled();
-
-    await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
-    );
+    expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
   it('requires authentication to join', function () {
@@ -237,7 +229,7 @@ describe('AcceptOrganizationInvite', function () {
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('existing-member-link'));
+    await userEvent.click(screen.getByTestId('existing-member-link'));
 
     expect(logout).toHaveBeenCalled();
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
@@ -282,7 +274,7 @@ describe('AcceptOrganizationInvite', function () {
     );
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
-    userEvent.click(screen.getByTestId('existing-member-link'));
+    await userEvent.click(screen.getByTestId('existing-member-link'));
 
     expect(logout).toHaveBeenCalled();
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());

@@ -26,11 +26,13 @@ export const sourceMapSdkDocsMap: Record<string, string> = {
   'sentry.javascript.node': 'node',
   'sentry.javascript.react': 'react',
   'sentry.javascript.angular': 'angular',
+  'sentry.javascript.angular-ivy': 'angular',
   'sentry.javascript.ember': 'ember',
   'sentry.javascript.gatsby': 'gatsby',
   'sentry.javascript.vue': 'vue',
   'sentry.javascript.nextjs': 'nextjs',
   'sentry.javascript.remix': 'remix',
   'sentry.javascript.svelte': 'svelte',
+  'sentry.javascript.sveltekit': 'sveltekit',
   'sentry.javascript.react-native': 'react-native',
 };

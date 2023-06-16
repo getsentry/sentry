@@ -137,12 +137,12 @@ describe('SentryAppDetailedView', function () {
       );
       renderGlobalModal();
 
-      userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
 
       expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Uninstall'}));
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Uninstall'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(deleteRequest).toHaveBeenCalledTimes(1);
     });
   });
@@ -295,7 +295,7 @@ describe('SentryAppDetailedView', function () {
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
-    it('installs and uninstalls', function () {
+    it('installs and uninstalls', async function () {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
@@ -303,7 +303,7 @@ describe('SentryAppDetailedView', function () {
         />
       );
       renderGlobalModal();
-      userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
     });
   });
@@ -391,7 +391,7 @@ describe('SentryAppDetailedView', function () {
       );
       const locationAssignSpy = jest.spyOn(window.location, 'assign');
 
-      userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
       expect(createRequest).toHaveBeenCalled();
       await waitFor(() => {

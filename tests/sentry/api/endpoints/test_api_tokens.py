@@ -88,6 +88,18 @@ class ApiTokensSuperUserTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["token"] == user_token.token
 
+    def test_get_as_su_implicit_userid(self):
+        super_user = self.create_user(is_superuser=True)
+        superuser_token = ApiToken.objects.create(user=super_user)
+        user_token = ApiToken.objects.create(user=self.user)
+        self.login_as(super_user, superuser=True)
+
+        response = self.client.get(self.url)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["token"] != user_token.token
+        assert response.data[0]["token"] == superuser_token.token
+
     def test_get_as_user(self):
         super_user = self.create_user(is_superuser=True)
         su_token = ApiToken.objects.create(user=super_user)
@@ -106,6 +118,22 @@ class ApiTokensSuperUserTest(APITestCase):
         response = self.client.delete(self.url, {"userId": self.user.id, "token": user_token.token})
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not ApiToken.objects.filter(id=user_token.id).exists()
+
+    def test_delete_as_su_implicit_userid(self):
+        super_user = self.create_user(is_superuser=True)
+        user_token = ApiToken.objects.create(user=self.user)
+        su_token = ApiToken.objects.create(user=super_user)
+        self.login_as(super_user, superuser=True)
+
+        response = self.client.delete(self.url, {"token": user_token.token})
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert ApiToken.objects.filter(id=user_token.id).exists()
+        assert ApiToken.objects.filter(id=su_token.id).exists()
+
+        response = self.client.delete(self.url, {"token": su_token.token})
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert ApiToken.objects.filter(id=user_token.id).exists()
+        assert not ApiToken.objects.filter(id=su_token.id).exists()
 
     def test_delete_as_user(self):
         super_user = self.create_user(is_superuser=True)

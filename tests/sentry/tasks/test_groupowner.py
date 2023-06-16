@@ -4,10 +4,13 @@ from django.utils import timezone
 
 from sentry.models import GroupRelease, Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 
 
@@ -92,6 +95,35 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
+    def test_user_deletion_cascade(self):
+        other_user = self.create_user()
+        group = self.create_group()
+        other_group = self.create_group()
+        GroupOwner.objects.create(
+            group=group,
+            project=group.project,
+            organization=group.project.organization,
+            type=0,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=other_group,
+            project=other_group.project,
+            organization=other_group.project.organization,
+            type=0,
+            user_id=other_user.id,
+        )
+
+        assert GroupOwner.objects.count() == 2
+        with exempt_from_silo_limits(), outbox_runner():
+            self.user.delete()
+        assert GroupOwner.objects.count() == 2
+
+        with TaskRunner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert GroupOwner.objects.count() == 1
+
     def test_no_matching_user(self):
         self.set_release_commits("not@real.user")
 
@@ -139,7 +171,7 @@ class TestGroupOwners(TestCase):
         )
 
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
-        assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
+        assert GroupOwner.objects.filter(group=self.event.group, user_id=self.user.id).exists()
         event_2 = self.store_event(
             data={
                 "message": "BANG!",
@@ -215,8 +247,8 @@ class TestGroupOwners(TestCase):
             project_id=event_2.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
-        assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
+        assert GroupOwner.objects.filter(group=self.event.group, user_id=self.user.id).exists()
+        assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
 
         self.set_release_commits(self.user_3.email)
         event_3_frames = get_frame_paths(event_3)
@@ -228,11 +260,11 @@ class TestGroupOwners(TestCase):
             project_id=event_3.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
-        assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
-        assert not GroupOwner.objects.filter(group=event_2.group, user=self.user_3).exists()
+        assert GroupOwner.objects.filter(group=self.event.group, user_id=self.user.id).exists()
+        assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
+        assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
-        go = GroupOwner.objects.filter(group=event_2.group, user=self.user_2).first()
+        go = GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).first()
         go.date_added = timezone.now() - PREFERRED_GROUP_OWNER_AGE * 2
         go.save()
 
@@ -246,9 +278,9 @@ class TestGroupOwners(TestCase):
         )
         # Won't be processed because the cache is present and this group has owners
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
-        assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        assert not GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
-        assert GroupOwner.objects.filter(group=event_2.group, user=self.user_3).exists()
+        assert GroupOwner.objects.filter(group=self.event.group, user_id=self.user.id).exists()
+        assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
+        assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
@@ -404,9 +436,9 @@ class TestGroupOwners(TestCase):
             project_id=self.event.project_id,
         )
         # Doesn't use self.user2 due to low score.
-        assert GroupOwner.objects.get(user=self.user.id)
-        assert GroupOwner.objects.get(user=self.user3.id)
-        assert not GroupOwner.objects.filter(user=self.user2.id).exists()
+        assert GroupOwner.objects.get(user_id=self.user.id)
+        assert GroupOwner.objects.get(user_id=self.user3.id)
+        assert not GroupOwner.objects.filter(user_id=self.user2.id).exists()
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_low_suspect_committer_score(self, patched_committers):
@@ -429,7 +461,7 @@ class TestGroupOwners(TestCase):
             project_id=self.event.project_id,
         )
 
-        assert not GroupOwner.objects.filter(user=self.user.id).exists()
+        assert not GroupOwner.objects.filter(user_id=self.user.id).exists()
 
     def test_owners_count(self):
         self.set_release_commits(self.user.email)

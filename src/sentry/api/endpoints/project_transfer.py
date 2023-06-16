@@ -13,6 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import OrganizationMember
 from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -55,8 +56,8 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
-            owner = OrganizationMember.objects.filter(
-                user__email__iexact=email, role=roles.get_top_dog().id, user__is_active=True
+            owner = OrganizationMember.objects.get_members_by_email_and_role(
+                email=email, role=roles.get_top_dog().id
             )[0]
         except IndexError:
             return Response(
@@ -79,9 +80,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "from_org": project.organization.name,
             "project_name": project.slug,
             "request_time": timezone.now(),
-            "url": organization.absolute_url(
-                "/accept-transfer/", query=urlencode({"data": url_data})
-            ),
+            "url": absolute_uri(f"/accept-transfer/?{urlencode({'data': url_data})}"),
             "requester": request.user,
         }
         MessageBuilder(

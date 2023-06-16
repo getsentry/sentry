@@ -103,7 +103,7 @@ describe('getIssueFieldRenderer', function () {
         }) as React.ReactElement
       );
       expect(screen.getByText('TU')).toBeInTheDocument();
-      userEvent.hover(screen.getByText('TU'));
+      await userEvent.hover(screen.getByText('TU'));
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
       expect(screen.getByText('Based on')).toBeInTheDocument();
       expect(screen.getByText('commit data')).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe('getIssueFieldRenderer', function () {
       );
       expect(screen.getByText('3k')).toBeInTheDocument();
       expect(screen.getByText('6k')).toBeInTheDocument();
-      userEvent.hover(screen.getByText('3k'));
+      await userEvent.hover(screen.getByText('3k'));
       expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
       expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();

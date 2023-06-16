@@ -25,10 +25,13 @@ GUIDES = {
     "releases_widget": 26,
     "activate_sampling_rule": 27,
     "create_conditional_rule": 28,
+    "explain_archive_button_issue_details": 29,
+    "explain_archive_tab_issue_stream": 30,
 }
 
 # demo mode has different guides
 if settings.DEMO_MODE:
+    # TODO: remove old guides
     GUIDES = {
         "sidebar": 20,
         "issue_stream_v2": 21,

@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
-import type {ButtonProps} from 'sentry/components/button';
+import {EnvironmentPageFilter as NewEnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {FormSize} from 'sentry/utils/theme';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -29,10 +29,10 @@ type Props = {
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
-  size?: ButtonProps['size'];
+  size?: FormSize;
 };
 
-function EnvironmentPageFilter({
+function OldEnvironmentPageFilter({
   resetParamsOnChange = [],
   alignDropdown,
   disabled,
@@ -71,32 +71,30 @@ function EnvironmentPageFilter({
         data-test-id="page-filter-environment-selector"
         disabled={disabled}
         size={size}
-      >
-        <DropdownTitle>
+        icon={
           <PageFilterPinIndicator filter="environments">
             <IconWindow />
           </PageFilterPinIndicator>
-          <TitleContainer>
-            {summary}
-            {!!value.length && value.length > environmentsToShow.length && (
-              <Badge text={`+${value.length - environmentsToShow.length}`} />
-            )}
-          </TitleContainer>
-        </DropdownTitle>
+        }
+      >
+        <TitleContainer>
+          {summary}
+          {!!value.length && value.length > environmentsToShow.length && (
+            <Badge text={`+${value.length - environmentsToShow.length}`} />
+          )}
+        </TitleContainer>
       </PageFilterDropdownButton>
     );
   };
 
   const customLoadingIndicator = (
     <PageFilterDropdownButton
+      icon={<IconWindow />}
       showChevron={false}
       disabled
       data-test-id="page-filter-environment-selector"
     >
-      <DropdownTitle>
-        <IconWindow />
-        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
-      </DropdownTitle>
+      <TitleContainer>{t('Loading\u2026')}</TitleContainer>
     </PageFilterDropdownButton>
   );
 
@@ -117,20 +115,18 @@ function EnvironmentPageFilter({
 }
 
 const TitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1 1 0%;
-  margin-left: ${space(1)};
   text-align: left;
   ${p => p.theme.overflowEllipsis}
 `;
 
-const DropdownTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  width: max-content;
-  min-width: 0;
-`;
+function EnvironmentPageFilter(props: Props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('new-page-filter')) {
+    return <NewEnvironmentPageFilter {...props} />;
+  }
+
+  return <OldEnvironmentPageFilter {...props} />;
+}
 
 export default EnvironmentPageFilter;

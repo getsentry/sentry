@@ -1,0 +1,68 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame (non app frame)
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function*
+              "esm.run"
+        type*
+          "Error"
+        value*
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "e8336133eef3799c5dfe334b523717b2"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame*
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function*
+              "esm.run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

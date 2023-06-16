@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import pytest
+
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import (
@@ -11,6 +13,8 @@ from sentry.snuba.subscriptions import (
     update_snuba_subscription,
 )
 from sentry.testutils import TestCase
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class CreateSnubaQueryTest(TestCase):
@@ -290,12 +294,14 @@ class UpdateSnubaQueryTest(TestCase):
 class UpdateSnubaSubscriptionTest(TestCase):
     def test(self):
         old_dataset = Dataset.Events
+        old_query = "level:error"
+        old_aggregate = "count()"
         with self.tasks():
             snuba_query = create_snuba_query(
                 SnubaQuery.Type.ERROR,
                 old_dataset,
-                "level:error",
-                "count()",
+                old_query,
+                old_aggregate,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
                 None,
@@ -320,7 +326,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
             aggregate=aggregate,
         )
         assert subscription_id is not None
-        update_snuba_subscription(subscription, old_type, old_dataset)
+        update_snuba_subscription(subscription, old_type, old_dataset, old_aggregate, old_query)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
         assert subscription.snuba_query.dataset == dataset.value
@@ -332,11 +338,13 @@ class UpdateSnubaSubscriptionTest(TestCase):
     def test_with_task(self):
         with self.tasks():
             old_dataset = Dataset.Events
+            old_query = "level:error"
+            old_aggregate = "count()"
             snuba_query = create_snuba_query(
                 SnubaQuery.Type.ERROR,
                 old_dataset,
-                "level:error",
-                "count()",
+                old_query,
+                old_aggregate,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
                 None,
@@ -361,7 +369,47 @@ class UpdateSnubaSubscriptionTest(TestCase):
                 environment=self.environment,
                 aggregate=aggregate,
             )
-            update_snuba_subscription(subscription, old_type, old_dataset)
+            update_snuba_subscription(subscription, old_type, old_dataset, old_aggregate, old_query)
+            subscription = QuerySubscription.objects.get(id=subscription.id)
+            assert subscription.status == QuerySubscription.Status.ACTIVE.value
+            assert subscription.subscription_id is not None
+            assert subscription.subscription_id != subscription_id
+
+    def test_perf_metric_to_transaction(self):
+        with self.tasks():
+            old_dataset = Dataset.PerformanceMetrics
+            old_query = ""
+            old_aggregate = "count()"
+            snuba_query = create_snuba_query(
+                SnubaQuery.Type.PERFORMANCE,
+                old_dataset,
+                old_query,
+                old_aggregate,
+                timedelta(minutes=10),
+                timedelta(minutes=1),
+                None,
+            )
+            subscription = create_snuba_subscription(self.project, "something", snuba_query)
+            old_type = SnubaQuery.Type(snuba_query.type)
+
+            dataset = Dataset.Transactions
+            query = "level:warning"
+            aggregate = "count()"
+            time_window = timedelta(minutes=20)
+            resolution = timedelta(minutes=2)
+            subscription = QuerySubscription.objects.get(id=subscription.id)
+            subscription_id = subscription.subscription_id
+            assert subscription_id is not None
+            snuba_query.update(
+                type=SnubaQuery.Type.PERFORMANCE.value,
+                dataset=dataset.value,
+                query=query,
+                time_window=int(time_window.total_seconds()),
+                resolution=int(resolution.total_seconds()),
+                environment=self.environment,
+                aggregate=aggregate,
+            )
+            update_snuba_subscription(subscription, old_type, old_dataset, old_aggregate, old_query)
             subscription = QuerySubscription.objects.get(id=subscription.id)
             assert subscription.status == QuerySubscription.Status.ACTIVE.value
             assert subscription.subscription_id is not None

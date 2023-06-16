@@ -12,6 +12,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
             end=datetime.now(),
             filter_keys={"project_id": {1}, "culprit": {"asdf"}},
             aggregations=[["count()", "", "count"]],
+            tenant_ids={"referrer": "bleh", "organization_id": 123},
         )
 
     def test_shrink_timeframe(self):

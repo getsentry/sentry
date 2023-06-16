@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
 import brotli
+import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
@@ -13,6 +14,7 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
+from sentry.utils.sdk import set_measurement
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -21,7 +23,7 @@ class RetrySkipTimeout(urllib3.Retry):
     read timeout. Retrying after a timeout adds useless load to Snuba.
     """
 
-    def increment(  # type: ignore
+    def increment(
         self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
     ):
         """
@@ -60,7 +62,7 @@ class RetrySkipTimeout(urllib3.Retry):
 
 
 _profiling_pool = connection_from_url(
-    settings.SENTRY_PROFILING_SERVICE_URL,
+    settings.SENTRY_VROOM,
     retries=RetrySkipTimeout(
         total=3,
         status_forcelist={502},
@@ -98,10 +100,11 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        kwargs["body"] = brotli.compress(
-            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.MODE_TEXT
-        )
-    return _profiling_pool.urlopen(  # type: ignore
+        with sentry_sdk.start_span(op="json.dumps"):
+            data = json.dumps(json_data).encode("utf-8")
+        set_measurement("payload.size", len(data), unit="byte")
+        kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
+    return _profiling_pool.urlopen(
         method,
         path,
         **kwargs,
@@ -113,8 +116,11 @@ def proxy_profiling_service(
     path: str,
     params: Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, str]] = None,
+    json_data: Any = None,
 ) -> SentryResponse:
-    profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
+    profiling_response = get_from_profiling_service(
+        method, path, params=params, headers=headers, json_data=json_data
+    )
     return SentryResponse(
         content=profiling_response.data,
         status=profiling_response.status,

@@ -5,10 +5,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_query_hash
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
+@control_silo_test(stable=True)
 class JiraUninstalledTest(APITestCase):
     external_id = "it2may+cody"
     kid = "cudi"
@@ -46,7 +48,7 @@ class JiraUninstalledTest(APITestCase):
 
         integration = Integration.objects.create(
             provider="jira",
-            status=ObjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
             external_id=self.external_id,
             metadata={"shared_secret": self.shared_secret},
         )
@@ -64,7 +66,7 @@ class JiraUninstalledTest(APITestCase):
         org = self.organization
 
         integration = Integration.objects.create(
-            provider="jira", status=ObjectStatus.VISIBLE, external_id=self.external_id
+            provider="jira", status=ObjectStatus.ACTIVE, external_id=self.external_id
         )
         integration.add_organization(org, self.user)
 

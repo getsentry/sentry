@@ -1,21 +1,22 @@
-import {memo, useRef} from 'react';
+import {memo, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
-import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 type Props = {
@@ -23,21 +24,35 @@ type Props = {
   startTimestampMs: number;
 };
 
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 82,
+};
+
+function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
+  return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
+    enabled: Boolean(replay),
+    initialData: [],
+  });
+}
+
 function DomMutations({replay, startTimestampMs}: Props) {
-  const {isLoading, actions} = useExtractedCrumbHtml({replay});
+  const {data: actions, isLoading} = useExtractedDomNodes({replay});
+  const {currentTime, currentHoverTime} = useReplayContext();
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 82,
-    },
+
+  const deps = useMemo(() => [items], [items]);
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
@@ -52,8 +67,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <DomMutationRow
+          currentTime={currentTime}
+          currentHoverTime={currentHoverTime}
           mutation={mutation}
-          mutations={items}
           startTimestampMs={startTimestampMs}
           style={style}
         />
@@ -62,13 +78,13 @@ function DomMutations({replay, startTimestampMs}: Props) {
   };
 
   return (
-    <MutationContainer>
+    <FluidHeight>
       <DomFilters actions={actions} {...filterProps} />
-      <MutationItemContainer>
+      <TabItemContainer>
         {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
-          <AutoSizer>
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
@@ -91,21 +107,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
             )}
           </AutoSizer>
         )}
-      </MutationItemContainer>
-    </MutationContainer>
+      </TabItemContainer>
+    </FluidHeight>
   );
 }
-
-const MutationContainer = styled(FluidHeight)`
-  height: 100%;
-`;
-
-const MutationItemContainer = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
 
 export default memo(DomMutations);

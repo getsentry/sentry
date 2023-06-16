@@ -8,7 +8,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-const WrapperComponent = props => {
+function WrapperComponent(props) {
   return (
     <OrganizationContext.Provider value={props.organization}>
       <MEPSettingProvider _isMEPEnabled={false}>
@@ -16,7 +16,7 @@ const WrapperComponent = props => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 describe('TransactionsList', function () {
   let api;
@@ -214,7 +214,7 @@ describe('TransactionsList', function () {
         name: 'Filter Trending Regressions',
       });
       expect(filterDropdown).toBeInTheDocument();
-      userEvent.click(filterDropdown);
+      await userEvent.click(filterDropdown);
 
       const menuOptions = await screen.findAllByRole('option');
       expect(menuOptions.map(e => e.textContent)).toEqual([
@@ -340,7 +340,7 @@ describe('TransactionsList', function () {
         name: 'Filter Transactions',
       });
       expect(filterDropdown).toBeInTheDocument();
-      userEvent.click(filterDropdown);
+      await userEvent.click(filterDropdown);
 
       const menuOptions = await screen.findAllByRole('option');
       expect(menuOptions.map(e => e.textContent)).toEqual([
@@ -348,7 +348,7 @@ describe('TransactionsList', function () {
         'Failing Transactions',
       ]);
 
-      userEvent.click(menuOptions[1]); // Failing transactions is 'count' as per the test options
+      await userEvent.click(menuOptions[1]); // Failing transactions is 'count' as per the test options
 
       waitFor(() => {
         // now the sort is descending by count

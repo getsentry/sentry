@@ -10,6 +10,7 @@ from sentry.models import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -28,6 +29,7 @@ from sentry.utils.snuba import (
 )
 
 
+@region_silo_test(stable=True)
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -68,7 +70,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_issue_by_tag_batched(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.ISSUES_BY_TAG,
             query_info={"project": [self.project.id], "group": self.event.group_id, "key": "foo"},
@@ -98,7 +100,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_no_error_on_retry(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.ISSUES_BY_TAG,
             query_info={"project": [self.project.id], "group": self.event.group_id, "key": "foo"},
@@ -131,7 +133,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_key(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.ISSUES_BY_TAG,
             query_info={"project": [self.project.id], "group": self.event.group_id, "key": "bar"},
@@ -144,7 +146,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_project(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.ISSUES_BY_TAG,
             query_info={"project": [-1], "group": self.event.group_id, "key": "user"},
@@ -157,7 +159,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_issue(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.ISSUES_BY_TAG,
             query_info={"project": [self.project.id], "group": -1, "key": "user"},
@@ -176,7 +178,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         This gives us an empty CSV with just the headers.
         """
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.ISSUES_BY_TAG,
             query_info={"project": [self.project.id], "group": self.event.group_id, "key": "foo"},
@@ -202,7 +204,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_batched(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -232,7 +234,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_respects_selected_environment(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={
@@ -266,7 +268,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_respects_selected_environment_multiple(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={
@@ -301,7 +303,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_missing_environment(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={
@@ -319,7 +321,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_missing_project(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [-1], "group": self.event.group_id, "key": "user"},
@@ -334,7 +336,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_export_file_too_large(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -364,7 +366,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_export_too_many_rows(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -399,7 +401,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         use a more recent date range.
         """
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -422,7 +424,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_invalid_search_query(self, emailer, mock_query):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -444,7 +446,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.search.events.builder.discover.raw_snql_query")
     def test_retries_on_recoverable_snuba_errors(self, mock_query):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -474,7 +476,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_snuba_error(self, emailer, mock_query):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -570,7 +572,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_integrity_error(self, emailer, finalize_upload):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
@@ -584,7 +586,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_sort(self, emailer):
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={
@@ -609,6 +611,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
+@region_silo_test(stable=True)
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -638,7 +641,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         during the 3rd batch, it will finish exporting all 50 rows.
         """
         de = ExportedData.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},

@@ -32,7 +32,12 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
+            tagkey = tagstore.get_tag_key(
+                project.id,
+                environment_id,
+                lookup_key,
+                tenant_ids={"organization_id": project.organization_id},
+            )
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
@@ -55,7 +60,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             eventstream_state = eventstream.start_delete_tag(project.id, key)
 
-            deleted = self.get_tag_keys_for_deletion(project.id, lookup_key)
+            deleted = self.get_tag_keys_for_deletion(project, lookup_key)
 
             # NOTE: By sending the `end_delete_tag` message here we are making
             # the assumption that the `delete_tag_key` does its work
@@ -77,8 +82,15 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return Response(status=204)
 
-    def get_tag_keys_for_deletion(self, project_id, key):
+    def get_tag_keys_for_deletion(self, project, key):
         try:
-            return [tagstore.get_tag_key(project_id=project_id, key=key, environment_id=None)]
+            return [
+                tagstore.get_tag_key(
+                    project_id=project.id,
+                    key=key,
+                    environment_id=None,
+                    tenant_ids={"organization_id": project.organization_id},
+                )
+            ]
         except tagstore.TagKeyNotFound:
             return []

@@ -12,13 +12,13 @@ import styled from '@emotion/styled';
 
 import _TextArea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
    * Props passed to `Input` element (`size`, `disabled`), useful for styling
-   * `InputLeadingItems` and `InputTrailingItems`.
+   * `InputGroup.LeadingItems` and `InputGroup.TrailingItems`.
    */
   inputProps: Pick<InputProps, 'size' | 'disabled'>;
   /**
@@ -36,15 +36,15 @@ interface InputContext {
 export const InputGroupContext = createContext<InputContext>({inputProps: {}});
 
 /**
- * Wrapper for input group. To be used alongisde `Input`, `InputLeadingItems`,
- * and `InputTrailingItems`:
+ * Wrapper for input group. To be used alongisde `Input`, `InputGroup.LeadingItems`,
+ * and `InputGroup.TrailingItems`:
  *   <InputGroup>
- *     <InputLeadingItems> … </InputLeadingItems>
+ *     <InputGroup.LeadingItems> … </InputGroup.LeadingItems>
  *     <Input />
- *     <InputTrailingItems> … </InputTrailingItems>
+ *     <InputGroup.TrailingItems> … </InputGroup.TrailingItems>
  *   </InputGroup>
  */
-export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
+function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivElement>) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
@@ -70,8 +70,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 }
 
-export type {InputProps};
-export const Input = forwardRef<HTMLInputElement, InputProps>(
+const Input = forwardRef<HTMLInputElement, InputProps>(
   ({size, disabled, ...props}, ref) => {
     const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
@@ -92,8 +91,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-export type {TextAreaProps};
-export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
+const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({size, disabled, ...props}, ref) => {
     const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
@@ -128,15 +126,11 @@ interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
  * Container for leading input items (e.g. a search icon). To be wrapped
  * inside `InputGroup`:
  *   <InputGroup>
- *     <InputLeadingItems> … </InputLeadingItems>
+ *     <InputGroup.LeadingItems> … </InputGroup.LeadingItems>
  *     <Input />
  *   </InputGroup>
  */
-export function InputLeadingItems({
-  children,
-  disablePointerEvents,
-  ...props
-}: InputItemsProps) {
+function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -168,14 +162,10 @@ export function InputLeadingItems({
  * inside `InputGroup`:
  *   <InputGroup>
  *     <Input />
- *     <InputTrailingItems> … </InputTrailingItems>
+ *     <InputGroup.TrailingItems> … </InputGroup.TrailingItems>
  *   </InputGroup>
  */
-export function InputTrailingItems({
-  children,
-  disablePointerEvents,
-  ...props
-}: InputItemsProps) {
+function TrailingItems({children, disablePointerEvents, ...props}: InputItemsProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
@@ -201,6 +191,14 @@ export function InputTrailingItems({
     </InputTrailingItemsWrap>
   );
 }
+
+InputGroup.Input = Input;
+InputGroup.TextArea = TextArea;
+InputGroup.LeadingItems = LeadingItems;
+InputGroup.TrailingItems = TrailingItems;
+
+export {InputGroup};
+export type {InputProps, TextAreaProps};
 
 export const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;

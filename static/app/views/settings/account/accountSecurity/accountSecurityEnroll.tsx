@@ -23,7 +23,7 @@ import {PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports
@@ -33,7 +33,7 @@ import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/compone
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type getFieldsOpts = {
+type GetFieldsOpts = {
   authenticator: Authenticator;
   /**
    * Flag to track if totp has been sent
@@ -62,7 +62,7 @@ const getFields = ({
   sendingCode,
   onSmsReset,
   onU2fTap,
-}: getFieldsOpts): null | FieldObject[] => {
+}: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
   if (!form) {
@@ -189,6 +189,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.pendingInvitation = getPendingInvite();
   }
 

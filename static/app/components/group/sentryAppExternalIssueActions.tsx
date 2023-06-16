@@ -10,14 +10,17 @@ import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Group,
+  Organization,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import withApi from 'sentry/utils/withApi';
 
@@ -27,6 +30,7 @@ type Props = {
   api: Client;
   event: Event;
   group: Group;
+  organization: Organization;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;
   disabled?: boolean;
@@ -60,8 +64,15 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
       return;
     }
 
-    const {group, event, sentryAppComponent, sentryAppInstallation} = this.props;
+    const {group, event, organization, sentryAppComponent, sentryAppInstallation} =
+      this.props;
 
+    trackAnalytics('issue_details.external_issue_modal_opened', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      external_issue_provider: sentryAppComponent.sentryApp.slug,
+      external_issue_type: 'sentry_app',
+    });
     recordInteraction(
       sentryAppComponent.sentryApp.slug,
       'sentry_app_component_interacted',
@@ -109,6 +120,13 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
   };
 
   onSubmitSuccess = (externalIssue: PlatformExternalIssue) => {
+    const {organization, group, sentryAppComponent} = this.props;
+    trackAnalytics('issue_details.external_issue_modal_opened', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      external_issue_provider: sentryAppComponent.sentryApp.slug,
+      external_issue_type: 'sentry_app',
+    });
     this.setState({externalIssue});
   };
 

@@ -5,11 +5,39 @@
     <meta name="robots" content="NONE,NOARCHIVE" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
+    <script>
+      function __sentryMark(name) {
+        if (!window.performance || typeof window.performance.mark !== 'function') { return; }
+        window.performance.mark(name);
+      }
+      __sentryMark('head-start');
+    </script>
     <script type="text/javascript">
     try {
-      var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
-      var organization = window.location.pathname;
-      var slug = organization.match(reg)[1];
+      function extractSlug() {
+        // XXX: If you change this also change its sibilings in:
+        // - static/app/utils/extractSlug.tsx
+        // - webpack.config.ts
+        // NB: This RegExp is not exactly the same as the other two
+        var knownDomains = /\.(?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?$/;
+        if (window.location.host.match(knownDomains)) {
+          var domainParts = window.location.host.split('.');
+          var slug = domainParts.shift();
+          return slug;
+        }
+
+        var pathReg = /\/organizations\/(.+?(?=(\/|$)))(\/|$)/i;
+        var matches = pathReg.exec(window.location.pathname);
+        if (matches) {
+          return matches[1];
+        }
+
+        console.error(`Could not extract an organization slug from ${window.location}. Assuming 'sentry'`);
+
+        return 'sentry';
+      }
+
+      var slug = extractSlug();
       var preloadPromises = { orgSlug: slug };
 
       function promiseRequest(url) {
@@ -43,7 +71,9 @@
         preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
         preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
       }
-    } catch(_) {}
+    } catch(err) {
+      console.error(err)
+    }
     </script>
   </head>
 

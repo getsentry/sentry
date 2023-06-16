@@ -11,45 +11,65 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import useInitialTimeOffsetMs, {
+  TimeOffsetLocationQueryParams,
+} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-import {getInitialTimeOffset} from 'sentry/views/replays/utils';
+import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<
   {replaySlug: string},
   {},
   any,
-  {event_t: string; t: number}
+  TimeOffsetLocationQueryParams
 >;
 
-function ReplayDetails({
-  location: {
-    query: {
-      event_t: eventTimestamp, // Timestamp of the event or activity that was selected
-      t: initialTimeOffset, // Time, in seconds, where the video should start
-    },
-  },
-  params: {replaySlug},
-}: Props) {
+function ReplayDetails({params: {replaySlug}}: Props) {
   useReplayPageview('replay.details-time-spent');
-  const orgSlug = useOrganization().slug;
+  const organization = useOrganization();
+  const {slug: orgSlug} = organization;
 
-  const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
+  // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
+  // once we fix the route params and links we should fix this to accept replayId and stop returning it
+  const {
+    fetching,
+    onRetry,
+    replay,
+    replayRecord,
+    fetchError,
+    projectSlug,
+    replayId,
+    replayErrors,
+  } = useReplayData({
     replaySlug,
     orgSlug,
   });
 
-  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
+  useLogReplayDataLoaded({fetching, fetchError, replay, projectSlug});
 
-  if (!fetching && !replay && fetchError) {
+  const initialTimeOffsetMs = useInitialTimeOffsetMs({
+    orgSlug,
+    projectSlug,
+    replayId,
+    replayStartTimestampMs: replayRecord?.started_at.getTime(),
+  });
+
+  if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
-        <Page orgSlug={orgSlug} replayRecord={replayRecord}>
+        <Page
+          orgSlug={orgSlug}
+          replayRecord={replayRecord}
+          projectSlug={projectSlug}
+          replayErrors={replayErrors}
+        >
           <Layout.Page withPadding>
             <NotFound />
           </Layout.Page>
@@ -58,11 +78,17 @@ function ReplayDetails({
     }
 
     const reasons = [
-      t('The Replay is still processing and is on its way'),
-      t('There is an internal systems error or active issue'),
+      t('The replay is still processing'),
+      t('The replay has been deleted by a member in your organization'),
+      t('There is an internal systems error'),
     ];
     return (
-      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
         <Layout.Page>
           <DetailedError
             onRetry={onRetry}
@@ -70,7 +96,7 @@ function ReplayDetails({
             heading={t('There was an error while fetching this Replay')}
             message={
               <Fragment>
-                <p>{t('This could be due to a couple of reasons:')}</p>
+                <p>{t('This could be due to these reasons:')}</p>
                 <List symbol="bullet">
                   {reasons.map((reason, i) => (
                     <ListItem key={i}>{reason}</ListItem>
@@ -86,13 +112,22 @@ function ReplayDetails({
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
+      <Page
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        projectSlug={projectSlug}
+        replayErrors={replayErrors}
+      >
         <DetailedError
           hideSupportLinks
-          heading={t('Expected two or more replay events')}
+          heading={t('Error loading replay')}
           message={
             <Fragment>
-              <p>{t('This Replay may not have captured any user actions.')}</p>
+              <p>
+                {t(
+                  'Expected two or more replay events. This Replay may not have captured any user actions.'
+                )}
+              </p>
               <p>
                 {t(
                   'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
@@ -107,30 +142,44 @@ function ReplayDetails({
 
   return (
     <ReplayContextProvider
+      isFetching={fetching}
       replay={replay}
-      initialTimeOffset={getInitialTimeOffset({
-        eventTimestamp,
-        initialTimeOffset,
-        startTimestampMs,
-      })}
+      initialTimeOffsetMs={initialTimeOffsetMs}
     >
-      <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
+      <ReplayTransactionContext replayRecord={replayRecord}>
+        <DetailsInsideContext
+          orgSlug={orgSlug}
+          replayRecord={replayRecord}
+          projectSlug={projectSlug}
+          replayErrors={replayErrors}
+        />
+      </ReplayTransactionContext>
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({
+function DetailsInsideContext({
   orgSlug,
   replayRecord,
+  projectSlug,
+  replayErrors,
 }: {
   orgSlug: string;
+  projectSlug: string | null;
+  replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
 }) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
 
   return (
-    <Page orgSlug={orgSlug} crumbs={replay?.getRawCrumbs()} replayRecord={replayRecord}>
+    <Page
+      orgSlug={orgSlug}
+      crumbs={replay?.getNavCrumbs()}
+      replayRecord={replayRecord}
+      projectSlug={projectSlug}
+      replayErrors={replayErrors}
+    >
       <ReplaysLayout layout={getLayout()} />
     </Page>
   );

@@ -78,7 +78,7 @@ describe('SentryAppDetailsModal', function () {
     expect(screen.getByText(sentryApp.overview)).toBeInTheDocument();
   });
 
-  it('closes when Cancel is clicked', function () {
+  it('closes when Cancel is clicked', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     const handleCloseModal = jest.fn();
@@ -93,12 +93,12 @@ describe('SentryAppDetailsModal', function () {
       />
     );
 
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
 
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('installs the Integration when Install is clicked', function () {
+  it('installs the Integration when Install is clicked', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     const handleOnInstall = jest.fn();
@@ -113,7 +113,7 @@ describe('SentryAppDetailsModal', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
     expect(handleOnInstall).toHaveBeenCalled();
   });
@@ -121,14 +121,17 @@ describe('SentryAppDetailsModal', function () {
   it('does not display the Install button, when the User does not have permission to install Integrations', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
+    const noAccessOrg = TestStubs.Organization({access: []});
+
     render(
       <SentryAppDetailsModal
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization({access: []})}
+        organization={noAccessOrg}
         sentryApp={sentryApp}
-      />
+      />,
+      {organization: noAccessOrg}
     );
 
     expect(

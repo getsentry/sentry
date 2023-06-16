@@ -8,17 +8,17 @@ import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
 )
-from sentry.testutils.cases import RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 
 
 class FrequencyConditionMixin:
@@ -72,23 +72,36 @@ class ErrorEventMixin:
         return event.for_group(event.group)
 
 
-class PerfEventMixin(PerfIssueTransactionTestMixin):
+class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
     def add_event(self, data, project_id, timestamp):
         fingerprint = data["fingerprint"][0]
         fingerprint = (
             fingerprint
             if "-" in fingerprint
-            else f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{data['fingerprint'][0]}"
+            else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
         )
-        # Store a performance event
-        event = self.store_transaction(
-            environment=data.get("environment"),
-            project_id=project_id,
-            user_id=data.get("user", uuid4().hex),
-            fingerprint=[fingerprint],
+        event_data = load_data(
+            "transaction-n-plus-one",
             timestamp=timestamp.replace(tzinfo=pytz.utc),
+            start_timestamp=timestamp.replace(tzinfo=pytz.utc),
+            fingerprint=[fingerprint],
         )
-        return event.for_group(event.groups[0])
+        event_data["user"] = {"id": uuid4().hex}
+        event_data["environment"] = data.get("environment")
+        for tag in event_data["tags"]:
+            if tag[0] == "environment":
+                tag[1] = data.get("environment")
+                break
+        else:
+            event_data["tags"].append(data.get("environment"))
+
+        # Store a performance event
+        event = self.create_performance_issue(
+            event_data=event_data,
+            project_id=project_id,
+            fingerprint=fingerprint,
+        )
+        return event
 
 
 class StandardIntervalMixin:
@@ -424,8 +437,10 @@ class ErrorIssueFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueFrequencyConditionTestCase(
-    EventFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
+class PerfIssuePlatformIssueFrequencyConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventFrequencyConditionTestCase,
+    RuleTestCase,
 ):
     pass
 
@@ -440,8 +455,10 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueUniqueUserFrequencyConditionTestCase(
-    EventUniqueUserFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
+class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventUniqueUserFrequencyConditionTestCase,
+    RuleTestCase,
 ):
     pass
 
@@ -456,7 +473,9 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class PerfIssueEventFrequencyPercentConditionTestCase(
-    EventFrequencyPercentConditionTestCase, RuleTestCase, PerfEventMixin
+class PerfIssuePlatformIssueEventFrequencyPercentConditionTestCase(
+    PerfIssuePlatformEventMixin,
+    EventFrequencyPercentConditionTestCase,
+    RuleTestCase,
 ):
     pass

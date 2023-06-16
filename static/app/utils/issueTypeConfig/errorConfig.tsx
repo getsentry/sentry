@@ -15,6 +15,7 @@ const errorConfig: IssueCategoryConfigMapping = {
     replays: {enabled: true},
     similarIssues: {enabled: true},
     userFeedback: {enabled: true},
+    usesIssuePlatform: false,
   },
 };
 

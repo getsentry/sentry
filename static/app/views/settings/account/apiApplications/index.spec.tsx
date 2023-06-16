@@ -74,7 +74,7 @@ describe('ApiApplications', function () {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Create New Application'));
+    await userEvent.click(screen.getByLabelText('Create New Application'));
 
     expect(createApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/',
@@ -107,7 +107,7 @@ describe('ApiApplications', function () {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Remove'));
+    await userEvent.click(screen.getByLabelText('Remove'));
 
     expect(deleteApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/123/',

@@ -23,11 +23,12 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
         required=False, min_value=0, max_value=1
     )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
+    consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
 
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    private = True  # TODO: Remove after EA.
+    # TODO: Remove after EA.
     permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request) -> bool:

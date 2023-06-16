@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -17,9 +17,9 @@ describe('Sidebar', function () {
   const location = {...router.location, ...{pathname: '/test/'}};
 
   const getElement = props => (
-    <PersistedStoreProvider>
+    <OnboardingContextProvider>
       <SidebarContainer organization={organization} location={location} {...props} />
-    </PersistedStoreProvider>
+    </OnboardingContextProvider>
   );
 
   const renderSidebar = props => render(getElement(props), {context: routerContext});
@@ -37,10 +37,6 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/client-state/`,
-      body: {},
-    });
   });
 
   it('renders', async function () {
@@ -49,14 +45,14 @@ describe('Sidebar', function () {
     expect(screen.getByTestId('sidebar-dropdown')).toBeInTheDocument();
   });
 
-  it('renders without org', function () {
+  it('renders without org', async function () {
     const {container} = renderSidebar({organization: null});
 
     // no org displays user details
     expect(screen.getByText(user.name)).toBeInTheDocument();
     expect(screen.getByText(user.email)).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(container).toSnapshot();
   });
 
@@ -72,8 +68,8 @@ describe('Sidebar', function () {
       organization: TestStubs.Organization({access: ['member:read']}),
     });
 
-    userEvent.click(screen.getByTestId('sidebar-dropdown'));
-    userEvent.click(screen.getByTestId('sidebar-signout'));
+    await userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    await userEvent.click(screen.getByTestId('sidebar-signout'));
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
@@ -85,7 +81,7 @@ describe('Sidebar', function () {
     const {container} = renderSidebar();
     await waitFor(() => container);
 
-    userEvent.click(screen.getByText('Help'));
+    await userEvent.click(screen.getByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
     expect(container).toSnapshot();
@@ -96,7 +92,7 @@ describe('Sidebar', function () {
       const {container} = renderSidebar();
       await waitFor(() => container);
 
-      userEvent.click(screen.getByTestId('sidebar-dropdown'));
+      await userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       const orgSettingsLink = screen.getByText('Organization settings');
       expect(orgSettingsLink).toBeInTheDocument();
@@ -108,7 +104,7 @@ describe('Sidebar', function () {
       });
       await waitFor(() => container);
 
-      userEvent.click(screen.getByTestId('sidebar-dropdown'));
+      await userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       expect(screen.getByText('Members')).toBeInTheDocument();
     });
@@ -119,10 +115,10 @@ describe('Sidebar', function () {
       const {container} = renderSidebar();
       await waitFor(() => container);
 
-      userEvent.click(screen.getByTestId('sidebar-dropdown'));
+      await userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       jest.useFakeTimers();
-      userEvent.type(screen.getByText('Switch organization'), '{enter}');
+      await userEvent.hover(screen.getByText('Switch organization'), {delay: null});
       act(() => jest.advanceTimersByTime(500));
       jest.useRealTimers();
 
@@ -137,7 +133,7 @@ describe('Sidebar', function () {
     it('hides when path changes', async function () {
       const {rerender} = renderSidebar();
 
-      userEvent.click(screen.getByText("What's new"));
+      await userEvent.click(screen.getByText("What's new"));
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
@@ -154,12 +150,12 @@ describe('Sidebar', function () {
       const quickStart = screen.getByText('Quick Start');
 
       expect(quickStart).toBeInTheDocument();
-      userEvent.click(quickStart);
+      await userEvent.click(quickStart);
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('Capture your first error')).toBeInTheDocument();
 
-      userEvent.click(quickStart);
+      await userEvent.click(quickStart);
       expect(screen.queryByText('Capture your first error')).not.toBeInTheDocument();
       await tick();
     });
@@ -171,7 +167,7 @@ describe('Sidebar', function () {
       });
       renderSidebar();
 
-      userEvent.click(screen.getByText("What's new"));
+      await userEvent.click(screen.getByText("What's new"));
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
@@ -180,7 +176,7 @@ describe('Sidebar', function () {
       ).toBeInTheDocument();
 
       // Close the sidebar
-      userEvent.click(screen.getByText("What's new"));
+      await userEvent.click(screen.getByText("What's new"));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
       await tick();
     });
@@ -191,7 +187,7 @@ describe('Sidebar', function () {
 
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
-      userEvent.click(screen.getByText("What's new"));
+      await userEvent.click(screen.getByText("What's new"), {delay: null});
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
@@ -213,7 +209,7 @@ describe('Sidebar', function () {
       jest.useRealTimers();
 
       // Close the sidebar
-      userEvent.click(screen.getByText("What's new"));
+      await userEvent.click(screen.getByText("What's new"));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
       await tick();
     });
@@ -223,7 +219,9 @@ describe('Sidebar', function () {
       const {unmount} = renderSidebar();
 
       // This will start timer to mark as seen
-      userEvent.click(screen.getByRole('link', {name: "What's new"}));
+      await userEvent.click(screen.getByRole('link', {name: "What's new"}), {
+        delay: null,
+      });
       expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
 
       act(() => jest.advanceTimersByTime(500));
@@ -245,7 +243,7 @@ describe('Sidebar', function () {
 
       const {container} = renderSidebar();
 
-      userEvent.click(await screen.findByText('Service status'));
+      await userEvent.click(await screen.findByText('Service status'));
       await screen.findByText('Recent service updates');
 
       expect(container).toSnapshot();
@@ -259,13 +257,13 @@ describe('Sidebar', function () {
     expect(screen.getByText(user.name)).toBeInTheDocument();
     expect(screen.getByText(organization.name)).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('sidebar-collapse'));
+    await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
     // Check that the organization name is no longer visible
     expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
 
     // Un-collapse he sidebar and make sure the org name is visible again
-    userEvent.click(screen.getByTestId('sidebar-collapse'));
+    await userEvent.click(screen.getByTestId('sidebar-collapse'));
     expect(await screen.findByText(organization.name)).toBeInTheDocument();
   });
 });

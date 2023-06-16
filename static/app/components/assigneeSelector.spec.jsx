@@ -74,7 +74,7 @@ describe('AssigneeSelector', () => {
       owners: [
         {
           type: 'suspectCommit',
-          owner: 'user:1',
+          owner: `user:${USER_1.id}`,
           date_added: '',
         },
       ],
@@ -106,13 +106,12 @@ describe('AssigneeSelector', () => {
       },
     });
 
-    MemberListStore.state = [];
-    MemberListStore.loaded = false;
+    MemberListStore.reset();
   });
 
   // Doesn't need to always be async, but it was easier to prevent flakes this way
   const openMenu = async () => {
-    userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
+    await userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
       // Skip hover to prevent tooltip from rendering
       skipHover: true,
     });
@@ -142,11 +141,7 @@ describe('AssigneeSelector', () => {
   describe('putSessionUserFirst()', () => {
     it('should place the session user at the top of the member list if present', () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
-      jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
-        id: '2',
-        name: 'John Smith',
-        email: 'johnsmith@example.com',
-      }));
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() => USER_2);
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       ConfigStore.get.mockRestore();
     });
@@ -208,7 +203,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText(`${USER_1.name} (You)`));
+    await userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
@@ -237,7 +232,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -259,7 +254,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
 
     // Assign first item in list, which is TEAM_1
-    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -271,7 +266,7 @@ describe('AssigneeSelector', () => {
     );
 
     await openMenu();
-    userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -294,7 +289,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
+    await userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
     ConfigStore.get.mockRestore();
   });
@@ -305,19 +300,19 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.type(screen.getByRole('textbox'), 'JohnSmith@example.com');
+    await userEvent.type(screen.getByRole('textbox'), 'JohnSmith@example.com');
 
     // 1 total item
     expect(screen.getByTestId('assignee-option')).toBeInTheDocument();
     expect(screen.getByText(`${USER_2.name}`)).toBeInTheDocument();
 
-    userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}');
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenLastCalledWith(
         '/issues/1338/',
         expect.objectContaining({
-          data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+          data: {assignedTo: `user:${USER_2.id}`, assignedBy: 'assignee_selector'},
         })
       )
     );
@@ -346,11 +341,11 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText(`#${TEAM_1.slug}`)).toBeInTheDocument();
-    expect(await screen.findByText('Suggested')).toBeInTheDocument();
+    expect(await screen.findByText('Suggested Assignees')).toBeInTheDocument();
 
     const options = screen.getAllByTestId('assignee-option');
-    expect(options[4]).toHaveTextContent('JD');
-    act(() => userEvent.click(options[4]));
+    expect(options[5]).toHaveTextContent('JD');
+    await userEvent.click(options[4]);
 
     await waitFor(() => {
       expect(addMessageSpy).toHaveBeenCalledWith(
@@ -369,24 +364,24 @@ describe('AssigneeSelector', () => {
 
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
     // Hover over avatar
-    userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+    await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
     expect(await screen.findByText('Suggestion: Jane Bloggs')).toBeInTheDocument();
     expect(screen.getByText('commit data')).toBeInTheDocument();
 
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(await screen.findByText('Suggested')).toBeInTheDocument();
+    expect(await screen.findByText('Suggested Assignees')).toBeInTheDocument();
 
     const options = screen.getAllByTestId('assignee-option');
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('JB');
-    userEvent.click(options[0]);
+    await userEvent.click(options[0]);
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(
         '/issues/1338/',
         expect.objectContaining({
-          data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
+          data: {assignedTo: `user:${USER_1.id}`, assignedBy: 'assignee_selector'},
         })
       )
     );
@@ -395,8 +390,8 @@ describe('AssigneeSelector', () => {
     expect(screen.queryByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
     expect(onAssign).toHaveBeenCalledWith(
       'member',
-      expect.objectContaining({id: '1'}),
-      expect.objectContaining({id: '1'})
+      expect.objectContaining({id: USER_1.id}),
+      expect.objectContaining({id: USER_1.id})
     );
   });
 
@@ -404,7 +399,7 @@ describe('AssigneeSelector', () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
     render(<AssigneeSelectorComponent id={GROUP_1.id} />);
 
-    userEvent.hover(screen.getByTestId('unassigned'));
+    await userEvent.hover(screen.getByTestId('unassigned'));
     expect(await screen.findByText('Unassigned')).toBeInTheDocument();
   });
 });

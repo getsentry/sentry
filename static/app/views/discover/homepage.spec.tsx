@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -18,11 +17,7 @@ import {DEFAULT_EVENT_VIEW} from './data';
 import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
-  const features = [
-    'global-views',
-    'discover-query',
-    'discover-query-builder-as-landing-page',
-  ];
+  const features = ['global-views', 'discover-query'];
   let initialData, organization, mockHomepage;
 
   beforeEach(() => {
@@ -30,7 +25,6 @@ describe('Discover > Homepage', () => {
       features,
     });
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: TestStubs.location(),
@@ -102,7 +96,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('Build a new query')).not.toBeInTheDocument();
   });
 
-  it('fetches from the homepage URL and renders fields, page filters, and chart information', async () => {
+  it('fetches from the homepage URL and renders fields, async page filters, async and chart information', async () => {
     render(
       <Homepage
         organization={organization}
@@ -125,7 +119,6 @@ describe('Discover > Homepage', () => {
 
   it('renders event view from URL params over homepage query', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -167,14 +160,13 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
-    await act(tick);
     renderGlobalModal();
 
-    userEvent.click(screen.getByText('Columns'));
+    await userEvent.click(await screen.findByText('Columns'));
 
-    userEvent.click(screen.getByTestId('label'));
-    userEvent.click(screen.getByText('event.type'));
-    userEvent.click(screen.getByText('Apply'));
+    await userEvent.click(screen.getByTestId('label'));
+    await userEvent.click(screen.getByText('event.type'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -248,7 +240,6 @@ describe('Discover > Homepage', () => {
 
   it('Disables the Set as Default button when no saved homepage', () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -282,7 +273,6 @@ describe('Discover > Homepage', () => {
 
   it('follows absolute date selection', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -310,16 +300,15 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    userEvent.click(await screen.findByText('24H'));
-    userEvent.click(await screen.findByText('Absolute date'));
-    userEvent.click(screen.getByText('Apply'));
+    await userEvent.click(await screen.findByText('24H'));
+    await userEvent.click(await screen.findByText('Absolute date'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
   it('renders changes to the discover query when no homepage', () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -352,7 +341,6 @@ describe('Discover > Homepage', () => {
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -380,7 +368,6 @@ describe('Discover > Homepage', () => {
 
   it('renders changes to the discover query when loaded with valid event view in url params', () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -407,7 +394,6 @@ describe('Discover > Homepage', () => {
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -463,7 +449,6 @@ describe('Discover > Homepage', () => {
 
   it('allows users to set the All Events query as default', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {

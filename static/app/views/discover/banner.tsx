@@ -14,7 +14,7 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
@@ -87,14 +87,14 @@ function DiscoverBanner({
   showBuildNewQueryButton = true,
 }: Props) {
   function onAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('discover_v2.tour.advance', {
+    trackAnalytics('discover_v2.tour.advance', {
       organization,
       step,
       duration,
     });
   }
   function onCloseModal(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('discover_v2.tour.close', {organization, step, duration});
+    trackAnalytics('discover_v2.tour.close', {organization, step, duration});
   }
 
   const theme = useTheme();
@@ -115,7 +115,7 @@ function DiscoverBanner({
           translucentBorder
           to={resultsUrl}
           onClick={() => {
-            trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {organization});
+            trackAnalytics('discover_v2.build_new_query', {organization});
           }}
         >
           {t('Build a new query')}
@@ -133,7 +133,7 @@ function DiscoverBanner({
             size={isSmallBanner ? 'xs' : undefined}
             translucentBorder
             onClick={() => {
-              trackAdvancedAnalyticsEvent('discover_v2.tour.start', {organization});
+              trackAnalytics('discover_v2.tour.start', {organization});
               showModal();
             }}
           >

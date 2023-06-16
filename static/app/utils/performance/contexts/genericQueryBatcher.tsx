@@ -3,7 +3,7 @@ import identity from 'lodash/identity';
 
 import {Client} from 'sentry/api';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -170,7 +170,7 @@ function handleBatching(
 
   const queriesSaved = queriesCollected - queriesSent;
 
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.batch_queries', {
+  trackAnalytics('performance_views.landingv3.batch_queries', {
     organization,
     num_collected: queriesCollected,
     num_saved: queriesSaved,
@@ -178,7 +178,7 @@ function handleBatching(
   });
 }
 
-export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => {
+export function GenericQueryBatcher({children}: {children: React.ReactNode}) {
   const queries = useRef<Record<symbol, BatchQueryDefinition>>({});
 
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -212,7 +212,7 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
       {children}
     </GenericQueryBatcherProvider>
   );
-};
+}
 
 type NodeContext = {
   batchProperty: string;

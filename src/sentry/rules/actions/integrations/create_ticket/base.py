@@ -4,11 +4,11 @@ import abc
 from typing import Any, Generator, Mapping
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Integration
 from sentry.rules.actions.integrations.base import IntegrationEventAction
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
 from sentry.rules.base import CallbackFuture, EventState
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
 class TicketEventAction(IntegrationEventAction, abc.ABC):
@@ -72,7 +72,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
             return fields
         return form_fields
 
-    def translate_integration(self, integration: Integration) -> str:
+    def translate_integration(self, integration: RpcIntegration) -> str:
         name: str = integration.name
         return name
 

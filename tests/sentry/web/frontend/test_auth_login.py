@@ -11,18 +11,21 @@ from django.utils import timezone
 from django.utils.http import urlquote
 
 from sentry import newsletter, options
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import OrganizationMember, User
+from sentry.models.organization import Organization
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
-from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
 # @control_silo_test(stable=True)
-class AuthLoginTest(TestCase):
+@control_silo_test
+class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):
         return reverse("sentry-login")
@@ -45,7 +48,10 @@ class AuthLoginTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/login.html")
-        assert len(resp.context["messages"]) == 1
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert messages[0].message == "Your session has expired."
 
     def test_login_invalid_password(self):
         # load it once for test cookie
@@ -161,7 +167,7 @@ class AuthLoginTest(TestCase):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
         assert signup_record == [
@@ -193,7 +199,10 @@ class AuthLoginTest(TestCase):
         user = User.objects.get(username="test-a-really-long-email-address@example.com")
 
         # User is part of the default org
-        assert OrganizationMember.objects.filter(user=user).exists()
+        default_org = Organization.get_default()
+        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user_id=user.id)
+        assert org_member.role == default_org.default_role
+        self.assert_org_member_mapping(org_member=org_member)
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
@@ -203,7 +212,7 @@ class AuthLoginTest(TestCase):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -221,7 +230,7 @@ class AuthLoginTest(TestCase):
         # An organization member should NOT have been created, even though
         # we're in single org mode, accepting the invite will handle that
         # (which we assert next)
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         # Invitation was accepted
         assert len(invite_helper.accept_invite.mock_calls) == 1
@@ -257,7 +266,7 @@ class AuthLoginTest(TestCase):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -282,6 +291,7 @@ class AuthLoginTest(TestCase):
         self.session["can_register"] = True
         self.session["invite_token"] = invite.token
         self.session["invite_member_id"] = invite.id
+        self.session["invite_organization_id"] = invite.organization_id
         self.save_session()
 
         self.client.get(self.path)
@@ -299,7 +309,7 @@ class AuthLoginTest(TestCase):
         invite.refresh_from_db()
         assert invite.user_id
         assert invite.token is None
-        assert invite.user.username == "member@example.com"
+        assert User.objects.get(id=invite.user_id).username == "member@example.com"
 
     def test_redirects_to_relative_next_url(self):
         next = "/welcome"
@@ -348,20 +358,6 @@ class AuthLoginTest(TestCase):
         with self.feature("organizations:create"):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
-
-    def test_redirect_onboarding(self):
-        org = self.create_organization(owner=self.user)
-        key = get_client_state_key(org.slug, "onboarding", None)
-        get_redis_client().set(key, json.dumps({"state": "started", "url": "select-platform/"}))
-
-        self.client.get(self.path)
-
-        resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}
-        )
-
-        assert resp.status_code == 302
-        assert resp.get("Location", "").endswith(f"/onboarding/{org.slug}/select-platform/")
 
 
 @pytest.mark.skipif(
@@ -414,7 +410,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         assert newsletter.get_subscriptions(user) == {"subscriptions": []}
 
@@ -599,6 +595,25 @@ class AuthLoginCustomerDomainTest(TestCase):
     def test_login_valid_credentials_orgless(self):
         user = self.create_user()
         self.create_organization(name="albertos-apples")
+        with override_settings(MIDDLEWARE=tuple(provision_middleware())):
+            # load it once for test cookie
+            self.client.get(self.path)
+
+            resp = self.client.post(
+                self.path,
+                {"username": user.username, "password": "admin", "op": "login"},
+                SERVER_NAME="albertos-apples.testserver",
+                follow=True,
+            )
+
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
+            ]
+
+    def test_login_valid_credentials_org_does_not_exist(self):
+        user = self.create_user()
         with override_settings(MIDDLEWARE=tuple(provision_middleware())):
             # load it once for test cookie
             self.client.get(self.path)

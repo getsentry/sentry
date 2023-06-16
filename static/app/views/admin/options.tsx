@@ -312,6 +312,38 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.m_n_plus_one_db.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the MN+1 DB detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.render_blocking_assets.problem-creation',
     label: t('Problem Creation Rate'),
     help: t(
@@ -338,6 +370,100 @@ const performanceOptionDefinitions: Field[] = [
     help: t(
       'Controls the rate at which performance problems are detected by the large render blocking asset detector for GA organizations.'
     ),
+  },
+  {
+    key: 'performance.issues.consecutive_http.max_duration_between_spans',
+    label: t('Time Between Spans'),
+    help: t(
+      'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.consecutive_count_threshold',
+    label: t('Consecutive Count Threshold'),
+    help: t('The minimum number of offending spans that must occur consecutively.'),
+    defaultValue: () => '3',
+    component: NumberField,
+    min: 1,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.span_duration_threshold',
+    label: t('Span Duration Threshold'),
+    help: t(
+      'The duration, in ms, that a span must exceed for it to be considered an offending span.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.large_http_payload.size_threshold',
+    label: t('Payload Size Threshold'),
+    help: t(
+      'The threshold at which the payload size of an HTTP span is considered to be too large, in bytes.'
+    ),
+    defaultValue: () => '1000000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
   },
 ];
 

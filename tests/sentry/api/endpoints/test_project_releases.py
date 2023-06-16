@@ -22,7 +22,7 @@ from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -114,7 +114,7 @@ class ProjectReleaseListTest(APITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -183,9 +183,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.env3 = env3
 
     def make_environment(self, name, project):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
@@ -316,7 +314,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
         self.login_as(user=self.user)
@@ -340,7 +338,7 @@ class ProjectReleaseCreateTest(APITestCase):
             version=response.data["version"],
             user_agent="sentry-cli/2.77.4",
         )
-        assert not release.owner
+        assert not release.owner_id
         assert release.organization == project.organization
         assert release.projects.first() == project
 
@@ -359,7 +357,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.data["version"]
 
         release = Release.objects.get(version=response.data["version"])
-        assert not release.owner
+        assert not release.owner_id
         assert release.organization == project.organization
         assert release.projects.first() == project
 
@@ -438,7 +436,7 @@ class ProjectReleaseCreateTest(APITestCase):
         release = Release.objects.get(
             organization_id=project.organization_id, version=response.data["version"]
         )
-        assert not release.owner
+        assert not release.owner_id
 
     def test_features(self):
         self.login_as(user=self.user)
@@ -457,7 +455,7 @@ class ProjectReleaseCreateTest(APITestCase):
         release = Release.objects.get(
             organization_id=project.organization_id, version=response.data["version"]
         )
-        assert release.owner == self.user
+        assert release.owner_id == self.user.id
 
     def test_commits(self):
         self.login_as(user=self.user)
@@ -489,7 +487,7 @@ class ProjectReleaseCreateTest(APITestCase):
             assert rc.organization_id
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
@@ -619,6 +617,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         }
 
 
+@region_silo_test(stable=True)
 class ReleaseSerializerTest(TestCase):
     def setUp(self):
         super().setUp()

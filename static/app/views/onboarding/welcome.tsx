@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
@@ -8,15 +8,16 @@ import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
 import {StepProps} from './types';
-import {usePersistedOnboardingState} from './utils';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -47,32 +48,40 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
+function TargetedOnboardingWelcome(props: StepProps) {
+  const organization = useOrganization();
+  const onboardingContext = useContext(OnboardingContext);
+
   const source = 'targeted_onboarding';
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
+    trackAnalytics('growth.onboarding_start_onboarding', {
       organization,
       source,
     });
-  });
 
-  const onComplete = () => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+    if (onboardingContext.data.selectedSDK) {
+      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
+      onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+    }
+  }, [organization, onboardingContext]);
+
+  const handleComplete = useCallback(() => {
+    trackAnalytics('growth.onboarding_clicked_instrument_app', {
       organization,
       source,
     });
-    if (clientState) {
-      setClientState({
-        ...clientState,
-        url: 'select-platform/',
-        state: 'started',
-      });
-    }
 
     props.onComplete();
-  };
+  }, [organization, source, props]);
+
+  const handleSkipOnboarding = useCallback(() => {
+    trackAnalytics('growth.onboarding_clicked_skip', {
+      organization,
+      source,
+    });
+  }, [organization, source]);
+
   return (
     <FallingError>
       {({fallingError, fallCount, isFalling}) => (
@@ -95,13 +104,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               src={OnboardingInstall}
               cta={
                 <Fragment>
-                  <ButtonWithFill
-                    onClick={() => {
-                      // triggerFall();
-                      onComplete();
-                    }}
-                    priority="primary"
-                  >
+                  <ButtonWithFill onClick={handleComplete} priority="primary">
                     {t('Start')}
                   </ButtonWithFill>
                   {(fallCount === 0 || isFalling) && (
@@ -135,18 +138,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
-                  organization,
-                  source,
-                });
-                if (clientState) {
-                  setClientState({
-                    ...clientState,
-                    state: 'skipped',
-                  });
-                }
-              }}
+              onClick={handleSkipOnboarding}
               to={`/organizations/${organization.slug}/issues/?referrer=onboarding-welcome-skip`}
             >
               {t('Skip onboarding.')}

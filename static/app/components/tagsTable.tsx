@@ -6,7 +6,7 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import TagsTableRow from 'sentry/components/tagsTableRow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, EventTag} from 'sentry/types/event';
 
 type Props = {

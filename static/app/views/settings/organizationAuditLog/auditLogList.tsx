@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -11,13 +11,13 @@ import {PanelTable} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AuditLog, Organization, User} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {knowDynamicSamplingBiases} from 'sentry/views/settings/project/dynamicSampling/dynamicSampling';
+import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const avatarStyle = {
   width: 36,
@@ -55,6 +55,42 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
+const getTypeDisplay = (event: string) => {
+  if (event.startsWith('rule.')) {
+    return event.replace('rule.', 'issue-alert.');
+  }
+  if (event.startsWith('alertrule.')) {
+    return event.replace('alertrule.', 'metric-alert.');
+  }
+  return event;
+};
+
+const getEventOptions = (eventTypes: string[] | null) =>
+  eventTypes
+    ?.map(type => {
+      // Having both rule.x and alertrule.x may be confusing, so we'll replace their labels to be more descriptive.
+      // We need to maintain the values here so we still fetch the correct audit log events from the backend should we want
+      // to filter.
+      // See https://github.com/getsentry/sentry/issues/46997
+      if (type.startsWith('rule.')) {
+        return {
+          label: type.replace('rule.', 'issue-alert.'),
+          value: type,
+        };
+      }
+      if (type.startsWith('alertrule.')) {
+        return {
+          label: type.replace('alertrule.', 'metric-alert.'),
+          value: type,
+        };
+      }
+      return {
+        label: type,
+        value: type,
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+
 function AuditNote({
   entry,
   orgSlug,
@@ -64,6 +100,10 @@ function AuditNote({
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
+
+  if (entry.event.startsWith('rule.')) {
+    return <Note>{entry.note.replace('rule', 'issue alert rule')}</Note>;
+  }
 
   if (!project) {
     return <Note>{entry.note}</Note>;
@@ -113,46 +153,36 @@ function AuditNote({
     );
   }
 
-  if (
-    entry.event === 'sampling_priority.enabled' &&
-    knowDynamicSamplingBiases[entry.data.name]
-  ) {
+  if (entry.event === 'sampling_priority.enabled') {
     return (
       <Note>
         {tct(
-          'Enabled dynamic sampling priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
+          'Enabled retention priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
           {
             samplingInProjectSettingsLink: (
-              <Link
-                to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}
-              >
+              <Link to={`/settings/${orgSlug}/projects/${project.slug}/performance/`}>
                 {entry.data.slug}
               </Link>
             ),
-            biasLabel: knowDynamicSamplingBiases[entry.data.name].label,
+            biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
       </Note>
     );
   }
 
-  if (
-    entry.event === 'sampling_priority.disabled' &&
-    knowDynamicSamplingBiases[entry.data.name]
-  ) {
+  if (entry.event === 'sampling_priority.disabled') {
     return (
       <Note>
         {tct(
-          'Disabled dynamic sampling priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
+          'Disabled retention priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
           {
             samplingInProjectSettingsLink: (
-              <Link
-                to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}
-              >
+              <Link to={`/settings/${orgSlug}/projects/${project.slug}/performance/`}>
                 {entry.data.slug}
               </Link>
             ),
-            biasLabel: knowDynamicSamplingBiases[entry.data.name].label,
+            biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
       </Note>
@@ -172,7 +202,7 @@ type Props = {
   pageLinks: string | null;
 };
 
-const AuditLogList = ({
+function AuditLogList({
   isLoading,
   pageLinks,
   entries,
@@ -180,16 +210,11 @@ const AuditLogList = ({
   eventTypes,
   onCursor,
   onEventSelect,
-}: Props) => {
+}: Props) {
   const is24Hours = shouldUse24Hours();
   const organization = useOrganization();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
-
-  const eventOptions = eventTypes?.map(type => ({
-    label: type,
-    value: type,
-  }));
 
   const action = (
     <EventSelector
@@ -198,7 +223,7 @@ const AuditLogList = ({
       name="eventFilter"
       value={eventType}
       placeholder={t('Select Action: ')}
-      options={eventOptions}
+      options={getEventOptions(eventTypes)}
       onChange={options => {
         onEventSelect(options?.value);
       }}
@@ -228,7 +253,7 @@ const AuditLogList = ({
                 </NameContainer>
               </UserInfo>
               <FlexCenter>
-                <MonoDetail>{entry.event}</MonoDetail>
+                <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
               </FlexCenter>
               <FlexCenter>
                 {entry.ipAddress && (
@@ -257,7 +282,7 @@ const AuditLogList = ({
       {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
     </div>
   );
-};
+}
 
 const SentryAvatar = styled(ActivityAvatar)`
   margin-right: ${space(1)};

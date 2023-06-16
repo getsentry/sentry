@@ -5,7 +5,7 @@ import IdBadge from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
@@ -13,7 +13,7 @@ import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{teamId: string}, {}>;
 
-const TeamCrumb = ({routes, route, ...props}: Props) => {
+function TeamCrumb({routes, route, ...props}: Props) {
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
 
@@ -61,6 +61,6 @@ const TeamCrumb = ({routes, route, ...props}: Props) => {
       {...props}
     />
   );
-};
+}
 
 export default TeamCrumb;

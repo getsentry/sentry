@@ -9,8 +9,11 @@ from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
 from sentry.models import Integration, OrganizationIntegration, ProjectKey
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.silo import control_silo_test
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -21,6 +24,7 @@ account_number = "599817902985"
 region = "us-east-2"
 
 
+@control_silo_test
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
@@ -64,7 +68,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "accountNumber": None,
                 "error": None,
                 "initialStepNumber": 1,
-                "organization": serialize(self.organization),
+                "organization": organization_service.serialize_organization(
+                    id=self.organization.id, as_user=serialize_rpc_user(self.user)
+                ),
                 "awsExternalId": None,
             },
         )
@@ -89,6 +95,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         mock_react_view.assert_called_with(
             ANY,
             "awsLambdaCloudformation",
+            # Ensure that the expected value passes through json serialization
             {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": "https://example.com/file.json",
@@ -98,7 +105,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "accountNumber": account_number,
                 "error": "Please validate the Cloudformation stack was created successfully",
                 "initialStepNumber": 1,
-                "organization": serialize(self.organization),
+                "organization": organization_service.serialize_organization(
+                    id=self.organization.id, as_user=serialize_rpc_user(self.user)
+                ),
                 "awsExternalId": "my-id",
             },
         )
@@ -209,7 +218,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "aws_external_id": aws_external_id,
         }
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
@@ -274,7 +283,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "aws_external_id": aws_external_id,
         }
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")

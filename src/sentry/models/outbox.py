@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import dataclasses
 import datetime
-import sys
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Set, Type, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 from django.db import connections, models, router, transaction
 from django.db.models import Max
 from django.dispatch import Signal
+from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -21,6 +22,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
 
@@ -35,6 +37,9 @@ class OutboxScope(IntEnum):
     WEBHOOK_SCOPE = 2
     AUDIT_LOG_SCOPE = 3
     USER_IP_SCOPE = 4
+    INTEGRATION_SCOPE = 5
+    APP_SCOPE = 6
+    TEAM_SCOPE = 7
 
     def __str__(self):
         return self.name
@@ -52,15 +57,33 @@ class OutboxCategory(IntEnum):
     VERIFY_ORGANIZATION_MAPPING = 4
     AUDIT_LOG_EVENT = 5
     USER_IP_EVENT = 6
+    INTEGRATION_UPDATE = 7
+    PROJECT_UPDATE = 8
+    API_APPLICATION_UPDATE = 9
+    SENTRY_APP_INSTALLATION_UPDATE = 10
+    TEAM_UPDATE = 11
+    ORGANIZATION_INTEGRATION_UPDATE = 12
+    ORGANIZATION_MEMBER_CREATE = 13  # Unused
 
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
 
+@dataclasses.dataclass
+class OutboxWebhookPayload:
+    method: str
+    path: str
+    uri: str
+    headers: Mapping[str, Any]
+    body: str
+
+
 class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
     GITHUB = 1
+    JIRA = 2
+    GITLAB = 3
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -99,7 +122,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
@@ -168,11 +192,15 @@ class OutboxBase(Model):
         # result in a future processing, we should always converge on non stale values.
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
+
+        # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
-            _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            deleted_count, _ = (
+                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            )
             tags = {"category": OutboxCategory(self.category).name}
-            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
@@ -202,15 +230,12 @@ class OutboxBase(Model):
         ):
             runs += 1
             next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+            next_row = self.selected_messages_in_shard().first()
 
         if next_row is not None:
             raise OutboxFlushError(
                 f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
             )
-
-
-MONOLITH_REGION_NAME = "--monolith--"
 
 
 # Outboxes bound from region silo -> control silo
@@ -221,6 +246,7 @@ class RegionOutbox(OutboxBase):
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
+            shard_identifier=self.shard_identifier,
         )
 
     sharding_columns = ("shard_scope", "shard_identifier")
@@ -255,7 +281,7 @@ class RegionOutbox(OutboxBase):
     __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
 
 
-# Outboxes bound from region silo -> control silo
+# Outboxes bound from control silo -> region silo
 @control_silo_only_model
 class ControlOutbox(OutboxBase):
     sharding_columns = ("region_name", "shard_scope", "shard_identifier")
@@ -267,7 +293,7 @@ class ControlOutbox(OutboxBase):
         "object_identifier",
     )
 
-    region_name = models.CharField(max_length=48)
+    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
     def send_signal(self):
         process_control_outbox.send(
@@ -275,6 +301,7 @@ class ControlOutbox(OutboxBase):
             payload=self.payload,
             region_name=self.region_name,
             object_identifier=self.object_identifier,
+            shard_identifier=self.shard_identifier,
         )
 
     class Meta:
@@ -301,13 +328,32 @@ class ControlOutbox(OutboxBase):
         "region_name", "shard_scope", "shard_identifier", "category", "object_identifier"
     )
 
+    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=request.method,
+            path=request.get_full_path(),
+            uri=request.get_raw_uri(),
+            headers={k: v for k, v in request.headers.items()},
+            body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
+    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=payload.get("method"),
+            path=payload.get("path"),
+            uri=payload.get("uri"),
+            headers=payload.get("headers"),
+            body=payload.get("body"),
+        )
+
     @classmethod
     def for_webhook_update(
         cls,
         *,
         webhook_identifier: WebhookProviderIdentifier,
         region_names: List[str],
-        payload=Mapping[str, Any],
+        request: HttpRequest,
     ) -> Iterable[ControlOutbox]:
         for region_name in region_names:
             result = cls()
@@ -316,7 +362,8 @@ class ControlOutbox(OutboxBase):
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
-            result.payload = payload
+            payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
+            result.payload = dataclasses.asdict(payload)
             yield result
 
     @classmethod
@@ -330,41 +377,6 @@ class ControlOutbox(OutboxBase):
         return cls(
             shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
         )
-
-
-def _find_orgs_for_user(user_id: int) -> Set[int]:
-    # TODO: This must be changed to the org member mapping in the control silo eventually.
-    from sentry.models import OrganizationMember
-
-    return {
-        m["organization_id"]
-        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
-    }
-
-
-def find_regions_for_user(user_id: int) -> Set[str]:
-    from sentry.models import OrganizationMapping
-
-    org_ids: Set[int]
-    if "pytest" in sys.modules:
-        from sentry.testutils.silo import exempt_from_silo_limits
-
-        with exempt_from_silo_limits():
-            org_ids = _find_orgs_for_user(user_id)
-    else:
-        org_ids = _find_orgs_for_user(user_id)
-
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {
-            MONOLITH_REGION_NAME,
-        }
-    else:
-        return {
-            t["region_name"]
-            for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
-                "region_name"
-            )
-        }
 
 
 def outbox_silo_modes() -> List[SiloMode]:

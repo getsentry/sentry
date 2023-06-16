@@ -15,6 +15,7 @@ USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM,
     EventError.NATIVE_MISSING_SYMBOL,
+    EventError.FETCH_GENERIC_ERROR,
     # Emitted for e.g. broken minidumps
     EventError.NATIVE_SYMBOLICATOR_FAILED,
     # We want to let the user know when calling symbolicator failed, even

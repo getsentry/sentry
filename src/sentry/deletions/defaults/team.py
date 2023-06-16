@@ -5,7 +5,9 @@ class TeamDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.models import ProjectTeam
 
-        return [ModelRelation(ProjectTeam, {"team_id": instance.id})]
+        return [
+            ModelRelation(ProjectTeam, {"team_id": instance.id}),
+        ]
 
     def mark_deletion_in_progress(self, instance_list):
         from sentry.models import TeamStatus
@@ -20,5 +22,4 @@ class TeamDeletionTask(ModelDeletionTask):
 
         AlertRule.objects.filter(owner_id=instance.actor_id).update(owner=None)
         Rule.objects.filter(owner_id=instance.actor_id).update(owner=None)
-
         super().delete_instance(instance)

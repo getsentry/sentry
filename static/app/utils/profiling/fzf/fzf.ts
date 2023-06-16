@@ -1,5 +1,27 @@
-// Port of the fzf v1 algorithm
+// Port of the fzf v1 algorithm to typescript
 // https://github.com/junegunn/fzf/blob/f81feb1e69e5cb75797d50817752ddfe4933cd68/src/algo/algo.go#L615
+
+// The MIT License (MIT)
+
+// Copyright (c) 2013-2020 Junegunn Choi
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 interface Result {
   readonly end: number;
@@ -19,10 +41,10 @@ const bonusConsecutive = -(scoreGapStart + scoreGapExtention);
 const bonusFirstCharMultiplier = 2;
 
 enum CharTypes {
-  charLower,
-  charUpper,
-  charNumber,
-  charNonWord,
+  CHAR_LOWER,
+  CHAR_UPPER,
+  CHAR_NUMBER,
+  CHAR_NON_WORD,
 }
 
 const CharCodes = {
@@ -36,15 +58,15 @@ const CharCodes = {
 
 function getCharClass(c: number): CharTypes {
   if (c >= CharCodes.lowerA && c <= CharCodes.lowerZ) {
-    return CharTypes.charLower;
+    return CharTypes.CHAR_LOWER;
   }
   if (c >= CharCodes.upperA && c <= CharCodes.upperZ) {
-    return CharTypes.charUpper;
+    return CharTypes.CHAR_UPPER;
   }
   if (c >= CharCodes.zero && c <= CharCodes.nine) {
-    return CharTypes.charNumber;
+    return CharTypes.CHAR_NUMBER;
   }
-  return CharTypes.charNonWord;
+  return CharTypes.CHAR_NON_WORD;
 }
 
 // Algo functions make two assumptions
@@ -113,6 +135,8 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   }
 
   const [score, matches] = calculateScore(text, pattern, sidx, eidx, caseSensitive);
+
+  // Fzf will return matches per each character, we will try to merge these together
   return {
     start: sidx,
     end: eidx,
@@ -122,18 +146,18 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
 }
 
 function bonusForCharClass(prevClass: CharTypes, currentClass: CharTypes): number {
-  if (prevClass === CharTypes.charNonWord && currentClass !== CharTypes.charNonWord) {
+  if (prevClass === CharTypes.CHAR_NON_WORD && currentClass !== CharTypes.CHAR_NON_WORD) {
     // Word boundary
     return bonusBoundary;
   }
   if (
-    (prevClass === CharTypes.charLower && currentClass === CharTypes.charUpper) ||
-    (prevClass !== CharTypes.charNumber && currentClass === CharTypes.charNumber)
+    (prevClass === CharTypes.CHAR_LOWER && currentClass === CharTypes.CHAR_UPPER) ||
+    (prevClass !== CharTypes.CHAR_NUMBER && currentClass === CharTypes.CHAR_NUMBER)
   ) {
     // camelCase letter123
     return bonusCamel123;
   }
-  if (currentClass === CharTypes.charNonWord) {
+  if (currentClass === CharTypes.CHAR_NON_WORD) {
     return bonusNonWord;
   }
   return 0;
@@ -153,7 +177,7 @@ function calculateScore(
   let firstBonus = 0;
   let consecutive = 0;
 
-  let prevCharClass = CharTypes.charNonWord;
+  let prevCharClass = CharTypes.CHAR_NON_WORD;
   const pos: number[] = new Array(pattern.length);
 
   if (sidx > 0) {

@@ -13,7 +13,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
-import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -23,7 +22,7 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -58,12 +57,13 @@ type State = AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
-    return routeTitleGen(t('Project %s', params.projectId), params.orgId, false);
+    return routeTitleGen(t('Project %s', params.projectId), organization.slug, false);
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.syncProjectWithSlug();
   }
 
@@ -199,7 +199,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
+      <PageFiltersContainer
+        disablePersistence
+        skipLoadLastUsed
+        showAbsolute={!hasOnlyBasicChart}
+      >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
             <Layout.Header>
@@ -258,9 +262,6 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <Layout.Main fullWidth>
-                <StyledSdkUpdatesAlert />
-              </Layout.Main>
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
                 organization={organization}
@@ -350,12 +351,6 @@ class ProjectDetail extends AsyncView<Props, State> {
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: ${space(2)};
-  }
 `;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`

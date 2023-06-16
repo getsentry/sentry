@@ -1,7 +1,9 @@
 import {mat3} from 'gl-matrix';
 
+import {Rect} from 'sentry/utils/profiling/speedscope';
+
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, Rect} from '../gl/utils';
+import {getContext} from '../gl/utils';
 
 class PositionIndicatorRenderer {
   canvas: HTMLCanvasElement;

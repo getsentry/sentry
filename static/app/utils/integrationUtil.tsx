@@ -10,12 +10,14 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
+  IconSentry,
   IconVsts,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {
+import type {
   AppOrProviderOrPlugin,
+  CodeOwner,
   DocIntegration,
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
@@ -23,36 +25,20 @@ import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
-import {
-  integrationEventMap,
-  IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrations';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {IconSize} from './theme';
 
-const mapIntegrationParams = analyticsParams => {
-  // Reload expects integration_status even though it's not relevant for non-sentry apps
-  // Passing in a dummy value of published in those cases
-  const fullParams = {...analyticsParams};
-  if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
-    fullParams.integration_status = 'published';
-  }
-  return fullParams;
-};
-
-export const trackIntegrationAnalytics = makeAnalyticsFunction<
-  IntegrationEventParameters,
-  {organization: Organization} // org is required
->(integrationEventMap, {
-  mapValuesFn: mapIntegrationParams,
-});
+/**
+ * TODO: remove alias once all usages are updated
+ * @deprecated Use trackAnalytics instead
+ */
+export const trackIntegrationAnalytics = trackAnalytics;
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
@@ -225,6 +211,20 @@ export const getIntegrationIcon = (
   }
 };
 
+export function getCodeOwnerIcon(
+  provider: CodeOwner['provider'],
+  iconSize: IconSize = 'md'
+) {
+  switch (provider ?? '') {
+    case 'github':
+      return <IconGithub size={iconSize} />;
+    case 'gitlab':
+      return <IconGitlab size={iconSize} />;
+    default:
+      return <IconSentry size={iconSize} />;
+  }
+}
+
 // used for project creation and onboarding
 // determines what integration maps to what project platform
 export const platformToIntegrationMap = {
@@ -268,3 +268,11 @@ export const sentryNameToOption = ({id, name}): Result => ({
   value: id,
   label: name,
 });
+
+export function getIntegrationStatus(integration: Integration) {
+  // there are multiple status fields for an integration we consider
+  const statusList = [integration.organizationIntegrationStatus, integration.status];
+  const firstNotActive = statusList.find(s => s !== 'active');
+  // Active if everything is active, otherwise the first inactive status
+  return firstNotActive ?? 'active';
+}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from functools import reduce
-from typing import Any, Tuple, Type, cast
+from typing import Any, Tuple, Type
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
@@ -45,9 +45,7 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(instance, False)
 
-    affected = cast(
-        int, instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
-    )
+    affected = instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
@@ -170,8 +168,10 @@ def in_iexact(column: str, values: Any) -> Q:
     from operator import or_
 
     query = f"{column}__iexact"
+    # if values is empty, have a default value for the reduce call that will essentially resolve a column in []
+    query_in = f"{column}__in"
 
-    return reduce(or_, [Q(**{query: v}) for v in values])
+    return reduce(or_, [Q(**{query: v}) for v in values], Q(**{query_in: []}))
 
 
 def in_icontains(column: str, values: Any) -> Q:

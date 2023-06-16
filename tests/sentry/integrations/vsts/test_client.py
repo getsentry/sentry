@@ -5,9 +5,11 @@ import responses
 
 from fixtures.vsts import VstsIntegrationTestCase
 from sentry.models import Identity, IdentityProvider, Integration
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test
 class VstsApiClientTest(VstsIntegrationTestCase):
     def test_refreshes_expired_token(self):
         self.assert_installation()
@@ -26,7 +28,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Make a request with expired token
         integration.get_installation(
-            integration.organizations.first().id
+            integration.organizationintegration_set.first().organization_id
         ).get_client().get_projects(self.vsts_base_url)
 
         # Second to last request, before the Projects request, was to refresh
@@ -71,7 +73,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         )
 
         projects = (
-            integration.get_installation(integration.organizations.first().id)
+            integration.get_installation(
+                integration.organizationintegration_set.first().organization_id
+            )
             .get_client()
             .get_projects(self.vsts_base_url)
         )

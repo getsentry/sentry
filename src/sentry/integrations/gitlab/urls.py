@@ -9,5 +9,9 @@ urlpatterns = [
         GitlabIssueSearchEndpoint.as_view(),
         name="sentry-extensions-gitlab-search",
     ),
-    url(r"^webhook/$", GitlabWebhookEndpoint.as_view(), name="sentry-extensions-gitlab-webhook"),
+    url(
+        r"^webhook/$",
+        GitlabWebhookEndpoint.as_view(),
+        name="sentry-extensions-gitlab-webhook",
+    ),
 ]

@@ -15,8 +15,10 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
@@ -131,7 +133,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             "installation_type": "born_as_bot",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -159,7 +161,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             "installation_type": "born_as_bot",
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -187,7 +189,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert integrations[1].external_id == "TXXXXXXX2"
 
         oi = OrganizationIntegration.objects.get(
-            integration=integrations[1], organization=self.organization
+            integration=integrations[1], organization_id=self.organization.id
         )
         assert oi.config == {}
 
@@ -221,7 +223,6 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.user2 = self.create_user("foo@example.com")
         self.member = self.create_member(
             user=self.user2,
-            email="foo@example.com",
             organization=self.organization,
             role="manager",
             teams=[self.team],
@@ -229,7 +230,6 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.user3 = self.create_user("hellboy@example.com")
         self.member = self.create_member(
             user=self.user3,
-            email="hellboy@example.com",
             organization=self.organization,
             role="manager",
             teams=[self.team],
@@ -237,7 +237,6 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.user4 = self.create_user("ialreadyexist@example.com")
         self.member = self.create_member(
             user=self.user4,
-            email="ialreadyexist@example.com",
             organization=self.organization,
             role="manager",
             teams=[self.team],
@@ -354,6 +353,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user3_identity.user.email == "ialreadyexist@example.com"
 
 
+@control_silo_test
 class SlackIntegrationConfigTest(TestCase):
     def setUp(self):
         self.integration = Integration.objects.create(provider="slack", name="Slack", metadata={})

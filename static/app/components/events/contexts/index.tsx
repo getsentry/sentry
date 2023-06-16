@@ -13,9 +13,9 @@ type Props = {
 };
 
 export function EventContexts({event, group}: Props) {
-  const {user, contexts} = event;
+  const {user, contexts, sdk} = event;
 
-  const {feedback, ...otherContexts} = contexts ?? {};
+  const {feedback, response, ...otherContexts} = contexts ?? {};
 
   const usingOtel = useCallback(
     () => otherContexts.otel !== undefined,
@@ -26,11 +26,23 @@ export function EventContexts({event, group}: Props) {
     const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
     if (transaction && usingOtel()) {
       transaction.tags.otel_event = true;
+      transaction.tags.otel_sdk = sdk?.name;
+      transaction.tags.otel_sdk_version = sdk?.version;
     }
-  }, [usingOtel]);
+  }, [usingOtel, sdk]);
 
   return (
     <Fragment>
+      {!objectIsEmpty(response) && (
+        <Chunk
+          key="response"
+          type="response"
+          alias="response"
+          group={group}
+          event={event}
+          value={response}
+        />
+      )}
       {!objectIsEmpty(feedback) && (
         <Chunk
           key="feedback"

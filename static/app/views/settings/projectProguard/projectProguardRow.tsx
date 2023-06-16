@@ -12,7 +12,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
 type Props = {
@@ -23,13 +23,13 @@ type Props = {
   orgSlug: string;
 };
 
-const ProjectProguardRow = ({
+function ProjectProguardRow({
   mapping,
   onDelete,
   downloadUrl,
   downloadRole,
   orgSlug,
-}: Props) => {
+}: Props) {
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const handleDeleteClick = () => {
@@ -102,7 +102,7 @@ const ProjectProguardRow = ({
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const NameColumn = styled('div')`
   display: flex;

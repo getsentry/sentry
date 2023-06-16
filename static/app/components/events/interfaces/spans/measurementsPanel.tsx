@@ -3,23 +3,22 @@ import styled from '@emotion/styled';
 
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types/event';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
 import {
   getMeasurementBounds,
-  getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  VerticalMark,
 } from './utils';
 
 type Props = {
   dividerPosition: number;
-  event: EventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  measurements: Map<number, VerticalMark>;
 };
 
 type VitalLabel = {
@@ -28,8 +27,7 @@ type VitalLabel = {
 };
 
 function MeasurementsPanel(props: Props) {
-  const {event, generateBounds, dividerPosition} = props;
-  const measurements = getMeasurements(event, generateBounds);
+  const {measurements, generateBounds, dividerPosition} = props;
 
   return (
     <Container
@@ -50,7 +48,7 @@ function MeasurementsPanel(props: Props) {
         }
 
         const vitalLabels: VitalLabel[] = Object.keys(verticalMark.marks).map(name => ({
-          vital: WEB_VITAL_DETAILS[`measurements.${name}`],
+          vital: VITAL_DETAILS[`measurements.${name}`],
           isPoorValue: verticalMark.marks[name].failedThreshold,
         }));
 
@@ -109,9 +107,9 @@ const Label = styled('div')<{
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 600;
   color: ${p => (p.failedThreshold ? `${p.theme.errorText}` : `${p.theme.textColor}`)};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid;
-  border-color: ${p => (p.failedThreshold ? p.theme.red300 : p.theme.gray100)};
+  border-color: ${p => (p.failedThreshold ? p.theme.red300 : p.theme.gray200)};
   border-radius: ${p => p.theme.borderRadius};
   height: 75%;
   display: flex;

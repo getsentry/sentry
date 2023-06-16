@@ -19,6 +19,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
+import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -38,7 +39,7 @@ jest.mock('sentry/utils/analytics', () => ({
     mark: jest.fn(),
     measure: jest.fn(),
   },
-  trackAnalyticsEventV2: jest.fn(),
+  trackAnalytics: jest.fn(),
 }));
 
 const projectAlertRuleDetailsRoutes = [
@@ -88,7 +89,7 @@ const createWrapper = (props = {}) => {
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts organization={organization} params={params}>
+    <ProjectAlerts organization={organization} project={project} params={params}>
       <IssueRuleEditor
         params={params}
         location={router.location}
@@ -137,6 +138,11 @@ describe('IssueRuleEditor', function () {
         autoAssignment: false,
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/preview/',
+      method: 'POST',
+      body: [],
+    });
     ProjectsStore.loadInitialData([TestStubs.Project()]);
   });
 
@@ -144,6 +150,43 @@ describe('IssueRuleEditor', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.reset();
+  });
+
+  describe('Viewing the rule', () => {
+    const rule = TestStubs.MetricRule();
+
+    it('is visible without org-level alerts:write', () => {
+      createWrapper({
+        organization: {access: []},
+        project: {access: []},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
+    });
+
+    it('is enabled with org-level alerts:write', () => {
+      createWrapper({
+        organization: {access: ['alerts:write']},
+        project: {access: []},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
+
+    it('is enabled with project-level alerts:write', () => {
+      createWrapper({
+        organization: {access: []},
+        project: {access: ['alerts:write']},
+        rule,
+      });
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
   });
 
   describe('Edit Rule', function () {
@@ -177,12 +220,12 @@ describe('IssueRuleEditor', function () {
       });
       createWrapper();
       renderGlobalModal();
-      userEvent.click(screen.getByLabelText('Delete Rule'));
+      await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
         await screen.findByText('Are you sure you want to delete this rule?')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
       expect(browserHistory.replace).toHaveBeenCalledWith(
@@ -193,7 +236,7 @@ describe('IssueRuleEditor', function () {
     it('sends correct environment value', async function () {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'production');
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() =>
         expect(mock).toHaveBeenCalledWith(
@@ -210,7 +253,7 @@ describe('IssueRuleEditor', function () {
     it('strips environment value if "All environments" is selected', async function () {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'All Environments');
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
       expect(mock).not.toHaveBeenCalledWith(
@@ -225,7 +268,7 @@ describe('IssueRuleEditor', function () {
 
     it('updates the alert onboarding task', async function () {
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
@@ -324,7 +367,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -347,7 +390,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -369,7 +412,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);

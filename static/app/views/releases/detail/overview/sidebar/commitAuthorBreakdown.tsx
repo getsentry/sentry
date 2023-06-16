@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Commit, User} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -54,7 +54,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
   renderBody() {
     // group commits by author
-    const groupedAuthorCommits = this.state.commits?.reduce(
+    const groupedAuthorCommits = this.state.commits?.reduce<GroupedAuthorCommits>(
       (authorCommitsAccumulator, commit) => {
         const email = commit.author?.email ?? 'unknown';
 
@@ -69,7 +69,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
         return authorCommitsAccumulator;
       },
-      {} as GroupedAuthorCommits
+      {}
     );
 
     // sort authors by number of commits

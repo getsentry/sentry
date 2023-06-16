@@ -1,11 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('MetricAlertDetails', () => {
   const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
@@ -71,7 +71,7 @@ describe('MetricAlertDetails', () => {
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rule_details.viewed',
       expect.objectContaining({
         rule_id: Number(rule.id),
@@ -119,7 +119,7 @@ describe('MetricAlertDetails', () => {
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rule_details.viewed',
       expect.objectContaining({
         rule_id: Number(rule.id),
@@ -128,5 +128,57 @@ describe('MetricAlertDetails', () => {
     );
     expect(incidentMock).toHaveBeenCalled();
     expect(issuesRequest).toHaveBeenCalled();
+  });
+
+  it('renders mute button for metric alert', async () => {
+    const {routerContext, organization, router} = initializeOrg({
+      organization: {features: ['mute-metric-alerts']},
+    });
+    const incident = TestStubs.Incident();
+    const rule = TestStubs.MetricRule({
+      projects: [project.slug],
+      latestIncident: incident,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [incident],
+    });
+
+    const postRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
+      method: 'POST',
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
+      method: 'DELETE',
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+        params={{ruleId: rule.id}}
+      />,
+      {context: routerContext, organization}
+    );
+
+    expect(await screen.findByText('Mute for me')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Mute for me'}));
+    expect(postRequest).toHaveBeenCalledTimes(1);
+
+    expect(await screen.findByText('Unmute')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
+
+    expect(deleteRequest).toHaveBeenCalledTimes(1);
   });
 });

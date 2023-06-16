@@ -4,9 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import {Button} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type DefaultProps = {
   btnText?: string;
@@ -22,6 +22,11 @@ type DefaultProps = {
 type Props = {
   clipFlex: number;
   clipHeight: number;
+  /**
+   * Used to customize the button
+   */
+  buttonProps?: Partial<ButtonProps>;
+  children?: React.ReactNode;
   className?: string;
   /**
    * When available replaces the default clipFade component
@@ -133,7 +138,8 @@ class ClippedBox extends PureComponent<Props, State> {
 
   render() {
     const {isClipped, isRevealed} = this.state;
-    const {title, children, clipHeight, btnText, className, clipFade} = this.props;
+    const {title, children, clipHeight, btnText, className, clipFade, buttonProps} =
+      this.props;
 
     const showMoreButton = (
       <Button
@@ -141,6 +147,7 @@ class ClippedBox extends PureComponent<Props, State> {
         priority="primary"
         size="xs"
         aria-label={btnText ?? t('Show More')}
+        {...buttonProps}
       >
         {btnText}
       </Button>
@@ -191,7 +198,7 @@ const Title = styled('h5')`
   margin-bottom: ${space(1)};
 `;
 
-const ClipFade = styled('div')`
+export const ClipFade = styled('div')`
   position: absolute;
   left: 0;
   right: 0;

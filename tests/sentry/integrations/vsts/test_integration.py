@@ -13,11 +13,13 @@ from sentry.models import (
     Repository,
 )
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
+from sentry.testutils.silo import control_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 
+@control_silo_test
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
@@ -144,6 +146,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert subscription["id"] is not None and subscription["secret"] is not None
 
 
+@control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_success(self, mock_get_scopes):
@@ -199,10 +202,12 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         }
 
         integration = VstsIntegrationProvider()
-
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        integration.set_pipeline(pipeline)
         with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in str(err)
+        assert "ensure third-party app access via OAuth is enabled" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
@@ -232,19 +237,22 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         }
 
         integration = VstsIntegrationProvider()
-
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        integration.set_pipeline(pipeline)
         with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in str(err)
+        assert "ensure third-party app access via OAuth is enabled" in str(err)
 
 
+@control_silo_test
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
 
         fields = integration.get_installation(
-            integration.organizations.first().id
+            integration.organizationintegration_set.first().organization_id
         ).get_organization_config()
 
         assert [field["name"] for field in fields] == [
@@ -258,7 +266,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config_failure(self):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(integration.organizations.first().id)
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()

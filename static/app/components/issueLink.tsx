@@ -10,7 +10,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 
@@ -22,7 +22,7 @@ type Props = {
   to: string;
 };
 
-const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
+function IssueLink({children, orgId, issue, to, card = true}: Props) {
   if (!card) {
     return <Link to={to}>{children}</Link>;
   }
@@ -96,7 +96,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
       <Link to={to}>{children}</Link>
     </Hovercard>
   );
-};
+}
 
 export default IssueLink;
 

@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
 
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTourTask, isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 import {demoEndModal} from './modal';
@@ -58,7 +59,7 @@ export function recordFinish(
   orgSlug: string | null,
   org: Organization | null
 ) {
-  api.request('/assistant/', {
+  api.requestPromise('/assistant/', {
     method: 'PUT',
     data: {
       guide,
@@ -71,6 +72,7 @@ export function recordFinish(
   if (isDemoWalkthrough() && tourTask && org) {
     const {tour, task} = tourTask;
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
+    fetchOrganizationDetails(api, org.slug, true, false);
     demoEndModal({tour, orgSlug});
   }
 
@@ -79,14 +81,14 @@ export function recordFinish(
     return;
   }
 
-  trackAdvancedAnalyticsEvent('assistant.guide_finished', {
+  trackAnalytics('assistant.guide_finished', {
     organization: orgId,
     guide,
   });
 }
 
 export function recordDismiss(guide: string, step: number, orgId: string | null) {
-  api.request('/assistant/', {
+  api.requestPromise('/assistant/', {
     method: 'PUT',
     data: {
       guide,
@@ -98,7 +100,7 @@ export function recordDismiss(guide: string, step: number, orgId: string | null)
   if (!user) {
     return;
   }
-  trackAdvancedAnalyticsEvent('assistant.guide_dismissed', {
+  trackAnalytics('assistant.guide_dismissed', {
     organization: orgId,
     guide,
     step,

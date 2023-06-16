@@ -1,4 +1,5 @@
 import pickle
+from unittest import mock
 
 import pytest
 
@@ -6,16 +7,20 @@ from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.enhancer import Enhancements
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class EventTest(TestCase):
+class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
             data={
@@ -100,6 +105,15 @@ class EventTest(TestCase):
         )
 
         assert event1.get_email_subject() == "BAR-1 - production@0 $ baz ${tag:invalid} $invalid"
+
+    def test_transaction_email_subject(self):
+        self.project.update_option(
+            "mail:subject_template",
+            "$shortID - ${tag:environment}@${tag:release} $title",
+        )
+
+        event = self.create_performance_issue()
+        assert event.get_email_subject() == "BAR-1 - production@0.1 N+1 Query"
 
     def test_as_dict_hides_client_ip(self):
         event = self.store_event(
@@ -222,6 +236,7 @@ class EventTest(TestCase):
                     "username",
                 ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
 
@@ -281,6 +296,7 @@ class EventTest(TestCase):
                     "tags.value",
                 ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
         # TODO: Remove this once snuba is writing group_ids, and we can create groups as part
@@ -553,6 +569,39 @@ class GroupEventFromEventTest(TestCase):
         # Make sure we don't make additional queries when accessing project here
         with self.assertNumQueries(0):
             group_event.project
+
+
+@region_silo_test
+class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
+    def test(self):
+        occurrence_data = self.build_occurrence_data(project_id=self.project.id)
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            event_data={
+                "event_id": occurrence_data["event_id"],
+                "project_id": occurrence_data["project_id"],
+                "level": "info",
+            },
+        )
+
+        event = Event(
+            occurrence_data["project_id"],
+            occurrence_data["event_id"],
+            group_info.group.id,
+            data={},
+            snuba_data={"occurrence_id": occurrence.id},
+        )
+        with mock.patch.object(IssueOccurrence, "fetch", wraps=IssueOccurrence.fetch) as fetch_mock:
+            group_event = event.for_group(event.group)
+            assert group_event.occurrence == occurrence
+            assert fetch_mock.call_count == 1
+            # Access the property again, call count shouldn't increase since we're cached
+            group_event.occurrence
+            assert fetch_mock.call_count == 1
+            # Call count should increase if we do it a second time
+            group_event.occurrence = None
+            assert group_event.occurrence == occurrence
+            assert fetch_mock.call_count == 2
 
 
 @pytest.mark.django_db

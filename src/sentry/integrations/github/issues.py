@@ -7,14 +7,14 @@ from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.types.issues import GroupCategory
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 
-class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
+class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
@@ -98,7 +98,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -156,7 +156,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [

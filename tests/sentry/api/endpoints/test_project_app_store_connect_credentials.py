@@ -9,11 +9,9 @@ from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreUpdateCredentialsSerializer,
 )
 from sentry.lang.native.appconnect import AppStoreConnectConfig
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
 class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_magic_object_true(self):
         payload_json = """{"appconnectPrivateKey": {"hidden-secret": true}}"""
@@ -83,9 +81,8 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert data["appconnectPrivateKey"] == "honk"
 
 
-@region_silo_test(stable=True)
 class TestAppStoreConnectRefreshEndpoint:
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def config_id(self, default_project):
         """A valid App Store Connect symbol server config ID."""
         cfg_id = "abc123"

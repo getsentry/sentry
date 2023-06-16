@@ -16,11 +16,12 @@ from sentry.integrations.slack.message_builder.issues import (
     get_option_groups,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import Group, Team, User
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -49,7 +50,7 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored"},
+            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
             {
                 "option_groups": [
                     {
@@ -120,6 +121,26 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             link_to_event=True,
         )
 
+        with self.feature("organizations:escalating-issues"):
+            test_message = build_test_message(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+            )
+            test_message["actions"] = [
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+                for action in test_message["actions"]
+            ]
+            assert SlackIssuesMessageBuilder(group).build() == test_message
+
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
         wraps=get_option_groups,
@@ -143,6 +164,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert (
             SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()["actions"]
             == []
+        )
+
+    def test_team_recipient(self):
+        issue_alert_group = self.create_group(project=self.project)
+        assert (
+            SlackIssuesMessageBuilder(
+                issue_alert_group, recipient=RpcActor.from_object(self.team)
+            ).build()["actions"]
+            != []
         )
 
     def test_build_group_attachment_color_no_event_error_fallback(self):
@@ -170,10 +200,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         event = event.for_group(event.groups[0])
         occurrence = self.build_occurrence(level="info")
-        occurrence.save(project_id=self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        event.group.type = ProfileFileIOGroupType.type_id
 
         attachments = SlackIssuesMessageBuilder(group=event.group, event=event).build()
 
@@ -204,10 +234,20 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         could happen in that case (it is optional). It also creates a performance group that won't
         have a latest event attached to it to mimic a specific edge case.
         """
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         attachments = SlackIssuesMessageBuilder(perf_group).build()
 
         assert attachments["color"] == "#2788CE"  # blue for info level
+
+    def test_escape_slack_message(self):
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+        )
+        assert (
+            SlackIssuesMessageBuilder(group, None).build()["text"]
+            == "&lt;https://example.com/|*Click Here*&gt;"
+        )
 
 
 class BuildIncidentAttachmentTest(TestCase):

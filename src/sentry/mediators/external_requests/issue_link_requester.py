@@ -4,8 +4,9 @@ from uuid import uuid4
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
-from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -42,11 +43,11 @@ class IssueLinkRequester(Mediator):
     issue in the UI (i.e. <project>#<identifier>)
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     uri = Param((str,))
     group = Param("sentry.models.Group")
     fields = Param(object)
-    user = Param("sentry.models.User")
+    user = Param("sentry.services.hybrid_cloud.user.RpcUser")
     action = Param((str,))
 
     def call(self):

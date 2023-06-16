@@ -6,12 +6,15 @@ import groupBy from 'lodash/groupBy';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {tct, tn} from 'sentry/locale';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceError,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 
 import {ParsedTraceType, SpanType} from './types';
 
 interface TraceErrorListProps {
-  errors: TraceError[];
+  errors: (TraceError | TracePerformanceIssue)[];
   onClickSpan: (event: React.MouseEvent, spanId: SpanType['span_id']) => void;
   trace: ParsedTraceType;
 }

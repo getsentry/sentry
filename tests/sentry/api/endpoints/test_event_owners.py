@@ -6,7 +6,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
+@region_silo_test(stable=True)
 class ProjectOwnershipEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

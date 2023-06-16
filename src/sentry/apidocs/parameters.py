@@ -3,7 +3,7 @@ from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 
-class GLOBAL_PARAMS:
+class GlobalParams:
     ORG_SLUG = OpenApiParameter(
         name="organization_slug",
         description="The slug of the organization the resource belongs to.",
@@ -14,6 +14,13 @@ class GLOBAL_PARAMS:
     PROJECT_SLUG = OpenApiParameter(
         name="project_slug",
         description="The slug of the project the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
+    TEAM_SLUG = OpenApiParameter(
+        name="team_slug",
+        description="The slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -63,8 +70,28 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         description="The name of environments to filter by.",
     )
 
+    @staticmethod
+    def name(description: str, required: bool = False) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="name",
+            location="query",
+            required=required,
+            type=str,
+            description=description,
+        )
 
-class SCIM_PARAMS:
+    @staticmethod
+    def slug(description: str, required: bool = False) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="slug",
+            location="query",
+            required=required,
+            type=str,
+            description=description,
+        )
+
+
+class SCIMParams:
     MEMBER_ID = OpenApiParameter(
         name="member_id",
         location="path",
@@ -81,7 +108,7 @@ class SCIM_PARAMS:
     )
 
 
-class ISSUE_ALERT_PARAMS:
+class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
         location="path",
@@ -91,7 +118,7 @@ class ISSUE_ALERT_PARAMS:
     )
 
 
-class VISIBILITY_PARAMS:
+class VisibilityParams:
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -136,20 +163,20 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
     )
 
 
-class CURSOR_QUERY_PARAM(serializers.Serializer):  # type: ignore
+class CursorQueryParam(serializers.Serializer):
     cursor = serializers.CharField(
         help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
         required=False,
     )
 
 
-class MONITOR_PARAMS:
-    MONITOR_ID = OpenApiParameter(
-        name="monitor_id",
+class MonitorParams:
+    MONITOR_SLUG = OpenApiParameter(
+        name="monitor_slug",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="The id of the monitor",
+        type=str,
+        description="The slug of the monitor",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
@@ -160,7 +187,7 @@ class MONITOR_PARAMS:
     )
 
 
-class EVENT_PARAMS:
+class EventParams:
     EVENT_ID = OpenApiParameter(
         name="event_id",
         location="path",
@@ -183,4 +210,34 @@ class EVENT_PARAMS:
         required=True,
         type=int,
         description="Index of the exception that should be used for source map resolution.",
+    )
+
+
+class ProjectParams:
+    DEFAULT_RULES = OpenApiParameter(
+        name="default_rules",
+        location="query",
+        required=False,
+        type=bool,
+        description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
+    )
+
+    @staticmethod
+    def platform(description: str) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="platform",
+            location="query",
+            required=False,
+            type=str,
+            description=description,
+        )
+
+
+class TeamParams:
+    DETAILED = OpenApiParameter(
+        name="detailed",
+        location="query",
+        required=False,
+        type=str,
+        description='Specify "0" to return team details that do not include projects',
     )

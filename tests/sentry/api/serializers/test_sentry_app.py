@@ -1,8 +1,10 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app import SentryAppSerializer
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppSerializerTest(TestCase):
     def test_published_app(self):
         user = self.create_user()

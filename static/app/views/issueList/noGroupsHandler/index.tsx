@@ -121,12 +121,7 @@ class NoGroupsHandler extends Component<Props, State> {
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
-        <ErrorRobot
-          org={organization}
-          project={project}
-          sampleIssueId={sampleIssueId}
-          gradient
-        />
+        <ErrorRobot org={organization} project={project} sampleIssueId={sampleIssueId} />
       </Suspense>
     );
   }

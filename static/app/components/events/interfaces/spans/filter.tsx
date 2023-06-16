@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type NoFilter = {
@@ -64,7 +64,7 @@ function Filter({
 
     // Send a single analytics event if user clicked on the "Clear" button
     if (selectedOpts.length === 0) {
-      trackAdvancedAnalyticsEvent('performance_views.event_details.filter_by_op', {
+      trackAnalytics('performance_views.event_details.filter_by_op', {
         organization,
         operation: 'ALL',
       });
@@ -85,7 +85,7 @@ function Filter({
 
         // Don't send individual analytics events if user clicked on the "Clear" button
         selectedOpts.length !== 0 &&
-          trackAdvancedAnalyticsEvent('performance_views.event_details.filter_by_op', {
+          trackAnalytics('performance_views.event_details.filter_by_op', {
             organization,
             operation: opt.label,
           });

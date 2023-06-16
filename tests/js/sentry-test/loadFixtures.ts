@@ -22,7 +22,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
 
-  // @ts-ignore, this is a partial definition
+  // @ts-expect-error, this is a partial definition
   const fixtures: TestStubFixtures = {};
 
   for (const file of files) {
@@ -47,7 +47,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   }
 
   if (opts.flatten) {
-    // @ts-ignore, this is a partial definition
+    // @ts-expect-error, this is a partial definition
     const flattenedFixtures: TestStubFixtures = {};
 
     for (const moduleKey in fixtures) {
@@ -106,6 +106,16 @@ const SPECIAL_MAPPING = {
   DiscoverSavedQuery: 'discover.js',
   VercelProvider: 'vercelIntegration.js',
   TagValues: 'tagvalues.js',
+  ReplayRRWebDivHelloWorld: 'replaySegments.ts',
+  ReplayRRWebNode: 'replaySegments.ts',
+  ReplaySegmentBreadcrumb: 'replaySegments.ts',
+  ReplaySegmentConsole: 'replaySegments.ts',
+  ReplaySegmentFullsnapshot: 'replaySegments.ts',
+  ReplaySegmentInit: 'replaySegments.ts',
+  ReplaySegmentNavigation: 'replaySegments.ts',
+  ReplaySegmentSpan: 'replaySegments.ts',
+  ReplaySpanPayload: 'replaySegments.ts',
+  ReplaySpanPayloadNavigate: 'replaySegments.ts',
 };
 
 function tryRequire(dir: string, name: string): any {
@@ -145,16 +155,27 @@ export function makeLazyFixtures<UserProvidedFixtures extends Record<any, any>>(
           for (const exportKey in maybeModule) {
             target[exportKey] = maybeModule[exportKey];
           }
-        } catch {
-          // ignore
+        } catch (error) {
+          return () => {
+            throw new Error(
+              error +
+                '\n\n' +
+                `Failed to resolve ${prop} fixture.
+              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture.
+              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk.
+              - If you are seeing this only in CI and you have followed the step above, check the exact casing of the file as it is case sensitive.
+
+              `
+            );
+          };
         }
 
         if (target[prop] === undefined) {
           return () => {
             throw new Error(
-              `Failed to resolve ${prop} fixture. \n
-              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture. \n
-              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk. \n
+              `Failed to resolve ${prop} fixture.
+              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture.
+              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk.
               - If you are seeing this only in CI and you have followed the step above, check the exact casing of the file as it is case sensitive.`
             );
           };

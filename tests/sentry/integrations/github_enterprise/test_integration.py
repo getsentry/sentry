@@ -12,8 +12,10 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
     config = {
@@ -151,7 +153,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             },
         }
         oi = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
 

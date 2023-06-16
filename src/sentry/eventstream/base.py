@@ -18,6 +18,7 @@ from typing import (
 )
 
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -87,6 +88,7 @@ class EventStream(Service):
         queue: str,
         skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
+        occurrence_id: Optional[str] = None,
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -102,6 +104,8 @@ class EventStream(Service):
                     "cache_key": cache_key,
                     "group_id": group_id,
                     "group_states": group_states,
+                    "occurrence_id": occurrence_id,
+                    "project_id": project_id,
                 },
                 queue=queue,
             )
@@ -146,6 +150,7 @@ class EventStream(Service):
             self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
+            occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )
 
     def start_delete_groups(
@@ -182,7 +187,7 @@ class EventStream(Service):
         self,
         project_id: int,
         event_ids: Sequence[str],
-        old_primary_hash: Union[str, bool] = False,
+        old_primary_hash: Optional[str] = None,
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:
@@ -201,17 +206,14 @@ class EventStream(Service):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
+        entity: PostProcessForwarderType,
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int,
-        commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
-        use_streaming_consumer: bool,
     ) -> None:
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

@@ -9,9 +9,10 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -46,6 +47,7 @@ type Props = {
   handleCellAction?: (
     c: TableColumn<React.ReactText>
   ) => (a: Actions, v: React.ReactText) => void;
+  referrer?: string;
   titles?: string[];
 };
 
@@ -125,6 +127,7 @@ class TransactionsTable extends PureComponent<Props> {
       handleCellAction,
       titles,
       useAggregateAlias,
+      referrer,
     } = this.props;
     const fields = eventView.getFields();
 
@@ -150,6 +153,16 @@ class TransactionsTable extends PureComponent<Props> {
             <ViewReplayLink replayId={row.replayId} to={target}>
               {rendered}
             </ViewReplayLink>
+          );
+        } else if (fields[index] === 'profile.id') {
+          rendered = (
+            <Link
+              data-test-id={`view-${fields[index]}`}
+              to={target}
+              onClick={getProfileAnalyticsHandler(organization, referrer)}
+            >
+              {rendered}
+            </Link>
           );
         } else {
           rendered = (
@@ -219,7 +232,11 @@ class TransactionsTable extends PureComponent<Props> {
 
     return (
       <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-        <VisuallyCompleteWithData id="TransactionsTable" hasData={hasResults}>
+        <VisuallyCompleteWithData
+          id="TransactionsTable"
+          hasData={hasResults}
+          isLoading={isLoading}
+        >
           <PanelTable
             data-test-id="transactions-table"
             isEmpty={!hasResults}
@@ -235,6 +252,21 @@ class TransactionsTable extends PureComponent<Props> {
       </ReplayIdCountProvider>
     );
   }
+}
+
+function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
+  return () => {
+    let source;
+    if (referrer === 'performance.transactions_summary') {
+      source = 'performance.transactions_summary.overview';
+    } else {
+      source = 'discover.transactions_table';
+    }
+    trackAnalytics('profiling_views.go_to_flamegraph', {
+      organization,
+      source,
+    });
+  };
 }
 
 const HeadCellContainer = styled('div')`

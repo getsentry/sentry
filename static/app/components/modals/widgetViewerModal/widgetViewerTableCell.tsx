@@ -8,9 +8,9 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getIssueFieldRenderer,
   getSortField,
@@ -33,8 +33,10 @@ import {
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now
@@ -45,15 +47,25 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  eventView?: EventView;
   isFirstPage?: boolean;
   isMetricsData?: boolean;
   onHeaderClick?: () => void;
+  projects?: Project[];
   tableData?: TableDataWithTitle;
 };
 
-export const renderIssueGridHeaderCell =
-  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
-  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+export const renderIssueGridHeaderCell = ({
+  location,
+  widget,
+  tableData,
+  organization,
+  onHeaderClick,
+}: Props) =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const sortField = getSortField(String(column.key));
@@ -75,7 +87,7 @@ export const renderIssueGridHeaderCell =
         })}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.ISSUE,
             display_type: widget.displayType,
@@ -87,17 +99,19 @@ export const renderIssueGridHeaderCell =
     );
   };
 
-export const renderDiscoverGridHeaderCell =
-  ({
-    location,
-    selection,
-    widget,
-    tableData,
-    organization,
-    onHeaderClick,
-    isMetricsData,
-  }: Props) =>
-  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+export const renderDiscoverGridHeaderCell = ({
+  location,
+  selection,
+  widget,
+  tableData,
+  organization,
+  onHeaderClick,
+  isMetricsData,
+}: Props) =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
     const {orderby} = widget.queries[0];
     // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
     const aggregateAliasOrderBy = `${
@@ -147,7 +161,7 @@ export const renderDiscoverGridHeaderCell =
         generateSortLink={generateSortLink}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.DISCOVER,
             display_type: widget.displayType,
@@ -159,14 +173,21 @@ export const renderDiscoverGridHeaderCell =
     );
   };
 
-export const renderGridBodyCell =
-  ({location, organization, widget, tableData, isFirstPage}: Props) =>
-  (
+export const renderGridBodyCell = ({
+  location,
+  organization,
+  widget,
+  tableData,
+  isFirstPage,
+  projects,
+  eventView,
+}: Props) =>
+  function (
     column: GridColumnOrder,
     dataRow: Record<string, any>,
     rowIndex: number,
     columnIndex: number
-  ): React.ReactNode => {
+  ): React.ReactNode {
     const columnKey = String(column.key);
     const isTopEvents = widget.displayType === DisplayType.TOP_N;
     let cell: React.ReactNode;
@@ -207,6 +228,23 @@ export const renderGridBodyCell =
         }
         break;
     }
+
+    if (columnKey === 'transaction' && dataRow.transaction) {
+      cell = (
+        <TransactionLink
+          data-test-id="widget-viewer-transaction-link"
+          to={getTargetForTransactionSummaryLink(
+            dataRow,
+            organization,
+            projects,
+            eventView
+          )}
+        >
+          {cell}
+        </TransactionLink>
+      );
+    }
+
     const topResultsCount = tableData
       ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
       : DEFAULT_NUM_TOP_EVENTS;
@@ -263,9 +301,17 @@ export const renderPrependColumns =
     ];
   };
 
-export const renderReleaseGridHeaderCell =
-  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
-  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+export const renderReleaseGridHeaderCell = ({
+  location,
+  widget,
+  tableData,
+  organization,
+  onHeaderClick,
+}: Props) =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const widgetOrderBy = widget.queries[0].orderby;
@@ -303,7 +349,7 @@ export const renderReleaseGridHeaderCell =
         generateSortLink={generateSortLink}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.RELEASE,
             display_type: widget.displayType,

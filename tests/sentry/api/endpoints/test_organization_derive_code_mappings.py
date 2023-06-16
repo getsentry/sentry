@@ -2,16 +2,15 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test(stable=True)
-@apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class OrganizationDeriveCodeMappingsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -87,7 +86,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stacktraceFilename": "stack/root/file.py",
         }
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
@@ -133,7 +132,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
             "repoName": "name",
         }
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             Integration.objects.all().delete()
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content

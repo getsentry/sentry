@@ -3,11 +3,11 @@ import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -34,21 +34,31 @@ class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
-        isTrends: true,
-      }),
+      eventView: generatePerformanceEventView(
+        nextProps.location,
+        nextProps.projects,
+        {
+          isTrends: true,
+        },
+        nextProps.organization
+      ),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
-      isTrends: true,
-    }),
+    eventView: generatePerformanceEventView(
+      this.props.location,
+      this.props.projects,
+      {
+        isTrends: true,
+      },
+      this.props.organization
+    ),
     error: undefined,
   };
 
   getDocumentTitle(): string {
-    return [t('Trends'), t('Performance')].join(' - ');
+    return [t('Trends'), t('Performance')].join(' — ');
   }
 
   setError = (error: string | undefined) => {
@@ -69,14 +79,18 @@ class TrendsSummary extends Component<Props, State> {
   }
 
   render() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <Layout.Page>
-          <NoProjectMessage organization={organization}>
+          <MetricsCardinalityProvider
+            sendOutcomeAnalytics
+            organization={organization}
+            location={location}
+          >
             {this.renderContent()}
-          </NoProjectMessage>
+          </MetricsCardinalityProvider>
         </Layout.Page>
       </SentryDocumentTitle>
     );

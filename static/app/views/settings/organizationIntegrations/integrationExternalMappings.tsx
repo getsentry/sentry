@@ -12,7 +12,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,

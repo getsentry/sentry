@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from django.utils import timezone
 
@@ -21,7 +22,24 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.link_users_identities",
     queue="integrations",
 )
-def link_slack_user_identities(integration: Integration, organization: Organization) -> None:
+def link_slack_user_identities(
+    integration: Optional[Integration] = None,  # deprecated
+    organization: Optional[Organization] = None,  # deprecated
+    integration_id: Optional[int] = None,
+    organization_id: Optional[int] = None,
+) -> None:
+    # TODO(hybridcloud) This needs to use the integration service
+    # as we are crossing silo boundaries.
+    if integration_id is not None:
+        integration = Integration.objects.get(id=integration_id)
+    if organization_id is not None:
+        # TODO(hybridcloud) This needs to use organization_service
+        # once member mappings are whole.
+        organization = Organization.objects.get(id=organization_id)
+    assert organization and integration  # type narrowing
+
+    # TODO(hybridcloud) This task is called from slack.integration.SlackIntegration,.post_install()
+    # which should happen in control silo, as it is part of integration install.
     emails_by_user = UserEmail.objects.get_emails_by_user(organization)
     slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
 

@@ -1,11 +1,11 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent', () => jest.fn());
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
@@ -26,7 +26,7 @@ describe('OrganizationMembersWrapper', function () {
   };
 
   beforeEach(function () {
-    trackAdvancedAnalyticsEvent.mockClear();
+    trackAnalytics.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/me/',
@@ -55,10 +55,10 @@ describe('OrganizationMembersWrapper', function () {
     });
   });
 
-  it('can invite member', function () {
+  it('can invite member', async function () {
     render(<OrganizationMembersWrapper organization={organization} {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe('OrganizationMembersWrapper', function () {
     expect(screen.getByRole('button', {name: 'Invite Members'})).toBeDisabled();
   });
 
-  it('can invite without permissions', function () {
+  it('can invite without permissions', async function () {
     const org = TestStubs.Organization({
       features: ['invite-members'],
       access: [],
@@ -86,7 +86,7 @@ describe('OrganizationMembersWrapper', function () {
 
     render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 

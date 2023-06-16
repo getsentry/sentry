@@ -19,6 +19,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -27,7 +28,7 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -36,7 +37,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.tasks.integrations import migrate_issues
-from sentry.types.issues import GroupCategory
 from sentry.utils.decorators import classproperty
 from sentry.utils.strings import truncatechars
 
@@ -360,11 +360,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         ]
 
-        if group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.get_performance_issue_body(event)
-            output.extend([body])
-        elif isinstance(event, GroupEvent) and event.occurrence is not None:
+        if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = self.get_generic_issue_body(event)
+            output.extend([body])
+        elif group.issue_category == GroupCategory.PERFORMANCE:
+            body = self.get_performance_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
@@ -380,8 +380,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
         return JiraCloudClient(
-            self.model.metadata["base_url"],
-            self.model.metadata["shared_secret"],
+            integration=self.model,
+            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )
@@ -880,7 +880,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[APIUser],
+        user: Optional[RpcUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -902,7 +902,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         account_id = possible_user.get("accountId")
                         email = client.get_email(account_id)
                     # match on lowercase email
-                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break
@@ -1007,6 +1006,11 @@ class JiraIntegrationProvider(IntegrationProvider):
     name = "Jira"
     metadata = metadata
     integration_cls = JiraIntegration
+
+    # Jira is region-restricted because the JiraSentryIssueDetailsView view does not currently
+    # contain organization-identifying information aside from the ExternalIssue. Multiple regions
+    # may contain a matching ExternalIssue and we could leak data across the organizations.
+    is_region_restricted = True
 
     features = frozenset(
         [

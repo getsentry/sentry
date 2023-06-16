@@ -147,15 +147,15 @@ describe('TeamStatsIssues', () => {
     expect(screen.getByText('All Unresolved Issues')).toBeInTheDocument();
   });
 
-  it('allows team switching', () => {
+  it('allows team switching', async () => {
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // Teams user is not a member of are hidden
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
-    userEvent.click(screen.getByText('#frontend'));
+    await userEvent.click(screen.getByText('#frontend'));
     expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team1.id}});
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
@@ -163,23 +163,23 @@ describe('TeamStatsIssues', () => {
     );
   });
 
-  it('can filter by environment', () => {
+  it('can filter by environment', async () => {
     createWrapper();
 
     // For some reason the "Environment:" is rendered via css :before
     expect(screen.getByText('All')).toBeInTheDocument();
-    userEvent.type(screen.getByText('All'), '{mouseDown}');
+    await userEvent.type(screen.getByText('All'), '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();
-    userEvent.click(screen.getByText(env1));
+    await userEvent.click(screen.getByText(env1));
     expect(mockRouter.push).toHaveBeenCalledWith({query: {environment: 'prod'}});
   });
 
-  it('superusers can switch to any team', () => {
+  it('superusers can switch to any team', async () => {
     isActiveSuperuser.mockReturnValue(true);
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // User is not a member of internal team
     expect(screen.getByText('#internal')).toBeInTheDocument();

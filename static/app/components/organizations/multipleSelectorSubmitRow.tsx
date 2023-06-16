@@ -3,20 +3,22 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   onSubmit: () => void;
   disabled?: boolean;
 };
 
-const MultipleSelectorSubmitRow = ({onSubmit, disabled = false}: Props) => (
-  <SubmitButtonContainer>
-    <SubmitButton disabled={disabled} onClick={onSubmit} size="xs" priority="primary">
-      {t('Apply')}
-    </SubmitButton>
-  </SubmitButtonContainer>
-);
+function MultipleSelectorSubmitRow({onSubmit, disabled = false}: Props) {
+  return (
+    <SubmitButtonContainer>
+      <SubmitButton disabled={disabled} onClick={onSubmit} size="xs" priority="primary">
+        {t('Apply')}
+      </SubmitButton>
+    </SubmitButtonContainer>
+  );
+}
 
 const SubmitButtonContainer = styled('div')`
   display: flex;

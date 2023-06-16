@@ -1,6 +1,10 @@
+import dataclasses
 import logging
 import time
 import uuid
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -9,10 +13,12 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.cache import default_cache
-from sentry.lang.native.sources import sources_for_symbolication
-from sentry.models import Organization
+from sentry.lang.native.sources import (
+    get_internal_artifact_lookup_source,
+    sources_for_symbolication,
+)
+from sentry.models import Project
 from sentry.net.http import Session
-from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
@@ -25,17 +31,45 @@ def _task_id_cache_key_for_event(project_id, event_id):
     return f"symbolicator:{event_id}:{project_id}"
 
 
-class Symbolicator:
-    def __init__(self, project, event_id):
-        symbolicator_options = options.get("symbolicator.options")
-        base_url = symbolicator_options["url"].rstrip("/")
-        assert base_url
+@dataclass(frozen=True)
+class SymbolicatorTaskKind:
+    is_js: bool = False
+    is_low_priority: bool = False
+    is_reprocessing: bool = False
 
-        # needed for efficient featureflag checks in getsentry
-        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
+    def with_low_priority(self, is_low_priority: bool) -> "SymbolicatorTaskKind":
+        return dataclasses.replace(self, is_low_priority=is_low_priority)
+
+    def with_js(self, is_js: bool) -> "SymbolicatorTaskKind":
+        return dataclasses.replace(self, is_js=is_js)
+
+
+class SymbolicatorPools(Enum):
+    default = "default"
+    js = "js"
+    lpq = "lpq"
+    lpq_js = "lpq_js"
+
+
+class Symbolicator:
+    def __init__(self, task_kind: SymbolicatorTaskKind, project: Project, event_id: str):
+        URLS = settings.SYMBOLICATOR_POOL_URLS
+        pool = SymbolicatorPools.default.value
+        if task_kind.is_low_priority:
+            if task_kind.is_js:
+                pool = SymbolicatorPools.lpq_js.value
+            else:
+                pool = SymbolicatorPools.lpq.value
+        elif task_kind.is_js:
+            pool = SymbolicatorPools.js.value
+
+        base_url = (
+            URLS.get(pool)
+            or URLS.get(SymbolicatorPools.default.value)
+            or options.get("symbolicator.options")["url"]
+        )
+        base_url = base_url.rstrip("/")
+        assert base_url
 
         self.project = project
         self.sess = SymbolicatorSession(
@@ -119,11 +153,11 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_payload(self, stacktraces, modules, signal=None):
+    def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
         (sources, process_response) = sources_for_symbolication(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True},
+            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
             "stacktraces": stacktraces,
             "modules": modules,
         }
@@ -134,6 +168,27 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
+    def process_js(
+        self, stacktraces, modules, release, dist, scraping_config=None, apply_source_context=True
+    ):
+        source = get_internal_artifact_lookup_source(self.project)
+
+        json = {
+            "source": source,
+            "stacktraces": stacktraces,
+            "modules": modules,
+            "options": {"apply_source_context": apply_source_context},
+        }
+
+        if release is not None:
+            json["release"] = release
+        if dist is not None:
+            json["dist"] = dist
+        if scraping_config is not None:
+            json["scraping"] = scraping_config
+
+        return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
+
 
 class TaskIdNotFound(Exception):
     pass
@@ -141,6 +196,11 @@ class TaskIdNotFound(Exception):
 
 class ServiceUnavailable(Exception):
     pass
+
+
+class RetrySymbolication(Exception):
+    def __init__(self, retry_after: Optional[int] = None) -> None:
+        self.retry_after = retry_after
 
 
 class SymbolicatorSession:

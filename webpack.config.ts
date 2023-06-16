@@ -39,7 +39,6 @@ const {env} = process;
 env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
-const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
@@ -57,6 +56,7 @@ const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -302,6 +302,12 @@ const appConfig: Configuration = {
     ],
   },
   plugins: [
+    /**
+     * Adds build time measurement instrumentation, which will be reported back
+     * to sentry
+     */
+    new SentryInstrumentation(),
+
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -344,12 +350,6 @@ const appConfig: Configuration = {
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
-
-    /**
-     * Adds build time measurement instrumentation, which will be reported back
-     * to sentry
-     */
-    new SentryInstrumentation(),
 
     ...(SHOULD_FORK_TS
       ? [
@@ -476,7 +476,7 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
-if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
+if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
     'fixtures/integration-docs/_platforms.json'
@@ -525,9 +525,16 @@ if (
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
+      'Document-Policy': 'js-profiling',
     },
-    // Required for getsentry
-    allowedHosts: 'all',
+    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    allowedHosts: [
+      '.sentry.dev',
+      '.dev.getsentry.net',
+      '.localhost',
+      '127.0.0.1',
+      '.docker.internal',
+    ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
@@ -549,6 +556,31 @@ if (
     const backendAddress = `http://127.0.0.1:${SENTRY_BACKEND_PORT}/`;
     const relayAddress = 'http://127.0.0.1:7899';
 
+    // If we're running siloed servers we also need to proxy
+    // those requests to the right server.
+    let controlSiloProxy = {};
+    if (CONTROL_SILO_PORT) {
+      // TODO(hybridcloud) We also need to use this URL pattern
+      // list to select contro/region when making API requests in non-proxied
+      // environments (like production). We'll likely need a way to consolidate this
+      // with the configuration api.Client uses.
+      const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
+      controlSiloProxy = {
+        '/api/0/users/**': controlSiloAddress,
+        '/api/0/sentry-apps/**': controlSiloAddress,
+        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
+        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
+        '/api/0/organizations/*/integrations/**': controlSiloAddress,
+        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
+        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
+        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
+        '/api/0/api-authorizations/**': controlSiloAddress,
+        '/api/0/api-applications/**': controlSiloAddress,
+        '/api/0/doc-integrations/**': controlSiloAddress,
+        '/api/0/assistant/**': controlSiloAddress,
+      };
+    }
+
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
@@ -557,6 +589,7 @@ if (
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
+        ...controlSiloProxy,
         '/api/store/**': relayAddress,
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
@@ -577,6 +610,26 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
+  // XXX: If you change this also change its sibiling in:
+  // - static/index.ejs
+  // - static/app/utils/extractSlug.tsx
+  const KNOWN_DOMAINS =
+    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
+
+  const extractSlug = (hostname: string) => {
+    const match = hostname.match(KNOWN_DOMAINS);
+    if (!match) {
+      return null;
+    }
+
+    const [
+      matchedExpression, // Expression includes optional leading `.`
+    ] = match;
+
+    const [slug] = hostname.replace(matchedExpression, '').split('.');
+    return slug;
+  };
+
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
   const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
@@ -593,6 +646,9 @@ if (IS_UI_DEV_ONLY) {
       type: 'https',
       options: httpsOptions,
     },
+    headers: {
+      'Document-Policy': 'js-profiling',
+    },
     static: {
       publicPath: '/_assets/',
     },
@@ -604,6 +660,12 @@ if (IS_UI_DEV_ONLY) {
         changeOrigin: true,
         headers: {
           Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        router: ({hostname}) => {
+          const orgSlug = extractSlug(hostname);
+          return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
     ],
@@ -636,6 +698,9 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       mobile: true,
       excludeChunks: ['pipeline'],
       title: 'Sentry',
+      window: {
+        __SENTRY_DEV_UI: true,
+      },
     })
   );
 }

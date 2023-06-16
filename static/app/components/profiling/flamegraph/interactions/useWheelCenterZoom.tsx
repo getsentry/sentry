@@ -9,13 +9,16 @@ import {getCenterScaleMatrixFromMousePosition} from 'sentry/utils/profiling/gl/u
 export function useWheelCenterZoom(
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null,
-  canvasPoolManager: CanvasPoolManager
+  canvasPoolManager: CanvasPoolManager,
+  disable: boolean = false
 ) {
   const zoom = useCallback(
     (evt: WheelEvent) => {
-      if (!canvas || !view) {
+      if (!canvas || !view || disable) {
         return;
       }
+
+      evt.preventDefault();
 
       const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
       canvasPoolManager.dispatch('transform config view', [
@@ -28,7 +31,7 @@ export function useWheelCenterZoom(
         view,
       ]);
     },
-    [canvas, view, canvasPoolManager]
+    [canvas, view, canvasPoolManager, disable]
   );
 
   return zoom;

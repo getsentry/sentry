@@ -1,11 +1,12 @@
 from html import escape
 
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import PlatformExternalIssue
 
 
 class Creator(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     group = Param("sentry.models.Group")
     web_url = Param((str,))
     project = Param((str,))

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {Item} from './types';
 

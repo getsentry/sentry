@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Iterable, Mapping, MutableMapping
+from urllib.parse import urlencode
 
 import pytz
 
+from sentry import features
 from sentry.db.models import Model
-from sentry.models import Team, User, UserOption
+from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
+from sentry.models import Group, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -27,12 +30,23 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GROUP_CATEGORIES_CUSTOM_EMAIL, GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_substatus_text(group: Group) -> str:
+    if group.substatus == GroupSubStatus.NEW:
+        return "New issue"
+    elif group.substatus == GroupSubStatus.REGRESSED:
+        return "Regressed issue"
+    elif group.substatus == GroupSubStatus.ONGOING:
+        return "Ongoing issue"
+    return "New Alert"
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -64,7 +78,7 @@ class AlertRuleNotification(ProjectNotification):
             else "sentry/emails/generic"
         )
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -72,6 +86,7 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type=self.notification_setting_type,
             fallthrough_choice=self.fallthrough_choice,
+            rules=self.rules,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -82,11 +97,11 @@ class AlertRuleNotification(ProjectNotification):
         return self.group
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
 
-        if recipient.class_name() == "User":
+        if recipient.actor_type == ActorType.USER:
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
                 timezone = pytz.timezone(user_tz)
@@ -101,18 +116,28 @@ class AlertRuleNotification(ProjectNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
+        for rule in rule_details:
+            rule.url = rule.url + sentry_query_params
+            rule.status_url = rule.url + sentry_query_params
+
         notification_reason = get_owner_reason(
             project=self.project,
             target_type=self.target_type,
             event=self.event,
             fallthrough_choice=self.fallthrough_choice,
         )
+        fallback_params: MutableMapping[str, str] = {}
+        group_header = get_group_substatus_text(self.group)
 
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
+            "group_header": group_header,
             "event": self.event,
-            "link": get_group_settings_link(self.group, environment, rule_details),
+            "link": get_group_settings_link(
+                self.group, environment, rule_details, None, **fallback_params
+            ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
@@ -121,11 +146,12 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
-                "/settings/account/notifications/alerts/?referrer=alert_email"
+                f"/settings/account/notifications/alerts/{sentry_query_params}"
             ),
             "has_alert_integration": has_alert_integration(self.project),
-            "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
+            "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
+            "has_issue_states": features.has("organizations:escalating-issues", self.organization),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -140,6 +166,18 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+
+        if len(self.rules) > 0:
+            context["snooze_alert"] = True
+            context[
+                "snooze_alert_url"
+            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+
+        if getattr(self.event, "occurrence", None):
+            context["issue_title"] = self.event.occurrence.issue_title
+            context["subtitle"] = self.event.occurrence.subtitle
+            context["culprit"] = self.event.occurrence.culprit
+
         if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:
@@ -206,7 +244,7 @@ class AlertRuleNotification(ProjectNotification):
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
 
-    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,

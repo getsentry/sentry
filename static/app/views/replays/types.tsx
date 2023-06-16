@@ -1,5 +1,5 @@
+import type {customEvent, eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
-import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
@@ -48,9 +48,11 @@ export type ReplayRecord = {
    */
   id: string;
   /**
-   * The longest transaction associated with the replay measured in milliseconds.
+   * Whether the replay was deleted.
+   * When deleted the rrweb data & attachments are removed from blob storage,
+   * but the record of the replay is not removed.
    */
-  longest_transaction: number;
+  is_archived: boolean;
   os: {
     name: null | string;
     version: null | string;
@@ -78,6 +80,14 @@ export type ReplayRecord = {
   };
 };
 
+// The ReplayRecord fields, but with nested fields represented as `foo.bar`.
+export type ReplayRecordNestedFieldName =
+  | keyof ReplayRecord
+  | `browser.${keyof ReplayRecord['browser']}`
+  | `device.${keyof ReplayRecord['device']}`
+  | `os.${keyof ReplayRecord['os']}`
+  | `user.${keyof ReplayRecord['user']}`;
+
 export type ReplayListLocationQuery = {
   cursor?: string;
   end?: string;
@@ -93,18 +103,40 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
+// Sync with REPLAY_LIST_FIELDS below
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
+  | 'browser'
   | 'count_errors'
   | 'duration'
   | 'finished_at'
   | 'id'
+  | 'is_archived'
+  | 'os'
   | 'project_id'
   | 'started_at'
   | 'urls'
   | 'user'
 >;
+
+// Sync with ReplayListRecord above
+export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
+  'activity',
+  'browser.name',
+  'browser.version',
+  'count_errors',
+  'duration',
+  'finished_at',
+  'id',
+  'is_archived',
+  'os.name',
+  'os.version',
+  'project_id',
+  'started_at',
+  'urls',
+  'user',
+];
 
 export type ReplaySegment = {
   dateAdded: string;
@@ -115,6 +147,8 @@ export type ReplaySegment = {
 
 /**
  * Highlight Replay Plugin types
+ *
+ * See also HighlightParams in static/app/components/replays/replayContext.tsx
  */
 export interface Highlight {
   nodeId: number;
@@ -123,6 +157,19 @@ export interface Highlight {
 }
 
 export type RecordingEvent = eventWithTime;
+export type RecordingOptions = customEvent<{
+  blockAllMedia: boolean;
+  errorSampleRate: number;
+  maskAllInputs: boolean;
+  maskAllText: boolean;
+  networkCaptureBodies: boolean;
+  networkDetailHasUrls: boolean;
+  networkRequestHasHeaders: boolean;
+  networkResponseHasHeaders: boolean;
+  sessionSampleRate: number;
+  useCompression: boolean;
+  useCompressionOption: boolean;
+}>;
 
 export interface ReplaySpan<T = Record<string, any>> {
   data: T;
@@ -134,7 +181,7 @@ export interface ReplaySpan<T = Record<string, any>> {
   description?: string;
 }
 
-export type MemorySpanType = ReplaySpan<{
+export type MemorySpan = ReplaySpan<{
   memory: {
     jsHeapSizeLimit: number;
     totalJSHeapSize: number;

@@ -9,7 +9,7 @@ import getBadge, {GetBadgeProps} from './getBadge';
  * Organization, project, team, user
  */
 
-const IdBadge = (props: GetBadgeProps) => {
+function IdBadge(props: GetBadgeProps) {
   const componentBadge = getBadge(props);
 
   if (!componentBadge) {
@@ -19,7 +19,7 @@ const IdBadge = (props: GetBadgeProps) => {
   }
 
   return <InlineErrorBoundary mini>{componentBadge}</InlineErrorBoundary>;
-};
+}
 
 export default IdBadge;
 

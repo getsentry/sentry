@@ -37,6 +37,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             groupby=["primary_hash"],
             referrer="api.group-hashes",
             orderby=["-latest_event_timestamp"],
+            tenant_ids={"organization_id": group.project.organization_id},
         )
 
         handle_results = partial(self.__handle_results, group.project_id, group.id, request.user)

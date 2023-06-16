@@ -1,9 +1,10 @@
+import datetime
 from unittest import mock
 
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, killswitches, options
 from sentry.api.serializers import (
     DetailedOrganizationSerializer,
     DetailedOrganizationSerializerWithProjectsAndTeams,
@@ -13,7 +14,7 @@ from sentry.api.serializers import (
 from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
-from sentry.models import OrganizationOnboardingTask
+from sentry.models import Deploy, Environment, OrganizationOnboardingTask, ReleaseProjectEnvironment
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.testutils import TestCase
@@ -52,14 +53,13 @@ class OrganizationSerializerTest(TestCase):
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
-            "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
             "discover-basic",
             "discover-query",
-            "discover-query-builder-as-landing-page",
+            "derive-code-mappings",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
@@ -73,13 +73,18 @@ class OrganizationSerializerTest(TestCase):
             "invite-members-rate-limits",
             "minute-resolution-sessions",
             "open-membership",
+            "project-stats",
             "relay",
             "shared-issues",
+            "source-maps-debug-ids",
+            "session-replay-ui",
             "sso-basic",
             "sso-saml2",
             "symbol-sources",
             "team-insights",
             "performance-issues-search",
+            "transaction-name-normalize",
+            "transaction-name-mark-scrubbed-as-sanitized",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -160,16 +165,56 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
 
+    def test_disable_last_deploys_killswitch(self):
+        self.team
+        self.project
+        self.release = self.create_release(self.project)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.environment_1 = Environment.objects.create(
+            organization_id=self.organization.id, name="production"
+        )
+        self.environment_1.add_project(self.project)
+        self.environment_1.save()
+        deploy = Deploy.objects.create(
+            environment_id=self.environment_1.id,
+            organization_id=self.organization.id,
+            release=self.release,
+            date_finished=self.date,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=self.release.id,
+            environment_id=self.environment_1.id,
+            last_deploy_id=deploy.id,
+        )
+        acc = access.from_user(self.user, self.organization)
+        serializer = DetailedOrganizationSerializerWithProjectsAndTeams()
+        result = serialize(self.organization, self.user, serializer, access=acc)
 
+        assert result["projects"][0]["latestDeploys"]
+
+        opt_val = killswitches.validate_user_input(
+            "api.organization.disable-last-deploys", [{"organization_id": self.organization.id}]
+        )
+        options.set("api.organization.disable-last-deploys", opt_val)
+
+        result = serialize(self.organization, self.user, serializer, access=acc)
+        assert not result["projects"][0].get("latestDeploys")
+
+        opt_val = killswitches.validate_user_input("api.organization.disable-last-deploys", [])
+        options.set("api.organization.disable-last-deploys", opt_val)
+
+
+@region_silo_test
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
@@ -180,15 +225,16 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
+@region_silo_test
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 

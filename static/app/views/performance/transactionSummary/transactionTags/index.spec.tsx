@@ -18,7 +18,6 @@ function initializeData({query} = {query: {}}) {
   });
 
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {
@@ -299,7 +298,7 @@ describe('Performance > Transaction Tags', function () {
     );
 
     // Paginate the table
-    userEvent.click(screen.getByLabelText('Next'));
+    await userEvent.click(screen.getByLabelText('Next'));
 
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -314,7 +313,7 @@ describe('Performance > Transaction Tags', function () {
     );
 
     // Choose a different tag
-    userEvent.click(screen.getByRole('radio', {name: 'effectiveConnectionType'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'effectiveConnectionType'}));
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {

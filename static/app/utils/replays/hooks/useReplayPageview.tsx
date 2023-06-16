@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +16,7 @@ function useReplayPageview(type: 'replay.details-time-spent' | 'replay.list-time
   useEffect(() => {
     const startTime = startTimeRef.current;
 
-    trackAdvancedAnalyticsEvent('replay.details-viewed', {
+    trackAnalytics('replay.details-viewed', {
       organization,
       referrer: decodeScalar(location.query.referrer),
       user_email: config.user.email,
@@ -24,7 +24,7 @@ function useReplayPageview(type: 'replay.details-time-spent' | 'replay.list-time
 
     return () => {
       const endTime = Date.now();
-      trackAdvancedAnalyticsEvent(type, {
+      trackAnalytics(type, {
         organization,
         seconds: (endTime - startTime) / 1000,
         user_email: config.user.email,

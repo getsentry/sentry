@@ -2,10 +2,10 @@ import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
+import {Rect, trimTextCenter} from 'sentry/utils/profiling/speedscope';
 
 const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(
@@ -27,7 +27,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
     {type: 'flamechart'}
   );
 
-  return new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
+  return new Flamegraph(profile, 0, {inverted: false, sort: 'call order'});
 };
 
 describe('TextRenderer', () => {
@@ -105,7 +105,7 @@ describe('TextRenderer', () => {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, sort: 'call order'});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockReturnValue({width: 10}),
@@ -146,7 +146,7 @@ describe('TextRenderer', () => {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, sort: 'call order'});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
@@ -201,7 +201,7 @@ describe('TextRenderer', () => {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, sort: 'call order'});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {

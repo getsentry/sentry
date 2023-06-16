@@ -15,8 +15,13 @@ import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import space from 'sentry/styles/space';
-import {Integration, Organization, Repository} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {
+  Integration,
+  IntegrationRepository,
+  Organization,
+  Repository,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] & {
@@ -28,7 +33,7 @@ type State = AsyncComponent['state'] & {
   adding: boolean;
   dropdownBusy: boolean;
   integrationRepos: {
-    repos: {identifier: string; name: string}[];
+    repos: IntegrationRepository[];
     searchable: boolean;
   };
   integrationReposErrorStatus: number | null;
@@ -48,17 +53,19 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.searchRepositoriesRequest();
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
-    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
-  }
-
-  getIntegrationRepos() {
-    const integrationId = this.props.integration.id;
-    return this.state.itemList.filter(repo => repo.integrationId === integrationId);
+    return [
+      [
+        'itemList',
+        `/organizations/${orgId}/repos/`,
+        {query: {status: 'active', integration_id: this.props.integration.id}},
+      ],
+    ];
   }
 
   // Called by row to signal repository change.
@@ -133,10 +140,9 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   renderDropdown() {
-    const access = new Set(this.props.organization.access);
     if (
       !['github', 'gitlab'].includes(this.props.integration.provider.key) &&
-      !access.has('org:integrations')
+      !this.props.organization.access.includes('org:integrations')
     ) {
       return (
         <DropdownButton
@@ -193,9 +199,8 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {itemListPageLinks, integrationReposErrorStatus} = this.state;
+    const {itemListPageLinks, integrationReposErrorStatus, itemList} = this.state;
     const orgId = this.props.organization.slug;
-    const itemList = this.getIntegrationRepos() || [];
     return (
       <Fragment>
         {integrationReposErrorStatus === 400 && (

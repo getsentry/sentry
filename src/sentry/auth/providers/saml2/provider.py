@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
+from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,31 +18,10 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
-
-try:
-    from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
-    from onelogin.saml2.constants import OneLogin_Saml2_Constants
-
-    HAS_SAML2 = True
-except ImportError:
-    HAS_SAML2 = False
-
-    def OneLogin_Saml2_Auth(*args, **kwargs):
-        raise NotImplementedError("Missing SAML libraries")
-
-    def OneLogin_Saml2_Settings(*args, **kwargs):
-        raise NotImplementedError("Missing SAML libraries")
-
-    class OneLogin_Saml2_ConstantsType(type):
-        def __getattr__(self, attr):
-            raise NotImplementedError("Missing SAML libraries")
-
-    class OneLogin_Saml2_Constants(metaclass=OneLogin_Saml2_ConstantsType):
-        pass
-
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
@@ -52,11 +33,11 @@ def get_provider(organization_slug):
     except Organization.DoesNotExist:
         return None
 
-    if organization.status != OrganizationStatus.VISIBLE:
+    if organization.status != OrganizationStatus.ACTIVE:
         return None
 
     try:
-        provider = AuthProvider.objects.get(organization=organization).get_provider()
+        provider = AuthProvider.objects.get(organization_id=organization.id).get_provider()
     except AuthProvider.DoesNotExist:
         return None
 
@@ -110,21 +91,22 @@ class SAML2AcceptACSView(BaseView):
         # IdP initiated authentication. The organization_slug must be valid and
         # an auth provider must exist for this organization to proceed with
         # IdP initiated SAML auth.
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+        org_context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=False
+        )
+        if org_context is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=org_context.organization.id)
         except AuthProvider.DoesNotExist:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
         helper = AuthHelper(
             request=request,
-            organization=organization,
+            organization=(org_context.organization),
             auth_provider=auth_provider,
             flow=AuthHelper.FLOW_LOGIN,
         )

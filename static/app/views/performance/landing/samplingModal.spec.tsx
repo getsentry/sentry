@@ -19,7 +19,7 @@ const initializeData = () => {
 
 const stubEl: any = props => <div>{props.children}</div>;
 
-const WrappedComponent = ({data}) => {
+function WrappedComponent({data}) {
   const eventView = EventView.fromLocation(data.router.location);
 
   return (
@@ -40,7 +40,7 @@ const WrappedComponent = ({data}) => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 describe('Performance > Landing > SamplingModal', function () {
   let wrapper: any;

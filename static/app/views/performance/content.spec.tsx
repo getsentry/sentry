@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +8,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
@@ -45,7 +45,6 @@ function initializeData(projects, query, features = FEATURES) {
     projects,
   });
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {
@@ -76,7 +75,6 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     : {};
 
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {
@@ -286,7 +284,7 @@ describe('Performance > Content', function () {
     act(() => ProjectsStore.reset());
 
     // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
-    // @ts-ignore
+    // @ts-expect-error
     pageFilters.updateDateTime.mockRestore();
   });
 
@@ -344,7 +342,7 @@ describe('Performance > Content', function () {
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: '/apple/cart'});
 
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(data.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -380,7 +378,7 @@ describe('Performance > Content', function () {
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     const link = screen.getByRole('button', {name: 'View Trends'});
 
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
@@ -428,7 +426,7 @@ describe('Performance > Content', function () {
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    userEvent.click(trendsLinks[0]);
+    await userEvent.click(trendsLinks[0]);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(browserHistory.push).toHaveBeenCalledWith(

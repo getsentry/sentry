@@ -11,17 +11,19 @@ import {Client} from 'sentry/api';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type CreateSampleEventButtonProps = {
+type CreateSampleEventButtonProps = ButtonProps & {
   api: Client;
   organization: Organization;
   source: string;
+  onClick?: () => void;
+  onCreateSampleGroup?: () => void;
   project?: Project;
-} & ButtonProps;
+};
 
 type State = {
   creating: boolean;
@@ -65,12 +67,18 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       return;
     }
 
-    trackAdvancedAnalyticsEvent('sample_event.button_viewed', {
+    trackAnalytics('sample_event.button_viewed', {
       organization,
       project_id: project.id,
       source,
     });
   }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  private _isMounted = true;
 
   recordAnalytics({eventCreated, retries, duration}) {
     const {organization, project, source} = this.props;
@@ -81,7 +89,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
     const eventKey = `sample_event.${eventCreated ? 'created' : 'failed'}` as const;
 
-    trackAdvancedAnalyticsEvent(eventKey, {
+    trackAnalytics(eventKey, {
       organization,
       project_id: project.id,
       platform: project.platform || '',
@@ -94,17 +102,21 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project} = this.props;
+    const {api, organization, project, onCreateSampleGroup} = this.props;
     let eventData;
 
     if (!project) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
-      platform: project.platform,
-      organization,
-    });
+    if (onCreateSampleGroup) {
+      onCreateSampleGroup();
+    } else {
+      trackAnalytics('growth.onboarding_view_sample_event', {
+        platform: project.platform,
+        organization,
+      });
+    }
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
@@ -129,6 +141,13 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     // before redirecting.
     const t0 = performance.now();
     const {eventCreated, retries} = await latestEventAvailable(api, eventData.groupID);
+
+    // Navigated away before event was created - skip analytics and error messages
+    // latestEventAvailable will succeed even if the request was cancelled
+    if (!this._isMounted) {
+      return;
+    }
+
     const t1 = performance.now();
 
     clearIndicators();
@@ -153,6 +172,8 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       return;
     }
 
+    this.props.onClick?.();
+
     browserHistory.push(
       normalizeUrl(
         `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}&referrer=sample-error`
@@ -168,6 +189,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       source: _source,
       ...props
     } = this.props;
+
     const {creating} = this.state;
 
     return (

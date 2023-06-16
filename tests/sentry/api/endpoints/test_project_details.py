@@ -1,12 +1,16 @@
 from abc import ABC
+from datetime import datetime, timedelta
 from time import time
 from unittest import mock
 
+import pytz
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.dynamic_sampling import DEFAULT_BIASES
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
+from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
@@ -14,21 +18,20 @@ from sentry.models import (
     EnvironmentProject,
     Integration,
     NotificationSetting,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
     OrganizationMember,
     OrganizationOption,
     Project,
     ProjectBookmark,
     ProjectOwnership,
     ProjectRedirect,
-    ProjectStatus,
     ProjectTeam,
     Rule,
     ScheduledDeletion,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature, faux
+from sentry.testutils.helpers import Feature, faux, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -181,13 +184,15 @@ class ProjectDetailsTest(APITestCase):
         )
         assert (
             AuditLogEntry.objects.get(
-                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
             ).data.get("old_slug")
             == project.slug
         )
         assert (
             AuditLogEntry.objects.get(
-                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+                organization_id=project.organization_id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
             ).data.get("new_slug")
             == "foobar"
         )
@@ -380,7 +385,9 @@ class ProjectUpdateTest(APITestCase):
             isBookmarked="true",
             status_code=403,
         )
-        assert not ProjectBookmark.objects.filter(user=user, project_id=self.project.id).exists()
+        assert not ProjectBookmark.objects.filter(
+            user_id=user.id, project_id=self.project.id
+        ).exists()
 
     def test_member_changes_permission_denied(self):
         project = self.create_project()
@@ -402,8 +409,32 @@ class ProjectUpdateTest(APITestCase):
         )
 
         assert Project.objects.get(id=project.id).slug != "zzz"
+        assert not ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
-        assert not ProjectBookmark.objects.filter(user=user, project_id=project.id).exists()
+    @with_feature("organizations:team-roles")
+    def test_member_with_team_role(self):
+        user = self.create_user("bar@example.com")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="member",
+        )
+
+        team = self.create_team(organization=self.organization)
+        project = self.create_project(teams=[team])
+        self.create_team_membership(user=user, team=team, role="admin")
+
+        self.login_as(user=user)
+
+        self.get_success_response(
+            self.organization.slug,
+            project.slug,
+            slug="zzz",
+            isBookmarked="true",
+        )
+
+        assert Project.objects.get(id=project.id).slug == "zzz"
+        assert ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
     def test_name(self):
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")
@@ -416,7 +447,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.slug == "foobar"
         assert ProjectRedirect.objects.filter(project=self.project, redirect_slug=self.proj_slug)
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
 
     def test_invalid_slug(self):
@@ -469,6 +500,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "feedback:branding": False,
+            "filters:react-hydration-errors": True,
         }
         with self.feature("projects:custom-inbound-filters"):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -478,17 +510,17 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:resolve_age", 0) == options["sentry:resolve_age"]
         assert project.get_option("sentry:scrub_data", True) == options["sentry:scrub_data"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:scrub_defaults", True) == options["sentry:scrub_defaults"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:sensitive_fields", []) == options["sentry:sensitive_fields"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:safe_fields", []) == options["sentry:safe_fields"]
         assert (
@@ -501,7 +533,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert project.get_option("sentry:grouping_config", "") == options["sentry:grouping_config"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:csp_ignored_sources_defaults", True)
@@ -518,51 +550,52 @@ class ProjectUpdateTest(APITestCase):
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:resolve_age", 1)
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:scrub_ip_address", True)
             == options["sentry:scrub_ip_address"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:origins", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:scrape_javascript", False)
             == options["sentry:scrape_javascript"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:token", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:token_header", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:verify_ssl", False) == options["sentry:verify_ssl"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("feedback:branding") == "0"
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=project.organization_id, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
+        assert project.get_option("filters:react-hydration-errors", "1")
 
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
-            project_id=self.project.id, user=self.user
+            project_id=self.project.id, user_id=self.user.id
         ).exists()
 
     def test_subscription(self):
@@ -570,7 +603,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -579,7 +612,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            actor=RpcActor.from_orm_user(self.user),
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER
@@ -687,6 +720,13 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(self.org_slug, self.proj_slug, status_code=400, **data)
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
+
+    def test_react_hydration_errors(self):
+        value = False
+        options = {"filters:react-hydration-errors": value}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:react-hydration-errors") == value
+        assert resp.data["options"]["filters:react-hydration-errors"] == value
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
@@ -1070,9 +1110,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.login_as(user=user)
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
-        OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-            role="admin"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(
+                user_id=user.id, organization=self.organization
+            ).update(role="admin")
 
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -1095,9 +1137,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.login_as(user=user)
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
-        OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-            role="admin"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(
+                user_id=user.id, organization=self.organization
+            ).update(role="admin")
 
         self.other_project.add_team(team)
 
@@ -1155,7 +1199,7 @@ class ProjectDeleteTest(APITestCase):
         assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
 
         deleted_project = Project.objects.get(id=project.id)
-        assert deleted_project.status == ProjectStatus.PENDING_DELETION
+        assert deleted_project.status == ObjectStatus.PENDING_DELETION
         assert deleted_project.slug == "abc123"
         assert OrganizationOption.objects.filter(
             organization_id=deleted_project.organization_id,
@@ -1186,6 +1230,16 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
         self.new_ds_flag = "organizations:dynamic-sampling"
+        self._apply_old_date_to_project_and_org()
+
+    def _apply_old_date_to_project_and_org(self):
+        # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
+        # automatically.
+        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
+        # copy is mutated.
+        self.project.organization.update(date_added=old_date)
+        self.project.update(date_added=old_date)
 
 
 @region_silo_test
@@ -1216,25 +1270,28 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             },
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
+
         with Feature(
             {
                 self.new_ds_flag: True,
             }
         ):
             response = self.get_success_response(
-                self.organization.slug,
+                self.project.organization.slug,
                 self.project.slug,
                 method="get",
                 includeDynamicSamplingRules=1,
             )
             # we expect 2 rules 1 for boostEnvironments and uniform rule
-            assert len(response.data["dynamicSamplingRules"]) == 2
+            assert len(response.data["dynamicSamplingRules"]["rules"]) == 0
+            assert len(response.data["dynamicSamplingRules"]["rulesV2"]) == 2
             # 1001 is dev bias rule id
-            assert response.data["dynamicSamplingRules"][0]["id"] == 1001
+            assert response.data["dynamicSamplingRules"]["rulesV2"][0]["id"] == 1001
             # 1000 uniform rule id
-            assert response.data["dynamicSamplingRules"][1]["id"] == 1000
+            assert response.data["dynamicSamplingRules"]["rulesV2"][1]["id"] == 1000
 
     def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
         with Feature(
@@ -1324,14 +1381,14 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
+                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
         self.project.update_option(
             "sentry:dynamic_sampling_biases",
-            [
-                {"id": "boostEnvironments", "active": False},
-            ],
+            [{"id": "boostEnvironments", "active": False}],
         )
 
         with Feature(
@@ -1350,6 +1407,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
+                {"id": "boostLowVolumeTransactions", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1363,6 +1422,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": False},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         self.login_as(self.user)
@@ -1391,7 +1451,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
 
             assert AuditLogEntry.objects.filter(
-                organization=self.project.organization,
+                organization_id=self.project.organization_id,
                 event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
             ).exists()
 
@@ -1406,6 +1466,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": True},
+                {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
             ],
         )
         self.login_as(self.user)
@@ -1429,12 +1490,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 data={
                     "dynamicSamplingBiases": [
                         {"id": "boostEnvironments", "active": False},
+                        {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
                     ]
                 },
             )
 
             assert AuditLogEntry.objects.filter(
-                organization=self.project.organization,
+                organization_id=self.project.organization_id,
                 event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
             ).exists()
 
@@ -1467,6 +1529,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             },
             {"id": "ignoreHealthChecks", "active": False},
             {"id": "boostKeyTransactions", "active": False},
+            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         with Feature(
             {

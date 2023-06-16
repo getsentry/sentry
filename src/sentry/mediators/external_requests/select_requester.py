@@ -4,8 +4,9 @@ from uuid import uuid4
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
-from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -22,8 +23,8 @@ class SelectRequester(Mediator):
     2. Validates and formats the response.
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
-    project = Param("sentry.models.Project", required=False)
+    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
+    project_slug = Param(str, required=False)
     uri = Param((str,))
     query = Param((str,), required=False)
     dependent_data = Param((str,), required=False)
@@ -37,8 +38,8 @@ class SelectRequester(Mediator):
 
         query = {"installationId": self.install.uuid}
 
-        if self.project:
-            query["projectSlug"] = self.project.slug
+        if self.project_slug:
+            query["projectSlug"] = self.project_slug
 
         if self.query:
             query["query"] = self.query
@@ -68,7 +69,7 @@ class SelectRequester(Mediator):
                 extra={
                     "sentry_app_slug": self.sentry_app.slug,
                     "install_uuid": self.install.uuid,
-                    "project_slug": self.project and self.project.slug,
+                    "project_slug": self.project_slug,
                     "uri": self.uri,
                     "error_message": str(e),
                 },

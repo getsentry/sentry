@@ -1,4 +1,5 @@
 from sentry import eventstore
+from sentry.incidents.models import AlertRule, Incident
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -19,26 +20,33 @@ from sentry.models import (
     ScheduledDeletion,
     ServiceHook,
 )
+from sentry.models.rulesnooze import RuleSnooze
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import TransactionTestCase
+from sentry.testutils import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
-class DeleteProjectTest(TransactionTestCase):
+class DeleteProjectTest(APITestCase, TransactionTestCase):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
         group = event.group
-        GroupAssignee.objects.create(group=group, project=project, user=self.user)
+        GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
-        env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name="foo"
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name="foo")
         env.add_project(project)
         repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
         commit_author = CommitAuthor.objects.create(
@@ -80,6 +88,33 @@ class DeleteProjectTest(TransactionTestCase):
             project=project,
             url="https://example.com/webhook",
         )
+        metric_alert_rule = self.create_alert_rule(
+            organization=project.organization, projects=[project]
+        )
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=env,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.OK,
+        )
+        incident = self.create_incident(
+            organization=project.organization,
+            projects=[project],
+            alert_rule=metric_alert_rule,
+            title="Something bad happened",
+        )
+        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
@@ -100,6 +135,16 @@ class DeleteProjectTest(TransactionTestCase):
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()
         assert not ServiceHook.objects.filter(id=hook.id).exists()
+        assert not Monitor.objects.filter(id=monitor.id).exists()
+        assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
+        assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
+
+        incident.refresh_from_db()
+        assert len(incident.projects.all()) == 0, "Project relation should be removed"
+        assert Incident.objects.filter(id=incident.id).exists()
+
+        assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
+        assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
     def test_delete_error_events(self):
         keeper = self.create_project(name="keeper")
@@ -112,7 +157,7 @@ class DeleteProjectTest(TransactionTestCase):
             project_id=project.id,
         )
         group = event.group
-        group_seen = GroupSeen.objects.create(group=group, project=project, user=self.user)
+        group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
@@ -125,5 +170,7 @@ class DeleteProjectTest(TransactionTestCase):
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(conditions)
+        events = eventstore.get_events(
+            conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
+        )
         assert len(events) == 0

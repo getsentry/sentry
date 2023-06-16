@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 
 from sentry.api.bases import OrganizationPermission
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models import Organization
 
 
 class OrganizationRequestChangeEndpointPermission(OrganizationPermission):
@@ -10,7 +13,9 @@ class OrganizationRequestChangeEndpointPermission(OrganizationPermission):
         "POST": ["org:read"],
     }
 
-    def is_member_disabled_from_limit(self, request: Request, organization):
+    def is_member_disabled_from_limit(
+        self, request: Request, organization_or_id: Organization | int
+    ):
         # disabled members need to be able to make requests
         return False
 

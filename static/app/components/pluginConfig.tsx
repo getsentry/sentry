@@ -8,13 +8,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Plugin, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -102,10 +103,11 @@ class PluginConfig extends Component<Props, State> {
   }
 
   render() {
-    const {data} = this.props;
+    const {data, organization, project} = this.props;
     // If passed via props, use that value instead of from `data`
     const enabled =
       typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
+    const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
 
     return (
       <Panel
@@ -125,7 +127,11 @@ class PluginConfig extends Component<Props, State> {
                   {t('Test Plugin')}
                 </TestPluginButton>
               )}
-              <Button size="sm" onClick={this.handleDisablePlugin}>
+              <Button
+                size="sm"
+                onClick={this.handleDisablePlugin}
+                disabled={!hasWriteAccess}
+              >
                 {t('Disable')}
               </Button>
             </Actions>

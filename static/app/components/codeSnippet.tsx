@@ -1,20 +1,16 @@
-// Prism components need to be imported after Prism
-// eslint-disable-next-line simple-import-sort/imports
-import Prism from 'prismjs';
-import 'prismjs/components/prism-bash.min';
-
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import copy from 'copy-text-to-clipboard';
+import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
 interface CodeSnippetProps {
   children: string;
-  language: keyof typeof Prism.languages;
+  language: string;
   className?: string;
   dark?: boolean;
   filename?: string;
@@ -33,21 +29,32 @@ export function CodeSnippet({
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
-  useEffect(
-    () => void (ref.current && Prism.highlightElement(ref.current, false)),
-    [children]
-  );
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    if (language in Prism.languages) {
+      Prism.highlightElement(element);
+      return;
+    }
+
+    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
+  }, [children, language]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
-    const copied = copy(children);
+    navigator.clipboard
+      .writeText(children)
+      .then(() => {
+        setTooltipState('copied');
+      })
+      .catch(() => {
+        setTooltipState('error');
+      });
     onCopy?.(children);
-    if (copied) {
-      setTooltipState('copied');
-    } else {
-      setTooltipState('error');
-    }
   };
 
   const tooltipTitle =

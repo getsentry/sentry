@@ -166,7 +166,7 @@ class EventCommittersTest(APITestCase):
 
             GroupOwner.objects.create(
                 group=event.group,
-                user=self.user,
+                user_id=self.user.id,
                 project=self.project,
                 organization=self.organization,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -186,11 +186,10 @@ class EventCommittersTest(APITestCase):
             assert response.status_code == 200, response.content
             assert len(response.data["committers"]) == 1
             assert response.data["committers"][0]["author"]["username"] == "admin@localhost"
-            assert len(response.data["committers"][0]["commits"]) == 1
-            assert (
-                response.data["committers"][0]["commits"][0]["message"]
-                == "placeholder commit message"
-            )
+            commits = response.data["committers"][0]["commits"]
+            assert len(commits) == 1
+            assert commits[0]["message"] == "placeholder commit message"
+            assert commits[0]["suspectCommitType"] == "via SCM integration"
 
     def test_with_commit_context_pull_request(self):
         with self.feature({"organizations:commit-context": True}):
@@ -228,7 +227,7 @@ class EventCommittersTest(APITestCase):
 
             GroupOwner.objects.create(
                 group=event.group,
-                user=self.user,
+                user_id=self.user.id,
                 project=self.project,
                 organization=self.organization,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -246,9 +245,9 @@ class EventCommittersTest(APITestCase):
 
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
-            assert len(response.data["committers"][0]["commits"]) == 1
-            assert "pullRequest" in response.data["committers"][0]["commits"][0]
-            assert (
-                response.data["committers"][0]["commits"][0]["pullRequest"]["id"]
-                == pull_request.key
-            )
+
+            commits = response.data["committers"][0]["commits"]
+            assert len(commits) == 1
+            assert "pullRequest" in commits[0]
+            assert commits[0]["pullRequest"]["id"] == pull_request.key
+            assert commits[0]["suspectCommitType"] == "via SCM integration"

@@ -184,15 +184,15 @@ describe('TeamStatsHealth', () => {
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
-  it('allows team switching', () => {
+  it('allows team switching', async () => {
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // Teams user is not a member of are hidden
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
-    userEvent.click(screen.getByText('#frontend'));
+    await userEvent.click(screen.getByText('#frontend'));
     expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team1.id}});
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
@@ -200,12 +200,12 @@ describe('TeamStatsHealth', () => {
     );
   });
 
-  it('superusers can switch to any team', () => {
+  it('superusers can switch to any team', async () => {
     isActiveSuperuser.mockReturnValue(true);
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // User is not a member of internal team
     expect(screen.getByText('#internal')).toBeInTheDocument();

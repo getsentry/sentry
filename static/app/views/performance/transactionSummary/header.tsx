@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -8,17 +9,17 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import {Item, TabList} from 'sentry/components/tabs';
+import {TabList} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -55,7 +56,7 @@ function TransactionHeader({
   hasWebVitals,
 }: Props) {
   function handleCreateAlertSuccess() {
-    trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
+    trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
     });
   }
@@ -67,7 +68,9 @@ function TransactionHeader({
   );
 
   const hasSessionReplay =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project);
 
   const hasProfiling =
     project &&
@@ -106,7 +109,6 @@ function TransactionHeader({
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds: project ? [Number(project.id)] : [],
   })[transactionName];
 
   return (
@@ -130,7 +132,9 @@ function TransactionHeader({
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
           )}
-          {transactionName}
+          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+            <TransactionName>{transactionName}</TransactionName>
+          </Tooltip>
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -186,34 +190,45 @@ function TransactionHeader({
                 gridColumn: '1 / -1',
               }}
             >
-              <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
-              <Item key={Tab.Events}>{t('All Events')}</Item>
-              <Item key={Tab.Tags}>{t('Tags')}</Item>
-              <Item key={Tab.Spans}>{t('Spans')}</Item>
-              <Item
-                key={Tab.Anomalies}
+              <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
+              <TabList.Item key={Tab.EVENTS}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
+              <TabList.Item
+                key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}
                 hidden={!hasAnomalyDetection}
               >
                 {t('Anomalies')}
-                <FeatureBadge type="alpha" noTooltip />
-              </Item>
-              <Item
-                key={Tab.WebVitals}
+                <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}
                 hidden={!renderWebVitals}
               >
                 {t('Web Vitals')}
-              </Item>
-              <Item key={Tab.Replays} textValue={t('Replays')} hidden={!hasSessionReplay}>
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.REPLAYS}
+                textValue={t('Replays')}
+                hidden={!hasSessionReplay}
+              >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
-                <ReplaysFeatureBadge noTooltip />
-              </Item>
-              <Item key={Tab.Profiling} textValue={t('Profiling')} hidden={!hasProfiling}>
-                {t('Profiling')}
-                <FeatureBadge type="beta" noTooltip />
-              </Item>
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.PROFILING}
+                textValue={t('Profiling')}
+                hidden={!hasProfiling}
+              >
+                {t('Profiles')}
+                {organization.features.includes('profiling-ga') ? (
+                  <FeatureBadge type="new" tooltipProps={{disabled: true}} />
+                ) : (
+                  <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
+                )}
+              </TabList.Item>
             </TabList>
           );
         }}
@@ -221,5 +236,9 @@ function TransactionHeader({
     </Layout.Header>
   );
 }
+
+const TransactionName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+`;
 
 export default TransactionHeader;

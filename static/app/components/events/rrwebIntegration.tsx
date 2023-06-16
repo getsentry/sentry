@@ -4,7 +4,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,7 +71,7 @@ class EventRRWebIntegrationContent extends AsyncComponent<Props, State> {
   }
 }
 
-export const EventRRWebIntegration = (props: Props) => {
+export function EventRRWebIntegration(props: Props) {
   const organization = useOrganization();
   const hasReplay = Boolean(
     props.event?.tags?.find(({key}) => key === 'replayId')?.value
@@ -83,7 +83,7 @@ export const EventRRWebIntegration = (props: Props) => {
   }
 
   return <EventRRWebIntegrationContent {...props} />;
-};
+}
 
 const StyledReplayEventDataSection = styled(EventDataSection)`
   overflow: hidden;

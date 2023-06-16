@@ -8,7 +8,7 @@ from django.http.request import HttpRequest
 from sentry import eventstore
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Group, Project, User
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -22,7 +22,7 @@ map_issue_args = make_type_coercer(
 
 def unfurl_issues(
     request: HttpRequest,
-    integration: APIIntegration,
+    integration: RpcIntegration,
     links: List[UnfurlableUrl],
     user: Optional[User] = None,
 ) -> UnfurledUrl:
@@ -60,7 +60,7 @@ def unfurl_issues(
                 else None
             )
             out[link.url] = build_group_attachment(
-                group_by_id[issue_id], event=event, link_to_event=True
+                group_by_id[issue_id], event=event, link_to_event=True, is_unfurl=True
             )
     return out
 

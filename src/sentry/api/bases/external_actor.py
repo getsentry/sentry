@@ -16,8 +16,10 @@ from sentry.api.validators.external_actor import (
 )
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
@@ -34,7 +36,7 @@ STRICT_NAME_PROVIDERS = {
 }
 
 
-class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
+class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     external_id = serializers.CharField(required=False, allow_null=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
@@ -62,7 +64,12 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return int(provider.value)
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        return int(validated_data.pop(self._actor_key).actor_id)
+        actor_model = validated_data.pop(self._actor_key)
+        if isinstance(actor_model, Team):
+            actor = Actor.objects.get(**{self._actor_key: actor_model.id})
+        else:
+            actor = get_actor_for_user(actor_model)
+        return int(actor.id)
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_id = self.get_actor_id(validated_data)
@@ -98,7 +105,7 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
 
     user_id = serializers.IntegerField(required=True)
 
-    def validate_user_id(self, user_id: int) -> APIUser:
+    def validate_user_id(self, user_id: int) -> RpcUser:
         """Ensure that this user exists and that they belong to the organization."""
         if (
             organization_service.check_membership_by_id(

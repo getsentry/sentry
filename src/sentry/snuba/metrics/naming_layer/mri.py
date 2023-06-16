@@ -83,6 +83,7 @@ class TransactionMRI(Enum):
     # Ingested
     USER = "s:transactions/user@none"
     DURATION = "d:transactions/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:transactions/count_per_root_project@none"
     MEASUREMENTS_FCP = "d:transactions/measurements.fcp@millisecond"
     MEASUREMENTS_LCP = "d:transactions/measurements.lcp@millisecond"
     MEASUREMENTS_APP_START_COLD = "d:transactions/measurements.app_start_cold@millisecond"
@@ -95,6 +96,12 @@ class TransactionMRI(Enum):
     MEASUREMENTS_FRAMES_SLOW = "d:transactions/measurements.frames_slow@none"
     MEASUREMENTS_FRAMES_SLOW_RATE = "d:transactions/measurements.frames_slow_rate@ratio"
     MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
+    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = (
+        "d:transactions/measurements.time_to_initial_display@millisecond"
+    )
+    MEASUREMENTS_TIME_TO_FULL_DISPLAY = (
+        "d:transactions/measurements.time_to_full_display@millisecond"
+    )
     MEASUREMENTS_STALL_COUNT = "d:transactions/measurements.stall_count@none"
     MEASUREMENTS_STALL_LONGEST_TIME = "d:transactions/measurements.stall_longest_time@millisecond"
     MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@ratio"
@@ -117,6 +124,10 @@ class TransactionMRI(Enum):
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
     TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
+
+    # Spans (might be moved to their own namespace soon)
+    SPAN_USER = "s:transactions/span.user@none"
+    SPAN_DURATION = "d:transactions/span.duration@millisecond"
 
 
 @dataclass

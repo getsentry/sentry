@@ -23,12 +23,12 @@ import {
 } from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import NOT_AVAILABLE_MESSAGES from 'sentry/constants/notAvailableMessages';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -37,7 +37,7 @@ import {
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
 
-import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
+import {getTermHelp, PerformanceTerm} from '../performance/data';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
@@ -162,7 +162,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.APDEX)
+            ? getTermHelp(organization, PerformanceTerm.APDEX)
             : noPerformanceTooltip,
       },
       {
@@ -174,7 +174,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)
+            ? getTermHelp(organization, PerformanceTerm.FAILURE_RATE)
             : noPerformanceTooltip,
       },
       {
@@ -186,7 +186,7 @@ class ProjectCharts extends Component<Props, State> {
           !hasTransactions,
         tooltip:
           hasPerformance && hasTransactions
-            ? getTermHelp(organization, PERFORMANCE_TERM.TPM)
+            ? getTermHelp(organization, PerformanceTerm.TPM)
             : noPerformanceTooltip,
       },
       {
@@ -289,7 +289,7 @@ class ProjectCharts extends Component<Props, State> {
 
   handleDisplayModeChange = (value: string) => {
     const {location, chartId, chartIndex, organization} = this.props;
-    trackAdvancedAnalyticsEvent('project_detail.change_chart', {
+    trackAnalytics('project_detail.change_chart', {
       organization,
       metric: value,
       chart_index: chartIndex,
@@ -335,7 +335,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+                  help={getTermHelp(organization, PerformanceTerm.APDEX)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
@@ -352,7 +352,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.FAILURE_RATE && (
                 <ProjectBaseEventsChart
                   title={t('Failure Rate')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+                  help={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',
@@ -369,7 +369,7 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.TPM && (
                 <ProjectBaseEventsChart
                   title={t('Transactions Per Minute')}
-                  help={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
+                  help={getTermHelp(organization, PerformanceTerm.TPM)}
                   query={new MutableSearch([
                     'event.type:transaction',
                     query ?? '',

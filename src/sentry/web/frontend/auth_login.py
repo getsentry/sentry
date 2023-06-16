@@ -18,7 +18,8 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
@@ -29,7 +30,6 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
-from sentry.utils.client_state import get_client_state_redirect_uri
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
@@ -71,13 +71,13 @@ class AuthLoginView(BaseView):
     def get_auth_provider(self, organization_slug):
         try:
             organization = Organization.objects.get(
-                slug=organization_slug, status=OrganizationStatus.VISIBLE
+                slug=organization_slug, status=OrganizationStatus.ACTIVE
             )
         except Organization.DoesNotExist:
             return None
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             return None
 
@@ -125,7 +125,7 @@ class AuthLoginView(BaseView):
         return self.respond("sentry/login.html", context)
 
     def _handle_login(self, request: Request, user, organization: Optional[Organization]):
-        login(request, user, organization_id=organization.id if organization else None)
+        login(request, user, organization_id=coerce_id_from(organization))
         self.determine_active_organization(request)
 
     def handle_basic_auth(self, request: Request, **kwargs):
@@ -186,7 +186,9 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_session(request=request, instance=self)
+            invite_helper = ApiInviteHelper.from_session(
+                request=request,
+            )
 
             # In single org mode, associate the user to the only organization.
             #
@@ -195,13 +197,16 @@ class AuthLoginView(BaseView):
             # the association for them.
             if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
                 organization = Organization.get_default()
-                OrganizationMember.objects.create(
-                    organization=organization, role=organization.default_role, user=user
+                organization_service.add_organization_member(
+                    organization_id=organization.id,
+                    default_org_role=organization.default_role,
+                    user_id=user.id,
                 )
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
-                self.determine_active_organization(request, invite_helper.organization.slug)
+                organization_slug = invite_helper.invite_context.organization.slug
+                self.determine_active_organization(request, organization_slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 
@@ -253,21 +258,18 @@ class AuthLoginView(BaseView):
 
                         if settings.SENTRY_SINGLE_ORGANIZATION:
                             om = organization_service.check_membership_by_email(
-                                org_context.organization.id, user.email
+                                organization_id=org_context.organization.id, email=user.email
                             )
+
                             if om is None:
+                                om = organization_service.check_membership_by_id(
+                                    organization_id=org_context.organization.id, user_id=user.id
+                                )
+                            if om is None or om.user_id is None:
                                 request.session.pop("_next", None)
-                            else:
-                                if om.user_id is None:
-                                    request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
                 if self.active_organization:
-                    onboarding_redirect = get_client_state_redirect_uri(
-                        self.active_organization.organization.slug, None
-                    )
-                    if onboarding_redirect:
-                        request.session["_next"] = onboarding_redirect
                     if features.has(
                         "organizations:customer-domains",
                         self.active_organization.organization,

@@ -112,12 +112,12 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
     type: 'select',
-    label: t('Claim Unassigned Issues I’ve Resolved'),
+    label: t('Resolve and Auto-Assign'),
     choices: [
       [true as any, t('On')],
       [false as any, t('Off')],
     ],
-    help: t('You’ll receive notifications about any changes that happen afterwards.'),
+    help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
   },
 };
 
@@ -152,6 +152,17 @@ export const QUOTA_FIELDS = [
         learnMore: <ExternalLink href={getDocsLinkForEventType('transaction')} />,
       }
     ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaReplays',
+    label: t('Replays'),
+    help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('replay')} />,
+    }),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],

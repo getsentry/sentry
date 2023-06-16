@@ -1,6 +1,6 @@
 # General ownership rules
 #
-# The folloowing rules are not specific to any particular area of the product
+# The following rules are not specific to any particular area of the product
 # and are more general
 
 
@@ -11,18 +11,19 @@
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 
-## API Owners for unowned endpoints / serializers
-/src/**/endpoints/                                       @getsentry/owners-api
-/src/sentry/api/                                         @getsentry/owners-api
-
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
-/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/visibility
+/src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
+/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
+/src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
+/src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
-/src/sentry/search/snuba/                                @getsentry/owners-snuba
+/src/sentry/search/snuba/                                @getsentry/owners-snuba @getsentry/issues
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
+/src/sentry/sentry_metrics/                              @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/owners-ingest
@@ -38,7 +39,7 @@
 /src/sentry/web/api.py                                   @getsentry/owners-ingest
 /src/sentry/scripts/quotas/                              @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/                                @getsentry/owners-ingest
-/src/sentry/tasks/store.py                               @getsentry/owners-ingest
+/src/sentry/tasks/relay.py                               @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py                             @getsentry/owners-ingest
 /tests/sentry/event_manager/                             @getsentry/owners-ingest
 /tests/sentry/ingest/                                    @getsentry/owners-ingest
@@ -65,13 +66,20 @@ Makefile                                                 @getsentry/owners-sentr
 .git-blame-ignore-revs                                   @getsentry/owners-sentry-dev
 
 mypy.ini                                                 @getsentry/python-typing
-/fixtures/stubs                                          @getsentry/python-typing
+/fixtures/stubs-for-mypy                                 @getsentry/python-typing
+
+# GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
+/.github/labels.yml                                      @getsentry/open-source
+/.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
+/bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
+/static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
-/docker                                                  @getsentry/release-approvers
+/self-hosted                                             @getsentry/release-approvers
 setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
@@ -87,31 +95,13 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
-/docs-ui/components/                                     @getsentry/design @getsentry/core-ui
 
-## Core UI
-/static/app/components                                       @getsentry/core-ui
-
-/static/app/views/issueList                                  @getsentry/core-ui
-/static/app/views/organizationGroupDetails                   @getsentry/core-ui
-
-/static/app/views/monitors                                   @getsentry/core-ui
-/src/sentry/models/monitor.py               			     @getsentry/core-ui
-/src/sentry/models/monitorcheckin.py               		     @getsentry/core-ui
-/src/sentry/models/monitorlocation.py                 	     @getsentry/core-ui
-/src/sentry/api/validators/monitor.py               	     @getsentry/core-ui
-/src/sentry/api/bases/monitor.py               	 		     @getsentry/core-ui
-/src/sentry/api/endpoints/monitor_stats.py                   @getsentry/core-ui
-/src/sentry/api/endpoints/organization_monitors.py           @getsentry/core-ui
-/src/sentry/api/endpoints/monitor_checkins.py                @getsentry/core-ui
-/src/sentry/api/endpoints/monitor_checkin_details.py         @getsentry/core-ui
-/src/sentry/tasks/check_monitors.py 						 @getsentry/core-ui
-/tests/sentry/api/endpoints/test_organization_monitors.py    @getsentry/core-ui
-/tests/sentry/api/endpoints/test_monitor_checkins.py         @getsentry/core-ui
-/tests/sentry/api/endpoints/test_monitor_checkin_details.py  @getsentry/core-ui
-/tests/sentry/models/test_monitor.py 						 @getsentry/core-ui
-/tests/sentry/utils/test_monitors.py 						 @getsentry/core-ui
-/tests/sentry/tasks/test_check_monitors.py 					 @getsentry/core-ui
+## Crons
+/static/app/views/monitors                                   @getsentry/crons
+/src/sentry/monitors                                         @getsentry/crons
+/tests/sentry/monitors                                       @getsentry/crons
+/src/sentry/utils/monitors.py                                @getsentry/crons
+/tests/sentry/utils/test_monitors.py                         @getsentry/crons
 
 
 # Owners by product feature
@@ -158,18 +148,29 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Visibility
-/src/sentry/api/endpoints/organization_tags.py               @getsentry/visibility
-/src/sentry/api/endpoints/organization_events_histogram.py   @getsentry/visibility
-/tests/snuba/api/endpoints/                                  @getsentry/visibility
-/src/sentry/api/serializers/snuba.py                         @getsentry/visibility
-/src/sentry/snuba/discover.py                                @getsentry/visibility
-/src/sentry/snuba/metrics_performance.py                     @getsentry/visibility
-/src/sentry/snuba/metrics_enhanced_performance.py            @getsentry/visibility
+/src/sentry/api/endpoints/organization_tags.py                              @getsentry/performance
+/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/performance
 
-/src/sentry/search/events/                                   @getsentry/visibility
-/tests/snuba/search/test_backend.py                          @getsentry/visibility
-/static/app/utils/discover/                                  @getsentry/visibility
-/static/app/components/charts/                               @getsentry/visibility
+/tests/snuba/api/endpoints/*                                                @getsentry/discover-n-dashboards
+/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
+/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
+
+/src/sentry/api/serializers/snuba.py                                        @getsentry/discover-n-dashboards
+/src/sentry/snuba/discover.py                                               @getsentry/discover-n-dashboards
+/src/sentry/snuba/metrics_performance.py                                    @getsentry/discover-n-dashboards
+/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/discover-n-dashboards
+
+/src/sentry/search/events/                                                  @getsentry/discover-n-dashboards @getsentry/issues
+/tests/snuba/search/test_backend.py                                         @getsentry/discover-n-dashboards
+/static/app/utils/discover/                                                 @getsentry/discover-n-dashboards
+/static/app/components/charts/                                              @getsentry/discover-n-dashboards
 ## Endof Visibility
 
 
@@ -221,6 +222,14 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/components/dashboards/                                   @getsentry/discover-n-dashboards
 ## Endof Discover/Dashboards
 
+## Starfish
+/src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/team-starfish
+/tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
+
+/static/app/views/starfish/                                                         @getsentry/team-starfish
+## Endof Starfish
+
 
 ## Profiling
 /static/app/components/profiling                                      @getsentry/profiling
@@ -239,67 +248,64 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Replays
-/static/app/components/replays/   @getsentry/emerging-technology
-/static/app/utils/replays/        @getsentry/emerging-technology
-/static/app/views/replays/        @getsentry/emerging-technology
-/src/sentry/replays/              @getsentry/emerging-technology
-/tests/sentry/replays/            @getsentry/emerging-technology
+/static/app/components/replays/   @getsentry/replay-frontend
+/static/app/utils/replays/        @getsentry/replay-frontend
+/static/app/views/replays/        @getsentry/replay-frontend
+/src/sentry/replays/              @getsentry/replay-backend
+/tests/sentry/replays/            @getsentry/replay-backend
 ## End of Replays
 
 
-## Ecosystem
-/src/sentry/api/endpoints/integrations/                              @getsentry/ecosystem
-/src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app/                                @getsentry/ecosystem
+## Integrations
+/src/sentry/api/endpoints/integrations/                              @getsentry/issues
+/src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
+/src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/issues
+/src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
+/src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 
-/static/app/views/organizationIntegrations                           @getsentry/ecosystem
+/static/app/views/organizationIntegrations                           @getsentry/issues
+/static/app/views/settings/project/projectOwnership/                 @getsentry/issues
 
-/src/sentry/digests/                                                 @getsentry/ecosystem
-/src/sentry/identity/                                                @getsentry/ecosystem
-/src/sentry/identity/                                                @getsentry/ecosystem
-/src/sentry/integrations/                                            @getsentry/ecosystem
-/src/sentry/mail/                                                    @getsentry/ecosystem
-/src/sentry/mediators/                                               @getsentry/ecosystem
-/src/sentry/notifications/                                           @getsentry/ecosystem @getsentry/growth
-/src/sentry/pipeline/                                                @getsentry/ecosystem
-/src/sentry/plugins/                                                 @getsentry/ecosystem
-/src/sentry/ratelimits/                                              @getsentry/ecosystem
-/src/sentry/shared_integrations/                                     @getsentry/ecosystem
+/src/sentry/digests/                                                 @getsentry/issues
+/src/sentry/identity/                                                @getsentry/issues
+/src/sentry/integrations/                                            @getsentry/issues
+/src/sentry/mail/                                                    @getsentry/issues
+/src/sentry/mediators/                                               @getsentry/issues
+/src/sentry/notifications/                                           @getsentry/issues
+/src/sentry/pipeline/                                                @getsentry/issues
+/src/sentry/plugins/                                                 @getsentry/issues
+/src/sentry/ratelimits/                                              @getsentry/issues
+/src/sentry/shared_integrations/                                     @getsentry/issues
 
-/src/sentry/models/externalactor.py                                  @getsentry/ecosystem
-/src/sentry/models/externalissue.py                                  @getsentry/ecosystem
-/src/sentry/models/identity.py                                       @getsentry/ecosystem
-/src/sentry/models/integrationfeature.py                             @getsentry/ecosystem
-/src/sentry/models/integrations/                                     @getsentry/ecosystem
-/src/sentry/models/notificationsetting.py                            @getsentry/ecosystem
+/src/sentry/models/externalactor.py                                  @getsentry/issues
+/src/sentry/models/externalissue.py                                  @getsentry/issues
+/src/sentry/models/identity.py                                       @getsentry/issues
+/src/sentry/models/integrationfeature.py                             @getsentry/issues
+/src/sentry/models/integrations/                                     @getsentry/issues
+/src/sentry/models/notificationsetting.py                            @getsentry/issues
 
-/src/sentry/tasks/code_owners.py                                     @getsentry/ecosystem
-/src/sentry/tasks/commits.py                                         @getsentry/ecosystem
-/src/sentry/tasks/commit_context.py                                  @getsentry/ecosystem
-/src/sentry/tasks/digests.py                                         @getsentry/ecosystem
-/src/sentry/tasks/email.py                                           @getsentry/ecosystem
-/src/sentry/tasks/integrations/                                      @getsentry/ecosystem
-/src/sentry/tasks/reports.py                                         @getsentry/ecosystem
-/src/sentry/tasks/user_report.py                                     @getsentry/ecosystem
-/src/sentry/tasks/weekly_reports.py                                  @getsentry/ecosystem
+/src/sentry/tasks/code_owners.py                                     @getsentry/issues
+/src/sentry/tasks/commits.py                                         @getsentry/issues
+/src/sentry/tasks/commit_context.py                                  @getsentry/issues
+/src/sentry/tasks/digests.py                                         @getsentry/issues
+/src/sentry/tasks/email.py                                           @getsentry/issues
+/src/sentry/tasks/integrations/                                      @getsentry/issues
+/src/sentry/tasks/reports.py                                         @getsentry/issues
+/src/sentry/tasks/user_report.py                                     @getsentry/issues
+/src/sentry/tasks/weekly_reports.py                                  @getsentry/issues
 
-/src/sentry_plugins/                                                 @getsentry/ecosystem
-*code_mappings*.py                                                   @getsentry/ecosystem
+/src/sentry_plugins/                                                 @getsentry/issues
+*code_mappings*.py                                                   @getsentry/issues
 
 # To find matching files -> find . -name "*sentry_app*.py"
-*sentry_app*.py                                                      @getsentry/ecosystem
-*sentryapp*.py                                                       @getsentry/ecosystem
-*doc_integration*.py                                                 @getsentry/ecosystem
-*docintegration*.py                                                  @getsentry/ecosystem
+*sentry_app*.py                                                      @getsentry/issues
+*sentryapp*.py                                                       @getsentry/issues
+*doc_integration*.py                                                 @getsentry/issues
+*docintegration*.py                                                  @getsentry/issues
 
-/api-docs/                                                           @getsentry/ecosystem
-/tests/apidocs/                                                      @getsentry/ecosystem
-
-/src/sentry/middleware/ratelimit.py                                  @getsentry/ecosystem
-/src/sentry/middleware/access_log.py                                 @getsentry/ecosystem
-## End of Ecosystem
+/src/sentry/middleware/ratelimit.py                                  @getsentry/issues
+/src/sentry/middleware/access_log.py                                 @getsentry/issues
+## End of Integrations
 
 
 ## Data
@@ -308,15 +314,15 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/models/grouphash.py               @getsentry/data
 /src/sentry/models/grouprelease.py            @getsentry/data
 /src/sentry/models/groupresolution.py         @getsentry/data
-/src/sentry/models/integration.py             @getsentry/data @getsentry/ecosystem
+/src/sentry/models/integration.py             @getsentry/data @getsentry/issues
 /src/sentry/models/organization.py            @getsentry/data
 /src/sentry/models/organizationmember.py      @getsentry/data @AniketDas-Tekky
 /src/sentry/models/organizationoption.py      @getsentry/data
 /src/sentry/models/project.py                 @getsentry/data
 /src/sentry/models/projectoption.py           @getsentry/data
 /src/sentry/models/release.py                 @getsentry/data
-/src/sentry/models/sentryapp.py               @getsentry/data @getsentry/ecosystem
-/src/sentry/models/sentryappinstallation.py   @getsentry/data @getsentry/ecosystem
+/src/sentry/models/sentryapp.py               @getsentry/data @getsentry/issues
+/src/sentry/models/sentryappinstallation.py   @getsentry/data @getsentry/issues
 /src/sentry/models/user.py                    @getsentry/data
 ## End of Data
 
@@ -346,11 +352,10 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                      @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
-
-# Shared ownership of reprocessing as transitionary phase
-/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-ingest @getsentry/owners-native
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-ingest @getsentry/owners-native
-/src/sentry/reprocessing2.py                                         @getsentry/owners-ingest @getsentry/owners-native
+/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-processing
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-processing
+/src/sentry/reprocessing2.py                                         @getsentry/owners-processing
+/src/sentry/tasks/store.py                                           @getsentry/owners-processing
 ## End of Native
 
 
@@ -409,18 +414,23 @@ yarn.lock                                                @getsentry/owners-js-de
 ## End of Growth
 
 
-## Issue Platform
-/src/sentry/event_manager.py                        @getsentry/issue-platform
-/src/sentry/issues/                                 @getsentry/issue-platform
-/src/sentry/search/                                 @getsentry/issue-platform
-/src/sentry/tasks/post_process.py                   @getsentry/issue-platform
-/src/sentry/types/issues.py                         @getsentry/issue-platform
-/tests/sentry/event_manager/test_event_manager.py   @getsentry/issue-platform
-/tests/sentry/issues/                               @getsentry/issue-platform
-/tests/sentry/search/                               @getsentry/issue-platform
-/tests/sentry/tasks/test_post_process.py            @getsentry/issue-platform
-/tests/snuba/search/                                @getsentry/issue-platform
-## End of Issue Platform
+## Issues
+/src/sentry/event_manager.py                        @getsentry/issues
+/src/sentry/grouping/                               @getsentry/issues
+/src/sentry/issues/                                 @getsentry/issues
+/src/sentry/tasks/post_process.py                   @getsentry/issues
+/src/sentry/types/issues.py                         @getsentry/issues
+/tests/sentry/event_manager/test_event_manager.py   @getsentry/issues
+/tests/sentry/grouping/                             @getsentry/issues
+/tests/sentry/issues/                               @getsentry/issues
+/tests/sentry/search/                               @getsentry/issues
+/tests/sentry/tasks/test_post_process.py            @getsentry/issues
+/tests/snuba/search/                                @getsentry/issues
+/static/app/components                                       @getsentry/issues
+/static/app/views/issueList                                  @getsentry/issues
+/static/app/views/organizationGroupDetails                   @getsentry/issues
+/src/sentry/api/endpoints/source_map_debug.py                @getsentry/issues
+## End of Issues
 
 
 ## Hybrid Cloud

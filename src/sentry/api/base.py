@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Type
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -18,19 +18,22 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_sdk import Scope
 
-from sentry import analytics, tsdb
+from sentry import analytics, options, tsdb
+from sentry.api import permissions
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.sdk import capture_exception
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -45,7 +48,7 @@ __all__ = [
     "pending_silo_endpoint",
 ]
 
-from ..services.hybrid_cloud.auth import ApiAuthentication, ApiAuthenticatorType
+from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -82,7 +85,6 @@ def allow_cors_options(func):
 
     @functools.wraps(func)
     def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
-
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
             response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
@@ -109,6 +111,14 @@ def allow_cors_options(func):
         else:
             response["Access-Control-Allow-Origin"] = origin
 
+        # If the requesting origin is a subdomain of
+        # the application's base-hostname we should allow cookies
+        # to be sent.
+        basehost = options.get("system.base-hostname")
+        if basehost and origin:
+            if origin.endswith(basehost):
+                response["Access-Control-Allow-Credentials"] = "true"
+
         return response
 
     return allow_cors_options_wrapper
@@ -116,38 +126,39 @@ def allow_cors_options(func):
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes = (NoPermission,)
+    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: Tuple[Type[permissions.BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
-    # end user of endpoint must set private to true, or define public endpoints
-    private: Optional[bool] = None
     public: Optional[HTTP_METHODS_SET] = None
 
-    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig | dict[
+        str, dict[RateLimitCategory, RateLimit]
+    ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def get_authenticators(self) -> List[BaseAuthentication]:
         """
         Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that can be supported using HybridCloud.
+        Aggregates together authenticators that should be called cross silo, while
+        leaving methods that should be run locally.
         """
 
         # TODO: Increase test coverage and get this working for monolith mode.
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return super().get_authenticators()
 
-        last_api_authenticator = ApiAuthentication([])
+        last_api_authenticator = RpcAuthentication([])
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
-            auth_type = ApiAuthenticatorType.from_authenticator(authenticator_cls)
+            auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
             if auth_type:
                 last_api_authenticator.types.append(auth_type)
             else:
                 if last_api_authenticator.types:
                     result.append(last_api_authenticator)
-                    last_api_authenticator = ApiAuthentication([])
+                    last_api_authenticator = RpcAuthentication([])
                 result.append(authenticator_cls())
 
         if last_api_authenticator.types:
@@ -185,18 +196,45 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, request: Request, exc):
+    def handle_exception(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
+        """
+        Handle exceptions which arise while processing incoming API requests.
+
+        :param request:          The incoming request.
+        :param exc:              The exception raised during handling.
+        :param handler_context:  (Optional) Extra data which will be attached to the event sent to
+                                 Sentry, under the "Request Handler Data" heading.
+        :param scope:            (Optional) A `Scope` object containing extra data which will be
+                                 attached to the event sent to Sentry.
+
+        :returns: A 500 response including the event id of the captured Sentry event.
+        """
         try:
+            # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
+            # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
+            # and caught below.
             response = super().handle_exception(exc)
-        except Exception:
+        except Exception as err:
             import sys
             import traceback
 
             sys.stderr.write(traceback.format_exc())
-            event_id = capture_exception()
-            context = {"detail": "Internal Error", "errorId": event_id}
-            response = Response(context, status=500)
+
+            scope = scope or sentry_sdk.Scope()
+            if handler_context:
+                merge_context_into_scope("Request Handler Data", handler_context, scope)
+            event_id = capture_exception(err, scope=scope)
+
+            response_body = {"detail": "Internal Error", "errorId": event_id}
+            response = Response(response_body, status=500)
             response.exception = True
+
         return response
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
@@ -285,9 +323,11 @@ class Endpoint(APIView):
                 self.initial(request, *args, **kwargs)
 
                 # Get the appropriate handler method
-                if request.method.lower() in self.http_method_names:
-                    handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                method = request.method.lower()
+                if method in self.http_method_names and hasattr(self, method):
+                    handler = getattr(self, method)
 
+                    # Only convert args when using defined handlers
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
@@ -377,6 +417,14 @@ class Endpoint(APIView):
         count_hits=None,
         **paginator_kwargs,
     ):
+        # XXX(epurkhiser): This is an experiment that overrides all paginated
+        # API requests so that we can more easily debug on the frontend the
+        # experiemce customers have when they have lots of entites.
+        override_limit = request.COOKIES.get("__sentry_dev_pagination_limit", None)
+        if override_limit is not None:
+            default_per_page = int(override_limit)
+            max_per_page = int(override_limit)
+
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
@@ -449,12 +497,20 @@ class EnvironmentMixin:
 
 
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None):
+    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+        """
+        Parse common stats parameters from the query string. This includes
+        `since`, `until`, and `resolution`.
+
+        :param boolean restrict_rollups: When False allows any rollup value to
+        be specified. Be careful using this as this allows for fine grain
+        rollups that may put strain on the system.
+        """
         try:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
@@ -602,3 +658,6 @@ region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 # that the test will fail if a new endpoint is added with no decorator at all.
 # Eventually we should replace all instances of this decorator and delete it.
 pending_silo_endpoint = EndpointSiloLimit()
+
+# This should be rarely used, but this should be used for any endpoints that exist in any silo mode.
+all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)

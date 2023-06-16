@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:28.846957Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -9,7 +7,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
@@ -18,7 +16,7 @@ app:
               "value"
             context-line*
               "return this.flushedQueue();"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
@@ -27,7 +25,7 @@ app:
               "flushedQueue"
             context-line*
               "this._inCall--;"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
@@ -36,7 +34,7 @@ app:
               "_inCall"
             context-line*
               "return this.flushedQueue();"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
@@ -45,7 +43,7 @@ app:
               "flushedQueue"
             context-line*
               "this._lastFlush = new Date().getTime();"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -54,7 +52,7 @@ app:
               "_lastFlush"
             context-line*
               "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -63,7 +61,7 @@ app:
               "_receiveRootNodeIDEvent"
             context-line*
               "batchedUpdates(function() {"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -72,7 +70,7 @@ app:
               "batchedUpdates"
             context-line*
               "return _batchedUpdates(fn, bookkeeping);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -81,7 +79,7 @@ app:
               "_batchedUpdates"
             context-line*
               "return fn(a);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -90,7 +88,7 @@ app:
               "fn"
             context-line*
               "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -102,7 +100,7 @@ app:
           frame (non app frame)
             function*
               "[native code] forEach"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -111,7 +109,7 @@ app:
               "D"
             context-line*
               "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -120,7 +118,7 @@ app:
               "executeDispatch"
             context-line*
               "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -129,7 +127,7 @@ app:
               "invokeGuardedCallbackAndCatchFirstError"
             context-line*
               "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -138,7 +136,7 @@ app:
               "apply"
             context-line*
               "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
@@ -147,7 +145,7 @@ app:
               "apply"
             context-line*
               "var funcArgs = Array.prototype.slice.call(arguments, 3);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
@@ -156,7 +154,7 @@ app:
               "arguments"
             context-line*
               "touchableHandleResponderRelease: function(e) {"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
@@ -165,7 +163,7 @@ app:
               "_receiveSignal"
             context-line*
               "this._performSideEffectsForTransition(curState, nextState, signal, e);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
@@ -174,7 +172,7 @@ app:
               "_performSideEffectsForTransition"
             context-line*
               "this.touchableHandlePress(e);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
             filename (module takes precedence)

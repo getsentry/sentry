@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {IconLock} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PinnedPageFilter} from 'sentry/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 

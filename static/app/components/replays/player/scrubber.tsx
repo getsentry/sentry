@@ -5,7 +5,7 @@ import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   className?: string;
@@ -21,8 +21,18 @@ function Scrubber({className}: Props) {
   return (
     <Wrapper className={className}>
       <Meter>
-        {currentHoverTime ? <MouseTrackingValue percent={hoverPlace} /> : null}
-        <PlaybackTimeValue percent={percentComplete} />
+        {currentHoverTime ? (
+          <MouseTrackingValue
+            style={{
+              width: hoverPlace * 100 + '%',
+            }}
+          />
+        ) : null}
+        <PlaybackTimeValue
+          style={{
+            width: percentComplete * 100 + '%',
+          }}
+        />
       </Meter>
       <RangeWrapper>
         <Range

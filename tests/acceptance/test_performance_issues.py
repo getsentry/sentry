@@ -1,13 +1,22 @@
 import random
 import string
+from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
 import pytz
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
+from sentry.issues.grouptype import (
+    NoiseConfig,
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+)
+from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 
@@ -17,7 +26,7 @@ FEATURES = {
 }
 
 
-class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
+class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -65,11 +74,21 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
 
-        with self.feature(FEATURES):
-            event = self.store_event(data=event_data, project_id=self.project.id)
+        with self.feature(FEATURES), mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceNPlusOneGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ), self.feature(
+            "organizations:issue-platform"
+        ):
+            self.store_event(data=event_data, project_id=self.project.id)
+            group = mock_eventstream.call_args[0][2].group
 
-            self.page.visit_issue(self.org.slug, event.groups[0].id)
-            self.browser.snapshot("performance issue details", desktop_only=True)
+        self.page.visit_issue(self.org.slug, group.id)
+        self.browser.snapshot("performance issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
@@ -78,10 +97,9 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
 
-        with self.feature(FEATURES):
-            [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
+        self.create_performance_issue(event_data=event_data)
 
-            assert Group.objects.count() == 1
+        assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
     def test_n_one_api_call_performance_issue(self, mock_now):
@@ -93,11 +111,20 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
         event_data["contexts"]["trace"]["op"] = "navigation"
 
-        with self.feature(FEATURES):
-            event = self.store_event(data=event_data, project_id=self.project.id)
-
-            self.page.visit_issue(self.org.slug, event.groups[0].id)
-            self.browser.snapshot("N+1 API Call issue details", desktop_only=True)
+        with self.feature(FEATURES), mock.patch(
+            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+            side_effect=send_issue_occurrence_to_eventstream,
+        ) as mock_eventstream, mock.patch.object(
+            PerformanceNPlusOneAPICallsGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ), self.feature(
+            "organizations:issue-platform"
+        ):
+            self.store_event(data=event_data, project_id=self.project.id)
+            group = mock_eventstream.call_args[0][2].group
+        self.page.visit_issue(self.org.slug, group.id)
+        self.browser.snapshot("N+1 API Call issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
@@ -112,8 +139,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
                 self.randomize_span_description(span) if span["op"] == "django.view" else span
                 for span in event_data["spans"]
             ]
-
-            with self.feature(FEATURES):
-                self.store_event(data=event_data, project_id=self.project.id)
+            self.create_performance_issue(event_data=event_data)
 
         assert Group.objects.count() == 3

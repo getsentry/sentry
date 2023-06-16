@@ -1,11 +1,10 @@
 from collections import defaultdict
+from typing import MutableMapping
 
 from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
-from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -15,13 +14,11 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
 )
-from sentry.models import (
-    ACTOR_TYPES,
-    Rule,
-    SentryAppInstallation,
-    actor_type_to_class,
-    actor_type_to_string,
-)
+from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
+from sentry.models.rule import Rule
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 
@@ -42,14 +39,10 @@ class AlertRuleSerializer(Serializer):
             alert_rule_trigger__alert_rule_id__in=alert_rules.keys()
         ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
 
-        sentry_app_installations_by_sentry_app_id = (
-            SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_ids={
-                    alert_rule.organization_id for alert_rule in alert_rules.values()
-                },
-                sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
-                type="alert-rule-action",
-            )
+        sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
+            organization_ids=[alert_rule.organization_id for alert_rule in alert_rules.values()],
+            sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
+            type="alert-rule-action",
         )
 
         for trigger, serialized in zip(triggers, serialized_triggers):
@@ -73,31 +66,38 @@ class AlertRuleSerializer(Serializer):
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
 
-        for rule_activity in AlertRuleActivity.objects.filter(
-            alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
-        ).select_related("alert_rule", "user"):
-            if rule_activity.user:
-                user = {
-                    "id": rule_activity.user.id,
-                    "name": rule_activity.user.get_display_name(),
-                    "email": rule_activity.user.email,
-                }
+        rule_activities = list(
+            AlertRuleActivity.objects.filter(
+                alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
+            )
+        )
+
+        use_by_user_id: MutableMapping[int, RpcUser] = {
+            user.id: user
+            for user in user_service.get_many(
+                filter=dict(user_ids=[r.user_id for r in rule_activities])
+            )
+        }
+        for rule_activity in rule_activities:
+            rpc_user = use_by_user_id.get(rule_activity.user_id)
+            if rpc_user:
+                user = dict(id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email)
             else:
                 user = None
+            result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = user
 
-            result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
-
-        resolved_actors = {}
         owners_by_type = defaultdict(list)
         for item in item_list:
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
+        resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
-            resolved_actors[k] = {
-                a.actor_id: a.id
-                for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
-            }
+            actors = Actor.objects.filter(type=v, id__in=owners_by_type[k])
+            if k == "team":
+                resolved_actors[k] = {actor.id: actor.team_id for actor in actors}
+            if k == "user":
+                resolved_actors[k] = {actor.id: actor.user_id for actor in actors}
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
@@ -132,6 +132,9 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        from sentry.incidents.endpoints.utils import translate_threshold
+        from sentry.incidents.logic import translate_aggregate_field
+
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
@@ -194,6 +197,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
+        data["snooze"] = False
         return data
 
 

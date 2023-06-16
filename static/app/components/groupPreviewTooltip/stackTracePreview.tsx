@@ -3,22 +3,24 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
-import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
+import {HierarchicalGroupingContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/hierarchicalGroupingContent';
+import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
+import {
+  useDelayedLoadingState,
+  usePreviewEvent,
+} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PlatformType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
@@ -81,15 +83,16 @@ export function StackTracePreviewContent({
     isHoverPreviewed: true,
   };
 
-  if (orgFeatures.includes('native-stack-trace-v2') && isNativePlatform(platform)) {
-    return (
-      <StackTraceContentV3 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
-    );
+  if (isNativePlatform(platform)) {
+    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
   if (orgFeatures.includes('grouping-stacktrace-ui')) {
     return (
-      <StackTraceContentV2 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
+      <HierarchicalGroupingContent
+        {...commonProps}
+        groupingCurrentLevel={groupingCurrentLevel}
+      />
     );
   }
 
@@ -98,7 +101,7 @@ export function StackTracePreviewContent({
 
 type StackTracePreviewProps = {
   children: React.ReactChild;
-  issueId: string;
+  groupId: string;
   eventId?: string;
   groupingCurrentLevel?: number;
   projectSlug?: string;
@@ -107,7 +110,7 @@ type StackTracePreviewProps = {
 interface StackTracePreviewBodyProps
   extends Pick<
     StackTracePreviewProps,
-    'issueId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug'
+    'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug'
   > {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
@@ -115,25 +118,15 @@ interface StackTracePreviewBodyProps
 }
 
 function StackTracePreviewBody({
-  issueId,
-  eventId,
+  groupId,
   groupingCurrentLevel,
-  projectSlug,
   onRequestBegin,
   onRequestEnd,
   onUnmount,
 }: StackTracePreviewBodyProps) {
   const organization = useOrganization();
 
-  const {data, isLoading, isError} = useQuery<Event>(
-    [
-      eventId && projectSlug
-        ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-        : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`,
-      {query: {referrer: 'api.issues.preview-error'}},
-    ],
-    {staleTime: 60000}
-  );
+  const {data, isLoading, isError} = usePreviewEvent({groupId});
 
   useEffect(() => {
     if (isLoading) {
@@ -233,7 +226,6 @@ const StackTracePreviewWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;
-    box-shadow: none;
   }
 `;
 

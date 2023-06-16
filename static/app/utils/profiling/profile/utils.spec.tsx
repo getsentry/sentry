@@ -1,18 +1,62 @@
+import {Frame} from 'sentry/utils/profiling/frame';
 import {
+  createSentrySampleProfileFrameIndex,
   memoizeByReference,
   memoizeVariadicByReference,
 } from 'sentry/utils/profiling/profile/utils';
+
+describe('createSentrySampleProfileFrameIndex', () => {
+  it('dedupes frames', () => {
+    const frameIndex = createSentrySampleProfileFrameIndex([
+      {
+        in_app: true,
+        function: 'foo',
+        lineno: 100,
+      },
+      {
+        in_app: true,
+        function: 'bar',
+        lineno: 105,
+      },
+      {
+        in_app: true,
+        function: 'foo',
+        lineno: 100,
+      },
+    ]);
+
+    const fooFrame = new Frame({
+      key: 0,
+      is_application: true,
+      name: 'foo',
+      line: 100,
+    });
+
+    const barFrame = new Frame({
+      key: 1,
+      is_application: true,
+      name: 'bar',
+      line: 105,
+    });
+
+    expect(frameIndex).toEqual({
+      0: fooFrame,
+      1: barFrame,
+      2: fooFrame,
+    });
+  });
+});
 
 describe('memoizeByReference', () => {
   it('doesnt crash w/o args', () => {
     const spy = jest.fn().mockImplementation(() => 1);
     const fn = memoizeByReference(spy);
 
-    // @ts-ignore this shouldnt happen, but just in case it somehow gets passed
+    // @ts-expect-error this shouldnt happen, but just in case it somehow gets passed
     // in during runtime, we want to eval the function every time. The reason
     // for doing so is that we dont know if it is pure or not.
     expect(() => fn()).not.toThrow();
-    // @ts-ignore this shouldnt happen, but in case it does
+    // @ts-expect-error this shouldnt happen, but in case it does
     expect(fn()).toBe(1);
 
     expect(spy).toHaveBeenCalledTimes(2);
@@ -23,7 +67,7 @@ describe('memoizeByReference', () => {
     const val = Math.random();
     const memoized = memoizeByReference(fn);
 
-    // @ts-ignore we discard result of first call
+    // @ts-expect-error we discard result of first call
     const _discard = memoized(val);
     const result = memoized(val);
 
@@ -36,7 +80,7 @@ describe('memoizeByReference', () => {
 
     const memoized = memoizeByReference(fn);
 
-    // @ts-ignore we discard result of first call
+    // @ts-expect-error we discard result of first call
     const _discard = memoized(1);
     const result = memoized(2);
 
@@ -50,11 +94,10 @@ describe('memoizeVariadicByReference', () => {
     const spy = jest.fn().mockImplementation(() => 1);
     const fn = memoizeVariadicByReference(spy);
 
-    // @ts-ignore this shouldnt happen, but just in case it somehow gets passed
+    // this shouldnt happen, but just in case it somehow gets passed
     // in during runtime, we want to eval the function every time. The reason
     // for doing so is that we dont know if it is pure or not.
     expect(() => fn()).not.toThrow();
-    // @ts-ignore this shouldnt happen, but in case it does
     expect(fn()).toBe(1);
 
     expect(spy).toHaveBeenCalledTimes(2);
@@ -66,7 +109,7 @@ describe('memoizeVariadicByReference', () => {
     const a = 1;
     const b = 2;
 
-    // @ts-ignore we discard result of first call
+    // @ts-expect-error we discard result of first call
     const _discard = memoized(a, b);
     const result = memoized(a, b);
 
@@ -82,7 +125,7 @@ describe('memoizeVariadicByReference', () => {
     const b = 2;
     const c = 1;
 
-    // @ts-ignore we discard result of first call
+    // @ts-expect-error we discard result of first call
     const _discard = memoized(a, b);
     const result = memoized(a, c);
 

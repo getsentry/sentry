@@ -1,3 +1,5 @@
+import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {Organization} from 'sentry/types';
 import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
@@ -11,10 +13,18 @@ type Props = {
   event: Event;
   organization: Organization;
   searchTerm: string;
-  meta?: Record<any, any>;
+  meta?: BreadcrumbMeta;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 };
 
-export function Data({breadcrumb, event, organization, searchTerm, meta}: Props) {
+export function Data({
+  breadcrumb,
+  event,
+  organization,
+  searchTerm,
+  meta,
+  transactionEvents,
+}: Props) {
   const orgSlug = organization.slug;
 
   if (breadcrumb.type === BreadcrumbType.HTTP) {
@@ -35,6 +45,7 @@ export function Data({breadcrumb, event, organization, searchTerm, meta}: Props)
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
       meta={meta}
+      transactionEvents={transactionEvents}
     />
   );
 }

@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';

@@ -7,8 +7,8 @@ from unittest.mock import patch
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry import deletions
 from sentry.constants import SentryAppStatus
-from sentry.mediators import sentry_apps
 from sentry.models import (
     ApiToken,
     Organization,
@@ -368,7 +368,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_non_unique_app_slug_fails(self):
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
-        sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
+        deletions.exec_sync(sentry_app)
 
         data = self.get_data(name=sentry_app.name)
         response = self.get_error_response(**data, status_code=400)
@@ -585,14 +585,18 @@ class PostSentryAppsTest(SentryAppsTest):
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
 
     def test_members_cant_create(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member_om = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         member_om.role = "member"
         member_om.save()
 
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
-        member_om = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member_om = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
         member_om.role = "manager"
         member_om.save()
 

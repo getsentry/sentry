@@ -7,6 +7,7 @@ from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
 from .apitoken import *  # NOQA
 from .appconnectbuilds import *  # NOQA
+from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
@@ -34,7 +35,7 @@ from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
 from .featureadoption import *  # NOQA
-from .file import *  # NOQA
+from .files import *  # NOQA
 from .group import *  # NOQA
 from .groupassignee import *  # NOQA
 from .groupbookmark import *  # NOQA
@@ -61,17 +62,16 @@ from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
-from .monitor import *  # NOQA
-from .monitorcheckin import *  # NOQA
-from .monitorlocation import *  # NOQA
 from .notificationsetting import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
+from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
+from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
 from .processingissue import *  # NOQA
@@ -99,9 +99,9 @@ from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
+from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
-from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA

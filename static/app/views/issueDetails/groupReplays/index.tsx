@@ -18,18 +18,18 @@ function renderNoAccess() {
   );
 }
 
-const GroupReplaysContainer = (props: Props) => {
+function GroupReplaysContainer(props: Props) {
   const organization = useOrganization();
 
   return (
     <Feature
-      features={['session-replay-ui']}
+      features={['session-replay']}
       organization={organization}
       renderDisabled={renderNoAccess}
     >
       <GroupReplays {...props} />
     </Feature>
   );
-};
+}
 
 export default GroupReplaysContainer;

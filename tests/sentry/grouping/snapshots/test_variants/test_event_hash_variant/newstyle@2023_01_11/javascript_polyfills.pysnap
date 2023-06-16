@@ -1,0 +1,54 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame (marked out of app by stack trace rule (module:@babel/** -app -group))
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame (marked out of app by stack trace rule (module:core-js/** -app -group))
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame (marked out of app by stack trace rule (module:tslib/** -app -group))
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value*
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "be36642f41f047346396f018f62375d3"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame (ignored by stack trace rule (module:@babel/** -app -group))
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame (ignored by stack trace rule (module:core-js/** -app -group))
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame (ignored by stack trace rule (module:tslib/** -app -group))
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value*
+          "bad"

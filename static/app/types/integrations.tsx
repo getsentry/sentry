@@ -6,9 +6,11 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
+  PENDING_DELETION,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {ParsedOwnershipRule} from './group';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -81,6 +83,18 @@ export type Repository = {
   url: string;
 };
 
+/**
+ * Integration Repositories from OrganizationIntegrationReposEndpoint
+ */
+export type IntegrationRepository = {
+  /**
+   * ex - getsentry/sentry
+   */
+  identifier: string;
+  name: string;
+  defaultBranch?: string | null;
+};
+
 export type Commit = {
   dateCreated: string;
   id: string;
@@ -89,6 +103,7 @@ export type Commit = {
   author?: User;
   pullRequest?: PullRequest | null;
   repository?: Repository;
+  suspectCommitType?: string;
 };
 
 export type Committer = {
@@ -275,7 +290,8 @@ export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
   | typeof PENDING
-  | typeof DISABLED_STATUS;
+  | typeof DISABLED_STATUS
+  | typeof PENDING_DELETION;
 
 type IntegrationDialog = {
   actionText: string;
@@ -505,6 +521,11 @@ export type ServiceHook = {
  */
 export type CodeOwner = {
   codeMappingId: string;
+  /**
+   * Link to the CODEOWNERS file in source control
+   * 'unknown' if the api fails to fetch the file
+   */
+  codeOwnersUrl: string | 'unknown';
   dateCreated: string;
   dateUpdated: string;
   errors: {
@@ -519,6 +540,7 @@ export type CodeOwner = {
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export type CodeownersFile = {

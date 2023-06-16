@@ -57,7 +57,6 @@ function Content({
   totalCount,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
-  const displayCountAsPercentage = !!totalCount;
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
@@ -85,7 +84,7 @@ function Content({
     };
 
     const colors =
-      currentFilter === SpanOperationBreakdownFilter.None
+      currentFilter === SpanOperationBreakdownFilter.NONE
         ? [...theme.charts.getColorPalette(1)]
         : [filterToColor(currentFilter)];
 
@@ -98,10 +97,8 @@ function Content({
         if (!zoomError) {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
-            const label = displayCountAsPercentage ? t('Transactions') : item.seriesName;
-            const value = displayCountAsPercentage
-              ? formatPercentage(item.value[1])
-              : item.value[1].toLocaleString();
+            const label = t('Transactions');
+            const value = formatPercentage(item.value[1]);
 
             return [
               '<div class="tooltip-series">',
@@ -144,7 +141,12 @@ function Content({
           <BarChart
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
             xAxis={xAxis}
-            yAxis={{type: 'value'}}
+            yAxis={{
+              type: 'value',
+              axisLabel: {
+                formatter: value => formatPercentage(value, 0),
+              },
+            }}
             series={[series]}
             tooltip={tooltip}
             colors={colors}

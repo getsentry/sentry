@@ -145,7 +145,12 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    request = Request(
+        dataset=Dataset.Metrics.value,
+        app_id="metrics",
+        query=query,
+        tenant_ids={"organization_id": org_id},
+    )
     result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 
@@ -415,10 +420,7 @@ class RawOp(MetricOperation):
         return self._wrap_quantiles(function, alias)
 
     def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
-        return cast(
-            Optional[Union[int, List[Tuple[float]]]],
-            copy.copy(DEFAULT_AGGREGATES[self.op]),
-        )
+        return copy.copy(DEFAULT_AGGREGATES[self.op])
 
 
 class DerivedOp(DerivedOpDefinition, MetricOperation):

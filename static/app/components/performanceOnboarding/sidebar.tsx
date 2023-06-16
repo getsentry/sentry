@@ -17,7 +17,7 @@ import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -29,7 +29,7 @@ import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
+  const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
 

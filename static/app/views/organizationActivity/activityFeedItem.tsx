@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import CommitLink from 'sentry/components/commitLink';
 import Duration from 'sentry/components/duration';
 import IssueLink from 'sentry/components/issueLink';
@@ -14,7 +14,7 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Activity, GroupActivity, Organization} from 'sentry/types';
 import marked from 'sentry/utils/marked';
 
@@ -139,26 +139,34 @@ class ActivityItem extends Component<Props, State> {
           issue: issueLink,
         });
       case 'set_resolved_in_commit':
-        return tct('[author] marked [issue] as resolved in [version]', {
+        if (data.commit) {
+          return tct('[author] marked [issue] as resolved in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={data.commit.id}
+                repository={data.commit.repository}
+              />
+            ),
+            issue: issueLink,
+          });
+        }
+        return tct('[author] marked [issue] as resolved in a commit', {
           author,
-          version: (
-            <CommitLink
-              inline
-              commitId={data.commit && data.commit.id}
-              repository={data.commit && data.commit.repository}
-            />
-          ),
           issue: issueLink,
         });
       case 'set_resolved_in_pull_request':
-        return tct('[author] marked [issue] as resolved in [version]', {
+        return tct('[author] marked [issue] as resolved in [pullRequest]', {
           author,
-          version: (
+          pullRequest: data.pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={data.pullRequest}
-              repository={data.pullRequest && data.pullRequest.repository}
+              repository={data.pullRequest.repository}
             />
+          ) : (
+            t('PR not available')
           ),
           issue: issueLink,
         });

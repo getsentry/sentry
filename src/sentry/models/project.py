@@ -25,23 +25,30 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    OptionManager,
+    Value,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
+from sentry.models import OptionMixin
+from sentry.models.grouplink import GroupLink
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.integrationdocs import integration_doc_exists
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
-
-# TODO(dcramer): pull in enum library
-ProjectStatus = ObjectStatus
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -54,7 +61,9 @@ class ProjectManager(BaseManager):
             projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
                 lambda u: u.id, users
             ),
-        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
+        ).values_list(
+            "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
+        )
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
@@ -63,18 +72,14 @@ class ProjectManager(BaseManager):
 
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
-        from sentry.models import ProjectStatus
-
         return self.filter(
-            status=ProjectStatus.VISIBLE,
+            status=ObjectStatus.ACTIVE,
             teams__organizationmember__user_id__in=user_ids,
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
-        from sentry.models import ProjectStatus
-
-        return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
+        return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
@@ -94,7 +99,7 @@ class ProjectManager(BaseManager):
                 logging.info(f"User does not have access to team: {team.id}")
                 return []
 
-        base_qs = self.filter(teams=team, status=ProjectStatus.VISIBLE)
+        base_qs = self.filter(teams=team, status=ObjectStatus.ACTIVE)
 
         project_list = []
         for project in base_qs:
@@ -104,7 +109,7 @@ class ProjectManager(BaseManager):
 
 
 @region_silo_only_model
-class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
+class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -115,6 +120,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     __include_in_export__ = True
 
     slug = models.SlugField(null=True)
+    # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey("sentry.Organization")
@@ -124,7 +130,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (ObjectStatus.VISIBLE, _("Active")),
+            (ObjectStatus.ACTIVE, _("Active")),
             (ObjectStatus.PENDING_DELETION, _("Pending Deletion")),
             (ObjectStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
         ),
@@ -186,7 +192,9 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:project", duration=5, name="project_slug")
+            lock = locks.get(
+                f"slug:project:{self.organization_id}", duration=5, name="project_slug"
+            )
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(
                     self,
@@ -220,15 +228,19 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 return True
         return False
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
-        return projectoptions.set(self, *args, **kwargs)
+    @property
+    def option_manager(self) -> OptionManager:
+        from sentry.models import ProjectOption
 
-    def get_option(self, *args, **kwargs):
-        return projectoptions.get(self, *args, **kwargs)
+        return ProjectOption.objects
 
-    def delete_option(self, *args, **kwargs):
-        return projectoptions.delete(self, *args, **kwargs)
+    def update_option(self, key: str, value: Value) -> bool:
+        projectoptions.update_rev_for_option(self)
+        return super().update_option(key, value)
+
+    def delete_option(self, key: str) -> None:
+        projectoptions.update_rev_for_option(self)
+        super().delete_option(key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)
@@ -249,15 +261,20 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 organizationmemberteam__is_active=True,
                 organizationmemberteam__team__in=self.teams.all(),
             ).values("id"),
-            user__is_active=True,
+            user_is_active=True,
+            user_id__isnull=False,
         ).distinct()
+
+    def get_members_as_rpc_users(self) -> Iterable[RpcUser]:
+        member_ids = self.member_set.values_list("user_id", flat=True)
+        return user_service.get_many(filter=dict(user_ids=list(member_ids)))
 
     def has_access(self, user, access=None):
         from sentry.models import AuthIdentity, OrganizationMember
 
         warnings.warn("Project.has_access is deprecated.", DeprecationWarning)
 
-        queryset = self.member_set.filter(user=user)
+        queryset = self.member_set.filter(user_id=user.id)
 
         if access is not None:
             queryset = queryset.filter(type__lte=access)
@@ -293,12 +310,15 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         from sentry.models import (
             Environment,
             EnvironmentProject,
+            ExternalIssue,
             ProjectTeam,
+            RegionScheduledDeletion,
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -345,6 +365,17 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
             )
 
+        # Manually move over organization id's for Monitors
+        monitors = Monitor.objects.filter(organization_id=old_org_id)
+        new_monitors = set(
+            Monitor.objects.filter(organization_id=organization.id).values_list("slug", flat=True)
+        )
+        for monitor in monitors:
+            if monitor.slug in new_monitors:
+                RegionScheduledDeletion.schedule(monitor, days=0)
+            else:
+                monitor.update(organization_id=organization.id)
+
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
         rules = Rule.objects.filter(owner_id__isnull=False, project=self)
@@ -384,6 +415,22 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             )
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
+
+        # Manually move over external issues to the new org
+        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
+            "linked_id", flat=True
+        )
+
+        for external_issues in chunked(
+            RangeQuerySetWrapper(
+                ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
+                step=1000,
+            ),
+            1000,
+        ):
+            for ei in external_issues:
+                ei.organization_id = organization.id
+            ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam
@@ -475,13 +522,23 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             return True
         return integration_doc_exists(value)
 
+    @staticmethod
+    def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=organization_identifier,
+            category=OutboxCategory.PROJECT_UPDATE,
+            object_identifier=project_identifier,
+        )
+
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-
-        return super().delete(**kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            Project.outbox_for_update(self.id, self.organization_id).save()
+            return super().delete(**kwargs)
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)

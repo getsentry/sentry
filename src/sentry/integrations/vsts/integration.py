@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 import re
 from time import time
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.db.models import QuerySet
 from django.utils.translation import ugettext as _
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -35,7 +34,9 @@ from sentry.models import (
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -108,7 +109,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):  # type: ignore
+class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -118,7 +119,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.org_integration: APIOrganizationIntegration | None
+        self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: Identity | None = None
 
     def reinstall(self) -> None:
@@ -142,10 +143,12 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
             )
         return data
 
-    def get_unmigratable_repositories(self) -> QuerySet:
-        return Repository.objects.filter(
-            organization_id=self.organization_id, provider="visualstudio"
-        ).exclude(external_id__in=[r["identifier"] for r in self.get_repositories()])
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["visualstudio"]
+        )
+        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
+        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
     def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()
@@ -331,7 +334,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         return default_project_
 
 
-class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
+class VstsIntegrationProvider(IntegrationProvider):
     key = "vsts"
     name = "Azure DevOps"
     metadata = metadata
@@ -356,19 +359,19 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
     def post_install(
         self,
         integration: IntegrationModel,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["visualstudio", "integrations:vsts"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["visualstudio", "integrations:vsts"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }
@@ -414,7 +417,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
         try:
             integration_model = IntegrationModel.objects.get(
-                provider="vsts", external_id=account["accountId"], status=ObjectStatus.VISIBLE
+                provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
             )
             # preserve previously created subscription information
             integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
@@ -430,7 +433,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             assert OrganizationIntegration.objects.filter(
                 organization_id=self.pipeline.organization.id,
                 integration_id=integration_model.id,
-                status=ObjectStatus.VISIBLE,
+                status=ObjectStatus.ACTIVE,
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
@@ -453,10 +456,18 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
+                logger.info(
+                    "vsts.create_subscription_permission_error",
+                    extra={
+                        "organization_id": self.pipeline.organization.id,
+                        "error_message": str(e),
+                        "error_code": e.code,
+                    },
+                )
                 raise IntegrationProviderError(
-                    "You do not have sufficient account access to create webhooks\n"
-                    "on the selected Azure DevOps organization.\n"
-                    "Please check with the owner of this Azure DevOps account."
+                    "Sentry cannot communicate with this Azure DevOps organization.\n"
+                    "Please ensure third-party app access via OAuth is enabled \n"
+                    "in the organization's security policy."
                 )
             raise e
 
@@ -568,7 +579,7 @@ class AccountConfigView(PipelineView):
         return None
 
 
-class AccountForm(forms.Form):  # type: ignore
+class AccountForm(forms.Form):
     def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(

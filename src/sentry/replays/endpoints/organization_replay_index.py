@@ -11,19 +11,22 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
-from sentry.replays.serializers import ReplaySerializer
+from sentry.replays.validators import ReplayValidator
 
 
 @region_silo_endpoint
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
-    private = True
-
     def get_replay_filter_params(self, request, organization):
+
+        query_referrer = request.GET.get("queryReferrer", None)
+
         filter_params = self.get_filter_params(request, organization)
 
-        has_global_views = features.has(
-            "organizations:global-views", organization, actor=request.user
+        has_global_views = (
+            features.has("organizations:global-views", organization, actor=request.user)
+            or query_referrer == "issueReplays"
         )
+
         if not has_global_views and len(filter_params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view events from multiple projects.")
 
@@ -37,11 +40,11 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response({"data": []}, status=200)
 
-        serializer = ReplaySerializer(data=request.GET)
-        if not serializer.is_valid():
-            raise ParseError(serializer.errors)
+        result = ReplayValidator(data=request.GET)
+        if not result.is_valid():
+            raise ParseError(result.errors)
 
-        for key, value in serializer.validated_data.items():
+        for key, value in result.validated_data.items():
             if key not in filter_params:
                 filter_params[key] = value
 
@@ -63,6 +66,8 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
+                organization=organization,
+                actor=request.user,
             )
 
         return self.paginate(

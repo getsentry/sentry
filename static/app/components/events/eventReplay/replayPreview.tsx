@@ -3,13 +3,16 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {IconPlay} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
@@ -22,9 +25,9 @@ type Props = {
   replaySlug: string;
 };
 
-function ReplayContent({orgSlug, replaySlug, event}: Props) {
+function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   const routes = useRoutes();
-  const {fetching, replay, fetchError} = useReplayData({
+  const {fetching, replay, fetchError, replayId} = useReplayData({
     orgSlug,
     replaySlug,
   });
@@ -36,18 +39,51 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
-  const initialTimeOffset = useMemo(() => {
+  const initialTimeOffsetMs = useMemo(() => {
     if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000;
+      return relativeTimeInMs(eventTimestamp, startTimestampMs);
     }
 
     return 0;
   }, [eventTimestamp, startTimestampMs]);
 
   if (fetchError) {
+    const reasons = [
+      t('The replay was rate-limited and could not be accepted.'),
+      t('The replay has been deleted by a member in your organization.'),
+      t('There were network errors and the replay was not saved.'),
+      tct('[link:Read the docs] to understand why.', {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+        ),
+      }),
+    ];
+
     return (
-      <Alert type="info" showIcon data-test-id="replay-error">
-        {t('The replay associated with this event could not be found.')}
+      <Alert
+        type="info"
+        showIcon
+        data-test-id="replay-error"
+        trailingItems={
+          <Button
+            external
+            href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
+            size="xs"
+          >
+            {t('Read Docs')}
+          </Button>
+        }
+      >
+        <p>
+          {t(
+            'The replay for this event cannot be found. This could be due to these reasons:'
+          )}
+        </p>
+        <List symbol="bullet">
+          {reasons.map((reason, i) => (
+            <ListItem key={i}>{reason}</ListItem>
+          ))}
+        </List>
       </Alert>
     );
   }
@@ -63,28 +99,31 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
+    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
-      t: initialTimeOffset,
+      t: initialTimeOffsetMs / 1000,
     },
   };
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+    <ReplayContextProvider
+      isFetching={fetching}
+      replay={replay}
+      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
+    >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button priority="primary" to={fullReplayUrl}>
+          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
             {t('Open Replay')}
           </Button>
         </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>
-          <ReplaysFeatureBadge />
         </BadgeContainer>
       </PlayerContainer>
     </ReplayContextProvider>
@@ -137,4 +176,4 @@ const StyledPlaceholder = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-export default ReplayContent;
+export default ReplayPreview;

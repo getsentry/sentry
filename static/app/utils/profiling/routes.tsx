@@ -111,7 +111,7 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
   query,
 }: {
   frameName: string;
-  framePackage: string;
+  framePackage: string | undefined;
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
@@ -127,24 +127,4 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
       framePackage,
     },
   });
-}
-
-export function generateProfileDetailsRouteWithQuery({
-  orgSlug,
-  projectSlug,
-  profileId,
-  query,
-}: {
-  orgSlug: Organization['slug'];
-  profileId: Trace['id'];
-  projectSlug: Project['slug'];
-  query?: Location['query'];
-}): LocationDescriptor {
-  const pathname = generateProfileDetailsRoute({orgSlug, projectSlug, profileId});
-  return {
-    pathname,
-    query: {
-      ...query,
-    },
-  };
 }

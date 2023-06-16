@@ -12,7 +12,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -163,7 +163,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
               isGroupedByDate
               useShortDate
               legend={{right: 0, top: 0}}
-              xAxis={barAxisLabel(allSeries[0]?.data.length ?? 0)}
+              xAxis={barAxisLabel()}
               yAxis={{minInterval: 1}}
               series={allSeries}
             />

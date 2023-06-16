@@ -58,9 +58,7 @@ describe('ProjectsDashboard', function () {
         <Dashboard teams={noProjectTeams} organization={org} params={{orgId: org.slug}} />
       );
 
-      expect(screen.queryByTestId('join-team')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('create-project')).not.toBeInTheDocument();
-      expect(screen.getByText('Remain Calm')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Join a Team'})).toBeInTheDocument();
     });
 
     it('renders with 1 project, with no first event', function () {
@@ -235,7 +233,7 @@ describe('ProjectsDashboard', function () {
           params={{orgId: org.slug}}
         />
       );
-      userEvent.type(
+      await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
         'project2',
         '{enter}'

@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 import sentry_sdk
 from django.db import IntegrityError
 
@@ -9,9 +7,6 @@ from sentry.utils import metrics
 
 
 class DatabaseBackedLogService(LogService):
-    def close(self) -> None:
-        pass
-
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         entry = AuditLogEntry.from_event(event)
         try:
@@ -57,16 +52,13 @@ class DatabaseBackedLogService(LogService):
 
 
 class OutboxBackedLogService(LogService):
-    def close(self) -> None:
-        pass
-
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
             shard_identifier=event.organization_id,
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
-            payload=asdict(event),
+            payload=event.__dict__,
         ).save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
@@ -75,5 +67,5 @@ class OutboxBackedLogService(LogService):
             shard_identifier=event.user_id,
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
-            payload=asdict(event),
+            payload=event.__dict__,
         ).save()

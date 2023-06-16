@@ -16,27 +16,24 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {
@@ -52,13 +49,9 @@ type ContainerProps = {
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
-  unfilteredTotals?: Record<string, number> | null;
 };
 
-type Props = Pick<
-  ContainerProps,
-  'organization' | 'isLoading' | 'error' | 'totals' | 'unfilteredTotals'
-> & {
+type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
   chartData: {
     chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
@@ -86,26 +79,10 @@ function SidebarCharts({
   chartData,
   eventView,
   transactionName,
-  unfilteredTotals,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
   const theme = useTheme();
-  const displayTPMAsPercentage = !!unfilteredTotals;
-
-  function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
-    if (totalValues) {
-      if (unfilteredTotalValues) {
-        return tct('[tpm]', {
-          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
-        });
-      }
-      return tct('[tpm] tpm', {
-        tpm: formatFloat(totalValues[field], 4),
-      });
-    }
-    return null;
-  }
 
   return (
     <RelativeBox>
@@ -114,7 +91,7 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            title={getTermHelp(organization, PerformanceTerm.APDEX)}
             size="sm"
           />
         </ChartTitle>
@@ -131,7 +108,7 @@ function SidebarCharts({
           {t('Failure Rate')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+            title={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
             size="sm"
           />
         </ChartTitle>
@@ -140,29 +117,6 @@ function SidebarCharts({
           isLoading={isLoading}
           error={error}
           value={totals ? formatPercentage(totals['failure_rate()']) : null}
-        />
-      </ChartLabel>
-
-      <ChartLabel top="320px">
-        <ChartTitle>
-          {displayTPMAsPercentage ? t('Total Transactions') : t('TPM')}
-          <QuestionTooltip
-            position="top"
-            title={
-              displayTPMAsPercentage
-                ? tct('[count] events', {
-                    count: unfilteredTotals['count()'].toLocaleString(),
-                  })
-                : getTermHelp(organization, PERFORMANCE_TERM.TPM)
-            }
-            size="sm"
-          />
-        </ChartTitle>
-        <ChartSummaryValue
-          data-test-id="tpm-summary-value"
-          isLoading={isLoading}
-          error={error}
-          value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
         />
       </ChartLabel>
 
@@ -185,7 +139,7 @@ function SidebarCharts({
 
               if (errored) {
                 return (
-                  <ErrorPanel height="580px">
+                  <ErrorPanel height="300px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -199,8 +153,9 @@ function SidebarCharts({
                   epmSeries.markPoint = MarkPoint({
                     data: results.data.anomalies.map(a => ({
                       name: a.id,
-                      yAxis: epmSeries.data.find(({name}) => name > (a.end + a.start) / 2)
-                        ?.value,
+                      yAxis: epmSeries.data.find(
+                        ({name}) => (name as number) > (a.end + a.start) / 2
+                      )?.value,
                       // TODO: the above is O(n*m), remove after we change the api to include the midpoint of y.
                       xAxis: a.start,
                       itemStyle: {
@@ -233,7 +188,7 @@ function SidebarCharts({
                     value: (
                       <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                     ),
-                    fixed: <Placeholder height="480px" testId="skeleton-ui" />,
+                    fixed: <Placeholder height="300px" testId="skeleton-ui" />,
                   })}
                 </TransitionChart>
               );
@@ -252,14 +207,13 @@ function SidebarChartsContainer({
   error,
   totals,
   transactionName,
-  unfilteredTotals,
 }: ContainerProps) {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -269,10 +223,11 @@ function SidebarChartsContainer({
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
     mepSetting,
-    organization,
-    location
+    mepCardinalityContext,
+    organization
   );
 
   const axisLineConfig = {
@@ -289,7 +244,7 @@ function SidebarChartsContainer({
   };
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
-    height: 480,
+    height: 300,
     grid: [
       {
         top: '60px',
@@ -303,18 +258,12 @@ function SidebarChartsContainer({
         right: '10px',
         height: '100px',
       },
-      {
-        top: '380px',
-        left: '10px',
-        right: '10px',
-        height: '120px',
-      },
     ],
     axisPointer: {
       // Link each x-axis together.
-      link: [{xAxisIndex: [0, 1, 2]}],
+      link: [{xAxisIndex: [0, 1]}],
     },
-    xAxes: Array.from(new Array(3)).map((_i, index) => ({
+    xAxes: Array.from(new Array(2)).map((_i, index) => ({
       gridIndex: index,
       type: 'time',
       show: false,
@@ -342,33 +291,16 @@ function SidebarChartsContainer({
         },
         ...axisLineConfig,
       },
-      {
-        // throughput
-        gridIndex: 2,
-        splitNumber: 4,
-        axisLabel: {
-          formatter: value =>
-            unfilteredTotals
-              ? formatPercentage(value, 0)
-              : formatAbbreviatedNumber(value),
-          color: theme.chartLabel,
-        },
-        ...axisLineConfig,
-      },
     ],
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1]],
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: (value, label) => {
-        const shouldUsePercentageForTPM = unfilteredTotals && label === 'epm()';
-        return shouldUsePercentageForTPM
-          ? tooltipFormatter(value, 'percentage')
-          : tooltipFormatter(value, aggregateOutputType(label));
-      },
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -394,7 +326,6 @@ function SidebarChartsContainer({
     end,
     utc,
     totals,
-    unfilteredTotals,
   };
 
   const datetimeSelection = {
@@ -410,39 +341,18 @@ function SidebarChartsContainer({
       interval={getInterval(datetimeSelection)}
       showLoading={false}
       includePrevious={false}
-      yAxis={['apdex()', 'failure_rate()', 'epm()']}
+      yAxis={['apdex()', 'failure_rate()']}
       partial
       referrer="api.performance.transaction-summary.sidebar-chart"
       queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
         const series = results
-          ? results
-              .map(_values => {
-                if (_values.seriesName === 'epm()') {
-                  const unfilteredTotalTPM = unfilteredTotals
-                    ? unfilteredTotals['tpm()']
-                    : null;
-                  if (unfilteredTotalTPM) {
-                    return {
-                      ..._values,
-                      data: _values.data.map(point => {
-                        return {
-                          ...point,
-                          value: point.value / unfilteredTotalTPM,
-                        };
-                      }),
-                    };
-                  }
-                  return _values;
-                }
-                return _values;
-              })
-              .map((v, i: number) => ({
-                ...v,
-                yAxisIndex: i,
-                xAxisIndex: i,
-              }))
+          ? results.map((v, i: number) => ({
+              ...v,
+              yAxisIndex: i,
+              xAxisIndex: i,
+            }))
           : [];
 
         return (

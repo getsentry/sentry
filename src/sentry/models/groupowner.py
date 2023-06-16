@@ -9,11 +9,17 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.group import Group
 from sentry.utils.cache import cache
 
 READ_CACHE_DURATION = 3600
+ISSUE_OWNERS_DEBOUNCE_KEY = lambda group_id: f"owner_exists:1:{group_id}"
+ISSUE_OWNERS_DEBOUNCE_DURATION = 60 * 60 * 24
+ASSIGNEE_EXISTS_KEY = lambda group_id: f"assignee_exists:1:{group_id}"
+ASSIGNEE_EXISTS_DURATION = 60 * 60 * 24
+ASSIGNEE_DOES_NOT_EXIST_DURATION = 60
 
 
 class GroupOwnerType(Enum):
@@ -59,7 +65,7 @@ class GroupOwner(Model):
         )
     )
     context = JSONField(null=True)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -122,8 +128,21 @@ class GroupOwner(Model):
         return issue_owner
 
     @classmethod
-    def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types):
-        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window. Any groups without events in that window would have expired their TTL in the cache.
+    def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
+        """
+        If `group_id` is provided, clear the autoassigned owner cache for that group, else clear
+        the cache of all groups for a project that had an event within the READ_CACHE_DURATION
+        window.
+        """
+        if group_id:
+            cache_key = cls.get_autoassigned_owner_cache_key(
+                group_id, project_id, autoassignment_types
+            )
+            cache.delete(cache_key)
+            return
+
+        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window.
+        # Any groups without events in that window would have expired their TTL in the cache.
         queryset = Group.objects.filter(
             project_id=project_id,
             last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
@@ -139,6 +158,60 @@ class GroupOwner(Model):
                 cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
                 for group_id in group_ids
             ]
+            cache.delete_many(cache_keys)
+
+    @classmethod
+    def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id, group_id=None):
+        """
+        If `group_id` is provided, clear the debounce issue owners cache for that group, else clear
+        the cache of all groups for a project that had an event within the
+        ISSUE_OWNERS_DEBOUNCE_DURATION window.
+        """
+        if group_id:
+            cache.delete(ISSUE_OWNERS_DEBOUNCE_KEY(group_id))
+            return
+
+        # Get all the groups for a project that had an event within the ISSUE_OWNERS_DEBOUNCE_DURATION window.
+        # Any groups without events in that window would have expired their TTL in the cache.
+        queryset = Group.objects.filter(
+            project_id=project_id,
+            last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
+        ).values_list("id", flat=True)
+
+        # Run cache invalidation in batches
+        group_id_iter = queryset.iterator(chunk_size=1000)
+        while True:
+            group_ids = list(itertools.islice(group_id_iter, 1000))
+            if not group_ids:
+                break
+            cache_keys = [ISSUE_OWNERS_DEBOUNCE_KEY(group_id) for group_id in group_ids]
+            cache.delete_many(cache_keys)
+
+    @classmethod
+    def invalidate_assignee_exists_cache(cls, project_id, group_id=None):
+        """
+        If `group_id` is provided, clear the invalidate assignee exists cache for that group, else
+        clear the cache of all groups for a project hat had an event within the
+        ASSIGNEE_EXISTS_DURATION window.
+        """
+        if group_id:
+            cache.delete(ASSIGNEE_EXISTS_KEY(group_id))
+            return
+
+        # Get all the groups for a project that had an event within the ASSIGNEE_EXISTS_DURATION window.
+        # Any groups without events in that window would have expired their TTL in the cache.
+        queryset = Group.objects.filter(
+            project_id=project_id,
+            last_seen__gte=timezone.now() - timedelta(seconds=ASSIGNEE_EXISTS_DURATION),
+        ).values_list("id", flat=True)
+
+        # Run cache invalidation in batches
+        group_id_iter = queryset.iterator(chunk_size=1000)
+        while True:
+            group_ids = list(itertools.islice(group_id_iter, 1000))
+            if not group_ids:
+                break
+            cache_keys = [ASSIGNEE_EXISTS_KEY(group_id) for group_id in group_ids]
             cache.delete_many(cache_keys)
 
 

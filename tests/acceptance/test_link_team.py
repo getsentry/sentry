@@ -1,16 +1,10 @@
 from urllib.parse import urlparse
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
-from sentry.models import (
-    ExternalActor,
-    ExternalProviders,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-)
+from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test
@@ -71,7 +65,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         assert ExternalActor.objects.filter(
             actor_id=self.team.actor_id,
             organization=self.org,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name="general",
             external_id="CXXXXXXX9",

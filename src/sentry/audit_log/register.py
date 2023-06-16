@@ -50,11 +50,7 @@ default_manager.add(
         event_id=20, name="TEAM_ADD", api_name="team.create", template="created team {slug}"
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=21, name="TEAM_EDIT", api_name="team.edit", template="edited team {slug}"
-    )
-)
+default_manager.add(events.TeamEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=22, name="TEAM_REMOVE", api_name="team.remove", template="removed team {slug}"
@@ -75,6 +71,14 @@ default_manager.add(
         name="PROJECT_REMOVE",
         api_name="project.remove",
         template="removed project {slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=33,
+        name="PROJECT_REMOVE_WITH_ORIGIN",
+        api_name="project.remove-with-origin",
+        template="removed project {slug} in {origin}",
     )
 )
 default_manager.add(
@@ -190,6 +194,11 @@ default_manager.add(
         event_id=82, name="RULE_REMOVE", api_name="rule.remove", template='removed rule "{label}"'
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=83, name="RULE_SNOOZE", api_name="rule.mute", template='muted rule "{label}"'
+    )
+)
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())
@@ -242,6 +251,14 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=123,
+        name="MONITOR_ENVIRONMENT_REMOVE",
+        api_name="monitor.environment.remove",
+        template="Monitor environment removed",
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
@@ -303,6 +320,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=168,
+        name="ALERT_RULE_SNOOZE",
+        api_name="alertrule.mute",
+        template='muted metric alert rule "{label}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=163,
         name="SAMPLING_BIAS_ENABLED",
         api_name="sampling_priority.enabled",
@@ -315,5 +340,37 @@ default_manager.add(
         name="SAMPLING_BIAS_DISABLED",
         api_name="sampling_priority.disabled",
         template='disabled dynamic sampling priority "{name}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=165,
+        name="NOTIFICATION_ACTION_ADD",
+        api_name="notification_action.create",
+        template="added an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=166,
+        name="NOTIFICATION_ACTION_EDIT",
+        api_name="notification_action.edit",
+        template="edited an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=167,
+        name="NOTIFICATION_ACTION_REMOVE",
+        api_name="notification_action.remove",
+        template="removed an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=175,
+        name="TEAM_AND_PROJECT_CREATED",
+        api_name="team-and-project.created",
+        template="created team {team_slug} and added user as Team Admin while creating project {project_slug}",
     )
 )

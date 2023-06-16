@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 from typing import Any
 from uuid import uuid4
 
@@ -16,6 +17,8 @@ INTERNAL_NETWORKS = [
     ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
 ]
 
+logger = logging.getLogger(__name__)
+
 
 def is_internal_ip(request: HttpRequest) -> bool:
     ip = ipaddress.ip_address(str(request.META["REMOTE_ADDR"]))
@@ -27,7 +30,7 @@ def get_system_token() -> str:
     if not token:
         token = uuid4().hex
         options.set("sentry:system-token", token)
-    return token  # type: ignore[no-any-return]
+    return token
 
 
 class SystemToken:
@@ -48,8 +51,17 @@ class SystemToken:
     def from_request(cls, request: HttpRequest, token: str) -> SystemToken | None:
         """Returns a system token if this is a valid system request."""
         system_token = get_system_token()
-        if constant_time_compare(system_token, token) and is_internal_ip(request):
-            return cls()
+        if constant_time_compare(system_token, token):
+            if is_internal_ip(request):
+                return cls()
+            # else:
+            # We have a valid system token, but the remote is not an internal IP
+            # This can happen because:
+            # - the system token was leaked (unlikely)
+            # - an internal service (eg symbolicator) is trying to use the system token,
+            #   but is not covered by the internal IP ranges (more likely)
+            logger.error("Trying to use `SystemToken` from non-internal IP")
+
         return None
 
     def __eq__(self, other: object) -> bool:
@@ -64,7 +76,7 @@ class SystemToken:
     def is_expired(self) -> bool:
         return False
 
-    @memoize  # type: ignore[misc]
+    @memoize
     def user(self) -> AnonymousUser:
         user = AnonymousUser()
         user.is_active = True

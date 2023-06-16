@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from copy import deepcopy
 from dataclasses import replace
@@ -11,7 +13,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, SentryAppInstallationStatus
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -33,9 +35,11 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.models import Integration, PagerDutyService, Project
+from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -159,7 +163,7 @@ def update_incident_status(
             comment=comment,
         )
         if user:
-            subscribe_to_incident(incident, user)
+            subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
         kwargs = {"status": status.value, "status_method": status_method.value}
@@ -202,13 +206,17 @@ def set_incident_seen(incident, user=None):
         for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
             "project"
         ):
-            if incident_project.project.member_set.filter(user=user).exists():
+            if incident_project.project.member_set.filter(
+                user_id=user.id if user else None
+            ).exists():
                 is_project_member = True
                 break
 
         if is_project_member:
             incident_seen, created = IncidentSeen.objects.create_or_update(
-                incident=incident, user=user, values={"last_seen": timezone.now()}
+                incident=incident,
+                user_id=user.id if user else None,
+                values={"last_seen": timezone.now()},
             )
             return incident_seen
 
@@ -227,7 +235,7 @@ def create_incident_activity(
     date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
-        subscribe_to_incident(incident, user)
+        subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
     previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
@@ -236,7 +244,7 @@ def create_incident_activity(
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
-        user=user,
+        user_id=user.id if user else None,
         value=value,
         previous_value=previous_value,
         comment=comment,
@@ -395,12 +403,12 @@ def get_incident_aggregates(
     return aggregated_result[0]
 
 
-def subscribe_to_incident(incident, user):
-    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+def subscribe_to_incident(incident, user_id):
+    return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
 
 
-def unsubscribe_from_incident(incident, user):
-    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+def unsubscribe_from_incident(incident, user_id):
+    return IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
 
 
 def get_incident_subscribers(incident):
@@ -408,7 +416,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
+    return IncidentActivity.objects.filter(incident=incident).select_related("incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -542,7 +550,9 @@ def create_alert_rule(
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.CREATED.value,
         )
 
     return alert_rule
@@ -565,7 +575,7 @@ def snapshot_alert_rule(alert_rule, user=None):
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
             previous_alert_rule=alert_rule,
-            user=user,
+            user_id=user.id if user else None,
             type=AlertRuleActivityType.SNAPSHOT.value,
         )
 
@@ -685,7 +695,9 @@ def update_alert_rule(
             snapshot_alert_rule(alert_rule, user)
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.UPDATED.value
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.UPDATED.value,
         )
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
@@ -831,7 +843,9 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
-                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value
+                alert_rule=alert_rule,
+                user_id=user.id if user else None,
+                type=AlertRuleActivityType.DELETED.value,
             )
         else:
             alert_rule.delete()
@@ -957,12 +971,11 @@ def get_triggers_for_alert_rule(alert_rule):
 def trigger_incident_triggers(incident):
     from sentry.incidents.tasks import handle_trigger_action
 
-    triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
-        "alert_rule_trigger"
-    )
+    incident_triggers = IncidentTrigger.objects.filter(incident=incident)
+    triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=triggers)
     with transaction.atomic():
-        for trigger in triggers:
+        for trigger in incident_triggers:
             trigger.status = TriggerStatus.RESOLVED.value
             trigger.save()
 
@@ -974,67 +987,61 @@ def trigger_incident_triggers(incident):
                         incident_id=incident.id,
                         project_id=project.id,
                         method="resolve",
+                        new_status=IncidentStatus.CLOSED.value,
                     ).delay
                 )
 
 
-def sort_by_priority_list(incident_triggers):
+def sort_by_priority_list(triggers: list[AlertRuleTrigger]) -> list[AlertRuleTrigger]:
     priority_dict = {
-        (CRITICAL_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 0,
-        (WARNING_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 1,
-        (WARNING_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 2,
-        (CRITICAL_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 3,
+        WARNING_TRIGGER_LABEL: 0,
+        CRITICAL_TRIGGER_LABEL: 1,
     }
     return sorted(
-        incident_triggers,
-        key=lambda t: priority_dict.get(
-            (t.alert_rule_trigger.label, t.status), len(incident_triggers) + t.id
-        ),
+        triggers,
+        key=lambda t: priority_dict.get(t.label, len(triggers) + t.id),
     )
 
 
-def prioritize_actions(incident_triggers):
+def prioritize_actions(triggers: list[AlertRuleTrigger]) -> list[AlertRuleTriggerAction]:
     """
-    Function that given an input array of incident_triggers, prioritizes those incident_triggers
-    based on the label of related alert_rule_trigger and their TriggerStatus, and then re-orders
-    actions based on that ordering
+    Function that given an input array of AlertRuleTriggers, prioritizes those triggers
+    based on their label, and then re-orders actions based on that ordering
     Inputs:
-        * incident_triggers: Array of instances of `IncidentTrigger`
+        * triggers: Array of instances of `AlertRuleTrigger`
     Returns:
         List of instances of `AlertRuleTriggerAction` that are ordered according to the ordering
-        of related prioritized instances of `IncidentTriggers`
+        of related prioritized instances of `AlertRuleTrigger`
     """
     actions = list(
-        AlertRuleTriggerAction.objects.filter(
-            alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
-        ).select_related("alert_rule_trigger")
+        AlertRuleTriggerAction.objects.filter(alert_rule_trigger__in=triggers).select_related(
+            "alert_rule_trigger"
+        )
     )
 
-    incident_triggers = sort_by_priority_list(incident_triggers=incident_triggers)
-    incident_triggers_dict = {
-        it.alert_rule_trigger.id: idx for idx, it in enumerate(incident_triggers)
-    }
+    triggers = sort_by_priority_list(triggers=triggers)
+    triggers_dict = {t.id: idx for idx, t in enumerate(triggers)}
 
     sorted_actions = sorted(
         actions,
-        key=lambda action: incident_triggers_dict.get(
+        key=lambda action: triggers_dict.get(
             action.alert_rule_trigger.id, len(actions) + action.id
         ),
     )
     return sorted_actions
 
 
-def deduplicate_trigger_actions(triggers):
+def deduplicate_trigger_actions(triggers: list[AlertRuleTrigger]) -> list[AlertRuleTriggerAction]:
     """
-    Given a list of incident triggers, we fetch actions, this returns a list of actions that is
+    Given a list of alert rule triggers, we fetch actions, this returns a list of actions that is
     unique on (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
-    duplicate actions, we'll prefer the action from a critical trigger over a warning
-    trigger. If there are duplicate actions on a critical trigger, we'll just choose
+    duplicate actions, we'll prefer the action from a warning trigger over a critical
+    trigger. If there are duplicate actions on a single trigger, we'll just choose
     one arbitrarily.
-    :param triggers: A list of `IncidentTrigger` instances from the same `AlertRule`
+    :param triggers: A list of `AlertRuleTrigger` instances from the same `AlertRule`
     :return: A list of deduplicated `AlertRuleTriggerAction` instances.
     """
-    actions = prioritize_actions(incident_triggers=triggers)
+    actions = prioritize_actions(triggers=triggers)
 
     deduped = {}
     for action in actions:
@@ -1070,30 +1077,32 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger,
-    type,
-    target_type,
-    target_identifier=None,
-    integration=None,
-    sentry_app=None,
-    use_async_lookup=False,
+    trigger: AlertRuleTrigger,
+    type: ActionService,
+    target_type: ActionTarget,
+    target_identifier: str | None = None,
+    integration_id: int | None = None,
+    sentry_app_id: int | None = None,
+    use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-):
+) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
     :param trigger: The trigger to create the action on
     :param type: Which sort of action to take
     :param target_type: Which type of target to send to
     :param target_identifier: (Optional) The identifier of the target
-    :param target_display: (Optional) Human readable name for the target
-    :param integration: (Optional) The Integration related to this action.
-    :param sentry_app: (Optional) The Sentry App related to this action.
+    :param integration_id: (Optional) The Integration related to this action.
+    :param sentry_app_id: (Optional) The Sentry App related to this action.
     :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return: The created action
     """
     target_display = None
+    if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
+        raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
+
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
@@ -1102,13 +1111,13 @@ def create_alert_rule_trigger_action(
             type.value,
             target_identifier,
             trigger.alert_rule.organization,
-            integration.id,
+            integration_id,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app.id
+            trigger.alert_rule.organization, sentry_app_id
         )
 
     return AlertRuleTriggerAction.objects.create(
@@ -1117,31 +1126,31 @@ def create_alert_rule_trigger_action(
         target_type=target_type.value,
         target_identifier=target_identifier,
         target_display=target_display,
-        integration=integration,
-        sentry_app=sentry_app,
+        integration_id=integration_id,
+        sentry_app_id=sentry_app_id,
         sentry_app_config=sentry_app_config,
     )
 
 
 def update_alert_rule_trigger_action(
-    trigger_action,
-    type=None,
-    target_type=None,
-    target_identifier=None,
-    integration=None,
-    sentry_app=None,
-    use_async_lookup=False,
+    trigger_action: AlertRuleTriggerAction,
+    type: ActionService | None = None,
+    target_type: ActionTarget | None = None,
+    target_identifier: str = None,
+    integration_id: int | None = None,
+    sentry_app_id: int | None = None,
+    use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-):
+) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
     :param trigger_action: The trigger action to update
     :param type: Which sort of action to take
     :param target_type: Which type of target to send to
     :param target_identifier: The identifier of the target
-    :param integration: (Optional) The Integration related to this action.
-    :param sentry_app: (Optional) The SentryApp related to this action.
+    :param integration_id: (Optional) The ID of the Integration related to this action.
+    :param sentry_app_id: (Optional) The ID of the SentryApp related to this action.
     :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
@@ -1151,35 +1160,35 @@ def update_alert_rule_trigger_action(
         updated_fields["type"] = type.value
     if target_type is not None:
         updated_fields["target_type"] = target_type.value
-    if integration is not None:
-        updated_fields["integration"] = integration
-    if sentry_app is not None:
-        updated_fields["sentry_app"] = sentry_app
+    if integration_id is not None:
+        updated_fields["integration_id"] = integration_id
+    if sentry_app_id is not None:
+        updated_fields["sentry_app_id"] = sentry_app_id
     if sentry_app_config is not None:
         updated_fields["sentry_app_config"] = sentry_app_config
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
-            integration = updated_fields.get("integration", trigger_action.integration)
+            integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
                 type,
                 target_identifier,
                 organization,
-                integration.id,
+                integration_id,
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
             )
             updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
-            sentry_app = updated_fields.get("sentry_app", trigger_action.sentry_app)
+            sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app.id
+                organization, sentry_app_id
             )
             updated_fields["target_display"] = target_display
 
@@ -1222,9 +1231,8 @@ def get_alert_rule_trigger_action_slack_channel_id(
 ):
     from sentry.integrations.slack.utils import get_channel_id
 
-    try:
-        integration = Integration.objects.get(id=integration_id)
-    except Integration.DoesNotExist:
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
@@ -1289,18 +1297,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
-    try:
-        # query for the sentry app but make sure it's installed on that org
-        sentry_app = SentryApp.objects.get(
-            installations__organization_id=organization.id,
-            installations__status=SentryAppInstallationStatus.INSTALLED,
-            installations__date_deleted=None,
-            id=sentry_app_id,
-        )
-    except SentryApp.DoesNotExist:
-        raise InvalidTriggerActionError("No SentryApp found.")
+    from sentry.services.hybrid_cloud.app import app_service
 
-    return sentry_app.id, sentry_app.name
+    for installation in app_service.get_installed_for_organization(organization_id=organization.id):
+        if installation.sentry_app.id == sentry_app_id:
+            return sentry_app_id, installation.sentry_app.name
+
+    raise InvalidTriggerActionError("No SentryApp found.")
 
 
 def delete_alert_rule_trigger_action(trigger_action):
@@ -1330,10 +1333,10 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization, integration_id):
+def get_pagerduty_services(organization_id, integration_id):
     return PagerDutyService.objects.filter(
-        organization_integration__organization=organization,
-        organization_integration__integration_id=integration_id,
+        organization_id=organization_id,
+        integration_id=integration_id,
     ).values("id", "service_name")
 
 
@@ -1431,7 +1434,7 @@ def get_slack_channel_ids(organization, user, data):
                 action["type"].value,
                 action["target_identifier"],
                 organization,
-                action["integration"].id,
+                action["integration_id"],
                 use_async_lookup=True,
                 input_channel_id=None,
             )

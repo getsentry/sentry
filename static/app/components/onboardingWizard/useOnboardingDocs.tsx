@@ -73,7 +73,12 @@ function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
 
       setLoadingDoc(true);
 
-      loadDocs(api, organization.slug, project.slug, docKey as any)
+      loadDocs({
+        api,
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        platform: docKey as any,
+      })
         .then(({html}) => {
           setDocContent(html as string);
           setLoadingDoc(false);

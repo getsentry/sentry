@@ -40,7 +40,7 @@ describe('FeatureFeedback', function () {
       </ComponentProviders>
     );
 
-    userEvent.click(screen.getByText('Give Feedback'));
+    await userEvent.click(screen.getByText('Give Feedback'));
 
     expect(await screen.findByText('Select type of feedback')).toBeInTheDocument();
 
@@ -60,7 +60,7 @@ describe('FeatureFeedback', function () {
       </ComponentProviders>
     );
 
-    userEvent.click(screen.getByText('Give Feedback'));
+    await userEvent.click(screen.getByText('Give Feedback'));
 
     expect(await screen.findByText('Select type of feedback')).toBeInTheDocument();
 
@@ -74,9 +74,9 @@ describe('FeatureFeedback', function () {
       </ComponentProviders>
     );
 
-    userEvent.click(screen.getByText('Give Feedback'));
+    await userEvent.click(screen.getByText('Give Feedback'));
 
-    userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
 
     await waitForElementToBeRemoved(() =>
       screen.queryByRole('heading', {name: 'Submit Feedback'})

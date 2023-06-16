@@ -112,7 +112,7 @@ class NotificationPlugin(Plugin):
 
         alert_settings = {
             o.user_id: int(o.value)
-            for o in UserOption.objects.filter(project=project, key=user_option)
+            for o in UserOption.objects.filter(project_id=project.id, key=user_option)
         }
 
         disabled = {u for u, v in alert_settings.items() if v == 0}

@@ -11,9 +11,9 @@ import Input from 'sentry/components/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   AGGREGATIONS,
   Column,
@@ -146,7 +146,7 @@ class ColumnEditCollection extends Component<Props, State> {
   handleAddEquation = () => {
     const {organization} = this.props;
     const newColumn: Column = {kind: FieldValueKind.EQUATION, field: ''};
-    trackAdvancedAnalyticsEvent('discover_v2.add_equation', {organization});
+    trackAnalytics('discover_v2.add_equation', {organization});
     this.props.onChange([...this.props.columns, newColumn]);
   };
 

@@ -450,7 +450,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return (data, baggage) => {
+    return function (data, baggage) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>
@@ -487,7 +487,7 @@ function getEventsRequest(
     (organization.features.includes('dashboards-mep') ||
       organization.features.includes('mep-rollout-flag')) &&
     defined(mepSetting) &&
-    mepSetting !== MEPState.transactionsOnly;
+    mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -538,7 +538,7 @@ function getEventsSeriesRequest(
     (organization.features.includes('dashboards-mep') ||
       organization.features.includes('mep-rollout-flag')) &&
     defined(mepSetting) &&
-    mepSetting !== MEPState.transactionsOnly;
+    mepSetting !== MEPState.TRANSACTIONS_ONLY;
   let requestData;
   if (displayType === DisplayType.TOP_N) {
     requestData = {

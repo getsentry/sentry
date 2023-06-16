@@ -12,7 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -51,7 +51,7 @@ class SharedGroupDetails extends Component<Props, State> {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     document.body.classList.add('shared-group');
   }
 
@@ -123,10 +123,13 @@ class SharedGroupDetails extends Component<Props, State> {
     const {location} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
+    // project.organization is not a real organization, it's just the slug and name
+    // Add the features array to avoid errors when using OrganizationContext
+    const org = {...project.organization, features: []};
 
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        <OrganizationContext.Provider value={project.organization}>
+        <OrganizationContext.Provider value={org}>
           <div className="app">
             <div className="pattern-bg" />
             <div className="container">
@@ -146,7 +149,7 @@ class SharedGroupDetails extends Component<Props, State> {
                   <Container className="group-overview event-details-container">
                     <BorderlessEventEntries
                       location={location}
-                      organization={project.organization}
+                      organization={org}
                       group={group}
                       event={latestEvent}
                       project={project}

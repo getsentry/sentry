@@ -1,125 +1,163 @@
-import {useRef} from 'react';
+import {memo, useMemo, useRef} from 'react';
+import {
+  AutoSizer,
+  CellMeasurer,
+  List as ReactVirtualizedList,
+  ListRowProps,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {
-  Panel as BasePanel,
-  PanelHeader as BasePanelHeader,
-} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
-import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
-function CrumbPlaceholder({number}: {number: number}) {
-  return (
-    <BreadcrumbContainer>
-      {[...Array(number)].map((_, i) => (
-        <PlaceholderMargin key={i} height="53px" />
-      ))}
-    </BreadcrumbContainer>
-  );
-}
+import useVirtualizedInspector from '../useVirtualizedInspector';
 
 type Props = {
-  showTitle: boolean;
+  breadcrumbs: undefined | Crumb[];
+  startTimestampMs: number;
 };
 
-function Breadcrumbs({showTitle = true}: Props) {
-  const {currentHoverTime, currentTime, replay} = useReplayContext();
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 53,
+};
 
-  const replayRecord = replay?.getReplay();
-  const allCrumbs = replay?.getRawCrumbs();
+function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
 
-  const crumbListContainerRef = useRef<HTMLDivElement>(null);
-  useCurrentItemScroller(crumbListContainerRef);
+  const listRef = useRef<ReactVirtualizedList>(null);
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  //
+  // Note that this is intentionally not in state because we do not want to
+  // re-render when items are expanded/collapsed, though it may work in state as well.
+  const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const startTimestampMs = replayRecord?.started_at.getTime() || 0;
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const isLoaded = Boolean(replayRecord);
-
-  const crumbs =
-    allCrumbs?.filter(crumb => !['console'].includes(crumb.category || '')) || [];
-
-  const currentUserAction = getPrevReplayEvent({
-    items: crumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowExact: true,
-  });
-
-  const closestUserAction =
-    currentHoverTime !== undefined
-      ? getPrevReplayEvent({
-          items: crumbs,
-          targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
-          allowExact: true,
-        })
-      : undefined;
-
-  const content = isLoaded ? (
-    <BreadcrumbContainer>
-      {crumbs.map(crumb => (
-        <BreadcrumbItem
-          key={crumb.id}
-          crumb={crumb}
-          startTimestampMs={startTimestampMs}
-          isHovered={closestUserAction?.id === crumb.id}
-          isSelected={currentUserAction?.id === crumb.id}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onClick={handleClick}
-          // We are controlling the hover state ourselves with `isHovered` prop
-          allowHover={false}
-        />
-      ))}
-    </BreadcrumbContainer>
-  ) : (
-    <CrumbPlaceholder number={4} />
+  const itemLookup = useMemo(
+    () =>
+      breadcrumbs &&
+      breadcrumbs
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [breadcrumbs]
   );
 
-  return (
-    <Panel>
-      <FluidPanel
-        bodyRef={crumbListContainerRef}
-        title={showTitle ? <PanelHeader>{t('Breadcrumbs')}</PanelHeader> : undefined}
+  const current = useMemo(
+    () =>
+      breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime && breadcrumbs
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+          })
+        : undefined,
+    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
+  );
+
+  const deps = useMemo(() => [breadcrumbs], [breadcrumbs]);
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
+    ref: listRef,
+    deps,
+  });
+  const {handleDimensionChange} = useVirtualizedInspector({
+    cache,
+    listRef,
+    expandPathsRef,
+  });
+
+  useScrollToCurrentItem({
+    breadcrumbs,
+    ref: listRef,
+    startTimestampMs,
+  });
+
+  const renderRow = ({index, key, style, parent}: ListRowProps) => {
+    const item = (breadcrumbs || [])[index];
+
+    return (
+      <CellMeasurer
+        cache={cache}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
       >
-        {content}
-      </FluidPanel>
-    </Panel>
+        <BreadcrumbRow
+          index={index}
+          isCurrent={current?.id === item.id}
+          isHovered={hovered?.id === item.id}
+          breadcrumb={item}
+          startTimestampMs={startTimestampMs}
+          style={style}
+          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          onDimensionChange={handleDimensionChange}
+        />
+      </CellMeasurer>
+    );
+  };
+
+  return (
+    <FluidHeight>
+      <BreadcrumbContainer>
+        {breadcrumbs ? (
+          <AutoSizer onResize={updateList}>
+            {({height, width}) => (
+              <ReactVirtualizedList
+                deferredMeasurementCache={cache}
+                height={height}
+                noRowsRenderer={() => (
+                  <NoRowRenderer unfilteredItems={breadcrumbs} clearSearchTerm={() => {}}>
+                    {t('No breadcrumbs recorded')}
+                  </NoRowRenderer>
+                )}
+                overscanRowCount={5}
+                ref={listRef}
+                rowCount={breadcrumbs.length}
+                rowHeight={cache.rowHeight}
+                rowRenderer={renderRow}
+                width={width}
+              />
+            )}
+          </AutoSizer>
+        ) : (
+          <Placeholder height="100%" />
+        )}
+      </BreadcrumbContainer>
+    </FluidHeight>
   );
 }
 
 const BreadcrumbContainer = styled('div')`
-  padding: ${space(0.5)};
-`;
-
-const Panel = styled(BasePanel)`
-  width: 100%;
+  position: relative;
   height: 100%;
   overflow: hidden;
-  margin-bottom: 0;
-`;
-
-const PanelHeader = styled(BasePanelHeader)`
-  background-color: ${p => p.theme.background};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
-  text-transform: capitalize;
-  padding: ${space(1)} ${space(1.5)} ${space(1)};
-  font-weight: 600;
-`;
-
-const PlaceholderMargin = styled(Placeholder)`
-  margin-bottom: ${space(1)};
-  width: auto;
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-export default Breadcrumbs;
+export default memo(Breadcrumbs);

@@ -15,42 +15,42 @@ describe('Settings Breadcrumb Dropdown', () => {
     );
   };
 
-  it('opens when hovered over crumb', () => {
+  it('opens when hovered over crumb', async () => {
     createWrapper();
     expect(screen.getByText('Test')).toBeInTheDocument();
-    userEvent.hover(screen.getByText('Test'));
+    await userEvent.hover(screen.getByText('Test'));
     expect(screen.getByText('foo')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('closes immediately after selecting an item', () => {
+  it('closes immediately after selecting an item', async () => {
     createWrapper();
-    userEvent.hover(screen.getByText('Test'));
+    await userEvent.hover(screen.getByText('Test'));
     expect(screen.getByText('foo')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('foo'));
+    await userEvent.click(screen.getByText('foo'));
     expect(selectMock).toHaveBeenCalled();
 
     expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 
-  it('stays open when hovered over crumb and then into dropdown menu', () => {
+  it('stays open when hovered over crumb and then into dropdown menu', async () => {
     createWrapper();
-    userEvent.hover(screen.getByText('Test'));
+    await userEvent.hover(screen.getByText('Test'));
     expect(screen.getByText('foo')).toBeInTheDocument();
 
-    userEvent.hover(screen.getByText('foo'));
+    await userEvent.hover(screen.getByText('foo'));
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
-  it('closes after entering dropdown and then leaving dropdown', () => {
+  it('closes after entering dropdown and then leaving dropdown', async () => {
     createWrapper();
-    userEvent.hover(screen.getByText('Test'));
+    await userEvent.hover(screen.getByText('Test'));
     expect(screen.getByText('foo')).toBeInTheDocument();
 
-    userEvent.hover(screen.getByText('foo'));
+    await userEvent.hover(screen.getByText('foo'));
     expect(screen.getByText('foo')).toBeInTheDocument();
-    userEvent.unhover(screen.getByText('foo'));
+    await userEvent.unhover(screen.getByText('foo'));
 
     expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });

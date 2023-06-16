@@ -4,7 +4,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -12,14 +12,18 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import {SetStateAction} from '../types';
@@ -69,6 +73,8 @@ function EventsContent(props: Props) {
   const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
   const project = projects.find(p => p.id === projectId);
 
+  const fields = [...eventView.fields];
+
   if (webVital) {
     transactionsListTitles.splice(3, 0, webVital);
   }
@@ -83,16 +89,41 @@ function EventsContent(props: Props) {
     transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
   }
 
-  const showReplayCol =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
-
-  if (showReplayCol) {
-    transactionsListTitles.push(t('replay'));
+  const platform = platformToPerformanceType(projects, eventView.project);
+  if (platform === ProjectPerformanceType.BACKEND) {
+    const userIndex = transactionsListTitles.indexOf('user');
+    if (userIndex > 0) {
+      transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
+      fields.splice(userIndex + 1, 0, {field: 'http.method'});
+    }
   }
+
+  if (
+    organization.features.includes('profiling') &&
+    project &&
+    // only show for projects that already sent a profile
+    // once we have a more compact design we will show this for
+    // projects that support profiling as well
+    project.hasProfiles
+  ) {
+    transactionsListTitles.push(t('profile'));
+    fields.push({field: 'profile.id'});
+  }
+
+  if (
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project)
+  ) {
+    transactionsListTitles.push(t('replay'));
+    fields.push({field: 'replayId'});
+  }
+
+  eventView.fields = fields;
 
   return (
     <Layout.Main fullWidth>
-      <Search {...props} />
+      <Search {...props} eventView={eventView} />
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -101,7 +132,6 @@ function EventsContent(props: Props) {
         setError={setError}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={showReplayCol}
       />
     </Layout.Main>
   );
@@ -142,7 +172,7 @@ function Search(props: Props) {
   );
 
   const handleDiscoverButtonClick = () => {
-    trackAdvancedAnalyticsEvent('performance_views.all_events.open_in_discover', {
+    trackAnalytics('performance_views.all_events.open_in_discover', {
       organization,
     });
   };

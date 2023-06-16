@@ -16,7 +16,7 @@ type Props = {
   transactionStats?: Project['transactionStats'];
 };
 
-const Chart = ({firstEvent, stats, transactionStats}: Props) => {
+function Chart({firstEvent, stats, transactionStats}: Props) {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
 
@@ -165,6 +165,6 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       {!firstEvent && <NoEvents seriesCount={series.length} />}
     </Fragment>
   );
-};
+}
 
 export default Chart;

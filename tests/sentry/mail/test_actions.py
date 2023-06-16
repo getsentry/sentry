@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
@@ -29,13 +30,13 @@ class NotifyEmailFormTest(TestCase):
         self.project = self.create_project(name="Test", teams=[self.team])
         OrganizationMemberTeam.objects.create(
             organizationmember=OrganizationMember.objects.get(
-                user=self.user, organization=organization
+                user_id=self.user.id, organization=organization
             ),
             team=self.team,
         )
-        self.create_member(user=self.user2, organization=organization, teams=[self.team])
+        self.create_member(user_id=self.user2.id, organization=organization, teams=[self.team])
         self.create_member(
-            user=self.inactive_user,
+            user_id=self.inactive_user.id,
             organization=organization,
             teams=[self.team, self.team_not_in_project],
         )
@@ -253,7 +254,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks():
+        with self.tasks(), self.feature(
+            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        ):
             post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -267,6 +270,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                         "is_new_group_environment": False,
                     }
                 ],
+                occurrence_id=event.occurrence_id,
+                project_id=event.group.project_id,
+                group_id=event.group_id,
             )
 
         assert len(mail.outbox) == 1

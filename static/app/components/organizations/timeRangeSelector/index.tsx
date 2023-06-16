@@ -17,10 +17,10 @@ import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateS
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {analytics} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDateWithTimezoneInUtc,
   getInternalDate,
@@ -366,7 +366,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleUseUtc = () => {
-    const {onChange, router} = this.props;
+    const {onChange, router, organization} = this.props;
     let {start, end} = this.props;
 
     this.setState(state => {
@@ -379,11 +379,10 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       if (!end) {
         end = getDateWithTimezoneInUtc(state.end, state.utc);
       }
-
-      analytics('dateselector.utc_changed', {
-        utc,
+      trackAnalytics('dateselector.utc_changed', {
+        organization,
         path: getRouteStringFromRoutes(router.routes),
-        org_id: parseInt(this.props.organization.id, 10),
+        utc,
       });
 
       const newDateTime = {
@@ -407,7 +406,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
     }
     this.setState({isOpen: true});
     // Start loading react-date-picker
-    import('../timeRangeSelector/dateRange/index');
+    import('../timeRangeSelector/dateRange');
   };
 
   onInputValueChange = inputValue => {

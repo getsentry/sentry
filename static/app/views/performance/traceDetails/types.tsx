@@ -14,6 +14,10 @@ export type TraceInfo = {
    */
   maxGeneration: number;
   /**
+   * The performance Issues on the trace
+   */
+  performanceIssues: Set<string>;
+  /**
    * The projects in the trace
    */
   projects: Set<string>;

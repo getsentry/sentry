@@ -1,29 +1,28 @@
-import {useEffect, useState} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import omit from 'lodash/omit';
 
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import PlatformPicker from 'sentry/components/platformPicker';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
-import CreateProjectsFooter from './components/createProjectsFooter';
+import {CreateProjectsFooter} from './components/createProjectsFooter';
 import {StepProps} from './types';
-import {usePersistedOnboardingState} from './utils';
 
 export function PlatformSelection(props: StepProps) {
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey | undefined>(
-    undefined
-  );
+  const organization = useOrganization();
+  const onboardingContext = useContext(OnboardingContext);
 
-  const [clientState] = usePersistedOnboardingState();
-
-  useEffect(() => {
-    if (clientState) {
-      setSelectedPlatform(clientState.selectedPlatforms[0]);
-    }
-  }, [clientState]);
+  const selectedPlatform = onboardingContext.data.selectedSDK
+    ? platforms.find(platform => platform.id === onboardingContext.data.selectedSDK?.key)
+      ? onboardingContext.data.selectedSDK
+      : undefined
+    : undefined;
 
   return (
     <Wrapper>
@@ -40,24 +39,32 @@ export function PlatformSelection(props: StepProps) {
       >
         <p>
           {t(
-            // TODO(Priscila): Shall we create a doc for this onboarding and link it here too?
             'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from.'
           )}
         </p>
         <PlatformPicker
           noAutoFilter
           source="targeted-onboarding"
-          platform={selectedPlatform}
-          setPlatform={platformKey => {
-            setSelectedPlatform(platformKey ?? undefined);
+          platform={onboardingContext.data.selectedSDK?.key}
+          defaultCategory={onboardingContext.data.selectedSDK?.category}
+          setPlatform={platform => {
+            onboardingContext.setData({
+              ...onboardingContext.data,
+              selectedSDK: platform
+                ? {...omit(platform, 'id'), key: platform.id}
+                : undefined,
+            });
           }}
-          organization={props.organization}
+          organization={organization}
         />
       </motion.div>
       <CreateProjectsFooter
         {...props}
-        clearPlatforms={() => setSelectedPlatform(undefined)}
-        platforms={selectedPlatform ? [selectedPlatform] : []}
+        organization={organization}
+        clearPlatform={() => {
+          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+        }}
+        selectedPlatform={selectedPlatform}
       />
     </Wrapper>
   );

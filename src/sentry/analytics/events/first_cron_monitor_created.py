@@ -7,6 +7,7 @@ class FirstCronMonitorCreated(analytics.Event):
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
+        analytics.Attribute("from_upsert"),
         analytics.Attribute("user_id", required=False),
     )
 

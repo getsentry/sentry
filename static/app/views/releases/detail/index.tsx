@@ -16,7 +16,7 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Deploy,
   Organization,
@@ -259,6 +259,7 @@ class ReleasesDetailContainer extends AsyncComponent<
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.removeGlobalDateTimeFromUrl();
     this.props.setRouteAnalyticsParams({release: this.props.params.release});
   }

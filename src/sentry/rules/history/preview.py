@@ -6,13 +6,14 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from django.utils import timezone
 
-from sentry.models import Group, Project
+from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.models import Group, Organization, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
     DATASET_TO_COLUMN_NAME,
-    GROUP_CATEGORY_TO_DATASET,
-    UPDATE_KWARGS_FOR_GROUP,
-    UPDATE_KWARGS_FOR_GROUPS,
+    get_dataset_from_category,
+    get_update_kwargs_for_group,
+    get_update_kwargs_for_groups,
 )
 from sentry.rules.processor import get_match_function
 from sentry.snuba.dataset import Dataset
@@ -22,7 +23,6 @@ from sentry.types.condition_activity import (
     ConditionActivityType,
     round_to_five_minute,
 )
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
 from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
 Conditions = Sequence[Dict[str, Any]]
@@ -104,7 +104,6 @@ def preview(
         group_fires = get_fired_groups(
             group_activity, filter_objects, filter_func, start, frequency, event_map
         )
-
         return group_fires
     except PreviewException:
         return None
@@ -236,10 +235,8 @@ def get_top_groups(
     # queries each dataset for top x groups and then gets top x overall
     query_params = []
     for dataset in datasets:
-        if dataset not in UPDATE_KWARGS_FOR_GROUPS:
-            continue
-
-        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+        kwargs = get_update_kwargs_for_groups(
+            dataset,
             group_ids,
             {
                 "dataset": dataset,
@@ -254,7 +251,9 @@ def get_top_groups(
             },
             has_issue_state_condition,
         )
-        query_params.append(SnubaQueryParams(**kwargs))
+        query_params.append(
+            SnubaQueryParams(**kwargs, tenant_ids={"organization_id": project.organization_id})
+        )
 
     groups = []
     for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_top_groups"):
@@ -277,10 +276,14 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
     Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
     If the dataset is not found/supported, it is mapped to None.
     """
-    group_categories = Group.objects.filter(id__in=group_ids).values_list("id", "type")
+    group_categories = list(Group.objects.filter(id__in=group_ids).values_list("id", "type"))
+    if not group_categories:
+        return {}
+    org = Organization.objects.get(project__group__id=group_categories[0][0])
+
     return {
-        group[0]: GROUP_CATEGORY_TO_DATASET.get(GROUP_TYPE_TO_CATEGORY.get(GroupType(group[1])))
-        for group in group_categories
+        group_id: get_dataset_from_category(get_group_type_by_type_id(group_type).category, org)
+        for group_id, group_type in group_categories
     }
 
 
@@ -316,16 +319,14 @@ def get_events(
     events = []
 
     query_params = []
+    tenant_ids = {"organization_id": project.organization_id}
     # query events by group_id (first event for each group)
     for dataset, ids in group_ids.items():
-        if (
-            dataset not in columns
-            or dataset not in UPDATE_KWARGS_FOR_GROUP
-            or dataset == Dataset.Transactions
-        ):
+        if dataset not in columns or dataset == Dataset.Transactions:
             # transaction query cannot be made until https://getsentry.atlassian.net/browse/SNS-1891 is fixed
             continue
-        kwargs = UPDATE_KWARGS_FOR_GROUPS[dataset](
+        kwargs = get_update_kwargs_for_groups(
+            dataset,
             ids,
             {
                 "dataset": dataset,
@@ -338,7 +339,7 @@ def get_events(
                 "selected_columns": columns[dataset] + ["group_id"],
             },
         )
-        query_params.append(SnubaQueryParams(**kwargs))
+        query_params.append(SnubaQueryParams(**kwargs, tenant_ids=tenant_ids))
 
     # query events by event_id
     for dataset, ids in event_ids.items():
@@ -352,6 +353,7 @@ def get_events(
                 filter_keys={"project_id": [project.id]},
                 conditions=[("event_id", "IN", ids)],
                 selected_columns=columns[dataset],
+                tenant_ids=tenant_ids,
             )
         )
 
@@ -503,10 +505,8 @@ def get_frequency_buckets(
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """
-    if dataset not in UPDATE_KWARGS_FOR_GROUP:
-        return {}
-
-    kwargs = UPDATE_KWARGS_FOR_GROUP[dataset](
+    kwargs = get_update_kwargs_for_group(
+        dataset,
         group_id,
         {
             "dataset": dataset,
@@ -524,7 +524,10 @@ def get_frequency_buckets(
         },
     )
     bucket_counts = raw_query(
-        **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
+        **kwargs,
+        use_cache=True,
+        referrer="preview.get_frequency_buckets",
+        tenant_ids={"organization_id": project.organization_id},
     ).get("data", [])
 
     for bucket in bucket_counts:

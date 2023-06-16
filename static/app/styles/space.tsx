@@ -16,4 +16,4 @@ function space<S extends ValidSize>(size: S): (typeof SPACES)[S] {
   return SPACES[size];
 }
 
-export default space;
+export {space};

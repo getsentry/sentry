@@ -128,7 +128,19 @@ class Mechanism(Interface):
 
     @classmethod
     def to_python(cls, data, **kwargs):
-        for key in ("type", "synthetic", "description", "help_link", "handled", "data", "meta"):
+        for key in (
+            "type",
+            "synthetic",
+            "description",
+            "help_link",
+            "handled",
+            "data",
+            "meta",
+            "source",
+            "is_exception_group",
+            "exception_id",
+            "parent_id",
+        ):
             data.setdefault(key, None)
 
         return super().to_python(data, **kwargs)
@@ -143,6 +155,10 @@ class Mechanism(Interface):
                 "handled": self.handled,
                 "data": self.data or None,
                 "meta": prune_empty_keys(self.meta) or None,
+                "source": self.source,
+                "is_exception_group": self.is_exception_group,
+                "exception_id": self.exception_id,
+                "parent_id": self.parent_id,
             }
         )
 
@@ -449,15 +465,15 @@ class Exception(Interface):
         return ("".join(output)).strip()
 
     def get_stacktrace(self, *args, **kwargs):
-        exc = self.values[0]
+        exc = self.values[-1]
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
         return ""
 
     def iter_tags(self):
-        if not self.values or not self.values[0]:
+        if not self.values or not self.values[-1]:
             return
 
-        mechanism = self.values[0].mechanism
+        mechanism = self.values[-1].mechanism
         if mechanism:
             yield from mechanism.iter_tags()

@@ -7,17 +7,19 @@ type Props = {
   project: AvatarProject;
 } & BaseAvatar['props'];
 
-const ProjectAvatar = ({project, hasTooltip, tooltip, ...props}: Props) => (
-  <Tooltip disabled={!hasTooltip} title={tooltip}>
-    <PlatformList
-      // `platform` is a user selectable option that is performed during the onboarding process. The reason why this
-      // is not the default is because there currently is no way to update it. Fallback to this if project does not
-      // have recent events with a platform.
-      platforms={project?.platform ? [project.platform] : []}
-      {...props}
-      max={1}
-    />
-  </Tooltip>
-);
+function ProjectAvatar({project, hasTooltip, tooltip, ...props}: Props) {
+  return (
+    <Tooltip disabled={!hasTooltip} title={tooltip}>
+      <PlatformList
+        // `platform` is a user selectable option that is performed during the onboarding process. The reason why this
+        // is not the default is because there currently is no way to update it. Fallback to this if project does not
+        // have recent events with a platform.
+        platforms={project?.platform ? [project.platform] : []}
+        {...props}
+        max={1}
+      />
+    </Tooltip>
+  );
+}
 
 export default ProjectAvatar;

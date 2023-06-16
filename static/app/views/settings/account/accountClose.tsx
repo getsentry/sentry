@@ -4,7 +4,7 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Confirm from 'sentry/components/confirm';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   Panel,
   PanelAlert,
@@ -15,6 +15,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
+import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -26,22 +27,24 @@ const Important = styled('div')`
   font-size: 1.2em;
 `;
 
-const GoodbyeModalContent = ({Header, Body, Footer}: ModalRenderProps) => (
-  <div>
-    <Header>{t('Closing Account')}</Header>
-    <Body>
-      <TextBlock>
-        {t('Your account has been deactivated and scheduled for removal.')}
-      </TextBlock>
-      <TextBlock>
-        {t('Thanks for using Sentry! We hope to see you again soon!')}
-      </TextBlock>
-    </Body>
-    <Footer>
-      <Button href={BYE_URL}>{t('Goodbye')}</Button>
-    </Footer>
-  </div>
-);
+function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
+  return (
+    <div>
+      <Header>{t('Closing Account')}</Header>
+      <Body>
+        <TextBlock>
+          {t('Your account has been deactivated and scheduled for removal.')}
+        </TextBlock>
+        <TextBlock>
+          {t('Thanks for using Sentry! We hope to see you again soon!')}
+        </TextBlock>
+      </Body>
+      <Footer>
+        <Button href={BYE_URL}>{t('Goodbye')}</Button>
+      </Footer>
+    </div>
+  );
+}
 
 type OwnedOrg = {
   organization: Organization;
@@ -82,6 +85,10 @@ class AccountClose extends AsyncView<Props, State> {
       ?.map(({organization}) => organization.slug);
   }
 
+  getTitle() {
+    return t('Close Account');
+  }
+
   handleChange = (
     {slug}: Organization,
     isSingle: boolean,
@@ -106,9 +113,15 @@ class AccountClose extends AsyncView<Props, State> {
     });
   };
 
-  handleRemoveAccount = async () => {
+  get orgSlugsToRemove() {
     const {orgsToRemove} = this.state;
-    const orgs = orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove);
+    return (
+      (orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove)) || []
+    );
+  }
+
+  handleRemoveAccount = async () => {
+    const orgs = this.orgSlugsToRemove;
 
     addLoadingMessage('Closing account\u2026');
 
@@ -133,9 +146,14 @@ class AccountClose extends AsyncView<Props, State> {
   renderBody() {
     const {organizations, orgsToRemove} = this.state;
 
+    const HookedCustomConfirmAccountClose = HookOrDefault({
+      hookName: 'component:confirm-account-close',
+      defaultComponent: props => <ConfirmAccountClose {...props} />,
+    });
+
     return (
       <div>
-        <SettingsPageHeader title="Close Account" />
+        <SettingsPageHeader title={this.getTitle()} />
 
         <TextBlock>
           {t('This will permanently remove all associated data for your user')}.
@@ -183,16 +201,10 @@ class AccountClose extends AsyncView<Props, State> {
             ))}
           </PanelBody>
         </Panel>
-
-        <Confirm
-          priority="danger"
-          message={t(
-            'This is permanent and cannot be undone, are you really sure you want to do this?'
-          )}
-          onConfirm={this.handleRemoveAccount}
-        >
-          <Button priority="danger">{t('Close Account')}</Button>
-        </Confirm>
+        <HookedCustomConfirmAccountClose
+          handleRemoveAccount={this.handleRemoveAccount}
+          organizationSlugs={this.orgSlugsToRemove}
+        />
       </div>
     );
   }

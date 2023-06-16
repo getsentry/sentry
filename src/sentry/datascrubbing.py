@@ -51,13 +51,15 @@ def get_datascrubbing_settings(project):
         exclude_fields_key, []
     )
 
-    rv["scrubData"] = org.get_option("sentry:require_scrub_data", False) or project.get_option(
+    if org.get_option("sentry:require_scrub_data", False) or project.get_option(
         "sentry:scrub_data", True
-    )
+    ):
+        rv["scrubData"] = True
 
-    rv["scrubIpAddresses"] = org.get_option(
-        "sentry:require_scrub_ip_address", False
-    ) or project.get_option("sentry:scrub_ip_address", False)
+    if org.get_option("sentry:require_scrub_ip_address", False) or project.get_option(
+        "sentry:scrub_ip_address", False
+    ):
+        rv["scrubIpAddresses"] = True
 
     sensitive_fields_key = "sentry:sensitive_fields"
     rv["sensitiveFields"] = org.get_option(sensitive_fields_key, []) + project.get_option(

@@ -1,7 +1,7 @@
 import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
 
 type ColorStop = {
@@ -15,7 +15,7 @@ type Props = {
   barHeight?: number;
 };
 
-const ColorBar = (props: Props) => {
+function ColorBar(props: Props) {
   return (
     <VitalBar
       barHeight={props.barHeight}
@@ -28,7 +28,7 @@ const ColorBar = (props: Props) => {
       })}
     </VitalBar>
   );
-};
+}
 
 type VitalBarProps = {
   fractions: number[];

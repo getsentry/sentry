@@ -22,9 +22,9 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models import clear_cached_files
 from sentry.models.distribution import Distribution
-from sentry.models.file import File
+from sentry.models.files.file import File
+from sentry.models.files.utils import clear_cached_files
 from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
@@ -186,8 +186,8 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
+        self.artifact_count = len(self.manifest.get("files", {}))
         files = self.manifest.get("files", {})
-
         self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
 
     def __enter__(self):

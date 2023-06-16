@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import ApiChart from './apiChart';
 import EventChart from './eventChart';
 
-const AdminOverview = () => {
+function AdminOverview() {
   const resolution = '1h';
   const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
 
@@ -32,6 +32,6 @@ const AdminOverview = () => {
       </Fragment>
     </SentryDocumentTitle>
   );
-};
+}
 
 export default AdminOverview;

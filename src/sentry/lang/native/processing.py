@@ -1,6 +1,6 @@
 import logging
 import posixpath
-from typing import Set
+from typing import Any, Callable, Optional, Set
 
 from symbolic import ParseDebugIdError, normalize_debug_id
 
@@ -8,7 +8,7 @@ from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
     get_event_attachment,
-    get_sdk_from_event,
+    get_os_from_event,
     image_name,
     is_applecrashreport_event,
     is_minidump_event,
@@ -17,7 +17,7 @@ from sentry.lang.native.utils import (
     native_images_from_data,
     signal_from_data,
 )
-from sentry.models import EventError, Project
+from sentry.models import EventError
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.in_app import is_known_third_party, is_optional_package
@@ -76,6 +76,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
+    if symbolicated.get("source_link"):
+        new_frame["source_link"] = symbolicated["source_link"]
 
     addr_mode = symbolicated.get("addr_mode")
     if addr_mode is None:
@@ -88,18 +90,31 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
 
-def _handle_image_status(status, image, sdk_info, data):
+def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
     elif status == "missing":
         package = image.get("code_file")
+        if not package:
+            return
         # TODO(mitsuhiko): This check seems wrong?  This call seems to
         # mirror the one in the ios symbol server support.  If we change
         # one we need to change the other.
-        if not package or is_known_third_party(package, sdk_info=sdk_info):
+        if is_known_third_party(package, os):
             return
 
-        if is_optional_package(package, sdk_info=sdk_info):
+        # FIXME(swatinem): .NET never had debug images before, and it is possible
+        # to send fully symbolicated events from the SDK.
+        # Updating to an SDK that does send images would otherwise trigger these
+        # errors all the time if debug files were missing, even though the event
+        # was already fully symbolicated on the client.
+        # We are just completely filtering out these errors here. Ideally, we
+        # would rather do this selectively, only for images that were referenced
+        # from non-symbolicated frames.
+        if image.get("type") == "pe_dotnet":
+            return
+
+        if is_optional_package(package):
             error = SymbolicationFailed(type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
         else:
             error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
@@ -123,7 +138,7 @@ def _handle_image_status(status, image, sdk_info, data):
     write_error(error, data)
 
 
-def _merge_image(raw_image, complete_image, sdk_info, data):
+def _merge_image(raw_image, complete_image, os, data):
     statuses = set()
 
     # Set image data from symbolicator as symbolicator might know more
@@ -135,7 +150,7 @@ def _merge_image(raw_image, complete_image, sdk_info, data):
             raw_image[k] = v
 
     for status in set(statuses):
-        _handle_image_status(status, raw_image, sdk_info, data)
+        _handle_image_status(status, raw_image, os, data)
 
 
 def _handle_response_status(event_data, response_json):
@@ -155,7 +170,7 @@ def _handle_response_status(event_data, response_json):
 
 
 def _merge_system_info(data, system_info):
-    set_path(data, "contexts", "os", "type", value="os")  # Required by "get_sdk_from_event"
+    set_path(data, "contexts", "os", "type", value="os")  # Required by "get_os_from_event"
 
     os_name = system_info.get("os_name")
     os_version = system_info.get("os_version")
@@ -180,20 +195,21 @@ def _merge_system_info(data, system_info):
 
 def _merge_full_response(data, response):
     data["platform"] = "native"
-    if response.get("crashed") is not None:
+    # Specifically for Unreal events: Do not overwrite the level as it has already been set in Relay when merging the context.
+    if response.get("crashed") is not None and data.get("level") is None:
         data["level"] = "fatal" if response["crashed"] else "info"
 
     if response.get("system_info"):
         _merge_system_info(data, response["system_info"])
 
-    sdk_info = get_sdk_from_event(data)
+    os = get_os_from_event(data)
 
     images = []
     set_path(data, "debug_meta", "images", value=images)
 
     for complete_image in response["modules"]:
         image = {}
-        _merge_image(image, complete_image, sdk_info, data)
+        _merge_image(image, complete_image, os, data)
         images.append(image)
 
     # Extract the crash reason and infos
@@ -254,15 +270,11 @@ def _merge_full_response(data, response):
             data_stacktrace["frames"].append(new_frame)
 
 
-def process_minidump(data):
-    project = Project.objects.get_from_cache(id=data["project"])
-
+def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
     if not minidump:
         logger.error("Missing minidump for minidump event")
         return
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     response = symbolicator.process_minidump(minidump.data)
 
@@ -272,15 +284,11 @@ def process_minidump(data):
     return data
 
 
-def process_applecrashreport(data):
-    project = Project.objects.get_from_cache(id=data["project"])
-
+def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
     report = get_event_attachment(data, APPLECRASHREPORT_ATTACHMENT_TYPE)
     if not report:
         logger.error("Missing applecrashreport for event")
         return
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     response = symbolicator.process_applecrashreport(report.data)
 
@@ -361,11 +369,7 @@ def get_frames_for_symbolication(
     return rv
 
 
-def process_payload(data):
-    project = Project.objects.get_from_cache(id=data["project"])
-
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
-
+def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -399,10 +403,10 @@ def process_payload(data):
 
     assert len(modules) == len(response["modules"]), (modules, response)
 
-    sdk_info = get_sdk_from_event(data)
+    os = get_os_from_event(data)
 
     for raw_image, complete_image in zip(modules, response["modules"]):
-        _merge_image(raw_image, complete_image, sdk_info, data)
+        _merge_image(raw_image, complete_image, os, data)
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
@@ -443,13 +447,15 @@ def process_payload(data):
     return data
 
 
-def get_symbolication_function(data):
+def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
     elif is_native_event(data):
-        return process_payload
+        return process_native_stacktraces
+    else:
+        return None
 
 
 def get_required_attachment_types(data) -> Set[str]:

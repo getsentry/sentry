@@ -7,14 +7,14 @@ import {
   createProgram,
   createShader,
   ELLIPSIS,
-  findRangeBinarySearch,
+  getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
-  Rect,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
+
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
@@ -30,11 +30,11 @@ describe('makeProjectionMatrix', () => {
 describe('getContext', () => {
   it('throws if it cannot retrieve context', () => {
     expect(() =>
-      // @ts-ignore partial canvas mock
+      // @ts-expect-error partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => null)}, 'webgl')
     ).toThrow();
     expect(() =>
-      // @ts-ignore partial canvas mock
+      // @ts-expect-error partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => null)}, '2d')
     ).toThrow();
   });
@@ -42,7 +42,7 @@ describe('getContext', () => {
   it('returns ctx', () => {
     const ctx = {};
     expect(
-      // @ts-ignore partial canvas mock
+      // @ts-expect-error partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => ctx)}, 'webgl')
     ).toBe(ctx);
   });
@@ -108,7 +108,7 @@ describe('createProgram', () => {
       }),
     };
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createProgram(ctx, {}, {})).toThrow('Could not create program');
   });
   it('attaches both shaders and links program', () => {
@@ -125,7 +125,7 @@ describe('createProgram', () => {
     const vertexShader = {};
     const fragmentShader = {};
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     createProgram(ctx, vertexShader, fragmentShader);
 
     expect(ctx.createProgram).toHaveBeenCalled();
@@ -148,7 +148,7 @@ describe('createProgram', () => {
     const vertexShader = {};
     const fragmentShader = {};
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createProgram(ctx, vertexShader, fragmentShader)).toThrow();
 
     expect(ctx.createProgram).toHaveBeenCalled();
@@ -167,7 +167,7 @@ describe('createShader', () => {
     };
 
     const type = 0;
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createShader(ctx, type, '')).toThrow();
     expect(ctx.createShader).toHaveBeenLastCalledWith(type);
   });
@@ -182,12 +182,12 @@ describe('createShader', () => {
       shaderSource: jest.fn(),
       compileShader: jest.fn(),
       getShaderParameter: jest.fn().mockImplementation(() => 1),
-      COMPILE_STATUS: 1,
+      COMPILE_STATUS: 1 as any,
     };
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).not.toThrow();
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(createShader(ctx, type, shaderSource)).toBe(shader);
     expect(ctx.shaderSource).toHaveBeenLastCalledWith(shader, shaderSource);
     expect(ctx.getShaderParameter).toHaveBeenLastCalledWith(shader, ctx.COMPILE_STATUS);
@@ -204,10 +204,10 @@ describe('createShader', () => {
       compileShader: jest.fn(),
       getShaderParameter: jest.fn().mockImplementation(() => 0),
       deleteShader: jest.fn(),
-      COMPILE_STATUS: 0,
+      COMPILE_STATUS: 0 as any,
     };
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
       'Failed to compile 0 shader'
     );
@@ -612,5 +612,40 @@ describe('computeConfigViewWithStrategy', () => {
     expect(
       computeConfigViewWithStrategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
     ).toBe(true);
+  });
+
+  describe('getCenterScaleMatrixFromConfigPosition', function () {
+    it('returns a matrix that represents scaling on both x and y axes', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(
+        vec2.fromValues(2, 2),
+        vec2.fromValues(0, 0)
+      );
+
+      // Scales by 2 along the x and y axis
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          0, 0, 1
+        )
+      );
+    });
+
+    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(
+        vec2.fromValues(2, 2),
+        vec2.fromValues(5, 5)
+      );
+
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          -5, -5, 1
+        )
+      );
+    });
   });
 });

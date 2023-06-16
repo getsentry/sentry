@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 import sentry
 from sentry import options
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
 
@@ -20,7 +20,7 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 )
 
 
-@pending_silo_endpoint
+@all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

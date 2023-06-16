@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {getParentKey} from 'sentry/views/settings/account/notifications/utils';
 
@@ -11,16 +11,18 @@ type Props = {
 };
 
 // TODO(mgaeta): Infer parentKey from parent.
-const ParentLabel = ({notificationType, parent}: Props) => (
-  <FieldLabel>
-    <Avatar
-      {...{
-        [getParentKey(notificationType)]: parent,
-      }}
-    />
-    <span>{parent.slug}</span>
-  </FieldLabel>
-);
+function ParentLabel({notificationType, parent}: Props) {
+  return (
+    <FieldLabel>
+      <Avatar
+        {...{
+          [getParentKey(notificationType)]: parent,
+        }}
+      />
+      <span>{parent.slug}</span>
+    </FieldLabel>
+  );
+}
 
 const FieldLabel = styled('div')`
   display: flex;

@@ -6,6 +6,7 @@ from django.utils import timezone
 from sentry.models import Activity, Group, GroupStatus
 from sentry.signals import issue_resolved
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.suspect_resolutions.commit_correlation import CommitCorrelatedResult
 from sentry.utils.suspect_resolutions.get_suspect_resolutions import (
@@ -18,6 +19,7 @@ from sentry.utils.suspect_resolutions.metric_correlation import (
 )
 
 
+@region_silo_test(stable=True)
 class GetSuspectResolutionsTest(TestCase):
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",

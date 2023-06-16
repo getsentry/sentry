@@ -2,7 +2,7 @@ import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingMask from 'sentry/components/loadingMask';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;

@@ -17,7 +17,7 @@ import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/u
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
@@ -126,7 +126,10 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
-      this.setState({searchTerm: store.filter}, this.filterImagesBySearchTerm);
+      this.setState(
+        {searchTerm: store.filter, isOpen: true},
+        this.filterImagesBySearchTerm
+      );
     }
   };
 
@@ -188,8 +191,8 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
       normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
       // Any match for file paths
-      (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
-      (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
+      (image.code_file?.toLowerCase() || '').includes(searchTerm) ||
+      (image.debug_file?.toLowerCase() || '').includes(searchTerm)
     );
   }
 

@@ -1,7 +1,7 @@
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 8
+LATEST_EPOCH = 11
 
 # grouping related configs
 #
@@ -14,7 +14,9 @@ LATEST_EPOCH = 8
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
 DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
-BETA_GROUPING_CONFIG = "mobile:2021-02-12"
+# NOTE: this is empty for now to migrate projects off the deprecated
+# `mobile` strategy via grouping auto-updates.
+BETA_GROUPING_CONFIG = ""
 register(
     key="sentry:grouping_config",
     epoch_defaults={
@@ -52,20 +54,28 @@ register(
 # unlikely to be disabled.
 register(
     key="sentry:builtin_symbol_sources",
-    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]},
+    epoch_defaults={
+        1: ["ios"],
+        2: ["ios", "microsoft"],
+        5: ["ios", "microsoft", "android"],
+        9: ["ios", "microsoft", "android", "nuget"],
+    },
 )
 
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
 
-# Default legacy-browsers filter
+# Default web crawlers filter
 register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})
 
-# Default legacy-browsers filter
+# Default browser extensions filter
 register(key="filters:browser-extensions", epoch_defaults={1: "0"})
 
-# Default legacy-browsers filter
+# Default localhost filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
+
+# Default react hydration errors filter
+register(key="filters:react-hydration-errors", epoch_defaults={1: "1"})
 
 # Default breakdowns config
 register(
@@ -87,15 +97,12 @@ register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 # Default span attributes config
 register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
 
-# Rate at which performance issues are created per project. Defaults to on (rate of 1.0), system flags and options will determine if an organization creates issues.
-# Can be used to turn off a projects detection for users if there is a project-specific issue.
-register(key="sentry:performance_issue_creation_rate", default=1.0)
-
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "n_plus_one_db_detection_rate": 1.0,
     "n_plus_one_api_calls_detection_rate": 1.0,
     "consecutive_db_queries_detection_rate": 1.0,
     "uncompressed_assets_detection_enabled": True,
+    "consecutive_http_spans_detection_enabled": True,
 }
 # A dict containing all the specific detection thresholds and rates.
 register(
@@ -107,3 +114,25 @@ register(
 # Contains a mapping from rule to last seen timestamp,
 # for example `{"/organizations/*/**": 1334318402}`
 register(key="sentry:transaction_name_cluster_rules", default={})
+
+# Replacement rules for span descriptions discovered by the clusterer.
+# Contains a mapping from rule to last seen timestamp. Example:
+# `{"**/organizations/*/**": 1334318402}`
+register(key="sentry:span_description_cluster_rules", default={})
+
+# The JavaScript loader dynamic SDK options that are the project defaults.
+register(
+    key="sentry:default_loader_options",
+    epoch_defaults={
+        10: {
+            "hasPerformance": True,
+            "hasReplay": True,
+        }
+    },
+)
+
+# The available loader SDK versions
+register(
+    key="sentry:loader_available_sdk_versions",
+    epoch_defaults={1: ["latest", "7.x", "6.x", "5.x", "4.x"], 11: ["latest", "7.x"]},
+)

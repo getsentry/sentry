@@ -4,7 +4,7 @@ import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -13,6 +13,7 @@ from snuba_sdk.function import Function
 from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
@@ -22,17 +23,16 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import (
     FIELD_ALIASES,
-    InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
 )
 from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    Dataset,
     SnubaTSResult,
     bulk_snql_query,
     get_array_column_alias,
@@ -95,6 +95,35 @@ def is_real_column(col):
     return True
 
 
+def format_time(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
+        if isinstance(obj["time"], str):
+            # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
+            # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
+            # the format returned by snuba. This is significantly faster when compared to other
+            # parsers like `dateutil.parser.parse` and `datetime.strptime`.
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in range(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv.extend(data_by_time[key])
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
+
+
 def zerofill(data, start, end, rollup, orderby):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
@@ -155,6 +184,7 @@ def query(
     has_metrics=False,
     use_metrics_layer=False,
     skip_tag_resolution=False,
+    extra_columns=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -212,6 +242,9 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
+    if extra_columns is not None:
+        builder.columns.extend(extra_columns)
+
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
@@ -516,7 +549,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -528,7 +562,8 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    limit (int) The number of records to fetch.
+    per_page (int) The number of records to fetch.
+    cursor (int) Multiplied by per_page to determine the number of records to skip.
 
     Returns Sequence[FacetResult]
     """
@@ -541,7 +576,8 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=limit,
+            limit=per_page,
+            offset=cursor * per_page,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -561,7 +597,7 @@ def get_facets(
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == limit:
+        if len(top_tags) == per_page:
             top_tags.pop()
         fetch_projects = True
 
@@ -1329,3 +1365,39 @@ def check_multihistogram_fields(fields):
         elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return False
     return histogram_type
+
+
+def corr_snuba_timeseries(
+    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+):
+    """
+    Returns the Pearson's coefficient of two snuba timeseries.
+    """
+    if len(x) != len(y):
+        return
+
+    n = len(x)
+    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0, 0, 0, 0, 0
+    for i in range(n):
+        x_datum = x[i]
+        y_datum = y[i]
+
+        x_ = x_datum[1][0]["count"]
+        y_ = y_datum[1][0]["count"]
+
+        sum_x += x_
+        sum_y += y_
+        sum_xy += x_ * y_
+        sum_x_squared += x_ * x_
+        sum_y_squared += y_ * y_
+
+    denominator = math.sqrt(
+        (n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)
+    )
+    if denominator == 0:
+        return
+
+    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
+
+    return pearsons_corr_coeff

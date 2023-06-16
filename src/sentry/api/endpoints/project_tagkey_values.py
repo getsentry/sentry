@@ -28,7 +28,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
         lookup_key = tagstore.prefix_reserved_key(key)
-
+        tenant_ids = {"organization_id": project.organization_id}
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
@@ -36,7 +36,12 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
+            tagkey = tagstore.get_tag_key(
+                project.id,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
+            )
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
@@ -50,6 +55,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             end=end,
             query=request.GET.get("query"),
             order_by="-last_seen",
+            tenant_ids=tenant_ids,
         )
 
         return self.paginate(
