@@ -25,6 +25,8 @@ from sentry.models import (
     GroupOwner,
     GroupStatus,
     GroupSubscription,
+    OrganizationMember,
+    OrganizationMemberTeam,
     PlatformExternalIssue,
     Project,
     Release,
@@ -226,10 +228,20 @@ def assigned_or_suggested_filter(
     if "User" in types_to_owners:
         users = types_to_owners["User"]
         user_ids: List[int] = [u.id for u in users if u is not None]
+        team_ids = list(
+            Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user_id__in=user_ids, organization_id=organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
+            ).values_list("id", flat=True)
+        )
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user_id__in=user_ids),
+                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
