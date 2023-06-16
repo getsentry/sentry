@@ -13,8 +13,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = '<null>';
@@ -29,8 +32,8 @@ type Group = {
 };
 
 export type Segment = Group & {
-  'p95(span.duration)': number;
-  'sum(span.duration)': number;
+  'p95(span.self_time)': number;
+  'sum(span.self_time)': number;
 };
 
 export type DataRow = {
@@ -90,12 +93,12 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     initialData: [],
   });
 
-  const totalValues = cumulativeTime?.data[0]?.['sum(span.duration)']
-    ? parseInt(cumulativeTime?.data[0]['sum(span.duration)'] as string, 10)
+  const totalValues = cumulativeTime?.data[0]?.[`sum(${SPAN_SELF_TIME})`]
+    ? parseInt(cumulativeTime?.data[0][`sum(${SPAN_SELF_TIME})`] as string, 10)
     : 0;
   const totalSegments =
     segments?.data.reduce(
-      (acc, segment) => acc + parseInt(segment['sum(span.duration)'] as string, 10),
+      (acc, segment) => acc + parseInt(segment[`sum(${SPAN_SELF_TIME})`] as string, 10),
       0
     ) ?? 0;
 
@@ -108,7 +111,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       const element = segments.data[index];
       const category = element['span.category'] as string;
       transformedData.push({
-        cumulativeTime: parseInt(element['sum(span.duration)'] as string, 10),
+        cumulativeTime: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
         group: {
           'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
         },
@@ -145,7 +148,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         const label = key === '' ? NULL_SPAN_CATEGORY : key;
         seriesByDomain[label].data =
           seriesData?.data.map(datum => {
-            return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
+            return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
           }) ?? [];
       });
     }
@@ -188,8 +191,8 @@ const getEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['sum(span.duration)', 'p95(span.duration)', ...groups],
-    yAxis: getTimeseries ? ['p95(span.duration)'] : [],
+    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
+    yAxis: getTimeseries ? [`p95(${SPAN_SELF_TIME})`] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
@@ -210,7 +213,7 @@ const getCumulativeTimeEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['sum(span.duration)', ...groups],
+    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,

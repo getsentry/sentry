@@ -155,7 +155,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.actor import RpcActor
-from ..services.hybrid_cloud.organization.serial import serialize_organization
+from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -977,7 +977,7 @@ class IntegrationTestCase(TestCase):
 
         self.organization = self.create_organization(name="foo", owner=self.user)
         with exempt_from_silo_limits():
-            rpc_organization = serialize_organization(self.organization)
+            rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
         self.request = self.make_request(self.user)

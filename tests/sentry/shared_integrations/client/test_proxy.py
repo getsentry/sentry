@@ -14,25 +14,28 @@ secret = "hush-hush-im-invisible"
 
 @override_settings(SENTRY_SUBNET_SECRET=secret, SENTRY_CONTROL_ADDRESS=control_address)
 class IntegrationProxyClientTest(TestCase):
+    oi_id = 24
+    base_url = "https://example.com"
+    test_url = f"{base_url}/get?query=1&user=me"
+
     def setUp(self):
         class TestClient(IntegrationProxyClient):
             integration_type = "integration"
             integration_name = "test"
-            base_url = "https://example.com"
+            base_url = self.base_url
             _use_proxy_url_for_tests = True
 
         self.client_cls = TestClient
-        self.oi_id = 24
 
     def test_authorize_request_noop(self):
-        prepared_request = Request(method="GET", url="https://example.com/get").prepare()
+        prepared_request = Request(method="GET", url=self.test_url).prepare()
         raw_headers = prepared_request.headers
         client = self.client_cls(org_integration_id=self.oi_id)
         client.authorize_request(prepared_request)
         assert prepared_request.headers == raw_headers
 
     def test_authorize_request_basic(self):
-        prepared_request = Request(method="GET", url="https://example.com/get").prepare()
+        prepared_request = Request(method="POST", url=self.test_url).prepare()
 
         def authorize_request(prepared_request):
             prepared_request.headers["Authorization"] = "Bearer tkn"
@@ -41,14 +44,14 @@ class IntegrationProxyClientTest(TestCase):
         client = self.client_cls(org_integration_id=self.oi_id)
         client.authorize_request = authorize_request
 
-        assert prepared_request.headers == {}
+        assert prepared_request.headers.get("Authorization") is None
         client.authorize_request(prepared_request)
-        assert prepared_request.headers == {"Authorization": "Bearer tkn"}
+        assert prepared_request.headers.get("Authorization") == "Bearer tkn"
 
     @patch.object(IntegrationProxyClient, "authorize_request")
     def test_finalize_request_noop(self, mock_authorize):
         """Only applies proxy details if the request originates from a region silo."""
-        prepared_request = Request(method="GET", url="https://example.com/get").prepare()
+        prepared_request = Request(method="PATCH", url=self.test_url).prepare()
         raw_url = prepared_request.url
         raw_headers = prepared_request.headers
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
@@ -69,7 +72,7 @@ class IntegrationProxyClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.REGION)
     def test_finalize_request_region(self, mock_authorize):
         """In a region silo, should change the URL and headers"""
-        prepared_request = Request(method="GET", url="https://example.com/get").prepare()
+        prepared_request = Request(method="DELETE", url=self.test_url).prepare()
         raw_url = prepared_request.url
         raw_headers = prepared_request.headers
         for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER]:
