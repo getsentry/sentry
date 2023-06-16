@@ -161,7 +161,7 @@ def comment_workflow(pullrequest_id: int, project_id: int):
 
     # TODO(cathy): add check for OrganizationOption for comment bot
     if not features.has("organizations:pr-comment-bot", organization):
-        logger.error("github.pr_comment.feature_flag_missing")
+        logger.error("github.pr_comment.feature_flag_missing", extra={"organization_id": org_id})
         return
 
     pr_comment = None
