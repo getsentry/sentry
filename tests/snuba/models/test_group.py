@@ -48,6 +48,39 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
         assert group.get_oldest_event_for_environments(["staging"]) is None
 
+    def test_get_helpful_for_environments(self):
+        project = self.create_project()
+
+        min_ago = iso_format(before_now(minutes=1))
+
+        event_all_helpful_params = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        event_partial_helpful_params = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        event_none_helpful_params = self.store_event(
+            data={"event_id": "c" * 32, "timestamp": min_ago, "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+
+        group = Group.objects.first()
+        assert event_partial_helpful_params
+        assert event_none_helpful_params
+        assert (
+            group.get_helpful_event_for_environments().event_id == event_all_helpful_params.event_id
+        )
+
     def test_perf_issue(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 

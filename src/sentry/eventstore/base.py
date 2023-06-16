@@ -1,6 +1,9 @@
 from copy import deepcopy
+from datetime import datetime
+from typing import Optional, Sequence
 
 import sentry_sdk
+from snuba_sdk import Condition
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
@@ -121,6 +124,7 @@ class EventStorage(Service):
         "create_event",
         "get_event_by_id",
         "get_events",
+        "get_events_snql",
         "get_unfetched_events",
         "get_adjacent_event_ids",
         "bind_nodes",
@@ -170,6 +174,22 @@ class EventStorage(Service):
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
         """
+        raise NotImplementedError
+
+    def get_events_snql(
+        self,
+        organization_id: int,
+        group_id: int,
+        start: Optional[datetime],
+        end: Optional[datetime],
+        conditions: Sequence[Condition],
+        orderby: Optional[Sequence[str]] = None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_events_snql",
+        dataset=Dataset.Events,
+        tenant_ids=None,
+    ):
         raise NotImplementedError
 
     def get_unfetched_events(

@@ -2,10 +2,23 @@ import logging
 import random
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
@@ -13,6 +26,7 @@ from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
+from sentry.utils.snuba import DATASETS, _prepare_start_end, raw_snql_query
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -47,6 +61,95 @@ class SnubaEventStorage(EventStorage):
     """
     Eventstore backend backed by Snuba
     """
+
+    def get_events_snql(
+        self,
+        organization_id: int,
+        group_id: int,
+        start: Optional[datetime],
+        end: Optional[datetime],
+        conditions: Sequence[Condition],
+        orderby: Optional[Sequence[str]] = None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_events_snql",
+        dataset=snuba.Dataset.Events,
+        tenant_ids=None,
+    ):
+        cols = self.__get_columns(dataset)
+
+        if orderby is None:
+            orderby = [
+                OrderBy(DATASETS[dataset][Columns.TIMESTAMP.value.alias], direction=Direction.DESC),
+                OrderBy(DATASETS[dataset][Columns.EVENT_ID.value.alias], direction=Direction.DESC),
+            ]
+        else:
+            resolved_order_by = []
+            for order_field_alias in orderby:
+                if order_field_alias.startswith("_"):
+                    direction = Direction.DESC
+                    order_field_alias = order_field_alias[1:]
+                else:
+                    direction = Direction.ASC
+                resolved_column_or_none = DATASETS[dataset].get(order_field_alias)
+                if resolved_column_or_none:
+                    # special-case handling for nullable column values and proper ordering based on direction
+                    # null values are always last in the sort order regardless of Desc or Asc ordering
+                    if order_field_alias == Columns.NUM_PROCESSING_ERRORS.value.alias:
+                        resolved_order_by.append(
+                            OrderBy(
+                                Function("coalesce", [Column(resolved_column_or_none), 99999999]),
+                                direction=direction,
+                            )
+                        )
+                    elif order_field_alias == Columns.TRACE_SAMPLED.value.alias:
+                        resolved_order_by.append(
+                            OrderBy(
+                                Function("coalesce", [Column(resolved_column_or_none), -1]),
+                                direction=direction,
+                            )
+                        )
+                    else:
+                        resolved_order_by.append(
+                            OrderBy(Column(resolved_column_or_none), direction=direction)
+                        )
+            orderby = resolved_order_by
+
+        start, end = _prepare_start_end(
+            start,
+            end,
+            organization_id,
+            [group_id],
+        )
+
+        snql_request = Request(
+            dataset=dataset.value,
+            app_id="eventstore",
+            query=Query(
+                match=Entity(dataset.value),
+                select=[Column(col) for col in cols],
+                where=[
+                    Condition(
+                        Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start
+                    ),
+                    Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
+                ]
+                + list(conditions),
+                orderby=orderby,
+                limit=Limit(limit),
+                offset=Offset(offset),
+            ),
+            tenant_ids=tenant_ids or dict(),
+        )
+
+        result = raw_snql_query(snql_request, referrer, use_cache=False)
+
+        if "error" not in result:
+            events = [self.__make_event(evt) for evt in result["data"]]
+            self.bind_nodes(events)
+            return events
+
+        return []
 
     def get_events(
         self,

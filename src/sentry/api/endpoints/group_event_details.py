@@ -30,20 +30,21 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group, event_id: str) -> Response:
         """
-        Retrieve the Latest Event for an Issue
+        Retrieve the latest(most recent), oldest, or most helpful Event for an Issue
         ``````````````````````````````````````
 
-        Retrieves the details of the latest event for an issue.
+        Retrieves the details of the latest/oldest/most-helpful event for an issue.
 
         :pparam string group_id: the ID of the issue
         """
         environments = [e.name for e in get_environments(request, group.project.organization)]
-        event = None
 
         if event_id == "latest":
             event = group.get_latest_event_for_environments(environments)
         elif event_id == "oldest":
             event = group.get_oldest_event_for_environments(environments)
+        elif event_id == "helpful":
+            event = group.get_helpful_event_for_environments(environments)
         else:
             event = eventstore.backend.get_event_by_id(
                 group.project.id, event_id, group_id=group.id
