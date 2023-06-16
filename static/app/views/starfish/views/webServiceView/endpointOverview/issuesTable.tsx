@@ -15,7 +15,7 @@ function IssuesTable(props: Props) {
   const {transactionName, issueCategory} = props;
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const dateCondtions = getDateConditions(pageFilters);
+  const dateCondtions = getDateConditions(pageFilters.selection);
 
   const queryConditions: string[] = [
     'is:unresolved',
