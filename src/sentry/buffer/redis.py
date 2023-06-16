@@ -33,7 +33,7 @@ def _validate_json_roundtrip(value, model):
     if _last_validation_log is None or _last_validation_log < time() - 10:
         _last_validation_log = time()
         try:
-            if json.loads(json.dumps(value)) != value:
+            if RedisBuffer._load_values(RedisBuffer._dump_values(value)) != value:
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
@@ -125,13 +125,15 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key):
         return f"l:{key}"
 
-    def _dump_values(self, values):
+    @classmethod
+    def _dump_values(cls, values):
         result = {}
         for k, v in values.items():
-            result[k] = self._dump_value(v)
+            result[k] = cls._dump_value(v)
         return result
 
-    def _dump_value(self, value):
+    @classmethod
+    def _dump_value(cls, value):
         if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
@@ -145,13 +147,15 @@ class RedisBuffer(Buffer):
             raise TypeError(type(value))
         return (type_, str(value))
 
-    def _load_values(self, payload):
+    @classmethod
+    def _load_values(cls, payload):
         result = {}
         for k, (t, v) in payload.items():
-            result[k] = self._load_value((t, v))
+            result[k] = cls._load_value((t, v))
         return result
 
-    def _load_value(self, payload):
+    @classmethod
+    def _load_value(cls, payload):
         (type_, value) = payload
         if type_ == "s":
             return force_text(value)
