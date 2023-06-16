@@ -115,7 +115,7 @@ describe('ReplayReader', () => {
 
     it.each([
       {
-        method: 'getSortedRRWebFrames',
+        method: 'getRRWebFrames',
         expected: [
           {
             type: EventType.Custom,
