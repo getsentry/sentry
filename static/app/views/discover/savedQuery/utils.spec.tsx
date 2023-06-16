@@ -11,7 +11,7 @@ describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();
   const organization = TestStubs.Organization();
 
-  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title');
+  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title')!;
   const errorsView = EventView.fromSavedQuery(errorsQuery);
   errorsView.id = '1'; // set id manually as errorsView.id is undefined
   const yAxis = ['count()', 'failure_count()'];
