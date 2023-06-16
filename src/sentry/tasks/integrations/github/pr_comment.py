@@ -142,6 +142,11 @@ def create_or_update_comment(
         pr_comment.group_ids = issue_list
         pr_comment.save()
 
+    logger.info(
+        "github.pr_comment.create_or_update_comment",
+        extra={"created": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
+    )
+
 
 @instrumented_task(name="sentry.tasks.integrations.github_pr_comments")
 def comment_workflow(pullrequest_id: int, project_id: int):
@@ -156,6 +161,7 @@ def comment_workflow(pullrequest_id: int, project_id: int):
 
     # TODO(cathy): add check for OrganizationOption for comment bot
     if not features.has("organizations:pr-comment-bot", organization):
+        logger.error("github.pr_comment.feature_flag_missing")
         return
 
     pr_comment = None
