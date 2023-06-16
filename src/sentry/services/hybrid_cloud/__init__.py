@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import contextlib
 import datetime
 import functools
@@ -259,7 +260,16 @@ def CreateStubFromBase(
                 with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
                     target_mode
                 ):
-                    return method(*args, **kwds)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        # Execute the copy on a separate thread,
+                        # creating a future object to track progress.
+                        future = executor.submit(method, *args, **kwds)
+                        try:
+                            return future.result()
+                        except Exception as e:
+                            raise RuntimeError(
+                                f"Service call failed: {base.__name__}.{method_name}"
+                            ) from e
 
         return method
 
