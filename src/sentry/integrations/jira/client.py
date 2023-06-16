@@ -203,7 +203,9 @@ class JiraCloudClient(IntegrationProxyClient):
         return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key, transition_id):
-        return self.post(self.TRANSITION_URL % issue_key, {"transition": {"id": transition_id}})
+        return self.post(
+            self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
+        )
 
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()
