@@ -37,24 +37,4 @@ class OrganizationAuthProviders(APITestCase):
         with self.feature("organizations:sso-basic"):
             response = self.get_success_response(self.organization.slug)
         assert any(d["key"] == "dummy" for d in response.data)
-<<<<<<< HEAD
-<<<<<<< HEAD
         assert any(d["key"] == "Fly IO" for d in response.data) is False
-=======
-        assert False
-
-    def test_get_list_for_non_partner_org(self):
-        with self.feature("organizations:sso-basic"):
-            response = self.get_success_response(self.organization.slug)
-        assert any(d["key"] == "Fly IO" for d in response.data) is False
-
-    def test_get_list_for_partnered_org(self):
-        self.organization.subscription = TestSubscription()
-        print("org in test", self.organization, self.organization.subscription.current_history().sponsored_type)
-        with self.feature("organizations:sso-basic"):
-            response = self.get_success_response(self.organization.slug)
-        assert any(d["key"] == "Fly IO" for d in response.data)
->>>>>>> aef2fff949 ([WIP]feat(fly-auth): remove fly auth from list)
-=======
-        assert any(d["key"] == "Fly IO" for d in response.data) is False
->>>>>>> dfedb6f768 (feat(fly-auth): remove check for partner orgs)

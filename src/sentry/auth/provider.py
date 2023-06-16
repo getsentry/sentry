@@ -33,8 +33,6 @@ class Provider(PipelineProvider, abc.ABC):
 
     is_partner = False
 
-    is_partner = False
-
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
 
