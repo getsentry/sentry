@@ -16,7 +16,6 @@ type Props = {
 function GroupListHeader({
   withChart = true,
   narrowGroups = false,
-  showLastTriggered = false,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
   return (
@@ -32,7 +31,7 @@ function GroupListHeader({
       {withColumns.includes('assignee') && (
         <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
       )}
-      {showLastTriggered && withColumns.includes('lastTriggered') && (
+      {withColumns.includes('lastTriggered') && (
         <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>
       )}
     </PanelHeader>

@@ -35,7 +35,7 @@ const defaultProps = {
   useFilteredStats: true,
   useTintRow: true,
   narrowGroups: false,
-  withColumns: ['graph', 'event', 'users', 'assignee', 'lastTriggered'] as Column[],
+  withColumns: ['graph', 'event', 'users', 'assignee'] satisfies Column[],
 };
 
 export type Column = 'graph' | 'event' | 'users' | 'assignee' | 'lastTriggered';
