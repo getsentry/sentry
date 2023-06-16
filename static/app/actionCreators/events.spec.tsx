@@ -11,7 +11,7 @@ describe('Events ActionCreator', function () {
     environment: [],
   };
 
-  let mock;
+  let mock: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -35,6 +35,7 @@ describe('Events ActionCreator', function () {
       ...opts,
       includePrevious: false,
       period: '7d',
+      partial: true,
     });
 
     expect(mock).toHaveBeenLastCalledWith(
@@ -54,6 +55,7 @@ describe('Events ActionCreator', function () {
       ...opts,
       includePrevious: true,
       period: '7d',
+      partial: true,
     });
 
     expect(mock).toHaveBeenLastCalledWith(
@@ -76,6 +78,7 @@ describe('Events ActionCreator', function () {
       includePrevious: false,
       start,
       end,
+      partial: true,
     });
 
     expect(mock).toHaveBeenCalledTimes(1);
@@ -100,6 +103,7 @@ describe('Events ActionCreator', function () {
       includePrevious: true,
       start,
       end,
+      partial: true,
     });
 
     expect(mock).toHaveBeenLastCalledWith(
