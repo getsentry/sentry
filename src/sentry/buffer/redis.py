@@ -1,3 +1,4 @@
+import logging
 import pickle
 import threading
 from datetime import datetime
@@ -18,6 +19,24 @@ from sentry.utils.redis import get_cluster_from_options
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()
+
+logger = logging.getLogger(__name__)
+
+# Debounce our JSON validation a bit in order to not cause too much additional
+# load everywhere
+_last_validation_log = None
+
+
+def _validate_json_roundtrip(value, model):
+    global _last_validation_log
+
+    if _last_validation_log is None or _last_validation_log < time() - 10:
+        _last_validation_log = time()
+        try:
+            if json.loads(json.dumps(value)) != value:
+                logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
+        except Exception:
+            logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
 
 
 class PendingBuffer:
@@ -196,6 +215,7 @@ class RedisBuffer(Buffer):
             for column, value in extra.items():
                 # TODO(dcramer): once this goes live in production, we can kill the pickle path
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
+                _validate_json_roundtrip(value, model)
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
 
