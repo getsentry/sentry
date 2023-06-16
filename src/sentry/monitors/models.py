@@ -510,7 +510,6 @@ class MonitorEnvironment(Model):
         if self.monitor.status == ObjectStatus.DISABLED:
             return True
 
-        group_type, level = get_group_type_and_level(reason)
         current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         use_issue_platform = False
@@ -523,29 +522,36 @@ class MonitorEnvironment(Model):
             pass
 
         if use_issue_platform:
+            from sentry.grouping.utils import hash_from_values
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
+
+            occurrence_data = get_occurrence_data(reason)
 
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
                 project_id=self.monitor.project_id,
                 event_id=uuid.uuid4().hex,
-                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
-                type=group_type,
-                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
+                fingerprint=[
+                    hash_from_values(["monitor", str(self.monitor.guid), occurrence_data["reason"]])
+                ],
+                type=occurrence_data["group_type"],
+                issue_title=f"Monitor failure: {self.monitor.name}",
                 subtitle="",
                 evidence_display=[
-                    IssueEvidence(name="Failure reason", value=reason, important=True),
+                    IssueEvidence(
+                        name="Failure reason", value=occurrence_data["reason"], important=True
+                    ),
                     IssueEvidence(name="Environment", value=self.environment.name, important=False),
                     IssueEvidence(
                         name="Last check-in", value=last_checkin.isoformat(), important=False
                     ),
                 ],
                 evidence_data={},
-                culprit="",
+                culprit=occurrence_data["reason"],
                 detection_time=current_timestamp,
-                level=level,
+                level=occurrence_data["level"],
             )
 
             produce_occurrence_to_kafka(
@@ -602,13 +608,13 @@ class MonitorEnvironment(Model):
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
-def get_group_type_and_level(reason: str):
+def get_occurrence_data(reason: str):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        return MonitorCheckInMissed, "warning"
+        return {"group_type": MonitorCheckInMissed, "level": "warning", "reason": "missed_checkin"}
     elif reason == MonitorFailure.DURATION:
-        return MonitorCheckInTimeout, "error"
+        return {"group_type": MonitorCheckInTimeout, "level": "error", "reason": "duration"}
 
-    return MonitorCheckInFailure, "error"
+    return {"group_type": MonitorCheckInFailure, "level": "error", "reason": "error"}
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

@@ -122,7 +122,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
@@ -337,7 +338,7 @@ class ControlOutbox(OutboxBase):
         )
 
     @classmethod
-    def get_webhook_payload_from_outbox(self, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=payload.get("method"),
             path=payload.get("path"),
