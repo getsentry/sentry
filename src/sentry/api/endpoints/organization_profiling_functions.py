@@ -136,7 +136,18 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
         def get_trends_data(stats_data):
             trends_request = {
-                "data": stats_data,
+                "data": {
+                    k: {
+                        "data": v["data"],
+                        # set data_* to the same as request_* for now
+                        # as we dont pass more historical data for context
+                        "data_start": v["start"],
+                        "data_end": v["end"],
+                        "request_start": v["start"],
+                        "request_end": v["end"],
+                    }
+                    for k, v in stats_data.items()
+                },
                 "sort": data["trend"].as_sort(),
                 "trendFunction": data["function"],
             }
