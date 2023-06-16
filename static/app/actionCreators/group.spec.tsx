@@ -3,38 +3,39 @@ import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 
 describe('group', () => {
-  let api;
+  let api: Client;
 
   beforeEach(function () {
-    api = new Client();
+    api = new MockApiClient();
   });
 
   describe('paramsToQueryArgs()', function () {
     it('should convert itemIds properties to id array', function () {
       expect(
         paramsToQueryArgs({
-          itemIds: [1, 2, 3],
+          itemIds: ['1', '2', '3'],
           query: 'is:unresolved', // itemIds takes precedence
         })
-      ).toEqual({id: [1, 2, 3]});
+      ).toEqual({id: ['1', '2', '3']});
     });
 
     it('should extract query property if no itemIds', function () {
-      expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          foo: 'bar',
-        })
-      ).toEqual({query: 'is:unresolved'});
+      const invalidArgs: any = {
+        foo: 'bar',
+      };
+
+      expect(paramsToQueryArgs({query: 'is:unresolved', ...invalidArgs})).toEqual({
+        query: 'is:unresolved',
+      });
     });
 
     it('should convert params w/o itemIds or query to empty object', function () {
-      expect(
-        paramsToQueryArgs({
-          foo: 'bar',
-          bar: 'baz', // paramsToQueryArgs ignores these
-        })
-      ).toEqual({});
+      const invalidArgs: any = {
+        foo: 'bar',
+        bar: 'baz', // paramsToQueryArgs ignores these
+      };
+
+      expect(paramsToQueryArgs(invalidArgs)).toEqual({});
     });
 
     it('should keep environment when query is provided', function () {
@@ -58,24 +59,24 @@ describe('group', () => {
     it('should handle non-empty projects', function () {
       expect(
         paramsToQueryArgs({
-          itemIds: [1, 2, 3],
+          itemIds: ['1', '2', '3'],
           project: [1],
         })
-      ).toEqual({id: [1, 2, 3], project: [1]});
+      ).toEqual({id: ['1', '2', '3'], project: [1]});
 
       expect(
         paramsToQueryArgs({
-          itemIds: [1, 2, 3],
+          itemIds: ['1', '2', '3'],
           project: [],
         })
-      ).toEqual({id: [1, 2, 3]});
+      ).toEqual({id: ['1', '2', '3']});
 
       expect(
         paramsToQueryArgs({
-          itemIds: [1, 2, 3],
+          itemIds: ['1', '2', '3'],
           project: null,
         })
-      ).toEqual({id: [1, 2, 3]});
+      ).toEqual({id: ['1', '2', '3']});
     });
   });
 
@@ -90,18 +91,22 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(api, {
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: [1, 2, 3],
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
+      bulkUpdate(
+        api,
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: ['1', '2', '3'],
+          data: {status: 'unresolved'},
+          query: 'is:resolved',
+        },
+        {}
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
-        expect.objectContaining({query: {id: [1, 2, 3]}})
+        expect.objectContaining({query: {id: ['1', '2', '3']}})
       );
     });
 
@@ -111,13 +116,17 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(api, {
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: undefined,
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
+      bulkUpdate(
+        api,
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: undefined,
+          data: {status: 'unresolved'},
+          query: 'is:resolved',
+        },
+        {}
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -132,17 +141,21 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(api, {
-        orgId: '1337',
-        project: [99],
-        itemIds: [1, 2, 3],
-        data: {status: 'unresolved'},
-      });
+      bulkUpdate(
+        api,
+        {
+          orgId: '1337',
+          project: [99],
+          itemIds: ['1', '2', '3'],
+          data: {status: 'unresolved'},
+        },
+        {}
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
         '/organizations/1337/issues/',
-        expect.objectContaining({query: {id: [1, 2, 3], project: [99]}})
+        expect.objectContaining({query: {id: ['1', '2', '3'], project: [99]}})
       );
     });
   });
@@ -160,18 +173,21 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      mergeGroups(api, {
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: [1, 2, 3],
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
+      mergeGroups(
+        api,
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: ['1', '2', '3'],
+          query: 'is:resolved',
+        },
+        {}
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
-        expect.objectContaining({query: {id: [1, 2, 3]}})
+        expect.objectContaining({query: {id: ['1', '2', '3']}})
       );
     });
 
@@ -181,13 +197,16 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      mergeGroups(api, {
-        orgId: '1337',
-        projectId: '1337',
-        itemIds: undefined,
-        data: {status: 'unresolved'},
-        query: 'is:resolved',
-      });
+      mergeGroups(
+        api,
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: undefined,
+          query: 'is:resolved',
+        },
+        {}
+      );
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
