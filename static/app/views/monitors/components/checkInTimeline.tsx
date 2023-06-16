@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Resizeable} from 'sentry/components/replays/resizeable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
 import {
@@ -53,19 +52,19 @@ export function CheckInTimeline(props: Props) {
           const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
 
           return (
-            <JobTickContainer style={{left}} key={startTs}>
-              <Tooltip
-                title={<JobTickTooltip jobTick={jobTick} timeWindow={timeWindow} />}
-                skipWrapper
-              >
-                <JobTick
-                  style={{width: tickWidth}}
-                  status={getAggregateStatus(envMapping)}
-                  roundedLeft={roundedLeft}
-                  roundedRight={roundedRight}
-                />
-              </Tooltip>
-            </JobTickContainer>
+            <JobTickTooltip
+              jobTick={jobTick}
+              timeWindow={timeWindow}
+              skipWrapper
+              key={startTs}
+            >
+              <JobTick
+                style={{left, width: tickWidth}}
+                status={getAggregateStatus(envMapping)}
+                roundedLeft={roundedLeft}
+                roundedRight={roundedRight}
+              />
+            </JobTickTooltip>
           );
         })}
       </TimelineContainer>
@@ -85,15 +84,12 @@ const TimelineContainer = styled('div')`
   margin: ${space(2)} 0;
 `;
 
-const JobTickContainer = styled('div')`
-  position: absolute;
-`;
-
 const JobTick = styled('div')<{
   roundedLeft: boolean;
   roundedRight: boolean;
   status: CheckInStatus;
 }>`
+  position: absolute;
   background: ${p => getColorsFromStatus(p.status, p.theme).tickColor};
   width: 4px;
   height: 14px;

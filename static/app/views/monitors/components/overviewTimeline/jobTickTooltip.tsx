@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {
   JobTickData,
@@ -13,12 +14,12 @@ import {getColorsFromStatus, statusToText} from 'sentry/views/monitors/utils';
 
 import {timeWindowData} from './utils';
 
-interface Props {
+interface Props extends Omit<ComponentProps<typeof Tooltip>, 'title'> {
   jobTick: JobTickData;
   timeWindow: TimeWindow;
 }
 
-export function JobTickTooltip({jobTick, timeWindow}: Props) {
+export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props) {
   const {startTs, endTs, envMapping} = jobTick;
   const {dateTimeProps} = timeWindowData[timeWindow];
   const capturedEnvs = Object.keys(envMapping);
@@ -27,7 +28,7 @@ export function JobTickTooltip({jobTick, timeWindow}: Props) {
     Object.values(envMapping[capturedEnvs[0]]).reduce((sum, count) => sum + count, 0) ===
       1;
 
-  return (
+  const tooltipTitle = (
     <Fragment>
       <TooltipTimeLabel>
         <DateTime date={startTs * 1000} {...dateTimeProps} />
@@ -57,6 +58,12 @@ export function JobTickTooltip({jobTick, timeWindow}: Props) {
         )}
       </StatusCountContainer>
     </Fragment>
+  );
+
+  return (
+    <Tooltip title={tooltipTitle} skipWrapper {...props}>
+      {children}
+    </Tooltip>
   );
 }
 

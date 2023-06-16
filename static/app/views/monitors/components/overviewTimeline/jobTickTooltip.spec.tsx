@@ -25,7 +25,7 @@ describe('JobTickTooltip', function () {
       width: 4,
     };
 
-    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" />);
+    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
 
     expect(screen.getByText('Missed')).toBeInTheDocument();
     expect(screen.getByText('prod')).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('JobTickTooltip', function () {
       width: 4,
     };
 
-    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" />);
+    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
 
     expect(screen.getByText('Okay')).toBeInTheDocument();
     expect(screen.getByText('Missed')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('JobTickTooltip', function () {
       width: 4,
     };
 
-    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" />);
+    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
 
     expect(screen.getByText('Okay')).toBeInTheDocument();
     expect(screen.getAllByText('Missed')).toHaveLength(2);
