@@ -227,11 +227,11 @@ class ErrorPageEmbedView(View):
             ),
         }
 
-        response = render_to_response(
+        errorPageEmbedResponse = render_to_response(
             "sentry/error-page-embed.js", context, request, content_type="text/javascript"
         )
 
         # User feedback dialog should be available regardless of cross-origin policy
-        response["Access-Control-Allow-Origin"] = "*"
+        errorPageEmbedResponse["Access-Control-Allow-Origin"] = "*"
 
-        return response
+        return errorPageEmbedResponse
