@@ -47,7 +47,7 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a remote location given an org_slug"""
     from sentry.types.region import get_region_for_organization
 
-    target_url = get_region_for_organization(None).to_url(request.path)
+    target_url = get_region_for_organization(org_slug).to_url(request.path)
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
     query_params = getattr(request, request.method, None)
