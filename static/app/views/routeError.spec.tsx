@@ -7,7 +7,7 @@ import RouteError from 'sentry/views/routeError';
 
 describe('RouteError', function () {
   const {routerContext} = initializeOrg({
-    router: TestStubs.router({
+    router: {
       routes: [
         {path: '/'},
         {path: '/:orgId/'},
@@ -15,7 +15,7 @@ describe('RouteError', function () {
         {path: '/organizations/:orgId/'},
         {path: 'api-keys/', name: 'API Key'},
       ],
-    }),
+    },
   });
 
   it('captures errors with sentry', async function () {
