@@ -13,7 +13,7 @@ from sentry.integrations import (
 )
 from sentry.pipeline.views.base import PipelineView
 
-DESCRIPTION = "Connect Sentry to your organization’s Discord server to receive chat [alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel or direct message."
+DESCRIPTION = "Discord’s your place to collaborate, share, and just talk about your day – or commiserate about app errors. Connect Sentry to your Discord server and get [alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via direct message when sh%t hits the fan."
 
 FEATURES = [
     FeatureDescription(
