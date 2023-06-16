@@ -13,12 +13,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -173,9 +175,9 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
     const groupData = dataByGroup[groupName];
 
     return {
-      seriesName: label ?? 'p95()',
+      seriesName: label ?? `p95(${SPAN_SELF_TIME})`,
       data: groupData.map(datum => ({
-        value: datum['p95(span.duration)'],
+        value: datum[`p95(${SPAN_SELF_TIME})`],
         name: datum.interval,
       })),
     };
@@ -256,7 +258,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['sps()', 'p50(span.duration)', 'p95(span.duration)'],
+      yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],

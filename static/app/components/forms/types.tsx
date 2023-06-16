@@ -110,6 +110,8 @@ export interface CustomType {
 
 type InputType = {type: 'string' | 'secret'} & {
   autoComplete?: string;
+  maxLength?: number;
+  minLength?: number;
 };
 
 type SelectControlType = {type: 'choice' | 'select'} & {
