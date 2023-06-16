@@ -478,7 +478,7 @@ describe('Results', function () {
             query: {
               ...generateFields(),
               statsPeriod: '60d',
-              project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(String),
+              project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
             },
           },
         },
@@ -547,11 +547,7 @@ describe('Results', function () {
         organization,
         router: {
           location: {
-            query: {
-              ...generateFields(),
-              statsPeriod: '90d',
-              project: [1, 2, 3, 4].map(String),
-            },
+            query: {...generateFields(), statsPeriod: '90d', project: [1, 2, 3, 4]},
           },
         },
       });
@@ -648,7 +644,7 @@ describe('Results', function () {
             query: {
               id: '1',
               statsPeriod: '7d',
-              project: ['2'],
+              project: [2],
               environment: ['production'],
             },
           },
@@ -1047,7 +1043,7 @@ describe('Results', function () {
       const initialData = initializeOrg({
         organization,
         router: {
-          location: {query: {fromMetric: 'true', id: '1'}},
+          location: {query: {fromMetric: true, id: '1'}},
         },
       });
 
@@ -1084,7 +1080,7 @@ describe('Results', function () {
       const initialData = initializeOrg({
         organization,
         router: {
-          location: {query: {showUnparameterizedBanner: 'true', id: '1'}},
+          location: {query: {showUnparameterizedBanner: true, id: '1'}},
         },
       });
 

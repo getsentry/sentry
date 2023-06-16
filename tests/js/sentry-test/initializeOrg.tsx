@@ -1,17 +1,4 @@
-import type {RouteComponent, RouteComponentProps} from 'react-router';
-import type {Location} from 'history';
-
 import type {Organization, Project} from 'sentry/types';
-
-// Workaround react-router PlainRoute type not covering redirect routes.
-type RouteShape = {
-  childRoutes?: RouteShape[];
-  component?: RouteComponent;
-  from?: string;
-  indexRoute?: RouteShape;
-  name?: string;
-  path?: string;
-};
 
 /**
  * Creates stubs for:
@@ -20,7 +7,7 @@ type RouteShape = {
  *   - router
  *   - context that contains org + projects + router
  */
-export function initializeOrg<RouterParams = {orgId: string; projectId: string}>({
+export function initializeOrg({
   organization: additionalOrg,
   project: additionalProject,
   projects: additionalProjects,
@@ -29,7 +16,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   organization?: Partial<Organization>;
   project?: Partial<Project>;
   projects?: Partial<Project>[];
-  router?: {location?: Partial<Location>; params?: RouterParams; routes?: RouteShape[]};
+  router?: any;
 } = {}) {
   const projects = (
     additionalProjects ||
@@ -46,7 +33,6 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     ...additionalRouter,
     params: {
       orgId: organization.slug,
-      projectId: projects[0]?.slug,
       ...additionalRouter?.params,
     },
   });
@@ -60,31 +46,13 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     },
   ]);
 
-  /**
-   * A collection of router props that are passed to components by react-router
-   *
-   * Pass custom router params like so:
-   * ```ts
-   * initializeOrg({router: {params: {alertId: '123'}}})
-   * ```
-   */
-  const routerProps: RouteComponentProps<RouterParams, {}> = {
-    params: router.params as any,
-    routeParams: router.params,
-    router,
-    route: router.routes[0],
-    routes: router.routes,
-    location: routerContext.context.location,
-  };
-
   return {
     organization,
     project,
     projects,
     router,
     routerContext,
-    routerProps,
-    // @deprecated - not sure what purpose this serves
+    // not sure what purpose this serves
     route: {},
   };
 }

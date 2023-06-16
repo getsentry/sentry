@@ -60,6 +60,9 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 
 const render: typeof baseRender = children => {
   const {router, routerContext} = initializeOrg({
+    organization: {},
+    project: TestStubs.Project(),
+    projects: [TestStubs.Project()],
     router: {
       routes: [
         {path: '/'},
