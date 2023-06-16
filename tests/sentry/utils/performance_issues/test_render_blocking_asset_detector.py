@@ -1,10 +1,10 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
@@ -60,7 +60,7 @@ def find_problems(settings, event: Event) -> List[PerformanceProblem]:
 
 @region_silo_test
 @pytest.mark.django_db
-class RenderBlockingAssetDetectorTest(unittest.TestCase):
+class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -88,6 +88,28 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 evidence_display=[],
             )
         ]
+
+    # TODO Abdullah Khan: Uncomment after detection_rate migration
+    # def test_respects_project_option(self):
+    #     project = self.create_project()
+    #     event = _valid_render_blocking_asset_event("https://example.com/a.js")
+    #     event["project_id"] = project.id
+
+    #     settings = get_detection_settings(project.id)
+    #     detector = RenderBlockingAssetSpanDetector(settings, event)
+
+    #     assert detector.is_creation_allowed_for_project(project)
+
+    #     ProjectOption.objects.set_value(
+    #         project=project,
+    #         key="sentry:performance_issue_settings",
+    #         value={"large_render_blocking_asset_detection_enabled": False},
+    #     )
+
+    #     settings = get_detection_settings(project.id)
+    #     detector = RenderBlockingAssetSpanDetector(settings, event)
+
+    #     assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_detect_if_resource_overlaps_fcp(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")

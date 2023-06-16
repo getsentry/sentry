@@ -59,7 +59,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return (
+            True  # TODO Remove after detection_rate migration: self.settings["detection_enabled"]
+        )
 
     def visit_span(self, span: Span):
         if not self.fcp:

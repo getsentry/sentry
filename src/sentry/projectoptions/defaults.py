@@ -103,7 +103,16 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "consecutive_db_queries_detection_rate": 1.0,
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
+    "large_http_payload_detection_enabled": True,
+    "n_plus_one_db_queries_detection_enabled": True,
+    "n_plus_one_api_calls_detection_enabled": True,
+    "db_on_main_thread_detection_enabled": True,
+    "file_io_on_main_thread_detection_enabled": True,
+    "consecutive_db_queries_detection_enabled": True,
+    "large_render_blocking_asset_detection_enabled": True,
+    "slow_db_queries_detection_enabled": True,
 }
+
 # A dict containing all the specific detection thresholds and rates.
 register(
     key="sentry:performance_issue_settings",

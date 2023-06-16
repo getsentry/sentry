@@ -188,6 +188,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             {
                 "duration_threshold": 1000.0,  # ms
                 "allowed_span_ops": ["db"],
+                "detection_enabled": settings["slow_db_queries_detection_enabled"],
             },
         ],
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
@@ -195,10 +196,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
             "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
             "minimum_size_bytes": settings["render_blocking_bytes_min"],  # in bytes
+            "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
             "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
@@ -213,31 +216,36 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
+            "detection_enabled": settings["consecutive_db_queries_detection_enabled"],
             "detection_rate": settings["consecutive_db_queries_detection_rate"],
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
                 # 16ms is when frame drops will start being evident
                 "duration_threshold": 16,
+                "detection_enabled": settings["file_io_on_main_thread_detection_enabled"],
             }
         ],
         DetectorType.DB_MAIN_THREAD: [
             {
                 # Basically the same as file io, but db instead, so continue using 16ms
                 "duration_threshold": 16,
+                "detection_enabled": settings["db_on_main_thread_detection_enabled"],
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
+            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
             "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
@@ -257,7 +265,8 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {
-            "payload_size_threshold": settings["large_http_payload_size_threshold"]
+            "payload_size_threshold": settings["large_http_payload_size_threshold"],
+            "detection_enabled": settings["large_http_payload_detection_enabled"],
         },
     }
 
