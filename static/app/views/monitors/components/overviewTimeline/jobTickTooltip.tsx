@@ -41,6 +41,7 @@ export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props)
         )}
       </TooltipTimeLabel>
       <StatusCountContainer>
+        {/* Visually hidden but kept here for accessibility */}
         <HiddenHeader>
           <tr>
             <td>{t('Status')}</td>
