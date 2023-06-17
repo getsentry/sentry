@@ -25,7 +25,7 @@ from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERAT
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
-    get_teams_for_user,
+    get_teams_for_users,
     parse_actor_or_none_value,
     parse_release,
     parse_status_value,
@@ -92,7 +92,7 @@ def convert_actor_or_none_value(
     actors_or_none = []
     for actor in value:
         if actor == "my_teams":
-            actors_or_none.extend(get_teams_for_user(projects, user))
+            actors_or_none.extend(get_teams_for_users(projects, [user]))
         else:
             actors_or_none.append(parse_actor_or_none_value(projects, actor, user))
     return actors_or_none
