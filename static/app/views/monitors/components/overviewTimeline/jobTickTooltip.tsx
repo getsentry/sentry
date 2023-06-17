@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import DateTime from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   JobTickData,
@@ -40,22 +41,31 @@ export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props)
         )}
       </TooltipTimeLabel>
       <StatusCountContainer>
-        {Object.entries(envMapping).map(([envName, statusCounts]) =>
-          Object.entries(statusCounts).map(
-            ([status, count]) =>
-              count > 0 && (
-                <Fragment key={`${envName}:${status}`}>
-                  {/* TODO(davidenwang): fix types to remove "as" here */}
-                  <StatusLabel status={status as CheckInStatus}>
-                    {statusToText[status]}
-                  </StatusLabel>
-                  {/* TODO(davidenwang): handle long env names */}
-                  <Text>{envName}</Text>
-                  <StatusCount>{count}</StatusCount>
-                </Fragment>
-              )
-          )
-        )}
+        <HiddenHeader>
+          <tr>
+            <td>{t('Status')}</td>
+            <td>{t('Environment')}</td>
+            <td>{t('Count')}</td>
+          </tr>
+        </HiddenHeader>
+        <tbody>
+          {Object.entries(envMapping).map(([envName, statusCounts]) =>
+            Object.entries(statusCounts).map(
+              ([status, count]) =>
+                count > 0 && (
+                  <tr key={`${envName}:${status}`}>
+                    {/* TODO(davidenwang): fix types to remove "as" here */}
+                    <StatusLabel status={status as CheckInStatus}>
+                      {statusToText[status]}
+                    </StatusLabel>
+                    {/* TODO(davidenwang): handle long env names */}
+                    <EnvLabel>{envName}</EnvLabel>
+                    <StatusCount>{count}</StatusCount>
+                  </tr>
+                )
+            )
+          )}
+        </tbody>
       </StatusCountContainer>
     </Fragment>
   );
@@ -67,10 +77,9 @@ export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props)
   );
 }
 
-const StatusCountContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr max-content;
-  gap: ${space(0.5)} ${space(1)};
+const StatusCountContainer = styled('table')`
+  width: 100%;
+  margin: 0;
 `;
 
 const TooltipTimeLabel = styled('div')`
@@ -79,11 +88,19 @@ const TooltipTimeLabel = styled('div')`
   justify-content: center;
 `;
 
-const StatusLabel = styled(Text)<{status: CheckInStatus}>`
+const HiddenHeader = styled('thead')`
+  display: none;
+`;
+
+const StatusLabel = styled('td')<{status: CheckInStatus}>`
   color: ${p => getColorsFromStatus(p.status, p.theme).labelColor};
   text-align: left;
 `;
 
-const StatusCount = styled(Text)`
+const StatusCount = styled('td')`
   font-variant-numeric: tabular-nums;
+`;
+
+const EnvLabel = styled('td')`
+  padding: ${space(0.25)} ${space(0.5)};
 `;

@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
 
@@ -7,7 +7,7 @@ type StatusCounts = [ok: number, missed: number, timeout: number, error: number]
 export function generateEnvMapping(name: string, counts: StatusCounts) {
   const [ok, missed, timeout, error] = counts;
   return {
-    [name]: {ok, timeout, error, missed},
+    [name]: {ok, missed, timeout, error},
   };
 }
 
@@ -27,12 +27,12 @@ describe('JobTickTooltip', function () {
 
     render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
 
-    expect(screen.getByText('Missed')).toBeInTheDocument();
-    expect(screen.getByText('prod')).toBeInTheDocument();
+    // Skip the header row
+    const statusRow = screen.getAllByRole('row')[1];
 
-    expect(screen.getByText('1')).toBeInTheDocument();
-    // Ensure we don't display "startTs - endTs"
-    expect(screen.queryByText('-')).not.toBeInTheDocument();
+    expect(within(statusRow).getByText('Missed')).toBeInTheDocument();
+    expect(within(statusRow).getByText('prod')).toBeInTheDocument();
+    expect(within(statusRow).getByText('1')).toBeInTheDocument();
   });
 
   it('renders tooltip representing multiple job runs 1 env', function () {
@@ -50,22 +50,31 @@ describe('JobTickTooltip', function () {
 
     render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
 
-    expect(screen.getByText('Okay')).toBeInTheDocument();
-    expect(screen.getByText('Missed')).toBeInTheDocument();
-    expect(screen.getByText('Timed Out')).toBeInTheDocument();
-    expect(screen.getByText('Failed')).toBeInTheDocument();
+    const okayRow = screen.getAllByRole('row')[1];
+    expect(within(okayRow).getByText('Okay')).toBeInTheDocument();
+    expect(within(okayRow).getByText('prod')).toBeInTheDocument();
+    expect(within(okayRow).getByText('1')).toBeInTheDocument();
 
-    expect(screen.getAllByText('prod')).toHaveLength(4);
+    const missedRow = screen.getAllByRole('row')[2];
+    expect(within(missedRow).getByText('Missed')).toBeInTheDocument();
+    expect(within(missedRow).getByText('prod')).toBeInTheDocument();
+    expect(within(missedRow).getByText('1')).toBeInTheDocument();
 
-    expect(screen.getAllByText('1')).toHaveLength(4);
-    // Ensure we display "startTs - endTs"
-    expect(screen.queryByText('-')).toBeInTheDocument();
+    const timeoutRow = screen.getAllByRole('row')[3];
+    expect(within(timeoutRow).getByText('Timed Out')).toBeInTheDocument();
+    expect(within(timeoutRow).getByText('prod')).toBeInTheDocument();
+    expect(within(timeoutRow).getByText('1')).toBeInTheDocument();
+
+    const errorRow = screen.getAllByRole('row')[4];
+    expect(within(errorRow).getByText('Failed')).toBeInTheDocument();
+    expect(within(errorRow).getByText('prod')).toBeInTheDocument();
+    expect(within(errorRow).getByText('1')).toBeInTheDocument();
   });
 
   it('renders tooltip representing multiple job runs multiple envs', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const prodEnvMapping = generateEnvMapping('prod', [0, 1, 0, 2]);
+    const prodEnvMapping = generateEnvMapping('prod', [0, 1, 0, 0]);
     const devEnvMapping = generateEnvMapping('dev', [1, 2, 1, 0]);
     const envMapping = {...prodEnvMapping, ...devEnvMapping};
     const jobTick = {
@@ -79,17 +88,24 @@ describe('JobTickTooltip', function () {
 
     render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
 
-    expect(screen.getByText('Okay')).toBeInTheDocument();
-    expect(screen.getAllByText('Missed')).toHaveLength(2);
-    expect(screen.getByText('Timed Out')).toBeInTheDocument();
-    expect(screen.getByText('Failed')).toBeInTheDocument();
+    const missedProdRow = screen.getAllByRole('row')[1];
+    expect(within(missedProdRow).getByText('Missed')).toBeInTheDocument();
+    expect(within(missedProdRow).getByText('prod')).toBeInTheDocument();
+    expect(within(missedProdRow).getByText('1')).toBeInTheDocument();
 
-    expect(screen.getAllByText('prod')).toHaveLength(2);
-    expect(screen.getAllByText('dev')).toHaveLength(3);
+    const okDevRow = screen.getAllByRole('row')[2];
+    expect(within(okDevRow).getByText('Okay')).toBeInTheDocument();
+    expect(within(okDevRow).getByText('dev')).toBeInTheDocument();
+    expect(within(okDevRow).getByText('1')).toBeInTheDocument();
 
-    expect(screen.getAllByText('1')).toHaveLength(3);
-    expect(screen.getAllByText('2')).toHaveLength(2);
-    // Ensure we display "startTs - endTs"
-    expect(screen.queryByText('-')).toBeInTheDocument();
+    const missedDevRow = screen.getAllByRole('row')[3];
+    expect(within(missedDevRow).getByText('Missed')).toBeInTheDocument();
+    expect(within(missedDevRow).getByText('dev')).toBeInTheDocument();
+    expect(within(missedDevRow).getByText('2')).toBeInTheDocument();
+
+    const timeoutDevRow = screen.getAllByRole('row')[4];
+    expect(within(timeoutDevRow).getByText('Timed Out')).toBeInTheDocument();
+    expect(within(timeoutDevRow).getByText('dev')).toBeInTheDocument();
+    expect(within(timeoutDevRow).getByText('1')).toBeInTheDocument();
   });
 });
