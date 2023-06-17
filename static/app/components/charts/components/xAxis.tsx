@@ -32,7 +32,7 @@ function XAxis({
   ...props
 }: Props): XAXisComponentOption {
   const AxisLabelFormatter = (value: string, index: number) => {
-    const timeFormat = getTimeFormat({displaySeconds: addSecondsToTimeFormat});
+    const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
     const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
     const firstItem = index === 0;
     const format =
