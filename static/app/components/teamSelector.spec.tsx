@@ -31,12 +31,13 @@ const project = TestStubs.Project({teams: [teams[0]]});
 const organization = TestStubs.Organization({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
-function createWrapper(props = {}) {
+function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>> = {}) {
   return render(
     <TeamSelector
       organization={organization}
       name="teamSelector"
       aria-label="Select a team"
+      onChange={() => {}}
       {...props}
     />
   );
