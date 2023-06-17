@@ -1,6 +1,7 @@
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import {OnboardingTaskKey} from 'sentry/types';
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();
@@ -17,9 +18,9 @@ describe('actionCreators/onboardingTasks', function () {
 
       // User is not passed into the update request
       const testTask = {
-        task: 'create_project',
+        task: OnboardingTaskKey.FIRST_PROJECT,
         status: 'complete',
-      };
+      } as const;
 
       const mockUpdate = MockApiClient.addMockResponse({
         url: `/organizations/${detailedOrg.slug}/onboarding-tasks/`,
@@ -41,13 +42,13 @@ describe('actionCreators/onboardingTasks', function () {
       const detailedOrg = TestStubs.Organization({
         teams: [TestStubs.Team()],
         projects: [TestStubs.Project()],
-        onboardingTasks: [{task: 'first_event', status: 'skipped'}],
+        onboardingTasks: [{task: 'send_first_event', status: 'skipped'}],
       });
 
       const testTask = {
-        task: 'first_event',
+        task: OnboardingTaskKey.FIRST_EVENT,
         status: 'complete',
-      };
+      } as const;
 
       MockApiClient.clearMockResponses();
       const mockUpdate = MockApiClient.addMockResponse({
@@ -75,9 +76,9 @@ describe('actionCreators/onboardingTasks', function () {
       });
 
       const testTask = {
-        task: 'first_event',
+        task: OnboardingTaskKey.FIRST_EVENT,
         status: 'complete',
-      };
+      } as const;
 
       const mockUpdate = MockApiClient.addMockResponse({
         url: `/organizations/${detailedOrg.slug}/onboarding-tasks/`,
