@@ -97,7 +97,7 @@ class PostProcessForwarder:
     ) -> StreamProcessor[KafkaPayload]:
         configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]  # type: ignore
 
         consumer = KafkaConsumer(
             build_kafka_consumer_configuration(
