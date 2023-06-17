@@ -1,9 +1,9 @@
-import {ComponentProps, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -15,7 +15,7 @@ import {getColorsFromStatus, statusToText} from 'sentry/views/monitors/utils';
 
 import {timeWindowData} from './utils';
 
-interface Props extends Omit<ComponentProps<typeof Tooltip>, 'title'> {
+interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;
   timeWindow: TimeWindow;
 }
@@ -89,7 +89,10 @@ const TooltipTimeLabel = styled('div')`
 `;
 
 const HiddenHeader = styled('thead')`
-  display: none;
+  display: block;
+  overflow: hidden;
+  height: 0;
+  width: 0;
 `;
 
 const StatusLabel = styled('td')<{status: CheckInStatus}>`
