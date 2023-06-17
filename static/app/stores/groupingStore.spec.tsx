@@ -9,7 +9,7 @@ describe('Grouping Store', function () {
   });
 
   afterAll(function () {
-    MockApiClient.asyncDelay = null;
+    MockApiClient.asyncDelay = undefined;
   });
 
   beforeEach(function () {
@@ -290,8 +290,8 @@ describe('Grouping Store', function () {
 
         mergeList = ['1'];
         mergeState.set('1', {checked: true});
-        expect(GroupingStore.mergeList).toEqual(mergeList);
-        expect(GroupingStore.mergeState).toEqual(mergeState);
+        expect(GroupingStore.getState().mergeList).toEqual(mergeList);
+        expect(GroupingStore.getState().mergeState).toEqual(mergeState);
 
         // Uncheck
         GroupingStore.onToggleMerge('1');
@@ -308,8 +308,8 @@ describe('Grouping Store', function () {
         mergeState.set('2', {checked: true});
         mergeState.set('3', {checked: true});
 
-        expect(GroupingStore.mergeList).toEqual(mergeList);
-        expect(GroupingStore.mergeState).toEqual(mergeState);
+        expect(GroupingStore.getState().mergeList).toEqual(mergeList);
+        expect(GroupingStore.getState().mergeState).toEqual(mergeState);
 
         expect(trigger).toHaveBeenLastCalledWith({
           mergeDisabled: false,
@@ -487,7 +487,7 @@ describe('Grouping Store', function () {
       ]);
 
       trigger.mockClear();
-      unmergeState = new Map([...GroupingStore.unmergeState]);
+      unmergeState = new Map([...GroupingStore.getState().unmergeState]);
     });
 
     // WARNING: all the tests in this describe block are not running in isolated state.
@@ -498,8 +498,8 @@ describe('Grouping Store', function () {
       it('can not check locked item', function () {
         GroupingStore.onToggleUnmerge('1');
 
-        expect(GroupingStore.unmergeList).toEqual(unmergeList);
-        expect(GroupingStore.unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
+        expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
         expect(trigger).not.toHaveBeenCalled();
       });
 
@@ -509,24 +509,24 @@ describe('Grouping Store', function () {
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {busy: false, checked: true});
 
-        expect(GroupingStore.unmergeList).toEqual(unmergeList);
-        expect(GroupingStore.unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
+        expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
 
         // Uncheck
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.delete('2');
         unmergeState.set('2', {busy: false, checked: false});
 
-        expect(GroupingStore.unmergeList).toEqual(unmergeList);
-        expect(GroupingStore.unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
+        expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
 
         // Check
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
         unmergeState.set('2', {busy: false, checked: true});
 
-        expect(GroupingStore.unmergeList).toEqual(unmergeList);
-        expect(GroupingStore.unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
+        expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
 
         expect(trigger).toHaveBeenLastCalledWith({
           enableFingerprintCompare: false,
@@ -538,14 +538,14 @@ describe('Grouping Store', function () {
       });
 
       it('should have Compare button enabled only when two fingerprints are checked', function () {
-        expect(GroupingStore.enableFingerprintCompare).toBe(false);
+        expect(GroupingStore.getState().enableFingerprintCompare).toBe(false);
 
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         GroupingStore.onToggleUnmerge(['3', 'event-3']);
-        expect(GroupingStore.enableFingerprintCompare).toBe(true);
+        expect(GroupingStore.getState().enableFingerprintCompare).toBe(true);
 
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
-        expect(GroupingStore.enableFingerprintCompare).toBe(false);
+        expect(GroupingStore.getState().enableFingerprintCompare).toBe(false);
       });
 
       it('selecting all available checkboxes should disable the unmerge button and re-enable when unchecking', function () {
@@ -559,18 +559,18 @@ describe('Grouping Store', function () {
         unmergeState.set('3', {busy: false, checked: true});
         unmergeState.set('4', {busy: false, checked: true});
 
-        expect(GroupingStore.unmergeList).toEqual(unmergeList);
-        expect(GroupingStore.unmergeState).toEqual(unmergeState);
-        expect(GroupingStore.unmergeDisabled).toBe(true);
+        expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
+        expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.getState().unmergeDisabled).toBe(true);
 
         // Unchecking
         GroupingStore.onToggleUnmerge(['4', 'event-4']);
         unmergeList.delete('4');
         unmergeState.set('4', {busy: false, checked: false});
 
-        expect(GroupingStore.unmergeList).toEqual(unmergeList);
-        expect(GroupingStore.unmergeState).toEqual(unmergeState);
-        expect(GroupingStore.unmergeDisabled).toBe(false);
+        expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
+        expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
+        expect(GroupingStore.getState().unmergeDisabled).toBe(false);
 
         expect(trigger).toHaveBeenLastCalledWith({
           enableFingerprintCompare: true,
