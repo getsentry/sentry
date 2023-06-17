@@ -3,22 +3,21 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {fetchIncident} from './utils/apiCalls';
 import {alertDetailsLink} from './utils';
 
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<{alertId: string}, {}>;
+type Props = {} & RouteComponentProps<{alertId: string}, {}>;
 
 /**
  * Reirects from an incident to the incident's metric alert details page
  */
-function IncidentRedirect({organization, params}: Props) {
+function IncidentRedirect({params}: Props) {
+  const organization = useOrganization();
   const api = useApi();
   const [hasError, setHasError] = useState(false);
 

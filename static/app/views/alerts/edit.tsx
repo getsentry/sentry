@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Teams from 'sentry/utils/teams';
+import withOrganization from 'sentry/utils/withOrganization';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
@@ -20,7 +21,6 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  hasMetricAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
   project: Project;
@@ -60,7 +60,8 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, members} = this.props;
+    const {organization, project, members} = this.props;
+    const hasMetricAlerts = organization.features.includes('incidents');
     const alertType = this.getAlertType();
 
     return (
@@ -120,4 +121,4 @@ const EditConditionsBody = styled(Layout.Body)`
   }
 `;
 
-export default ProjectAlertsEditor;
+export default withOrganization(ProjectAlertsEditor);

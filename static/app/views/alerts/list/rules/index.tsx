@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
+import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import FilterBar from '../../filterBar';
@@ -304,7 +305,7 @@ class AlertRulesListContainer extends Component<Props> {
   }
 }
 
-export default withPageFilters(AlertRulesListContainer);
+export default withOrganization(withPageFilters(AlertRulesListContainer));
 
 const StyledSortLink = styled(Link)`
   color: inherit;

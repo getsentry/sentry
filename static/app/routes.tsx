@@ -1281,7 +1281,9 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/alerts/"
-          component={withDomainRequired(make(() => import('sentry/views/alerts')))}
+          component={withDomainRequired(
+            make(() => import('sentry/views/alerts/alertRoutesContainer'))
+          )}
           key="orgless-alerts-route"
         >
           {alertChildRoutes({forCustomerDomain: true})}
@@ -1289,7 +1291,9 @@ function buildRoutes() {
       )}
       <Route
         path="/organizations/:orgId/alerts/"
-        component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/alerts/alertRoutesContainer'))
+        )}
         key="org-alerts"
       >
         {alertChildRoutes({forCustomerDomain: false})}

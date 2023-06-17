@@ -6,7 +6,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import AlertsContainer from 'sentry/views/alerts';
 import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
@@ -78,19 +77,17 @@ describe('ProjectAlertsCreate', function () {
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = render(
-      <AlertsContainer>
-        <AlertBuilderProjectProvider params={params}>
-          <ProjectAlertsCreate
-            params={params}
-            location={{
-              pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
-              query: {createFromWizard: true},
-              ...location,
-            }}
-            router={router}
-          />
-        </AlertBuilderProjectProvider>
-      </AlertsContainer>,
+      <AlertBuilderProjectProvider params={params}>
+        <ProjectAlertsCreate
+          params={params}
+          location={{
+            pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
+            query: {createFromWizard: true},
+            ...location,
+          }}
+          router={router}
+        />
+      </AlertBuilderProjectProvider>,
       {organization, context: routerContext}
     );
 

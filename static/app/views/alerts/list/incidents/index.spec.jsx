@@ -5,7 +5,6 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
@@ -13,22 +12,17 @@ describe('IncidentsList', () => {
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const renderComponent = ({organization} = {}) => {
-    const context = initializeOrg({
+  const renderComponent = ({organization: org} = {}) => {
+    const {routerContext, organization, router} = initializeOrg({
       organization: {
         features: ['incidents'],
-        ...organization,
+        ...org,
       },
     });
-    const routerContext = context.routerContext;
-    const org = context.organization;
-    const router = context.router;
     return {
       component: render(
-        <AlertsContainer>
-          <IncidentsList params={{}} location={{query: {}, search: ''}} router={router} />
-        </AlertsContainer>,
-        {context: routerContext, organization: org}
+        <IncidentsList params={{}} location={{query: {}, search: ''}} router={router} />,
+        {context: routerContext, organization}
       ),
       router,
     };

@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import FilterBar from '../../filterBar';
 import {Incident} from '../../types';
@@ -329,4 +330,4 @@ const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-export default IncidentsListContainer;
+export default withOrganization(IncidentsListContainer);

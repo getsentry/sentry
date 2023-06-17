@@ -6,15 +6,14 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Member, Organization} from 'sentry/types';
+import {Member} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  hasMetricAlerts: boolean;
-  organization: Organization;
   children?: React.ReactNode;
 };
 
@@ -23,12 +22,13 @@ type RouteParams = {
 };
 
 function AlertBuilderProjectProvider(props: Props) {
+  const organization = useOrganization();
   const api = useApi();
   const isMountedRef = useIsMountedRef();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location: props.location});
 
-  const {children, params, organization, ...other} = props;
+  const {children, params, ...other} = props;
   const projectId = params.projectId || props.location.query.project;
   const useFirstProject = projectId === undefined;
 
@@ -77,7 +77,6 @@ function AlertBuilderProjectProvider(props: Props) {
             ...children.props,
             project,
             projectId: useFirstProject ? project.slug : projectId,
-            organization,
             members,
           })
         : children}

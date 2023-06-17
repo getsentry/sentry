@@ -14,6 +14,7 @@ import withRouteAnalytics, {
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import Teams from 'sentry/utils/teams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withOrganization from 'sentry/utils/withOrganization';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
@@ -34,7 +35,6 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> &
   WithRouteAnalyticsProps & {
-    hasMetricAlerts: boolean;
     members: Member[] | undefined;
     organization: Organization;
     project: Project;
@@ -97,7 +97,7 @@ class Create extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, location, members} = this.props;
+    const {organization, project, location, members} = this.props;
     const {alertType} = this.state;
     const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
       location?.query ?? {};
@@ -106,6 +106,7 @@ class Create extends Component<Props, State> {
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
       eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
     };
+    const hasMetricAlerts = organization.features.includes('incidents');
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
     let wizardAlertType: undefined | WizardAlertType;
@@ -194,4 +195,4 @@ const Body = styled(Layout.Body)`
   }
 `;
 
-export default withRouteAnalytics(Create);
+export default withRouteAnalytics(withOrganization(Create));

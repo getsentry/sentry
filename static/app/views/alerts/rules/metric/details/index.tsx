@@ -15,6 +15,7 @@ import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {Incident} from 'sentry/views/alerts/types';
@@ -260,4 +261,4 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(withProjects(MetricAlertDetails));
+export default withApi(withOrganization(withProjects(MetricAlertDetails)));

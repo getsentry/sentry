@@ -14,8 +14,8 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -35,13 +35,13 @@ type RouteParams = {
 };
 
 type AlertWizardProps = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
   projectId: string;
 };
 
 const DEFAULT_ALERT_OPTION = 'issues';
 
-function AlertWizard({organization, params, location, projectId}: AlertWizardProps) {
+function AlertWizard({params, location, projectId}: AlertWizardProps) {
+  const organization = useOrganization();
   const [alertOption, setAlertOption] = useState<AlertType>(
     location.query.alert_option in AlertWizardAlertNames
       ? location.query.alert_option
