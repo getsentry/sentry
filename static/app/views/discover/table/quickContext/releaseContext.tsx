@@ -14,7 +14,7 @@ import {ReleaseWithHealth, User} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {NoContext} from './quickContextWrapper';
+import {NoContext} from './quickContextHovercard';
 import {
   ContextBody,
   ContextContainer,

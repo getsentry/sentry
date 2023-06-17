@@ -57,7 +57,7 @@ import {
   pushEventViewToLocation,
 } from '../utils';
 
-import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
+import {HoverWrapper, QuickContextHovercard} from './quickContext/quickContextHovercard';
 import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
@@ -204,16 +204,17 @@ function TableView(props: TableViewProps) {
       );
 
       return [
-        <QuickContextHoverWrapper
-          key={`quickContextEventHover${rowIndex}`}
-          dataRow={dataRow}
-          contextType={ContextType.EVENT}
-          organization={organization}
-          projects={projects}
-          eventView={eventView}
-        >
-          {eventIdLink}
-        </QuickContextHoverWrapper>,
+        <HoverWrapper key={`quickContextEventHover${rowIndex}`}>
+          <QuickContextHovercard
+            dataRow={dataRow}
+            contextType={ContextType.EVENT}
+            organization={organization}
+            projects={projects}
+            eventView={eventView}
+          >
+            {eventIdLink}
+          </QuickContextHovercard>
+        </HoverWrapper>,
       ];
     }
     return [];
@@ -311,15 +312,17 @@ function TableView(props: TableViewProps) {
       );
 
       cell = (
-        <QuickContextHoverWrapper
-          organization={organization}
-          dataRow={dataRow}
-          contextType={ContextType.EVENT}
-          projects={projects}
-          eventView={eventView}
-        >
-          {idLink}
-        </QuickContextHoverWrapper>
+        <HoverWrapper>
+          <QuickContextHovercard
+            organization={organization}
+            dataRow={dataRow}
+            contextType={ContextType.EVENT}
+            projects={projects}
+            eventView={eventView}
+          >
+            {idLink}
+          </QuickContextHovercard>
+        </HoverWrapper>
       );
     } else if (columnKey === 'transaction' && dataRow.transaction) {
       cell = (

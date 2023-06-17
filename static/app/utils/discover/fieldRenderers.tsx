@@ -39,7 +39,10 @@ import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
-import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {
+  HoverWrapper,
+  QuickContextHovercard,
+} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
   filterToLocationQuery,
@@ -485,15 +488,17 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            <StyledLink to={target} aria-label={issueID}>
-              <OverflowFieldShortId shortId={`${data.issue}`} />
-            </StyledLink>
-          </QuickContextHoverWrapper>
+          <HoverWrapper>
+            <QuickContextHovercard
+              dataRow={data}
+              contextType={ContextType.ISSUE}
+              organization={organization}
+            >
+              <StyledLink to={target} aria-label={issueID}>
+                <OverflowFieldShortId shortId={`${data.issue}`} />
+              </StyledLink>
+            </QuickContextHovercard>
+          </HoverWrapper>
         </Container>
       );
     },
@@ -593,13 +598,15 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.RELEASE}
-            organization={organization}
-          >
-            <Version version={data.release} truncate />
-          </QuickContextHoverWrapper>
+          <HoverWrapper>
+            <QuickContextHovercard
+              dataRow={data}
+              contextType={ContextType.RELEASE}
+              organization={organization}
+            >
+              <Version version={data.release} truncate />
+            </QuickContextHovercard>
+          </HoverWrapper>
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>

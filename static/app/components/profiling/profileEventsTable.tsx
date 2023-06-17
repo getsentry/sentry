@@ -25,7 +25,10 @@ import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {
+  HoverWrapper,
+  QuickContextHovercard,
+} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
@@ -190,13 +193,15 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   if (key === 'release') {
     if (value) {
       return (
-        <QuickContextHoverWrapper
-          dataRow={props.dataRow}
-          contextType={ContextType.RELEASE}
-          organization={props.baggage.organization}
-        >
-          <Version version={value} truncate />
-        </QuickContextHoverWrapper>
+        <HoverWrapper>
+          <QuickContextHovercard
+            dataRow={props.dataRow}
+            contextType={ContextType.RELEASE}
+            organization={props.baggage.organization}
+          >
+            <Version version={value} truncate />
+          </QuickContextHovercard>
+        </HoverWrapper>
       );
     }
   }

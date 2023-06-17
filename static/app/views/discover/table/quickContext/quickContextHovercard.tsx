@@ -1,3 +1,4 @@
+import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -149,37 +150,44 @@ function HoverHeader({
   );
 }
 
-type ContextProps = {
+interface ContextProps extends ComponentProps<typeof Hovercard> {
   children: React.ReactNode;
   contextType: ContextType;
   dataRow: EventData;
   organization: Organization;
   eventView?: EventView;
   projects?: Project[];
-};
+}
 
-export function QuickContextHoverWrapper(props: ContextProps) {
+export function QuickContextHovercard(props: ContextProps) {
   const location = useLocation();
-  const {dataRow, contextType, organization, projects, eventView} = props;
+  const {
+    children,
+    dataRow,
+    contextType,
+    organization,
+    projects,
+    eventView,
+    ...hovercardProps
+  } = props;
 
   return (
-    <HoverWrapper>
-      <StyledHovercard
-        showUnderline
-        delay={HOVER_DELAY}
-        header={getHoverHeader(dataRow, contextType, organization)}
-        body={getHoverBody(
-          dataRow,
-          contextType,
-          organization,
-          location,
-          projects,
-          eventView
-        )}
-      >
-        {props.children}
-      </StyledHovercard>
-    </HoverWrapper>
+    <StyledHovercard
+      {...hovercardProps}
+      showUnderline
+      delay={HOVER_DELAY}
+      header={getHoverHeader(dataRow, contextType, organization)}
+      body={getHoverBody(
+        dataRow,
+        contextType,
+        organization,
+        location,
+        projects,
+        eventView
+      )}
+    >
+      {children}
+    </StyledHovercard>
   );
 }
 
@@ -190,7 +198,7 @@ const StyledHovercard = styled(Hovercard)`
   min-width: max-content;
 `;
 
-const HoverWrapper = styled('div')`
+export const HoverWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
