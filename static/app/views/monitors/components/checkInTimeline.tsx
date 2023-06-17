@@ -1,12 +1,14 @@
-import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
 import {Resizeable} from 'sentry/components/replays/resizeable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
+import {
+  MonitorBucketData,
+  TimeWindow,
+} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
+import {getColorsFromStatus} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
@@ -14,18 +16,8 @@ interface Props {
   bucketedData: MonitorBucketData;
   end: Date;
   start: Date;
+  timeWindow: TimeWindow;
   width?: number;
-}
-
-function getColorFromStatus(status: CheckInStatus, theme: Theme) {
-  const statusToColor: Record<CheckInStatus, string> = {
-    [CheckInStatus.ERROR]: theme.red200,
-    [CheckInStatus.TIMEOUT]: theme.red200,
-    [CheckInStatus.OK]: theme.green200,
-    [CheckInStatus.MISSED]: theme.yellow200,
-    [CheckInStatus.IN_PROGRESS]: theme.disabled,
-  };
-  return statusToColor[status];
 }
 
 function getBucketedCheckInsPosition(
@@ -38,35 +30,43 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: Props) {
-  const {bucketedData, start, end} = props;
+  const {bucketedData, start, end, timeWindow} = props;
 
   function renderTimelineWithWidth(width: number) {
-    const timeWindow = end.getTime() - start.getTime();
-    const msPerPixel = timeWindow / width;
+    const elapsedMs = end.getTime() - start.getTime();
+    const msPerPixel = elapsedMs / width;
 
     const jobTicks = mergeBuckets(bucketedData);
 
     return (
       <TimelineContainer>
-        {jobTicks.map(
-          ({startTs, width: tickWidth, envMapping, roundedLeft, roundedRight}) => {
-            const timestampMs = startTs * 1000;
-            const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+        {jobTicks.map(jobTick => {
+          const {
+            startTs,
+            width: tickWidth,
+            envMapping,
+            roundedLeft,
+            roundedRight,
+          } = jobTick;
+          const timestampMs = startTs * 1000;
+          const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
 
-            return (
-              <JobTickContainer style={{left}} key={startTs}>
-                <Tooltip title={<DateTime date={timestampMs} seconds />}>
-                  <JobTick
-                    style={{width: tickWidth}}
-                    status={getAggregateStatus(envMapping)}
-                    roundedLeft={roundedLeft}
-                    roundedRight={roundedRight}
-                  />
-                </Tooltip>
-              </JobTickContainer>
-            );
-          }
-        )}
+          return (
+            <JobTickTooltip
+              jobTick={jobTick}
+              timeWindow={timeWindow}
+              skipWrapper
+              key={startTs}
+            >
+              <JobTick
+                style={{left, width: tickWidth}}
+                status={getAggregateStatus(envMapping)}
+                roundedLeft={roundedLeft}
+                roundedRight={roundedRight}
+              />
+            </JobTickTooltip>
+          );
+        })}
       </TimelineContainer>
     );
   }
@@ -84,16 +84,13 @@ const TimelineContainer = styled('div')`
   margin: ${space(2)} 0;
 `;
 
-const JobTickContainer = styled('div')`
-  position: absolute;
-`;
-
 const JobTick = styled('div')<{
   roundedLeft: boolean;
   roundedRight: boolean;
   status: CheckInStatus;
 }>`
-  background: ${p => getColorFromStatus(p.status, p.theme)};
+  position: absolute;
+  background: ${p => getColorsFromStatus(p.status, p.theme).tickColor};
   width: 4px;
   height: 14px;
   ${p =>
