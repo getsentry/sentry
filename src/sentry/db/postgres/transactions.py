@@ -33,7 +33,7 @@ def django_test_transaction_water_mark(using: str = "default"):
     try:
         yield
     finally:
-        hybrid_cloud.simulated_transaction_watermark = prev
+        hybrid_cloud.simulated_transaction_watermarks[using] = prev
 
 
 def in_test_assert_no_transaction(msg: str):
