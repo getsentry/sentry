@@ -177,7 +177,7 @@ def simulate_on_commit(request: Any):
         connection = transaction.get_connection(self.using)
         if (
             connection.in_atomic_block
-            and len(connection.savepoint_ids) < simulated_transaction_watermarks.get(self.using, 0)
+            and len(connection.savepoint_ids) <= simulated_transaction_watermarks.get(self.using, 0)
             and exc_type is None
             and not connection.closed_in_transaction
             and not connection.needs_rollback
