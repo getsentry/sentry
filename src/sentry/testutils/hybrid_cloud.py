@@ -161,6 +161,7 @@ def simulate_on_commit(request: Any):
 
     from django.conf import settings
     from django.db import transaction
+    from django.db.backends.base.base import BaseDatabaseWrapper
     from django.test import TestCase as DjangoTestCase
 
     request_node_cls = request.node.cls
@@ -170,16 +171,13 @@ def simulate_on_commit(request: Any):
         return
 
     _old_atomic_exit = transaction.Atomic.__exit__
+    _old_transaction_on_commit = transaction.on_commit
 
-    def new_atomic_exit(self, exc_type, *args, **kwds):
-        _old_atomic_exit(self, exc_type, *args, **kwds)
-
-        connection = transaction.get_connection(self.using)
+    def maybe_flush_commit_hooks(connection):
         if (
             connection.in_atomic_block
             and len(connection.savepoint_ids)
-            <= simulated_transaction_watermarks.get(self.using or "default", 0)
-            and exc_type is None
+            <= simulated_transaction_watermarks.get(connection.alias or "default", 0)
             and not connection.closed_in_transaction
             and not connection.needs_rollback
         ):
@@ -190,8 +188,22 @@ def simulate_on_commit(request: Any):
             finally:
                 connection.validate_no_atomic_block = old_validate
 
+    def new_atomic_exit(self, exc_type, *args, **kwds):
+        _old_atomic_exit(self, exc_type, *args, **kwds)
+        if exc_type is not None:
+            return
+        connection = transaction.get_connection(self.using)
+        maybe_flush_commit_hooks(connection)
+
+    def new_atomic_on_commit(func, using=None):
+        _old_transaction_on_commit(func, using)
+        maybe_flush_commit_hooks(transaction.get_connection(using))
+
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
+    functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
     transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
+    transaction.on_commit = new_atomic_on_commit  # type: ignore
+    setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
 
     # django tests start inside two transactions
     for db_name in settings.DATABASES:
@@ -200,4 +212,6 @@ def simulate_on_commit(request: Any):
         yield
     finally:
         transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
+        transaction.on_commit = _old_transaction_on_commit
         simulated_transaction_watermarks.clear()
+        delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
