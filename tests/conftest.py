@@ -1,6 +1,4 @@
-import functools
 import os
-import threading
 from typing import MutableSet
 
 import pytest
@@ -146,51 +144,11 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
-def simulate_on_commit(request):
-    """
-    Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
-    correctly test on_commit hooks and detecting the state of transactions for various useful test assertions.
-    """
-    from django.db import transaction
-    from django.test import TestCase as DjangoTestCase
+def setup_simulate_on_commit(request):
+    from sentry.testutils.hybrid_cloud import simulate_on_commit
 
-    request_node_cls = request.node.cls
-
-    if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
+    with simulate_on_commit(request):
         yield
-        return
-
-    _old_atomic_exit = transaction.Atomic.__exit__
-
-    def new_atomic_exit(self, exc_type, *args, **kwds):
-        if threading.current_thread() is threading.main_thread():
-            connection = get_connection(self.using)
-            if (
-                # There will be either 1 or 2 outer transactions imposed by django.
-                # Fire all the transaction hooks within this range.
-                len(connection.savepoint_ids) in {1, 2}
-                and exc_type is None
-                and not connection.closed_in_transaction
-                and not connection.needs_rollback
-            ):
-                _old_atomic_exit(self, exc_type, *args, **kwds)
-                old_validate = connection.validate_no_atomic_block
-                connection.validate_no_atomic_block = lambda: None
-                try:
-                    connection.run_and_clear_commit_hooks()
-                finally:
-                    connection.validate_no_atomic_block = old_validate
-                return
-
-        _old_atomic_exit(self, exc_type, *args, **kwds)
-
-    functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
-    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
-
-    try:
-        yield
-    finally:
-        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
 
 
 @pytest.fixture(autouse=True)

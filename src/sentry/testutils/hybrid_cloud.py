@@ -145,3 +145,58 @@ class HybridCloudTestMixin:
             organization_id=org_member.organization_id,
             organizationmember_id=org_member.id,
         ).exists()
+
+
+simulated_transaction_watermarks: dict[str, int] = {}
+
+
+@contextlib.contextmanager
+def simulate_on_commit(request: Any):
+    """
+    Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
+    correctly test on_commit hooks.  Allows the use of django_test_transaction_water_mark to create a 'simulated'
+    level of outer transaction that fires on_commit hooks, allowing for logic dependent on this behavior (usually
+    outbox processing) to correctly detect what outer
+    """
+
+    from django.conf import settings
+    from django.db import transaction
+    from django.test import TestCase as DjangoTestCase
+
+    request_node_cls = request.node.cls
+
+    if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
+        yield
+        return
+
+    _old_atomic_exit = transaction.Atomic.__exit__
+
+    def new_atomic_exit(self, exc_type, *args, **kwds):
+        _old_atomic_exit(self, exc_type, *args, **kwds)
+
+        connection = transaction.get_connection(self.using)
+        if (
+            connection.in_atomic_block
+            and len(connection.savepoint_ids) < simulated_transaction_watermarks.get(self.using, 0)
+            and exc_type is None
+            and not connection.closed_in_transaction
+            and not connection.needs_rollback
+        ):
+            old_validate = connection.validate_no_atomic_block
+            connection.validate_no_atomic_block = lambda: None
+            try:
+                connection.run_and_clear_commit_hooks()
+            finally:
+                connection.validate_no_atomic_block = old_validate
+
+    functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
+    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
+
+    # django tests start inside two transactions
+    for db_name in settings.DATABASES:
+        simulated_transaction_watermarks[db_name] = 1
+    try:
+        yield
+    finally:
+        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
+        simulated_transaction_watermarks.clear()

@@ -246,7 +246,7 @@ class OrganizationMember(Model):
     __org_roles_from_teams = None
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), kwds):
+        with outbox_context(transaction.atomic()):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
@@ -255,7 +255,7 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        with outbox_context(transaction.atomic(), kwargs):
+        with outbox_context(transaction.atomic()):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)

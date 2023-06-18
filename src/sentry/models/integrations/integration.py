@@ -67,7 +67,7 @@ class Integration(DefaultFieldsModel):
         return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), kwds, flush=False):
+        with outbox_context(transaction.atomic(), flush=False):
             for organization_integration in self.organizationintegration_set.all():
                 organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):

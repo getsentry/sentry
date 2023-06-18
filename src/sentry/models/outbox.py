@@ -8,6 +8,7 @@ import threading
 from enum import IntEnum
 from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
 
+from django import db
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max
 from django.db.transaction import Atomic
@@ -25,6 +26,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
@@ -148,8 +150,13 @@ class OutboxBase(Model):
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
-    def selected_messages_in_shard(self) -> models.QuerySet:
-        return self.objects.filter(**self.key_from(self.sharding_columns))
+    def selected_messages_in_shard(
+        self, latest_shard_row: OutboxBase | None = None
+    ) -> models.QuerySet:
+        filters: Mapping[str, Any] = (
+            {} if latest_shard_row is None else dict(id__lte=latest_shard_row.id)
+        )
+        return self.objects.filter(**self.key_from(self.sharding_columns), **filters)
 
     def select_coalesced_messages(self) -> models.QuerySet:
         return self.objects.filter(**self.key_from(self.coalesced_columns))
@@ -196,10 +203,13 @@ class OutboxBase(Model):
     ) -> Generator[OutboxBase | None, None, None]:
         flush_all: bool = not bool(latest_shard_row)
         next_shard_row: OutboxBase | None
-        with transaction.atomic():
+        using: str = db.router.db_for_write(type(self))
+        with transaction.atomic(using=using), django_test_transaction_water_mark(using=using):
             try:
                 next_shard_row = (
-                    self.selected_messages_in_shard().select_for_update(nowait=flush_all).first()
+                    self.selected_messages_in_shard(latest_shard_row=latest_shard_row)
+                    .select_for_update(nowait=flush_all)
+                    .first()
                 )
             except OperationalError as e:
                 if "LockNotAvailable" in str(e):
@@ -208,10 +218,6 @@ class OutboxBase(Model):
                 else:
                     raise e
 
-            # If we have an upper bound on rows to process, we stop once we find the suggestion of a row newer
-            # than that upper bound
-            if next_shard_row and latest_shard_row and latest_shard_row.id < next_shard_row.id:
-                next_shard_row = None
             yield next_shard_row
 
     @contextlib.contextmanager
@@ -436,9 +442,7 @@ _outbox_context = OutboxContext()
 
 
 @contextlib.contextmanager
-def outbox_context(
-    inner: Atomic | None = None, kwargs: dict[str, Any] | None = None, flush: bool | None = None
-) -> ContextManager[None]:
+def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
 
     # If we don't specify our flush, use the outer specified override
     if flush is None:
@@ -447,8 +451,6 @@ def outbox_context(
         if flush is None:
             flush = True
 
-    if kwargs:
-        flush = kwargs.pop("flush", flush)
     assert not flush or inner, "Must either set a transaction or flush=False"
 
     original = _outbox_context.flushing_enabled

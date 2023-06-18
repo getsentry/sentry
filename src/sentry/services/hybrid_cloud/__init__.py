@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import concurrent.futures
 import contextlib
 import datetime
 import functools
@@ -27,6 +26,7 @@ from typing import (
 import pydantic
 import sentry_sdk
 
+from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -246,6 +246,9 @@ def CreateStubFromBase(
 
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
+            in_test_assert_no_transaction(
+                f"remote service method {base.__name__}.{method_name} called inside transaction!  Move service calls to outside of transactions."
+            )
             from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
             with SiloMode.exit_single_process_silo_context():
@@ -257,19 +260,22 @@ def CreateStubFromBase(
                 auth_context: AuthenticationContext = AuthenticationContext()
                 if "auth_context" in call_args:
                     auth_context = call_args["auth_context"] or auth_context
-                with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
-                    target_mode
-                ):
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                        # Execute the copy on a separate thread,
-                        # creating a future object to track progress.
-                        future = executor.submit(method, *args, **kwds)
-                        try:
-                            return future.result()
-                        except Exception as e:
-                            raise RuntimeError(
-                                f"Service call failed: {base.__name__}.{method_name}"
-                            ) from e
+
+                try:
+                    with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
+                        target_mode
+                    ):
+                        return method(*args, **kwds)
+                except Exception as e:
+                    raise RuntimeError(f"Service call failed: {base.__name__}.{method_name}") from e
+                #
+                # with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                #     # Execute the copy on a separate thread,
+                #     # creating a future object to track progress.
+                #     future = executor.submit(wrapped_method, *args, **kwds)
+                #     try:
+                #         return future.result()
+                #     except Exception as e:
 
         return method
 

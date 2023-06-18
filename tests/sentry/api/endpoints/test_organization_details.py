@@ -770,9 +770,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with outbox_runner():
-            pass
-
         with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
@@ -786,10 +783,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, slug=desired_slug)
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
-
-        # Ensure that the organization update has been flushed
-        with outbox_runner():
-            pass
 
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
