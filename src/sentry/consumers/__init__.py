@@ -4,6 +4,7 @@ import uuid
 from typing import Any, Mapping, Optional, Sequence, TypedDict
 
 import click
+from arroyo.backends.abstract import Consumer
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 from typing_extensions import Required
@@ -277,9 +278,9 @@ def get_stream_processor(
     if cluster is None:
         cluster = topic_def["cluster"]
 
-    assert cluster is not None
+    def build_consumer_config(group_id: str):
+        assert cluster is not None
 
-    def build_consumer_config(group_id):
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
                 cluster,
@@ -294,7 +295,7 @@ def get_stream_processor(
 
         return consumer_config
 
-    consumer = KafkaConsumer(build_consumer_config(group_id))
+    consumer: Consumer = KafkaConsumer(build_consumer_config(group_id))
 
     if synchronize_commit_group is None:
         synchronize_commit_group = consumer_definition.get("synchronize_commit_group_default")
