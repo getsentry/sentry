@@ -1,6 +1,5 @@
-import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
 
 from snuba_sdk import (
@@ -18,18 +17,40 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
+from sentry import options, quotas
+from sentry.dynamic_sampling.models.base import ModelType
+from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
+from sentry.dynamic_sampling.models.factory import model_factory
+from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
+from sentry.dynamic_sampling.rules.base import (
+    is_sliding_window_enabled,
+    is_sliding_window_org_enabled,
+)
+from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
+    get_boost_low_volume_projects_sample_rate,
+)
+from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
+    set_transactions_resampling_rates,
+)
+from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.constants import (
+    BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+    CACHE_KEY_TTL,
+    CHUNK_SIZE,
+    MAX_ORGS_PER_QUERY,
+    MAX_PROJECTS_PER_QUERY,
+    MAX_SECONDS,
+)
+from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.models import Organization
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.base import instrumented_task
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
-MAX_SECONDS = 60
-CHUNK_SIZE = 9998  # Snuba's limit is 10000 and we fetch CHUNK_SIZE+1
-# Controls the time range on which data is collected
-QUERY_TIME_INTERVAL = timedelta(hours=1)
 
 
 class ProjectIdentity(TypedDict, total=True):
@@ -61,6 +82,129 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     total_num_classes: int
 
 
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,
+    time_limit=2 * 60 * 60 + 5,
+)
+@dynamic_sampling_task
+def boost_low_volume_transactions() -> None:
+    num_big_trans = int(
+        options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+    )
+    num_small_trans = int(
+        options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
+    )
+
+    for orgs in get_orgs_with_project_counts():
+        # get the low and high transactions
+        for project_transactions in transactions_zip(
+            fetch_project_transaction_totals(orgs),
+            fetch_transactions_with_total_volumes(
+                orgs,
+                large_transactions=True,
+                max_transactions=num_big_trans,
+            ),
+            fetch_transactions_with_total_volumes(
+                orgs,
+                large_transactions=False,
+                max_transactions=num_small_trans,
+            ),
+        ):
+            boost_low_volume_transactions_of_project.delay(project_transactions)
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.boost_low_volume_transactions_of_project",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,
+    time_limit=2 * 60 + 5,
+)
+@dynamic_sampling_task
+def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
+    org_id = project_transactions["org_id"]
+    project_id = project_transactions["project_id"]
+    total_num_transactions = project_transactions.get("total_num_transactions")
+    total_num_classes = project_transactions.get("total_num_classes")
+    transactions = [
+        RebalancedItem(id=id, count=count)
+        for id, count in project_transactions["transaction_counts"]
+    ]
+
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        organization = None
+
+    # By default, this bias uses the blended sample rate.
+    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
+
+    # In case we have specific feature flags enabled, we will change the sample rate either basing ourselves
+    # on sliding window per project or per org.
+    if organization is not None and is_sliding_window_enabled(organization):
+        sample_rate = get_sliding_window_sample_rate(
+            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
+        )
+        log_sample_rate_source(
+            org_id, project_id, "boost_low_volume_transactions", "sliding_window", sample_rate
+        )
+    elif organization is not None and is_sliding_window_org_enabled(organization):
+        sample_rate = get_boost_low_volume_projects_sample_rate(
+            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
+        )
+        log_sample_rate_source(
+            org_id,
+            project_id,
+            "boost_low_volume_transactions",
+            "boost_low_volume_projects",
+            sample_rate,
+        )
+    else:
+        log_sample_rate_source(
+            org_id, project_id, "boost_low_volume_transactions", "blended_sample_rate", sample_rate
+        )
+
+    if sample_rate is None or sample_rate == 1.0:
+        # no sampling => no rebalancing
+        return
+
+    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
+
+    model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    rebalanced_transactions = guarded_run(
+        model,
+        TransactionsRebalancingInput(
+            classes=transactions,
+            sample_rate=sample_rate,
+            total_num_classes=total_num_classes,
+            total=total_num_transactions,
+            intensity=intensity,
+        ),
+    )
+    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
+    if rebalanced_transactions is None:
+        return
+
+    # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
+    named_rates, implicit_rate = rebalanced_transactions
+    set_transactions_resampling_rates(
+        org_id=org_id,
+        proj_id=project_id,
+        named_rates=named_rates,
+        default_rate=implicit_rate,
+        ttl_ms=CACHE_KEY_TTL,
+    )
+
+    schedule_invalidate_project_config(
+        project_id=project_id, trigger="dynamic_sampling_boost_low_volume_transactions"
+    )
+
+
 def is_same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]) -> bool:
     if left is None or right is None:
         return False
@@ -74,7 +218,9 @@ def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) ->
     )
 
 
-def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
+def get_orgs_with_project_counts(
+    max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: int = MAX_PROJECTS_PER_QUERY
+) -> Iterator[List[int]]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements
@@ -85,15 +231,6 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
     start_time = time.time()
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     offset = 0
-
-    # TODO remove this when we are happy with the database load
-    #   We use this mechanism to be able to adjust the db load, we can control what percentage
-    #   of organisations are retrieved from the database.
-    load_rate = int(options.get("dynamic-sampling.prioritise_transactions.load_rate") * 100)
-    if load_rate <= 99:
-        restrict_orgs = [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, load_rate)]
-    else:
-        restrict_orgs = []
 
     last_result: List[Tuple[int, int]] = []
     while (time.time() - start_time) < MAX_SECONDS:
@@ -108,11 +245,14 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
                     Column("org_id"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(
+                        Column("timestamp"),
+                        Op.GTE,
+                        datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
-                ]
-                + restrict_orgs,
+                ],
                 granularity=Granularity(3600),
                 orderby=[
                     OrderBy(Column("org_id"), Direction.ASC),
@@ -126,7 +266,7 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -184,7 +324,11 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
                     Column("project_id"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(
+                        Column("timestamp"),
+                        Op.GTE,
+                        datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                     Condition(Column("org_id"), Op.IN, org_ids),
@@ -203,7 +347,7 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,  # type:ignore
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -225,10 +369,7 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
             }
 
     else:
-        logger.error(
-            "",
-            extra={"offset": offset},
-        )
+        log_query_timeout(query="fetch_project_transaction_totals", offset=offset)
 
     return None
 
@@ -282,7 +423,11 @@ def fetch_transactions_with_total_volumes(
                     AliasedExpression(Column(transaction_tag), "transaction_name"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(
+                        Column("timestamp"),
+                        Op.GTE,
+                        datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                     Condition(Column("org_id"), Op.IN, org_ids),
@@ -305,7 +450,7 @@ def fetch_transactions_with_total_volumes(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -342,10 +487,7 @@ def fetch_transactions_with_total_volumes(
                 }
             break
     else:
-        logger.error(
-            "",
-            extra={"offset": offset},
-        )
+        log_query_timeout(query="fetch_transactions_with_total_volumes", offset=offset)
 
     return None
 
@@ -355,7 +497,6 @@ def merge_transactions(
     right: Optional[ProjectTransactions],
     totals: Optional[ProjectTransactionsTotals],
 ) -> ProjectTransactions:
-
     if right is None and left is None:
         raise ValueError(
             "no transactions passed to merge",
