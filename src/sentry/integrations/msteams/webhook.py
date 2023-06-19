@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models import ApiKey, Group, Integration, Rule
+from sentry.models import ApiKey, Group, Rule
 from sentry.models.activity import ActivityIntegration
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -242,9 +242,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         team_id = channel_data["team"]["id"]
 
-        try:
-            integration = Integration.objects.get(provider=self.provider, external_id=team_id)
-        except Integration.DoesNotExist:
+        integration = integration_service.get_integration(
+            provider=self.provider, external_id=team_id
+        )
+        if integration is None:
             logger.info(
                 "msteams.uninstall.missing-integration",
                 extra={"team_id": team_id},
@@ -257,23 +258,25 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # this is different than Vercel, for example, which can have multiple installations
         # for the same team in Vercel with different auth tokens
 
-        for org_id in integration.organizationintegration_set.values_list(
-            "organization_id", flat=True
-        ):
-            create_audit_entry(
-                request=request,
-                organization_id=org_id,
-                target_object=integration.id,
-                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
-                actor_label="Teams User",
-                data={
-                    "provider": integration.provider,
-                    "name": integration.name,
-                    "team_id": team_id,
-                },
-            )
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+        if len(org_integrations) > 0:
+            for org_integration in org_integrations:
+                create_audit_entry(
+                    request=request,
+                    organization_id=org_integration.organization_id,
+                    target_object=integration.id,
+                    event=audit_log.get_event_id("INTEGRATION_REMOVE"),
+                    actor_label="Teams User",
+                    data={
+                        "provider": integration.provider,
+                        "name": integration.name,
+                        "team_id": team_id,
+                    },
+                )
 
-        integration.delete()
+        integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
 
     def make_action_data(self, data, user_id):
@@ -355,9 +358,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        try:
-            integration = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist:
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
             )
