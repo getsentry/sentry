@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from typing import Sequence, Set, Tuple
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.template.defaultfilters import pluralize
@@ -19,7 +20,6 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import RuleSnooze
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.models.rulesnooze import RuleSnooze
@@ -260,27 +260,39 @@ def generate_incident_trigger_email_context(
             tz = user_option_tz
 
     organization = incident.organization
+
+    alert_link = organization.absolute_url(
+        reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": organization.slug,
+                "incident_id": incident.identifier,
+            },
+        ),
+        query="referrer=alert_email",
+    )
+
+    rule_link = organization.absolute_url(
+        reverse(
+            "sentry-alert-rule",
+            kwargs={
+                "organization_slug": organization.slug,
+                "project_slug": project.slug,
+                "alert_rule_id": trigger.alert_rule_id,
+            },
+        ),
+        query="referrer=alert_email",
+    )
+
+    snooze_alert = False
+    snooze_alert_url = None
+    if features.has("organizations:mute-metric-alerts", organization):
+        snooze_alert = True
+        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
+
     return {
-        "link": organization.absolute_url(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            ),
-            query="referrer=alert_email",
-        ),
-        "rule_link": organization.absolute_url(
-            reverse(
-                "sentry-alert-rule",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "project_slug": project.slug,
-                    "alert_rule_id": trigger.alert_rule_id,
-                },
-            )
-        ),
+        "link": alert_link,
+        "rule_link": rule_link,
         "project_slug": project.slug,
         "incident_name": incident.title,
         "environment": environment_string,
@@ -299,4 +311,6 @@ def generate_incident_trigger_email_context(
         "unsubscribe_link": None,
         "chart_url": chart_url,
         "timezone": tz,
+        "snooze_alert": snooze_alert,
+        "snooze_alert_url": snooze_alert_url,
     }

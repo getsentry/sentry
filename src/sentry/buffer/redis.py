@@ -1,3 +1,4 @@
+import logging
 import pickle
 import threading
 from datetime import datetime
@@ -18,6 +19,27 @@ from sentry.utils.redis import get_cluster_from_options
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()
+
+logger = logging.getLogger(__name__)
+
+# Debounce our JSON validation a bit in order to not cause too much additional
+# load everywhere
+_last_validation_log = None
+
+
+def _validate_json_roundtrip(value, model):
+    global _last_validation_log
+
+    if _last_validation_log is None or _last_validation_log < time() - 10:
+        _last_validation_log = time()
+        try:
+            if (
+                RedisBuffer._load_values(json.loads(json.dumps(RedisBuffer._dump_values(value))))
+                != value
+            ):
+                logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
+        except Exception:
+            logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
 
 
 class PendingBuffer:
@@ -106,13 +128,15 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key):
         return f"l:{key}"
 
-    def _dump_values(self, values):
+    @classmethod
+    def _dump_values(cls, values):
         result = {}
         for k, v in values.items():
-            result[k] = self._dump_value(v)
+            result[k] = cls._dump_value(v)
         return result
 
-    def _dump_value(self, value):
+    @classmethod
+    def _dump_value(cls, value):
         if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
@@ -126,13 +150,15 @@ class RedisBuffer(Buffer):
             raise TypeError(type(value))
         return (type_, str(value))
 
-    def _load_values(self, payload):
+    @classmethod
+    def _load_values(cls, payload):
         result = {}
         for k, (t, v) in payload.items():
-            result[k] = self._load_value((t, v))
+            result[k] = cls._load_value((t, v))
         return result
 
-    def _load_value(self, payload):
+    @classmethod
+    def _load_value(cls, payload):
         (type_, value) = payload
         if type_ == "s":
             return force_text(value)
@@ -184,6 +210,7 @@ class RedisBuffer(Buffer):
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         # TODO(dcramer): once this goes live in production, we can kill the pickle path
         # (this is to ensure a zero downtime deploy where we can transition event processing)
+        _validate_json_roundtrip(filters, model)
         pipe.hsetnx(key, "f", pickle.dumps(filters))
         # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
         for column, amount in columns.items():
@@ -193,6 +220,7 @@ class RedisBuffer(Buffer):
             # Group tries to serialize 'score', so we'd need some kind of processing
             # hook here
             # e.g. "update score if last_seen or times_seen is changed"
+            _validate_json_roundtrip(extra, model)
             for column, value in extra.items():
                 # TODO(dcramer): once this goes live in production, we can kill the pickle path
                 # (this is to ensure a zero downtime deploy where we can transition event processing)

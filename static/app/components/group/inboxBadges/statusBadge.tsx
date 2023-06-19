@@ -6,14 +6,20 @@ import {Group, GroupSubstatus} from 'sentry/types';
 
 interface SubstatusBadgeProps {
   status: Group['status'];
-  substatus: Group['substatus'];
   fontSize?: 'sm' | 'md';
+  substatus?: Group['substatus'];
 }
 
 function getBadgeProperties(
   status: Group['status'],
   substatus: Group['substatus']
 ): {status: string; tagType: keyof Theme['tag']; tooltip?: string} | undefined {
+  if (status === 'resolved') {
+    return {
+      tagType: 'highlight',
+      status: t('Resolved'),
+    };
+  }
   if (status === 'unresolved') {
     if (substatus === GroupSubstatus.REGRESSED) {
       return {
