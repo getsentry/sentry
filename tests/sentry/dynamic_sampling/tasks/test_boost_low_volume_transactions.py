@@ -79,16 +79,14 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         return 1 + 100 + 1000 + 2000 + 3000 + idx * 5, 5
 
     def test_get_orgs_with_transactions_respects_max_orgs(self):
-        with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
-            actual = list(get_orgs_with_project_counts(2, 20))
+        actual = list(get_orgs_with_project_counts(2, 20))
 
         orgs = self.org_ids
         # we should return groups of 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
     def test_get_orgs_with_transactions_respects_max_projs(self):
-        with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
-            actual = list(get_orgs_with_project_counts(10, 5))
+        actual = list(get_orgs_with_project_counts(10, 5))
 
         orgs = [org["org_id"] for org in self.orgs_info]
         # since each org has 3 projects and we have a limit of 5 proj
