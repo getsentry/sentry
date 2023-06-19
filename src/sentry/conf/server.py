@@ -736,7 +736,6 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.sliding_window",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.dynamic_sampling.tasks.utils",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
@@ -1074,11 +1073,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-    },
-    "dynamic-sampling-sliding-window": {
-        "task": "sentry.dynamic_sampling.tasks.sliding_window",
-        # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
