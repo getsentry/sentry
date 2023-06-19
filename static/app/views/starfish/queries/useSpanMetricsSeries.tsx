@@ -14,9 +14,9 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
   interval: number;
-  'p95(span.duration)': number;
+  'p95(span.self_time)': number;
   'sps()': number;
-  'sum(span.duration)': number;
+  'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
 

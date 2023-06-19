@@ -1,8 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
-import {Button} from 'sentry/components/button';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -14,6 +14,8 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -24,16 +26,22 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   location: Location;
 } & RouteComponentProps<{groupId: string}, {transaction: string}>;
 
 function SpanSummaryPage({params, location}: Props) {
+  const organization = useOrganization();
   const {groupId} = params;
   const {transaction, endpoint, endpointMethod} = location.query;
 
@@ -59,7 +67,12 @@ function SpanSummaryPage({params, location}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     queryFilter,
-    ['sps()', 'sum(span.duration)', 'p95(span.duration)', 'time_spent_percentage()'],
+    [
+      'sps()',
+      `sum(${SPAN_SELF_TIME})`,
+      `p95(${SPAN_SELF_TIME})`,
+      'time_spent_percentage()',
+    ],
     'span-summary-page-metrics'
   );
 
@@ -67,7 +80,7 @@ function SpanSummaryPage({params, location}: Props) {
     useSpanMetricsSeries(
       {group: groupId},
       queryFilter,
-      ['p95(span.duration)', 'sps()'],
+      [`p95(${SPAN_SELF_TIME})`, 'sps()'],
       'sidebar-span-metrics'
     );
 
@@ -79,7 +92,33 @@ function SpanSummaryPage({params, location}: Props) {
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Span Summary')}</Layout.Title>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Starfish'),
+                    to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+                  },
+                  {
+                    label: ROUTE_NAMES[extractRoute(location)],
+                    to: normalizeUrl(
+                      `/organizations/${organization.slug}/starfish/${extractRoute(
+                        location
+                      )}/?${qs.stringify({
+                        endpoint,
+                        'http.method': endpointMethod,
+                      })}`
+                    ),
+                  },
+                  {
+                    label: t('Span Summary'),
+                  },
+                ]}
+              />
+              <Layout.Title>
+                {endpointMethod && endpoint
+                  ? `${endpointMethod} ${endpoint}`
+                  : t('Span Summary')}
+              </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
@@ -97,8 +136,13 @@ function SpanSummaryPage({params, location}: Props) {
                   >
                     <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                   </Block>
-                  <Block title={t('Duration')} description={t('Time spent in this span')}>
-                    <DurationCell milliseconds={spanMetrics?.['p95(span.duration)']} />
+                  <Block
+                    title={t('Duration (P95)')}
+                    description={t('Time spent in this span')}
+                  >
+                    <DurationCell
+                      milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+                    />
                   </Block>
                   <Block
                     title={t('Time Spent')}
@@ -108,7 +152,7 @@ function SpanSummaryPage({params, location}: Props) {
                   >
                     <TimeSpentCell
                       timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                      totalSpanTime={spanMetrics?.['sum(span.duration)']}
+                      totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
                     />
                   </Block>
                 </BlockContainer>
@@ -120,6 +164,7 @@ function SpanSummaryPage({params, location}: Props) {
                     <Panel>
                       <DescriptionPanelBody>
                         <DescriptionContainer>
+                          <DescriptionTitle>{t('Span Description')}</DescriptionTitle>
                           <SpanDescription spanMeta={spanMetas?.[0]} />
                         </DescriptionContainer>
                       </DescriptionPanelBody>
@@ -151,7 +196,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+                        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
                         start=""
                         end=""
                         loading={areSpanMetricsSeriesLoading}
@@ -165,16 +210,12 @@ function SpanSummaryPage({params, location}: Props) {
                 </BlockContainer>
               )}
 
-              {span && <SpanTransactionsTable span={span} endpoint={endpoint} />}
-              {endpoint && (
-                <Button
-                  to={{
-                    pathname: location.pathname,
-                    query: omit(location.query, 'endpoint', 'endpointMethod'),
-                  }}
-                >
-                  {t('View More Endpoints')}
-                </Button>
+              {span && (
+                <SpanTransactionsTable
+                  span={span}
+                  endpoint={endpoint}
+                  endpointMethod={endpointMethod}
+                />
               )}
 
               {transaction && span?.group && (
@@ -258,6 +299,12 @@ const DescriptionPanelBody = styled(PanelBody)`
 const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
+`;
+
+const DescriptionTitle = styled('h4')`
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
 `;
 
 export default SpanSummaryPage;

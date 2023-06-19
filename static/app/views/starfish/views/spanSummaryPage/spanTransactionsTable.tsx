@@ -1,6 +1,10 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {Location} from 'history';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -8,6 +12,7 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -17,7 +22,11 @@ import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Row = {
   metrics: SpanTransactionMetrics;
@@ -27,6 +36,7 @@ type Row = {
 type Props = {
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
+  method?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -43,6 +53,7 @@ export function SpanTransactionsTable({
   openSidebar,
   onClickTransaction,
   endpoint,
+  method,
 }: Props) {
   const location = useLocation();
 
@@ -72,6 +83,8 @@ export function SpanTransactionsTable({
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
         endpoint={endpoint}
+        method={method}
+        location={location}
       />
     );
   };
@@ -89,16 +102,30 @@ export function SpanTransactionsTable({
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Footer>
+        {endpoint && (
+          <Button
+            to={{
+              pathname: location.pathname,
+              query: omit(location.query, 'endpoint'),
+            }}
+          >
+            {t('View More Endpoints')}
+          </Button>
+        )}
+        <StyledPagination pageLinks={pageLinks} />
+      </Footer>
     </Fragment>
   );
 }
 
 type CellProps = {
   column: TableColumnHeader;
+  location: Location;
   row: Row;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
+  method?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -110,16 +137,20 @@ function BodyCell({
   openSidebar,
   onClickTransactionName,
   endpoint,
+  method,
+  location,
 }: CellProps) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
         endpoint={endpoint}
+        method={method}
         span={span}
         row={row}
         column={column}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransactionName}
+        location={location}
       />
     );
   }
@@ -127,8 +158,8 @@ function BodyCell({
   if (column.key === 'p95(transaction.duration)') {
     return (
       <DurationCell
-        milliseconds={row.metrics?.['p95(span.duration)']}
-        delta={row.metrics?.['percentile_percent_change(span.duration, 0.95)']}
+        milliseconds={row.metrics?.[`p95(${SPAN_SELF_TIME})`]}
+        delta={row.metrics?.[`percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`]}
       />
     );
   }
@@ -146,7 +177,7 @@ function BodyCell({
     return (
       <TimeSpentCell
         timeSpentPercentage={row.metrics?.['time_spent_percentage(local)']}
-        totalSpanTime={row.metrics?.['sum(span.duration)']}
+        totalSpanTime={row.metrics?.[`sum(${SPAN_SELF_TIME})`]}
       />
     );
   }
@@ -154,12 +185,15 @@ function BodyCell({
   return <span>{row[column.key]}</span>;
 }
 
-function TransactionCell({span, column, row, endpoint}: CellProps) {
+function TransactionCell({span, column, row, endpoint, method, location}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group)}?${qs.stringify({
+        to={`/starfish/${extractRoute(location)}/span/${encodeURIComponent(
+          span.group
+        )}?${qs.stringify({
           endpoint,
+          method,
           transaction: row.transaction,
         })}`}
       >
@@ -191,3 +225,13 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
 ];
+
+const Footer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: auto;
+`;

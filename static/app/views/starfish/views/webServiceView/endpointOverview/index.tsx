@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -22,12 +26,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -45,11 +51,16 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, 'http.method': method, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
+    : undefined;
+  const method = httpMethod
+    ? Array.isArray(httpMethod)
+      ? httpMethod[0]
+      : httpMethod
     : undefined;
   const pageFilter = usePageFilters();
 
@@ -222,11 +233,36 @@ export default function EndpointOverview() {
     );
   }
 
+  const handleViewAllEventsClick = () => {
+    const issuesQuery = new MutableSearch([
+      ...(issueFilter === 'ALL' ? [] : [`issue.category:${issueFilter}`]),
+      `transaction:${transaction}`,
+      `http.method:${method}`,
+    ]);
+    browserHistory.push({
+      pathname: `/issues/?${qs.stringify({
+        ...getDateConditions(pageFilter.selection),
+        query: issuesQuery.formatString(),
+      })}`,
+    });
+  };
+
   return (
     <PageFiltersContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Starfish'),
+                  to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+                },
+                {
+                  label: t('Endpoint Overview'),
+                },
+              ]}
+            />
             <Layout.Title>{`${method} ${transaction}`}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
@@ -255,7 +291,11 @@ export default function EndpointOverview() {
               </SegmentedControl>
             </SegmentedControlContainer>
             {/* TODO: Add transaction method to filter */}
-            <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
+            <SpanMetricsTable
+              filter={state.spansFilter}
+              transaction={transaction}
+              method={method}
+            />
             <SubHeader>{t('Sample Events')}</SubHeader>
             <TransactionSamplesTable queryConditions={queryConditions} />
             <SegmentedControlContainer>
@@ -273,9 +313,13 @@ export default function EndpointOverview() {
                   {t('Performance Only')}
                 </SegmentedControl.Item>
               </SegmentedControl>
+              <Button size="sm" onClick={handleViewAllEventsClick}>
+                {t('View All')}
+              </Button>
             </SegmentedControlContainer>
             <IssuesTable
               issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
+              httpMethod={method as string}
               transactionName={transaction}
             />
           </Layout.Main>
@@ -292,9 +336,11 @@ export default function EndpointOverview() {
 function SpanMetricsTable({
   filter,
   transaction,
+  method,
 }: {
   filter: ModuleName;
   transaction: string | undefined;
+  method?: string;
 }) {
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
 
@@ -304,6 +350,7 @@ function SpanMetricsTable({
       orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
       endpoint={transaction}
+      method={method}
       limit={SPANS_TABLE_LIMIT}
     />
   );
@@ -351,6 +398,8 @@ const StyledRow = styled(PerformanceLayoutBodyRow)`
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
 `;
 
 const ChartLabel = styled('div')`
