@@ -9,6 +9,7 @@ import {
   DAY,
   formatAbbreviatedNumber,
   formatPercentage,
+  formatRate,
   getDuration,
   HOUR,
   MINUTE,
@@ -63,13 +64,15 @@ export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
   abbreviation: boolean = false,
-  durationUnit?: number
+  durationUnit?: number,
+  rateUnit?: 's' | 'min' | 'hr'
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
     outputType,
     abbreviation,
-    durationUnit
+    durationUnit,
+    rateUnit
   );
 }
 
@@ -80,7 +83,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
   value: number,
   type: string,
   abbreviation: boolean = false,
-  durationUnit?: number
+  durationUnit?: number,
+  rateUnit?: 's' | 'min' | 'hr'
 ): string {
   switch (type) {
     case 'integer':
@@ -92,6 +96,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return axisDuration(value, durationUnit);
     case 'size':
       return formatBytesBase2(value, 0);
+    case 'rate':
+      return formatRate(value, rateUnit);
     default:
       return value.toString();
   }
