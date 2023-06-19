@@ -18,6 +18,7 @@ from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.consumers.interface import ExtendedStrategyFactory
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def _get_bootstrap_servers(topic: str, force_cluster: Union[str, None]) -> Seque
     return [servers]
 
 
-class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class BillingMetricsConsumerStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
         commit: Commit,

@@ -14,6 +14,7 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, Message, Partition
 
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.consumers.interface import ExtendedStrategyFactory
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ def create_ingest_occurences_consumer(
     )
 
 
-class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class OccurrenceStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         max_batch_size: int,

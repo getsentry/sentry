@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Callable, Literal, Mapping, Optional, Union
 
 from arroyo import configure_metrics
+from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.commit import ONCE_PER_SECOND
@@ -21,8 +22,8 @@ from django.conf import settings
 from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
+from sentry.consumers.interface import ExtendedStrategyFactory
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
-from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ class PostProcessForwarder:
         )
 
 
-class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class PostProcessForwarderStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         concurrency: int,
@@ -140,11 +141,29 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         self.__concurrency = concurrency
         self.__max_pending_futures = concurrency + 1000
 
+    def wrap_kafka_consumer(self, consumer: KafkaConsumer) -> Consumer:
+        commit_log_consumer = KafkaConsumer(
+            build_kafka_consumer_configuration(
+                get_kafka_consumer_cluster_options(cluster_name),
+                group_id=f"ppf-commit-log-{uuid.uuid1().hex}",
+                auto_offset_reset="earliest",
+            )
+        )
+
+        return SynchronizedConsumer(
+            consumer=consumer,
+            commit_log_consumer=commit_log_consumer,
+            commit_log_topic=Topic(commit_log_topic),
+            commit_log_groups={synchronize_commit_group},
+        )
+
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
         return RunTaskInThreads(
             _get_task_kwargs_and_dispatch,
             self.__concurrency,

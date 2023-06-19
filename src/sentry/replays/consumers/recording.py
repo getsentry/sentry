@@ -15,6 +15,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk.tracing import Span
 
 from sentry.replays.usecases.ingest import ingest_recording
+from sentry.consumers.interface import ExtendedStrategyFactory
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class MessageContext:
         return f"MessageContext(message_dict=..., transaction={repr(self.transaction)})"
 
 
-class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class ProcessReplayRecordingStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
     """
     This consumer processes replay recordings, which are compressed payloads split up into
     chunks.

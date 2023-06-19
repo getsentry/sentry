@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, Optional, Sequence, TypedDict
+import uuid
 
 import click
 from arroyo.processing.processor import StreamProcessor
@@ -24,8 +25,6 @@ class ConsumerDefinition(TypedDict, total=False):
 
     # Hardcoded additional kwargs for strategy_factory
     static_args: Mapping[str, Any]
-
-    consumer_wrapper: str
 
 
 def convert_max_batch_time(ctx, param, value):
@@ -186,7 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "post-process-forwarder-issue-platform": {
         "topic": settings.KAFKA_EVENTSTREAM_GENERIC,
         "strategy_factory": "sentry.post_process_forwarder.post_process_forwarder.PostProcessForwarderStrategyFactory",
-        "consumer_wrapper": 
+        "click_options": 
     }
 }
 
@@ -209,8 +208,9 @@ def get_stream_processor(
     auto_offset_reset: str,
     strict_offset_reset: bool,
     join_timeout: Optional[float],
-    max_poll_interval_ms: Optional[int] = None,
-    **options,
+    max_poll_interval_ms: Optional[int],
+    synchronize_commit_log_topic: Optional[str],
+    synchronize_commit_group: Optional[str],
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
@@ -248,19 +248,43 @@ def get_stream_processor(
     if cluster is None:
         cluster = topic_def["cluster"]
 
-    consumer_config = build_kafka_consumer_configuration(
-        kafka_config.get_kafka_consumer_cluster_options(
-            cluster,
-        ),
-        group_id=group_id,
-        auto_offset_reset=auto_offset_reset,
-        strict_offset_reset=strict_offset_reset,
-    )
+    assert cluster is not None
 
-    if max_poll_interval_ms is not None:
-        consumer_config["max.poll.interval.ms"] = max_poll_interval_ms
+    def build_consumer_config(group_id):
+        consumer_config = build_kafka_consumer_configuration(
+            kafka_config.get_kafka_consumer_cluster_options(
+                cluster,
+            ),
+            group_id=group_id,
+            auto_offset_reset=auto_offset_reset,
+            strict_offset_reset=strict_offset_reset,
+        )
 
-    consumer = KafkaConsumer(consumer_config)
+        if max_poll_interval_ms is not None:
+            consumer_config["max.poll.interval.ms"] = max_poll_interval_ms
+
+        return consumer_config
+
+    consumer = KafkaConsumer(build_consumer_config(group_id))
+
+    if synchronize_commit_group or synchronize_commit_log_topic:
+        if bool(synchronize_commit_log_topic) != bool(synchronize_commit_group):
+            raise click.BadParameter("Both synchronize_commit_group and synchronize_commit_log_topic must be passed, or neither.")
+
+        assert synchronize_commit_group is not None
+        assert synchronize_commit_log_topic is not None
+
+        commit_log_consumer = KafkaConsumer(build_consumer_config(
+            f"sentry-commit-log-{uuid.uuid1().hex}"
+        ))
+
+        from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
+        consumer = SynchronizedConsumer(
+            consumer=consumer,
+            commit_log_consumer=commit_log_consumer,
+            commit_log_topic=Topic(synchronize_commit_log_topic),
+            commit_log_groups={synchronize_commit_group},
+        )
 
     return StreamProcessor(
         consumer=consumer,

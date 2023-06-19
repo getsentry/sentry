@@ -21,11 +21,12 @@ from sentry_kafka_schemas import get_codec
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.consumers.interface import ExtendedStrategyFactory
 
 logger = logging.getLogger(__name__)
 
 
-class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class QuerySubscriptionStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         topic: str,
