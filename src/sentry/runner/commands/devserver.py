@@ -281,10 +281,9 @@ and run `sentry devservices up kafka zookeeper`.
         from sentry import eventstream
 
         if eventstream.requires_post_process_forwarder():
-            daemons += [_get_daemon("post-process-forwarder")]
-            daemons += [_get_daemon("post-process-forwarder-transactions")]
-            daemons += [_get_daemon("post-process-forwarder-issue-platform")]
-            needs_kafka = True
+            kafka_consumers.append("post-process-forwarder-errors")
+            kafka_consumers.append("post-process-forwarder-transactions")
+            kafka_consumers.append("post-process-forwarder-issue-platform")
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])

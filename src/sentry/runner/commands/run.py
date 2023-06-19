@@ -749,6 +749,9 @@ def dev_consumer(consumer_names):
             auto_offset_reset="latest",
             strict_offset_reset=False,
             join_timeout=None,
+            max_poll_interval_ms=None,
+            synchronize_commit_group=None,
+            synchronize_commit_log_topic=None,
         )
         for consumer_name in consumer_names
     ]
