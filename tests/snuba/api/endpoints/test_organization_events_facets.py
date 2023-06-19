@@ -696,7 +696,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"project": test_project.id})
             links = requests.utils.parse_header_links(
-                response.get("link").rstrip(">").replace(">,<", ",<")
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
             )
 
         assert response.status_code == 200, response.content
@@ -717,7 +717,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 self.url, format="json", data={"project": test_project.id, "cursor": "0:10:0"}
             )
             links = requests.utils.parse_header_links(
-                response.get("link").rstrip(">").replace(">,<", ",<")
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
             )
 
         assert response.status_code == 200, response.content
