@@ -115,7 +115,6 @@ describe('ProjectInstallPlatform', function () {
           query: {},
         },
         params: routeParams,
-        projects: [project],
       },
     });
 
