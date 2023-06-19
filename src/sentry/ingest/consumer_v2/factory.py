@@ -21,10 +21,9 @@ from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.utils import kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
-from sentry.consumers.interface import ExtendedStrategyFactory
 
 
-class IngestStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
+class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         consumer_type: str,

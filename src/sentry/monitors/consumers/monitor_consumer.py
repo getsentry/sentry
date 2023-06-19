@@ -34,7 +34,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.services import build_instance_from_options
-from sentry.consumers.interface import ExtendedStrategyFactory
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
@@ -342,7 +341,7 @@ def _process_message(wrapper: Dict) -> None:
         logger.exception("Failed to process check-in", exc_info=True)
 
 
-class StoreMonitorCheckInStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
+class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
         commit: Commit,

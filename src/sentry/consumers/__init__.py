@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional, Sequence, TypedDict
 import uuid
+from typing import Any, Mapping, Optional, Sequence, TypedDict
 
 import click
 from arroyo.processing.processor import StreamProcessor
@@ -185,8 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "post-process-forwarder-issue-platform": {
         "topic": settings.KAFKA_EVENTSTREAM_GENERIC,
         "strategy_factory": "sentry.post_process_forwarder.post_process_forwarder.PostProcessForwarderStrategyFactory",
-        "click_options": 
-    }
+    },
 }
 
 
@@ -269,16 +268,19 @@ def get_stream_processor(
 
     if synchronize_commit_group or synchronize_commit_log_topic:
         if bool(synchronize_commit_log_topic) != bool(synchronize_commit_group):
-            raise click.BadParameter("Both synchronize_commit_group and synchronize_commit_log_topic must be passed, or neither.")
+            raise click.BadParameter(
+                "Both synchronize_commit_group and synchronize_commit_log_topic must be passed, or neither."
+            )
 
         assert synchronize_commit_group is not None
         assert synchronize_commit_log_topic is not None
 
-        commit_log_consumer = KafkaConsumer(build_consumer_config(
-            f"sentry-commit-log-{uuid.uuid1().hex}"
-        ))
+        commit_log_consumer = KafkaConsumer(
+            build_consumer_config(f"sentry-commit-log-{uuid.uuid1().hex}")
+        )
 
         from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
+
         consumer = SynchronizedConsumer(
             consumer=consumer,
             commit_log_consumer=commit_log_consumer,

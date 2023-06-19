@@ -29,7 +29,6 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
-from sentry.consumers.interface import ExtendedStrategyFactory
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         self.__next_step.join(timeout)
 
 
-class MetricsConsumerStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
+class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     Builds an indexer consumer based on the multi process transform Arroyo step.
 
