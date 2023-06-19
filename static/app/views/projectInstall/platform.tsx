@@ -308,7 +308,9 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
 
   return (
     <Fragment>
-      <ProductUnavailableCTAHook organization={organization} />
+      {!isSelfHosted && showDocsWithProductSelection && (
+        <ProductUnavailableCTAHook organization={organization} />
+      )}
       <StyledPageHeader>
         <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>
