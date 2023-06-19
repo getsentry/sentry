@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import time
 from typing import Callable, Mapping
@@ -13,7 +15,9 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.models import ApiKey, Group, Rule
 from sentry.models.activity import ActivityIntegration
 from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
@@ -311,7 +315,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             action_data = {"assignedTo": ""}
         return action_data
 
-    def issue_state_change(self, group, identity, data):
+    def issue_state_change(self, group: Group, identity: RpcIdentity, data):
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
@@ -338,7 +342,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=action_data,
-            user=identity.user,
+            user=user_service.get_user(user_id=identity.user_id),
             auth=event_write_key,
         )
 
