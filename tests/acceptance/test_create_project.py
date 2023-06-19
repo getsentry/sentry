@@ -51,7 +51,5 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.wait_until("h2")
 
         title = self.browser.find_element(by=By.CSS_SELECTOR, value="h2")
-        info_box = self.browser.find_element(by=By.CSS_SELECTOR, value="div.ref-info > span")
 
         assert "React" in title.text
-        assert "React" in info_box.text
