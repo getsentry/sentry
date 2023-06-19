@@ -890,6 +890,66 @@ describe('Dashboards > Detail', function () {
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
     });
 
+    it('opens the widget viewer with saved dashboard filters', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
+      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/1/'}}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await waitFor(() => {
+        expect(openWidgetViewerModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            dashboardFilters: {release: ['sentry-android-shop@1.2.0']},
+          })
+        );
+      });
+    });
+
+    it('opens the widget viewer with unsaved dashboard filters', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
+      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{
+            ...initialData.router.location,
+            pathname: '/widget/1/',
+            query: {release: ['unsaved-release-filter@1.2.0']},
+          }}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await waitFor(() => {
+        expect(openWidgetViewerModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            dashboardFilters: {release: ['unsaved-release-filter@1.2.0']},
+          })
+        );
+      });
+    });
+
     it('can save dashboard filters in existing dashboard', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',

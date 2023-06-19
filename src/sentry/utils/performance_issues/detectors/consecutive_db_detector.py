@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from datetime import timedelta
 from typing import Any, List, Mapping, Optional, Sequence
@@ -264,7 +263,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     @classmethod
     def is_event_eligible(cls, event, project: Project = None) -> bool:

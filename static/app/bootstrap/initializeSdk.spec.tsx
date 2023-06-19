@@ -1,6 +1,10 @@
 import {ERROR_MAP as origErrorMap} from 'sentry/utils/requestError/requestError';
 
-import {isEventWithFileUrl, isFilteredRequestErrorEvent} from './initializeSdk';
+import {
+  addEndpointTagToRequestError,
+  isEventWithFileUrl,
+  isFilteredRequestErrorEvent,
+} from './initializeSdk';
 
 const ERROR_MAP = {
   ...origErrorMap,
@@ -133,5 +137,53 @@ describe('isEventWithFileUrl', () => {
     const event = {};
 
     expect(isEventWithFileUrl(event)).toBeFalsy();
+  });
+});
+
+describe('addEndpointTagToRequestError', () => {
+  it('adds `endpoint` tag to events with matching message`', () => {
+    const event = {
+      exception: {
+        values: [{type: 'RequestError', value: 'GET /dogs/are/great/ 500'}],
+      },
+      tags: {},
+    };
+
+    addEndpointTagToRequestError(event);
+
+    expect(event.tags).toEqual({
+      endpoint: 'GET /dogs/are/great/',
+    });
+  });
+
+  it("doesn't add `endpoint` tag to events with non-matching message", () => {
+    const nonmatchingMessages = [
+      'RequestError with no endpoint for some reason',
+      'Some other stuff is wrong with endpoint /dogs/are/great/',
+      'This error has nothing to do with requests or endpoints at all',
+    ];
+
+    for (const msg of nonmatchingMessages) {
+      const event = {
+        exception: {
+          values: [{type: 'RequestError', value: msg}],
+        },
+        tags: {},
+      };
+
+      addEndpointTagToRequestError(event);
+
+      expect(event.tags).toEqual({});
+    }
+  });
+
+  it("doesn't add `endpoint` tag to events with no exception", () => {
+    const event = {
+      tags: {},
+    };
+
+    addEndpointTagToRequestError(event);
+
+    expect(event.tags).toEqual({});
   });
 });

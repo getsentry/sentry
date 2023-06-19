@@ -397,7 +397,6 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         with override_options(
             {
                 "symbolicator.sourcemaps-processing-sample-rate": 1.0,
-                "symbolicator.sourcemap-lookup-id-rate": 1.0,
             }
         ):
             event = self.post_and_retrieve_event(data)

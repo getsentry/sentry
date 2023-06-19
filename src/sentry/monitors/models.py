@@ -557,8 +557,10 @@ class MonitorEnvironment(Model):
             produce_occurrence_to_kafka(
                 occurrence,
                 {
+                    "contexts": {"monitor": get_monitor_environment_context(self)},
                     "environment": self.environment.name,
                     "event_id": occurrence.event_id,
+                    "fingerprint": ["monitor", str(self.monitor.guid), occurrence_data["reason"]],
                     "platform": "other",
                     "project_id": self.monitor.project_id,
                     "received": current_timestamp.isoformat(),

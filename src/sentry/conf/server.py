@@ -16,7 +16,6 @@ from typing import (
     Callable,
     Dict,
     Iterable,
-    List,
     Mapping,
     Optional,
     Tuple,
@@ -734,7 +733,11 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.dynamic_sampling.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.utils",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
@@ -1056,20 +1059,20 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=30, hour="0"),
         "options": {"expires": 3600},
     },
-    "dynamic-sampling-prioritize-projects": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
+    "dynamic-sampling-boost-low-volume-projects": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-prioritize-transactions": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+    "dynamic-sampling-boost-low-volume-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-sliding-window": {
-        "task": "sentry.dynamic_sampling.tasks.sliding_window",
-        # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
@@ -1082,11 +1085,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
@@ -1347,8 +1345,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable archive/escalating issue workflow UI, enable everything except post processing
-    "organizations:escalating-issues-ui": False,
     # Enable escalating forecast threshold a/b experiment
     "organizations:escalating-issues-experiment-group": False,
     # Enable archive/escalating issue workflow features in v2
@@ -1359,6 +1355,8 @@ SENTRY_FEATURES = {
     "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
+    # Enable Monitors (Crons) view
+    "organizations:monitors": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1387,8 +1385,6 @@ SENTRY_FEATURES = {
     "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable rule page.
-    "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable issue platform
@@ -1399,8 +1395,8 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable metrics feature on the backend
-    "organizations:metrics": False,
+    # Adds search suggestions to the issue search bar
+    "organizations:issue-search-shortcuts": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1576,7 +1572,7 @@ SENTRY_FEATURES = {
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enable performance issues detector threshold configuration
-    "organizations:performance-issues-detector-threshold-configuration": False,
+    "organizations:project-performance-settings-admin": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1659,8 +1655,6 @@ SENTRY_FEATURES = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
-    # DEPRECATED: pending removal
-    "projects:dsym": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1674,8 +1668,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
-    # Use Kafka (instead of Celery) for ingestion pipeline.
-    "projects:kafka-ingest": False,
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
@@ -3528,24 +3520,27 @@ SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
 
-# The Redis cluster to use for monitoring the health of
-# Celery queues.
-SENTRY_QUEUE_MONITORING_REDIS_CLUSTER = "default"
+# The Redis cluster to use for monitoring the service / consumer health.
+SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
-# The RabbitMQ hosts whose health should be monitored by the backpressure system.
-# This should be a list of dictionaries with keys "url" and "vhost".
-# E.g. for local testing: [{"url": "https://guest:guest@localhost:15672", "vhost": "%2F"}]
-SENTRY_QUEUE_MONITORING_RABBITMQ_HOSTS: List[Dict[str, str]] = []
-
-# This is a mapping between the various processing stores,
-# and the redis `cluster` they are using.
-# This setting needs to be appropriately synched across the various deployments
-# for automatic backpressure management to properly work.
-SENTRY_PROCESSING_REDIS_CLUSTERS = {
-    "attachments": "rc-short",
-    # "processing": "processing",
-    "locks": "default",
-    "post_process_locks": "default",
+# This is a view of which abstract processing service is backed by which infrastructure.
+# Right now, the infrastructure can be `redis` or `rabbitmq`.
+#
+# For `redis`, one has to provide the cluster id.
+# It has to match a cluster defined in `redis.redis_clusters`.
+#
+# For `rabbitmq`, one has to provide a list of server URLs.
+# The URL is in the format `http://{user}:{password}@{hostname}:{port}/`.
+#
+# The definition can also be empty, in which case nothing is checked and
+# the service is assumed to be healthy.
+# However, the service *must* be defined.
+SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
+    "celery": {"redis": "default"},
+    "attachments-store": {"redis": "rc-short"},
+    "processing-store": {},  # "redis": "processing"},
+    "processing-locks": {"redis": "default"},
+    "post-process-locks": {"redis": "default"},
 }
 
 
