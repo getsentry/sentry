@@ -9,7 +9,7 @@ local ttl = ARGV[3]
 
 local existed = redis.call("EXISTS", key)
 local inserted = redis.call("SADD", key, value)
-if inserted then
+if inserted and existed then
     local current_size = redis.call("SCARD", key)
     local overflow = current_size - max_size
     if overflow > 0 then

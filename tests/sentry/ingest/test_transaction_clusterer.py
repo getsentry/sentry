@@ -108,19 +108,19 @@ def test_clear_redis_projects():
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project1, "foo")
 
-    assert client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert client.smembers(_get_projects_key(ClustererNamespace.TRANSACTIONS)) == {"101"}
     assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
     assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project2, "bar")
 
-    assert client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert client.smembers(_get_projects_key(ClustererNamespace.TRANSACTIONS)) == {"101", "102"}
     assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
     assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
 
     clear_samples(ClustererNamespace.TRANSACTIONS, project1)
 
-    assert client.exists(_get_projects_key(ClustererNamespace.TRANSACTIONS))
+    assert client.smembers(_get_projects_key(ClustererNamespace.TRANSACTIONS)) == {"102"}
     assert not client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project1))
     assert client.exists(_get_redis_key(ClustererNamespace.TRANSACTIONS, project2))
 

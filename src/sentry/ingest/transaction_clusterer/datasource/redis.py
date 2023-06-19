@@ -58,7 +58,7 @@ def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
 def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
     """Scan redis for projects and fetch their db models"""
     for key in _get_all_keys(namespace):
-        project_id = int(key.split(":")[-1])
+        project_id = int(key)
         # NOTE: Would be nice to do a `select_related` on project.organization
         # because we need it for the feature flag, but I don't know how to do
         # it with `get_from_cache`.
@@ -94,10 +94,10 @@ def clear_samples(namespace: ClustererNamespace, project: Project) -> None:
     client = get_redis_client()
 
     projects_key = _get_projects_key(namespace)
-    client.srem(projects_key, str(project.id))  # TODO(jjbayer): test me
+    client.srem(projects_key, project.id)
 
     redis_key = _get_redis_key(namespace, project)
-    client.delete(redis_key)
+    client.unlink(redis_key)
 
 
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:

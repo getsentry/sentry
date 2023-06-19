@@ -16,6 +16,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -1714,7 +1715,9 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             group_states=None,
         )
 
-        assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+        assert mock_store_transaction_name.mock_calls == [
+            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
+        ]
 
 
 @region_silo_test
