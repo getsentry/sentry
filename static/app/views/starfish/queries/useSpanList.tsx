@@ -28,6 +28,7 @@ export type SpanMetrics = {
 export const useSpanList = (
   moduleName: ModuleName,
   transaction?: string,
+  method?: string,
   spanCategory?: string,
   orderBy?: string,
   limit?: number,
@@ -40,6 +41,7 @@ export const useSpanList = (
     moduleName,
     location,
     transaction,
+    method,
     spanCategory,
     orderBy
   );
@@ -60,10 +62,17 @@ function getEventView(
   moduleName: ModuleName,
   location: Location,
   transaction?: string,
+  method?: string,
   spanCategory?: string,
   orderBy?: string
 ) {
-  const query = buildEventViewQuery(moduleName, location, transaction, spanCategory)
+  const query = buildEventViewQuery(
+    moduleName,
+    location,
+    transaction,
+    method,
+    spanCategory
+  )
     .filter(Boolean)
     .join(' ');
 
@@ -96,6 +105,7 @@ function buildEventViewQuery(
   moduleName: ModuleName,
   location: Location,
   transaction?: string,
+  method?: string,
   spanCategory?: string
 ) {
   const {query} = location;
@@ -122,8 +132,8 @@ function buildEventViewQuery(
     result.push(`transaction:${transaction}`);
   }
 
-  if (query['http.method']) {
-    result.push(`transaction.method:${query['http.method']}`);
+  if (method) {
+    result.push(`transaction.method:${method}`);
   }
 
   return result;

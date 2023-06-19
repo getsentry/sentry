@@ -12,6 +12,7 @@ const DEFAULT_ORDER_BY = '-duration';
 export function useSpanSamples(
   groupId?: string,
   transaction?: string,
+  transactionMethod?: string,
   limit?: number,
   orderBy?: string,
   referrer: string = 'use-span-samples'
@@ -22,9 +23,9 @@ export function useSpanSamples(
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: 'Span Samples',
-      query: `${groupId ? ` group:${groupId}` : ''} ${
+      query: `${groupId ? ` group:${groupId}` : ''}${
         transaction ? ` transaction:${transaction}` : ''
-      }`,
+      }${transactionMethod ? ` transaction.method:${transactionMethod}` : ''}`,
       fields: [
         'span_id',
         'group',

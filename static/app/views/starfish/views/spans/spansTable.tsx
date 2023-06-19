@@ -75,6 +75,7 @@ export default function SpansTable({
   const {isLoading, data, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
     endpoint,
+    method,
     spanCategory,
     orderBy,
     limit,

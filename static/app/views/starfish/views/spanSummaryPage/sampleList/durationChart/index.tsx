@@ -14,16 +14,17 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
   spanDescription?: string;
 };
 
-function DurationChart({groupId, transactionName}: Props) {
+function DurationChart({groupId, transactionName, transactionMethod}: Props) {
   const theme = useTheme();
 
   const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'sidebar-span-metrics'
   );
@@ -31,6 +32,7 @@ function DurationChart({groupId, transactionName}: Props) {
   const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
     groupId,
     transactionName,
+    transactionMethod,
     undefined,
     '-duration',
     'span-summary-panel-samples-table-spans'

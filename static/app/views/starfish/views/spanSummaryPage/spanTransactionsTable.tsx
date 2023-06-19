@@ -31,6 +31,7 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 type Row = {
   metrics: SpanTransactionMetrics;
   transaction: string;
+  transactionMethod: string;
 };
 
 type Props = {
@@ -66,6 +67,7 @@ export function SpanTransactionsTable({
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
       transaction: row.transaction,
+      transactionMethod: row['transaction.method'],
       metrics: row,
     };
   });
@@ -185,14 +187,10 @@ function BodyCell({
   return <span>{row[column.key]}</span>;
 }
 
-function TransactionCell({
-  span,
-  column,
-  row,
-  endpoint,
-  endpointMethod,
-  location,
-}: CellProps) {
+function TransactionCell({span, row, endpoint, endpointMethod, location}: CellProps) {
+  const label = row.transactionMethod
+    ? `${row.transactionMethod} ${row.transaction}`
+    : row.transaction;
   return (
     <Fragment>
       <Link
@@ -202,9 +200,10 @@ function TransactionCell({
           endpoint,
           endpointMethod,
           transaction: row.transaction,
+          transactionMethod: row.transactionMethod,
         })}`}
       >
-        <Truncate value={row[column.key]} maxLength={75} />
+        <Truncate value={label} maxLength={75} />
       </Link>
     </Fragment>
   );

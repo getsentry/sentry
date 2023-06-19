@@ -290,7 +290,6 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
-            {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable
               filter={state.spansFilter}
               transaction={transaction}
@@ -342,8 +341,6 @@ function SpanMetricsTable({
   transaction: string | undefined;
   method?: string;
 }) {
-  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}

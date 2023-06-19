@@ -43,7 +43,7 @@ type Props = {
 function SpanSummaryPage({params, location}: Props) {
   const organization = useOrganization();
   const {groupId} = params;
-  const {transaction, endpoint, endpointMethod} = location.query;
+  const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
   const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
 
@@ -219,7 +219,11 @@ function SpanSummaryPage({params, location}: Props) {
               )}
 
               {transaction && span?.group && (
-                <SampleList groupId={span.group} transactionName={transaction} />
+                <SampleList
+                  groupId={span.group}
+                  transactionName={transaction}
+                  transactionMethod={transactionMethod}
+                />
               )}
             </Layout.Main>
           </Layout.Body>

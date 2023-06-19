@@ -12,14 +12,15 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
   user?: string;
 };
 
-function SampleTable({groupId, transactionName}: Props) {
+function SampleTable({groupId, transactionName, transactionMethod}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'span-summary-panel-samples-table-p95'
   );
@@ -31,6 +32,7 @@ function SampleTable({groupId, transactionName}: Props) {
   } = useSpanSamples(
     groupId,
     transactionName,
+    transactionMethod,
     undefined,
     '-duration',
     'span-summary-panel-samples-table-spans'

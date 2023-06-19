@@ -22,12 +22,6 @@ export const useSpanMetrics = (
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
-
-  const filters: string[] = [];
-  if (queryFilters.transactionName) {
-    filters.push(`transaction = ${queryFilters.transactionName}`);
-  }
-
   const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
 
   // TODO: Add referrer
