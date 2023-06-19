@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Set
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 import pytz
 import sentry_sdk
@@ -115,6 +115,16 @@ SUPPORTED_SDK_VERSIONS = {
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
 ONE_MINUTE_TTL = 60  # 1 minute
 
+# Conditions that are excluded from the widgets query.
+EXCLUDED_CONDITIONS = [
+    "event.type:error",
+    "!event.type:transaction",
+    "event.type:csp",
+    "event.type:default",
+    "handled:",
+    "unhandled:" "error.",
+]
+
 
 class CheckStatus(Enum):
     ERROR = 0
@@ -199,7 +209,17 @@ class CheckAM2Compatibility:
         for project, found_sdks in outdated_sdks_per_project.items():
             unsupported = []
             for sdk_name, sdk_versions in found_sdks.items():
-                unsupported.append({"sdk_name": sdk_name, "sdk_versions": sdk_versions})
+                unsupported.append(
+                    {
+                        "sdk_name": sdk_name,
+                        "sdk_versions": [
+                            # Required will be None in case we didn't manage to find the SDK in the compatibility
+                            # list.
+                            {"found": found, "required": required}
+                            for found, required in sdk_versions
+                        ],
+                    }
+                )
 
             projects.append({"project": project, "unsupported": unsupported})
 
@@ -225,26 +245,34 @@ class CheckAM2Compatibility:
 
     @classmethod
     def get_outdated_sdks(cls, found_sdks_per_project):
-        outdated_sdks_per_project: Mapping[str, Mapping[str, Set[str]]] = defaultdict(
-            lambda: defaultdict(set)
-        )
+        outdated_sdks_per_project: Mapping[
+            str, Mapping[str, Set[Tuple[str, Optional[str]]]]
+        ] = defaultdict(lambda: defaultdict(set))
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
+                sdk_versions_set = outdated_sdks_per_project[project][sdk_name]
+                found_supported_version = False
                 for sdk_version in sdk_versions:
                     min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
                     if min_sdk_version is None:
                         # If we didn't find the SDK, we suppose it doesn't support dynamic sampling.
-                        outdated_sdks_per_project[project][sdk_name].add(
-                            f"{sdk_version} found (no data for minimum version)"
-                        )
+                        sdk_versions_set.add((sdk_version, None))
                     else:
                         # We check if it is less, thus it is not supported.
                         comparison = cls.compare_versions(sdk_version, min_sdk_version)
                         if comparison == -1:
-                            outdated_sdks_per_project[project][sdk_name].add(
-                                f"{sdk_version} found >= {min_sdk_version} required"
-                            )
+                            sdk_versions_set.add((sdk_version, min_sdk_version))
+                        else:
+                            # In case we end up here, it means that the sdk version found is >= than the minimum
+                            # version, thus want to skip the iteration since we don't want to show possible unsupported
+                            # versions in case at least one supported version is found.
+                            found_supported_version = True
+                            break
+
+                # In case we didn't find any supported sdks, we want to return the entire list of unsupported sdks.
+                if not found_supported_version:
+                    outdated_sdks_per_project[project][sdk_name].update(sdk_versions_set)
 
         return outdated_sdks_per_project
 
@@ -297,11 +325,22 @@ class CheckAM2Compatibility:
             return None
 
     @classmethod
+    def get_excluded_conditions(cls):
+        # We want an empty condition as identity for the AND chaining.
+        qs = Q()
+
+        for condition in EXCLUDED_CONDITIONS:
+            # We want to build an AND condition with multiple negated elements.
+            qs &= ~Q(conditions__icontains=condition)
+
+        return qs
+
+    @classmethod
     def get_all_widgets_of_organization(cls, organization_id):
         return DashboardWidgetQuery.objects.filter(
-            ~Q(conditions__icontains="event.type:error")
-            | ~Q(conditions__icontains="!event.type:transaction"),
+            cls.get_excluded_conditions(),
             widget__dashboard__organization_id=organization_id,
+            widget__widget_type=0,
         ).values_list(
             "widget__id",
             "widget__dashboard__id",
@@ -339,9 +378,14 @@ class CheckAM2Compatibility:
             # `query` contains "project:something".
             supports_metrics = cls.is_metrics_data(organization.id, all_projects, conditions)
             if supports_metrics is None:
-                errors.append(
-                    f"Couldn't figure out compatibility for widget {widget_id} with fields {fields} and conditions {conditions}."
-                )
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("org_id", organization.id)
+                    scope.set_extra("widget_id", widget_id)
+                    scope.set_extra("fields", fields)
+                    scope.set_extra("conditions", conditions)
+
+                    sentry_sdk.capture_message("Can't figure out AM2 compatibility for widget.")
+
                 continue
 
             if not supports_metrics:
@@ -352,9 +396,14 @@ class CheckAM2Compatibility:
         for alert_id, aggregate, query in cls.get_all_alerts_of_organization(organization.id):
             supports_metrics = cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
-                errors.append(
-                    f"Couldn't figure out compatibility for alert {alert_id} with aggregate {aggregate} and query {query}."
-                )
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("org_id", organization.id)
+                    scope.set_extra("alert_id", alert_id)
+                    scope.set_extra("aggregate", aggregate)
+                    scope.set_extra("query", query)
+
+                    sentry_sdk.capture_message("Can't figure out AM2 compatibility for alert.")
+
                 continue
 
             if not supports_metrics:
@@ -363,9 +412,11 @@ class CheckAM2Compatibility:
 
         outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects)
         if outdated_sdks_per_project is None:
-            errors.append(
-                f"Couldn't figure out outdated sdks for projects of org {organization.id}."
-            )
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("org_id", organization.id)
+
+                sentry_sdk.capture_message("Can't figure out outdated SDKs.")
+
             outdated_sdks_per_project = {}
 
         return cls.format_results(
