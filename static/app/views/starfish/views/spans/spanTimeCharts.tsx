@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -14,16 +13,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {
-  datetimeToClickhouseFilterTimestamps,
-  getDateFilters,
-} from 'sentry/views/starfish/utils/dates';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -67,11 +64,6 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
 
   const {isLoading} = useSpansQuery({
     eventView,
-    queryString: `${getQuery(
-      moduleName,
-      selection,
-      appliedFilters
-    )}&referrer=span-time-charts`,
     initialData: [],
   });
 
@@ -111,9 +103,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
 function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const query = getQuery(moduleName, pageFilters.selection, filters);
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
-  const {startTime, endTime} = getDateFilters(pageFilters);
 
   const label = getSegmentLabel(
     location.query['span.op'],
@@ -122,7 +112,6 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   );
   const {isLoading, data} = useSpansQuery({
     eventView,
-    queryString: `${query}&referrer=span-time-charts`,
     initialData: [],
   });
   const dataByGroup = {[label]: data};
@@ -130,18 +119,13 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'Throughput',
-        data: groupData.map(datum => ({
-          value: datum['sps()'],
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
+    return {
+      seriesName: label ?? 'Throughput',
+      data: groupData.map(datum => ({
+        value: datum['sps()'],
+        name: datum.interval,
+      })),
+    };
   });
 
   return (
@@ -164,7 +148,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => `${value.toFixed(3)} / ${t('sec')}`,
+        valueFormatter: value => formatThroughput(value),
       }}
     />
   );
@@ -173,9 +157,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const query = getQuery(moduleName, pageFilters.selection, filters);
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
-  const {startTime, endTime} = getDateFilters(pageFilters);
 
   const label = getSegmentLabel(
     location.query['span.op'],
@@ -185,7 +167,6 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
   const {isLoading, data} = useSpansQuery({
     eventView,
-    queryString: `${query}&referrer=span-time-charts`,
     initialData: [],
   });
   const dataByGroup = {[label]: data};
@@ -193,18 +174,13 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const p95Series = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'p95()',
-        data: groupData.map(datum => ({
-          value: datum['p95(span.duration)'],
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
+    return {
+      seriesName: label ?? `p95(${SPAN_SELF_TIME})`,
+      data: groupData.map(datum => ({
+        value: datum[`p95(${SPAN_SELF_TIME})`],
+        name: datum.interval,
+      })),
+    };
   });
 
   return (
@@ -267,50 +243,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
   );
 }
 
-const getQuery = (
-  moduleName: ModuleName,
-  pageFilters: PageFilters,
-  appliedFilters: AppliedFilters
-) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(
-    pageFilters.datetime
-  );
-
-  const conditions = buildSQLQueryConditions(moduleName, appliedFilters);
-
-  return `SELECT
-    divide(count(), multiply(12, 60)) as "spm()",
-    quantile(0.50)(exclusive_time) AS "p50(span.duration)",
-    quantile(0.95)(exclusive_time) AS "p95(span.duration)",
-    toStartOfInterval(start_timestamp, INTERVAL 1 DAY) as interval
-    FROM spans_experimental_starfish
-    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    ${conditions ? `AND ${conditions}` : ''}
-    GROUP BY interval
-    ORDER BY interval ASC
-  `;
-};
-
 const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
-
-const buildSQLQueryConditions = (
-  moduleName: ModuleName,
-  appliedFilters: AppliedFilters
-) => {
-  const result = Object.keys(appliedFilters)
-    .filter(key => SPAN_FILTER_KEYS.includes(key))
-    .filter(key => Boolean(appliedFilters[key]))
-    .map(key => {
-      return `${key} = '${appliedFilters[key]}'`;
-    });
-
-  if (moduleName !== ModuleName.ALL) {
-    result.push(`module = '${moduleName}'`);
-  }
-
-  return result.join(' ');
-};
 
 const getEventView = (
   moduleName: ModuleName,
@@ -325,7 +258,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['sps()', 'p50(span.duration)', 'p95(span.duration)'],
+      yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],

@@ -9,7 +9,7 @@ from .model import AuditLogEvent, UserIpEvent
 
 
 class LogService(RpcService):
-    key = "integration"
+    key = "log"
     local_mode = SiloMode.CONTROL
 
     @classmethod

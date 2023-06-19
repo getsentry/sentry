@@ -1654,7 +1654,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         search_operator: replaceText,
         search_source: this.props.searchSource,
         item_name: item.title ?? item.value?.split(':')[0],
-        item_type: item.type,
+        item_kind: item.kind,
         search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
       });
     }

@@ -149,3 +149,27 @@ class SlowDBQueryDetectorTest(TestCase):
 
         with self.feature({"organizations:performance-slow-db-issue": True}):
             assert detector.is_creation_allowed_for_organization(project.organization)
+
+    # TODO Abdullah Khan: Uncomment after detection_rate migration
+    # def test_respects_project_option(self):
+    #     project = self.create_project()
+    #     slow_span_event = create_event(
+    #         [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
+    #     )
+    #     slow_span_event["project_id"] = project.id
+
+    #     settings = get_detection_settings(project.id)
+    #     detector = SlowDBQueryDetector(settings, slow_span_event)
+
+    #     assert detector.is_creation_allowed_for_project(project)
+
+    #     ProjectOption.objects.set_value(
+    #         project=project,
+    #         key="sentry:performance_issue_settings",
+    #         value={"slow_db_queries_detection_enabled": False},
+    #     )
+
+    #     settings = get_detection_settings(project.id)
+    #     detector = SlowDBQueryDetector(settings, slow_span_event)
+
+    #     assert not detector.is_creation_allowed_for_project(project)

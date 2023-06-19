@@ -269,9 +269,9 @@ METRICS_MAP = {
     "user": "s:transactions/user@none",
 }
 SPAN_METRICS_MAP = {
-    "user": "s:transactions/span.user@none",
-    "span.duration": "d:transactions/span.duration@millisecond",
-    "span.self_time": "d:transactions/span.exclusive_time@millisecond",
+    "user": "s:spans/user@none",
+    "span.self_time": "d:spans/exclusive_time@millisecond",
+    "span.duration": "d:spans/duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
@@ -281,8 +281,6 @@ METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
 METRIC_SATISFACTION_TAG_KEY = "satisfaction"
-# These strings will be resolved by the indexer, but aren't available in the dataset
-METRIC_UNAVAILBLE_COLUMNS = {"os.name"}
 
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {

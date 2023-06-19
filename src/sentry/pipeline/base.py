@@ -16,7 +16,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
-from ..services.hybrid_cloud.organization.serial import serialize_organization
+from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
@@ -104,7 +104,7 @@ class Pipeline(abc.ABC):
     ) -> None:
         self.request = request
         self.organization: RpcOrganization | None = (
-            serialize_organization(organization)
+            serialize_rpc_organization(organization)
             if isinstance(organization, Organization)
             else organization
         )

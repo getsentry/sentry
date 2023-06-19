@@ -940,9 +940,16 @@ function buildRoutes() {
         />
         <Route
           path="new-token/"
-          name={t('Create New Token')}
+          name={t('Create New Auth Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          )}
+        />
+        <Route
+          path=":tokenId/"
+          name={t('Edit Auth Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           )}
         />
       </Route>
@@ -1668,31 +1675,42 @@ function buildRoutes() {
           () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
         )}
       />
-      <Route
-        path="endpoint-overview/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
-        )}
-      />
-      <Route
-        path="database/"
-        component={make(() => import('sentry/views/starfish/modules/DBModule'))}
-      />
+      <Route path="endpoint-overview/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
+          )}
+        />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
+      <Route path="database/">
+        <IndexRoute
+          component={make(() => import('sentry/views/starfish/modules/DBModule'))}
+        />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
       <Route
         path="definitions/"
         component={make(() => import('sentry/views/starfish/views/definitionsView'))}
       />
-      <Route
-        path="api/"
-        component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
-      />
+      <Route path="api/">
+        <IndexRoute
+          component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
+        />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
       <Route
         path="spans/"
         component={make(() => import('sentry/views/starfish/views/spans'))}
-      />
-      <Route
-        path="span/:groupId/"
-        component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
       />
     </Fragment>
   );

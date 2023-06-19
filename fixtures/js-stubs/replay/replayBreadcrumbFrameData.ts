@@ -1,5 +1,5 @@
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {BreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {RawBreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

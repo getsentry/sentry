@@ -221,7 +221,7 @@ class TraceEvent:
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
-                            offender_span_ids = problem.evidence_data.get("offender_span_ids")
+                            offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                             if event_span.get("span_id") in offender_span_ids:
                                 try:
                                     start_timestamp = float(event_span.get("start_timestamp"))

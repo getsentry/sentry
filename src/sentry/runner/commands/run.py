@@ -677,6 +677,10 @@ def profiles_consumer(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @click.option("--join-timeout", type=float, help="Join timeout in seconds.", default=None)
+@click.option(
+    "--max-poll-interval-ms",
+    type=int,
+)
 @strict_offset_reset_option()
 @configuration
 def basic_consumer(consumer_name, consumer_args, topic, **options):
@@ -816,6 +820,6 @@ def last_seen_updater(**options):
 @log_options()
 @configuration
 def backpressure_monitor():
-    from sentry.processing.backpressure.rabbitmq import run_queue_stats_updater
+    from sentry.processing.backpressure.monitor import start_service_monitoring
 
-    run_queue_stats_updater()
+    start_service_monitoring()

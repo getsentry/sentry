@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -22,11 +23,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -44,11 +47,16 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, method, statsPeriod} = location.query;
+  const {endpoint, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
+    : undefined;
+  const method = location.query.method
+    ? Array.isArray(location.query.method)
+      ? location.query.method[0]
+      : location.query.method
     : undefined;
   const pageFilter = usePageFilters();
 
@@ -111,7 +119,7 @@ export default function EndpointOverview() {
           return (
             <Fragment>
               <Header>
-                <ChartLabel>{t('Throughput Per Second')}</ChartLabel>
+                <ChartLabel>{DataTitles.throughput}</ChartLabel>
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -140,7 +148,7 @@ export default function EndpointOverview() {
                   bottom: '0',
                 }}
                 tooltipFormatterOptions={{
-                  valueFormatter: value => t('%s/sec', value.toFixed(2)),
+                  valueFormatter: value => formatThroughput(value),
                 }}
               />
               <SidebarSpacer />
@@ -226,6 +234,17 @@ export default function EndpointOverview() {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Starfish'),
+                  to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+                },
+                {
+                  label: t('Endpoint Overview'),
+                },
+              ]}
+            />
             <Layout.Title>{`${method} ${transaction}`}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
@@ -254,7 +273,11 @@ export default function EndpointOverview() {
               </SegmentedControl>
             </SegmentedControlContainer>
             {/* TODO: Add transaction method to filter */}
-            <SpanMetricsTable filter={state.spansFilter} transaction={transaction} />
+            <SpanMetricsTable
+              filter={state.spansFilter}
+              transaction={transaction}
+              method={method}
+            />
             <SubHeader>{t('Sample Events')}</SubHeader>
             <TransactionSamplesTable queryConditions={queryConditions} />
             <SegmentedControlContainer>
@@ -291,9 +314,11 @@ export default function EndpointOverview() {
 function SpanMetricsTable({
   filter,
   transaction,
+  method,
 }: {
   filter: ModuleName;
   transaction: string | undefined;
+  method?: string;
 }) {
   // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
 
@@ -303,6 +328,7 @@ function SpanMetricsTable({
       orderBy="-time_spent_percentage"
       onSetOrderBy={() => undefined}
       endpoint={transaction}
+      method={method}
       limit={SPANS_TABLE_LIMIT}
     />
   );
