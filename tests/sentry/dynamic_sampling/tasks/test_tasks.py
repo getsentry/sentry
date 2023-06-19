@@ -463,13 +463,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
 
-        with self.options(
-            {
-                "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
-            }
-        ):
-            with self.tasks():
-                boost_low_volume_transactions()
+        with self.tasks():
+            boost_low_volume_transactions()
 
         # now redis should contain rebalancing data for our projects
         for org in self.orgs_info:
@@ -499,14 +494,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             else:
                 self.set_sliding_window_sample_rate_for_all(used_sample_rate)
 
-            with self.options(
-                {
-                    "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
-                }
-            ):
-                with self.feature("organizations:ds-sliding-window"):
-                    with self.tasks():
-                        boost_low_volume_transactions()
+            with self.feature("organizations:ds-sliding-window"):
+                with self.tasks():
+                    boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -544,14 +534,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             elif sliding_window_step == 3:
                 self.set_boost_low_volume_projects_for_all(used_sample_rate)
 
-            with self.options(
-                {
-                    "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
-                }
-            ):
-                with self.feature("organizations:ds-sliding-window-org"):
-                    with self.tasks():
-                        boost_low_volume_transactions()
+            with self.feature("organizations:ds-sliding-window-org"):
+                with self.tasks():
+                    boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -595,7 +580,6 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
             with self.options(
                 {
-                    "dynamic-sampling.prioritise_transactions.load_rate": 1.0,
                     "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
                     "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
                     "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
