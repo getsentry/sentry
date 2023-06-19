@@ -25,7 +25,7 @@ from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
 
 
-class BaseEventTest(APITestCase):
+class StatusActionTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(is_superuser=False)
@@ -118,8 +118,6 @@ class BaseEventTest(APITestCase):
 
         return self.client.post("/extensions/msteams/webhook/", data=payload)
 
-
-class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_vaue=True)
     @patch("sentry.integrations.msteams.link_identity.sign")
     @responses.activate
