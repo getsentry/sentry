@@ -1,7 +1,7 @@
 import logging
 import pickle
 import threading
-from datetime import datetime
+from datetime import date, datetime
 from time import time
 
 from django.db import models
@@ -140,6 +140,9 @@ class RedisBuffer(Buffer):
         if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
+            type_ = "dt"
+            value = value.strftime("%s.%f")
+        elif isinstance(value, date):
             type_ = "d"
             value = value.strftime("%s.%f")
         elif isinstance(value, int):
@@ -162,8 +165,10 @@ class RedisBuffer(Buffer):
         (type_, value) = payload
         if type_ == "s":
             return force_text(value)
-        elif type_ == "d":
+        elif type_ == "dt":
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
+        elif type_ == "d":
+            return date.fromtimestamp(float(value))
         elif type_ == "i":
             return int(value)
         elif type_ == "f":
