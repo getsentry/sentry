@@ -878,7 +878,6 @@ module = [
     "sentry.receivers.outbox.control",
     "sentry.receivers.releases",
     "sentry.receivers.sentry_apps",
-    "sentry.receivers.users",
     "sentry.release_health.metrics",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.release_health.sessions",
