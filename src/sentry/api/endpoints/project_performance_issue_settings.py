@@ -8,6 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.permissions import SuperuserPermission
 
 MAX_VALUE = 2147483647
+TEN_SECONDS = 10000  # ten seconds in milliseconds
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
@@ -19,6 +20,12 @@ class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
+    n_plus_one_db_duration_threshold = serializers.FloatField(
+        required=False, min_value=50, max_value=TEN_SECONDS
+    )
+    slow_db_query_duration_threshold = serializers.FloatField(
+        required=False, min_value=100, max_value=TEN_SECONDS
+    )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
     large_http_payload_detection_enabled = serializers.BooleanField(required=False)
