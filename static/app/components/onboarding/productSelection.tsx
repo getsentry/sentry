@@ -22,6 +22,7 @@ export enum PRODUCT {
 export type DisabledProduct = {
   product: PRODUCT;
   reason: string;
+  onClick?: () => void;
 };
 
 type ProductProps = {
@@ -36,7 +37,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
   return (
     <ProductWrapper
       permanentDisabled={permanentDisabled}
-      onClick={disabled ? undefined : onClick}
+      onClick={onClick}
       disabled={disabled}
     >
       <Checkbox
@@ -138,7 +139,11 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
+            onClick={() =>
+              performanceProductDisabled
+                ? performanceProductDisabled?.onClick?.()
+                : handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
+            }
             disabled={!!performanceProductDisabled}
             checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
             label={t('Performance Monitoring')}
@@ -160,7 +165,11 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
+            onClick={() =>
+              sessionReplayProductDisabled
+                ? sessionReplayProductDisabled?.onClick?.()
+                : handleClickProduct(PRODUCT.SESSION_REPLAY)
+            }
             disabled={!!sessionReplayProductDisabled}
             checked={products.includes(PRODUCT.SESSION_REPLAY)}
             label={t('Session Replay')}
