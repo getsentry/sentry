@@ -2,6 +2,8 @@ from django.conf.urls import include, url
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
+from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_facets_stats_performance import (
     OrganizationEventsFacetsStatsPerformanceEndpoint,
 )
@@ -1616,6 +1618,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sentry-app-components/$",
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-app-components",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/org-auth-tokens/$",
+        OrgAuthTokensEndpoint.as_view(),
+        name="sentry-api-0-org-auth-tokens",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/org-auth-tokens/(?P<token_id>[^\/]+)/$",
+        OrgAuthTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-org-auth-token-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/stats/$",
