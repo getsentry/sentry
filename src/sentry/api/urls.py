@@ -278,6 +278,7 @@ from .endpoints.organization_events_histogram import OrganizationEventsHistogram
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
+    OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
@@ -1219,6 +1220,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-meta/$",
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/spans-samples/$",
+        OrganizationSpansSamplesEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-samples",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
