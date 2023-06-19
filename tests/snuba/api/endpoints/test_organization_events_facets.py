@@ -701,6 +701,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
         assert len(response.data) == 10
 
         # Loop over the first 10 tags to ensure they're in the results
@@ -713,7 +714,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         # Get the next page
         with self.feature(self.features):
             response = self.client.get(
-                self.url, format="json", data={"project": test_project.id, "cursor": "0:1:0"}
+                self.url, format="json", data={"project": test_project.id, "cursor": "0:10:0"}
             )
             links = requests.utils.parse_header_links(
                 response.get("link").rstrip(">").replace(">,<", ",<")

@@ -563,7 +563,7 @@ def get_facets(
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
     per_page (int) The number of records to fetch.
-    cursor (int) Multiplied by per_page to determine the number of records to skip.
+    cursor (int) The number of records to skip.
 
     Returns Sequence[FacetResult]
     """
@@ -577,9 +577,7 @@ def get_facets(
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
             limit=per_page,
-            # Subtract 1 from the per_page because the GenericOffsetPaginator class
-            # adds 1 to the per_page to determine if there are more results
-            offset=cursor * (per_page - 1),
+            offset=cursor,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
