@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, Mapping, Optional, Set, Tuple
 
 import pytz
 import sentry_sdk
@@ -361,7 +361,7 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
-    def run_compatibility_check(cls, org_id, errors):
+    def run_compatibility_check(cls, org_id):
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
@@ -482,16 +482,14 @@ def get_check_results(org_id):
     time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
 )
 def run_compatibility_check_async(org_id):
-    errors: List[str] = []
-
     try:
         set_check_status(org_id, CheckStatus.IN_PROGRESS)
-        results = CheckAM2Compatibility.run_compatibility_check(org_id, errors)
+        results = CheckAM2Compatibility.run_compatibility_check(org_id)
         # The expiration of these two cache keys will be arbitrarily different due to the different times in which
         # Redis might apply the operation, but we don't care, as long as the status outlives the result, since we check
         # the status for determining if we want to proceed to even read a possible result.
         set_check_status(org_id, CheckStatus.DONE)
-        set_check_results(org_id, {"results": results, "errors": errors})
+        set_check_results(org_id, {"results": results})
     except Exception as e:
         sentry_sdk.capture_exception(e)
         # We want to store the error status for 1 minutes, after that the system will auto reset and we will run the
