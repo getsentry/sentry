@@ -252,10 +252,11 @@ class CheckAM2Compatibility:
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
-                sdk_versions_set = outdated_sdks_per_project[project][sdk_name]
+                sdk_versions_set = set()
                 found_supported_version = False
+                min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
+
                 for sdk_version in sdk_versions:
-                    min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
                     if min_sdk_version is None:
                         # If we didn't find the SDK, we suppose it doesn't support dynamic sampling.
                         sdk_versions_set.add((sdk_version, None))
@@ -272,7 +273,7 @@ class CheckAM2Compatibility:
                             break
 
                 # In case we didn't find any supported sdks, we want to return the entire list of unsupported sdks.
-                if not found_supported_version:
+                if not found_supported_version and sdk_versions_set:
                     outdated_sdks_per_project[project][sdk_name].update(sdk_versions_set)
 
         return outdated_sdks_per_project
