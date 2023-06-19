@@ -35,7 +35,10 @@ const defaultProps = {
   useFilteredStats: true,
   useTintRow: true,
   narrowGroups: false,
+  withColumns: ['graph', 'event', 'users', 'assignee'] satisfies GroupListColumn[],
 };
+
+export type GroupListColumn = 'graph' | 'event' | 'users' | 'assignee' | 'lastTriggered';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -58,6 +61,7 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  withColumns?: GroupListColumn[];
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -229,6 +233,7 @@ class GroupList extends Component<Props, State> {
     const {
       canSelectGroups,
       withChart,
+      withColumns,
       renderEmptyMessage,
       renderErrorMessage,
       withPagination,
@@ -277,7 +282,11 @@ class GroupList extends Component<Props, State> {
     return (
       <IssuesReplayCountProvider groupIds={groups.map(({id}) => id)}>
         <Panel>
-          <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
+          <GroupListHeader
+            withChart={!!withChart}
+            narrowGroups={narrowGroups}
+            withColumns={withColumns}
+          />
           <PanelBody>
             {groups.map(({id, project}) => {
               const members = memberList?.hasOwnProperty(project.slug)
@@ -290,6 +299,7 @@ class GroupList extends Component<Props, State> {
                   id={id}
                   canSelect={canSelectGroups}
                   withChart={withChart}
+                  withColumns={withColumns}
                   memberList={members}
                   useFilteredStats={useFilteredStats}
                   useTintRow={useTintRow}

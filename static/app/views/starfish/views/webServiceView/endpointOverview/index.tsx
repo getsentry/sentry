@@ -1,7 +1,10 @@
 import {Fragment, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -30,6 +33,7 @@ import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -229,6 +233,20 @@ export default function EndpointOverview() {
     );
   }
 
+  const handleViewAllEventsClick = () => {
+    const issuesQuery = new MutableSearch([
+      ...(issueFilter === 'ALL' ? [] : [`issue.category:${issueFilter}`]),
+      `transaction:${transaction}`,
+      `http.method:${method}`,
+    ]);
+    browserHistory.push({
+      pathname: `/issues/?${qs.stringify({
+        ...getDateConditions(pageFilter.selection),
+        query: issuesQuery.formatString(),
+      })}`,
+    });
+  };
+
   return (
     <PageFiltersContainer>
       <Layout.Page>
@@ -295,9 +313,13 @@ export default function EndpointOverview() {
                   {t('Performance Only')}
                 </SegmentedControl.Item>
               </SegmentedControl>
+              <Button size="sm" onClick={handleViewAllEventsClick}>
+                {t('View All')}
+              </Button>
             </SegmentedControlContainer>
             <IssuesTable
               issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
+              httpMethod={method as string}
               transactionName={transaction}
             />
           </Layout.Main>
@@ -376,6 +398,8 @@ const StyledRow = styled(PerformanceLayoutBodyRow)`
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
 `;
 
 const ChartLabel = styled('div')`
