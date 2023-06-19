@@ -299,14 +299,6 @@ export function formatAbbreviatedNumber(number: number | string) {
   return number.toLocaleString();
 }
 
-export function formatRate(value: number) {
-  if (value < 1 && value > 0) {
-    return `${value * 60}/m`;
-  }
-
-  if (value < 0.01 && value > 0) {
-    return `${value * 60 * 60}/hr`;
-  }
-
-  return `${value}/s`;
+export function formatRate(value: number, rateUnit?: string) {
+  return `${value}/${rateUnit ?? 's'}`;
 }
