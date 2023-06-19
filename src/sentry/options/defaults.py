@@ -1258,9 +1258,6 @@ register("dynamic-sampling:enabled-biases", default=True, flags=FLAG_AUTOMATOR_M
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "dynamic-sampling.prioritise_projects.sample_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # controls how many orgs will be queried by the prioritise by transaction task

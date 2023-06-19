@@ -139,10 +139,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.tasks():
-                sliding_window_org()
-                boost_low_volume_projects()
+        with self.tasks():
+            sliding_window_org()
+            boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -176,10 +175,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
         proj_e = self.create_project_without_metrics("e", test_org)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.tasks():
-                sliding_window_org()
-                boost_low_volume_projects()
+        with self.tasks():
+            sliding_window_org()
+            boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -219,11 +217,10 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.feature("organizations:ds-sliding-window-org"):
-                with self.tasks():
-                    sliding_window_org()
-                    boost_low_volume_projects()
+        with self.feature("organizations:ds-sliding-window-org"):
+            with self.tasks():
+                sliding_window_org()
+                boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -262,12 +259,11 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.feature("organizations:ds-sliding-window-org"):
-                with self.tasks():
-                    # We are testing whether the sliding window org sample rate will be synchronously computed
-                    # since the cache value is not there.
-                    boost_low_volume_projects()
+        with self.feature("organizations:ds-sliding-window-org"):
+            with self.tasks():
+                # We are testing whether the sliding window org sample rate will be synchronously computed
+                # since the cache value is not there.
+                boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -311,10 +307,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=0.1)
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=0.2)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.feature("organizations:ds-sliding-window-org"):
-                with self.tasks():
-                    boost_low_volume_projects()
+        with self.feature("organizations:ds-sliding-window-org"):
+            with self.tasks():
+                boost_low_volume_projects()
 
         assert schedule_invalidate_project_config.call_count == 2
 
@@ -344,10 +339,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=1.0)
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=1.0)
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
-            with self.feature("organizations:ds-sliding-window-org"):
-                with self.tasks():
-                    boost_low_volume_projects()
+        with self.feature("organizations:ds-sliding-window-org"):
+            with self.tasks():
+                boost_low_volume_projects()
 
         schedule_invalidate_project_config.assert_not_called()
 
