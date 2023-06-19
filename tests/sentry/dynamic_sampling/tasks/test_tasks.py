@@ -7,11 +7,11 @@ import pytz
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling import generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_prioritise_by_project_cache_key,
+    generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
     get_transactions_resampling_rates,
@@ -21,15 +21,15 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import (
     generate_sliding_window_cache_key,
     mark_sliding_window_org_executed,
 )
-from sentry.dynamic_sampling.rules.utils import RuleType, generate_cache_key_rebalance_factor
-from sentry.dynamic_sampling.tasks import (
-    prioritise_projects,
-    prioritise_transactions,
-    recalibrate_orgs,
-    sliding_window,
-    sliding_window_org,
+from sentry.dynamic_sampling.rules.utils import generate_cache_key_rebalance_factor
+from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
+from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+    boost_low_volume_transactions,
 )
-from sentry.snuba.metrics import TransactionMRI
+from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
+from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
+from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
@@ -96,7 +96,7 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 
 
 @freeze_time(MOCK_DATETIME)
-class TestPrioritiseProjectsTasks(TasksTestCase):
+class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     @property
     def now(self):
         return MOCK_DATETIME
@@ -104,7 +104,9 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
     @staticmethod
     def add_sample_rate_per_project(org_id: int, project_id: int, sample_rate: float):
         redis_client = get_redis_client_for_ds()
-        redis_client.hset(generate_prioritise_by_project_cache_key(org_id), project_id, sample_rate)
+        redis_client.hset(
+            generate_boost_low_volume_projects_cache_key(org_id), project_id, sample_rate
+        )
 
     @staticmethod
     def sampling_tier_side_effect(*args, **kwargs):
@@ -123,7 +125,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         return kwargs["volume"]
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_projects_simple(
+    def test_boost_low_volume_projects_simple(
         self,
         get_blended_sample_rate,
     ):
@@ -140,7 +142,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.tasks():
                 sliding_window_org()
-                prioritise_projects()
+                boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -159,7 +161,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_projects_simple_with_empty_project(
+    def test_boost_low_volume_projects_simple_with_empty_project(
         self,
         get_blended_sample_rate,
     ):
@@ -177,7 +179,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.tasks():
                 sliding_window_org()
-                prioritise_projects()
+                boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -198,8 +200,8 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
-    def test_prioritise_projects_simple_with_sliding_window_org_from_cache(
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    def test_boost_low_volume_projects_simple_with_sliding_window_org_from_cache(
         self,
         extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
@@ -221,7 +223,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
             with self.feature("organizations:ds-sliding-window-org"):
                 with self.tasks():
                     sliding_window_org()
-                    prioritise_projects()
+                    boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -241,8 +243,8 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
-    def test_prioritise_projects_simple_with_sliding_window_org_from_sync(
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    def test_boost_low_volume_projects_simple_with_sliding_window_org_from_sync(
         self,
         extrapolate_monthly_volume,
         get_transaction_sampling_tier_for_volume,
@@ -265,7 +267,7 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
                 with self.tasks():
                     # We are testing whether the sliding window org sample rate will be synchronously computed
                     # since the cache value is not there.
-                    prioritise_projects()
+                    boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -283,10 +285,12 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
-    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch(
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
+    )
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_change(
         self,
         extrapolate_monthly_volume,
@@ -310,14 +314,16 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.feature("organizations:ds-sliding-window-org"):
                 with self.tasks():
-                    prioritise_projects()
+                    boost_low_volume_projects()
 
         assert schedule_invalidate_project_config.call_count == 2
 
-    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch(
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
+    )
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_do_not_change(
         self,
         extrapolate_monthly_volume,
@@ -341,13 +347,13 @@ class TestPrioritiseProjectsTasks(TasksTestCase):
         with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
             with self.feature("organizations:ds-sliding-window-org"):
                 with self.tasks():
-                    prioritise_projects()
+                    boost_low_volume_projects()
 
         schedule_invalidate_project_config.assert_not_called()
 
 
 @freeze_time(MOCK_DATETIME)
-class TestPrioritiseTransactionsTasks(TasksTestCase):
+class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
     @property
     def now(self):
         return MOCK_DATETIME
@@ -403,9 +409,9 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
         redis.hset(cache_key, project_id, value)
 
     @staticmethod
-    def set_prioritise_projects_cache_entry(org_id: int, project_id: int, value: str):
+    def set_boost_low_volume_projects_cache_entry(org_id: int, project_id: int, value: str):
         redis = get_redis_client_for_ds()
-        cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
+        cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
         redis.hset(cache_key, project_id, value)
 
     def set_sliding_window_sample_rate(self, org_id: int, project_id: int, sample_rate: float):
@@ -415,14 +421,14 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
         # We want also to test for this case in order to verify the fallback to the `get_blended_sample_rate`.
         self.set_sliding_window_cache_entry(org_id, project_id, SLIDING_WINDOW_CALCULATION_ERROR)
 
-    def set_prioritise_by_project_sample_rate(
+    def set_boost_low_volume_projects_sample_rate(
         self, org_id: int, project_id: int, sample_rate: float
     ):
-        self.set_prioritise_projects_cache_entry(org_id, project_id, str(sample_rate))
+        self.set_boost_low_volume_projects_cache_entry(org_id, project_id, str(sample_rate))
 
     def set_prioritise_by_project_invalid(self, org_id: int, project_id: int):
         # We want also to test for this case in order to verify the fallback to the `get_blended_sample_rate`.
-        self.set_prioritise_projects_cache_entry(org_id, project_id, "invalid")
+        self.set_boost_low_volume_projects_cache_entry(org_id, project_id, "invalid")
 
     def for_all_orgs_and_projects(self, block: Callable[[int, int], None]):
         for org in self.orgs_info:
@@ -442,20 +448,20 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
             )
         )
 
-    def set_prioritise_by_project_invalid_for_all(self):
+    def set_boost_low_volume_projects_invalid_for_all(self):
         self.for_all_orgs_and_projects(
             lambda org_id, project_id: self.set_prioritise_by_project_invalid(org_id, project_id)
         )
 
-    def set_prioritise_by_project_sample_rate_for_all(self, sample_rate: float):
+    def set_boost_low_volume_projects_for_all(self, sample_rate: float):
         self.for_all_orgs_and_projects(
-            lambda org_id, project_id: self.set_prioritise_by_project_sample_rate(
+            lambda org_id, project_id: self.set_boost_low_volume_projects_sample_rate(
                 org_id, project_id, sample_rate
             )
         )
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_transactions_with_blended_sample_rate(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_with_blended_sample_rate(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis.
@@ -469,7 +475,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
             }
         ):
             with self.tasks():
-                prioritise_transactions()
+                boost_low_volume_transactions()
 
         # now redis should contain rebalancing data for our projects
         for org in self.orgs_info:
@@ -485,7 +491,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                 assert global_rate == BLENDED_RATE
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_transactions_with_sliding_window(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_with_sliding_window(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis with the sliding window per project enabled.
@@ -506,7 +512,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
             ):
                 with self.feature("organizations:ds-sliding-window"):
                     with self.tasks():
-                        prioritise_transactions()
+                        boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -522,7 +528,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                     assert global_rate == used_sample_rate
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_transactions_with_sliding_window_org(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_with_sliding_window_org(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis with the sliding window per org enabled.
@@ -539,10 +545,10 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                 mark_sliding_window_org_executed()
             # Invalid value in cache.
             elif sliding_window_step == 2:
-                self.set_prioritise_by_project_invalid_for_all()
+                self.set_boost_low_volume_projects_invalid_for_all()
             # Value in cache.
             elif sliding_window_step == 3:
-                self.set_prioritise_by_project_sample_rate_for_all(used_sample_rate)
+                self.set_boost_low_volume_projects_for_all(used_sample_rate)
 
             with self.options(
                 {
@@ -551,7 +557,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
             ):
                 with self.feature("organizations:ds-sliding-window-org"):
                     with self.tasks():
-                        prioritise_transactions()
+                        boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -576,7 +582,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                         assert global_rate == used_sample_rate
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_transactions_partial(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_partial(self, get_blended_sample_rate):
         """
         Test the V2 algorithm is used, only specified projects are balanced and the
         rest get a global rate
@@ -602,7 +608,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
                 }
             ):
                 with self.tasks():
-                    prioritise_transactions()
+                    boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -626,7 +632,7 @@ class TestPrioritiseTransactionsTasks(TasksTestCase):
 
 
 @freeze_time(MOCK_DATETIME)
-class TestRecalibrateOrganisationsTasks(TasksTestCase):
+class TestRecalibrateOrgsTasks(TasksTestCase):
     @property
     def now(self):
         return MOCK_DATETIME
@@ -807,7 +813,7 @@ class TestSlidingWindowTasks(TasksTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_multiple_projects(
         self,
         extrapolate_monthly_volume,
@@ -863,7 +869,7 @@ class TestSlidingWindowTasks(TasksTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_none_sampling_tier(
         self,
         extrapolate_monthly_volume,
@@ -896,7 +902,7 @@ class TestSlidingWindowTasks(TasksTestCase):
             }
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_forecasting_error(
         self, extrapolate_monthly_volume, get_blended_sample_rate
     ):
@@ -919,7 +925,7 @@ class TestSlidingWindowTasks(TasksTestCase):
             }
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.tasks.compute_sliding_window_sample_rate")
+    @patch("sentry.dynamic_sampling.tasks.common.compute_sliding_window_sample_rate")
     def test_sliding_window_with_sample_rate_computation_error(
         self, compute_sliding_window_sample_rate, get_blended_sample_rate
     ):
@@ -943,7 +949,7 @@ class TestSlidingWindowTasks(TasksTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_project_without_metrics(
         self,
         extrapolate_monthly_volume,
@@ -976,7 +982,7 @@ class TestSlidingWindowTasks(TasksTestCase):
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_all_projects_without_metrics(
         self,
         extrapolate_monthly_volume,
@@ -1025,10 +1031,10 @@ class TestSlidingWindowTasks(TasksTestCase):
                     "value": 0.5,
                 }
 
-    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_change(
         self,
         extrapolate_monthly_volume,
@@ -1058,10 +1064,10 @@ class TestSlidingWindowTasks(TasksTestCase):
 
         assert schedule_invalidate_project_config.call_count == 2
 
-    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_do_not_change(
         self,
         extrapolate_monthly_volume,
@@ -1091,10 +1097,10 @@ class TestSlidingWindowTasks(TasksTestCase):
 
         schedule_invalidate_project_config.assert_not_called()
 
-    @patch("sentry.dynamic_sampling.tasks.schedule_invalidate_project_config")
+    @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_cache_deletion_when_project_has_no_more_metrics(
         self,
         extrapolate_monthly_volume,
