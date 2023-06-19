@@ -135,6 +135,7 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[THROUGHPUT_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
+                        aggregateOutputFormat="rate"
                         tooltipFormatterOptions={{
                           valueFormatter: value => formatThroughput(value),
                         }}
