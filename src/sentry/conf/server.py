@@ -733,7 +733,12 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.dynamic_sampling.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.utils",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
@@ -1055,13 +1060,18 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=30, hour="0"),
         "options": {"expires": 3600},
     },
-    "dynamic-sampling-prioritize-projects": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
+    "dynamic-sampling-boost-low-volume-projects": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-prioritize-transactions": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+    "dynamic-sampling-boost-low-volume-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+    },
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
@@ -1081,11 +1091,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
