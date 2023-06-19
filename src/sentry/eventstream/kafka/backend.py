@@ -20,7 +20,6 @@ from django.conf import settings
 
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
-from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
