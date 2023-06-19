@@ -88,7 +88,7 @@ export function SlowClickFrame(
     category: 'ui.slowClickDetected',
     data: fields.data ?? {
       endReason: '',
-      timeAfterClickFs: 5,
+      timeAfterClickMs: 5,
       url: '/',
     },
     message: fields.message,
