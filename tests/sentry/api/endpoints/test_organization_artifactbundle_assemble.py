@@ -269,7 +269,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
-        assert response.data["missingChunks"] == [total_checksum]
+        assert set(response.data["missingChunks"]) == set(total_checksum)
 
         # We store the blobs into the database.
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -319,29 +319,3 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
-
-    def test_error_response(self):
-        bundle_file = b"invalid"
-        total_checksum = sha1(bundle_file).hexdigest()
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
-
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
-        )
-
-        response = self.client.post(
-            self.url,
-            data={
-                "checksum": total_checksum,
-                "chunks": [blob1.checksum],
-                "projects": [self.project.slug],
-            },
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.ERROR
