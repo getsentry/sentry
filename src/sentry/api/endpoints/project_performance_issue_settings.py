@@ -20,10 +20,10 @@ class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
-    n_plus_one_db_duration_threshold = serializers.FloatField(
+    n_plus_one_db_duration_threshold = serializers.IntegerField(
         required=False, min_value=50, max_value=TEN_SECONDS
     )
-    slow_db_query_duration_threshold = serializers.FloatField(
+    slow_db_query_duration_threshold = serializers.IntegerField(
         required=False, min_value=100, max_value=TEN_SECONDS
     )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
