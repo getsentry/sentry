@@ -45,6 +45,10 @@ const SetUpSdkDocHook = HookOrDefault({
   hookName: 'component:set-up-sdk-doc',
 });
 
+const ProductUnavailableCTAHook = HookOrDefault({
+  hookName: 'component:product-unavailable-cta',
+});
+
 type Props = RouteComponentProps<{projectId: string}, {}>;
 
 export function SetUpGeneralSdkDoc({
@@ -304,6 +308,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
 
   return (
     <Fragment>
+      <ProductUnavailableCTAHook organization={organization} />
       <StyledPageHeader>
         <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>
@@ -366,7 +371,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
             platform={platform}
           />
         )}
-
         {isGettingStarted && showPerformancePrompt && (
           <Feature
             features={['performance-view']}
