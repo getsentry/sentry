@@ -88,7 +88,7 @@ interface FocusFrame extends BaseBreadcrumbFrame {
 
 interface SlowClickFrameData extends ClickFrameData {
   endReason: string;
-  timeAfterClickFs: number;
+  timeAfterClickMs: number;
   url: string;
 }
 interface SlowClickFrame extends BaseBreadcrumbFrame {
