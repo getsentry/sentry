@@ -36,7 +36,7 @@ type Row = {
 type Props = {
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
-  method?: string;
+  endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -53,7 +53,7 @@ export function SpanTransactionsTable({
   openSidebar,
   onClickTransaction,
   endpoint,
-  method,
+  endpointMethod,
 }: Props) {
   const location = useLocation();
 
@@ -83,7 +83,7 @@ export function SpanTransactionsTable({
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
         endpoint={endpoint}
-        method={method}
+        endpointMethod={endpointMethod}
         location={location}
       />
     );
@@ -125,7 +125,7 @@ type CellProps = {
   row: Row;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
-  method?: string;
+  endpointMethod?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
@@ -137,14 +137,14 @@ function BodyCell({
   openSidebar,
   onClickTransactionName,
   endpoint,
-  method,
+  endpointMethod,
   location,
 }: CellProps) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
         endpoint={endpoint}
-        method={method}
+        endpointMethod={endpointMethod}
         span={span}
         row={row}
         column={column}
@@ -185,7 +185,14 @@ function BodyCell({
   return <span>{row[column.key]}</span>;
 }
 
-function TransactionCell({span, column, row, endpoint, method, location}: CellProps) {
+function TransactionCell({
+  span,
+  column,
+  row,
+  endpoint,
+  endpointMethod,
+  location,
+}: CellProps) {
   return (
     <Fragment>
       <Link
@@ -193,7 +200,7 @@ function TransactionCell({span, column, row, endpoint, method, location}: CellPr
           span.group
         )}?${qs.stringify({
           endpoint,
-          method,
+          endpointMethod,
           transaction: row.transaction,
         })}`}
       >
