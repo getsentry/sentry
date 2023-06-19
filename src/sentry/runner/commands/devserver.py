@@ -24,37 +24,12 @@ _DEV_METRICS_INDEXER_ARGS = [
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
 #     daemons += [_get_daemon("my_new_daemon")]
+#
+# If you are looking to add a kafka consumer, please do not create a new click
+# subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
-    "post-process-forwarder": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=errors",
-        "--loglevel=debug",
-        "--no-strict-offset-reset",
-    ],
-    "post-process-forwarder-transactions": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=transactions",
-        "--loglevel=debug",
-        "--commit-log-topic=snuba-transactions-commit-log",
-        "--synchronize-commit-group=transactions_group",
-        "--no-strict-offset-reset",
-    ],
-    "post-process-forwarder-issue-platform": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=search_issues",
-        "--loglevel=debug",
-        "--commit-log-topic=snuba-generic-events-commit-log",
-        "--synchronize-commit-group=generic_events_group",
-        "--no-strict-offset-reset",
-    ],
     "server": ["sentry", "run", "web"],
 }
 
