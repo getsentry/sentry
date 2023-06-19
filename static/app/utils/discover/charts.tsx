@@ -9,6 +9,7 @@ import {
   DAY,
   formatAbbreviatedNumber,
   formatPercentage,
+  formatRate,
   getDuration,
   HOUR,
   MINUTE,
@@ -93,7 +94,7 @@ export function axisLabelFormatterUsingAggregateOutputType(
     case 'size':
       return formatBytesBase2(value, 0);
     case 'rate':
-      return `${value}/s`;
+      return formatRate(value);
     default:
       return value.toString();
   }
