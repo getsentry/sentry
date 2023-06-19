@@ -171,14 +171,6 @@ class IndexerBatch:
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
-        metrics.incr(
-            "sentry_metrics.indexer.process_messages.dropped_message",
-            amount=len(keys_to_remove),
-            tags={
-                "reason": "cardinality_limit_legacy",
-            },
-        )
-
         # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
         for offset in keys_to_remove:
             if _should_sample_debug_log():

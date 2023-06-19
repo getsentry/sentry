@@ -8,10 +8,10 @@ import sentry_sdk
 from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
+from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
-from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
@@ -184,19 +184,15 @@ class CheckAM2Compatibility:
         results["widgets"] = widgets
 
         alerts = []
-        for project_id, unsupported_alerts in unsupported_alerts.items():
-            unsupported = []
-            for alert_id, aggregate, query in unsupported_alerts:
-                unsupported.append(
-                    {
-                        "id": alert_id,
-                        "url": cls.get_alert_url(organization.slug, alert_id),
-                        "aggregate": aggregate,
-                        "query": query,
-                    }
-                )
-            alerts.append({"project_id": project_id, "unsupported": unsupported})
-
+        for alert_id, aggregate, query in unsupported_alerts:
+            alerts.append(
+                {
+                    "id": alert_id,
+                    "url": cls.get_alert_url(organization.slug, alert_id),
+                    "aggregate": aggregate,
+                    "query": query,
+                }
+            )
         results["alerts"] = alerts
 
         projects = []
@@ -307,14 +303,19 @@ class CheckAM2Compatibility:
             | ~Q(conditions__icontains="!event.type:transaction"),
             widget__dashboard__organization_id=organization_id,
         ).values_list(
-            "id", "widget__dashboard__id", "widget__dashboard__title", "fields", "conditions"
+            "widget__id",
+            "widget__dashboard__id",
+            "widget__dashboard__title",
+            "fields",
+            "conditions",
         )
 
     @classmethod
-    def get_all_alerts_of_project(cls, project_id):
+    def get_all_alerts_of_organization(cls, organization_id):
         return (
-            QuerySubscription.objects.filter(
-                project_id=project_id, snuba_query__dataset__in=["transactions", "discover"]
+            AlertRule.objects.filter(
+                organization_id=organization_id,
+                snuba_query__dataset__in=["transactions", "discover"],
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
@@ -347,20 +348,18 @@ class CheckAM2Compatibility:
                 # # We mark whether a metric is not supported.
                 unsupported_widgets[dashboard_id].append((widget_id, fields, conditions))
 
-        unsupported_alerts = defaultdict(list)
-        for project in all_projects:
-            project_id = project.id
-            for alert_id, aggregate, query in cls.get_all_alerts_of_project(project_id):
-                supports_metrics = cls.is_metrics_data(organization.id, [project], query)
-                if supports_metrics is None:
-                    errors.append(
-                        f"Couldn't figure out compatibility for alert {alert_id} with aggregate {aggregate} and query {query} in project {project_id}."
-                    )
-                    continue
+        unsupported_alerts = []
+        for alert_id, aggregate, query in cls.get_all_alerts_of_organization(organization.id):
+            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query)
+            if supports_metrics is None:
+                errors.append(
+                    f"Couldn't figure out compatibility for alert {alert_id} with aggregate {aggregate} and query {query}."
+                )
+                continue
 
-                if not supports_metrics:
-                    # We mark whether a metric is not supported.
-                    unsupported_alerts[project_id].append((alert_id, aggregate, query))
+            if not supports_metrics:
+                # We mark whether a metric is not supported.
+                unsupported_alerts.append((alert_id, aggregate, query))
 
         outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects)
         if outdated_sdks_per_project is None:

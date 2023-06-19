@@ -13,6 +13,7 @@
 
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
+/src/sentry/consumers/                                   @getsentry/owners-snuba
 /src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
