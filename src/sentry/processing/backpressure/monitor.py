@@ -71,10 +71,9 @@ def assert_all_services_defined(services: Dict[str, Service]) -> None:
 
 def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
     service_health = {}
-    high_watermarks = options.get("backpressure.high_watermarks")
 
     for name, service in services.items():
-        high_watermark = high_watermarks[name]
+        high_watermark = options.get(f"backpressure.high_watermarks.{name}")
         is_healthy = True
         for memory in check_service_memory(service):
             is_healthy = is_healthy and memory.percentage < high_watermark

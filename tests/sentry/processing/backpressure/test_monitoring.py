@@ -35,7 +35,7 @@ def test_check_redis_health() -> None:
 
     with override_options(
         {
-            "backpressure.high_watermarks": {"redis": 1.0},
+            "backpressure.high_watermarks.redis": 1.0,
         }
     ):
         service_health = check_service_health(services)
@@ -44,7 +44,7 @@ def test_check_redis_health() -> None:
     with override_options(
         {
             # NOTE: the default cluster for local testing will return *some* kind of used and available memory
-            "backpressure.high_watermarks": {"redis": 0.0},
+            "backpressure.high_watermarks.redis": 0.0,
         }
     ):
         service_health = check_service_health(services)

@@ -1311,18 +1311,28 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
-# If this option is being modified downstream, and a new default setting
-# may be added, it has to be updated downstream as well, otherwise the
-# code will throw. This is intentional. We want to throw fast and loud on
-# misconfiguration.
 register(
-    "backpressure.high_watermarks",
-    default={
-        "celery": 0.5,
-        "attachments-store": 0.5,
-        "processing-store": 0.5,
-        "processing-locks": 0.5,
-        "post-process-locks": 0.5,
-    },
+    "backpressure.high_watermarks.celery",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.attachments-store",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.processing-store",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.processing-locks",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.post-process-locks",
+    default=0.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
