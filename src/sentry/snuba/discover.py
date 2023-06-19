@@ -577,7 +577,9 @@ def get_facets(
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
             limit=per_page,
-            offset=cursor * per_page,
+            # Subtract 1 from the per_page because the GenericOffsetPaginator class
+            # adds 1 to the per_page to determine if there are more results
+            offset=cursor * (per_page - 1),
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)

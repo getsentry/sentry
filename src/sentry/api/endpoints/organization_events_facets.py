@@ -30,7 +30,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                         query=request.GET.get("query"),
                         params=params,
                         referrer="api.organization-events-facets.top-tags",
-                        per_page=limit - 1,
+                        per_page=limit,
                         cursor=offset,
                     )
 

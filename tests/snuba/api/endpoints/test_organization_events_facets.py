@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
+import requests
 from django.urls import reverse
 from django.utils import timezone
 from pytz import utc
@@ -694,8 +695,12 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         # Test the default query fetches the first 10 results
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"project": test_project.id})
+            links = requests.utils.parse_header_links(
+                response.get("link").rstrip(">").replace(">,<", ",<")
+            )
 
         assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
         assert len(response.data) == 10
 
         # Loop over the first 10 tags to ensure they're in the results
@@ -710,8 +715,12 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url, format="json", data={"project": test_project.id, "cursor": "0:1:0"}
             )
+            links = requests.utils.parse_header_links(
+                response.get("link").rstrip(">").replace(">,<", ",<")
+            )
 
         assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
         assert len(response.data) == 2
         expected = [
             {"count": 1, "name": "eleven", "value": "eleven"},
