@@ -206,8 +206,8 @@ const TRANSACTION_SUPPORTED_TAGS = [
   FieldKey.HTTP_METHOD,
   FieldKey.HTTP_STATUS_CODE,
   FieldKey.GEO_COUNTRY_CODE,
-  ReplayFieldKey.BROWSER_NAME,
-  ReplayFieldKey.OS_NAME,
+  FieldKey.BROWSER_NAME,
+  FieldKey.OS_NAME,
 ];
 const SESSION_SUPPORTED_TAGS = [FieldKey.RELEASE];
 
