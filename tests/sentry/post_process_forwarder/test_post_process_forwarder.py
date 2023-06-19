@@ -10,7 +10,6 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.post_process_forwarder import PostProcessForwarder
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
@@ -89,7 +88,7 @@ class PostProcessForwarderTest(TestCase):
         commit_log_producer = self._get_producer("default")
         message = json.dumps(kafka_message_payload()).encode()
 
-        ppf = PostProcessForwarder(_get_task_kwargs_and_dispatch)
+        ppf = PostProcessForwarder()
         consumer = ppf._build_streaming_consumer(
             consumer_group=consumer_group,
             topic=self.events_topic,
