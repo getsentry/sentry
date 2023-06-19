@@ -22,11 +22,11 @@ from sentry.models import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@region_silo_test(stable=True)
 class StatusActionTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -180,8 +180,9 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_issue_with_additional_user_auth(self, verify):
-        auth_idp = AuthProvider.objects.create(organization_id=self.org.id, provider="nobody")
-        AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
+        with exempt_from_silo_limits():
+            auth_idp = AuthProvider.objects.create(organization_id=self.org.id, provider="nobody")
+            AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="-1")
         self.group1 = Group.objects.get(id=self.group1.id)
@@ -268,26 +269,29 @@ class StatusActionTest(APITestCase):
     def test_assign_to_me_multiple_identities(self, verify):
         org2 = self.create_organization(owner=None)
 
-        integration2 = Integration.objects.create(
-            provider="msteams",
-            name="Army of Mordor",
-            external_id="54rum4n",
-            metadata={
-                "service_url": "https://smba.trafficmanager.net/amer",
-                "access_token": "y0u_h4v3_ch053n_d347h",
-                "expires_at": int(time.time()) + 86400,
-            },
-        )
-        OrganizationIntegration.objects.create(organization_id=org2.id, integration=integration2)
+        with exempt_from_silo_limits():
+            integration2 = Integration.objects.create(
+                provider="msteams",
+                name="Army of Mordor",
+                external_id="54rum4n",
+                metadata={
+                    "service_url": "https://smba.trafficmanager.net/amer",
+                    "access_token": "y0u_h4v3_ch053n_d347h",
+                    "expires_at": int(time.time()) + 86400,
+                },
+            )
+            OrganizationIntegration.objects.create(
+                organization_id=org2.id, integration=integration2
+            )
 
-        idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
-        Identity.objects.create(
-            external_id="7h3_gr3y",
-            idp=idp2,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+            idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
+            Identity.objects.create(
+                external_id="7h3_gr3y",
+                idp=idp2,
+                user=self.user,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
 
         resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
@@ -344,6 +348,7 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_no_integration(self, verify):
-        self.integration.delete()
+        with exempt_from_silo_limits():
+            self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 404
