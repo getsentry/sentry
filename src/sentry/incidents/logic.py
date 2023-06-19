@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -35,10 +35,11 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project
+from sentry.models import Actor, Integration, PagerDutyService, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
@@ -499,6 +500,11 @@ def create_alert_rule(
         "organizations:alert-crash-free-metrics", organization, actor=user
     ):
         dataset = Dataset.Metrics
+
+    actor = None
+    if owner and not isinstance(owner, Actor):
+        actor = owner.resolve_to_actor()
+
     with transaction.atomic():
         snuba_query = create_snuba_query(
             query_type,
@@ -510,9 +516,6 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
-        actor = None
-        if owner:
-            actor = owner.resolve_to_actor()
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
@@ -1086,6 +1089,7 @@ def create_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
+    installations: List[RpcSentryAppInstallation] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1117,7 +1121,7 @@ def create_alert_rule_trigger_action(
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app_id
+            trigger.alert_rule.organization, sentry_app_id, installations
         )
 
     return AlertRuleTriggerAction.objects.create(
@@ -1142,6 +1146,7 @@ def update_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
+    installations: List[RpcSentryAppInstallation] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1188,7 +1193,7 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app_id
+                organization, sentry_app_id, installations
             )
             updated_fields["target_display"] = target_display
 
@@ -1296,10 +1301,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
     return (service.id, service.service_name)
 
 
-def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
+def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
     from sentry.services.hybrid_cloud.app import app_service
 
-    for installation in app_service.get_installed_for_organization(organization_id=organization.id):
+    if installations is None:
+        installations = app_service.get_installed_for_organization(organization_id=organization.id)
+
+    for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
             return sentry_app_id, installation.sentry_app.name
 

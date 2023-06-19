@@ -1,5 +1,6 @@
 import re
 
+from django import db
 from django.db import models
 from django.utils import timezone
 
@@ -13,6 +14,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.models.outbox import RegionOutbox
 from sentry.services.hybrid_cloud.log import AuditLogEvent
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -92,7 +95,10 @@ class AuditLogEntry(Model):
         Serializes a potential audit log database entry as a hybrid cloud event that should be deserialized and
         loaded via `from_event` as faithfully as possible.
         """
-        self._apply_actor_label()
+        # TODO(hc): Denormalize user name into organization member objects so that we can save a cross silo call and
+        # also remove the following line.
+        with django_test_transaction_water_mark(db.router.db_for_read(RegionOutbox)):
+            self._apply_actor_label()
         self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         return AuditLogEvent(
             actor_label=self.actor_label,
