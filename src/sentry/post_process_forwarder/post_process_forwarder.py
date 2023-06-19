@@ -9,12 +9,16 @@ from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
-from arroyo.processing.strategies import CommitOffsets, ProcessingStrategy, RunTaskInThreads
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+    RunTaskInThreads,
+)
 from arroyo.types import Commit, Partition, Topic
 from django.conf import settings
 
-from sentry.consumers.interface import ExtendedStrategyFactory
-from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
+from sentry.consumers.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
@@ -125,7 +129,7 @@ class PostProcessForwarder:
         )
 
 
-class PostProcessForwarderStrategyFactory(ExtendedStrategyFactory[KafkaPayload]):
+class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         concurrency: int,
