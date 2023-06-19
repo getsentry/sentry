@@ -5,6 +5,7 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder, constants
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -206,6 +207,12 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         alias: str,
     ) -> SelectType:
         start, end = self.builder.start, self.builder.end
+        intervals = args["intervals"]
+        if start is None or end is None:
+            raise InvalidSearchQuery("Need start and end to use rounded_time column")
+        if not isinstance(intervals, (int, float)):
+            raise InvalidSearchQuery("intervals must be a number")
+
         return Function(
             "floor",
             [
@@ -213,7 +220,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     "divide",
                     [
                         Function("minus", [end, self.builder.column("timestamp")]),
-                        ((end - start) / args["intervals"]).total_seconds(),
+                        ((end - start) / intervals).total_seconds(),
                     ],
                 )
             ],
