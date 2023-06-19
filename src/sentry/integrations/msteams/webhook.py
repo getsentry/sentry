@@ -9,9 +9,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
-from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Rule
+from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.models import ApiKey, Group, Integration, Rule
 from sentry.models.activity import ActivityIntegration
+from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
@@ -129,7 +130,7 @@ def verify_signature(request):
     return True
 
 
-@control_silo_endpoint
+@region_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -380,9 +381,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        try:
-            idp = IdentityProvider.objects.get(type="msteams", external_id=team_id)
-        except IdentityProvider.DoesNotExist:
+        idp = identity_service.get_provider(provider_type="msteams", provider_ext_id=team_id)
+        if idp is None:
             logger.info(
                 "msteams.action.invalid-team-id",
                 extra={
@@ -393,9 +393,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        try:
-            identity = Identity.objects.get(idp=idp, external_id=user_id)
-        except Identity.DoesNotExist:
+        identity = identity_service.get_identity(
+            filter={"provider_id": idp.id, "identity_ext_id": user_id}
+        )
+        if identity is None:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, team_id, tenant_id
             )
@@ -473,7 +474,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         elif "help" in lowercase_command:
             card = build_help_command_card()
         elif "link" == lowercase_command:  # don't to match other types of link commands
-            has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
+            has_linked_identity = (
+                identity_service.get_identity(filter={"identity_ext_id": teams_user_id}) is not None
+            )
             if has_linked_identity:
                 card = build_already_linked_identity_command_card()
             else:
