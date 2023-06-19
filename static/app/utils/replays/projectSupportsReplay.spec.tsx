@@ -47,7 +47,6 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
 
   it.each([
     'apple-macos' as PlatformKey,
-    'electron' as PlatformKey,
     'flutter' as PlatformKey,
     'unity' as PlatformKey,
   ])('should FAIL for Desktop framework %s', platform => {
