@@ -122,7 +122,8 @@ EXCLUDED_CONDITIONS = [
     "event.type:csp",
     "event.type:default",
     "handled:",
-    "unhandled:" "error.",
+    "unhandled:",
+    "error.",
 ]
 
 
