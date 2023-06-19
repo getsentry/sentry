@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -46,6 +47,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
         readOnly
       />
       <span>{label}</span>
+      <IconQuestion size="xs" color="subText" />
     </ProductWrapper>
   );
 }
@@ -213,7 +215,7 @@ const ProductWrapper = styled('div')<{disabled?: boolean; permanentDisabled?: bo
     opacity: ${p => (p.permanentDisabled ? 0.5 : 1)};
   }
 
-  > *:last-child {
+  > *:nth-child(2) {
     opacity: ${p => (p.disabled ? 0.5 : 1)};
   }
 `;
