@@ -202,7 +202,6 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-            "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
             "count": settings["n_plus_one_db_count"],
@@ -217,7 +216,6 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
             "detection_enabled": settings["consecutive_db_queries_detection_enabled"],
-            "detection_rate": settings["consecutive_db_queries_detection_rate"],
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
@@ -239,14 +237,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "count": 10,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
-            "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
