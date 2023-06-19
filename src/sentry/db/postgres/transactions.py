@@ -1,5 +1,6 @@
 import contextlib
 import sys
+import threading
 
 from django.db import transaction
 
@@ -22,19 +23,45 @@ def django_test_transaction_water_mark(using: str = "default"):
     from sentry.testutils import hybrid_cloud
 
     # No need to manage the watermark unless conftest has configured a watermark
-    if using not in hybrid_cloud.simulated_transaction_watermarks:
+    if using not in hybrid_cloud.simulated_transaction_watermarks.state:
         yield
         return
 
     connection = transaction.get_connection(using)
 
-    prev = hybrid_cloud.simulated_transaction_watermarks[using]
-    hybrid_cloud.simulated_transaction_watermarks[using] = len(connection.savepoint_ids)
+    prev = hybrid_cloud.simulated_transaction_watermarks.state[using]
+    hybrid_cloud.simulated_transaction_watermarks.state[using] = len(connection.savepoint_ids)
     try:
         connection.maybe_flush_commit_hooks()
         yield
     finally:
-        hybrid_cloud.simulated_transaction_watermarks[using] = prev
+        hybrid_cloud.simulated_transaction_watermarks.state[using] = prev
+
+
+class InTestTransactionEnforcement(threading.local):
+    enabled = True
+
+
+in_test_transaction_enforcement = InTestTransactionEnforcement()
+
+
+@contextlib.contextmanager
+def in_test_hide_transaction_boundary():
+    """
+    In production, has no effect.
+    In tests, it hides 'in_test_assert_no_transaction' invocations against problematic code paths.
+    Using this function is a huge code smell, often masking some other code smell, but not always possible to avoid.
+    """
+    if "pytest" not in sys.modules:
+        yield
+        return
+
+    prev = in_test_transaction_enforcement.enabled
+    in_test_transaction_enforcement.enabled = False
+    try:
+        yield
+    finally:
+        in_test_transaction_enforcement.enabled = prev
 
 
 def in_test_assert_no_transaction(msg: str):
@@ -46,10 +73,10 @@ def in_test_assert_no_transaction(msg: str):
     execution time can have cause major performance issues by holding transactional resources open for long periods
     of time.
     """
-    if "pytest" not in sys.modules:
+    if "pytest" not in sys.modules or not in_test_transaction_enforcement.enabled:
         return
 
     from sentry.testutils import hybrid_cloud
 
-    for using, watermark in hybrid_cloud.simulated_transaction_watermarks.items():
+    for using, watermark in hybrid_cloud.simulated_transaction_watermarks.state.items():
         assert len(transaction.get_connection(using).savepoint_ids) == watermark, msg

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import threading
 from types import TracebackType
 from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
 
@@ -147,7 +148,11 @@ class HybridCloudTestMixin:
         ).exists()
 
 
-simulated_transaction_watermarks: dict[str, int] = {}
+class SimulatedTransactionWatermarks(threading.local):
+    state: dict[str, int] = {}
+
+
+simulated_transaction_watermarks = SimulatedTransactionWatermarks()
 
 
 @contextlib.contextmanager
@@ -165,6 +170,7 @@ def simulate_on_commit(request: Any):
     from django.test import TestCase as DjangoTestCase
 
     request_node_cls = request.node.cls
+    simulated_transaction_watermarks.state = {}
 
     if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
         yield
@@ -177,7 +183,7 @@ def simulate_on_commit(request: Any):
         if (
             connection.in_atomic_block
             and len(connection.savepoint_ids)
-            <= simulated_transaction_watermarks.get(connection.alias or "default", 0)
+            <= simulated_transaction_watermarks.state.get(connection.alias or "default", 0)
             and not connection.closed_in_transaction
             and not connection.needs_rollback
         ):
@@ -207,11 +213,11 @@ def simulate_on_commit(request: Any):
 
     # django tests start inside two transactions
     for db_name in settings.DATABASES:
-        simulated_transaction_watermarks[db_name] = 1
+        simulated_transaction_watermarks.state[db_name] = 1
     try:
         yield
     finally:
         transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
         transaction.on_commit = _old_transaction_on_commit
-        simulated_transaction_watermarks.clear()
+        simulated_transaction_watermarks.state.clear()
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
