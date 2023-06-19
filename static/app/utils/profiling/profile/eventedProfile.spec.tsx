@@ -1,6 +1,8 @@
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
+import {Frame} from '../frame';
+
 import {firstCallee, makeTestingBoilerplate} from './profile.spec';
 
 describe('EventedProfile', () => {
@@ -363,5 +365,37 @@ describe('EventedProfile - flamegraph', () => {
     // frame 0 is opened twice, so the weight gets merged
     expect(profile.callTree.children[0].count).toBe(3);
     expect(profile.callTree.children[0].children[0].count).toBe(1);
+  });
+
+  it('filters frames', () => {
+    const trace: Profiling.EventedProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'evented',
+      events: [
+        {type: 'O', at: 0, frame: 0},
+        {type: 'O', at: 10, frame: 1},
+        {type: 'C', at: 20, frame: 1},
+        {type: 'C', at: 30, frame: 0},
+      ],
+    };
+
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {
+        type: 'flamegraph',
+        frameFilter: frame => frame.name === 'f0',
+      }
+    );
+
+    expect(profile.callTree.frame).toBe(Frame.Root);
+    expect(profile.callTree.children).toHaveLength(1);
+    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    // the f1 frame is filtered out, so the f0 frame has no children
+    expect(profile.callTree.children[0].children).toHaveLength(0);
   });
 });

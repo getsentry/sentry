@@ -143,21 +143,23 @@ export class Flamegraph {
     this.root.end = this.root.start + weight;
     this.root.frame.totalWeight += weight;
 
-    // If the profile duration is 0, set the flamegraph duration
-    // to 1 second so we can render a placeholder grid
-    let width =
-      this.profile.unit === 'nanoseconds'
-        ? 1e9
-        : this.profile.unit === 'microseconds'
-        ? 1e6
-        : this.profile.unit === 'milliseconds'
-        ? 1e3
-        : 1;
+    let width = 0;
 
     if (this.profile.type === 'flamegraph' && weight > 0) {
       width = weight;
     } else if (this.profile.duration > 0) {
       width = configSpace ? configSpace.width : this.profile.duration;
+    } else {
+      // If the profile duration is 0, set the flamegraph duration
+      // to 1 second so we can render a placeholder grid
+      width =
+        this.profile.unit === 'nanoseconds'
+          ? 1e9
+          : this.profile.unit === 'microseconds'
+          ? 1e6
+          : this.profile.unit === 'milliseconds'
+          ? 1e3
+          : 1;
     }
 
     this.configSpace = new Rect(0, 0, width, this.depth);
