@@ -252,7 +252,7 @@ class CheckAM2Compatibility:
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
-                sdk_versions_set = set()
+                sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
 
@@ -261,9 +261,11 @@ class CheckAM2Compatibility:
                         # If we didn't find the SDK, we suppose it doesn't support dynamic sampling.
                         sdk_versions_set.add((sdk_version, None))
                     else:
-                        # We check if it is less, thus it is not supported.
+                        # We run the semver comparison for the two sdk versions.
                         comparison = cls.compare_versions(sdk_version, min_sdk_version)
                         if comparison == -1:
+                            # If the sdk version is less it means that it doesn't support dynamic sampling, and we want
+                            # to add it to the unsupported list.
                             sdk_versions_set.add((sdk_version, min_sdk_version))
                         else:
                             # In case we end up here, it means that the sdk version found is >= than the minimum
