@@ -22,9 +22,11 @@ from sentry.models import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class StatusActionTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -315,7 +317,10 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_unassign_issue(self, verify):
-        GroupAssignee.objects.create(group=self.group1, project=self.project1, user_id=self.user.id)
+        with exempt_from_silo_limits():
+            GroupAssignee.objects.create(
+                group=self.group1, project=self.project1, user_id=self.user.id
+            )
         resp = self.post_webhook(action_type=ACTION_TYPE.UNASSIGN, resolve_input="resolved")
         self.group1 = Group.objects.get(id=self.group1.id)
 
