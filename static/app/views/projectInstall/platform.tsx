@@ -304,7 +304,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
 
   const showDocsWithProductSelection =
     gettingStartedDocWithProductSelection &&
-    (platform.key === 'javascript' || platform.key.match('^javascript-([A-Za-z]+)$'));
+    (platform.key === 'javascript' || !!platform.key.match('^javascript-([A-Za-z]+)$'));
 
   return (
     <Fragment>
