@@ -175,7 +175,7 @@ def simulate_on_commit(request: Any):
         if (
             connection.in_atomic_block
             and len(connection.savepoint_ids)
-            <= simulated_transaction_watermarks.state.get(connection.alias or "default", 0)
+            <= simulated_transaction_watermarks.state[connection.alias or "default"]
             and not connection.closed_in_transaction
             and not connection.needs_rollback
         ):
@@ -185,6 +185,8 @@ def simulate_on_commit(request: Any):
                 connection.run_and_clear_commit_hooks()
             finally:
                 connection.validate_no_atomic_block = old_validate
+        elif not connection.in_atomic_block or not connection.savepoint_ids:
+            assert not connection.run_on_commit, "Incidental run_on_commits detected!"
 
     def new_atomic_exit(self, exc_type, *args, **kwds):
         _old_atomic_exit(self, exc_type, *args, **kwds)

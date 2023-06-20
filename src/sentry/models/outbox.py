@@ -255,7 +255,7 @@ class OutboxBase(Model):
                         coalesced.send_signal()
                     except Exception as e:
                         sentry_sdk.capture_exception(e)
-                        raise OutboxFlushError(f"Could not flush shard {coalesced}") from e
+                        raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
 
                 return True
         return False
@@ -332,7 +332,7 @@ class RegionOutbox(OutboxBase):
         """
         return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
 
-    __repr__ = sane_repr(coalesced_columns)
+    __repr__ = sane_repr(*coalesced_columns)
 
 
 # Outboxes bound from control silo -> region silo
@@ -378,7 +378,7 @@ class ControlOutbox(OutboxBase):
             ("region_name", "shard_scope", "shard_identifier", "id"),
         )
 
-    __repr__ = sane_repr(coalesced_columns)
+    __repr__ = sane_repr(*coalesced_columns)
 
     def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(

@@ -3,7 +3,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import Organization, Project, ProjectKey, Team, User
+from sentry.models import Organization, OrganizationMapping, Project, ProjectKey, Team, User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
 from sentry.testutils import TestCase
 
@@ -14,6 +14,7 @@ class CreateDefaultProjectsTest(TestCase):
         user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
         with in_test_psql_role_override("postgres"):
             Organization.objects.all().delete()
+            OrganizationMapping.objects.all().delete()
         Team.objects.filter(slug="sentry").delete()
         Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
         config = apps.get_app_config("sentry")

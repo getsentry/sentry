@@ -29,13 +29,12 @@ def django_test_transaction_water_mark(using: str = "default"):
 
     connection = transaction.get_connection(using)
 
-    prev = hybrid_cloud.simulated_transaction_watermarks.state[using]
     hybrid_cloud.simulated_transaction_watermarks.state[using] = len(connection.savepoint_ids)
     try:
         connection.maybe_flush_commit_hooks()
         yield
     finally:
-        hybrid_cloud.simulated_transaction_watermarks.state[using] = prev
+        hybrid_cloud.simulated_transaction_watermarks.state[using] = len(connection.savepoint_ids)
 
 
 class InTestTransactionEnforcement(threading.local):
@@ -79,4 +78,5 @@ def in_test_assert_no_transaction(msg: str):
     from sentry.testutils import hybrid_cloud
 
     for using, watermark in hybrid_cloud.simulated_transaction_watermarks.state.items():
-        assert len(transaction.get_connection(using).savepoint_ids) == watermark, msg
+        conn = transaction.get_connection(using)
+        assert len(conn.savepoint_ids) <= watermark, msg
