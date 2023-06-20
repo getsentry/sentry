@@ -206,13 +206,10 @@ def save_issue_from_occurrence(
             )
             return None
 
-        is_new = False
-        is_regression = False
-
         group_event = GroupEvent.from_event(event, group)
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
-        group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+        group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
     return group_info
 
