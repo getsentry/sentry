@@ -99,7 +99,7 @@ export default function SpansTable({
           orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
         }
         grid={{
-          renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
+          renderHeadCell: column => renderHeadCell(orderBy, onSetOrderBy, column),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, location, endpoint, method),
         }}
@@ -110,27 +110,27 @@ export default function SpansTable({
   );
 }
 
-function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => void) {
-  function renderHeadCell(column: TableColumnHeader): React.ReactNode {
-    return (
-      <SortLink
-        align="left"
-        canSort
-        direction={orderBy === column.key ? 'desc' : undefined}
-        onClick={() => {
-          onSetOrderBy(`${column.key}`);
-        }}
-        title={column.name}
-        generateSortLink={() => {
-          return {
-            ...location,
-          };
-        }}
-      />
-    );
-  }
-
-  return renderHeadCell;
+function renderHeadCell(
+  orderBy: string,
+  onSetOrderBy: (orderBy: string) => void,
+  column: TableColumnHeader
+) {
+  return (
+    <SortLink
+      align="left"
+      canSort
+      direction={orderBy === column.key ? 'desc' : undefined}
+      onClick={() => {
+        onSetOrderBy(`${column.key}`);
+      }}
+      title={column.name}
+      generateSortLink={() => {
+        return {
+          ...location,
+        };
+      }}
+    />
+  );
 }
 
 function renderBodyCell(
