@@ -16,7 +16,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.models import AuditLogEntry, OrganizationMemberTeam, RuleSnooze
+from sentry.models import AuditLogEntry, OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
@@ -174,13 +174,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
     def test_with_snooze_rule(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
-
-        RuleSnooze.objects.create(
-            user_id=self.user.id,
-            owner_id=self.user.id,
-            alert_rule=self.alert_rule,
-            until=None,
-        )
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule)
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug, self.alert_rule.id)
@@ -193,12 +187,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.login_as(self.user)
 
         user2 = self.create_user("user2@example.com")
-
-        RuleSnooze.objects.create(
-            owner_id=user2.id,
-            alert_rule=self.alert_rule,
-            until=None,
-        )
+        self.snooze_rule(owner_id=user2.id, alert_rule=self.alert_rule)
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug, self.alert_rule.id)

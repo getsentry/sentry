@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, GroupStatus, ProjectOwnership, Rule
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
@@ -131,11 +130,9 @@ class RuleProcessorTest(TestCase):
         slack_rule = self.create_project_rule(self.project, action_data)
         action_data[0].update({"channel": "#my-other-channel"})
         muted_slack_rule = self.create_project_rule(self.project, action_data)
-        RuleSnooze.objects.create(
-            user_id=None,
+        self.snooze_rule(
             owner_id=self.user.id,
             rule=muted_slack_rule,
-            until=None,
         )
         rp = RuleProcessor(
             self.group_event,
@@ -198,11 +195,9 @@ class RuleProcessorTest(TestCase):
         msteams_rule = self.create_project_rule(self.project, action_data, [])
         action_data[0].update({"channel": "#secreter-secrets"})
         muted_msteams_rule = self.create_project_rule(self.project, action_data, [])
-        RuleSnooze.objects.create(
-            user_id=None,
+        self.snooze_rule(
             owner_id=self.user.id,
             rule=muted_msteams_rule,
-            until=None,
         )
         rp = RuleProcessor(
             self.group_event,

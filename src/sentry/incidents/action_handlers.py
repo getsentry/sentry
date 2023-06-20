@@ -49,15 +49,11 @@ class ActionHandler(metaclass=abc.ABCMeta):
 
 class DefaultActionHandler(ActionHandler):
     def fire(self, metric_value: int | float, new_status: IncidentStatus):
-        if not RuleSnooze.objects.filter(
-            alert_rule=self.incident.alert_rule, user_id__isnull=True
-        ).exists():
+        if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             self.send_alert(metric_value, new_status)
 
     def resolve(self, metric_value: int | float, new_status: IncidentStatus):
-        if not RuleSnooze.objects.filter(
-            alert_rule=self.incident.alert_rule, user_id__isnull=True
-        ).exists():
+        if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             self.send_alert(metric_value, new_status)
 
     @abc.abstractmethod
@@ -76,15 +72,13 @@ class EmailActionHandler(ActionHandler):
         if not target:
             return set()
 
-        if RuleSnooze.objects.filter(
-            alert_rule=self.incident.alert_rule, user_id__isnull=True
-        ).exists():
+        if RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             return set()
 
         if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-            if RuleSnooze.objects.filter(
-                alert_rule=self.incident.alert_rule, user_id=target.id
-            ).exists():
+            if RuleSnooze.objects.is_snoozed_for_user(
+                user_id=target.id, alert_rule=self.incident.alert_rule
+            ):
                 return set()
 
             return {target.id}

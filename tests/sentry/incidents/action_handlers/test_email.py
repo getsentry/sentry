@@ -23,7 +23,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import NotificationSetting, UserEmail, UserOption
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -81,7 +80,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        RuleSnooze.objects.create(alert_rule=self.incident.alert_rule, user_id=self.user.id)
+        self.snooze_rule(user_id=self.user.id, alert_rule=self.incident.alert_rule)
         assert handler.get_targets() == []
 
     def test_user_rule_snoozed(self):
@@ -90,7 +89,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        RuleSnooze.objects.create(alert_rule=self.incident.alert_rule)
+        self.snooze_rule(alert_rule=self.incident.alert_rule)
         assert handler.get_targets() == []
 
     def test_user_alerts_disabled(self):
@@ -129,7 +128,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        RuleSnooze.objects.create(alert_rule=self.incident.alert_rule, user_id=new_user.id)
+        self.snooze_rule(user_id=new_user.id, alert_rule=self.incident.alert_rule)
         assert set(handler.get_targets()) == {
             (self.user.id, self.user.email),
         }
@@ -142,7 +141,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        RuleSnooze.objects.create(alert_rule=self.incident.alert_rule)
+        self.snooze_rule(alert_rule=self.incident.alert_rule)
         assert handler.get_targets() == []
 
     def test_team_alert_disabled(self):

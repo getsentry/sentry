@@ -6,7 +6,6 @@ from freezegun import freeze_time
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -106,7 +105,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
     def test_rule_snoozed(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        RuleSnooze.objects.create(alert_rule=alert_rule)
+        self.snooze_rule(alert_rule=alert_rule)
 
         responses.add(
             method=responses.POST,
@@ -129,7 +128,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
         fire if it's muted for everyone"""
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        RuleSnooze.objects.create(alert_rule=alert_rule, user_id=self.user.id)
+        self.snooze_rule(user_id=self.user.id, alert_rule=alert_rule)
 
         responses.add(
             method=responses.POST,

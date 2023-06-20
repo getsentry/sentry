@@ -12,7 +12,6 @@ from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -139,12 +138,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
     def test_with_snooze_rule(self):
-        RuleSnooze.objects.create(
-            user_id=self.user.id,
-            owner_id=self.user.id,
-            rule=self.rule,
-            until=None,
-        )
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.rule)
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -156,12 +150,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
     def test_with_snooze_rule_everyone(self):
         user2 = self.create_user("user2@example.com")
-
-        RuleSnooze.objects.create(
-            owner_id=user2.id,
-            rule=self.rule,
-            until=None,
-        )
+        self.snooze_rule(owner_id=user2.id, rule=self.rule)
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200

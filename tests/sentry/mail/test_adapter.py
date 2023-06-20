@@ -36,7 +36,6 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -194,7 +193,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         rule = self.create_project_rule(project=self.project)
-        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -211,7 +210,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         rule = self.create_project_rule(project=self.project)
-        RuleSnooze.objects.create(owner_id=self.user.id, rule=rule)
+        self.snooze_rule(owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -229,7 +228,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         rule = self.create_project_rule(project=self.project)
         user2 = self.create_user(email="otheruser@example.com")
-        RuleSnooze.objects.create(user_id=user2.id, owner_id=user2.id, rule=rule)
+        self.snooze_rule(user_id=user2.id, owner_id=user2.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -249,7 +248,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         rule = self.create_project_rule(project=self.project)
         user2 = self.create_user(email="otheruser@example.com")
-        RuleSnooze.objects.create(owner_id=user2.id, rule=rule)
+        self.snooze_rule(owner_id=user2.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -1181,7 +1180,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         )
 
         rule = project.rule_set.all()[0]
-        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1212,7 +1211,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         rule = project.rule_set.all()[0]
         rule2 = Rule.objects.create(project=project, label="my rule")
         # mute the first rule only for self.user, not user2
-        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
@@ -1256,8 +1255,8 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         rule = project.rule_set.all()[0]
         rule2 = Rule.objects.create(project=project, label="my rule")
         # mute the rules for self.user, not user2
-        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
-        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule2)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule2)
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
@@ -1294,9 +1293,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         rule = project.rule_set.all()[0]
         rule2 = Rule.objects.create(project=project, label="my rule")
         # mute the first rule for self.user, not user2
-        RuleSnooze.objects.create(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         # mute the 2nd rule for both
-        RuleSnooze.objects.create(owner_id=self.user.id, rule=rule2)
+        self.snooze_rule(owner_id=self.user.id, rule=rule2)
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
