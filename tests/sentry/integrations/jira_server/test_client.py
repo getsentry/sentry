@@ -46,15 +46,16 @@ class JiraServerClientTest(TestCase, BaseTestCase):
             self.organization, self.user, default_auth_id=self.identity.id
         )
         install = self.integration.get_installation(self.organization.id)
-        self.client = install.get_client()
+        self.jira_server_client: JiraServerClient = install.get_client()
 
     def test_authorize_request(self):
         method = "GET"
         request = Request(
-            method=method, url=f"{self.client.base_url}{self.client.SERVER_INFO_URL}"
+            method=method,
+            url=f"{self.jira_server_client.base_url}{self.jira_server_client.SERVER_INFO_URL}",
         ).prepare()
 
-        self.client.authorize_request(prepared_request=request)
+        self.jira_server_client.authorize_request(prepared_request=request)
         consumer_key = self.identity.data["consumer_key"]
         access_token = self.identity.data["access_token"]
         header_components = [
@@ -82,7 +83,7 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         responses.add(
             method=responses.GET,
             # Use regex to create responses both from proxy and integration
-            url=re.compile(rf"\S+{self.client.SERVER_INFO_URL}$"),
+            url=re.compile(rf"\S+{self.jira_server_client.SERVER_INFO_URL}$"),
             json={"ok": True},
             status=200,
         )
