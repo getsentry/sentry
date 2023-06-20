@@ -27,7 +27,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "any_compression")
 
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
-    type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
+    type = DetectorType.UNCOMPRESSED_ASSETS
 
     def init(self):
         self.stored_problems = {}

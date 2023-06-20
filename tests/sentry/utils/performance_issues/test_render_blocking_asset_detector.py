@@ -1,8 +1,9 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
@@ -12,7 +13,9 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import RenderBlockingAssetSpanDetector
+from sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector import (
+    RenderBlockingAssetSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
@@ -20,8 +23,8 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-def _valid_render_blocking_asset_event(url: str) -> Event:
-    event = {
+def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
+    return {
         "event_id": "a" * 16,
         "project": PROJECT_ID,
         "measurements": {
@@ -50,10 +53,9 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
         },
         "transaction": "/",
     }
-    return event
 
 
-def find_problems(settings, event: Event) -> List[PerformanceProblem]:
+def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = RenderBlockingAssetSpanDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
@@ -64,10 +66,10 @@ def find_problems(settings, event: Event) -> List[PerformanceProblem]:
 class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
     def find_problems(self, event):
-        return find_problems(self.settings, event)
+        return find_problems(self._settings, event)
 
     def test_detects_render_blocking_asset(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")

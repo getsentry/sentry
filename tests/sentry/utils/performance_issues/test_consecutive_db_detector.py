@@ -1,8 +1,9 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
@@ -13,7 +14,9 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import ConsecutiveDBSpanDetector
+from sentry.utils.performance_issues.detectors.consecutive_db_detector import (
+    ConsecutiveDBSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
@@ -28,10 +31,10 @@ SECOND = 1000
 class ConsecutiveDbDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = ConsecutiveDBSpanDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = ConsecutiveDBSpanDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 

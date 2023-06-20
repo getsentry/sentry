@@ -42,8 +42,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
-    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
-    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+    type = DetectorType.N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
     HOST_DENYLIST = []
 

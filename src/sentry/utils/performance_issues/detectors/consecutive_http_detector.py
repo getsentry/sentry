@@ -25,7 +25,7 @@ from ..types import Span
 class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.CONSECUTIVE_HTTP_OP
+    type = DetectorType.CONSECUTIVE_HTTP_OP
     settings_key = DetectorType.CONSECUTIVE_HTTP_OP
 
     def init(self):

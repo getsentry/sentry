@@ -23,7 +23,7 @@ from ..types import Span
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "fcp", "transaction_start")
 
-    type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
+    type = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
     MAX_SIZE_BYTES = 1_000_000_000  # 1GB
