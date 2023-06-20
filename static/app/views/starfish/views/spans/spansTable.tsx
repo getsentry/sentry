@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
 
@@ -17,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
@@ -257,9 +257,3 @@ function getColumns(moduleName: ModuleName): Column[] {
 export function isAValidSort(sort: Sort): sort is ValidSort {
   return SORTABLE_FIELDS.has(sort.field);
 }
-
-export const OverflowEllipsisTextContainer = styled('span')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
