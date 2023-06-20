@@ -5,7 +5,6 @@ from unittest.mock import patch
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
-from django.db import IntegrityError
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -26,6 +25,7 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     ScheduledDeletion,
+    outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
@@ -803,15 +803,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
         org_with_colliding_slug.slug = "unique-slug"
-        org_with_colliding_slug.save()
+        with outbox_context(flush=False):
+            org_with_colliding_slug.save()
 
         self.get_success_response(self.organization.slug, slug=desired_slug)
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
-        with pytest.raises(IntegrityError):
-            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
 
         organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert organization_mapping.slug == previous_slug

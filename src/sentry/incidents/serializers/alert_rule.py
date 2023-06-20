@@ -460,6 +460,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "input_channel_id": self.context.get("input_channel_id"),
                         "validate_channel_id": self.context.get("validate_channel_id", True),
                         "installations": self.context.get("installations"),
+                        "integrations": self.context.get("integrations"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,

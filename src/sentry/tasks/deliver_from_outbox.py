@@ -9,6 +9,7 @@ from sentry.tasks.base import instrumented_task
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs")
 def enqueue_outbox_jobs(**kwargs):
+    processed: bool = False
     for silo_mode in outbox_silo_modes():
         outbox_model: Type[OutboxBase] = (
             RegionOutbox if silo_mode == SiloMode.REGION else ControlOutbox
@@ -17,7 +18,10 @@ def enqueue_outbox_jobs(**kwargs):
         row: Mapping[str, Any]
         for row in outbox_model.find_scheduled_shards():
             if next_outbox := outbox_model.prepare_next_from_shard(row):
+                processed = True
                 drain_outbox_shard.delay(**(next_outbox.key_from(outbox_model.sharding_columns)))
+
+    return processed
 
 
 @instrumented_task(name="sentry.tasks.drain_outbox_shard")

@@ -40,7 +40,7 @@ from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -1090,6 +1090,7 @@ def create_alert_rule_trigger_action(
     input_channel_id=None,
     sentry_app_config=None,
     installations: List[RpcSentryAppInstallation] | None = None,
+    integrations: List[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1118,6 +1119,7 @@ def create_alert_rule_trigger_action(
             integration_id,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
+            integrations=integrations,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
@@ -1232,11 +1234,17 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
 
 
 def get_alert_rule_trigger_action_slack_channel_id(
-    name, organization, integration_id, use_async_lookup
+    name, organization, integration_id, use_async_lookup, integrations
 ):
     from sentry.integrations.slack.utils import get_channel_id
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    if integrations is not None:
+        try:
+            integration = next(i for i in integrations if i.id == integration_id)
+        except StopIteration:
+            integration = None
+    else:
+        integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 

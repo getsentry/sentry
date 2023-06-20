@@ -121,7 +121,7 @@ class SentryAppInstallationCreator:
         if not self.sentry_app.verify_install:
             status = SentryAppInstallationStatus.INSTALLED
 
-        return SentryAppInstallation.objects.get_or_create(
+        return SentryAppInstallation.objects.update_or_create(
             organization_id=self.organization_id,
             sentry_app_id=self.sentry_app.id,
             defaults=dict(

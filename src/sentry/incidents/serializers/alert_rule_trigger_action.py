@@ -144,6 +144,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
         attrs["installations"] = self.context.get("installations")
+        attrs["integrations"] = self.context.get("integrations")
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:

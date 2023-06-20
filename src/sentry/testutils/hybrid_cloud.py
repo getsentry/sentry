@@ -208,7 +208,7 @@ def simulate_on_commit(request: Any):
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
     transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
-    transaction.on_commit = new_atomic_on_commit  # type: ignore
+    transaction.on_commit = new_atomic_on_commit
     setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
 
     # django tests start inside two transactions

@@ -29,4 +29,5 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     with TaskRunner(), exempt_from_silo_limits():
-        enqueue_outbox_jobs()
+        while enqueue_outbox_jobs():
+            pass

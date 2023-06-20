@@ -7,6 +7,7 @@ from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     Group,
@@ -128,9 +129,10 @@ def handle_ignored(
             Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
                 substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
-            )
+            with in_test_hide_transaction_boundary():
+                serialized_user = user_service.serialize_many(
+                    filter=dict(user_ids=[user.id]), as_user=user
+                )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
                 ignoreUntil=ignore_until,
