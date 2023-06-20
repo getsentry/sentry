@@ -172,4 +172,4 @@ class BaseRequestParser(abc.ABC):
             logger.error("no_organizations", extra={"path": self.request.path})
             return []
 
-        return [get_region_for_organization(organization) for organization in organizations]
+        return [get_region_for_organization(organization.slug) for organization in organizations]

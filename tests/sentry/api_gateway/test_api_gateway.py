@@ -1,4 +1,3 @@
-from unittest.mock import patch
 from urllib.parse import urlencode
 
 import responses
@@ -6,21 +5,14 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.silo import SiloMode
-from sentry.testutils.helpers.api_gateway import (
-    SENTRY_REGION_CONFIG,
-    ApiGatewayTestCase,
-    verify_request_params,
-)
+from sentry.testutils.helpers.api_gateway import ApiGatewayTestCase, verify_request_params
 from sentry.utils import json
 
 
 class ApiGatewayTest(ApiGatewayTestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    @patch("sentry.types.region.get_region_for_organization")
-    def test_simple(self, region_fnc_patch):
-        region_fnc_patch.return_value = SENTRY_REGION_CONFIG[0]
-
+    def test_simple(self):
         query_params = dict(foo="test", bar=["one", "two"])
         headers = dict(example="this")
         responses.add_callback(
@@ -39,11 +31,8 @@ class ApiGatewayTest(ApiGatewayTestCase):
         assert resp_json["proxy"]
 
     @responses.activate
-    @patch("sentry.types.region.get_region_for_organization")
-    def test_proxy_check(self, region_fnc_patch):
+    def test_proxy_check(self):
         """Test the logic of when a request should be proxied"""
-        region_fnc_patch.return_value = SENTRY_REGION_CONFIG[0]
-
         responses.add(
             responses.GET,
             f"http://region1.testserver/organizations/{self.organization.slug}/region/",
@@ -76,8 +65,3 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp = self.client.get(region_url)
             assert resp.status_code == 200
             assert not resp.data["proxy"]
-
-            resp = self.client.get(control_url)
-            assert resp.status_code == 200
-            resp_json = json.loads(b"".join(resp.streaming_content))
-            assert resp_json["proxy"]
