@@ -161,7 +161,7 @@ def simulate_on_commit(request: Any):
     Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
     correctly test on_commit hooks.  Allows the use of django_test_transaction_water_mark to create a 'simulated'
     level of outer transaction that fires on_commit hooks, allowing for logic dependent on this behavior (usually
-    outbox processing) to correctly detect which savepoint should call the `on_commit` hook. 
+    outbox processing) to correctly detect which savepoint should call the `on_commit` hook.
     """
 
     from django.conf import settings
