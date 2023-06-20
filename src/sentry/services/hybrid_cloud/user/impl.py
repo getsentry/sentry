@@ -141,9 +141,6 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
-    def close(self) -> None:
-        pass
-
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):

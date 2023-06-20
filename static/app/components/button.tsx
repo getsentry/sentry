@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -18,12 +18,10 @@ import mergeRefs from 'sentry/utils/mergeRefs';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
-type TooltipProps = React.ComponentProps<typeof Tooltip>;
-
-type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
-
-interface BaseButtonProps
-  extends Omit<React.ButtonHTMLAttributes<ButtonElement>, 'label' | 'size' | 'title'> {
+/**
+ * Props shared across different types of button components
+ */
+interface CommonButtonProps {
   /**
    * Used when you want to overwrite the default Reload event key for analytics
    */
@@ -55,25 +53,9 @@ interface BaseButtonProps
    */
   disabled?: boolean;
   /**
-   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
-   * download the contents.
-   *
-   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
-   */
-  download?: HTMLAnchorElement['download'];
-  /**
    * The button is an external link. Similar to the `Link` `external` property.
    */
   external?: boolean;
-  /**
-   * @internal Used in the Button forwardRef
-   */
-  forwardRef?: React.Ref<ButtonElement>;
-  /**
-   * When set the button acts as an anchor link. Use with `external` to have
-   * the link open in a new tab.
-   */
-  href?: string;
   /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
@@ -92,15 +74,11 @@ interface BaseButtonProps
   /**
    * The size of the button
    */
-  size?: ButtonSize;
+  size?: 'zero' | 'xs' | 'sm' | 'md';
   /**
    * Display a tooltip for the button.
    */
   title?: TooltipProps['title'];
-  /**
-   * Similar to `href`, but for internal links within the app.
-   */
-  to?: string | object;
   /**
    * Additional properites for the Tooltip when `title` is set.
    */
@@ -112,6 +90,45 @@ interface BaseButtonProps
   translucentBorder?: boolean;
 }
 
+/**
+ * Helper type to extraxct the HTML element props for use in button prop
+ * interfaces.
+ *
+ * XXX(epurkhiser): Right now all usages of this use ButtonElement, but in the
+ * future ButtonElement should go away and be replaced with HTMLButtonElement
+ * and HTMLAnchorElement respectively
+ */
+type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 'title'>;
+
+interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
+  /**
+   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
+   * download the contents.
+   *
+   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
+   *
+   * @deprecated Use LnikButton instead
+   */
+  download?: HTMLAnchorElement['download'];
+  /**
+   * @internal Used in the Button forwardRef
+   */
+  forwardRef?: React.Ref<ButtonElement>;
+  /**
+   * When set the button acts as an anchor link. Use with `external` to have
+   * the link open in a new tab.
+   *
+   * @deprecated Use LnikButton instead
+   */
+  href?: string;
+  /**
+   * Similar to `href`, but for internal links within the app.
+   *
+   * @deprecated Use LinkButton instead
+   */
+  to?: string | object;
+}
+
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
   children: React.ReactNode;
 }
@@ -121,7 +138,49 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   children?: never;
 }
 
-export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
+type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
+
+interface BaseLinkButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
+  /**
+   * @internal Used in the Button forwardRef
+   */
+  forwardRef?: React.Ref<ButtonElement>;
+}
+
+interface ToLinkButtonProps extends BaseLinkButtonProps {
+  /**
+   * Similar to `href`, but for internal links within the app.
+   */
+  to: string | object;
+}
+
+interface HrefLinkButtonProps extends BaseLinkButtonProps {
+  /**
+   * When set the button acts as an anchor link. Use with `external` to have
+   * the link open in a new tab.
+   */
+  href: string;
+  /**
+   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
+   * download the contents.
+   *
+   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
+   */
+  download?: HTMLAnchorElement['download'];
+}
+
+type EnforcedLinkButtonProps = ToLinkButtonProps | HrefLinkButtonProps;
+
+type LinkButtonPropsWithoutAriaLabel = EnforcedLinkButtonProps & {
+  children: React.ReactNode;
+};
+
+type LinkButtonPropsWithAriaLabel = EnforcedLinkButtonProps & {
+  'aria-label': string;
+  children?: never;
+};
+
+type LinkButtonProps = LinkButtonPropsWithoutAriaLabel | LinkButtonPropsWithAriaLabel;
 
 function BaseButton({
   size = 'md',
@@ -360,30 +419,6 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   return {...formStyles, ...buttonPadding, ...borderStyles};
 };
 
-const getButtonStyles = (props: StyledButtonProps) => {
-  return css`
-    position: relative;
-    display: inline-block;
-    border-radius: ${props.theme.borderRadius};
-    text-transform: none;
-    font-weight: 600;
-    ${getColors(props)};
-    ${getSizeStyles(props)};
-    ${getBoxShadow(props)};
-    cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
-    opacity: ${(props.busy || props.disabled) && '0.65'};
-    transition: background 0.1s, border 0.1s, box-shadow 0.1s;
-
-    ${props.priority === 'link' &&
-    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
-    ${props.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
-
-  &:focus {
-      outline: none;
-    }
-  `;
-};
-
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
@@ -433,7 +468,26 @@ const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  ${getButtonStyles};
+  position: relative;
+  display: inline-block;
+  border-radius: ${p => p.theme.borderRadius};
+  text-transform: none;
+  font-weight: 600;
+  ${getColors};
+  ${getSizeStyles};
+  ${getBoxShadow};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+
+  ${p =>
+    p.priority === 'link' &&
+    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
+  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 const buttonLabelPropKeys = ['size', 'borderless'];
@@ -477,15 +531,15 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   flex-shrink: 0;
 `;
 
-/**
- * Also export these styled components so we can use them as selectors
- */
-export {Button, StyledButton, ButtonLabel};
+const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 
 export {
-  /**
-   * @deprecated This is only being used in one small component elsewhere. We
-   * should probably remove this export
-   */
-  getButtonStyles,
+  Button,
+  ButtonProps,
+  LinkButton,
+  LinkButtonProps,
+
+  // Also export these styled components so we can use them as selectors
+  StyledButton,
+  ButtonLabel,
 };

@@ -209,7 +209,6 @@ class ReleasesAdoptionChart extends Component<Props> {
                           type: 'value',
                           interval: 10,
                           splitNumber: 10,
-                          data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                           axisLabel: {
                             formatter: '{value}%',
                           },
@@ -219,7 +218,6 @@ class ReleasesAdoptionChart extends Component<Props> {
                           min: xAxisData[0],
                           max: xAxisData[numDataPoints - 1],
                           type: 'time',
-                          data: xAxisData,
                         }}
                         tooltip={{
                           formatter: seriesParams => {

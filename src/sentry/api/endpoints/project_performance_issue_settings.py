@@ -5,31 +5,35 @@ from rest_framework.response import Response
 from sentry import features, projectoptions
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
+from sentry.api.permissions import SuperuserPermission
 
 MAX_VALUE = 2147483647
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
-RateField = serializers.FloatField(required=False, min_value=0, max_value=1)
-EnabledField = serializers.BooleanField(required=False)
+class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
+    def has_object_permission(self, request: Request, view, project):
+        return super().has_object_permission(
+            request, view, project
+        ) or SuperuserPermission().has_permission(request, view)
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
-    n_plus_one_db_detection_rate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    n_plus_one_api_calls_detection_rate = serializers.FloatField(
-        required=False, min_value=0, max_value=1
-    )
-    consecutive_db_queries_detection_rate = serializers.FloatField(
-        required=False, min_value=0, max_value=1
-    )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
+    large_http_payload_detection_enabled = serializers.BooleanField(required=False)
+    n_plus_one_db_queries_detection_enabled = serializers.BooleanField(required=False)
+    n_plus_one_api_calls_detection_enabled = serializers.BooleanField(required=False)
+    db_on_main_thread_detection_enabled = serializers.BooleanField(required=False)
+    file_io_on_main_thread_detection_enabled = serializers.BooleanField(required=False)
+    consecutive_db_queries_detection_enabled = serializers.BooleanField(required=False)
+    large_render_blocking_asset_detection_enabled = serializers.BooleanField(required=False)
+    slow_db_queries_detection_enabled = serializers.BooleanField(required=False)
 
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    # TODO: Remove after EA.
-    permission_classes = (ProjectSettingPermission,)
+    permission_classes = (ProjectOwnerOrSuperUserPermissions,)
 
     def has_feature(self, project, request) -> bool:
         return features.has(

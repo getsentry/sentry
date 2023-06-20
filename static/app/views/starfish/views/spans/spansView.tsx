@@ -41,7 +41,16 @@ export default function SpansView(props: Props) {
     <Fragment>
       <FilterOptionsContainer>
         <DatePageFilter alignDropdown="left" />
+      </FilterOptionsContainer>
 
+      <PaddedContainer>
+        <SpanTimeCharts
+          moduleName={props.moduleName || ModuleName.ALL}
+          appliedFilters={appliedFilters}
+          spanCategory={props.spanCategory}
+        />
+      </PaddedContainer>
+      <FilterOptionsContainer>
         <SpanOperationSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.op'] || ''}
@@ -62,14 +71,6 @@ export default function SpansView(props: Props) {
       </FilterOptionsContainer>
 
       <PaddedContainer>
-        <SpanTimeCharts
-          moduleName={props.moduleName || ModuleName.ALL}
-          appliedFilters={appliedFilters}
-          spanCategory={props.spanCategory}
-        />
-      </PaddedContainer>
-
-      <PaddedContainer>
         <SpansTable
           moduleName={props.moduleName || ModuleName.ALL}
           orderBy={orderBy}
@@ -83,7 +84,7 @@ export default function SpansView(props: Props) {
 }
 
 const PaddedContainer = styled('div')`
-  margin: ${space(2)};
+  margin: 0 ${space(2)};
 `;
 
 const FilterOptionsContainer = styled(PaddedContainer)`

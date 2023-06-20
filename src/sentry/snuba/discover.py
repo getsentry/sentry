@@ -549,7 +549,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -561,7 +562,8 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    limit (int) The number of records to fetch.
+    per_page (int) The number of records to fetch.
+    cursor (int) The number of records to skip.
 
     Returns Sequence[FacetResult]
     """
@@ -574,7 +576,8 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=limit,
+            limit=per_page,
+            offset=cursor,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -594,12 +597,14 @@ def get_facets(
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == limit:
+        # TODO(nar): Since we pop a result to fill it with project data, we need to account for this offset
+        if len(top_tags) == per_page:
             top_tags.pop()
         fetch_projects = True
 
     results = []
-    if fetch_projects:
+    # Only inject project data on the first page
+    if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
                 Dataset.Discover,
