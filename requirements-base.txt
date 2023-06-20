@@ -6,7 +6,7 @@ botocore>=1.25.12
 cachetools>=5
 celery>=4.4.7
 click>=8.0.4
-confluent-kafka>=1.9.2
+confluent-kafka>=2.1.1
 croniter>=1.3.10
 cssselect>=1.0.3
 datadog>=0.29.3
@@ -58,7 +58,7 @@ requests>=2.25.1
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
-sentry-arroyo>=2.12.1
+sentry-arroyo>=2.13.0
 sentry-kafka-schemas>=0.1.12
 sentry-redis-tools>=0.1.5
 sentry-relay>=0.8.25
