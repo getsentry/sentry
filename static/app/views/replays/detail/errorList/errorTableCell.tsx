@@ -1,4 +1,5 @@
 import {ComponentProps, CSSProperties, forwardRef, useMemo} from 'react';
+import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
 import Avatar from 'sentry/components/avatar';
@@ -15,7 +16,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
@@ -131,16 +132,23 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Text>
-            <QuickContextHoverWrapper
-              dataRow={{
-                id: eventId,
-                'project.name': projectSlug,
-              }}
-              contextType={ContextType.EVENT}
-              organization={organization}
-            >
-              {title ?? EMPTY_CELL}
-            </QuickContextHoverWrapper>
+            <ClassNames>
+              {({css}) => (
+                <QuickContextHovercard
+                  dataRow={{
+                    id: eventId,
+                    'project.name': projectSlug,
+                  }}
+                  contextType={ContextType.EVENT}
+                  organization={organization}
+                  containerClassName={css`
+                    display: inline;
+                  `}
+                >
+                  {title ?? EMPTY_CELL}
+                </QuickContextHovercard>
+              )}
+            </ClassNames>
           </Text>
         </Cell>
       ),
@@ -149,7 +157,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
           <AvatarWrapper>
             <Avatar project={project} size={16} />
           </AvatarWrapper>
-          <QuickContextHoverWrapper
+          <QuickContextHovercard
             dataRow={{
               'issue.id': groupId,
               issue: groupShortId,
@@ -162,7 +170,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             ) : (
               <span>{groupShortId}</span>
             )}
-          </QuickContextHoverWrapper>
+          </QuickContextHovercard>
         </Cell>
       ),
       () => (
