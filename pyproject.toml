@@ -531,7 +531,6 @@ module = [
     "sentry.identity.slack.provider",
     "sentry.identity.vsts.provider",
     "sentry.incidents.action_handlers",
-    "sentry.incidents.charts",
     "sentry.incidents.endpoints.bases",
     "sentry.incidents.endpoints.organization_alert_rule_available_action_index",
     "sentry.incidents.endpoints.organization_alert_rule_details",
