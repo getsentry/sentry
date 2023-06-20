@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -90,7 +91,7 @@ def test_generate_bias_rules_v2(get_boosted_releases, default_project):
 )
 def test_generate_bias_rules_with_no_boosted_releases(get_boosted_releases, default_project):
     default_project.update(platform="python")
-    boosted_releases = []
+    boosted_releases: List[ExtendedBoostedRelease] = []
     get_boosted_releases.return_value = boosted_releases
 
     rules = BoostLatestReleasesBias().generate_rules(project=default_project, base_sample_rate=0.0)

@@ -4,13 +4,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
+
+import IncidentRedirect from './incidentRedirect';
 
 jest.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
   const params = {alertId: '123'};
-  const {organization, project, routerContext} = initializeOrg({
+  const {organization, project, routerContext, routerProps} = initializeOrg({
     router: {
       params,
     },
@@ -26,11 +27,11 @@ describe('IncidentRedirect', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('redirects to alert details page', async () => {
-    render(<IncidentRedirect params={params} organization={organization} />, {
+    render(<IncidentRedirect organization={organization} {...routerProps} />, {
       context: routerContext,
     });
 
