@@ -597,12 +597,14 @@ def get_facets(
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
+        # TODO(nar): Since we pop a result to fill it with project data, we need to account for this offset
         if len(top_tags) == per_page:
             top_tags.pop()
         fetch_projects = True
 
     results = []
-    if fetch_projects:
+    # Only inject project data on the first page
+    if fetch_projects and cursor > 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
                 Dataset.Discover,
