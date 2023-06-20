@@ -9,11 +9,11 @@ from django.conf import settings
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 
 def _get_occurrence_producer() -> KafkaProducer:
-    cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_OCCURRENCES]["cluster"]
+    cluster_name = get_topic_definition(settings.KAFKA_INGEST_OCCURRENCES)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)

@@ -21,7 +21,7 @@ from django.conf import settings
 from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.utils.kafka_config import get_kafka_consumer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class PostProcessForwarder:
     ) -> StreamProcessor[KafkaPayload]:
         configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_name = get_topic_definition(topic)["cluster"]
 
         consumer = KafkaConsumer(
             build_kafka_consumer_configuration(

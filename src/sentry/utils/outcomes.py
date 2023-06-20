@@ -71,9 +71,11 @@ def track_outcome(
     assert isinstance(category, (type(None), DataCategory))
     assert isinstance(quantity, int)
 
-    outcomes_config = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-    billing_config = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING)
-    use_billing = billing_config is not None and outcome.is_billing()
+    outcomes_config = kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES)
+    billing_config = kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES_BILLING)
+    use_billing = (
+        outcome.is_billing() and settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] is not None
+    )
 
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
