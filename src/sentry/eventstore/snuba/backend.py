@@ -86,7 +86,7 @@ class SnubaEventStorage(EventStorage):
         else:
             resolved_order_by = []
             for order_field_alias in orderby:
-                if order_field_alias.startswith("_"):
+                if order_field_alias.startswith("-"):
                     direction = Direction.DESC
                     order_field_alias = order_field_alias[1:]
                 else:
