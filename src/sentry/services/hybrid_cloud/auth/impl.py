@@ -82,33 +82,35 @@ def _query_sso_state(
             )
         except AuthIdentity.DoesNotExist:
             sso_is_valid = False
-            # If an owner is trying to gain access,
-            # allow bypassing SSO if there are no other
-            # owners with SSO enabled.
-            if roles.get_top_dog().id in organization_service.get_all_org_roles(
-                member_id=member.id
-            ):
-                all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
-                    organization_id=member.organization_id
-                )
-                user_ids = (
-                    OrganizationMemberMapping.objects.filter(
-                        Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
-                        organization_id=member.organization_id,
-                        user__is_active=True,
-                    )
-                    .exclude(id=member.id)
-                    .values_list("user_id")
-                )
-
-                requires_sso = AuthIdentity.objects.filter(
-                    auth_provider=auth_provider,
-                    user__in=user_ids,
-                ).exists()
+            org_roles = organization_service.get_all_org_roles(member_id=member.id)
+            if roles.get_top_dog().id in org_roles:
+                requires_sso = not _can_owner_override_sso(auth_provider, member)
         else:
             sso_is_valid = auth_identity.is_valid(member)
 
     return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
+
+
+def _can_owner_override_sso(auth_provider, member):
+    """If an owner is trying to gain access, allow bypassing SSO if there are no
+    other owners with SSO enabled.
+    """
+
+    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
+        organization_id=member.organization_id
+    )
+
+    user_ids = (
+        OrganizationMemberMapping.objects.filter(
+            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
+            organization_id=member.organization_id,
+            user__is_active=True,
+        )
+        .exclude(id=member.id)
+        .values_list("user_id")
+    )
+
+    return not AuthIdentity.objects.filter(auth_provider=auth_provider, user__in=user_ids).exists()
 
 
 class DatabaseBackedAuthService(AuthService):
