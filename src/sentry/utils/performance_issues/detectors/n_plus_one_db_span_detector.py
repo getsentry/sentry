@@ -56,7 +56,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "transaction",
     )
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
     def init(self):

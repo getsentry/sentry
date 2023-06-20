@@ -1,15 +1,18 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import UncompressedAssetSpanDetector
+from sentry.utils.performance_issues.detectors.uncompressed_asset_detector import (
+    UncompressedAssetSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
@@ -22,7 +25,7 @@ def create_asset_span(
     desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     duration=1000.0,
     data=None,
-) -> "SpanBuilder":
+) -> SpanBuilder:
     return create_span("resource.script", desc=desc, duration=duration, data=data)
 
 
@@ -43,10 +46,10 @@ def create_compressed_asset_span():
 class UncompressedAssetsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = UncompressedAssetSpanDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = UncompressedAssetSpanDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -354,7 +357,7 @@ class UncompressedAssetsDetectorTest(TestCase):
         project = self.create_project()
         event = get_event("uncompressed-assets/uncompressed-script-asset")
 
-        detector = UncompressedAssetSpanDetector(self.settings, event)
+        detector = UncompressedAssetSpanDetector(self._settings, event)
 
         assert not detector.is_creation_allowed_for_organization(project.organization)
 

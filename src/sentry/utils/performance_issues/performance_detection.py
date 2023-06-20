@@ -107,7 +107,7 @@ class EventPerformanceProblem:
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
+def detect_performance_problems(data: dict[str, Any], project: Project) -> List[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
@@ -268,7 +268,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
 
 
 def _detect_performance_problems(
-    data: Event, sdk_span: Any, project: Project
+    data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
     project_id = cast(int, project.id)

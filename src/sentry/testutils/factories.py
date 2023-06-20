@@ -1418,9 +1418,9 @@ class Factories:
         group: Group,
         status: int,
         release: Optional[Release] = None,
-        actor: Actor = None,
-        prev_history: GroupHistory = None,
-        date_added: datetime = None,
+        actor: Optional[Actor] = None,
+        prev_history: Optional[GroupHistory] = None,
+        date_added: Optional[datetime] = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
@@ -1475,7 +1475,9 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_notification_action(
-        organization: Organization = None, projects: List[Project] = None, **kwargs
+        organization: Optional[Organization] = None,
+        projects: Optional[List[Project]] = None,
+        **kwargs,
     ):
         if not organization:
             organization = Factories.create_organization()

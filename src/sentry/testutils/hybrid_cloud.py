@@ -4,7 +4,7 @@ import contextlib
 import functools
 import threading
 from types import TracebackType
-from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
+from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -29,18 +29,10 @@ class use_real_service:
         if isinstance(self.service, DelegatedBySiloMode):
             if self.silo_mode is not None:
                 self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
-                self.context.enter_context(
-                    cast(
-                        Any,
-                        self.service.with_replacement(None, self.silo_mode),
-                    )
-                )
+                self.context.enter_context(self.service.with_replacement(None, self.silo_mode))
             else:
                 self.context.enter_context(
-                    cast(
-                        Any,
-                        self.service.with_replacement(None, SiloMode.get_current_mode()),
-                    )
+                    self.service.with_replacement(None, SiloMode.get_current_mode())
                 )
         else:
             raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")

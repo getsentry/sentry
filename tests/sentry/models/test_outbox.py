@@ -5,6 +5,7 @@ from typing import ContextManager
 from unittest.mock import call, patch
 
 import pytest
+import pytz
 import responses
 from django.conf import settings
 from django.test import RequestFactory
@@ -442,9 +443,11 @@ class RegionOutboxTest(TestCase):
                 assert_called_for_org(10001)
                 ensure_converged()
 
-                # Concurrently added items still follow the largest retry schedule
+                # Concurrently added items will favor a newer scheduling time,
+                # but eventually converges.
                 with outbox_context(flush=False):
                     Organization.outbox_for_update(10002).save()
+                run_with_error()
                 ensure_converged()
 
     def test_outbox_converges(self):
@@ -486,3 +489,49 @@ class RegionOutboxTest(TestCase):
             (OutboxScope.ORGANIZATION_SCOPE.value, org1.id),
             (OutboxScope.ORGANIZATION_SCOPE.value, org2.id),
         }
+
+    def test_scheduling_with_future_outbox_time(self):
+        with outbox_runner():
+            pass
+
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=pytz.UTC)
+        with freeze_time(start_time):
+            future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
+            future_scheduled_outbox.save()
+            assert future_scheduled_outbox.scheduled_for > start_time
+            assert RegionOutbox.objects.count() == 1
+
+            assert RegionOutbox.find_scheduled_shards().count() == 0  # type: ignore
+
+            with outbox_runner():
+                pass
+
+            # Since the event is sometime in the future, we expect the single
+            #  outbox message not to be processed
+            assert RegionOutbox.objects.count() == 1
+
+    def test_scheduling_with_past_and_future_outbox_times(self):
+        with outbox_runner():
+            pass
+
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=pytz.UTC)
+        with freeze_time(start_time):
+            future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
+            future_scheduled_outbox.save()
+            assert future_scheduled_outbox.scheduled_for > start_time
+
+            past_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            past_scheduled_outbox.save()
+            assert past_scheduled_outbox.scheduled_for < start_time
+            assert RegionOutbox.objects.count() == 2
+
+            assert RegionOutbox.find_scheduled_shards().count() == 1  # type: ignore
+
+            with outbox_runner():
+                pass
+
+            # We expect the shard to be drained if at *least* one scheduled
+            # message is in the past.
+            assert RegionOutbox.objects.count() == 0

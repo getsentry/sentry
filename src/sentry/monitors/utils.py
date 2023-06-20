@@ -1,8 +1,11 @@
+from typing import Optional
+
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.mediators import project_rules
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleSource, User
 from sentry.models.project import Project
@@ -27,6 +30,15 @@ def signal_first_monitor_created(project: Project, user, from_upsert: bool):
         first_cron_monitor_created.send_robust(
             project=project, user=user, from_upsert=from_upsert, sender=Project
         )
+
+
+# Used to check valid implicit durations for closing check-ins without a duration specified
+# as payload is already validated. Max value is > 24 days.
+def valid_duration(duration: Optional[int]) -> bool:
+    if duration and (duration < 0 or duration > BoundedPositiveIntegerField.MAX_VALUE):
+        return False
+
+    return True
 
 
 def create_alert_rule(

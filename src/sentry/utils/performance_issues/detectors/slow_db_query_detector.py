@@ -28,7 +28,7 @@ class SlowDBQueryDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.SLOW_DB_QUERY
+    type = DetectorType.SLOW_DB_QUERY
     settings_key = DetectorType.SLOW_DB_QUERY
 
     def init(self):

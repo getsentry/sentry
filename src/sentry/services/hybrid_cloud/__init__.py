@@ -25,6 +25,7 @@ from typing import (
 
 import pydantic
 import sentry_sdk
+from typing_extensions import Self
 
 from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
@@ -133,7 +134,7 @@ class RpcModel(pydantic.BaseModel):
         obj: Any,
         name_transform: Callable[[str], str] | None = None,
         value_transform: Callable[[Any], Any] | None = None,
-    ) -> RpcModel:
+    ) -> Self:
         """Serialize an object with field names matching this model class.
 
         This class method may be called only on an instantiable subclass. The
