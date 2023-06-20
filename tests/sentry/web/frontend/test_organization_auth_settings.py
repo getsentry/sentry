@@ -270,6 +270,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert email_unlink_notifications.delay.called
 
     @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
+    @with_feature("organizations:sso-basic")
     def test_disable_partner_provider(self, email_unlink_notifications):
         organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
         self.create_om_and_link_sso(organization)
@@ -277,8 +278,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         self.login_as(self.user, organization_id=organization.id)
 
-        with self.feature("organizations:sso-basic"):
-            resp = self.client.post(path, {"op": "disable"})
+        resp = self.client.post(path, {"op": "disable"})
         assert resp.status_code == 405
 
     @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
