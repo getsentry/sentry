@@ -11,19 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -3024,12 +3012,8 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 }
 
 
-class TopicDefinition(TypedDict):
-    cluster: str
-
-
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3421,11 +3405,9 @@ if USE_SILOS:
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
 
-    # TODO(hybridcloud) Having a region connection is going to require
-    # a ton of changes to transaction.atomic(). We should use control + default
-    # instead.
-    DATABASES["region"] = DATABASES["default"].copy()
-    DATABASES["region"]["NAME"] = "region"
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    DATABASES["default"]["NAME"] = "region"
 
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.

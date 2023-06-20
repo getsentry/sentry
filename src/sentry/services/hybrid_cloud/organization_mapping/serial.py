@@ -20,11 +20,4 @@ def update_organization_mapping_from_instance(
 
 
 def serialize_organization_mapping(org_mapping: OrganizationMapping) -> RpcOrganizationMapping:
-    return RpcOrganizationMapping(
-        id=org_mapping.organization_id,
-        slug=org_mapping.slug,
-        name=org_mapping.name,
-        region_name=org_mapping.region_name,
-        date_created=org_mapping.date_created,
-        customer_id=org_mapping.customer_id,
-    )
+    return RpcOrganizationMapping.serialize_by_field_name(org_mapping)

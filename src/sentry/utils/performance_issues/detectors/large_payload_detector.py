@@ -29,7 +29,7 @@ MINIMUM_SPAN_DURATION = timedelta(milliseconds=100)  # ms
 class LargeHTTPPayloadDetector(PerformanceDetector):
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.LARGE_HTTP_PAYLOAD
+    type = DetectorType.LARGE_HTTP_PAYLOAD
     settings_key = DetectorType.LARGE_HTTP_PAYLOAD
 
     def init(self):

@@ -106,7 +106,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
     IGNORED_EXTENSIONS = {".nib", ".plist"}
     SPAN_PREFIX = "file"
-    type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
+    type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
     group_type = PerformanceFileIOMainThreadGroupType
 
@@ -199,7 +199,7 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     __slots__ = ("spans_involved", "stored_problems")
 
     SPAN_PREFIX = "db"
-    type: DetectorType = DetectorType.DB_MAIN_THREAD
+    type = DetectorType.DB_MAIN_THREAD
     settings_key = DetectorType.DB_MAIN_THREAD
     group_type = PerformanceDBMainThreadGroupType
 

@@ -762,7 +762,7 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] = None):
+    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

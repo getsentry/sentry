@@ -61,7 +61,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
   );
 }
 
-type ProductSelectionProps = {
+export type ProductSelectionProps = {
   defaultSelectedProducts?: PRODUCT[];
   disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
