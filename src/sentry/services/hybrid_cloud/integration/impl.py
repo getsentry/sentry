@@ -26,7 +26,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
-from sentry.utils.audit import create_audit_entry
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
