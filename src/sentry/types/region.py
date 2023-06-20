@@ -152,17 +152,8 @@ def get_region_by_name(name: str) -> Region:
 
 @control_silo_function
 def get_region_for_organization(organization_slug: str) -> Region:
+    """Resolve an organization to the region where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
-
-    """Resolve an organization to the region where its data is stored.
-
-    Raises RegionContextError if this Sentry platform instance is configured to
-    run only in monolith mode.
-    """
-    directory = load_global_regions()
-
-    if not directory.regions:
-        raise RegionContextError("No regions are configured")
 
     mapping = OrganizationMapping.objects.filter(slug=organization_slug).first()
     if not mapping:
