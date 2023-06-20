@@ -153,24 +153,26 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
         </Cell>
       ),
       () => (
-        <Cell {...columnProps} gap={0.5}>
-          <AvatarWrapper>
-            <Avatar project={project} size={16} />
-          </AvatarWrapper>
-          <QuickContextHovercard
-            dataRow={{
-              'issue.id': groupId,
-              issue: groupShortId,
-            }}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            {issueUrl ? (
-              <Link to={issueUrl}>{groupShortId}</Link>
-            ) : (
-              <span>{groupShortId}</span>
-            )}
-          </QuickContextHovercard>
+        <Cell {...columnProps}>
+          <Text>
+            <AvatarWrapper>
+              <Avatar project={project} size={16} />
+            </AvatarWrapper>
+            <QuickContextHovercard
+              dataRow={{
+                'issue.id': groupId,
+                issue: groupShortId,
+              }}
+              contextType={ContextType.ISSUE}
+              organization={organization}
+            >
+              {issueUrl ? (
+                <Link to={issueUrl}>{groupShortId}</Link>
+              ) : (
+                <span>{groupShortId}</span>
+              )}
+            </QuickContextHovercard>
+          </Text>
         </Cell>
       ),
       () => (

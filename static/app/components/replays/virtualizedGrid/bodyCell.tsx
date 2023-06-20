@@ -32,7 +32,6 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
 type CellProps = {
   align?: 'flex-start' | 'flex-end';
   className?: string;
-  gap?: Parameters<typeof space>[0];
   hasOccurred?: boolean;
   isSelected?: boolean;
   isStatusError?: boolean;
@@ -42,7 +41,6 @@ type CellProps = {
 
 export const Cell = styled('div')<CellProps>`
   display: flex;
-  gap: ${p => space(p.gap ?? 0)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
@@ -63,6 +61,8 @@ export const Text = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   padding: ${space(0.75)} ${space(1.5)};
+  display: flex;
+  gap: ${space(0.5)};
 `;
 
 export const AvatarWrapper = styled('div')`
