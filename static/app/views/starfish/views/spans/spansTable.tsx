@@ -14,7 +14,6 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TableColumnSort} from 'sentry/views/discover/table/types';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -26,7 +25,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   moduleName: ModuleName;
-  orderBy: string;
+  sort: Sort;
   columnOrder?: TableColumnHeader[];
   endpoint?: string;
   limit?: number;
@@ -35,6 +34,14 @@ type Props = {
 };
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
+
+const SORTABLE_FIELDS = new Set([
+  'p95(span.self_time)',
+  'percentile_percent_change(span.self_time, 0.95)',
+  'sps()',
+  'sps_percent_change()',
+  'time_spent_percentage()',
+]);
 
 export type SpanDataRow = {
   'p95(span.self_time)': number;
@@ -57,11 +64,12 @@ export type Keys =
   | 'sps_percent_change()'
   | `sum(${typeof SPAN_SELF_TIME})`
   | 'time_spent_percentage()';
+
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
   moduleName,
-  orderBy,
+  sort,
   columnOrder,
   spanCategory,
   endpoint,
@@ -69,16 +77,9 @@ export default function SpansTable({
   limit = 25,
 }: Props) {
   const location = useLocation();
-  const sorts: Sort[] = [
-    {
-      field: 'time_spent_percentage()',
-      kind: 'desc',
-    },
-  ];
-
-  const sort = sorts[0]; // We only allow one sort in the UI
 
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
+
   const {isLoading, data, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
     undefined,
@@ -102,12 +103,16 @@ export default function SpansTable({
         isLoading={isLoading}
         data={data}
         columnOrder={columnOrder ?? getColumns(moduleName)}
-        columnSortBy={
-          orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
-        }
+        columnSortBy={[
+          {
+            key: sort.field as unknown as Keys,
+            order: sort.kind,
+          },
+        ]}
         grid={{
-          renderHeadCell: column => renderHeadCell(location, sort, column),
-          renderBodyCell: (column, row) =>
+          renderHeadCell: (column: GridColumnHeader<Keys>) =>
+            renderHeadCell(column, sort, location),
+          renderBodyCell: (column: GridColumnHeader<Keys>, row) =>
             renderBodyCell(column, row, location, endpoint, method),
         }}
         location={location}
@@ -117,12 +122,12 @@ export default function SpansTable({
   );
 }
 
-function renderHeadCell(location: Location, sort: Sort, column: TableColumnHeader) {
+function renderHeadCell(column: TableColumnHeader, sort: Sort, location: Location) {
   return (
     <SortLink
       align="left"
-      canSort={sort.field === column.key}
-      direction="desc"
+      canSort={SORTABLE_FIELDS.has(column.key)}
+      direction={sort.field === column.key ? sort.kind : undefined}
       title={column.name}
       generateSortLink={() => {
         return {
