@@ -324,9 +324,9 @@ def process_commit_context(
                 )
                 repo = Repository.objects.filter(id=commit.repository_id)
                 if (
-                    repo.exists()
+                    installation is not None
+                    and repo.exists()
                     and repo.get().provider == "integrations:github"
-                    and installation is not None
                 ):
                     queue_comment_task_if_needed(commit, group_owner, repo.get(), installation)
                 else:
