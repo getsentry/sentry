@@ -501,7 +501,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
-        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+        return orm_organization.update_option(key, value)
 
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
