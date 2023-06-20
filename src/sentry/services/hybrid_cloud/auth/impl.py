@@ -89,7 +89,9 @@ def _query_sso_state(
     return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
 
 
-def _can_owner_override_sso(auth_provider, member):
+def _can_owner_override_sso(
+    auth_provider: AuthProvider, member: RpcOrganizationMemberSummary
+) -> bool:
     """If an owner is trying to gain access, allow bypassing SSO if there are no
     other owners with SSO enabled.
     """
