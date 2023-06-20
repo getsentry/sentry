@@ -10,21 +10,21 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
-    get_transactions_resampling_rates,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import (
-    SLIDING_WINDOW_CALCULATION_ERROR,
-    generate_sliding_window_cache_key,
-    mark_sliding_window_org_executed,
-)
 from sentry.dynamic_sampling.rules.utils import generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     boost_low_volume_transactions,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    generate_boost_low_volume_projects_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
+    get_transactions_resampling_rates,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    SLIDING_WINDOW_CALCULATION_ERROR,
+    generate_sliding_window_cache_key,
+    mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
 from sentry.dynamic_sampling.tasks.sliding_window import sliding_window

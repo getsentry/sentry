@@ -1,5 +1,5 @@
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     get_transactions_resampling_rates,
     set_transactions_resampling_rates,
 )

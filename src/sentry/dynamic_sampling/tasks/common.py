@@ -19,13 +19,13 @@ from snuba_sdk import (
 )
 
 from sentry import quotas
-from sentry.dynamic_sampling.rules.helpers.sliding_window import extrapolate_monthly_volume
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     MAX_ORGS_PER_QUERY,
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey

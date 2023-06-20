@@ -15,17 +15,17 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.dynamic_sampling.rules.helpers.sliding_window import (
-    generate_sliding_window_org_cache_key,
-    get_sliding_window_size,
-    mark_sliding_window_org_executed,
-)
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     compute_guarded_sliding_window_sample_rate,
     get_active_orgs_with_projects_counts,
 )
 from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL, CHUNK_SIZE, MAX_SECONDS
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    generate_sliding_window_org_cache_key,
+    get_sliding_window_size,
+    mark_sliding_window_org_executed,
+)
 from sentry.dynamic_sampling.tasks.logging import log_query_timeout
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.sentry_metrics import indexer

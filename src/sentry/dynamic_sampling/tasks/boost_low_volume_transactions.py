@@ -26,13 +26,6 @@ from sentry.dynamic_sampling.rules.base import (
     is_sliding_window_enabled,
     is_sliding_window_org_enabled,
 )
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
-    set_transactions_resampling_rates,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CACHE_KEY_TTL,
@@ -41,6 +34,13 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
 )
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
+    set_transactions_resampling_rates,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models import Organization

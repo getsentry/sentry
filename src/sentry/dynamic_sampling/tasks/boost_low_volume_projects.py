@@ -23,13 +23,6 @@ from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import (
-    get_sliding_window_org_sample_rate,
-    get_sliding_window_size,
-)
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -48,6 +41,13 @@ from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     MAX_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    generate_boost_low_volume_projects_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    get_sliding_window_org_sample_rate,
+    get_sliding_window_size,
 )
 from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
 from sentry.dynamic_sampling.tasks.sliding_window_org import (
