@@ -495,10 +495,16 @@ class TestCase(BaseTestCase, DjangoTestCase):
 
 
 class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
+    # We need Django to flush all databases.
+    databases = "__all__"
+
     pass
 
 
 class PerformanceIssueTestCase(BaseTestCase):
+    # We need Django to flush all databases.
+    databases = "__all__"
+
     def create_performance_issue(
         self,
         tags=None,
@@ -570,6 +576,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
+
+    # We need Django to flush all databases.
+    databases = "__all__"
 
     method = "get"
 
@@ -1017,6 +1026,9 @@ class SnubaTestCase(BaseTestCase):
     Useful when you are working on acceptance tests or integration
     tests that require snuba.
     """
+
+    # We need Django to flush all databases.
+    databases = "__all__"
 
     def setUp(self):
         super().setUp()
