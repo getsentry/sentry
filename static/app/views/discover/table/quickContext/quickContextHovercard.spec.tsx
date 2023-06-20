@@ -6,7 +6,7 @@ import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {HoverWrapper, QuickContextHovercard} from './quickContextHovercard';
+import {QuickContextHoverWrapper} from './quickContextWrapper';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 import {ContextType} from './utils';
 
@@ -26,16 +26,14 @@ const renderQuickContextContent = (
   const organization = TestStubs.Organization();
   render(
     <QueryClientProvider client={queryClient}>
-      <HoverWrapper>
-        <QuickContextHovercard
-          dataRow={dataRow}
-          contextType={contextType}
-          organization={organization}
-          eventView={eventView}
-        >
-          Text from Child
-        </QuickContextHovercard>
-      </HoverWrapper>
+      <QuickContextHoverWrapper
+        dataRow={dataRow}
+        contextType={contextType}
+        organization={organization}
+        eventView={eventView}
+      >
+        Text from Child
+      </QuickContextHoverWrapper>
     </QueryClientProvider>,
     {organization}
   );

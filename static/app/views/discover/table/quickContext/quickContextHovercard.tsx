@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Body, Hovercard} from 'sentry/components/hovercard';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,24 +20,6 @@ import {NoContextWrapper} from './styles';
 import {ContextType} from './utils';
 
 const HOVER_DELAY: number = 400;
-
-type NoContextProps = {
-  isLoading: boolean;
-};
-
-export function NoContext({isLoading}: NoContextProps) {
-  return isLoading ? (
-    <NoContextWrapper>
-      <LoadingIndicator
-        data-test-id="quick-context-loading-indicator"
-        hideMessage
-        size={32}
-      />
-    </NoContextWrapper>
-  ) : (
-    <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
-  );
-}
 
 function getHoverBody(
   dataRow: EventData,
@@ -197,12 +178,6 @@ const StyledHovercard = styled(Hovercard)`
   }
   min-width: max-content;
 `;
-
-// export const HoverWrapper = styled('div')`
-//   display: flex;
-//   align-items: center;
-//   gap: ${space(0.75)};
-// `;
 
 const HoverHeaderWrapper = styled('div')`
   display: flex;
