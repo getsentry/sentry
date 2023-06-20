@@ -74,6 +74,32 @@ describe('Tooltip', function () {
     await userEvent.unhover(screen.getByText('My Button'));
   });
 
+  it('resets visibility when becoming disabled', async function () {
+    const {rerender} = render(
+      <Tooltip delay={0} title="test" disabled={false}>
+        <span>My Button</span>
+      </Tooltip>
+    );
+
+    await userEvent.hover(screen.getByText('My Button'));
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    rerender(
+      <Tooltip delay={0} title="test" disabled>
+        <span>My Button</span>
+      </Tooltip>
+    );
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
+
+    // Becomes enabled again
+    rerender(
+      <Tooltip delay={0} title="test" disabled={false}>
+        <span>My Button</span>
+      </Tooltip>
+    );
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
+  });
+
   it('does not render an empty tooltip', async function () {
     render(
       <Tooltip delay={0} title="">

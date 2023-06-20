@@ -266,6 +266,15 @@ function useHoverOverlay(
     ]
   );
 
+  const reset = useCallback(() => {
+    if (isVisible) {
+      setVisible(false);
+    }
+
+    window.clearTimeout(delayOpenTimeoutRef.current);
+    window.clearTimeout(delayHideTimeoutRef.current);
+  }, [isVisible, setVisible, delayOpenTimeoutRef, delayHideTimeoutRef]);
+
   const overlayProps = {
     id: describeById,
     ref: setOverlayElement,
@@ -288,6 +297,7 @@ function useHoverOverlay(
     placement: state?.placement,
     arrowData: state?.modifiersData?.arrow,
     update,
+    reset,
   };
 }
 
