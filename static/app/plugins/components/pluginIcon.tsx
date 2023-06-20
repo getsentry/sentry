@@ -5,6 +5,7 @@ import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
+import discord from 'sentry-logos/logo-discord.svg';
 import github from 'sentry-logos/logo-github.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
@@ -45,6 +46,7 @@ export const ICON_PATHS = {
   bitbucket,
   bitbucket_pipelines: bitbucket,
   bitbucket_server: bitbucketserver,
+  discord,
   github,
   github_enterprise: githubEnterprise,
   gitlab,
