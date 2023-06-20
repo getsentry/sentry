@@ -23,27 +23,7 @@ import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-type Props = {
-  moduleName: ModuleName;
-  sort: Sort;
-  columnOrder?: TableColumnHeader[];
-  endpoint?: string;
-  limit?: number;
-  method?: string;
-  spanCategory?: string;
-};
-
-const {SPAN_SELF_TIME} = SpanMetricsFields;
-
-const SORTABLE_FIELDS = new Set([
-  'p95(span.self_time)',
-  'percentile_percent_change(span.self_time, 0.95)',
-  'sps()',
-  'sps_percent_change()',
-  'time_spent_percentage()',
-]);
-
-export type SpanDataRow = {
+type Row = {
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
@@ -55,17 +35,31 @@ export type SpanDataRow = {
   'time_spent_percentage()': number;
 };
 
-export type Keys =
-  | 'span.description'
-  | 'span.op'
-  | 'span.domain'
-  | 'sps()'
-  | 'p95(span.self_time)'
-  | 'sps_percent_change()'
-  | `sum(${typeof SPAN_SELF_TIME})`
-  | 'time_spent_percentage()';
+type Column = GridColumnHeader<keyof Row>;
 
-export type TableColumnHeader = GridColumnHeader<Keys>;
+type ValidSort = Sort & {
+  field: keyof Row;
+};
+
+type Props = {
+  moduleName: ModuleName;
+  sort: ValidSort;
+  columnOrder?: Column[];
+  endpoint?: string;
+  limit?: number;
+  method?: string;
+  spanCategory?: string;
+};
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
+
+export const SORTABLE_FIELDS = new Set([
+  'p95(span.self_time)',
+  'percentile_percent_change(span.self_time, 0.95)',
+  'sps()',
+  'sps_percent_change()',
+  'time_spent_percentage()',
+]);
 
 export default function SpansTable({
   moduleName,
@@ -101,18 +95,17 @@ export default function SpansTable({
     <Fragment>
       <GridEditable
         isLoading={isLoading}
-        data={data}
+        data={data as Row[]}
         columnOrder={columnOrder ?? getColumns(moduleName)}
         columnSortBy={[
           {
-            key: sort.field as unknown as Keys,
+            key: sort.field,
             order: sort.kind,
           },
         ]}
         grid={{
-          renderHeadCell: (column: GridColumnHeader<Keys>) =>
-            renderHeadCell(column, sort, location),
-          renderBodyCell: (column: GridColumnHeader<Keys>, row) =>
+          renderHeadCell: column => renderHeadCell(column, sort, location),
+          renderBodyCell: (column, row) =>
             renderBodyCell(column, row, location, endpoint, method),
         }}
         location={location}
@@ -122,7 +115,7 @@ export default function SpansTable({
   );
 }
 
-function renderHeadCell(column: TableColumnHeader, sort: Sort, location: Location) {
+function renderHeadCell(column: Column, sort: Sort, location: Location) {
   return (
     <SortLink
       align="left"
@@ -143,8 +136,8 @@ function renderHeadCell(column: TableColumnHeader, sort: Sort, location: Locatio
 }
 
 function renderBodyCell(
-  column: TableColumnHeader,
-  row: SpanDataRow,
+  column: Column,
+  row: Row,
   location: Location,
   endpoint?: string,
   method?: string
@@ -216,12 +209,12 @@ function getDescriptionHeader(moduleName: ModuleName) {
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName): TableColumnHeader[] {
+function getColumns(moduleName: ModuleName): Column[] {
   const description = getDescriptionHeader(moduleName);
 
   const domain = getDomainHeader(moduleName);
 
-  const order: TableColumnHeader[] = [
+  const order: Column[] = [
     {
       key: 'span.op',
       name: 'Operation',
@@ -238,7 +231,7 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
             key: 'span.domain',
             name: domain,
             width: COL_WIDTH_UNDEFINED,
-          } as TableColumnHeader,
+          } as Column,
         ]
       : []),
     {
@@ -259,6 +252,10 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
   ];
 
   return order;
+}
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.has(sort.field);
 }
 
 export const OverflowEllipsisTextContainer = styled('span')`

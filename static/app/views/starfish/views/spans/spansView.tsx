@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -13,11 +14,11 @@ import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domain
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
-import SpansTable from './spansTable';
+import SpansTable, {isAValidSort} from './spansTable';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage()',
+  field: 'sps()',
 };
 const LIMIT: number = 25;
 
@@ -44,7 +45,8 @@ export default function SpansView(props: Props) {
   ]);
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.SORT] ?? '')[0] ?? DEFAULT_SORT; // We only allow one sort on this table
+    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    DEFAULT_SORT; // We only allow one sort on this table in this view
 
   return (
     <Fragment>
