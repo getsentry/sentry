@@ -181,6 +181,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "performance",
         },
     },
+    **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
 
