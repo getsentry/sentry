@@ -8,7 +8,7 @@ from enum import IntEnum
 from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 from django.db import connections, models, router, transaction
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
@@ -113,7 +113,7 @@ class OutboxBase(Model):
         return (
             cls.objects.values(*cls.sharding_columns)
             .annotate(
-                scheduled_for=Max("scheduled_for"),
+                scheduled_for=Min("scheduled_for"),
                 id=Max("id"),
             )
             .filter(scheduled_for__lte=timezone.now())
@@ -174,7 +174,10 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     def last_delay(self) -> datetime.timedelta:
-        return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
+        return min(
+            max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1)),
+            datetime.timedelta(hours=1),
+        )
 
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + (self.last_delay() * 2)
