@@ -45,8 +45,6 @@ _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 
-# When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
-# than the OrganizationMember type.
 def _query_sso_state(
     organization_id: int | None, is_super_user: bool, member: RpcOrganizationMemberSummary | None
 ) -> RpcMemberSsoState:
