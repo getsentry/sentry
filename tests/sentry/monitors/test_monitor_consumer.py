@@ -21,6 +21,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
@@ -169,6 +170,32 @@ class MonitorConsumerTest(TestCase):
 
         # Lock should prevent creation of new check-in
         assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
+
+    def test_check_in_timeout_at(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_message(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
+            minutes=TIMEOUT
+        )
+        assert checkin.timeout_at == timeout_at
+
+        new_guid = uuid.uuid4().hex
+        self.send_message(
+            "my-other-monitor",
+            guid=new_guid,
+            status="in_progress",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "max_runtime": 5,
+            },
+            environment="my-environment",
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=new_guid)
+        timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
+        assert checkin.timeout_at == timeout_at
 
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
