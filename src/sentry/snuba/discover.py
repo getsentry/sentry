@@ -604,7 +604,7 @@ def get_facets(
 
     results = []
     # Only inject project data on the first page
-    if fetch_projects and cursor > 0:
+    if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
                 Dataset.Discover,
