@@ -944,7 +944,6 @@ module = [
     "sentry.services.hybrid_cloud.actor",
     "sentry.services.hybrid_cloud.app.serial",
     "sentry.services.hybrid_cloud.auth.impl",
-    "sentry.services.hybrid_cloud.hook.serial",
     "sentry.services.hybrid_cloud.identity.serial",
     "sentry.services.hybrid_cloud.integration.impl",
     "sentry.services.hybrid_cloud.integration.service",
