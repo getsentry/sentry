@@ -5,6 +5,7 @@ import {Location, LocationDescriptor} from 'history';
 
 import {fetchTagFacets, Tag, TagSegment} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
+import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -17,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
@@ -31,9 +33,12 @@ type Props = {
 
 type State = {
   error: string;
+  hasMore: boolean;
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
+  nextCursor?: string;
+  tagLinks?: string;
 };
 
 class Tags extends Component<Props, State> {
@@ -42,6 +47,8 @@ class Tags extends Component<Props, State> {
     tags: [],
     totalValues: null,
     error: '',
+    hasMore: false,
+    nextCursor: '0:0:0',
   };
 
   componentDidMount() {
@@ -64,9 +71,17 @@ class Tags extends Component<Props, State> {
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
-  fetchData = async (forceFetchData = false) => {
+  fetchData = async (
+    forceFetchData = false,
+    nextCursor?: string,
+    appendTags?: boolean
+  ) => {
     const {api, organization, eventView, location, confirmedQuery} = this.props;
-    this.setState({loading: true, error: '', tags: []});
+
+    this.setState({error: ''});
+    if (!appendTags) {
+      this.setState({loading: true, tags: []});
+    }
 
     // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
     // since this component can mount/unmount via show/hide tags separate from
@@ -76,16 +91,28 @@ class Tags extends Component<Props, State> {
     }
 
     try {
-      let tags = await fetchTagFacets(
-        api,
-        organization.slug,
-        eventView.getFacetsAPIPayload(location)
-      );
+      const [data, , resp] = await fetchTagFacets(api, organization.slug, {
+        ...eventView.getFacetsAPIPayload(location),
+        cursor: nextCursor,
+      });
 
+      const pageLinks = resp?.getResponseHeader('Link') ?? undefined;
+      let hasMore = false;
+      let cursor: string | undefined;
+      if (pageLinks) {
+        const paginationObject = parseLinkHeader(pageLinks);
+        hasMore = paginationObject?.next?.results ?? false;
+        cursor = paginationObject.next?.cursor;
+      }
+
+      let tags = data;
       if (!organization.features.includes('device-classification')) {
         tags = tags.filter(tag => tag.key !== 'device.class');
       }
-      this.setState({loading: false, tags});
+      if (appendTags) {
+        tags = [...this.state.tags, ...tags];
+      }
+      this.setState({loading: false, tags, hasMore, nextCursor: cursor});
     } catch (err) {
       Sentry.captureException(err);
       this.setState({loading: false, error: err});
@@ -138,7 +165,7 @@ class Tags extends Component<Props, State> {
   }
 
   renderBody = () => {
-    const {loading, error, tags} = this.state;
+    const {loading, error, tags, hasMore, nextCursor} = this.state;
     if (loading) {
       return this.renderPlaceholders();
     }
@@ -152,9 +179,23 @@ class Tags extends Component<Props, State> {
 
     if (tags.length > 0) {
       return (
-        <TagFacetsList>
-          {tags.map((tag, index) => this.renderTag(tag, index))}
-        </TagFacetsList>
+        <Wrapper>
+          <StyledTagFacetList>
+            {tags.map((tag, index) => this.renderTag(tag, index))}
+          </StyledTagFacetList>
+          <Button
+            size="xs"
+            priority="primary"
+            disabled={!hasMore}
+            aria-label={t('Show More')}
+            onClick={() => {
+              this.fetchData(true, nextCursor, true);
+            }}
+            style={{width: 'min-content'}}
+          >
+            {t('Show More')}
+          </Button>
+        </Wrapper>
       );
     }
 
@@ -186,6 +227,17 @@ const StyledPlaceholderTitle = styled(Placeholder)`
   width: 100px;
   height: 12px;
   margin-bottom: ${space(0.5)};
+`;
+
+const StyledTagFacetList = styled(TagFacetsList)`
+  margin-bottom: 0;
+  width: 100%;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 export {Tags};
