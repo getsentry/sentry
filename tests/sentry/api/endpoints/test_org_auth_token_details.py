@@ -393,8 +393,8 @@ class OrgAuthTokenDetailsPermissionTest(PermissionTestCase):
             self.path, method="PUT", data=self.putData, content_type="application/json"
         )
 
-    def test_member_cannot_put(self):
-        self.assert_member_cannot_access(
+    def test_member_can_put(self):
+        self.assert_member_can_access(
             self.path, method="PUT", data=self.putData, content_type="application/json"
         )
 
