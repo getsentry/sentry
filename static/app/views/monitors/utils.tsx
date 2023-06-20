@@ -1,10 +1,11 @@
+import {Theme} from '@emotion/react';
 import cronstrue from 'cronstrue';
 import {Location} from 'history';
 
 import {t, tn} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
+import {CheckInStatus, MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
 
 export function makeMonitorListQueryKey(organization: Organization, location: Location) {
   return [
@@ -61,4 +62,23 @@ export function scheduleAsText(config: MonitorConfig) {
   }
 
   return t('Unknown schedule');
+}
+
+export const statusToText: Record<CheckInStatus, string> = {
+  [CheckInStatus.OK]: t('Okay'),
+  [CheckInStatus.ERROR]: t('Failed'),
+  [CheckInStatus.IN_PROGRESS]: t('In Progress'),
+  [CheckInStatus.MISSED]: t('Missed'),
+  [CheckInStatus.TIMEOUT]: t('Timed Out'),
+};
+
+export function getColorsFromStatus(status: CheckInStatus, theme: Theme) {
+  const statusToColor: Record<CheckInStatus, {labelColor: string; tickColor: string}> = {
+    [CheckInStatus.ERROR]: {tickColor: theme.red200, labelColor: theme.red300},
+    [CheckInStatus.TIMEOUT]: {tickColor: theme.red200, labelColor: theme.red300},
+    [CheckInStatus.OK]: {tickColor: theme.green200, labelColor: theme.green300},
+    [CheckInStatus.MISSED]: {tickColor: theme.yellow200, labelColor: theme.yellow300},
+    [CheckInStatus.IN_PROGRESS]: {tickColor: theme.disabled, labelColor: theme.disabled},
+  };
+  return statusToColor[status];
 }

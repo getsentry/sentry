@@ -797,6 +797,9 @@ class PermissionTestCase(TestCase):
     def assert_member_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "member", **kwargs)
 
+    def assert_manager_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, "manager", **kwargs)
+
     def assert_teamless_member_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
@@ -1561,7 +1564,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
@@ -1570,8 +1573,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         offset: Optional[Offset] = None,
         include_totals: bool = True,
         include_series: bool = True,
-        before_now: str = None,
-        granularity: str = None,
+        before_now: Optional[str] = None,
+        granularity: Optional[str] = None,
     ):
         # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(

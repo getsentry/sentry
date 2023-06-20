@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 from unittest.mock import Mock, call, patch
 
@@ -19,9 +21,11 @@ from sentry.utils.performance_issues.base import (
     DetectorType,
     total_span_time,
 )
+from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
-    NPlusOneDBSpanDetector,
     _detect_performance_problems,
     detect_performance_problems,
 )
@@ -103,15 +107,13 @@ class PerformanceDetectionTest(TestCase):
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
-        event = {}
-        detect_performance_problems(event, self.project)
+        detect_performance_problems({}, self.project)
         assert mock.call_count == 0
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
-        event = {}
         with override_options({"performance.issues.all.problem-detection": 1.0}):
-            detect_performance_problems(event, self.project)
+            detect_performance_problems({}, self.project)
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
@@ -128,22 +130,6 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
-
-    # TODO Abdullah Khan: Uncomment after detection_rate migration
-    # @override_options(BASE_DETECTOR_OPTIONS)
-    # def test_detection_enable_option_passed_to_detector(self):
-    #     n_plus_one_event = get_event("n-plus-one-in-django-index-view")
-    #     sdk_span_mock = Mock()
-
-    #     perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
-    #     assert_n_plus_one_db_problem(perf_problems)
-
-    #     self.project_option_mock.return_value = {
-    #         "n_plus_one_db_queries_detection_enabled": False,
-    #     }
-
-    #     perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
-    #     assert perf_problems == []
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):

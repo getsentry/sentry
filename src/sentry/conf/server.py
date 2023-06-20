@@ -11,19 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -733,7 +721,11 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.dynamic_sampling.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.utils",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
@@ -1055,20 +1047,20 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=30, hour="0"),
         "options": {"expires": 3600},
     },
-    "dynamic-sampling-prioritize-projects": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
+    "dynamic-sampling-boost-low-volume-projects": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-prioritize-transactions": {
-        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+    "dynamic-sampling-boost-low-volume-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-sliding-window": {
-        "task": "sentry.dynamic_sampling.tasks.sliding_window",
-        # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
@@ -1081,11 +1073,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=0, hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
     },
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
@@ -1329,7 +1316,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable Discord integration
-    "organizations:discord-integration": False,
+    "organizations:integrations-discord": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -2647,7 +2634,9 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
+    "sentry.integrations.discord.DiscordIntegrationProvider",
 )
+
 
 SENTRY_SDK_CONFIG = {
     "release": sentry.__semantic_version__,
@@ -3023,12 +3012,8 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 }
 
 
-class TopicDefinition(TypedDict):
-    cluster: str
-
-
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3209,6 +3194,7 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 }
 
 # If this is turned on, then sentry will perform automatic grouping updates.
+# This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
 # How long is the migration phase for grouping updates?
