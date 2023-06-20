@@ -27,6 +27,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.utils import (
+    get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
     signal_first_monitor_created,
@@ -188,7 +189,11 @@ def _process_message(wrapper: Dict) -> None:
             logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
             return
 
-        existing_check_in.update(status=updated_status, duration=updated_duration)
+        updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status)
+
+        existing_check_in.update(
+            status=updated_status, duration=updated_duration, timeout_at=updated_timeout_at
+        )
 
         return
 
