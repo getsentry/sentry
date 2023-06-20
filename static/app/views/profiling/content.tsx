@@ -29,7 +29,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -43,6 +42,7 @@ import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
+import {SlowestFunctionsWidget} from './landing/slowestFunctionsWidget';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
@@ -109,7 +109,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     trackAnalytics('profiling_views.onboarding', {
       organization,
     });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
@@ -160,11 +160,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
         }
       >
         <Layout.Page>
-          {isProfilingGA ? (
-            <ProfilingBetaAlertBanner organization={organization} />
-          ) : (
-            <ProfilingBetaEndAlertBanner organization={organization} />
-          )}
+          {isProfilingGA && <ProfilingBetaAlertBanner organization={organization} />}
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
@@ -266,8 +262,19 @@ function ProfilingContent({location}: ProfilingContentProps) {
               ) : (
                 <Fragment>
                   <PanelsGrid>
-                    <ProfilingSlowestTransactionsPanel />
-                    <ProfileCharts query={query} selection={selection} hideCount />
+                    {organization.features.includes(
+                      'profiling-global-suspect-functions'
+                    ) ? (
+                      <SlowestFunctionsWidget />
+                    ) : (
+                      <ProfilingSlowestTransactionsPanel />
+                    )}
+                    <ProfileCharts
+                      referrer="api.profiling.landing-chart"
+                      query={query}
+                      selection={selection}
+                      hideCount
+                    />
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}
@@ -295,21 +302,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
-  );
-}
-
-function ProfilingBetaEndAlertBanner({organization}: {organization: Organization}) {
-  // beta users will continue to have access
-  if (organization.features.includes('profiling-beta')) {
-    return null;
-  }
-
-  return (
-    <StyledAlert system type="info">
-      {t(
-        "The beta program for Profiling is now closed, but Profiling will become generally available soon. If you weren't part of the beta program, any Profiles sent during this time won't appear in your dashboard. Check out the What’s New tab for updates."
-      )}
-    </StyledAlert>
   );
 }
 
@@ -343,10 +335,6 @@ const PanelsGrid = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
 
 export default ProfilingContent;

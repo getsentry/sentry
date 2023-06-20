@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOTFOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
@@ -33,9 +33,9 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
     @extend_schema(
         operation_id="Update a check-in",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            MONITOR_PARAMS.CHECKIN_ID,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            MonitorParams.CHECKIN_ID,
         ],
         request=MonitorCheckInValidator,
         responses={

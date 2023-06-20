@@ -11,7 +11,7 @@ from rest_framework import status
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
@@ -34,7 +34,7 @@ class BaseRequestParser(abc.ABC):
         raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
 
     @property
-    def webhook_identifier(self) -> str:
+    def webhook_identifier(self) -> WebhookProviderIdentifier:
         raise NotImplementedError(
             "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
         )
@@ -70,7 +70,7 @@ class BaseRequestParser(abc.ABC):
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponse:
         region_client = RegionSiloClient(region)
-        return region_client.proxy_request(self.request).to_http_response()
+        return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
@@ -123,7 +123,7 @@ class BaseRequestParser(abc.ABC):
 
     # Required Overrides
 
-    def get_response(self):
+    def get_response(self) -> HttpResponse:
         """
         Used to surface a response as part of the middleware.
         Should be overwritten by implementation.

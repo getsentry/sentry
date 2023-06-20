@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import useInitialTimeOffsetMs, {
   TimeOffsetLocationQueryParams,
 } from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
@@ -50,6 +51,8 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     replaySlug,
     orgSlug,
   });
+
+  useLogReplayDataLoaded({fetching, fetchError, replay, projectSlug});
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
@@ -107,7 +110,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
+  if (!fetching && replay && replay.getRRWebFrames().length < 2) {
     return (
       <Page
         orgSlug={orgSlug}

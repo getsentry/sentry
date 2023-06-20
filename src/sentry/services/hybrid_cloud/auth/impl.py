@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import List, Mapping
+from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -40,7 +40,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
-from sentry.utils.types import Any
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
@@ -98,7 +97,8 @@ def query_sso_state(
                         OrganizationMember.objects.filter(
                             Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
                             organization_id=org_id,
-                            user__is_active=True,
+                            user_is_active=True,
+                            user_id__isnull=False,
                         )
                         .exclude(id=mem_id)
                         .values_list("user_id")
@@ -171,7 +171,7 @@ class DatabaseBackedAuthService(AuthService):
         )
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
-        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)  # type: ignore
+        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
@@ -229,9 +229,6 @@ class DatabaseBackedAuthService(AuthService):
             sso_state=sso_state,
             permissions=permissions,
         )
-
-    def close(self) -> None:
-        pass
 
     def get_org_ids_with_scim(
         self,

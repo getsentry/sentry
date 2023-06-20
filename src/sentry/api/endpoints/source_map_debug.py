@@ -14,7 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_release_files import ArtifactSource
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
+from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Distribution, Project, Release, ReleaseFile, SourceMapProcessingIssue
 from sentry.models.releasefile import read_artifact_index
@@ -45,11 +45,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Debug issues related to source maps for a given event",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT_SLUG,
-            EVENT_PARAMS.EVENT_ID,
-            EVENT_PARAMS.FRAME_IDX,
-            EVENT_PARAMS.EXCEPTION_IDX,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            EventParams.EVENT_ID,
+            EventParams.FRAME_IDX,
+            EventParams.EXCEPTION_IDX,
         ],
         request=None,
         responses={
@@ -185,11 +185,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         abs_path = frame.abs_path
         return frame, filename, abs_path
 
-    def _find_matches(self, release_artifacts, unified_path, filename, release, event):
+    def _find_matches(self, release_artifacts, abs_path, unified_path, filename, release, event):
         full_matches = [
             artifact
             for artifact in release_artifacts
-            if artifact.name == unified_path
+            if (artifact.name == unified_path or artifact.name == abs_path)
             and self._verify_dist_matches(release, event, artifact, filename)
         ]
         partial_matches = self._find_partial_matches(unified_path, release_artifacts)
@@ -197,12 +197,14 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
     def _find_partial_matches(self, unified_path, artifacts):
         filename = unified_path.split("/")[-1]
-        filename_matches = [artifact for artifact in artifacts if artifact.name.endswith(filename)]
+        filename_matches = [
+            artifact for artifact in artifacts if artifact.name.split("/")[-1] == filename
+        ]
         artifact_names = [artifact.name.split("/") for artifact in filename_matches]
         while any(artifact_names):
             for i in range(len(artifact_names)):
                 if unified_path.endswith("/".join(artifact_names[i])):
-                    return [artifacts[i]]
+                    return [filename_matches[i]]
                 artifact_names[i] = artifact_names[i][1:]
         return []
 
@@ -216,7 +218,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     def _verify_dist_matches(self, release, event, artifact, filename):
         try:
             if event.dist is None and artifact.dist_id is None:
-                return
+                return True
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
             raise SourceMapException(
@@ -235,7 +237,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     ):
         unified_path = self._unify_url(urlparts)
         full_matches, partial_matches = self._find_matches(
-            release_artifacts, unified_path, filename, release, event
+            release_artifacts, abs_path, unified_path, filename, release, event
         )
 
         artifact_names = [artifact.name for artifact in release_artifacts]

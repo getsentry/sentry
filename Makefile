@@ -3,6 +3,7 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
+POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
@@ -153,7 +154,7 @@ test-tools:
 
 backend-typing:
 	@echo "--> Running Python typing checks"
-	mypy --strict --warn-unreachable --config-file mypy.ini
+	mypy
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.

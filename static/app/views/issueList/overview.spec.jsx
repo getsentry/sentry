@@ -13,11 +13,13 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import * as useExperiment from 'sentry/utils/useExperiment';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 
 // Mock <IssueListActions>
@@ -309,7 +311,7 @@ describe('IssueList', function () {
         <IssueListWithStores
           {...routerProps}
           {...defaultProps}
-          organization={{...organization, features: ['escalating-issues-ui']}}
+          organization={{...organization, features: ['escalating-issues']}}
         />,
         {
           context: routerContext,
@@ -519,7 +521,7 @@ describe('IssueList', function () {
         query: 'assigned:me level:fatal',
         sort: 'date',
         isPinned: true,
-        visibility: SavedSearchVisibility.Organization,
+        visibility: SavedSearchVisibility.ORGANIZATION,
       };
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -591,7 +593,7 @@ describe('IssueList', function () {
         query: 'assigned:me level:fatal',
         sort: 'date',
         isPinned: true,
-        visibility: SavedSearchVisibility.Organization,
+        visibility: SavedSearchVisibility.ORGANIZATION,
       });
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -1458,6 +1460,53 @@ describe('IssueList', function () {
           )
         ).toBeInTheDocument();
       });
+    });
+  });
+  describe('better priority sort', function () {
+    it('log experiment when active', function () {
+      const logExperiment = jest.fn();
+      jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
+        experimentAssignment: 'variant2',
+        logExperiment,
+      });
+
+      ConfigStore.config.user = TestStubs.User({
+        experiments: {
+          PrioritySortExperiment: 'variant2',
+        },
+      });
+      const {routerContext: newRouterContext} = initializeOrg({
+        organization: {
+          features: ['better-priority-sort-experiment'],
+          isEarlyAdopter: true,
+        },
+      });
+      render(<IssueListWithStores {...routerProps} />, {
+        context: newRouterContext,
+      });
+      expect(logExperiment).toHaveBeenCalledWith();
+    });
+    it('do not log experiment if not active', function () {
+      const logExperiment = jest.fn();
+      jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
+        experimentAssignment: 'variant2',
+        logExperiment,
+      });
+
+      ConfigStore.config.user = TestStubs.User({
+        experiments: {
+          PrioritySortExperiment: 'variant2',
+        },
+      });
+      const {routerContext: newRouterContext} = initializeOrg({
+        organization: {
+          isEarlyAdopter: true,
+        },
+      });
+      render(<IssueListWithStores {...routerProps} />, {
+        context: newRouterContext,
+      });
+      expect(logExperiment).not.toHaveBeenCalledWith();
     });
   });
 });

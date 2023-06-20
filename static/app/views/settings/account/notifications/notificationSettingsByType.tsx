@@ -99,6 +99,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     trackAnalytics('notification_settings.tuning_page_viewed', {
       organization: null,
       notification_type: this.props.notificationType,

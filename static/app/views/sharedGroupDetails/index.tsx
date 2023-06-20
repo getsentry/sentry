@@ -51,7 +51,7 @@ class SharedGroupDetails extends Component<Props, State> {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     document.body.classList.add('shared-group');
   }
 

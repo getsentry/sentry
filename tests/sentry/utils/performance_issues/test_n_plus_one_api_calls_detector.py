@@ -5,7 +5,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -20,10 +20,10 @@ from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector imp
 )
 from sentry.utils.performance_issues.performance_detection import (
     DetectorType,
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 @region_silo_test
@@ -170,7 +170,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ProjectOption.objects.set_value(
             project=project,
             key="sentry:performance_issue_settings",
-            value={"n_plus_one_api_calls_detection_rate": 0.0},
+            value={"n_plus_one_api_calls_detection_enabled": False},
         )
 
         settings = get_detection_settings(project.id)

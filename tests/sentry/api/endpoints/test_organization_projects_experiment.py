@@ -3,9 +3,11 @@ from functools import cached_property
 from unittest.mock import patch
 
 from django.urls import reverse
+from django.utils.text import slugify
 
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
+    fetch_slugifed_email_username,
 )
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.models.project import Project
@@ -15,7 +17,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationProjectsExperimentCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-experiment"
     method = "post"
@@ -25,7 +27,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.t1 = f"default-team-{self.user}"
+        self.email_username = fetch_slugifed_email_username(self.user.email)
+        self.t1 = f"team-{self.email_username}"
         self.mock_experiment_get = patch("sentry.experiments.manager.get", return_value=1).start()
 
     @cached_property
@@ -57,10 +60,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         OrganizationProjectsExperimentEndpoint, "should_add_creator_to_team", return_value=False
     )
     def test_not_authenticated(self, mock_add_creator):
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=400)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
+        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=401)
+        assert response.data == {"detail": "User is not authenticated"}
         mock_add_creator.assert_called_once()
 
     def test_missing_team_roles_flag(self):
@@ -102,7 +103,59 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert team.organization == self.organization
         assert team.name == team.slug == self.t1
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True, role="admin"
+        ).exists()
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == project.slug == self.p1
+        assert project.teams.first() == team
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    def test_project_slug_is_slugified(self):
+        unslugified_name = "not_slugged_$!@#$"
+        response = self.get_success_response(
+            self.organization.slug, name=unslugified_name, status_code=201
+        )
+
+        team = Team.objects.get(slug=self.t1, name=self.t1)
+        assert not team.idp_provisioned
+        assert team.organization == self.organization
+        assert team.name == team.slug == self.t1
+
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True, role="admin"
+        ).exists()
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == unslugified_name
+        assert project.slug == slugify(unslugified_name)
+        assert project.teams.first() == team
+
+    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    def test_team_slug_is_slugified(self):
+        special_email = "test.bad$email@foo.com"
+        t1 = "team-testbademail"
+        user = self.create_user(email=special_email)
+        self.login_as(user=user)
+        self.create_member(
+            user=user, organization=self.organization, role="admin", teams=[self.team]
+        )
+
+        response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
+
+        team = Team.objects.get(slug=t1, name=t1)
+        assert not team.idp_provisioned
+        assert team.organization == self.organization
+        assert team.name == team.slug == t1
+
+        member = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True, role="admin"
         ).exists()
@@ -137,7 +190,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     def test_consecutive_reqs_adds_team_suffix(self):
         resp1 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
         resp2 = self.get_success_response(self.organization.slug, name=self.p2, status_code=201)
-        teams = Team.objects.filter(slug__icontains=self.t1)
+        teams = Team.objects.filter(slug__icontains=self.email_username)
         assert len(teams) == 2
 
         if teams[0].slug == self.t1:

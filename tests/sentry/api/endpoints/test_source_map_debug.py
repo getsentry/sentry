@@ -364,8 +364,22 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
             release_id=release.id,
+            file=File.objects.create(name="incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/incorrect_application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="~/dist/static/js/application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="also_incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/also_incorrect_application.js",
         )
 
         resp = self.get_success_response(
@@ -385,7 +399,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/static/js/application.js",
             "unifiedPath": "~/static/js/application.js",
             "urlPrefix": "~/dist",
-            "artifactNames": ["~/dist/static/js/application.js"],
+            "artifactNames": [
+                "~/dist/static/js/also_incorrect_application.js",
+                "~/dist/static/js/application.js",
+                "~/dist/static/js/incorrect_application.js",
+            ],
         }
 
     def test_no_url_match(self):
@@ -505,7 +523,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             data={
                 "event_id": "a" * 32,
                 "release": "my-release",
-                "dist": "my-dist",
+                "dist": None,
                 "exception": {
                     "values": [
                         {
@@ -529,10 +547,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
-
         file = File.objects.create(name="application.js", type="release.file")
         fileobj = ContentFile(b"a\na")
         file.putfile(fileobj)
@@ -542,7 +556,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             release_id=release.id,
             file=file,
             name="~/application.js",
-            dist_id=dist.id,
+            dist_id=None,
         )
 
         resp = self.get_success_response(

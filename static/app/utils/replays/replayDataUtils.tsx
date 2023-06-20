@@ -174,15 +174,21 @@ export function breadcrumbFactory(
       return (
         !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '') &&
         // Explicitly include replay breadcrumbs to ensure we have valid UI for them
-        (!crumb.category?.startsWith('replay') || crumb.category === 'replay.mutations')
+        (!crumb.category?.startsWith('replay') ||
+          crumb.category === 'replay.mutations') &&
+        (crumb.category !== 'ui.slowClickDetected' ||
+          (crumb.data as Record<string, any>)?.timeAfterClickMs >= 3000)
       );
     })
     .map(crumb => {
       if (crumb.category === 'replay.mutations') {
+        const crumbData = crumb.data as Record<string, unknown>;
         return {
           ...crumb,
-          type: BreadcrumbType.WARNING,
-          level: BreadcrumbLevelType.WARNING,
+          type: crumbData.limit ? BreadcrumbType.ERROR : BreadcrumbType.WARNING,
+          level: crumbData.limit
+            ? BreadcrumbLevelType.FATAL
+            : BreadcrumbLevelType.WARNING,
           timestamp: new Date(crumb.timestamp * 1000).toISOString(),
         };
       }
@@ -194,6 +200,8 @@ export function breadcrumbFactory(
       };
     });
 
+  // TODO(replay): The important parts of transformCrumbs should be brought into
+  // here, we're hydrating our data and should have more control over the process.
   const result = transformCrumbs([
     ...(spans.length && !hasPageLoad ? [initBreadcrumb] : []),
     ...rawCrumbsWithTimestamp,
@@ -222,9 +230,9 @@ export function spansFactory(spans: ReplaySpan[]) {
  */
 export function replayTimestamps(
   replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[],
-  rawCrumbs: ReplayCrumb[],
-  rawSpanData: ReplaySpan[]
+  rrwebEvents: {timestamp: number}[],
+  rawCrumbs: {timestamp: number}[],
+  rawSpanData: {endTimestamp: number; op: string; startTimestamp: number}[]
 ) {
   const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
   const breadcrumbTimestamps = rawCrumbs

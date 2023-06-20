@@ -94,11 +94,13 @@ def debounce_cache(monkeypatch):
 
     cache = RedisProjectConfigDebounceCache()
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.mark_task_done", cache.mark_task_done
+        "sentry.relay.projectconfig_debounce_cache.backend.mark_task_done", cache.mark_task_done
     )
-    monkeypatch.setattr("sentry.relay.projectconfig_debounce_cache.debounce", cache.debounce)
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced", cache.is_debounced
+        "sentry.relay.projectconfig_debounce_cache.backend.debounce", cache.debounce
+    )
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.backend.is_debounced", cache.is_debounced
     )
 
     return cache

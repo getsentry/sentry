@@ -5,7 +5,7 @@ import os
 from collections import defaultdict
 
 import sentry_sdk
-from symbolic import ProguardMapper  # type: ignore
+from symbolic import ProguardMapper
 
 from sentry import features
 from sentry.issues.grouptype import (
@@ -94,7 +94,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                 )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True
+        return self.settings[0]["detection_enabled"]
 
 
 class FileIOMainThreadDetector(BaseIOMainThreadDetector):
@@ -233,6 +233,3 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         return features.has(
             "organizations:performance-db-main-thread-detector", organization, actor=None
         )
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True

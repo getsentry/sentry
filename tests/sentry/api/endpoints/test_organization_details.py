@@ -5,6 +5,7 @@ from unittest.mock import patch
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
+from django.db import IntegrityError
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -12,15 +13,14 @@ from rest_framework import status
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.auth.authenticators import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
     AuthProvider,
     DeletedOrganization,
-    ObjectStatus,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
@@ -30,6 +30,7 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -266,6 +267,11 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         ):
             response = self.get_success_response(org.slug)
             assert not response.data["isDynamicallySampled"]
+
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
+        assert resp.status_code == 400
 
 
 @region_silo_test
@@ -757,40 +763,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_slug_with_mapping(self):
-        self.create_organization_mapping(self.organization, slug="test")
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=self.organization.id, slug="test"
-            ).exists()
-
-        response = self.get_success_response(
-            self.organization.slug, slug="santry", idempotencyKey="1234"
-        )
-
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "santry"
-
-        with exempt_from_silo_limits():
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
-            assert not org_mapping.verified
-            assert org_mapping.idempotency_key
-
-            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
-
-        # Drain outbox
-        outbox = Organization.outbox_to_verify_mapping(org.id)
-        outbox.drain_shard()
-
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
-            ).exists()
-
-            assert not OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="test"
-            ).exists()
-
     def test_update_name_with_mapping(self):
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
@@ -798,14 +770,72 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
+        with outbox_runner():
+            pass
+
         with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
 
+    def test_update_slug(self):
+        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert organization_mapping.slug == self.organization.slug
+
+        desired_slug = "new-santry"
+        self.get_success_response(self.organization.slug, slug=desired_slug)
+        self.organization.refresh_from_db()
+        assert self.organization.slug == desired_slug
+
+        # Ensure that the organization update has been flushed
+        with outbox_runner():
+            pass
+
+        organization_mapping.refresh_from_db()
+        assert organization_mapping.slug == desired_slug
+
+    def test_update_slug_with_temporary_rename_collision(self):
+        desired_slug = "taken"
+        previous_slug = self.organization.slug
+        org_with_colliding_slug = self.create_organization(
+            slug=desired_slug, name="collision-imminent"
+        )
+
+        # Drain the initial slug creation to ensure a mapping exists for the new org
+        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        colliding_org_mapping = OrganizationMapping.objects.get(
+            organization_id=org_with_colliding_slug.id
+        )
+        assert colliding_org_mapping.slug == desired_slug
+
+        # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
+        org_with_colliding_slug.slug = "unique-slug"
+        org_with_colliding_slug.save()
+
+        self.get_success_response(self.organization.slug, slug=desired_slug)
+        self.organization.refresh_from_db()
+        assert self.organization.slug == desired_slug
+
+        # Ensure that the organization update has been flushed, but it collides when attempting an upsert
+        with pytest.raises(IntegrityError):
+            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+
+        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert organization_mapping.slug == previous_slug
+
+        # Flush the colliding org slug change
+        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        colliding_org_mapping.refresh_from_db()
+        assert colliding_org_mapping.slug == "unique-slug"
+
+        # Flush the desired slug change and assert the correct slug was resolved
+        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        organization_mapping.refresh_from_db()
+        assert organization_mapping.slug == desired_slug
+
     def test_org_mapping_already_taken(self):
-        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
+        self.create_organization(slug="taken")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
 @region_silo_test
@@ -859,7 +889,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
@@ -867,9 +897,32 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        scheduled_deletions = ScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
-        ).exists()
+        )
+        assert scheduled_deletions.exists()
+        assert scheduled_deletions.count() == 1
+
+    def test_update_org_mapping_on_deletion(self):
+        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert org_mapping.status == OrganizationStatus.ACTIVE
+        with self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=self.organization.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        org_mapping.refresh_from_db()
+        assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
+    def test_organization_does_not_exist(self):
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
+
+        self.get_error_response("nonexistent-slug", status_code=404)
 
 
 @region_silo_test

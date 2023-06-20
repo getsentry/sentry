@@ -1,6 +1,8 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
+import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
 type Props = {
@@ -17,6 +19,8 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('First time the issue occurred.');
     case IssueSortOptions.PRIORITY:
       return t('Recent issues trending upward.');
+    case IssueSortOptions.BETTER_PRIORITY:
+      return t('Recent issues trending upward.');
     case IssueSortOptions.FREQ:
       return t('Number of events.');
     case IssueSortOptions.USER:
@@ -28,12 +32,15 @@ function getSortTooltip(key: IssueSortOptions) {
 }
 
 function IssueListSortOptions({onSelect, sort, query}: Props) {
+  const organization = useOrganization();
+  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.PRIORITY,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

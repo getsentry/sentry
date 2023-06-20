@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import random
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Any, Dict, Optional, Sequence, Tuple
@@ -271,7 +270,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)

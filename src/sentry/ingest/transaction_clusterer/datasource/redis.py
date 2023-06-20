@@ -20,7 +20,7 @@ from sentry.utils.safe import safe_execute
 
 #: Maximum number of transaction names per project that we want
 #: to store in redis.
-MAX_SET_SIZE = 2000
+MAX_SET_SIZE = 4000
 
 #: Retention of a set.
 #: Remove the set if it has not received any updates for 24 hours.
@@ -38,6 +38,12 @@ def _get_redis_key(namespace: ClustererNamespace, project: Project) -> str:
     return f"{prefix}:o:{project.organization_id}:p:{project.id}"
 
 
+def _get_projects_key(namespace: ClustererNamespace) -> str:
+    """The key for the meta-set of projects"""
+    prefix = namespace.value.data
+    return f"{prefix}:projects"
+
+
 def get_redis_client() -> Any:
     # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
@@ -46,14 +52,13 @@ def get_redis_client() -> Any:
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
-    prefix = namespace.value.data
-    return client.scan_iter(match=f"{prefix}:*")  # type: ignore
+    return client.sscan_iter(_get_projects_key(namespace))
 
 
 def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
     """Scan redis for projects and fetch their db models"""
     for key in _get_all_keys(namespace):
-        project_id = int(key.split(":")[-1])
+        project_id = int(key)
         # NOTE: Would be nice to do a `select_related` on project.organization
         # because we need it for the feature flag, but I don't know how to do
         # it with `get_from_cache`.
@@ -66,11 +71,15 @@ def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
             logger.debug("Could not find project %s in db", project_id)
 
 
-def _store_transaction_name(project: Project, transaction_name: str) -> None:
-    with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
+def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
+    with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
-        redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
-        add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
+        redis_key = _get_redis_key(namespace, project)
+        created = add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
+        if created:
+            projects_key = _get_projects_key(namespace)
+            client.sadd(projects_key, project.id)
+            client.expire(projects_key, SET_TTL)
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:
@@ -78,21 +87,30 @@ def get_transaction_names(project: Project) -> Iterator[str]:
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
-    return client.sscan_iter(redis_key)  # type: ignore
+    return client.sscan_iter(redis_key)
 
 
-def clear_transaction_names(project: Project) -> None:
+def clear_samples(namespace: ClustererNamespace, project: Project) -> None:
     client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
-    client.delete(redis_key)
+    projects_key = _get_projects_key(namespace)
+    client.srem(projects_key, project.id)
+
+    redis_key = _get_redis_key(namespace, project)
+    client.unlink(redis_key)
 
 
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
     transaction_name = event_data.get("transaction")
 
     if transaction_name and _should_store_transaction_name(event_data):
-        safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
+        safe_execute(
+            _record_sample,
+            ClustererNamespace.TRANSACTIONS,
+            project,
+            transaction_name,
+            _with_transaction=False,
+        )
         sample_rate = options.get("txnames.bump-lifetime-sample-rate")
         if sample_rate and random.random() <= sample_rate:
             safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
@@ -146,13 +164,7 @@ def get_span_descriptions(project: Project) -> Iterator[str]:
     """Return all span descriptions stored for the given project."""
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    return client.sscan_iter(redis_key)  # type: ignore
-
-
-def clear_span_descriptions(project: Project) -> None:
-    client = get_redis_client()
-    redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-    client.delete(redis_key)
+    return client.sscan_iter(redis_key)
 
 
 def record_span_descriptions(
@@ -168,7 +180,13 @@ def record_span_descriptions(
             continue
         url_path = _get_url_path_from_description(description)
         if url_path:
-            safe_execute(_store_span_description, project, url_path)
+            safe_execute(_record_sample, ClustererNamespace.SPANS, project, url_path)
+
+        update_rule_rate = options.get("span_descs.bump-lifetime-sample-rate")
+        if update_rule_rate and random.random() < update_rule_rate:
+            safe_execute(
+                _update_span_description_rule_lifetime, project, event_data, _with_transaction=False
+            )
 
 
 def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
@@ -191,8 +209,18 @@ def _get_url_path_from_description(description: str) -> Optional[str]:
     return urlparse(url).path
 
 
-def _store_span_description(project: Project, span_description: str) -> None:
-    with sentry_sdk.start_span(op="clusterer.store_span_description"):
-        client = get_redis_client()
-        redis_key = _get_redis_key(ClustererNamespace.SPANS, project)
-        add_to_set(client, [redis_key], [span_description, MAX_SET_SIZE, SET_TTL])
+def _update_span_description_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
+    from sentry.ingest.transaction_clusterer import rules as clusterer_rules
+
+    spans = event_data.get("_meta", {}).get("spans", {})
+    for span in spans.values():
+        data = span.get("data", {})
+        applied_rule = data.get("description.scrubbed", {}).get("", {}).get("rem", [[]])[0]
+        if not applied_rule:
+            continue
+        if len(applied_rule) == 2:
+            uncleaned_pattern = applied_rule[0]
+            # uncleaned_pattern has the following format: `description.scrubbed:<rule>`
+            tokens = uncleaned_pattern.split("description.scrubbed:")
+            pattern = tokens[1]
+            clusterer_rules.bump_last_used(ClustererNamespace.SPANS, project, pattern)

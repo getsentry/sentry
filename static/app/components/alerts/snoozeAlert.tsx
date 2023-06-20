@@ -23,7 +23,8 @@ type Props = {
   }) => void;
   projectSlug: string;
   ruleActionCategory: RuleActionsCategories;
-  ruleId: string;
+  type: 'issue' | 'metric';
+  ruleId?: string;
 };
 
 function SnoozeAlert({
@@ -33,6 +34,7 @@ function SnoozeAlert({
   ruleId,
   ruleActionCategory,
   hasAccess,
+  type,
 }: Props) {
   const organization = useOrganization();
   const api = useApi();
@@ -40,12 +42,14 @@ function SnoozeAlert({
 
   const [disabled, setDisabled] = useState(false);
 
+  const alertPath = type === 'issue' ? 'rules' : 'alert-rules';
+
   const handleMute = useCallback(
     async (target: 'me' | 'everyone', autoMute = false) => {
       setDisabled(true);
       try {
         await api.requestPromise(
-          `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
+          `/projects/${organization.slug}/${projectSlug}/${alertPath}/${ruleId}/snooze/`,
           {
             method: 'POST',
             data: {
@@ -87,6 +91,7 @@ function SnoozeAlert({
       organization.slug,
       projectSlug,
       ruleId,
+      alertPath,
     ]
   );
 
@@ -95,7 +100,7 @@ function SnoozeAlert({
 
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
+        `/projects/${organization.slug}/${projectSlug}/${alertPath}/${ruleId}/snooze/`,
         {
           method: 'DELETE',
         }
@@ -114,7 +119,7 @@ function SnoozeAlert({
   }
 
   const primaryMuteAction =
-    ruleActionCategory === RuleActionsCategories.AllDefault ? 'me' : 'everyone';
+    ruleActionCategory === RuleActionsCategories.ALL_DEFAULT ? 'me' : 'everyone';
 
   useEffect(() => {
     if (location.query.mute === '1' && !isSnoozed) {
@@ -128,14 +133,14 @@ function SnoozeAlert({
       label: t('Mute for me'),
       onAction: () => handleMute('me'),
       // Hidden if all default actions because it will be the primary button and no default actions since it shouldn't be an option
-      hidden: ruleActionCategory !== RuleActionsCategories.SomeDefault,
+      hidden: ruleActionCategory !== RuleActionsCategories.SOME_DEFAULT,
     },
     {
       key: 'everyone',
       label: t('Mute for everyone'),
       onAction: () => handleMute('everyone'),
       // Hidden if some default or no default actions since it will be the primary button, not in dropdown
-      hidden: ruleActionCategory !== RuleActionsCategories.AllDefault,
+      hidden: ruleActionCategory !== RuleActionsCategories.ALL_DEFAULT,
     },
   ];
 
@@ -166,12 +171,13 @@ function SnoozeAlert({
       >
         {primaryMuteAction === 'me' ? t('Mute for me') : t('Mute for everyone')}
       </MuteButton>
-      {ruleActionCategory !== RuleActionsCategories.NoDefault && (
+      {ruleActionCategory !== RuleActionsCategories.NO_DEFAULT && (
         <DropdownMenu
           size="sm"
           trigger={triggerProps => (
             <DropdownTrigger
               {...triggerProps}
+              size="sm"
               aria-label={t('Mute alert options')}
               icon={<IconChevron direction="down" size="xs" />}
             />

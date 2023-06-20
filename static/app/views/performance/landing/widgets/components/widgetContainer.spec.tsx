@@ -1,9 +1,10 @@
 import {
   initializeData as _initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
@@ -13,9 +14,9 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
+const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
     ...rest,
@@ -29,25 +30,30 @@ const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
 function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
-      <MEPSettingProvider>
-        <PerformanceDisplayProvider
-          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
-        >
-          <WidgetContainer
-            allowedCharts={[
-              PerformanceWidgetSetting.TPM_AREA,
-              PerformanceWidgetSetting.FAILURE_RATE_AREA,
-              PerformanceWidgetSetting.USER_MISERY_AREA,
-              PerformanceWidgetSetting.DURATION_HISTOGRAM,
-            ]}
-            rowChartSettings={[]}
-            withStaticFilters={withStaticFilters}
-            forceDefaultChartSetting
-            {...data}
-            {...rest}
-          />
-        </PerformanceDisplayProvider>
-      </MEPSettingProvider>
+      <MetricsCardinalityProvider
+        location={data.router.location}
+        organization={data.organization}
+      >
+        <MEPSettingProvider forceTransactions>
+          <PerformanceDisplayProvider
+            value={{performanceType: ProjectPerformanceType.ANY}}
+          >
+            <WidgetContainer
+              allowedCharts={[
+                PerformanceWidgetSetting.TPM_AREA,
+                PerformanceWidgetSetting.FAILURE_RATE_AREA,
+                PerformanceWidgetSetting.USER_MISERY_AREA,
+                PerformanceWidgetSetting.DURATION_HISTOGRAM,
+              ]}
+              rowChartSettings={[]}
+              withStaticFilters={withStaticFilters}
+              forceDefaultChartSetting
+              {...data}
+              {...rest}
+            />
+          </PerformanceDisplayProvider>
+        </MEPSettingProvider>
+      </MetricsCardinalityProvider>
     </OrganizationContext.Provider>
   );
 }
@@ -100,6 +106,18 @@ describe('Performance > Widgets > WidgetContainer', function () {
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trends-stats/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility-sums/`,
       body: [],
     });
   });
@@ -168,10 +186,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     const data = initializeData();
 
     wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
@@ -180,10 +200,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     data.eventView = data.eventView.clone();
 
     wrapper.rerender(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
@@ -194,10 +216,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     wrapper.rerender(
-      <WrappedComponent
-        data={modifiedData}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={modifiedData}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
@@ -787,10 +811,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     const data = initializeData();
 
     wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+        />
+      </MEPSettingProvider>
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(

@@ -1,75 +1,80 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {Location} from 'history';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
-  GridColumnHeader as Column,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
-import {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {DURATION_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {useApplicationMetrics} from 'sentry/views/starfish/queries/useApplicationMetrics';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
-import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {
+  SpanTransactionMetrics,
+  useSpanTransactionMetrics,
+} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-type Metric = {
-  p50: number;
-  spm: number;
-};
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Row = {
-  count: number;
-  metricSeries: Record<string, Series>;
-  metrics: Metric;
+  metrics: SpanTransactionMetrics;
   transaction: string;
 };
 
 type Props = {
-  span: Span;
+  span: Pick<IndexedSpan, 'group'>;
+  endpoint?: string;
+  method?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
+export type Keys =
+  | 'transaction'
+  | 'p95(transaction.duration)'
+  | 'time_spent_percentage(local)'
+  | 'sps()';
+export type TableColumnHeader = GridColumnHeader<Keys>;
+
+export function SpanTransactionsTable({
+  span,
+  openSidebar,
+  onClickTransaction,
+  endpoint,
+  method,
+}: Props) {
   const location = useLocation();
-  const {data: applicationMetrics} = useApplicationMetrics();
 
-  const {data: spanTransactions, isLoading} = useSpanTransactions(span);
-  const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
-  const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
+  const {
+    data: spanTransactionMetrics,
+    isLoading,
+    pageLinks,
+  } = useSpanTransactionMetrics(span, endpoint ? [endpoint] : undefined);
 
-  const spanTransactionsWithMetrics = spanTransactions.map(row => {
+  const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
-      ...row,
-      app_impact: formatPercentage(
-        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics['sum(span.duration)']
-      ),
-      metrics: spanTransactionMetrics[row.transaction],
-      metricSeries: spanTransactionMetricsSeries[row.transaction],
+      transaction: row.transaction,
+      metrics: row,
     };
   });
 
-  const renderHeadCell = column => {
+  const renderHeadCell = (column: TableColumnHeader) => {
     return <span>{column.name}</span>;
   };
 
-  const renderBodyCell = (column, row: Row) => {
+  const renderBodyCell = (column: TableColumnHeader, row: Row) => {
     return (
       <BodyCell
         span={span}
@@ -77,62 +82,118 @@ export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: P
         row={row}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransaction}
+        endpoint={endpoint}
+        method={method}
+        location={location}
       />
     );
   };
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={spanTransactionsWithMetrics}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      location={location}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={spanTransactionsWithMetrics}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+        location={location}
+      />
+      <Footer>
+        {endpoint && (
+          <Button
+            to={{
+              pathname: location.pathname,
+              query: omit(location.query, 'endpoint'),
+            }}
+          >
+            {t('View More Endpoints')}
+          </Button>
+        )}
+        <StyledPagination pageLinks={pageLinks} />
+      </Footer>
+    </Fragment>
   );
 }
 
 type CellProps = {
-  column: Column;
+  column: TableColumnHeader;
+  location: Location;
   row: Row;
-  span: Span;
+  span: Pick<IndexedSpan, 'group'>;
+  endpoint?: string;
+  method?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-function BodyCell({span, column, row, openSidebar, onClickTransactionName}: CellProps) {
+function BodyCell({
+  span,
+  column,
+  row,
+  openSidebar,
+  onClickTransactionName,
+  endpoint,
+  method,
+  location,
+}: CellProps) {
   if (column.key === 'transaction') {
     return (
       <TransactionCell
+        endpoint={endpoint}
+        method={method}
         span={span}
         row={row}
         column={column}
         openSidebar={openSidebar}
         onClickTransactionName={onClickTransactionName}
+        location={location}
       />
     );
   }
 
-  if (column.key === 'p50(transaction.duration)') {
-    return <P50Cell span={span} row={row} column={column} />;
+  if (column.key === 'p95(transaction.duration)') {
+    return (
+      <DurationCell
+        milliseconds={row.metrics?.[`p95(${SPAN_SELF_TIME})`]}
+        delta={row.metrics?.[`percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`]}
+      />
+    );
   }
 
-  if (column.key === 'epm()') {
-    return <EPMCell span={span} row={row} column={column} />;
+  if (column.key === 'sps()') {
+    return (
+      <ThroughputCell
+        throughputPerSecond={row.metrics?.['sps()']}
+        delta={row.metrics?.['sps_percent_change()']}
+      />
+    );
+  }
+
+  if (column.key === 'time_spent_percentage(local)') {
+    return (
+      <TimeSpentCell
+        timeSpentPercentage={row.metrics?.['time_spent_percentage(local)']}
+        totalSpanTime={row.metrics?.[`sum(${SPAN_SELF_TIME})`]}
+      />
+    );
   }
 
   return <span>{row[column.key]}</span>;
 }
 
-function TransactionCell({span, column, row}: CellProps) {
+function TransactionCell({span, column, row, endpoint, method, location}: CellProps) {
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
+        to={`/starfish/${extractRoute(location)}/span/${encodeURIComponent(
+          span.group
+        )}?${qs.stringify({
+          endpoint,
+          method,
           transaction: row.transaction,
         })}`}
       >
@@ -142,65 +203,35 @@ function TransactionCell({span, column, row}: CellProps) {
   );
 }
 
-function P50Cell({row}: CellProps) {
-  const theme = useTheme();
-  const p50 = row.metrics?.p50;
-  const p50Series = row.metricSeries?.p50;
-
-  return (
-    <Fragment>
-      {p50Series ? (
-        <Sparkline
-          color={DURATION_COLOR}
-          series={p50Series}
-          markLine={
-            p50 ? generateHorizontalLine(`${p50.toFixed(2)}`, p50, theme) : undefined
-          }
-        />
-      ) : null}
-    </Fragment>
-  );
-}
-
-function EPMCell({row}: CellProps) {
-  const theme = useTheme();
-  const epm = row.metrics?.spm;
-  const epmSeries = row.metricSeries?.spm;
-
-  return (
-    <Fragment>
-      {epmSeries ? (
-        <Sparkline
-          color={THROUGHPUT_COLOR}
-          series={epmSeries}
-          markLine={
-            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
-          }
-        />
-      ) : null}
-    </Fragment>
-  );
-}
-
-const COLUMN_ORDER = [
+const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction',
-    name: 'In Endpoint',
-    width: 500,
-  },
-  {
-    key: 'epm()',
-    name: 'Throughput (TPM)',
+    name: 'Found In Endpoints',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(transaction.duration)',
-    name: 'Duration (P50)',
-    width: COL_WIDTH_UNDEFINED,
+    key: 'sps()',
+    name: DataTitles.throughput,
+    width: 175,
   },
   {
-    key: 'app_impact',
-    name: 'App Impact',
+    key: 'p95(transaction.duration)',
+    name: DataTitles.p95,
+    width: 175,
+  },
+  {
+    key: 'time_spent_percentage(local)',
+    name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
+
+const Footer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: auto;
+`;

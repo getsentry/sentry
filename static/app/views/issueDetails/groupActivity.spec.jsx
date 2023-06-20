@@ -362,7 +362,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders archived until escalating if org has `escalating-issues-ui` feature', function () {
+  it('renders archived until escalating if org has `escalating-issues` feature', function () {
     createWrapper({
       activity: [
         {
@@ -375,14 +375,14 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: {features: ['escalating-issues-ui']},
+      organization: {features: ['escalating-issues']},
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
     );
   });
 
-  it('renders escalating with forecast and plural events if org has `escalating-issues-ui` feature', function () {
+  it('renders escalating with forecast and plural events if org has `escalating-issues` feature', function () {
     createWrapper({
       activity: [
         {
@@ -394,15 +394,27 @@ describe('GroupActivity', function () {
           user: null,
           dateCreated,
         },
+        {
+          id: '124',
+          type: GroupActivityType.SET_ESCALATING,
+          data: {
+            forecast: 400,
+          },
+          user: null,
+          dateCreated: '2021-10-05T15:31:38.950115Z',
+        },
       ],
-      organization: {features: ['escalating-issues-ui']},
+      organization: {features: ['escalating-issues']},
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because over 400 events happened in an hour'
+    );
+    expect(screen.getAllByTestId('activity-item').at(-2)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 200 events happened in an hour'
     );
   });
 
-  it('renders escalating with forecast and singular event if org has `escalating-issues-ui` feature', function () {
+  it('renders escalating with forecast and singular event if org has `escalating-issues` feature', function () {
     createWrapper({
       activity: [
         {
@@ -415,7 +427,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: {features: ['escalating-issues-ui']},
+      organization: {features: ['escalating-issues']},
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'

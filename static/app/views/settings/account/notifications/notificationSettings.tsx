@@ -60,6 +60,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     // only tied to a user
     trackAnalytics('notification_settings.index_page_viewed', {
       organization: null,

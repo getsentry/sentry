@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, MutableMapping, Sequence
 
 import rest_framework
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.signals import post_save
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -53,6 +55,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import issue_resolved
+from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
@@ -493,6 +496,13 @@ def update_groups(
                 group.status = GroupStatus.RESOLVED
                 group.substatus = None
                 group.resolved_at = now
+                if affected:
+                    post_save.send(
+                        sender=Group,
+                        instance=group,
+                        created=False,
+                        update_fields=["resolved_at", "status", "substatus"],
+                    )
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
                 )
@@ -540,8 +550,13 @@ def update_groups(
         )
         if new_substatus is None and new_status == GroupStatus.UNRESOLVED:
             new_substatus = GroupSubStatus.ONGOING
+            if len(group_list) == 1 and group_list[0].status == GroupStatus.IGNORED:
+                is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
+                    days=TRANSITION_AFTER_DAYS
+                )
+                new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
 
-        has_escalating_issues = features.has(
+        has_escalating_issues = len(group_list) > 0 and features.has(
             "organizations:escalating-issues", group_list[0].organization
         )
 
