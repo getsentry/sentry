@@ -4,7 +4,6 @@ from typing import Optional
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -304,7 +303,6 @@ class AuthLoginView(BaseView):
         return self.redirect_to_org(request)
 
     @never_cache
-    @transaction.atomic
     def handle(self, request: Request, *args, **kwargs) -> Response:
         return super().handle(request, *args, **kwargs)
 

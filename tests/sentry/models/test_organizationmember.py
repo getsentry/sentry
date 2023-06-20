@@ -287,7 +287,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         member.approve_invite()
         member.save()
-        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved

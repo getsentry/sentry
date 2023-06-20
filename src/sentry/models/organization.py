@@ -30,12 +30,11 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -263,7 +262,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
                 lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            with transaction.atomic():
+            with outbox_context(transaction.atomic()):
                 self.save_with_update_outbox(*args, **kwargs)
 
     @classmethod
@@ -279,7 +278,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(), flush=False):
             Organization.outbox_for_update(self.id).save()
             return super().delete(**kwargs)
 
@@ -356,12 +355,9 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             role__in=roles,
         )
         if not include_null_users:
-            user_ids_with_role = members_with_role.filter(user_id__isnull=False).values_list(
-                "user_id", flat=True
-            )
-            user_ids = user_service.get_many_ids(
-                filter=dict(is_active=True, user_ids=list(user_ids_with_role))
-            )
+            user_ids = members_with_role.filter(
+                user_id__isnull=False, user_is_active=True
+            ).values_list("user_id", flat=True)
             members_with_role = members_with_role.filter(user_id__in=user_ids)
 
         members_with_role = set(members_with_role.values_list("id", flat=True))

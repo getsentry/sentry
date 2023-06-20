@@ -19,24 +19,24 @@ class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
 
     @never_cache
     @signed_auth_required_m
-    @transaction.atomic
     def handle(self, request: Request, **kwargs) -> Response:
-        if not getattr(request, "user_from_signed_request", False):
-            raise Http404
+        with transaction.atomic():
+            if not getattr(request, "user_from_signed_request", False):
+                raise Http404
 
-        instance = self.fetch_instance(**kwargs)
+            instance = self.fetch_instance(**kwargs)
 
-        if not OrganizationMember.objects.filter(
-            user_id=request.user.id, organization=instance.organization
-        ).exists():
-            raise Http404
+            if not OrganizationMember.objects.filter(
+                user_id=request.user.id, organization=instance.organization
+            ).exists():
+                raise Http404
 
-        instance_link = self.build_link(instance)
+            instance_link = self.build_link(instance)
 
-        if request.method == "POST":
-            if request.POST.get("op") == "unsubscribe":
-                self.unsubscribe(instance, request.user)
-            return HttpResponseRedirect(instance_link)
+            if request.method == "POST":
+                if request.POST.get("op") == "unsubscribe":
+                    self.unsubscribe(instance, request.user)
+                return HttpResponseRedirect(instance_link)
 
         return self.respond(
             "sentry/unsubscribe-notifications.html",

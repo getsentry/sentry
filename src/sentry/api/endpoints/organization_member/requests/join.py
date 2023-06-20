@@ -10,7 +10,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember, outbox_context
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
@@ -25,27 +25,26 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    om = OrganizationMember.objects.filter(
-        Q(email__iexact=email)
-        | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
-        organization=organization,
-    ).first()
-    if om:
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
-        return
+    with outbox_context(flush=False):
+        om = OrganizationMember.objects.filter(
+            Q(email__iexact=email)
+            | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
+            organization=organization,
+        ).first()
+        if om:
+            return
 
-    try:
-        om = OrganizationMember.objects.create(
-            organization_id=organization.id,
-            role=organization.default_role,
-            email=email,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
-    except IntegrityError:
-        pass
+        try:
+            om = OrganizationMember.objects.create(
+                organization_id=organization.id,
+                role=organization.default_role,
+                email=email,
+                invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            )
+        except IntegrityError:
+            pass
 
-    om.outbox_for_update().drain_shard(max_updates_to_drain=10)
-    return om
+        return om
 
 
 @region_silo_endpoint

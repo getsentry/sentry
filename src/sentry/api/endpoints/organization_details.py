@@ -36,6 +36,7 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
     UserEmail,
 )
@@ -517,17 +518,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
+            changed_data = {}
             try:
                 with transaction.atomic():
                     organization, changed_data = serializer.save()
-
-            # TODO(hybrid-cloud): This will need to be a more generic error
-            # when the internal RPC is implemented.
             except IntegrityError:
                 return self.respond(
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
                 )
+            except OutboxFlushError:
+                pass
 
             if was_pending_deletion:
                 self.create_audit_entry(

@@ -152,6 +152,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration = Integration.objects.get(**integration_kwargs)
         except Integration.DoesNotExist:
             return None
+        except Integration.MultipleObjectsReturned:
+            return None
         return serialize_integration(integration)
 
     def get_organization_integrations(

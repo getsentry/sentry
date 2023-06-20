@@ -7,6 +7,7 @@ from django.db import transaction
 from django.utils.encoding import force_text
 from django.utils.http import urlencode
 
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
@@ -21,7 +22,7 @@ def safe_execute(func, *args, **kwargs):
     try:
         if _with_transaction:
             with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
-                with transaction.atomic():
+                with transaction.atomic(), django_test_transaction_water_mark():
                     result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)

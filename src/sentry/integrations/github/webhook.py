@@ -313,6 +313,7 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
 
+            author.preload_users()
             try:
                 with transaction.atomic():
                     c = Commit.objects.create(
@@ -418,6 +419,7 @@ class PullRequestEventWebhook(Webhook):
                 },
             )
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,

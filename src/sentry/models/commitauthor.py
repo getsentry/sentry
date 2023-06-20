@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, List
 
 from django.db import models
@@ -37,10 +39,19 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    def find_users(self) -> List["RpcUser"]:
+    users: List[RpcUser] | None = None
+
+    def preload_users(self) -> List[RpcUser]:
+        self.users = None
+        self.users = self.find_users()
+        return self.users
+
+    def find_users(self) -> List[RpcUser]:
         from sentry.models import OrganizationMember
         from sentry.services.hybrid_cloud.user.service import user_service
 
+        if self.users is not None:
+            return self.users
         users = user_service.get_many_by_email(emails=[self.email])
         org_member_user_ids = set(
             OrganizationMember.objects.filter(

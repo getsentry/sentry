@@ -100,9 +100,9 @@ class SentryAppUpdater:
             self._update_overview()
             self._update_allowed_origins()
             new_schema_elements = self._update_schema()
-            self._update_service_hooks()
             self._update_popularity(user=user)
             self.sentry_app.save()
+        self._update_service_hooks()
         self.record_analytics(user, new_schema_elements)
         return self.sentry_app
 

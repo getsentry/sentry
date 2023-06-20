@@ -125,6 +125,7 @@ class MergeEventWebhook(Webhook):
             organization_id=organization.id, email=author_email, defaults={"name": author_name}
         )[0]
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,
@@ -183,6 +184,7 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
             try:
+                author.preload_users()
                 with transaction.atomic():
                     Commit.objects.create(
                         repository_id=repo.id,

@@ -20,6 +20,7 @@ from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import Rule, RuleStatus
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
@@ -95,6 +96,9 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                 "access": request.access,
                 "user": request.user,
                 "ip_address": request.META.get("REMOTE_ADDR"),
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=project.organization_id
+                ),
             },
             data=data,
         )

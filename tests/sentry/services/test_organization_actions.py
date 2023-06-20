@@ -6,6 +6,7 @@ from sentry.models import (
     OutboxCategory,
     OutboxScope,
     RegionOutbox,
+    outbox_context,
 )
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_with_outbox_message,
@@ -43,9 +44,14 @@ class OrganizationUpdateTest(TestCase):
         with outbox_runner():
             pass
 
-        org: Organization = create_organization_with_outbox_message(
-            create_options={"slug": "santry", "name": "santry", "status": OrganizationStatus.ACTIVE}
-        )
+        with outbox_context(flush=False):
+            org: Organization = create_organization_with_outbox_message(
+                create_options={
+                    "slug": "santry",
+                    "name": "santry",
+                    "status": OrganizationStatus.ACTIVE,
+                }
+            )
 
         assert org.id
         assert org.slug == "santry"
@@ -88,13 +94,15 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         # a new entry.
         previous_org_count = Organization.objects.count()
         org_before_modification = Organization.objects.get(id=self.org.id)
-        updated_org: Organization = upsert_organization_by_org_id_with_outbox_message(
-            org_id=self.org.id,
-            upsert_data={
-                "slug": "foobar",
-                "status": OrganizationStatus.DELETION_IN_PROGRESS,
-            },
-        )
+
+        with outbox_context(flush=False):
+            updated_org: Organization = upsert_organization_by_org_id_with_outbox_message(
+                org_id=self.org.id,
+                upsert_data={
+                    "slug": "foobar",
+                    "status": OrganizationStatus.DELETION_IN_PROGRESS,
+                },
+            )
 
         assert Organization.objects.count() == previous_org_count
         self.org.refresh_from_db()
@@ -115,10 +123,15 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         org_before_modification = Organization.objects.get(id=self.org.id)
         desired_org_id = 1234
 
-        created_org: Organization = upsert_organization_by_org_id_with_outbox_message(
-            org_id=desired_org_id,
-            upsert_data={"slug": "random", "name": "rando", "status": OrganizationStatus.ACTIVE},
-        )
+        with outbox_context(flush=False):
+            created_org: Organization = upsert_organization_by_org_id_with_outbox_message(
+                org_id=desired_org_id,
+                upsert_data={
+                    "slug": "random",
+                    "name": "rando",
+                    "status": OrganizationStatus.ACTIVE,
+                },
+            )
         assert Organization.objects.count() == previous_org_count + 1
         db_created_org = Organization.objects.get(id=desired_org_id)
         assert db_created_org.slug == created_org.slug == "random"
@@ -139,9 +152,6 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         self.org: Organization = self.create_organization(
             slug="sluggy", name="barfoo", status=OrganizationStatus.ACTIVE
         )
-
-        with outbox_runner():
-            pass
 
     def test_mark_for_deletion_and_outbox_generation(self):
         org_before_update = Organization.objects.get(id=self.org.id)

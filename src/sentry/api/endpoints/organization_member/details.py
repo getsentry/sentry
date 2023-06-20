@@ -184,7 +184,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                         with transaction.atomic():
                             member.regenerate_token()
                             member.save()
-                        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:

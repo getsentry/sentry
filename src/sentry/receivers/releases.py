@@ -94,6 +94,24 @@ def resolved_in_commit(instance, created, **kwargs):
     except Repository.DoesNotExist:
         repo = None
 
+    if instance.author:
+        user_list = list(instance.author.find_users())
+    else:
+        user_list = ()
+
+    acting_user: Optional[RpcUser] = None
+
+    self_assign_issue: str = "0"
+    if user_list:
+        acting_user = user_list[0]
+        self_assign_issue = get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+            ),
+            key="self_assign_issue",
+            default="0",
+        )
+
     for group in groups:
         try:
             # XXX(dcramer): This code is somewhat duplicated from the
@@ -107,23 +125,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     linked_id=instance.id,
                 )
 
-                if instance.author:
-                    user_list = list(instance.author.find_users())
-                else:
-                    user_list = ()
-
-                acting_user: Optional[RpcUser] = None
-
-                if user_list:
-                    acting_user = user_list[0]
-                    self_assign_issue: str = get_option_from_list(
-                        user_option_service.get_many(
-                            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-                        ),
-                        key="self_assign_issue",
-                        default="0",
-                    )
-
+                if acting_user:
                     if self_assign_issue == "1" and not group.assignee_set.exists():
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user
@@ -206,6 +208,10 @@ def resolved_in_pull_request(instance, created, **kwargs):
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
         repo = None
+    if instance.author:
+        user_list = list(instance.author.find_users())
+    else:
+        user_list = ()
 
     for group in groups:
         try:
@@ -217,11 +223,6 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
-
-                if instance.author:
-                    user_list = list(instance.author.find_users())
-                else:
-                    user_list = ()
                 acting_user: Optional[RpcUser] = None
                 if user_list:
                     acting_user = user_list[0]

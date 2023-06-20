@@ -269,9 +269,6 @@ class Factories:
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
-
-        region_outbox = Organization.outbox_for_update(org_id=org.id)
-        region_outbox.drain_shard()
         return org
 
     @staticmethod
@@ -307,7 +304,6 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if team_roles:
             for team, role in team_roles:

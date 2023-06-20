@@ -28,10 +28,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
@@ -247,7 +246,7 @@ class OrganizationMember(Model):
     __org_roles_from_teams = None
 
     def delete(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
@@ -256,7 +255,7 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
@@ -593,8 +592,6 @@ class OrganizationMember(Model):
                 sender=self.approve_member_invitation,
                 referrer=referrer,
             )
-
-        self.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         create_audit_entry_from_user(
             user_to_approve,

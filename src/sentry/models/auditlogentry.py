@@ -92,8 +92,8 @@ class AuditLogEntry(Model):
         Serializes a potential audit log database entry as a hybrid cloud event that should be deserialized and
         loaded via `from_event` as faithfully as possible.
         """
-        self._apply_actor_label()
-        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        if self.actor_label is not None:
+            self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         return AuditLogEvent(
             actor_label=self.actor_label,
             organization_id=int(
@@ -115,6 +115,18 @@ class AuditLogEntry(Model):
         could have been created from previous code versions -- the events are stored on an async queue for indefinite
         delivery and from possibly older code versions.
         """
+        from sentry.models.user import User
+
+        if event.actor_label:
+            label = event.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        else:
+            if event.actor_user_id:
+                try:
+                    label = User.objects.get(id=event.actor_user_id).username
+                except User.DoesNotExist:
+                    label = None
+            else:
+                label = None
         return AuditLogEntry(
             organization_id=event.organization_id,
             datetime=event.date_added,
@@ -123,7 +135,7 @@ class AuditLogEntry(Model):
             ip_address=event.ip_address,
             event=event.event_id,
             data=event.data,
-            actor_label=event.actor_label[:MAX_ACTOR_LABEL_LENGTH],
+            actor_label=label,
             target_user_id=event.target_user_id,
         )
 
