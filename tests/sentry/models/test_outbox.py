@@ -18,13 +18,13 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OutboxCategory,
+    OutboxFlushError,
     OutboxScope,
     RegionOutbox,
     User,
     WebhookProviderIdentifier,
     outbox_context,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils import TestCase, TransactionTestCase
@@ -200,7 +200,7 @@ class ControlOutboxTest(TestCase):
 
             assert ControlOutbox.objects.filter(id=outbox.id).exists()
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                with raises(ApiError):
+                with raises(OutboxFlushError):
                     outbox.drain_shard()
                 assert mock_response.call_count == 1
                 assert ControlOutbox.objects.filter(id=outbox.id).exists()
@@ -401,7 +401,7 @@ class RegionOutboxTest(TestCase):
                 mock_process_region_outbox.side_effect = raise_exception
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
-                    with raises(ValueError):
+                    with raises(OutboxFlushError):
                         enqueue_outbox_jobs()
                     assert mock_process_region_outbox.call_count == 1
 
