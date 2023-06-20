@@ -18,14 +18,15 @@ export enum SpanMetricsFields {
 
 export enum SpanIndexedFields {
   SPAN_SELF_TIME = 'span.self_time',
-  MODULE = 'module',
-  DESCRIPTION = 'description',
+  MODULE = 'span.module',
+  ID = 'span_id',
+  DESCRIPTION = 'span.description',
   TIMESTAMP = 'timestamp',
-  ACTION = 'action',
-  TRANSACTION_ID = 'transaction_id',
-  DOMAIN = 'domain',
-  PROJECT = 'project',
+  ACTION = 'span.action',
+  TRANSACTION_ID = 'transaction.id',
+  DOMAIN = 'span.domain',
   GROUP = 'span.group',
+  PROJECT = 'project',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -35,6 +36,7 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedFields.TRANSACTION_ID]: string;
   [SpanIndexedFields.DOMAIN]: string;
   [SpanIndexedFields.PROJECT]: string;
+  [SpanIndexedFields.ID]: string;
 };
 
 export const StarfishDatasetFields = {

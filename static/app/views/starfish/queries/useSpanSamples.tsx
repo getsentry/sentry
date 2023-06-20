@@ -1,70 +1,14 @@
+import moment from 'moment';
 import * as qs from 'query-string';
 
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
-
-const DEFAULT_LIMIT = 10;
-const DEFAULT_ORDER_BY = '-duration';
-
-export function useSpanSamples(
-  groupId?: string,
-  transaction?: string,
-  limit?: number,
-  orderBy?: string,
-  referrer: string = 'use-span-samples'
-) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const eventView = EventView.fromNewQueryWithLocation(
-    {
-      name: 'Span Samples',
-      query: `${groupId ? ` group:${groupId}` : ''} ${
-        transaction ? ` transaction:${transaction}` : ''
-      }`,
-      fields: [
-        'span_id',
-        'group',
-        'action',
-        'description',
-        'domain',
-        'module',
-        SpanIndexedFields.SPAN_SELF_TIME,
-        'op',
-        'transaction_id',
-        'timestamp',
-      ],
-      dataset: DiscoverDatasets.SPANS_INDEXED,
-      orderby: orderBy ?? DEFAULT_ORDER_BY,
-      projects: [1],
-      version: 2,
-    },
-    location
-  );
-
-  const response = useDiscoverQuery({
-    eventView,
-    orgSlug: organization.slug,
-    location,
-    referrer,
-    limit: limit ?? DEFAULT_LIMIT,
-  });
-
-  const data = (response.data?.data ?? []) as unknown as IndexedSpan[];
-  const pageLinks = response.pageLinks;
-
-  return {...response, data, pageLinks};
-}
+import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
 type Options = {
   groupId?: string;
@@ -77,27 +21,46 @@ type SpanSample = Pick<
   | SpanIndexedFields.TRANSACTION_ID
   | SpanIndexedFields.PROJECT
   | SpanIndexedFields.TIMESTAMP
+  | SpanIndexedFields.ID
 >;
 
-export const useSpanSamples2 = (options: Options) => {
+export const useSpanSamples = (options: Options) => {
   const url = '/api/0/organizations/sentry/spans-samples/';
   const api = useApi();
-  const {selection} = usePageFilters();
+  const pageFilter = usePageFilters();
   const {groupId, transactionName} = options;
-  const query = new MutableSearch([`span.group:${groupId}`]);
+  const location = useLocation();
+  // TODO - add http method when available
+  const query = new MutableSearch([
+    `span.group:${groupId}`,
+    `transaction:${transactionName}`,
+  ]);
+
+  const dateCondtions = getDateConditions(pageFilter.selection);
 
   return useQuery<SpanSample[]>({
-    queryKey: ['span-samples', groupId, transactionName],
+    queryKey: [
+      'span-samples',
+      groupId,
+      transactionName,
+      dateCondtions.statsPeriod,
+      dateCondtions.start,
+      dateCondtions.end,
+    ],
     queryFn: async () => {
-      const res = await api.requestPromise(
+      const {data} = await api.requestPromise(
         `${url}?${qs.stringify({
-          ...getDateConditions(selection),
-          group: groupId,
+          ...dateCondtions,
+          ...{utc: location.query.utc},
           query: query.formatString(),
         })}`
       );
-      return res?.data;
+      return data?.map((d: SpanSample) => ({
+        ...d,
+        timestamp: moment(d.timestamp).format(DATE_FORMAT),
+      }));
     },
+    refetchOnWindowFocus: false,
     enabled: Boolean(groupId && transactionName),
     initialData: [],
   });
