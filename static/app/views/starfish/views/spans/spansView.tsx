@@ -75,7 +75,6 @@ export default function SpansView(props: Props) {
           moduleName={props.moduleName || ModuleName.ALL}
           orderBy={orderBy}
           spanCategory={props.spanCategory}
-          onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
           limit={LIMIT}
         />
       </PaddedContainer>

@@ -3,6 +3,7 @@ import omit from 'lodash/omit';
 
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -29,20 +30,14 @@ export const useSpanList = (
   moduleName: ModuleName,
   transaction?: string,
   spanCategory?: string,
-  orderBy?: string,
+  sorts?: Sort[],
   limit?: number,
   referrer = 'use-span-list',
   cursor?: string
 ) => {
   const location = useLocation();
 
-  const eventView = getEventView(
-    moduleName,
-    location,
-    transaction,
-    spanCategory,
-    orderBy
-  );
+  const eventView = getEventView(moduleName, location, transaction, spanCategory, sorts);
 
   const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
@@ -60,13 +55,13 @@ function getEventView(
   location: Location,
   transaction?: string,
   spanCategory?: string,
-  orderBy?: string
+  sorts?: Sort[]
 ) {
   const query = buildEventViewQuery(moduleName, location, transaction, spanCategory)
     .filter(Boolean)
     .join(' ');
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query,
@@ -82,13 +77,18 @@ function getEventView(
         'time_spent_percentage()',
         `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
       ],
-      orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
       version: 2,
     },
     omit(location, 'span.category')
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }
 
 function buildEventViewQuery(

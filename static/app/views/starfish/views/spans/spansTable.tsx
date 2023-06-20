@@ -11,6 +11,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
@@ -25,7 +26,6 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   moduleName: ModuleName;
-  onSetOrderBy: (orderBy: string) => void;
   orderBy: string;
   columnOrder?: TableColumnHeader[];
   endpoint?: string;
@@ -62,7 +62,6 @@ export type TableColumnHeader = GridColumnHeader<Keys>;
 export default function SpansTable({
   moduleName,
   orderBy,
-  onSetOrderBy,
   columnOrder,
   spanCategory,
   endpoint,
@@ -70,12 +69,21 @@ export default function SpansTable({
   limit = 25,
 }: Props) {
   const location = useLocation();
+  const sorts: Sort[] = [
+    {
+      field: 'time_spent_percentage()',
+      kind: 'desc',
+    },
+  ];
+
+  const sort = sorts[0]; // We only allow one sort in the UI
+
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
   const {isLoading, data, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
     undefined,
     spanCategory,
-    orderBy,
+    [sort],
     limit,
     'use-span-list',
     spansCursor
@@ -98,7 +106,7 @@ export default function SpansTable({
           orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
         }
         grid={{
-          renderHeadCell: column => renderHeadCell(orderBy, onSetOrderBy, column),
+          renderHeadCell: column => renderHeadCell(location, sort, column),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, location, endpoint, method),
         }}
@@ -109,23 +117,20 @@ export default function SpansTable({
   );
 }
 
-function renderHeadCell(
-  orderBy: string,
-  onSetOrderBy: (orderBy: string) => void,
-  column: TableColumnHeader
-) {
+function renderHeadCell(location: Location, sort: Sort, column: TableColumnHeader) {
   return (
     <SortLink
       align="left"
-      canSort
-      direction={orderBy === column.key ? 'desc' : undefined}
-      onClick={() => {
-        onSetOrderBy(`${column.key}`);
-      }}
+      canSort={sort.field === column.key}
+      direction="desc"
       title={column.name}
       generateSortLink={() => {
         return {
           ...location,
+          query: {
+            ...location.query,
+            [QueryParameterNames.SORT]: `-${column.key}`,
+          },
         };
       }}
     />
