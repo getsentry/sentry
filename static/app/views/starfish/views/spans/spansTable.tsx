@@ -20,9 +20,8 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-
-const SPANS_CURSOR_NAME = 'spansCursor';
 
 type Props = {
   moduleName: ModuleName;
@@ -71,7 +70,7 @@ export default function SpansTable({
   limit = 25,
 }: Props) {
   const location = useLocation();
-  const spansCursor = decodeScalar(location.query?.[SPANS_CURSOR_NAME]);
+  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
   const {isLoading, data, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
     undefined,
@@ -85,7 +84,7 @@ export default function SpansTable({
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [SPANS_CURSOR_NAME]: cursor},
+      query: {...query, [QueryParameterNames.CURSOR]: cursor},
     });
   };
 
