@@ -65,9 +65,7 @@ export function SpanGroupBreakdown({
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {transaction
-              ? t('Endpoint Time Breakdown (P95)')
-              : t('App Time Breakdown (P95)')}
+            {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
           </ChartLabel>
         </Header>
         <Chart
