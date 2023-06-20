@@ -19,7 +19,7 @@ import {
 } from 'sentry/views/performance/transactionDetails/eventMetas';
 
 import ActionDropDown, {ContextValueType} from './actionDropdown';
-import {NoContext} from './quickContextHovercard';
+import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,

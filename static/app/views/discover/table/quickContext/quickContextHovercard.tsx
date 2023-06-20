@@ -198,11 +198,11 @@ const StyledHovercard = styled(Hovercard)`
   min-width: max-content;
 `;
 
-export const HoverWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
+// export const HoverWrapper = styled('div')`
+//   display: flex;
+//   align-items: center;
+//   gap: ${space(0.75)};
+// `;
 
 const HoverHeaderWrapper = styled('div')`
   display: flex;

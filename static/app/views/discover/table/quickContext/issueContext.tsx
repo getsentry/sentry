@@ -18,7 +18,7 @@ import {Event, Group} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {NoContext} from './quickContextHovercard';
+import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,
