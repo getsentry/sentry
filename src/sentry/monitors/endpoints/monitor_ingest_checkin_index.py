@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -31,8 +29,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.tasks import TIMEOUT
-from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
+from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -195,14 +192,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     monitor_environment.last_checkin
                 )
 
-            date_added, timeout_at = timezone.now(), None
+            date_added = timezone.now()
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
-
-            if status == CheckInStatus.IN_PROGRESS:
-                timeout_at = date_added.replace(second=0, microsecond=0) + timedelta(
-                    minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
-                )
+            timeout_at = get_timeout_at(monitor_config, status, date_added)
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,

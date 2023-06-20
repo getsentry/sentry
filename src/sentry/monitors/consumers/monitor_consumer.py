@@ -26,8 +26,12 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.tasks import TIMEOUT
-from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created, valid_duration
+from sentry.monitors.utils import (
+    get_timeout_at,
+    signal_first_checkin,
+    signal_first_monitor_created,
+    valid_duration,
+)
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
@@ -292,11 +296,7 @@ def _process_message(wrapper: Dict) -> None:
                     )
 
                 monitor_config = monitor.get_validated_config()
-                timeout_at = None
-                if status == CheckInStatus.IN_PROGRESS:
-                    timeout_at = date_added.replace(second=0, microsecond=0) + datetime.timedelta(
-                        minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
-                    )
+                timeout_at = get_timeout_at(monitor_config, status, date_added)
 
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
