@@ -2562,6 +2562,17 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         )
         self.error_group_2 = error_event_2.group
 
+    def test_search_occurrence_data(self):
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                self.perf_group_1.issue_type.build_visible_feature_name(),
+            ]
+        ):
+            results = self.make_query(search_filter_query="Large Render Blocking Asset")
+        # results = self.make_query(search_filter_query="")
+        assert set(results) == {self.perf_group_1, self.perf_group_2}
+
     def test_performance_query(self):
         with self.feature(
             [
