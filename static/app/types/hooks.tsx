@@ -4,6 +4,7 @@ import {Location} from 'history';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
+import {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -111,7 +112,10 @@ type ProfilingAM1OrMMXUpgrade = {
   organization: Organization;
 };
 
-type ProductSelectionAvailabilityProps = {
+type ProductSelectionAvailabilityProps = Pick<
+  ProductSelectionProps,
+  'lazyLoader' | 'skipLazyLoader'
+> & {
   organization: Organization;
 };
 
