@@ -33,6 +33,7 @@ type Props = {
 
 type State = {
   error: string;
+  hasLoaded: boolean;
   hasMore: boolean;
   loading: boolean;
   tags: Tag[];
@@ -49,6 +50,7 @@ class Tags extends Component<Props, State> {
     error: '',
     hasMore: false,
     nextCursor: '0:0:0',
+    hasLoaded: false,
   };
 
   componentDidMount() {
@@ -78,9 +80,9 @@ class Tags extends Component<Props, State> {
   ) => {
     const {api, organization, eventView, location, confirmedQuery} = this.props;
 
-    this.setState({error: ''});
+    this.setState({loading: true, error: ''});
     if (!appendTags) {
-      this.setState({loading: true, tags: []});
+      this.setState({hasLoaded: false, tags: []});
     }
 
     // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
@@ -112,7 +114,7 @@ class Tags extends Component<Props, State> {
       if (appendTags) {
         tags = [...this.state.tags, ...tags];
       }
-      this.setState({loading: false, tags, hasMore, nextCursor: cursor});
+      this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
     } catch (err) {
       Sentry.captureException(err);
       this.setState({loading: false, error: err});
@@ -165,8 +167,8 @@ class Tags extends Component<Props, State> {
   }
 
   renderBody = () => {
-    const {loading, error, tags, hasMore, nextCursor} = this.state;
-    if (loading) {
+    const {loading, hasLoaded, error, tags, hasMore, nextCursor} = this.state;
+    if (loading && !hasLoaded) {
       return this.renderPlaceholders();
     }
     if (error) {
@@ -183,18 +185,20 @@ class Tags extends Component<Props, State> {
           <StyledTagFacetList>
             {tags.map((tag, index) => this.renderTag(tag, index))}
           </StyledTagFacetList>
-          <Button
-            size="xs"
-            priority="primary"
-            disabled={!hasMore}
-            aria-label={t('Show More')}
-            onClick={() => {
-              this.fetchData(true, nextCursor, true);
-            }}
-            style={{width: 'min-content'}}
-          >
-            {t('Show More')}
-          </Button>
+          {hasMore && (
+            <Button
+              size="xs"
+              priority="primary"
+              disabled={loading}
+              aria-label={t('Show More')}
+              onClick={() => {
+                this.fetchData(true, nextCursor, true);
+              }}
+              style={{width: 'min-content'}}
+            >
+              {t('Show More')}
+            </Button>
+          )}
         </Wrapper>
       );
     }
