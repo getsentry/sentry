@@ -23,6 +23,10 @@ from sentry.utils import kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 
+def noop(msg):
+    pass
+
+
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
@@ -46,6 +50,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+
+        return RunTask(function=noop, next_step=CommitOffsets(commit))
 
         # The attachments consumer that is used for multiple message types needs
         # ordering guarantees: Attachments have to be written before the event using
