@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sentry.dynamic_sampling import get_redis_client_for_ds
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL
 
 

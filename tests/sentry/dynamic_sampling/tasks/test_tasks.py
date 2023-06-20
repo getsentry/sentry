@@ -10,7 +10,6 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
-from sentry.dynamic_sampling.rules.utils import generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     boost_low_volume_transactions,
@@ -20,6 +19,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     get_transactions_resampling_rates,
+)
+from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
+    generate_recalibrate_orgs_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
@@ -651,7 +653,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 )
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_rebalance_orgs(self, get_blended_sample_rate):
+    def test_recalibrate_orgs(self, get_blended_sample_rate):
         """
         Test that the org are going to be rebalanced at 20%
 
@@ -667,7 +669,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
-            cache_key = generate_cache_key_rebalance_factor(org.id)
+            cache_key = generate_recalibrate_orgs_cache_key(org.id)
             val = redis_client.get(cache_key)
 
             if idx == 0:
@@ -686,7 +688,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
-            cache_key = generate_cache_key_rebalance_factor(org.id)
+            cache_key = generate_recalibrate_orgs_cache_key(org.id)
             val = redis_client.get(cache_key)
 
             if idx == 0:
@@ -702,7 +704,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 assert float(val) == 0.25
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_rebalance_rules(self, get_blended_sample_rate):
+    def test_rules_generation_with_recalibrate_orgs(self, get_blended_sample_rate):
         """
         Test that we pass rebalancing values all the way to the rules
 
