@@ -24,27 +24,27 @@ class ClearExpiredRuleSnoozesTest(APITestCase):
 
     def test_simple(self):
         """Test that expired rulesnoozes are deleted, and ones that still have time left are left alone"""
-        issue_alert_rule_snooze = RuleSnooze.objects.create(
+        issue_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
             rule=self.issue_alert_rule,
             owner_id=self.user.id,
             until=self.until,
             date_added=datetime.now(pytz.UTC),
         )
-        issue_alert_rule_snooze2 = RuleSnooze.objects.create(
+        issue_alert_rule_snooze2 = self.snooze_rule(
             rule=self.issue_alert_rule,
             owner_id=self.user.id,
             until=datetime.now(pytz.UTC) + timedelta(minutes=1),
             date_added=datetime.now(pytz.UTC),
         )
-        metric_alert_rule_snooze = RuleSnooze.objects.create(
+        metric_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
             alert_rule=self.metric_alert_rule,
             owner_id=self.user.id,
             until=self.until,
             date_added=datetime.now(pytz.UTC),
         )
-        metric_alert_rule_snooze2 = RuleSnooze.objects.create(
+        metric_alert_rule_snooze2 = self.snooze_rule(
             alert_rule=self.metric_alert_rule,
             owner_id=self.user.id,
             until=datetime.now(pytz.UTC) + timedelta(minutes=1),
@@ -60,13 +60,13 @@ class ClearExpiredRuleSnoozesTest(APITestCase):
 
     def test_snooze_forever(self):
         """Test that if an issue alert rule is snoozed forever, the task doesn't remove it."""
-        issue_alert_rule_snooze = RuleSnooze.objects.create(
+        issue_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
             rule=self.issue_alert_rule,
             owner_id=self.user.id,
             date_added=datetime.now(pytz.UTC),
         )
-        metric_alert_rule_snooze = RuleSnooze.objects.create(
+        metric_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
             alert_rule=self.metric_alert_rule,
             owner_id=self.user.id,

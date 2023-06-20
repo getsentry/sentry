@@ -253,7 +253,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     __slots__ = ("stored_problems", "state")
 
-    type: DetectorType = DetectorType.M_N_PLUS_ONE_DB
+    type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
     def init(self):
