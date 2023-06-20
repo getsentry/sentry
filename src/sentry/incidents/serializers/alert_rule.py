@@ -80,6 +80,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     owner = ActorField(
         required=False,
         allow_null=True,
+        as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
 
     class Meta:
@@ -458,6 +459,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "use_async_lookup": self.context.get("use_async_lookup"),
                         "input_channel_id": self.context.get("input_channel_id"),
                         "validate_channel_id": self.context.get("validate_channel_id", True),
+                        "installations": self.context.get("installations"),
+                        "integrations": self.context.get("integrations"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,

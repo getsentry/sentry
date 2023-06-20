@@ -144,6 +144,14 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
+def setup_simulate_on_commit(request):
+    from sentry.testutils.hybrid_cloud import simulate_on_commit
+
+    with simulate_on_commit(request):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def protect_hybrid_cloud_writes_and_deletes(request):
     """
     Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
