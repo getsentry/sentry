@@ -26,6 +26,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
     generate_sliding_window_cache_key,
+    generate_sliding_window_org_cache_key,
     mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
@@ -652,6 +653,29 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                     org_id=org.id,
                 )
 
+    @staticmethod
+    def flush_redis():
+        get_redis_client_for_ds().flushdb()
+
+    @staticmethod
+    def set_sliding_window_org_cache_entry(org_id: int, value: str):
+        redis = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+        redis.set(cache_key, value)
+
+    def set_sliding_window_org_sample_rate(self, org_id: int, sample_rate: float):
+        self.set_sliding_window_org_cache_entry(org_id, str(sample_rate))
+
+    def for_all_orgs(self, block: Callable[[int], None]):
+        for org in self.orgs_info:
+            org_id = org["org_id"]
+            block(org_id)
+
+    def set_sliding_window_org_sample_rate_for_all(self, sample_rate: float):
+        self.for_all_orgs(
+            lambda org_id: self.set_sliding_window_org_sample_rate(org_id, sample_rate)
+        )
+
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_recalibrate_orgs(self, get_blended_sample_rate):
         """
@@ -662,7 +686,8 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         The third is at 30%, so we should decrease the sampling
         """
         BLENDED_RATE = 0.20
-        get_blended_sample_rate.return_value = BLENDED_RATE
+        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
+
         redis_client = get_redis_client_for_ds()
 
         with self.tasks():
@@ -703,15 +728,14 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # half it again to 0.25
                 assert float(val) == 0.25
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_rules_generation_with_recalibrate_orgs(self, get_blended_sample_rate):
+    def test_rules_generation_with_recalibrate_orgs(self):
         """
         Test that we pass rebalancing values all the way to the rules
 
         (An integration test)
         """
         BLENDED_RATE = 0.20
-        get_blended_sample_rate.return_value = BLENDED_RATE
+        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
 
         with self.tasks():
             recalibrate_orgs()

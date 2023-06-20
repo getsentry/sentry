@@ -1,43 +1,17 @@
-import time
-from datetime import datetime, timedelta
-from typing import List, Mapping
-
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
-
-from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     compute_guarded_sliding_window_sample_rate,
+    fetch_orgs_with_total_root_transactions_count,
     get_active_orgs_with_projects_counts,
 )
-from sentry.dynamic_sampling.tasks.constants import (
-    CHUNK_SIZE,
-    DEFAULT_REDIS_CACHE_KEY_TTL,
-    MAX_SECONDS,
-)
+from sentry.dynamic_sampling.tasks.constants import DEFAULT_REDIS_CACHE_KEY_TTL
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
     get_sliding_window_size,
     mark_sliding_window_org_executed,
 )
-from sentry.dynamic_sampling.tasks.logging import log_query_timeout
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.sentry_metrics import indexer
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.utils.snuba import raw_snql_query
 
 
 @instrumented_task(
@@ -82,71 +56,3 @@ def adjust_base_sample_rate_of_org(org_id: int, total_root_count: int, window_si
         pipeline.set(cache_key, sample_rate)
         pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
         pipeline.execute()
-
-
-def fetch_orgs_with_total_root_transactions_count(
-    org_ids: List[int], window_size: int
-) -> Mapping[OrganizationId, int]:
-    """
-    Fetches for each org the total root transaction count.
-    """
-    query_interval = timedelta(hours=window_size)
-    granularity = Granularity(3600)
-
-    count_per_root_metric_id = indexer.resolve_shared_org(
-        str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-    )
-    where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-        Condition(Column("metric_id"), Op.EQ, count_per_root_metric_id),
-        Condition(Column("org_id"), Op.IN, list(org_ids)),
-    ]
-
-    start_time = time.time()
-    offset = 0
-    aggregated_projects = {}
-    while (time.time() - start_time) < MAX_SECONDS:
-        query = (
-            Query(
-                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                select=[
-                    Function("sum", [Column("value")], "root_count_value"),
-                    Column("org_id"),
-                ],
-                where=where,
-                groupby=[Column("org_id")],
-                orderby=[
-                    OrderBy(Column("org_id"), Direction.ASC),
-                ],
-                granularity=granularity,
-            )
-            .set_limit(CHUNK_SIZE + 1)
-            .set_offset(offset)
-        )
-
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
-        )
-
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT.value,  # type:ignore
-        )["data"]
-
-        count = len(data)
-        more_results = count > CHUNK_SIZE
-        offset += CHUNK_SIZE
-
-        if more_results:
-            data = data[:-1]
-
-        for row in data:
-            aggregated_projects[row["org_id"]] = row["root_count_value"]
-
-        if not more_results:
-            break
-    else:
-        log_query_timeout(query="fetch_orgs_with_total_root_transactions_count", offset=offset)
-
-    return aggregated_projects

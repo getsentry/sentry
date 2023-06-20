@@ -79,6 +79,7 @@ class OrganizationDataVolume:
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
     errors: Dict[str, List[str]] = defaultdict(list)
+
     for orgs in get_active_orgs(1000):
         for org_volume in fetch_org_volumes(orgs):
             try:
