@@ -1,6 +1,6 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -41,7 +41,7 @@ def add_email(email, user):
         raise DuplicateEmailError
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserEmail)):
             new_email = UserEmail.objects.create(user=user, email=email)
     except IntegrityError:
         raise DuplicateEmailError

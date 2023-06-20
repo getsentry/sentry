@@ -1,6 +1,6 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -47,7 +47,7 @@ class UserRoleDetailsEndpoint(Endpoint):
 
         result = validator.validated_data
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(UserRole)):
                 if "name" in result:
                     role.name = result["name"]
                 if "permissions" in result:
@@ -78,7 +78,7 @@ class UserRoleDetailsEndpoint(Endpoint):
         except UserRole.DoesNotExist:
             return self.respond({"detail": f"'{role_name}' is not a known role."}, status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserRole)):
             role.delete()
             audit_logger.info(
                 "user-roles.delete",

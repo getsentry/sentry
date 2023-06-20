@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,7 +37,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
         except ApiAuthorization.DoesNotExist:
             return Response(status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(ApiToken)):
             ApiToken.objects.filter(
                 user_id=request.user.id, application=auth.application_id
             ).delete()

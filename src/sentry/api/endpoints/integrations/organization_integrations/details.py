@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from django.http import Http404
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
@@ -91,7 +91,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             integration=integration, organization_id=organization.id
         ).uninstall()
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
             updated = OrganizationIntegration.objects.filter(
                 id=org_integration.id, status=ObjectStatus.ACTIVE
             ).update(status=ObjectStatus.PENDING_DELETION)

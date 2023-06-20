@@ -1,6 +1,6 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
@@ -74,7 +74,7 @@ class BroadcastDetailsEndpoint(Endpoint):
         if result.get("cta"):
             update_kwargs["cta"] = result["cta"]
         if update_kwargs:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(Broadcast)):
                 broadcast.update(**update_kwargs)
                 logger.info(
                     "broadcasts.update",
@@ -88,7 +88,7 @@ class BroadcastDetailsEndpoint(Endpoint):
 
         if result.get("hasSeen"):
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(Broadcast)):
                     BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
                 pass
