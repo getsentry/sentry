@@ -56,12 +56,22 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         project = self.create_project()
 
         min_ago = iso_format(before_now(minutes=1))
+        replay_id = uuid.uuid4().hex
 
         event_all_helpful_params = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "timestamp": min_ago,
                 "fingerprint": ["group-1"],
+                "contexts": {
+                    "replay": {"replay_id": replay_id},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "errors": None,
             },
             project_id=project.id,
         )
@@ -70,6 +80,9 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
                 "event_id": "b" * 32,
                 "timestamp": min_ago,
                 "fingerprint": ["group-1"],
+                "contexts": {
+                    "replay": {"replay_id": replay_id},
+                },
             },
             project_id=project.id,
         )
@@ -81,6 +94,47 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         group = Group.objects.first()
         assert event_partial_helpful_params
         assert event_none_helpful_params
+        assert (
+            group.get_helpful_event_for_environments().event_id == event_all_helpful_params.event_id
+        )
+
+    def test_get_helpful_for_environments_partial(self):
+        project = self.create_project()
+
+        min_ago = iso_format(before_now(minutes=1))
+        replay_id = uuid.uuid4().hex
+
+        event_all_helpful_params = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "contexts": {
+                    "replay": {"replay_id": replay_id},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "errors": None,
+            },
+            project_id=project.id,
+        )
+        event_partial_helpful_params = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "contexts": {
+                    "replay": {"replay_id": replay_id},
+                },
+            },
+            project_id=project.id,
+        )
+
+        group = Group.objects.first()
+        assert event_partial_helpful_params
         assert (
             group.get_helpful_event_for_environments().event_id == event_all_helpful_params.event_id
         )
