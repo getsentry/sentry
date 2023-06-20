@@ -37,8 +37,8 @@ from sentry.dynamic_sampling.tasks.common import (
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
-    CACHE_KEY_TTL,
     CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
@@ -287,7 +287,7 @@ def adjust_sample_rates_of_projects(
                 rebalanced_project.id,
                 rebalanced_project.new_sample_rate,  # redis stores is as string
             )
-            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
 
             # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
             # system with project config invalidations, especially for projects with no volume.

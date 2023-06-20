@@ -20,7 +20,11 @@ from sentry.dynamic_sampling.tasks.common import (
     compute_guarded_sliding_window_sample_rate,
     get_active_orgs_with_projects_counts,
 )
-from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL, CHUNK_SIZE, MAX_SECONDS
+from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
+    MAX_SECONDS,
+)
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
     get_sliding_window_size,
@@ -79,7 +83,7 @@ def adjust_base_sample_rate_of_org(org_id: int, total_root_count: int, window_si
     with redis_client.pipeline(transaction=False) as pipeline:
         cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
         pipeline.set(cache_key, sample_rate)
-        pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+        pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
         pipeline.execute()
 
 

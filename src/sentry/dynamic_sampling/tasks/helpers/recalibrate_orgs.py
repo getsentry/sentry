@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL
+from sentry.dynamic_sampling.tasks.constants import ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL
 
 
 def generate_recalibrate_orgs_cache_key(org_id: int) -> str:
@@ -16,7 +16,9 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
     # make sense to 1.0 because the generated rule will multiply by 1.0 any number which won't make any difference.
     if adjusted_factor != 1.0:
         redis_client.set(cache_key, adjusted_factor)
-        redis_client.pexpire(cache_key, CACHE_KEY_TTL)
+        # Since we don't want any error to cause the system to drift significantly from the target sample rate, we want
+        # to set a small TTL for the adjusted factor.
+        redis_client.pexpire(cache_key, ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL)
     else:
         delete_adjusted_factor(org_id)
 

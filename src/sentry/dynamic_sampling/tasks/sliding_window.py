@@ -23,7 +23,11 @@ from sentry.dynamic_sampling.tasks.common import (
     get_active_orgs_with_projects_counts,
     sample_rate_to_float,
 )
-from sentry.dynamic_sampling.tasks.constants import CACHE_KEY_TTL, CHUNK_SIZE, MAX_SECONDS
+from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
+    MAX_SECONDS,
+)
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
     generate_sliding_window_cache_key,
@@ -123,7 +127,7 @@ def adjust_base_sample_rates_of_projects(
         for project_id, sample_rate in projects_with_rebalanced_sample_rate:  # type:ignore
             # We store the new updated sample rate.
             pipeline.hset(cache_key, project_id, sample_rate)
-            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
 
             # We want to get the old sample rate, which will be None in case it was not set.
             old_sample_rate = sample_rate_to_float(old_sample_rates.get(str(project_id), ""))

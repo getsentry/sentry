@@ -28,8 +28,8 @@ from sentry.dynamic_sampling.rules.base import (
 )
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-    CACHE_KEY_TTL,
     CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_ORGS_PER_QUERY,
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
@@ -197,7 +197,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         proj_id=project_id,
         named_rates=named_rates,
         default_rate=implicit_rate,
-        ttl_ms=CACHE_KEY_TTL,
+        ttl_ms=DEFAULT_REDIS_CACHE_KEY_TTL,
     )
 
     schedule_invalidate_project_config(
