@@ -4,15 +4,16 @@ from sentry.dynamic_sampling.rules.helpers.sliding_window import was_sliding_win
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
 
-def generate_prioritise_by_project_cache_key(org_id: int) -> str:
+def generate_boost_low_volume_projects_cache_key(org_id: int) -> str:
+    # The cache key name wasn't be changed, since it would require a migration which is not worth it.
     return f"ds::o:{org_id}:prioritise_projects"
 
 
-def get_prioritise_by_project_sample_rate(
+def get_boost_low_volume_projects_sample_rate(
     org_id: int, project_id: int, error_sample_rate_fallback: float
 ) -> float:
     redis_client = get_redis_client_for_ds()
-    cache_key = generate_prioritise_by_project_cache_key(org_id=org_id)
+    cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
 
     try:
         return float(redis_client.hget(cache_key, project_id))

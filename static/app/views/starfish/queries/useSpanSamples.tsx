@@ -4,6 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanIndexedFields} from 'sentry/views/starfish/types';
 
 const DEFAULT_LIMIT = 10;
 const DEFAULT_ORDER_BY = '-duration';
@@ -31,7 +32,7 @@ export function useSpanSamples(
         'description',
         'domain',
         'module',
-        'duration',
+        SpanIndexedFields.SPAN_SELF_TIME,
         'op',
         'transaction_id',
         'timestamp',

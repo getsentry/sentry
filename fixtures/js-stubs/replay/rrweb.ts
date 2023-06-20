@@ -16,10 +16,10 @@ export function RRWebInitFrameEvents({
   timestamp,
   width = 800,
 }: {
-  height: number;
-  href: string;
   timestamp: Date;
-  width: number;
+  height?: number;
+  href?: string;
+  width?: number;
 }) {
   return [
     {

@@ -1136,7 +1136,7 @@ def update_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     type: ActionService | None = None,
     target_type: ActionTarget | None = None,
-    target_identifier: str = None,
+    target_identifier: Optional[str] = None,
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,

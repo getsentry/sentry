@@ -8,7 +8,7 @@ from enum import IntEnum
 from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 from django.db import connections, models, router, transaction
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
@@ -113,7 +113,7 @@ class OutboxBase(Model):
         return (
             cls.objects.values(*cls.sharding_columns)
             .annotate(
-                scheduled_for=Max("scheduled_for"),
+                scheduled_for=Min("scheduled_for"),
                 id=Max("id"),
             )
             .filter(scheduled_for__lte=timezone.now())
@@ -122,7 +122,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
@@ -173,7 +174,10 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     def last_delay(self) -> datetime.timedelta:
-        return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
+        return min(
+            max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1)),
+            datetime.timedelta(hours=1),
+        )
 
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + (self.last_delay() * 2)
@@ -337,7 +341,7 @@ class ControlOutbox(OutboxBase):
         )
 
     @classmethod
-    def get_webhook_payload_from_outbox(self, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=payload.get("method"),
             path=payload.get("path"),

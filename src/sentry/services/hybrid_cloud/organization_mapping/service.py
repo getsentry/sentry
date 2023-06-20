@@ -55,9 +55,6 @@ class OrganizationMappingService(RpcService):
         """
         pass
 
-    def close(self) -> None:
-        pass
-
     @rpc_method
     @abstractmethod
     def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
