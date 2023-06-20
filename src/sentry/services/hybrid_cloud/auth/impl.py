@@ -88,25 +88,18 @@ def _query_sso_state(
             if roles.get_top_dog().id in organization_service.get_all_org_roles(
                 member_id=member.id
             ):
-
-                def get_user_ids(org_id: int, mem_id: int) -> Any:
-                    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
-                        organization_id=org_id
+                all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
+                    organization_id=member.organization_id
+                )
+                user_ids = (
+                    OrganizationMemberMapping.objects.filter(
+                        Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
+                        organization_id=member.organization_id,
+                        user__is_active=True,
                     )
-                    return (
-                        OrganizationMemberMapping.objects.filter(
-                            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
-                            organization_id=org_id,
-                            user__is_active=True,
-                        )
-                        .exclude(id=mem_id)
-                        .values_list("user_id")
-                    )
-
-                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    user_ids = get_user_ids(member.organization_id, member.id)
-                else:
-                    user_ids = get_user_ids(member.organization_id, member.id)
+                    .exclude(id=member.id)
+                    .values_list("user_id")
+                )
 
                 requires_sso = AuthIdentity.objects.filter(
                     auth_provider=auth_provider,
