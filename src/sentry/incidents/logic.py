@@ -1149,6 +1149,7 @@ def update_alert_rule_trigger_action(
     input_channel_id=None,
     sentry_app_config=None,
     installations: List[RpcSentryAppInstallation] | None = None,
+    integrations: List[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1187,6 +1188,7 @@ def update_alert_rule_trigger_action(
                 integration_id,
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
+                integrations=integrations,
             )
             updated_fields["target_display"] = target_display
 
@@ -1280,6 +1282,7 @@ def get_alert_rule_trigger_action_msteams_channel_id(
     integration_id,
     use_async_lookup=False,
     input_channel_id=None,
+    integrations=None,
 ):
     from sentry.integrations.msteams.utils import get_channel_id
 
@@ -1298,6 +1301,7 @@ def get_alert_rule_trigger_action_pagerduty_service(
     integration_id,
     use_async_lookup=False,
     input_channel_id=None,
+    integrations=None,
 ):
     try:
         # TODO: query the org as well to make sure we don't allow
@@ -1453,6 +1457,7 @@ def get_slack_channel_ids(organization, user, data):
                 action["integration_id"],
                 use_async_lookup=True,
                 input_channel_id=None,
+                integrations=None,
             )
     return mapped_slack_channels
 
