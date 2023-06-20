@@ -1,10 +1,6 @@
 ---
-created: '2020-08-19T12:18:50.138506Z'
-creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","exe_common.inl"],["function","__scrt_common_main_seh"]],[["filename","exe_common.inl"],["function","invoke_main"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","exe_common.inl"],["function","invoke_main"]],[["filename","main.cpp"],["function","main"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","`anonymous namespace'::start"]],[["filename","main.cpp"],["function","`anonymous namespace'::crash"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","main"]],[["filename","main.cpp"],["function","`anonymous namespace'::start"]]]
 similarity:2020-07-23:value:character-5-shingle: " EXCE"

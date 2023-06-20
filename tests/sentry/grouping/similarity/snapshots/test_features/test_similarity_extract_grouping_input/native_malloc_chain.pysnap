@@ -1,13 +1,7 @@
 ---
-created: '2021-04-08T09:39:08.339379Z'
-creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","application_frame"]],[["function","malloc_zone_malloc"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","malloc_zone_malloc"]],[["function","nanov2_malloc"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","nanov2_allocate"]],[["function","nanov2_allocate_from_block"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","nanov2_allocate_from_block"]],[["function","nanov2_allocate_from_block.cold.1"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","nanov2_malloc"]],[["function","nanov2_allocate"]]]
 similarity:2020-07-23:value:character-5-shingle: " / EX"
 similarity:2020-07-23:value:character-5-shingle: " EXC_"
 similarity:2020-07-23:value:character-5-shingle: " Erro"
