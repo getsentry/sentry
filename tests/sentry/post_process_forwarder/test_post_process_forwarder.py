@@ -15,6 +15,7 @@ from sentry.post_process_forwarder import PostProcessForwarder
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
+from sentry.utils.kafka_config import get_topic_definition
 
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
 SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")
@@ -45,7 +46,7 @@ def kafka_message_payload() -> Any:
 
 class PostProcessForwarderTest(TestCase):
     def _get_producer(self, cluster_name: str) -> Producer:
-        bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["common"]["bootstrap.servers"]  # type: ignore
+        bootstrap_servers = get_topic_definition(cluster_name)["bootstrap.servers"]
         conf = {
             "bootstrap.servers": bootstrap_servers,
             "session.timeout.ms": 6000,
