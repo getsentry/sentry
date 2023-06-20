@@ -46,7 +46,7 @@ def kafka_message_payload() -> Any:
 
 class PostProcessForwarderTest(TestCase):
     def _get_producer(self, cluster_name: str) -> Producer:
-        bootstrap_servers = get_topic_definition(cluster_name)["bootstrap.servers"]
+        bootstrap_servers = get_topic_definition(cluster_name)["cluster"]["bootstrap.servers"]
         conf = {
             "bootstrap.servers": bootstrap_servers,
             "session.timeout.ms": 6000,
