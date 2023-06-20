@@ -400,7 +400,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
@@ -434,7 +434,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"
