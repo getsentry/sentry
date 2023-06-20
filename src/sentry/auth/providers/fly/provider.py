@@ -19,6 +19,12 @@ class FlyOAuth2Login(OAuth2Login):
         self.domains = domains
         super().__init__(client_id=client_id)
 
+    # def get_authorize_params(self, state, redirect_uri):
+    #     params = super().get_authorize_params(state, redirect_uri)
+    #     print("REDIRECT URI: ", redirect_uri)
+    #     # params["redirect_uri"] = "https://nhsieh.ngrok.io/extensions/fly/setup/"
+    #     return params
+
 
 class FlyOAuth2Provider(OAuth2Provider):
     name = "Fly"
@@ -70,9 +76,64 @@ class FlyOAuth2Provider(OAuth2Provider):
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):
-        return {"domains": [state["domain"]], "version": DATA_VERSION}
+        """
+        Return a mapping containing provider configuration.
+
+        - ``state`` is the resulting data captured by the pipeline
+
+        {
+            'state': '9da4041848844e8088864eaea3c3a705',
+            'data': {
+                'access_token': 'fo1_6xgeCrB8ew8vFQ86vdaakBSFTVDGCzOUvebUbvgPGhI',
+                'token_type': 'Bearer',
+                'expires_in': 7200,
+                'refresh_token': 'PmUkAB75UPLKGZplERMq8WwOHnsTllZ5HveY4RvNUTk',
+                'scope': 'read',
+                'created_at': 1686786353},
+                'user': {
+                    'resource_owner_id': 'k9d01lp82rky6vo2',
+                    'scope': ['read'],
+                    'expires_in': 7200,
+                    'application': {'uid': 'elMJpuhA5bXbR59ZaKdXrxXGFVKTypGHuJ4h6Rfw1Qk'},
+                    'created_at': 1686786353,
+                    'user_id': 'k9d01lp82rky6vo2',
+                    'user_name': 'Nathan',
+                    'email': 'k9d01lp82rky6vo2@customer.fly.io',
+                    'organizations': [
+                        {'id': 'g1lx9my4pzemqwk7', 'role': 'admin'},
+                        {'id': '0vogzmzoj1k5xp29', 'role': 'admin'}
+                    ]
+                }
+            }
+        """
+        # TODO: figure out what the build_config should look like
+        return {
+            "user_id": {
+                "id": state["data"],
+                "org_id": state["data"],
+            }
+        }
 
     def build_identity(self, state):
+        """
+        Response:
+        {
+            'resource_owner_id': 'k9d01lp82rky6vo2',
+            'scope': ['read'],
+            'expires_in': 7200,
+            'application': {
+                'uid': 'elMJpuhA5bXbR59ZaKdXrxXGFVKTypGHuJ4h6Rfw1Qk'
+            },
+            'created_at': 1686785304,
+            'user_id': 'k9d01lp82rky6vo2',
+            'user_name': 'Nathan',
+            'email': 'k9d01lp82rky6vo2@customer.fly.io',
+            'organizations': [
+                {'id': 'g1lx9my4pzemqwk7', 'role': 'admin'},
+                {'id': '0vogzmzoj1k5xp29', 'role': 'admin'}
+            ]
+        }
+        """
         # TODO: Discuss with Fly on what this looks like
         data = state["data"]
         user_data = state["user"]
@@ -80,12 +141,12 @@ class FlyOAuth2Provider(OAuth2Provider):
         # XXX(epurkhiser): We initially were using the email as the id key.
         # This caused account dupes on domain changes. Migrate to the
         # account-unique sub key.
-        user_id = MigratingIdentityId(id=user_data["sub"], legacy_id=user_data["email"])
+        user_id = MigratingIdentityId(id=user_data["user_id"], legacy_id=user_data["email"])
 
         return {
             "id": user_id,
             "email": user_data["email"],
             "name": user_data["email"],
             "data": self.get_oauth_data(data),
-            "email_verified": user_data["email_verified"],
+            "email_verified": False,
         }

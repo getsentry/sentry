@@ -5,16 +5,16 @@ class Config(AppConfig):
     name = "sentry.auth.providers.fly"
 
     def ready(self):
-        from sentry.auth import options, register
+        from sentry import auth, options
 
         from .provider import FlyOAuth2Provider
 
-        register("fly", FlyOAuth2Provider)
+        auth.register("fly", FlyOAuth2Provider)
 
         options.register(
-            "auth-google.client-id", flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK
+            "auth-fly.client-id", flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK
         )
         options.register(
-            "auth-google.client-secret",
+            "auth-fly.client-secret",
             flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,
         )
