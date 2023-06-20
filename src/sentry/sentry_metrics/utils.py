@@ -53,7 +53,7 @@ def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Op
 
 def batch_reverse_resolve(
     use_case_id: UseCaseKey, org_id: int, tags_to_resolve: Sequence[Tuple[str, int]]
-) -> Sequence[Tuple[str, str]]:
+) -> Sequence[Tuple[str, Optional[str]]]:
     # temporary implementation
     return [
         (key, reverse_resolve_tag_value(use_case_id, org_id, value, weak=True))
