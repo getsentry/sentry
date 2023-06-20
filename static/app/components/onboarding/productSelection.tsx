@@ -34,21 +34,29 @@ type ProductProps = {
 };
 
 function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+  const ProductWrapper = permanentDisabled
+    ? PermanentDisabledProductWrapper
+    : disabled
+    ? DisabledProductWrapper
+    : ProductButtonWrapper;
+
   return (
     <ProductWrapper
-      permanentDisabled={permanentDisabled}
       onClick={onClick}
-      disabled={disabled}
+      disabled={onClick ?? permanentDisabled ? false : disabled}
+      priority={permanentDisabled ? 'primary' : disabled ? 'default' : 'primary'}
     >
-      <Checkbox
-        checked={checked}
-        disabled={permanentDisabled ? false : disabled}
-        aria-label={label}
-        size="xs"
-        readOnly
-      />
-      <span>{label}</span>
-      <IconQuestion size="xs" color="subText" />
+      <ProductButtonInner>
+        <Checkbox
+          checked={checked}
+          disabled={permanentDisabled ? false : disabled}
+          aria-label={label}
+          size="xs"
+          readOnly
+        />
+        <span>{label}</span>
+        <IconQuestion size="xs" color="subText" />
+      </ProductButtonInner>
     </ProductWrapper>
   );
 }
@@ -139,10 +147,10 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={() =>
+            onClick={
               performanceProductDisabled
-                ? performanceProductDisabled?.onClick?.()
-                : handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
+                ? performanceProductDisabled?.onClick
+                : () => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
             }
             disabled={!!performanceProductDisabled}
             checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
@@ -165,10 +173,10 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={() =>
+            onClick={
               sessionReplayProductDisabled
-                ? sessionReplayProductDisabled?.onClick?.()
-                : handleClickProduct(PRODUCT.SESSION_REPLAY)
+                ? sessionReplayProductDisabled?.onClick
+                : () => handleClickProduct(PRODUCT.SESSION_REPLAY)
             }
             disabled={!!sessionReplayProductDisabled}
             checked={products.includes(PRODUCT.SESSION_REPLAY)}
@@ -200,33 +208,44 @@ const Products = styled('div')`
   gap: ${space(1)};
 `;
 
-const ProductWrapper = styled('div')<{disabled?: boolean; permanentDisabled?: boolean}>`
+const ProductButtonWrapper = styled(Button)`
+  &,
+  :hover {
+    background: ${p => p.theme.purple100};
+    color: ${p => p.theme.purple300};
+  }
+`;
+
+const DisabledProductWrapper = styled(Button)`
+  && {
+    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+    input {
+      cursor: ${p =>
+        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
+    }
+  }
+`;
+
+const PermanentDisabledProductWrapper = styled(Button)`
+  && {
+    &,
+    :hover {
+      background: ${p => p.theme.purple100};
+      color: ${p => p.theme.purple300};
+      opacity: 0.5;
+      cursor: not-allowed;
+      input {
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
+const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-  ${p => p.theme.buttonPadding.xs};
-  background: ${p =>
-    p.disabled && !p.permanentDisabled ? p.theme.background : p.theme.purple100};
-  border: 1px solid
-    ${p =>
-      p.disabled && !p.permanentDisabled ? p.theme.disabledBorder : p.theme.purple300};
-  border-radius: 6px;
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  font-weight: 500;
-  color: ${p =>
-    p.disabled && !p.permanentDisabled ? p.theme.textColor : p.theme.purple300};
-  input {
-    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  }
-
-  > *:first-child {
-    opacity: ${p => (p.permanentDisabled ? 0.5 : 1)};
-  }
-
-  > *:nth-child(2) {
-    opacity: ${p => (p.disabled ? 0.5 : 1)};
-  }
 `;
 
 const Divider = styled('hr')`
