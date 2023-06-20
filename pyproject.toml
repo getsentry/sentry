@@ -943,7 +943,6 @@ module = [
     "sentry.sentry_metrics.indexer.postgres.postgres_v2",
     "sentry.services.hybrid_cloud.actor",
     "sentry.services.hybrid_cloud.auth.impl",
-    "sentry.services.hybrid_cloud.identity.serial",
     "sentry.services.hybrid_cloud.integration.impl",
     "sentry.services.hybrid_cloud.integration.service",
     "sentry.services.hybrid_cloud.log.impl",
