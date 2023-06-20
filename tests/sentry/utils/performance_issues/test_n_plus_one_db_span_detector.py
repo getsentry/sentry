@@ -6,7 +6,7 @@ import pytest
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType
@@ -248,7 +248,7 @@ class NPlusOneDbSettingTest(TestCase):
         ProjectOption.objects.set_value(
             project=project,
             key="sentry:performance_issue_settings",
-            value={"n_plus_one_db_detection_rate": 0.0},
+            value={"n_plus_one_db_queries_detection_enabled": False},
         )
 
         settings = get_detection_settings(project.id)
