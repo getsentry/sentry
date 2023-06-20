@@ -1,4 +1,4 @@
-import {AvatarProject} from 'sentry/types';
+import { AvatarProject } from 'sentry/types';
 
 const platforms = [
   'dotnet',
@@ -69,4 +69,14 @@ export function getConfigureTracingDocsLink(
   return docsPlatform === null
     ? null // this platform does not support performance
     : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
+}
+
+export function getConfigureIntegrationsDocsLink(
+  project: AvatarProject | undefined
+): string | null {
+  const platform = project?.platform ?? null;
+  const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
+  return docsPlatform === null
+    ? null // this platform does not support performance
+    : `https://docs.sentry.io/platforms/${docsPlatform}/configuration/integrations`;
 }
