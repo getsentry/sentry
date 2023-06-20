@@ -40,11 +40,11 @@ from sentry.search.events.types import WhereType
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
+    batch_reverse_resolve,
     resolve_tag_key,
     resolve_tag_value,
     resolve_weak,
     reverse_resolve,
-    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
@@ -1247,23 +1247,26 @@ class SnubaResultConverter:
             else {}
         )
 
-        groups = [
-            dict(
-                by=dict(
-                    (
-                        key,
-                        reverse_resolve_tag_value(
-                            self._use_case_id, self._organization_id, value, weak=True
-                        ),
-                    )
-                    if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
-                    else (key, value)
-                    for key, value in tags
-                ),
-                **data,
+        new_groups = []
+
+        for tags, data in groups.items():
+            by_dict = dict()
+            tags_to_resolve = []
+
+            for key, value in tags:
+                if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES:
+                    tags_to_resolve.append((key, value))
+                else:
+                    by_dict[key] = value
+
+            resolved_tags = batch_reverse_resolve(
+                self._use_case_id, self._organization_id, tags_to_resolve
             )
-            for tags, data in groups.items()
-        ]
+            by_dict.update(resolved_tags)
+
+            new_groups.append(dict(by=by_dict, **data))
+
+        groups = new_groups
 
         # Applying post query operations for totals and series
         for group in groups:

@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Tuple, Union
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -49,6 +49,13 @@ def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Op
         return None
 
     return reverse_resolve(use_case_id, org_id, index)
+
+
+def batch_reverse_resolve(
+    use_case_id: UseCaseKey, org_id: int, tags_to_resolve: Sequence[Tuple[str, int]]
+) -> Sequence[Tuple[str, str]]:
+    # temporary implementation
+    return [(key, reverse_resolve(use_case_id, org_id, value)) for key, value in tags_to_resolve]
 
 
 def resolve(
