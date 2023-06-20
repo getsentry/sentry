@@ -24,7 +24,7 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
-from sentry.search.utils import get_teams_for_user
+from sentry.search.utils import get_teams_for_users
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -346,7 +346,7 @@ class ConvertActorOrNoneValueTest(TestCase):
     def test_my_team(self):
         assert convert_actor_or_none_value(
             ["my_teams"], [self.project], self.user, None
-        ) == get_teams_for_user([self.project], self.user)
+        ) == get_teams_for_users([self.project], self.user)
 
     def test_none(self):
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]

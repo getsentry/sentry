@@ -41,7 +41,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
-from sentry.search.utils import get_teams_for_user
+from sentry.search.utils import get_teams_for_users
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -86,7 +86,7 @@ def assigned_to_filter(
                 **{
                     f"{field_filter}__in": GroupAssignee.objects.filter(
                         project_id__in=[p.id for p in projects],
-                        team_id__in=[team.id for team in get_teams_for_user()],
+                        team_id__in=[team for team in get_teams_for_users(projects, users)],
                     ).values_list("group_id", flat=True)
                 }
             )
