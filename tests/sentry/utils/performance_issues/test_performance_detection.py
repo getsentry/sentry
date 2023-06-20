@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 from unittest.mock import Mock, call, patch
 
@@ -19,9 +21,11 @@ from sentry.utils.performance_issues.base import (
     DetectorType,
     total_span_time,
 )
+from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
-    NPlusOneDBSpanDetector,
     _detect_performance_problems,
     detect_performance_problems,
 )
@@ -103,15 +107,13 @@ class PerformanceDetectionTest(TestCase):
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
-        event = {}
-        detect_performance_problems(event, self.project)
+        detect_performance_problems({}, self.project)
         assert mock.call_count == 0
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
-        event = {}
         with override_options({"performance.issues.all.problem-detection": 1.0}):
-            detect_performance_problems(event, self.project)
+            detect_performance_problems({}, self.project)
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
