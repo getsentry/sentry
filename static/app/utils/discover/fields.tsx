@@ -504,7 +504,7 @@ export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size'
+  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size' | 'rate'
 >;
 
 export type PlotType = 'bar' | 'line' | 'area';

@@ -145,6 +145,7 @@ export default function EndpointOverview() {
                 definedAxisTicks={2}
                 disableXAxis
                 chartColors={[THROUGHPUT_COLOR]}
+                aggregateOutputFormat="rate"
                 grid={{
                   left: '8px',
                   right: '0',
