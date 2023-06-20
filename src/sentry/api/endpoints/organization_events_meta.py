@@ -12,6 +12,8 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.snuba import spans_indexed, spans_metrics
+from sentry.snuba.referrer import Referrer
 
 
 @region_silo_endpoint
@@ -95,3 +97,70 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             )
 
         return Response(context)
+
+
+@region_silo_endpoint
+class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
+    def get(self, request: Request, organization) -> Response:
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({})
+
+        buckets = request.GET.get("intervals", 3)
+        lower_bound = request.GET.get("lowerBound")
+        upper_bound = request.GET.get("upperBound")
+        column = request.GET.get("column", "span.self_time")
+
+        if lower_bound is None or upper_bound is None:
+            bound_results = spans_metrics.query(
+                selected_columns=[
+                    f"p50({column}) as lower_bound",
+                    f"p95({column}) as upper_bound",
+                ],
+                params=params,
+                query=request.query_params.get("query"),
+                referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
+            )
+            if len(bound_results["data"]) != 1:
+                raise ParseError("Could not find bounds")
+
+            bound_data = bound_results["data"][0]
+            lower_bound, upper_bound = bound_data["lower_bound"], bound_data["upper_bound"]
+            if lower_bound == 0 or upper_bound == 0:
+                raise ParseError("Could not find bounds")
+
+        result = spans_indexed.query(
+            selected_columns=[
+                f"bounded_sample({column}, 0, {lower_bound}) as lower",
+                f"bounded_sample({column}, {lower_bound}, {upper_bound}) as middle",
+                f"bounded_sample({column}, {upper_bound}) as top",
+                f"rounded_time({buckets})",
+            ],
+            params=params,
+            query=request.query_params.get("query"),
+            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
+        )
+        span_ids = []
+        for row in result["data"]:
+            lower, middle, top = row["lower"], row["middle"], row["top"]
+            if lower:
+                span_ids.append(lower)
+            if middle:
+                span_ids.append(middle)
+            if top:
+                span_ids.append(top)
+
+        result = spans_indexed.query(
+            selected_columns=[
+                "project",
+                "transaction.id",
+                column,
+                "timestamp",
+            ],
+            orderby=["timestamp"],
+            params=params,
+            query=f"span_id:[{','.join(span_ids)}]",
+            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+        )
+        return Response({"data": result["data"]})
