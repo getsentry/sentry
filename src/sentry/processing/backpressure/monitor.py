@@ -2,6 +2,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, Generator, List, Mapping, Union
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry import options
@@ -75,8 +76,14 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
     for name, service in services.items():
         high_watermark = options.get(f"backpressure.high_watermarks.{name}")
         is_healthy = True
-        for memory in check_service_memory(service):
-            is_healthy = is_healthy and memory.percentage < high_watermark
+        try:
+            for memory in check_service_memory(service):
+                is_healthy = is_healthy and memory.percentage < high_watermark
+        except Exception as e:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("service", name)
+                sentry_sdk.capture_exception(e)
+            is_healthy = False
 
         service_health[name] = is_healthy
 
@@ -96,6 +103,9 @@ def start_service_monitoring() -> None:
         service_health = check_service_health(services)
 
         # then, check the derived services and record their health
-        record_consumer_health(service_health)
+        try:
+            record_consumer_health(service_health)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         time.sleep(options.get("backpressure.monitoring.interval"))
