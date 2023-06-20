@@ -316,7 +316,7 @@ class MonitorConsumerTest(TestCase):
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
 
-        # Try to ingest two the second will be rate limited
+        # Test invalid explicit durations
         self.send_message("my-monitor", status="in_progress")
 
         # Invalid check-in updates
@@ -337,6 +337,21 @@ class MonitorConsumerTest(TestCase):
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 1
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
+
+        # Test invalid implicit duration
+        old_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=MonitorEnvironment.objects.filter(monitor=monitor).first(),
+            project_id=self.project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=monitor.date_added - timedelta(weeks=52),
+        )
+
+        self.send_message("my-monitor", guid=old_checkin.guid)
+
+        checkin = MonitorCheckIn.objects.get(guid=old_checkin.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.duration is None
 
     def test_monitor_upsert(self):
         self.send_message(
