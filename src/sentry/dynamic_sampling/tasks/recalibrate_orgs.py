@@ -17,7 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import quotas
+from sentry.dynamic_sampling.tasks.common import get_adjusted_base_rate_from_cache_or_compute
 from sentry.dynamic_sampling.tasks.constants import (
     MAX_REBALANCE_FACTOR,
     MAX_SECONDS,
@@ -30,7 +30,10 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     get_adjusted_factor,
     set_guarded_adjusted_factor,
 )
-from sentry.dynamic_sampling.tasks.logging import log_recalibrate_orgs_errors
+from sentry.dynamic_sampling.tasks.logging import (
+    log_recalibrate_orgs_errors,
+    log_sample_rate_source,
+)
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -93,8 +96,9 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
     if not org_volume.is_valid_for_recalibration():
         raise RecalibrationError(org_id=org_volume.org_id, message="invalid data for recalibration")
 
-    target_sample_rate = quotas.get_blended_sample_rate(  # type:ignore
-        organization_id=org_volume.org_id
+    target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
+    log_sample_rate_source(
+        org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
     )
     if target_sample_rate is None:
         raise RecalibrationError(

@@ -25,8 +25,15 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    extrapolate_monthly_volume,
+    get_sliding_window_org_sample_rate,
+    get_sliding_window_size,
+)
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
+from sentry.dynamic_sampling.tasks.sliding_window_org import (
+    fetch_orgs_with_total_root_transactions_count,
+)
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -185,3 +192,29 @@ def compute_sliding_window_sample_rate(
 
     # We assume that the sample_rate is a float.
     return float(sample_rate)
+
+
+def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
+    """
+    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
+    it synchronously.
+    """
+    # We first try to get from cache the sliding window org sample rate.
+    sample_rate = get_sliding_window_org_sample_rate(org_id)
+    if sample_rate is not None:
+        return sample_rate
+
+    # In case we didn't find the value in cache, we want to compute it synchronously.
+    window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
+        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
+            org_ids=[org_id], window_size=window_size
+        )
+        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
+            return compute_guarded_sliding_window_sample_rate(
+                org_id, None, org_total_root_count, window_size
+            )
+
+    return None
