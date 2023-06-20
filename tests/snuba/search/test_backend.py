@@ -1070,6 +1070,14 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
         assert set(results) == {self.group2}
 
+        # test `me` filter without assign-to-me feature
+        results = self.make_query(search_filter_query="assigned:%s" % "me")
+
+        # test `me` filter with assign-to-me feature on
+        with self.feature("organizations:assign-to-me"):
+            results = self.make_query(search_filter_query="assigned:%s" % "me")
+            assert Group.objects.get(assignee_set__user_id=self.user.id)
+
         # test team assignee
         ga = GroupAssignee.objects.get(
             user_id=self.user.id, group=self.group2, project=self.group2.project
