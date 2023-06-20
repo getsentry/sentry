@@ -55,7 +55,10 @@ def batch_reverse_resolve(
     use_case_id: UseCaseKey, org_id: int, tags_to_resolve: Sequence[Tuple[str, int]]
 ) -> Sequence[Tuple[str, str]]:
     # temporary implementation
-    return [(key, reverse_resolve(use_case_id, org_id, value)) for key, value in tags_to_resolve]
+    return [
+        (key, reverse_resolve_tag_value(use_case_id, org_id, value, weak=True))
+        for key, value in tags_to_resolve
+    ]
 
 
 def resolve(
