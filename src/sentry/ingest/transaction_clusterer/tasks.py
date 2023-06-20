@@ -85,7 +85,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
-                redis.clear_transaction_names(project)
+                redis.clear_samples(ClustererNamespace.TRANSACTIONS, project)
             num_clustered += 1
     finally:
         unclustered = len(projects) - num_clustered
@@ -155,7 +155,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
 
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
-                redis.clear_span_descriptions(project)
+                redis.clear_samples(ClustererNamespace.SPANS, project)
             num_clustered += 1
     finally:
         unclustered = len(projects) - num_clustered
