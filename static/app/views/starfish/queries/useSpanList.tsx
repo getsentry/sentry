@@ -44,7 +44,6 @@ export const useSpanList = (
     orderBy
   );
 
-  // TODO: Add referrer
   const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
