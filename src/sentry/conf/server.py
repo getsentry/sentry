@@ -1598,6 +1598,8 @@ SENTRY_FEATURES = {
     "organizations:ds-sliding-window-org": False,
     # Enable new project/org boost
     "organizations:ds-boost-new-projects": False,
+    # Enable the org recalibration
+    "organizations:ds-org-recalibration": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui

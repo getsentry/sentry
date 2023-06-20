@@ -53,6 +53,7 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+    {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE: 1000,
