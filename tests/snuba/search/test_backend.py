@@ -57,6 +57,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
     def make_query(
         self,
         projects=None,
+        user=None,
         search_filter_query=None,
         environments=None,
         sort_by="date",
@@ -71,7 +72,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         projects = projects if projects is not None else [self.project]
         if search_filter_query is not None:
             search_filters = self.build_search_filter(
-                search_filter_query, projects, environments=environments
+                search_filter_query, projects, user=user, environments=environments
             )
 
         kwargs = {}
@@ -1070,14 +1071,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
         assert set(results) == {self.group2}
 
-        # test `me` filter without assign-to-me feature
-        results = self.make_query(search_filter_query="assigned:%s" % "me")
-
-        # test `me` filter with assign-to-me feature on
-        with self.feature("organizations:assign-to-me"):
-            results = self.make_query(search_filter_query="assigned:%s" % "me")
-            assert Group.objects.get(assignee_set__user_id=self.user.id)
-
         # test team assignee
         ga = GroupAssignee.objects.get(
             user_id=self.user.id, group=self.group2, project=self.group2.project
@@ -1101,6 +1094,49 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         # test that owners don't see results for all teams
         results = self.make_query(search_filter_query="assigned:%s" % owner.username)
         assert set(results) == set()
+
+    def test_assigned_to_me_my_teams(self):
+        my_team_event = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group-my-teams"],
+                "event_id": "f" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "message": "baz",
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        my_team_group = Group.objects.get(id=my_team_event.group.id)
+        assert my_team_group.id == my_team_event.group.id
+        # assign the issue to my team instead of me
+        GroupAssignee.objects.create(
+            user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
+        )
+
+        # before the change to me -> (me + my_teams)
+        # this should return the groups directly assigned to me as well as groups assigned to teams I belong to
+        assert GroupAssignee.objects.get(group=self.group2)
+        assert GroupAssignee.objects.get(group=my_team_group)
+        results = self.make_query(search_filter_query="assigned:me", user=self.user)
+        assert set(results) == {self.group2, my_team_group}
+
+        # with the feature flag on where we split the behavior so 'me' only checks for groups assigned to me
+        with self.feature("organizations:assign-to-me"):
+            results1 = self.make_query(search_filter_query="assigned:me", user=self.user)
+            assert set(results1) == {self.group2}
+
+            results2 = self.make_query(search_filter_query="assigned:my_teams", user=self.user)
+            assert set(results2) == {my_team_group}
+
+            results2 = self.make_query(search_filter_query="assigned:[me,my_teams]", user=self.user)
+            assert set(results2) == {self.group2, my_team_group}
 
     def test_assigned_to_in_syntax(self):
         group_3 = self.store_event(
