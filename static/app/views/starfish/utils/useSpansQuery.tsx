@@ -124,6 +124,7 @@ export function useWrappedDiscoverQuery({
   return {
     isLoading,
     data: isLoading && initialData ? initialData : data?.data,
+    meta: data?.meta ?? {},
     pageLinks,
   };
 }
