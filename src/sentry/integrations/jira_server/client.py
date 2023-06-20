@@ -13,7 +13,7 @@ from sentry.integrations.client import ApiClient
 from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -62,6 +62,10 @@ class JiraServerClient(IntegrationProxyClient):
     ):
         self.base_url = integration.metadata["base_url"]
         self.identity_id = identity_id
+        if not org_integration_id:
+            org_integration_id = infer_org_integration(
+                integration_id=integration.id, ctx_logger=logger
+            )
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=integration.metadata["verify_ssl"],
