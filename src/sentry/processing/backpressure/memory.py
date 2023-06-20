@@ -27,7 +27,7 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
         host += "/"
     url = f"{host}api/nodes"
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=1)
     response.raise_for_status()
     json = response.json()
     return ServiceMemory(json[0]["mem_used"], json[0]["mem_limit"])
