@@ -1328,7 +1328,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable Discord integration
-    "organizations:discord-integration": False,
+    "organizations:integrations-discord": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -2646,7 +2646,9 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
+    "sentry.integrations.discord.DiscordIntegrationProvider",
 )
+
 
 SENTRY_SDK_CONFIG = {
     "release": sentry.__semantic_version__,
