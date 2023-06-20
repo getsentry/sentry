@@ -258,5 +258,8 @@ describe('Tags', function () {
     expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
     expect(mockRequest).toHaveBeenCalled();
+
+    // Button should disappear when there are no more tags to load
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
   });
 });
