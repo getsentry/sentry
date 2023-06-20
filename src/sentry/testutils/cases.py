@@ -423,6 +423,9 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
+    # We need Django to flush all databases.
+    databases = "__all__"
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:

@@ -4,13 +4,12 @@ from functools import wraps
 from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db import connections, transaction
+from django.db import connections, router, transaction
 from django.db.models.signals import post_migrate, post_save
 from django.db.utils import OperationalError, ProgrammingError
 from packaging.version import parse as parse_version
 
 from sentry import options
-from sentry.db.models import get_model_if_available
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.signals import project_created
@@ -36,11 +35,11 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(app_config, verbosity=2, **kwargs):
+def create_default_projects(app_config, using, verbosity=2, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    if not get_model_if_available(app_config, "Project"):
+    if using != router.db_for_write(Project):
         return
 
     create_default_project(

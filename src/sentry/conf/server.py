@@ -3405,11 +3405,9 @@ if USE_SILOS:
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
 
-    # TODO(hybridcloud) Having a region connection is going to require
-    # a ton of changes to transaction.atomic(). We should use control + default
-    # instead.
-    DATABASES["region"] = DATABASES["default"].copy()
-    DATABASES["region"]["NAME"] = "region"
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    DATABASES["default"]["NAME"] = "region"
 
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
