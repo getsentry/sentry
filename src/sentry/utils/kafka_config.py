@@ -95,7 +95,7 @@ def get_kafka_admin_cluster_options(
     )
 
 
-def _validate_topic_definitions():
+def _validate_topic_definitions() -> None:
     for cluster, defn in settings.KAFKA_TOPICS.items():
         # If this assertion fails on import, get_topic_definition needs to be
         # updated with new logic.
@@ -112,4 +112,4 @@ def get_topic_definition(cluster: str) -> TopicDefinition:
     elif cluster == settings.KAFKA_OUTCOMES_BILLING:
         return get_topic_definition(settings.KAFKA_OUTCOMES)
     else:
-        assert False
+        raise ValueError(f"Unknown {cluster=}")
