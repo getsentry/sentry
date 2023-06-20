@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping, Optional
+from typing import Any, MutableMapping, Optional, TypedDict
 
 from django.conf import settings
 
@@ -91,3 +91,27 @@ def get_kafka_admin_cluster_options(
     return _get_kafka_cluster_options(
         cluster_name, ADMIN_SECTION, only_bootstrap=True, override_params=override_params
     )
+
+
+def _validate_topic_definitions():
+    for cluster, defn in settings.KAFKA_TOPICS.items():
+        # If this assertion fails on import, get_topic_definition needs to be
+        # updated with new logic.
+        assert cluster == settings.KAFKA_OUTCOMES_BILLING or defn is not None
+
+
+_validate_topic_definitions()
+
+
+class TopicDefinition(TypedDict):
+    cluster: str
+
+
+def get_topic_definition(cluster: str) -> TopicDefinition:
+    defn = settings.KAFKA_TOPICS.get(cluster)
+    if defn is not None:
+        return defn
+    elif cluster == settings.KAFKA_OUTCOMES_BILLING:
+        return get_topic_definition(settings.KAFKA_OUTCOMES)
+    else:
+        assert False
