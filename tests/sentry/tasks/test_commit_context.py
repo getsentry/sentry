@@ -2,15 +2,19 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
+import responses
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
+from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import PullRequest, PullRequestComment, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -427,11 +431,14 @@ class TestCommitContext(TestCommitContextMixin):
     ),
 )
 @patch("sentry.tasks.integrations.github.pr_comment.comment_workflow.delay")
-class TestGHCommentQueuing(TestCommitContextMixin):
+class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+
     def setUp(self):
         super().setUp()
         self.pull_request = PullRequest.objects.create(
-            organization_id=self.organization.id,
+            organization_id=self.commit.organization_id,
             repository_id=self.repo.id,
             key="99",
             author=self.commit.author,
@@ -449,6 +456,11 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             updated_at=iso_format(before_now(days=1)),
             group_ids=[],
         )
+        self.installation_id = "github:1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
     @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_not_github(self, mock_comment_workflow):
@@ -480,9 +492,24 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             assert not mock_comment_workflow.called
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_no_pr(self, mock_comment_workflow):
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_no_pr(self, get_jwt, mock_comment_workflow):
         """No comments on suspect commit with no pr"""
         self.pull_request.delete()
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json={"message": "No commit found for SHA"},
+        )
+
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
@@ -501,11 +528,25 @@ class TestGHCommentQueuing(TestCommitContextMixin):
         pass
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_pr_too_old(self, mock_comment_workflow):
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow):
         """No comment on pr that's older than 30 days"""
         self.pull_request.date_added = iso_format(before_now(days=31))
         self.pull_request.save()
 
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+        )
+
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
@@ -518,11 +559,25 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             assert not mock_comment_workflow.called
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_repeat_issue(self, mock_comment_workflow):
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow):
         """No comment on a pr that has a comment with the issue in the same pr list"""
         self.pull_request_comment.group_ids.append(self.event.group_id)
         self.pull_request_comment.save()
 
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+        )
+
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
@@ -535,9 +590,23 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             assert not mock_comment_workflow.called
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_create_queued(self, mock_comment_workflow):
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_create_queued(self, get_jwt, mock_comment_workflow):
         """Task queued if no prior comment exists"""
         self.pull_request_comment.delete()
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+        )
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -551,8 +620,22 @@ class TestGHCommentQueuing(TestCommitContextMixin):
             assert mock_comment_workflow.called
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_update_queue(self, mock_comment_workflow):
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow):
         """Task queued if new issue for prior comment"""
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+        )
 
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
