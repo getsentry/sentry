@@ -50,7 +50,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
 
         # find the identities linked to this team user and sentry user
         identity_list = Identity.objects.filter(
-            external_id=params["teams_user_id"], user=request.user
+            external_id=params["teams_user_id"], user_id=request.user.id
         )
         # if no identities, tell the user that
         if not identity_list:
