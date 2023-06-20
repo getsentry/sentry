@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
@@ -44,7 +44,12 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         elif event_id == "oldest":
             event = group.get_oldest_event_for_environments(environments)
         elif event_id == "helpful":
-            event = group.get_helpful_event_for_environments(environments)
+            if features.has(
+                "organizations:issue-details-most-helpful-event", group.project.organization
+            ):
+                event = group.get_helpful_event_for_environments(environments)
+            else:
+                return Response(status=404)
         else:
             event = eventstore.backend.get_event_by_id(
                 group.project.id, event_id, group_id=group.id
