@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 import pytest
 from django.utils.functional import cached_property
@@ -405,7 +405,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: RpcUser = None,
+        user: Optional[RpcUser] = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):

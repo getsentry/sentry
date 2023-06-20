@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
@@ -10,7 +10,7 @@ from sentry.types.group import GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):
-    def create_issue(self, status: GroupStatus, substatus: GroupSubStatus = None) -> None:
+    def create_issue(self, status: GroupStatus, substatus: Optional[GroupSubStatus] = None) -> None:
         self.group = self.create_group(status=status)
         self.group_list = [self.group]
         self.group_ids = [self.group]

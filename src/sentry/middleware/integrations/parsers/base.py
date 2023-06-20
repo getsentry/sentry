@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Mapping, Optional, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class RegionResult:
-    def __init__(self, response: HttpResponse = None, error: Exception = None):
+    def __init__(self, response: Optional[HttpResponse] = None, error: Optional[Exception] = None):
         self.response = response
         self.error = error
 
@@ -141,7 +141,7 @@ class BaseRequestParser(abc.ABC):
     # Optional Overrides
 
     def get_organizations_from_integration(
-        self, integration: Integration = None
+        self, integration: Optional[Integration] = None
     ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration_from_request() method to identify organizations associated with
@@ -161,7 +161,7 @@ class BaseRequestParser(abc.ABC):
         )
 
     def get_regions_from_organizations(
-        self, organizations: Sequence[RpcOrganizationSummary] = None
+        self, organizations: Optional[Sequence[RpcOrganizationSummary]] = None
     ) -> Sequence[Region]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
