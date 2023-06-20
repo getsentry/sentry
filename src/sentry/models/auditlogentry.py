@@ -92,8 +92,6 @@ class AuditLogEntry(Model):
         Serializes a potential audit log database entry as a hybrid cloud event that should be deserialized and
         loaded via `from_event` as faithfully as possible.
         """
-        if self.actor:
-            self._apply_actor_label()
         if self.actor_label is not None:
             self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         return AuditLogEvent(
