@@ -37,6 +37,7 @@ TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
+ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
 
 DEFAULT_RATE_LIMIT = 10
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -99,7 +100,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         modified_params = params.copy()
         delta = modified_params["end"] - modified_params["start"]
         duration = delta.total_seconds()
-        if duration >= 1209600 and duration <= 1209600 * 2:
+        if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
             new_start = modified_params["end"] - timedelta(days=30)
             min_start = timezone.now() - timedelta(days=90)
             modified_params["start"] = new_start if min_start < new_start else min_start
@@ -342,7 +343,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 get_event_stats_metrics,
                 top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
-                params=modified_params,
+                params=params,
                 query=query,
             )
 
