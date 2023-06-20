@@ -1,4 +1,4 @@
-from typing import List, Mapping, Tuple, cast
+from typing import List, Mapping, Tuple
 
 import sentry_sdk
 
@@ -19,9 +19,7 @@ def get_transactions_resampling_rates(
     try:
         serialised_val = redis_client.get(cache_key)
         if serialised_val:
-            val = json.loads(serialised_val)
-            ret_val = cast(Tuple[Mapping[str, float], float], val)
-            return ret_val
+            return json.loads(serialised_val)
     except (TypeError, ValueError) as e:
         sentry_sdk.capture_exception(e)
 

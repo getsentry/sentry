@@ -10,7 +10,7 @@ from django.http.request import HttpRequest, QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
-from sentry.charts import generate_chart
+from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
@@ -257,7 +257,7 @@ def unfurl_discover(
         style = display_modes.get(display_mode, display_modes["default"])
 
         try:
-            url = generate_chart(style, chart_data)
+            url = charts.generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
                 f"Failed to generate chart for discover unfurl: {exc}",

@@ -791,7 +791,7 @@ class EventSubjectTemplateData:
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":
-            return cast(str, self.event.organization.slug)
+            return self.event.organization.slug
         elif name == "title":
             if getattr(self.event, "occurrence", None):
                 return self.event.occurrence.issue_title

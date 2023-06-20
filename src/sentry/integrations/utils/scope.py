@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Sequence
 
 from sentry_sdk import configure_scope
 
@@ -30,7 +30,7 @@ def clear_tags_and_context() -> None:
             logger.info("We've reset the context and tags.")
 
 
-def get_orgs_from_integration(integration_id: int) -> list[Organization]:
+def get_orgs_from_integration(integration_id: int) -> Sequence[Organization]:
     """
     Given the id of an `Integration`, return a list of associated `Organization` objects.
 
@@ -47,7 +47,7 @@ def get_orgs_from_integration(integration_id: int) -> list[Organization]:
         [org_integration.organization_id for org_integration in org_integrations]
     )
 
-    return cast("list[Organization]", orgs)
+    return orgs
 
 
 def bind_org_context_from_integration(integration_id: int) -> None:
