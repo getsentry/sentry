@@ -16,7 +16,7 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
     # make sense to 1.0 because the generated rule will multiply by 1.0 any number which won't make any difference.
     if adjusted_factor != 1.0:
         redis_client.set(cache_key, adjusted_factor)
-        redis_client.pexpire(CACHE_KEY_TTL)
+        redis_client.pexpire(cache_key, CACHE_KEY_TTL)
     else:
         delete_adjusted_factor(org_id)
 
