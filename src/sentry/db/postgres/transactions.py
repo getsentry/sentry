@@ -29,12 +29,15 @@ def django_test_transaction_water_mark(using: str = "default"):
 
     connection = transaction.get_connection(using)
 
+    prev = hybrid_cloud.simulated_transaction_watermarks.state[using]
     hybrid_cloud.simulated_transaction_watermarks.state[using] = len(connection.savepoint_ids)
     try:
         connection.maybe_flush_commit_hooks()
         yield
     finally:
-        hybrid_cloud.simulated_transaction_watermarks.state[using] = len(connection.savepoint_ids)
+        hybrid_cloud.simulated_transaction_watermarks.state[using] = min(
+            len(connection.savepoint_ids), prev
+        )
 
 
 class InTestTransactionEnforcement(threading.local):
