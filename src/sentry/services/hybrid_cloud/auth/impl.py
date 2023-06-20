@@ -15,7 +15,7 @@ from sentry.models import (
     ApiToken,
     AuthIdentity,
     AuthProvider,
-    OrganizationMember,
+    OrganizationMemberMapping,
     SentryAppInstallationToken,
     User,
 )
@@ -47,7 +47,7 @@ _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
 # than the OrganizationMember type.
-def query_sso_state(
+def _query_sso_state(
     organization_id: int | None, is_super_user: bool, member: RpcOrganizationMemberSummary | None
 ) -> RpcMemberSsoState:
     """
@@ -94,22 +94,17 @@ def query_sso_state(
                         organization_id=org_id
                     )
                     return (
-                        OrganizationMember.objects.filter(
+                        OrganizationMemberMapping.objects.filter(
                             Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
                             organization_id=org_id,
-                            user_is_active=True,
-                            user_id__isnull=False,
+                            user__is_active=True,
                         )
                         .exclude(id=mem_id)
                         .values_list("user_id")
                     )
 
                 if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    # Giant hack for now until we have control silo org membership table.
-                    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                        SiloMode.MONOLITH
-                    ):
-                        user_ids = get_user_ids(member.organization_id, member.id)
+                    user_ids = get_user_ids(member.organization_id, member.id)
                 else:
                     user_ids = get_user_ids(member.organization_id, member.id)
 
@@ -216,7 +211,7 @@ class DatabaseBackedAuthService(AuthService):
         organization_id: int | None,
         org_member: RpcOrganizationMemberSummary | None,
     ) -> RpcAuthState:
-        sso_state = query_sso_state(
+        sso_state = _query_sso_state(
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
         permissions: List[str] = list()
