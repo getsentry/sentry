@@ -25,10 +25,7 @@ import {
   useResizableDrawer,
   UseResizableDrawerOptions,
 } from 'sentry/utils/useResizableDrawer';
-import {
-  HoverWrapper,
-  QuickContextHovercard,
-} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
@@ -300,15 +297,13 @@ function TransactionEventDetails({
         key: 'release',
         label: t('Release'),
         value: transaction.release && (
-          <HoverWrapper>
-            <QuickContextHovercard
-              dataRow={{release: transaction.release.version}}
-              contextType={ContextType.RELEASE}
-              organization={organization}
-            >
-              <Version version={transaction.release.version} truncate />
-            </QuickContextHovercard>
-          </HoverWrapper>
+          <QuickContextHoverWrapper
+            dataRow={{release: transaction.release.version}}
+            contextType={ContextType.RELEASE}
+            organization={organization}
+          >
+            <Version version={transaction.release.version} truncate />
+          </QuickContextHoverWrapper>
         ),
       },
       {
