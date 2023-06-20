@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
@@ -158,7 +158,7 @@ class PerformanceDetector(ABC):
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
+    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         return True
 
 

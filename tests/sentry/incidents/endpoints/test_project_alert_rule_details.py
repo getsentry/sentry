@@ -1,3 +1,4 @@
+from typing import Optional
 from unittest.mock import patch
 
 import responses
@@ -212,8 +213,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
     def _project_alert_rule_api_call(
         self,
-        channelName: str = None,
-        channelID: str = None,
+        channelName: Optional[str] = None,
+        channelID: Optional[str] = None,
     ) -> Request:
         """
         Call the project alert rule API but do some Slack integration set up before doing so

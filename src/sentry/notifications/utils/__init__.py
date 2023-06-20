@@ -365,8 +365,8 @@ def occurrence_perf_to_email_html(context: Any) -> Any:
 
 def perf_to_email_html(
     spans: Union[List[Dict[str, Union[str, float]]], None],
-    problem: PerformanceProblem = None,
-    event: Event = None,
+    problem: Optional[PerformanceProblem] = None,
+    event: Optional[Event] = None,
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:

@@ -39,7 +39,7 @@ class MailAdapter:
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
-        fallthrough_choice: FallthroughChoiceType = None,
+        fallthrough_choice: Optional[FallthroughChoiceType] = None,
         skip_digests: bool = False,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")

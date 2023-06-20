@@ -163,7 +163,7 @@ class UnmergeArgsBase(abc.ABC):
         last_event: Optional[Mapping[str, Any]] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
-        eventstream_state: EventstreamState = None,
+        eventstream_state: Optional[EventstreamState] = None,
         replacement: Optional[UnmergeReplacement] = None,
         locked_primary_hashes: Optional[Collection[str]] = None,
         destinations: Optional[Destinations] = None,

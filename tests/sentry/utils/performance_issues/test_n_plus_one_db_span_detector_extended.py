@@ -1,5 +1,5 @@
 import unittest
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pytest
 
@@ -25,7 +25,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         self.settings = get_detection_settings()
 
     def find_problems(
-        self, event: Event, setting_overides: Dict[str, Any] = None
+        self, event: Event, setting_overides: Optional[Dict[str, Any]] = None
     ) -> List[PerformanceProblem]:
         if setting_overides:
             for option_name, value in setting_overides.items():

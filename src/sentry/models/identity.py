@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from django.conf import settings
 from django.db import IntegrityError, models
@@ -80,7 +80,7 @@ class IdentityManager(BaseManager):
         idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         should_reattach: bool = True,
-        defaults: Mapping[str, Any | None] = None,
+        defaults: Optional[Mapping[str, Any | None]] = None,
     ) -> Identity:
         """
         Link the user with the identity. If `should_reattach` is passed, handle

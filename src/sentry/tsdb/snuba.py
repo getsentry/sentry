@@ -260,7 +260,7 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
-        tenant_ids: dict[str, str | int] = None,
+        tenant_ids: Optional[dict[str, str | int]] = None,
         referrer_suffix: Optional[str] = None,
     ):
         if model in self.non_outcomes_snql_query_settings:
@@ -334,7 +334,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: Optional[int] = None,
         manual_group_on_time: bool = False,
         is_grouprelease: bool = False,
-        tenant_ids: dict[str, str | int] = None,
+        tenant_ids: Optional[dict[str, str | int]] = None,
         referrer_suffix: Optional[str] = None,
     ):
         """

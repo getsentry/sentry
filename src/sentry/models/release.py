@@ -260,8 +260,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
-        environments: List[str] = None,
+        project_ids: Optional[Sequence[int]] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -405,7 +405,7 @@ class ReleaseModelManager(BaseManager):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
