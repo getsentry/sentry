@@ -1,10 +1,17 @@
+import * as qs from 'query-string';
+
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useQuery} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {SpanIndexedFields} from 'sentry/views/starfish/types';
+import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 
 const DEFAULT_LIMIT = 10;
 const DEFAULT_ORDER_BY = '-duration';
@@ -58,3 +65,40 @@ export function useSpanSamples(
 
   return {...response, data, pageLinks};
 }
+
+type Options = {
+  groupId?: string;
+  transactionName?: string;
+};
+
+type SpanSample = Pick<
+  SpanIndexedFieldTypes,
+  | SpanIndexedFields.SPAN_SELF_TIME
+  | SpanIndexedFields.TRANSACTION_ID
+  | SpanIndexedFields.PROJECT
+  | SpanIndexedFields.TIMESTAMP
+>;
+
+export const useSpanSamples2 = (options: Options) => {
+  const url = '/api/0/organizations/sentry/spans-samples/';
+  const api = useApi();
+  const {selection} = usePageFilters();
+  const {groupId, transactionName} = options;
+  const query = new MutableSearch([`span.group:${groupId}`]);
+
+  return useQuery<SpanSample[]>({
+    queryKey: ['span-samples', groupId, transactionName],
+    queryFn: async () => {
+      const res = await api.requestPromise(
+        `${url}?${qs.stringify({
+          ...getDateConditions(selection),
+          group: groupId,
+          query: query.formatString(),
+        })}`
+      );
+      return res?.data;
+    },
+    enabled: Boolean(groupId && transactionName),
+    initialData: [],
+  });
+};

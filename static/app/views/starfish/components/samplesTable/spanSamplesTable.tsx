@@ -32,7 +32,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 type SpanTableRow = {
-  description: string;
   op: string;
   'span.self_time': number;
   span_id: string;
