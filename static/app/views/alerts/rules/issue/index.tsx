@@ -185,11 +185,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
+    super.componentDidMount();
     this.fetchPreview();
   }
 
   componentWillUnmount() {
+    super.componentWillUnmount();
     this.isUnmounted = true;
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
