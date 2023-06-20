@@ -142,7 +142,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         organization = None
 
     # By default, this bias uses the blended sample rate.
-    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
+    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
 
     # In case we have specific feature flags enabled, we will change the sample rate either basing ourselves
     # on sliding window per project or per org.
@@ -266,7 +266,7 @@ def get_orgs_with_project_counts(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -347,7 +347,7 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -450,7 +450,7 @@ def fetch_transactions_with_total_volumes(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE

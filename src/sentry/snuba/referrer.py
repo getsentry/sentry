@@ -2,7 +2,7 @@ import enum
 import logging
 from enum import Enum, unique
 from itertools import chain
-from typing import Mapping, Optional
+from typing import TYPE_CHECKING, Mapping, Optional
 
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -619,10 +619,21 @@ TSDBModelSuffixReferrer = enum.Enum(
 )
 
 
-Referrer = enum.Enum(
-    "Referrer",
-    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModelSuffixReferrer)],
-)
+if TYPE_CHECKING:
+    # This type is hot garbage (enums don't support subclassing) and not
+    # suitable for runtime, but it's good enough for mypy so that it can find
+    # properties on the Referrer object
+    class Referrer(ReferrerBase, TSDBModelReferrer, TSDBModelSuffixReferrer):
+        pass
+
+else:
+    Referrer = enum.Enum(
+        "Referrer",
+        [
+            (i.name, i.value)
+            for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModelSuffixReferrer)
+        ],
+    )
 
 
 def validate_referrer(referrer: Optional[str]):

@@ -108,7 +108,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,  # type: ignore[attr-defined]
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
             )
@@ -126,7 +126,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 top_events=top_functions,
                 organization=organization,
                 zerofill_results=zerofill_results,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,  # type: ignore[attr-defined]
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
                 # this ensures the result key is formatted as `{project.id},{fingerprint}`
                 # in order to be compatible with the trends service
                 result_key_order=["project.id", "fingerprint"],
