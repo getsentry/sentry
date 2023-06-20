@@ -152,12 +152,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 span_ids.append(top)
 
         result = spans_indexed.query(
-            selected_columns=[
-                "project",
-                "transaction.id",
-                column,
-                "timestamp",
-            ],
+            selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],
             orderby=["timestamp"],
             params=params,
             query=f"span_id:[{','.join(span_ids)}]",
