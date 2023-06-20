@@ -3011,7 +3011,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[sentry.utils.kafka_config.TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
