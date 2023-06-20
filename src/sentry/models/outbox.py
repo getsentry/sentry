@@ -8,6 +8,7 @@ import threading
 from enum import IntEnum
 from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
 
+import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max
@@ -34,6 +35,10 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
+
+
+class OutboxFlushError(Exception):
+    pass
 
 
 class OutboxScope(IntEnum):
@@ -95,10 +100,6 @@ def _ensure_not_null(k: str, v: Any) -> Any:
     if v is None:
         raise ValueError(f"Attribute {k} was None, but it needed to be set!")
     return v
-
-
-class OutboxFlushError(Exception):
-    pass
 
 
 class OutboxBase(Model):
@@ -247,7 +248,12 @@ class OutboxBase(Model):
                     "outbox.send_signal.duration",
                     tags={"category": OutboxCategory(coalesced.category).name},
                 ):
-                    coalesced.send_signal()
+                    try:
+                        coalesced.send_signal()
+                    except Exception as e:
+                        sentry_sdk.capture_exception(e)
+                        raise OutboxFlushError(f"Could not flush shard {coalesced}") from e
+
                 return True
         return False
 
@@ -323,7 +329,7 @@ class RegionOutbox(OutboxBase):
         """
         return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
 
-    __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
+    __repr__ = sane_repr(coalesced_columns)
 
 
 # Outboxes bound from control silo -> region silo
@@ -369,9 +375,7 @@ class ControlOutbox(OutboxBase):
             ("region_name", "shard_scope", "shard_identifier", "id"),
         )
 
-    __repr__ = sane_repr(
-        "region_name", "shard_scope", "shard_identifier", "category", "object_identifier"
-    )
+    __repr__ = sane_repr(coalesced_columns)
 
     def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(

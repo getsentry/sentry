@@ -867,7 +867,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "1234567",
             },
-            {"nonFieldErrors": ["User does not exist"]},
+            {"nonFieldErrors": ["User does not belong to this organization"]},
         )
         other_user = self.create_user()
         self.run_fail_validation_test(

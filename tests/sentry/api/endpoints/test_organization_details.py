@@ -24,6 +24,7 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
     outbox_context,
 )
@@ -794,8 +795,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             slug=desired_slug, name="collision-imminent"
         )
 
-        # Drain the initial slug creation to ensure a mapping exists for the new org
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
         colliding_org_mapping = OrganizationMapping.objects.get(
             organization_id=org_with_colliding_slug.id
         )
@@ -811,7 +810,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.slug == desired_slug
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
-        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        with pytest.raises(OutboxFlushError):
+            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
 
         organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert organization_mapping.slug == previous_slug

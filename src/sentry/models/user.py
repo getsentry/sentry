@@ -161,7 +161,7 @@ class User(BaseModel, AbstractBaseUser):
     def class_name(self):
         return "User"
 
-    def delete(self, *args, **kwds):
+    def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         with outbox_context(transaction.atomic(), flush=False):

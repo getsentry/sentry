@@ -504,6 +504,8 @@ def create_alert_rule(
     actor = None
     if owner and not isinstance(owner, Actor):
         actor = owner.resolve_to_actor()
+    elif owner and isinstance(owner, Actor):
+        actor = owner
 
     with transaction.atomic():
         snuba_query = create_snuba_query(
