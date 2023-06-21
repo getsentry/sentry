@@ -9,7 +9,9 @@ from sentry.services.hybrid_cloud.app import (
 )
 
 
-def serialize_api_application(api_app: ApiApplication) -> RpcApiApplication:
+def serialize_api_application(api_app: Optional[ApiApplication]) -> Optional[RpcApiApplication]:
+    if not api_app:
+        return None
     return RpcApiApplication(
         id=api_app.id,
         client_id=api_app.client_id,
@@ -43,6 +45,7 @@ def serialize_sentry_app_installation(
 ) -> RpcSentryAppInstallation:
     if app is None:
         app = installation.sentry_app
+        assert app is not None
 
     return RpcSentryAppInstallation(
         id=installation.id,
