@@ -45,6 +45,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
       onClick={onClick}
       disabled={onClick ?? permanentDisabled ? false : disabled}
       priority={permanentDisabled ? 'primary' : disabled ? 'default' : 'primary'}
+      aria-label={label}
     >
       <ProductButtonInner>
         <Checkbox
@@ -61,7 +62,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
   );
 }
 
-type ProductSelectionProps = {
+export type ProductSelectionProps = {
   defaultSelectedProducts?: PRODUCT[];
   disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;

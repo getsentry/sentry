@@ -4,7 +4,7 @@ import copy
 import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -609,7 +609,7 @@ def bind_organization_context(organization):
                 )
 
 
-def bind_ambiguous_org_context(orgs: list[Organization], source: str | None = None) -> None:
+def bind_ambiguous_org_context(orgs: Sequence[Organization], source: str | None = None) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a
     number of known orgs (for example, if we've attempted to derive the current org from an

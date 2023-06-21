@@ -7,6 +7,7 @@ from typing import Any, Mapping
 from django.conf import settings
 from requests import PreparedRequest
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
@@ -33,9 +34,10 @@ def infer_org_integration(
     In those situations, we just grab the first organization and log this assumption.
     """
     org_integration_id = None
-    org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration_id
-    )
+    with in_test_hide_transaction_boundary():
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration_id
+        )
     if len(org_integrations) > 0:
         org_integration_id = org_integrations[0].id
         if ctx_logger:

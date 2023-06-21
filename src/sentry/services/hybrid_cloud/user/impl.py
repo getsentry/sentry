@@ -12,12 +12,15 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
+from sentry.models import OrganizationMapping, OrganizationMemberMapping, OrganizationStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
     OpaqueSerializedResponse,
 )
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
     UserFilterArgs,
@@ -87,6 +90,29 @@ class DatabaseBackedUserService(UserService):
                 # email isn't guaranteed unique
                 return list(qs.filter(email__iexact=username))
         return []
+
+    def get_organizations(
+        self,
+        *,
+        user_id: int,
+        only_visible: bool = False,
+    ) -> List[RpcOrganizationSummary]:
+        if user_id is None:
+            # This is impossible if type hints are followed or Pydantic enforces
+            # type-checking on serialization, but is still possible if we make a call
+            # from non-Mypy-checked code on the same silo. It can occur easily if
+            # `request.user.id` is passed as an argument where the user is an
+            # AnonymousUser. Check explicitly to guard against returning mappings
+            # representing invitations.
+            return []  # type: ignore[unreachable]
+
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+            "organization_id", flat=True
+        )
+        org_query = OrganizationMapping.objects.filter(organization_id__in=org_ids)
+        if only_visible:
+            org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
+        return [serialize_organization_mapping(o) for o in org_query]
 
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
