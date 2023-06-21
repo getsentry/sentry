@@ -104,6 +104,7 @@ export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 
 // This list should match each of the categories used in `HydratedBreadcrumb` above.
 export const BreadcrumbCategories = [
@@ -115,6 +116,7 @@ export const BreadcrumbCategories = [
   'ui.blur',
   'ui.focus',
   'ui.slowClickDetected',
+  'ui.multiClick',
 ];
 
 // Spans
