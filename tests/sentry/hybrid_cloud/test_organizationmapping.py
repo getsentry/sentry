@@ -1,7 +1,6 @@
 import pytest
 from django.db import IntegrityError
 
-from sentry.models import Organization, outbox_context
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
@@ -10,34 +9,11 @@ from sentry.services.hybrid_cloud.organization_mapping import (
 )
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
-    def test_create_on_organization_save(self):
-        with outbox_context(flush=False), exempt_from_silo_limits():
-            self.organization = Organization(
-                name="test name",
-            )
-            self.organization.save()
-
-        # Validate that organization mapping has not been created
-        with pytest.raises(OrganizationMapping.DoesNotExist):
-            OrganizationMapping.objects.get(organization_id=self.organization.id)
-
-        # Drain outbox to ensure mapping is created
-        with outbox_runner():
-            pass
-
-        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.idempotency_key == ""
-        assert self.organization.id == org_mapping.organization_id
-        assert org_mapping.verified is False
-        assert self.organization.slug == org_mapping.slug
-        assert self.organization.name == org_mapping.name
-
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(
             name="test name",
@@ -66,15 +42,12 @@ class OrganizationMappingTest(TransactionTestCase):
 
     def test_upsert__update_if_found(self):
         with exempt_from_silo_limits():
-            self.organization = Organization(
+            self.organization = self.create_organization(
                 name="test name",
                 slug="foobar",
             )
 
             self.organization.save()
-
-        with outbox_runner():
-            pass
 
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 

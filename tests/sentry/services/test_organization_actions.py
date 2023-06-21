@@ -22,9 +22,6 @@ from sentry.testutils.silo import region_silo_test
 def assert_outbox_update_message_exists(org: Organization, expected_count: int):
     outbox_messages = RegionOutbox.objects.filter()
 
-    # TODO(HC): Remove this once we can ensure an expected count of 1 for every message
-    #  It's not essential since these messages will coallesce, but there's no reason we
-    #  should be queueing 2 outbox messages per create/update
     assert outbox_messages.count() == expected_count
     for org_update_outbox in outbox_messages:
         assert org_update_outbox.shard_identifier == org.id
@@ -56,7 +53,7 @@ class OrganizationUpdateTest(TestCase):
         assert org.id
         assert org.slug == "santry"
         assert org.name == "santry"
-        assert_outbox_update_message_exists(org=org, expected_count=2)
+        assert_outbox_update_message_exists(org=org, expected_count=1)
 
 
 @region_silo_test(stable=True)
@@ -68,7 +65,10 @@ class OrganizationUpdateWithOutboxTest(TestCase):
             pass
 
     def test_update_organization_with_outbox_message(self):
-        update_organization_with_outbox_message(org_id=self.org.id, update_data={"name": "foobar"})
+        with outbox_context(flush=False):
+            update_organization_with_outbox_message(
+                org_id=self.org.id, update_data={"name": "foobar"}
+            )
 
         self.org.refresh_from_db()
         assert self.org.name == "foobar"
@@ -116,7 +116,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
             == org_before_modification.default_role
         )
 
-        assert_outbox_update_message_exists(org=self.org, expected_count=2)
+        assert_outbox_update_message_exists(org=self.org, expected_count=1)
 
     def test_upsert_creates_organization_with_desired_id(self):
         previous_org_count = Organization.objects.count()
@@ -143,7 +143,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         assert org_before_modification.slug == self.org.slug
         assert org_before_modification.name == self.org.name
         assert org_before_modification.status == self.org.status
-        assert_outbox_update_message_exists(org=db_created_org, expected_count=2)
+        assert_outbox_update_message_exists(org=db_created_org, expected_count=1)
 
 
 @region_silo_test(stable=True)
@@ -155,7 +155,10 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
     def test_mark_for_deletion_and_outbox_generation(self):
         org_before_update = Organization.objects.get(id=self.org.id)
-        updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
+        with outbox_context(flush=False):
+            updated_org = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
 
         assert updated_org
         self.org.refresh_from_db()
@@ -167,12 +170,14 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
     def test_mark_for_deletion_on_already_deleted_org(self):
         self.org.status = OrganizationStatus.PENDING_DELETION
-        with outbox_runner():
-            self.org.save()
+        self.org.save()
 
         org_before_update = Organization.objects.get(id=self.org.id)
 
-        updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
+        with outbox_context(flush=False):
+            updated_org = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
 
         assert updated_org is None
 

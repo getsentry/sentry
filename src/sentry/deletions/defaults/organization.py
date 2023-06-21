@@ -1,4 +1,4 @@
-from sentry.models import OrganizationStatus
+from sentry.models import OrganizationStatus, outbox_context
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
@@ -69,9 +69,10 @@ class OrganizationDeletionTask(ModelDeletionTask):
     def mark_deletion_in_progress(self, instance_list):
         from sentry.models import OrganizationStatus
 
-        for instance in instance_list:
-            if instance.status != OrganizationStatus.DELETION_IN_PROGRESS:
-                update_organization_with_outbox_message(
-                    org_id=instance.id,
-                    update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
-                )
+        with outbox_context(flush=False):
+            for instance in instance_list:
+                if instance.status != OrganizationStatus.DELETION_IN_PROGRESS:
+                    update_organization_with_outbox_message(
+                        org_id=instance.id,
+                        update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
+                    )

@@ -106,6 +106,9 @@ from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallati
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_with_outbox_message,
+)
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -265,7 +268,7 @@ class Factories:
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        org = Organization.objects.create(name=name, **kwargs)
+        org = create_organization_with_outbox_message(create_options=dict(name=name, **kwargs))
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
@@ -274,13 +277,14 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_org_mapping(org=None, **kwds):
-        if org:
-            kwds.setdefault("organization_id", org.id)
-            kwds.setdefault("slug", org.slug)
-            kwds.setdefault("name", org.name)
-            kwds.setdefault("idempotency_key", uuid4().hex)
-            kwds.setdefault("region_name", "na")
-        return OrganizationMapping.objects.create(**kwds)
+        with in_test_psql_role_override("postgres"):
+            if org:
+                kwds.setdefault("organization_id", org.id)
+                kwds.setdefault("slug", org.slug)
+                kwds.setdefault("name", org.name)
+                kwds.setdefault("idempotency_key", uuid4().hex)
+                kwds.setdefault("region_name", "na")
+            return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()
