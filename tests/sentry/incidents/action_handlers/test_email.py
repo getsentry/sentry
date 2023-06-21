@@ -22,6 +22,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
+from sentry.mail.notifications import get_unsubscribe_link
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.sentry_metrics import indexer
@@ -269,6 +270,62 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             action.alert_rule_trigger,
             trigger_status,
             IncidentStatus(incident.status),
+        )
+
+    def test_with_unsub_link(self):
+        trigger_status = TriggerStatus.ACTIVE
+        incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        unsub_link = get_unsubscribe_link(self.user.id, self.project.id, "project", None)
+        expected = {
+            "link": self.organization.absolute_url(
+                reverse(
+                    "sentry-metric-alert",
+                    kwargs={
+                        "organization_slug": incident.organization.slug,
+                        "incident_id": incident.identifier,
+                    },
+                ),
+                query="referrer=alert_email",
+            ),
+            "rule_link": self.organization.absolute_url(
+                reverse(
+                    "sentry-alert-rule",
+                    kwargs={
+                        "organization_slug": incident.organization.slug,
+                        "project_slug": self.project.slug,
+                        "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
+                    },
+                ),
+                query="referrer=alert_email",
+            ),
+            "incident_name": incident.title,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": action.alert_rule_trigger.alert_threshold,
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_direction_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": unsub_link,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": False,
+            "snooze_alert_url": None,
+        }
+        assert expected == generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+            self.user,
         )
 
     @with_feature("organizations:customer-domains")

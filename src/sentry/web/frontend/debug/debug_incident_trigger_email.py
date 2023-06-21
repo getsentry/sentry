@@ -27,8 +27,8 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch("sentry.models.UserOption.objects.get_value", return_value="US/Pacific")
     def get_context(self, request, incident_trigger_mock, user_option_mock):
         organization = Organization(slug="myorg")
-        project = Project(slug="myproject", organization=organization)
-        user = User()
+        project = Project(id=1, slug="myproject", organization=organization)
+        user = User(id=1)
 
         query = SnubaQuery(
             time_window=60, query="transaction:/some/transaction", aggregate="count()"

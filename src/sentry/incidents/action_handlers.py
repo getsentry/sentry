@@ -20,6 +20,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
+from sentry.mail.notifications import get_unsubscribe_link
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
 from sentry.models.rulesnooze import RuleSnooze
@@ -216,7 +217,7 @@ def generate_incident_trigger_email_context(
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-
+    unsubscribe_link = None
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
     # we can simplify this to be the below statement
@@ -252,6 +253,8 @@ def generate_incident_trigger_email_context(
         user_option_tz = UserOption.objects.get_value(user=user, key="timezone")
         if user_option_tz is not None:
             tz = user_option_tz
+
+        unsubscribe_link = get_unsubscribe_link(user.id, project.id, "project", None)
 
     organization = incident.organization
 
@@ -302,7 +305,7 @@ def generate_incident_trigger_email_context(
         "status_key": INCIDENT_STATUS[incident_status].lower(),
         "is_critical": incident_status == IncidentStatus.CRITICAL,
         "is_warning": incident_status == IncidentStatus.WARNING,
-        "unsubscribe_link": None,
+        "unsubscribe_link": unsubscribe_link,
         "chart_url": chart_url,
         "timezone": tz,
         "snooze_alert": snooze_alert,
