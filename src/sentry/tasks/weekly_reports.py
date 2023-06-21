@@ -49,6 +49,11 @@ date_format = partial(dateformat.format, format_string="F jS, Y")
 logger = logging.getLogger(__name__)
 
 
+DEBUG_TXN_COUNT = 50000  # set to 0 or 50000
+DEBUG_HAS_REPLAY = True  # set to true/false
+DEBUG_REPLAY_COUNT = 5000  # set to 0 or 50000
+
+
 class OrganizationReportContext:
     def __init__(self, timestamp, duration, organization):
         self.timestamp = timestamp
@@ -73,6 +78,8 @@ class ProjectContext:
     dropped_error_count = 0
     accepted_transaction_count = 0
     dropped_transaction_count = 0
+    accepted_replay_count = 0
+    dropped_replay_count = 0
 
     # Removed after organizations:escalating-issues GA
     all_issue_count = 0
@@ -97,13 +104,24 @@ class ProjectContext:
         # Array of (Group, count)
         self.key_performance_issues = []
 
+        self.key_replay_events = []
+
         # Dictionary of { timestamp: count }
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
         self.transaction_count_by_day = {}
+        # Dictionary of { timestamp: count }
+        self.replay_count_by_day = {}
 
     def __repr__(self):
-        return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
+        return "\n".join(
+            [
+                f"{self.key_errors}, ",
+                f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
+                f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
+                f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
+            ]
+        )
 
 
 def check_if_project_is_empty(project_ctx):
@@ -118,6 +136,8 @@ def check_if_project_is_empty(project_ctx):
         and not project_ctx.dropped_error_count
         and not project_ctx.accepted_transaction_count
         and not project_ctx.dropped_transaction_count
+        and not project_ctx.accepted_replay_count
+        and not project_ctx.dropped_replay_count
     )
 
 
@@ -169,6 +189,7 @@ def prepare_organization_report(
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
     has_issue_states = features.has("organizations:escalating-issues", organization)
+    has_replay_section = features.has("organizations:session-replay-weekly-email", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -196,6 +217,10 @@ def prepare_organization_report(
         fetch_key_error_groups(ctx)
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
+
+    if has_replay_section:
+        with sentry_sdk.start_span(op="weekly_reports.fetch_replay_counts"):
+            fetch_key_replay_events(ctx)
 
     report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)
@@ -246,7 +271,7 @@ def project_event_counts_for_organization(ctx):
             Condition(
                 Column("category"),
                 Op.IN,
-                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION, DataCategory.REPLAY],
             ),
         ],
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
@@ -268,6 +293,13 @@ def project_event_counts_for_organization(ctx):
             else:
                 project_ctx.accepted_transaction_count += total
                 project_ctx.transaction_count_by_day[timestamp] = total
+        if dat["category"] == DataCategory.REPLAY:
+            # Replay outcome
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
+                project_ctx.dropped_replay_count += total
+            else:
+                project_ctx.accepted_replay_count += total
+                project_ctx.replay_count_by_day[timestamp] = total
         else:
             # Error outcome
             if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
@@ -604,6 +636,16 @@ def fetch_key_performance_issue_groups(ctx):
         ]
 
 
+def fetch_key_replay_events(ctx):
+    if not features.has("organizations:session-replay", ctx.organization):
+        return
+    # if not project.flags.has_transactions:
+    #     return
+
+    for project_ctx in ctx.project.values():
+        ctx.projects[project_ctx.id].key_replays = []
+
+
 # Deliver reports
 # For all users in the organization, we generate the template context for the user, and send the email.
 
@@ -702,6 +744,8 @@ def render_template_context(ctx, user):
         user_projects = ctx.projects.values()
 
     has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
+    has_replay_section = DEBUG_HAS_REPLAY
+    # features.has("organizations:session-replay-weekly-email", ctx.organization)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -709,17 +753,26 @@ def render_template_context(ctx, user):
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
         def sum_event_counts(project_ctxs):
             return reduce(
-                lambda a, b: (a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]),
+                lambda a, b: (
+                    a[0] + b[0],
+                    a[1] + b[1],
+                    a[2] + b[2],
+                    a[3] + b[3],
+                    a[4] + b[4],
+                    a[5] + b[5],
+                ),
                 [
                     (
                         project_ctx.accepted_error_count,
                         project_ctx.dropped_error_count,
                         project_ctx.accepted_transaction_count,
                         project_ctx.dropped_transaction_count,
+                        project_ctx.accepted_replay_count,
+                        project_ctx.dropped_replay_count,
                     )
                     for project_ctx in project_ctxs
                 ],
-                (0, 0, 0, 0),
+                (0, 0, 0, 0, 0, 0),
             )
 
         # Highest volume projects go first
@@ -734,7 +787,10 @@ def render_template_context(ctx, user):
             total_dropped_error,
             total_transaction,
             total_dropped_transaction,
+            total_replays,
+            total_dropped_replays,
         ) = sum_event_counts(projects_associated_with_user)
+
         # The number of reports to keep is the same as the number of colors
         # available to use in the legend.
         projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
@@ -751,6 +807,8 @@ def render_template_context(ctx, user):
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "dropped_transaction_count": project_ctx.dropped_transaction_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
+                "dropped_replay_count": project_ctx.dropped_replay_count,
+                "accepted_replay_count": project_ctx.accepted_replay_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -761,6 +819,8 @@ def render_template_context(ctx, user):
                 others_dropped_error,
                 others_transaction,
                 others_dropped_transaction,
+                others_replays,
+                others_dropped_replays,
             ) = sum_event_counts(projects_not_taken)
             legend.append(
                 {
@@ -770,6 +830,8 @@ def render_template_context(ctx, user):
                     "accepted_error_count": others_error,
                     "dropped_transaction_count": others_dropped_transaction,
                     "accepted_transaction_count": others_transaction,
+                    "dropped_replay_count": others_dropped_replays,
+                    "accepted_replay_count": others_replays,
                 }
             )
         if len(projects_taken) > 1:
@@ -781,6 +843,8 @@ def render_template_context(ctx, user):
                     "accepted_error_count": total_error,
                     "dropped_transaction_count": total_dropped_transaction,
                     "accepted_transaction_count": total_transaction,
+                    "dropped_replay_count": total_dropped_replays,
+                    "accepted_replay_count": total_replays,
                 }
             )
 
@@ -793,6 +857,7 @@ def render_template_context(ctx, user):
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
                     "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                    "replay_count": project_ctx.replay_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -812,6 +877,12 @@ def render_template_context(ctx, user):
                                 projects_not_taken,
                             )
                         ),
+                        "replay_count": sum(
+                            map(
+                                lambda project_ctx: project_ctx.replay_count_by_day.get(t, 0),
+                                projects_not_taken,
+                            )
+                        ),
                     }
                 )
             series.append((to_datetime(t), project_series))
@@ -819,12 +890,16 @@ def render_template_context(ctx, user):
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
-            "total_transaction_count": total_transaction,
+            "total_transaction_count": DEBUG_TXN_COUNT,  # total_transaction,
+            "total_replay_count": DEBUG_REPLAY_COUNT,  # total_replays,
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
+            ),
+            "replay_maximum": max(  # The max replay count on any single day
+                sum(value["replay_count"] for value in values) for timestamp, values in series
             )
             if len(projects_taken) > 0
             else 0,
@@ -901,6 +976,9 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
 
+    def key_replays():
+        pass
+
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
@@ -951,6 +1029,7 @@ def render_template_context(ctx, user):
         }
 
     return {
+        "has_replay_section": has_replay_section,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
@@ -958,6 +1037,7 @@ def render_template_context(ctx, user):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "key_replays": key_replays(),
         "issue_summary": issue_summary(),
     }
 
