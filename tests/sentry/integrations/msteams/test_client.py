@@ -16,7 +16,11 @@ class MsTeamsClientTest(TestCase):
         self.integration = Integration.objects.create(
             provider="msteams",
             name="my_team",
-            metadata={"access_token": "my_token", "expires_at": self.expires_at},
+            metadata={
+                "access_token": "my_token",
+                "expires_at": self.expires_at,
+                "service_url": "https://smba.trafficmanager.net/amer/",
+            },
         )
 
         # token mock
@@ -49,6 +53,7 @@ class MsTeamsClientTest(TestCase):
             assert integration.metadata == {
                 "access_token": "my_new_token",
                 "expires_at": self.expires_at + 86399 - 60 * 5,
+                "service_url": "https://smba.trafficmanager.net/amer/",
             }
 
     @responses.activate
@@ -63,4 +68,5 @@ class MsTeamsClientTest(TestCase):
             assert integration.metadata == {
                 "access_token": "my_token",
                 "expires_at": self.expires_at,
+                "service_url": "https://smba.trafficmanager.net/amer/",
             }
