@@ -17,7 +17,6 @@ import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -40,12 +39,16 @@ import {
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 
-export function AggregateFlamegraph(): ReactElement {
+interface AggregateFlamegraphProps {
+  hideSystemFrames: boolean;
+  setHideSystemFrames: (hideSystemFrames: boolean) => void;
+}
+
+export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
@@ -62,10 +65,6 @@ export function AggregateFlamegraph(): ReactElement {
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
-  const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
-    'profiling-flamegraph-collapsed-frames',
-    true
-  );
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -96,15 +95,12 @@ export function AggregateFlamegraph(): ReactElement {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
-      filterFn: hideSystemFrames
-        ? (n: CallTreeNode) => n.frame.is_application
-        : undefined,
     });
 
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, sorting, threadId, hideSystemFrames, view]);
+  }, [profile, sorting, threadId, view]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -294,8 +290,8 @@ export function AggregateFlamegraph(): ReactElement {
           <Flex align="center" gap={space(1)}>
             <span>{t('Hide System Frames')}</span>
             <SwitchButton
-              toggle={() => setHideSystemFrames(!hideSystemFrames)}
-              isActive={hideSystemFrames}
+              toggle={() => props.setHideSystemFrames(!props.hideSystemFrames)}
+              isActive={props.hideSystemFrames}
             />
           </Flex>
         </Flex>

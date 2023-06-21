@@ -45,16 +45,16 @@ function sortSamples(
   return stacksWithWeights(profile, profileIds).sort(sortStacks);
 }
 
-function throwIfMissingFrame(index: number) {
-  throw new Error(`Could not resolve frame ${index} in frame index`);
-}
-
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'; profileIds?: Readonly<string[]>}
+    options: {
+      type: 'flamechart' | 'flamegraph';
+      frameFilter?: (frame: Frame) => boolean;
+      profileIds?: Readonly<string[]>;
+    }
   ): Profile {
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
@@ -101,15 +101,26 @@ export class SampledProfile extends Profile {
     // and size of the stack to process. The size indicates how many items from the buffer we want
     // to process.
 
+    function resolveFrame(index) {
+      const resolvedFrame = frameIndex[index];
+      if (!resolvedFrame) {
+        throw new Error(`Could not resolve frame ${index} in frame index`);
+      }
+      if (options.frameFilter && !options.frameFilter(resolvedFrame)) {
+        return null;
+      }
+      return resolvedFrame;
+    }
+
     const resolvedStack: Frame[] = new Array(256); // stack size limit
+    let size = 0;
+    let frame: Frame | null = null;
 
     for (let i = 0; i < samples.length; i++) {
       const stack = samples[i].stack;
       let weight = samples[i].weight;
-      let size = samples[i].stack.length;
-      let useCurrentStack = true;
 
-      if (
+      const isGCStack =
         options.type === 'flamechart' &&
         i > 0 &&
         // We check for size <= 2 because we have so far only seen node profiles
@@ -118,37 +129,42 @@ export class SampledProfile extends Profile {
         // and when that happens, we do not want to enter this case as the GC will already
         // be placed at the top of the previous stack and the new stack length will be > 2
         stack.length <= 2 &&
-        frameIndex[stack[stack.length - 1]]?.name === '(garbage collector) [native code]'
-      ) {
-        // We have a GC frame, so we will use the previous stack
-        useCurrentStack = false;
+        frameIndex[stack[stack.length - 1]]?.name === '(garbage collector) [native code]';
+
+      if (isGCStack) {
         // The next stack we will process will be the previous stack + our new gc frame.
         // We write the GC frame on top of the previous stack and set the size to the new stack length.
-        resolvedStack[samples[i - 1].stack.length] = frameIndex[stack[stack.length - 1]];
-        // Size is not sample[i-1].size + our gc frame
-        size = samples[i - 1].stack.length + 1;
+        frame = resolveFrame(stack[stack.length - 1]);
+        if (frame) {
+          resolvedStack[samples[i - 1].stack.length] =
+            frameIndex[stack[stack.length - 1]];
+          size += 1; // size of previous stack + new gc frame
 
-        // Now collect all weights of all the consecutive gc frames and skip the samples
-        while (
-          samples[i + 1] &&
-          // We check for size <= 2 because we have so far only seen node profiles
-          // where GC is either marked as the root node or is directly under the root node.
-          // There is a good chance that this logic will at some point live on the backend
-          // and when that happens, we do not want to enter this case as the GC will already
-          // be placed at the top of the previous stack and the new stack length will be > 2
-          samples[i + 1].stack.length <= 2 &&
-          frameIndex[samples[i + 1].stack[samples[i + 1].stack.length - 1]]?.name ===
-            '(garbage collector) [native code]'
-        ) {
-          weight += samples[++i].weight;
+          // Now collect all weights of all the consecutive gc frames and skip the samples
+          while (
+            samples[i + 1] &&
+            // We check for size <= 2 because we have so far only seen node profiles
+            // where GC is either marked as the root node or is directly under the root node.
+            // There is a good chance that this logic will at some point live on the backend
+            // and when that happens, we do not want to enter this case as the GC will already
+            // be placed at the top of the previous stack and the new stack length will be > 2
+            samples[i + 1].stack.length <= 2 &&
+            frameIndex[samples[i + 1].stack[samples[i + 1].stack.length - 1]]?.name ===
+              '(garbage collector) [native code]'
+          ) {
+            weight += samples[++i].weight;
+          }
         }
-      }
-
-      // If we are using the current stack, then we need to resolve the frames,
-      // else the processed frames will be the frames that were previously resolved
-      if (useCurrentStack) {
+      } else {
+        size = 0;
+        // If we are using the current stack, then we need to resolve the frames,
+        // else the processed frames will be the frames that were previously resolved
         for (let j = 0; j < stack.length; j++) {
-          resolvedStack[j] = frameIndex[stack[j]] ?? throwIfMissingFrame(stack[j]);
+          frame = resolveFrame(stack[j]);
+          if (!frame) {
+            continue;
+          }
+          resolvedStack[size++] = frame;
         }
       }
 
