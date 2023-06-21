@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import * as qs from 'query-string';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -19,7 +20,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
-import _ from 'lodash';
 
 type Props = {
   colorPalette: string[];
@@ -61,7 +61,7 @@ export function SpanGroupBreakdown({
   }
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
-  const dataAsPercentages = _.cloneDeep(data);
+  const dataAsPercentages = cloneDeep(data);
   const numDataPoints = data[0]?.data?.length ?? 0;
   for (let i = 0; i < numDataPoints; i++) {
     const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
@@ -71,8 +71,6 @@ export function SpanGroupBreakdown({
       segment.data[i] = clone;
     });
   }
-
-  console.dir(dataAsPercentages);
 
   return (
     <FlexRowContainer>
@@ -86,6 +84,8 @@ export function SpanGroupBreakdown({
           statsPeriod="24h"
           height={210}
           data={dataAsPercentages}
+          dataMax={1}
+          durationUnit={0.25}
           start=""
           end=""
           errored={errored}
@@ -99,7 +99,7 @@ export function SpanGroupBreakdown({
           }}
           definedAxisTicks={6}
           stacked
-          aggregateOutputFormat="duration"
+          aggregateOutputFormat="percentage"
           tooltipFormatterOptions={{
             valueFormatter: value =>
               tooltipFormatterUsingAggregateOutputType(value, 'duration'),
