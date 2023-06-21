@@ -17,7 +17,7 @@ def generate_token(org_slug: str, region_url: str):
         "region_url": region_url,
         "org": org_slug,
     }
-    secret = base64_encode_str(uuid4().hex)
+    secret = b64encode(uuid4().bytes).decode("ascii").rstrip("=")
 
     json_str = json.dumps(payload)
     payload_hashed = base64_encode_str(json_str)
