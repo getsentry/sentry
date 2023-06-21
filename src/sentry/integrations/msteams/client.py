@@ -71,7 +71,7 @@ class MsTeamsClientMixin:
 # MsTeamsPreInstallClient is used with the access token and service url as arguments to the constructor
 # It will not handle token refreshing
 class MsTeamsPreInstallClient(ApiClient, MsTeamsClientMixin):
-    def __init__(self, access_token, service_url):
+    def __init__(self, access_token: str, service_url: str):
         super().__init__()
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
