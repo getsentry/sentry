@@ -74,7 +74,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           };
 
           const errorsData: Series = {
-            seriesName: t('Errors (5XXs)'),
+            seriesName: t('5xx Responses'),
             color: CHART_PALETTE[5][3],
             data: results[1].data,
           };
