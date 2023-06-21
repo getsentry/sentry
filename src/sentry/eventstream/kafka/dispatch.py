@@ -12,6 +12,7 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
+from sentry.post_process_forwarder.post_process_forwarder import PostProcessForwarderStrategyFactory
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
@@ -87,3 +88,8 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
         return None
 
     dispatch_post_process_group_task(**task_kwargs)
+
+
+class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
+    def _dispatch_function(self, message: Message[KafkaPayload]) -> None:
+        return _get_task_kwargs_and_dispatch(message)

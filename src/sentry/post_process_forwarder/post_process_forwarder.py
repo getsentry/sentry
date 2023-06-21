@@ -1,6 +1,7 @@
 import logging
 import signal
 import uuid
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Literal, Mapping, Optional, Union
 
@@ -15,7 +16,7 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTaskInThreads,
 )
-from arroyo.types import Commit, Partition, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.consumers.synchronized import SynchronizedConsumer
@@ -122,18 +123,26 @@ class PostProcessForwarder:
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency=concurrency)
+        # Right now PostProcessForwarder depends on eventstream, but with the
+        # unified consumer, this entire PostProcessForwarder class will be
+        # deleted. Leaving us only with a generic
+        # PostProcessForwarderStrategyFactory that works for any sort of snuba
+        # topic (in theory)
+        from sentry.eventstream.kafka.dispatch import EventPostProcessForwarderStrategyFactory
+
+        strategy_factory = EventPostProcessForwarderStrategyFactory(concurrency=concurrency)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
         )
 
 
-class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(
-        self,
-        concurrency: int,
-    ):
+class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload], ABC):
+    @abstractmethod
+    def _dispatch_function(self, message: Message[KafkaPayload]) -> None:
+        raise NotImplementedError()
+
+    def __init__(self, concurrency: int):
         self.__concurrency = concurrency
         self.__max_pending_futures = concurrency + 1000
 
@@ -142,10 +151,8 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
-
         return RunTaskInThreads(
-            _get_task_kwargs_and_dispatch,
+            self._dispatch_function,
             self.__concurrency,
             self.__max_pending_futures,
             CommitOffsets(commit),
