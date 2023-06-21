@@ -216,7 +216,6 @@ def assigned_or_suggested_filter(
         ) | assigned_to_filter(teams, projects, field_filter=field_filter)
 
     if "User" in types_to_owners:
-        # test change
         users = types_to_owners["User"]
         user_ids: List[int] = [u.id for u in users if u is not None]
         team_ids = list(
