@@ -567,7 +567,6 @@ def ingest_consumer(consumer_type, **options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
     from sentry.consumers import print_deprecation_warning
-    from sentry.issues.run import get_occurrences_ingest_consumer
 
     print_deprecation_warning("ingest-occurrences", options["group_id"])
     from django.conf import settings
