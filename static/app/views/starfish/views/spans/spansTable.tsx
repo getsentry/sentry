@@ -181,12 +181,7 @@ function renderBodyCell(
   }
 
   if (column.key === 'p95(span.self_time)') {
-    return (
-      <DurationCell
-        milliseconds={row['p95(span.self_time)']}
-        delta={row['percentile_percent_change(span.self_time, 0.95)']}
-      />
-    );
+    return <DurationCell milliseconds={row['p95(span.self_time)']} />;
   }
 
   if (!meta || !meta?.fields) {
@@ -257,6 +252,11 @@ function getColumns(moduleName: ModuleName): Column[] {
       key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
       width: 175,
+    },
+    {
+      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+      name: DataTitles.change,
+      width: -1,
     },
     {
       key: 'time_spent_percentage()',
