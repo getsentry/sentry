@@ -1,10 +1,14 @@
 import time
 from urllib.parse import urlencode
 
+from requests import PreparedRequest
+
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
@@ -19,10 +23,6 @@ class MsTeamsAbstractClient(ApiClient):
     MESSAGE_URL = "/v3/conversations/%s/activities/%s"
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
-
-    def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": f"Bearer {self.access_token}"}
-        return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_team_info(self, team_id):
         return self.get(self.TEAM_URL % team_id)
@@ -76,11 +76,16 @@ class MsTeamsPreInstallClient(MsTeamsAbstractClient):
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
 
+    def request(self, method, path, data=None, params=None):
+        headers = {"Authorization": f"Bearer {self.access_token}"}
+        return self._request(method, path, headers=headers, data=data, params=params)
+
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
-class MsTeamsClient(MsTeamsAbstractClient):
+class MsTeamsClient(IntegrationProxyClient, MsTeamsAbstractClient):
     def __init__(self, integration: Integration):
-        super().__init__()
+        org_integration_id = infer_org_integration(integration_id=integration.id)
+        super().__init__(org_integration_id=org_integration_id)
         self.integration = integration
 
     @property
@@ -111,6 +116,11 @@ class MsTeamsClient(MsTeamsAbstractClient):
                 metadata=new_metadata,
             )
         return access_token
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        prepared_request.headers["Authorization"] = f"Bearer {self.access_token}"
+        return prepared_request
 
 
 # OAuthMsTeamsClient is used only for the exchanging the token
