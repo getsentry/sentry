@@ -121,19 +121,17 @@ class SentryAppInstallationCreator:
         if not self.sentry_app.verify_install:
             status = SentryAppInstallationStatus.INSTALLED
 
-        return SentryAppInstallation.objects.update_or_create(
+        return SentryAppInstallation.objects.create(
             organization_id=self.organization_id,
             sentry_app_id=self.sentry_app.id,
-            defaults=dict(
-                api_grant_id=api_grant.id,
-                status=status,
-            ),
-        )[0]
+            api_grant_id=api_grant.id,
+            status=status,
+        )
 
     def _create_api_grant(self) -> ApiGrant:
-        return ApiGrant.objects.get_or_create(
+        return ApiGrant.objects.create(
             user_id=self.sentry_app.proxy_user.id, application_id=self.api_application.id
-        )[0]
+        )
 
     def _create_service_hooks(self, install: SentryAppInstallation) -> None:
         # only make the service hook if there is a webhook url
