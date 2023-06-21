@@ -32,7 +32,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 type SpanTableRow = {
-  description: string;
   op: string;
   'span.self_time': number;
   span_id: string;
@@ -43,7 +42,7 @@ type SpanTableRow = {
     timestamp: string;
     'transaction.duration': number;
   };
-  transaction_id: string;
+  'transaction.id': string;
 };
 
 type Props = {
@@ -71,9 +70,9 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={`/performance/${row.transaction['project.name']}:${row.transaction_id}#span-${row.span_id}`}
+          to={`/performance/${row.transaction?.['project.name']}:${row['transaction.id']}#span-${row.span_id}`}
         >
-          {row.transaction_id.slice(0, 8)}
+          {row['transaction.id'].slice(0, 8)}
         </Link>
       );
     }
@@ -83,7 +82,7 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
         <SpanDurationBar
           spanOp={row.op}
           spanDuration={row['span.self_time']}
-          transactionDuration={row.transaction['transaction.duration']}
+          transactionDuration={row.transaction?.['transaction.duration']}
         />
       );
     }
@@ -93,7 +92,7 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
     }
 
     if (column.key === 'timestamp') {
-      return <DateTime date={row.timestamp} year timeZone seconds />;
+      return <DateTime date={row['span.timestamp']} year timeZone seconds />;
     }
 
     return <span>{row[column.key]}</span>;

@@ -77,7 +77,7 @@ function SpanSummaryPage({params, location}: Props) {
       {group: groupId},
       queryFilter,
       [`p95(${SPAN_SELF_TIME})`, 'sps()'],
-      'sidebar-span-metrics'
+      'span-summary-page-metrics'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);

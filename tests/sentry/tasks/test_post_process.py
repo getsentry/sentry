@@ -1730,10 +1730,10 @@ class PostProcessGroupPerformanceTest(
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
         # but because post-processing is async, this causes the assert to fail because it doesn't
         # wait for the side effects to happen
-        call_order = []
-        mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
-        mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
-        mock_process_rules.side_effect = call_order.append(mock_process_rules)
+        call_order = [mock_handle_owner_assignment, mock_handle_auto_assignment, mock_process_rules]
+        mock_handle_owner_assignment.side_effect = None
+        mock_handle_auto_assignment.side_effect = None
+        mock_process_rules.side_effect = None
 
         post_process_group(
             **group_state,

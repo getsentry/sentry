@@ -189,7 +189,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             return func(val) if val is not None else default
 
-        # XXX(CEO): these default values are based on the current sort C and are subject to change
+        # XXX(CEO): these default values are based on sort E
         aggregate_kwargs = {
             "better_priority": {
                 "log_level": _coerce(
@@ -220,11 +220,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             }
         }
 
-        # XXX(CEO): these are based on the current sort D and E and are subject to change
-        if choice and not internal:
-            aggregate_kwargs["better_priority"]["issue_halflife_hours"] = 12
-        if choice == "variant1" and not internal:
-            aggregate_kwargs["better_priority"]["relative_volume"] = 0
+        # XXX(CEO): this is based on sort F
+        if choice == "variant2" and not internal:
+            aggregate_kwargs["better_priority"]["issue_halflife_hours"] = 42
 
         return aggregate_kwargs
 
