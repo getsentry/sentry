@@ -141,6 +141,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group.title == occurrence.issue_title
         assert group.data["metadata"]["value"] == occurrence.subtitle
         assert group.culprit == occurrence.culprit
+        assert group.message == "<unlabeled event> something bad happened it was bad api/123"
         assert group.location() == event.location
 
     def test_existing_group(self) -> None:
@@ -165,6 +166,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert updated_group.culprit == new_occurrence.culprit
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
+        assert updated_group.message == "<unlabeled event> new title new subtitle api/123"
 
     def test_existing_group_different_category(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
