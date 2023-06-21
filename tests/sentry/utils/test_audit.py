@@ -6,8 +6,10 @@ from sentry.models import (
     DeletedOrganization,
     DeletedProject,
     DeletedTeam,
-    Organization,
     OrganizationStatus,
+)
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
 )
 from sentry.testutils import TestCase
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
@@ -78,23 +80,18 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.PENDING_DELETION
+        org = update_organization_with_outbox_message(
+            org_id=self.organization.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
         )
 
-        org = Organization.objects.get(id=self.organization.id)
-
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
+        org2 = update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
         )
 
-        org2 = Organization.objects.get(id=self.organization.id)
-
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.ACTIVE
+        org3 = update_organization_with_outbox_message(
+            org_id=self.organization.id, update_data={"status": OrganizationStatus.ACTIVE}
         )
-
-        org3 = Organization.objects.get(id=self.organization.id)
 
         orgs = [org, org2, org3]
 

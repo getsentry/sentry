@@ -11,13 +11,15 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
-    Organization,
     OrganizationMember,
     OrganizationOption,
     OrganizationStatus,
     UserEmail,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -1055,8 +1057,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
     def test_org_not_visible(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
         )
 
         resp = self.client.get(self.path, follow=True)

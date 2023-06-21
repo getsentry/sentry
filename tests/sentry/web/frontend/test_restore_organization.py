@@ -1,6 +1,9 @@
 from django.urls import reverse
 
 from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import PermissionTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -48,8 +51,9 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context["deleting_organization"] == self.organization
         assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
         )
 
         resp = self.client.get(self.path)
@@ -73,8 +77,9 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context["deleting_organization"] == self.organization
         assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
         )
 
         resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
@@ -96,8 +101,9 @@ class RemoveOrganizationTest(TestCase):
         assert org.status == OrganizationStatus.ACTIVE
 
     def test_too_late_still_restores(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
         )
 
         resp = self.client.post(self.path)
@@ -112,7 +118,10 @@ class RemoveOrganizationTest(TestCase):
         assert ScheduledDeletion.objects.count() == 0
 
         org_id = self.organization.id
-        Organization.objects.filter(id=org_id).update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=self.organization.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
+
         deletion = ScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 
