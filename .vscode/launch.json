@@ -9,7 +9,7 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://dev.getsentry.net:8000",
-      "webRoot": "${workspaceRoot}/src/sentry/static/sentry/app"
+      "webRoot": "${workspaceRoot}/static"
     },
     {
       "name": "sentry backend",

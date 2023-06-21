@@ -16,6 +16,7 @@ type Props = {
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   stackView?: StackView;
+  threadId?: number;
 } & Pick<ExceptionType, 'values'>;
 
 export function ExceptionContent({
@@ -29,6 +30,7 @@ export function ExceptionContent({
   groupingCurrentLevel,
   platform = 'other',
   meta,
+  threadId,
 }: Props) {
   return (
     <ErrorBoundary mini>
@@ -52,6 +54,7 @@ export function ExceptionContent({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
+          threadId={threadId}
         />
       )}
     </ErrorBoundary>

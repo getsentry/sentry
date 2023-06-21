@@ -21,9 +21,11 @@ type Props = Pick<
   platform: PlatformType;
   stacktrace: StacktraceType;
   inlined?: boolean;
+  lockAddress?: string;
   maxDepth?: number;
   meta?: Record<any, any>;
   stackView?: StackView;
+  threadId?: number;
 };
 
 export function StackTraceContent({
@@ -37,6 +39,8 @@ export function StackTraceContent({
   maxDepth,
   meta,
   inlined,
+  threadId,
+  lockAddress,
 }: Props) {
   if (stackView === StackView.RAW) {
     return (
@@ -99,6 +103,8 @@ export function StackTraceContent({
         hideIcon={inlined}
         inlined={inlined}
         maxDepth={maxDepth}
+        threadId={threadId}
+        lockAddress={lockAddress}
       />
     </ErrorBoundary>
   );

@@ -1,6 +1,7 @@
 import {
   getCurlCommand,
   getCurrentThread,
+  getThreadById,
   objectToSortedTupleArray,
   removeFilterMaskedEntries,
   stringifyQueryList,
@@ -270,6 +271,33 @@ describe('components/interfaces/utils', function () {
     };
     it('should return current thread if available', function () {
       const thread = getCurrentThread(event);
+      expect(thread.name).toEqual('puma 002');
+    });
+  });
+
+  describe('getThreadById()', function () {
+    const event = {
+      entries: [
+        {
+          data: {
+            values: [
+              {
+                id: 13920,
+                current: true,
+                crashed: true,
+                name: 'puma 002',
+                stacktrace: null,
+                rawStacktrace: null,
+                state: 'WAITING',
+              },
+            ],
+          },
+          type: EntryType.THREADS,
+        },
+      ],
+    };
+    it('should return thread by given id if available', function () {
+      const thread = getThreadById(event, 13920);
       expect(thread.name).toEqual('puma 002');
     });
   });

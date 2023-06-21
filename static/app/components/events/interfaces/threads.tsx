@@ -19,9 +19,7 @@ import {space} from 'sentry/styles/space';
 import {
   EntryType,
   Event,
-  Frame,
   Organization,
-  PlatformType,
   Project,
   StackType,
   StackView,
@@ -38,7 +36,7 @@ import findBestThread from './threads/threadSelector/findBestThread';
 import getThreadException from './threads/threadSelector/getThreadException';
 import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
-import {isStacktraceNewestFirst} from './utils';
+import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 
@@ -120,31 +118,6 @@ export function Threads({
     ? getIntendedStackView(activeThread, exception)
     : undefined;
 
-  function getPlatform(): PlatformType {
-    let exceptionFramePlatform: Frame | undefined = undefined;
-
-    for (const value of exception?.values ?? []) {
-      exceptionFramePlatform = value.stacktrace?.frames?.find(frame => !!frame.platform);
-      if (exceptionFramePlatform) {
-        break;
-      }
-    }
-
-    if (exceptionFramePlatform?.platform) {
-      return exceptionFramePlatform.platform;
-    }
-
-    const threadFramePlatform = activeThread?.stacktrace?.frames?.find(
-      frame => !!frame.platform
-    );
-
-    if (threadFramePlatform?.platform) {
-      return threadFramePlatform.platform;
-    }
-
-    return event.platform ?? 'other';
-  }
-
   function renderPills() {
     const {
       id,
@@ -208,6 +181,7 @@ export function Threads({
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
+          threadId={activeThread?.id}
         />
       );
     }
@@ -234,6 +208,7 @@ export function Threads({
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           meta={meta}
+          threadId={activeThread?.id}
         />
       );
     }
@@ -245,7 +220,7 @@ export function Threads({
     );
   }
 
-  const platform = getPlatform();
+  const platform = inferPlatform(event, activeThread);
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
