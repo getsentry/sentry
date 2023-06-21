@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -41,5 +41,5 @@ def log_query_timeout(query: str, offset: int) -> None:
     logger.error("dynamic_sampling.query_timeout", extra={"query": query, "offset": offset})
 
 
-def log_recalibrate_orgs_errors(errors: Dict[str, str]) -> None:
-    logger.error("dynamic_sampling.recalibrate_orgs", extra={"errors": errors})
+def log_recalibrate_orgs_errors(errors: Dict[str, List[str]]) -> None:
+    logger.info("dynamic_sampling.recalibrate_orgs", extra={"errors": errors})

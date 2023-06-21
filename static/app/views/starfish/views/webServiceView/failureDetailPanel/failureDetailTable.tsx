@@ -15,7 +15,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 import {PercentChangeCell} from 'sentry/views/starfish/views/webServiceView/endpointList';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
@@ -65,8 +64,7 @@ export default function FailureDetailTable({
 
   function renderBodyCell(
     column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow,
-    _onSelect?: (row: EndpointDataRow) => void
+    dataRow: TableDataRow
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
