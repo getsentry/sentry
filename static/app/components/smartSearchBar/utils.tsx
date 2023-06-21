@@ -164,16 +164,6 @@ export function createSearchGroups(
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ): SearchGroups {
   const fieldDefinition = fieldDefinitionGetter(tagName);
-  if (
-    fieldDefinition?.valueType === FieldValueType.DATE &&
-    type === ItemType.TAG_OPERATOR
-  ) {
-    return {
-      searchGroups: [],
-      flatSearchItems: [],
-      activeSearchItem: -1,
-    };
-  }
 
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
@@ -211,6 +201,16 @@ export function createSearchGroups(
     }
     return [item];
   });
+
+  if (fieldDefinition?.valueType === FieldValueType.DATE) {
+    if (type === ItemType.TAG_OPERATOR) {
+      return {
+        searchGroups: [],
+        flatSearchItems: [],
+        activeSearchItem: -1,
+      };
+    }
+  }
 
   if (isDefaultState) {
     // Recent searches first in default state.

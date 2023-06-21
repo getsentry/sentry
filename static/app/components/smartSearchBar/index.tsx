@@ -355,7 +355,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     name: 'query',
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
-    defaultSearchGroup: {},
     defaultSearchItems: [[], []],
     useFormWrapper: true,
     savedSearchType: SavedSearchType.ISSUE,

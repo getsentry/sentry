@@ -11,6 +11,8 @@ import {SmartSearchBar} from 'sentry/components/smartSearchBar';
 import TagStore from 'sentry/stores/tagStore';
 import {FieldKey} from 'sentry/utils/fields';
 
+import {ItemType} from './types';
+
 describe('SmartSearchBar', function () {
   let defaultProps;
 
@@ -1034,6 +1036,72 @@ describe('SmartSearchBar', function () {
           'Invalid duration. Expected number followed by duration unit suffix'
         )
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('defaultSearchGroup', () => {
+    const defaultSearchGroup = {
+      title: 'default search group',
+      type: 'header',
+      // childrenWrapper allows us to arrange the children with custom styles
+      childrenWrapper: props => (
+        <div data-test-id="default-search-group-wrapper" {...props} />
+      ),
+      children: [
+        {
+          type: ItemType.RECOMMENDED,
+          title: 'Assignee',
+          desc: 'Filter by team or member.',
+          value: 'assigned_or_suggested:',
+        },
+      ],
+    };
+
+    it('displays a default group with custom wrapper', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SmartSearchBar
+          {...defaultProps}
+          defaultSearchGroup={defaultSearchGroup}
+          query=""
+          onChange={mockOnChange}
+        />
+      );
+
+      const textbox = screen.getByRole('textbox');
+      await userEvent.click(textbox);
+
+      expect(screen.getByTestId('default-search-group-wrapper')).toBeInTheDocument();
+      expect(screen.getByText('default search group')).toBeInTheDocument();
+
+      // Default group is correctly added to the dropdown
+      await userEvent.keyboard('{ArrowDown}{Enter}');
+
+      // await userEvent.click(screen.getByText('Assignee'));
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'assigned_or_suggested:',
+        expect.anything()
+      );
+    });
+    it('hides the default group after typing', async function () {
+      render(
+        <SmartSearchBar
+          {...defaultProps}
+          defaultSearchGroup={defaultSearchGroup}
+          query=""
+        />
+      );
+
+      const textbox = screen.getByRole('textbox');
+      await userEvent.click(textbox);
+
+      expect(screen.getByTestId('default-search-group-wrapper')).toBeInTheDocument();
+
+      await userEvent.type(textbox, 'f');
+
+      expect(
+        screen.queryByTestId('default-search-group-wrapper')
+      ).not.toBeInTheDocument();
     });
   });
 });
