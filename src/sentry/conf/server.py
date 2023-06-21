@@ -3417,12 +3417,12 @@ if USE_SILOS:
                 "name": "us",
                 "snowflake_id": 1,
                 "category": "MULTI_TENANT",
-                "address": "http://localhost:8000",
+                "address": "http://localhost:8010",
                 "api_token": "dev-region-silo-token",
             }
         ]
     )
-    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
             "is_allowed": True,

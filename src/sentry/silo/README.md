@@ -68,11 +68,11 @@ tunnels:
     control-silo:
         proto: http
         hostname: <YOUR-CONTROL-NGROK-SUBDOMAIN>.ngrok.io
-        addr: 8011
+        addr: 8001
     region-silo:
         proto: http
         hostname: <YOUR-REGION-NGROK-SUBDOMAIN>.ngrok.io
-        addr: 8001
+        addr: 8011
 ```
 
 Now you can spin up all the tunnels in the file with:
