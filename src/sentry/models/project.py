@@ -31,11 +31,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models import OptionMixin
 from sentry.models.grouplink import GroupLink
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
@@ -536,7 +535,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)
 

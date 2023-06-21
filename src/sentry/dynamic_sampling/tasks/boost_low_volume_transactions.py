@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
+from typing import Callable, Iterator, List, Optional, Tuple, TypedDict
 
 from snuba_sdk import (
     AliasedExpression,
@@ -464,10 +464,14 @@ def fetch_transactions_with_total_volumes(
             transaction_name = row["transaction_name"]
             num_transactions = row["num_transactions"]
             if current_proj_id != proj_id or current_org_id != org_id:
-                if len(transaction_counts) > 0:
+                if (
+                    len(transaction_counts) > 0
+                    and current_proj_id is not None
+                    and current_org_id is not None
+                ):
                     yield {
-                        "project_id": cast(int, current_proj_id),
-                        "org_id": cast(int, current_org_id),
+                        "project_id": current_proj_id,
+                        "org_id": current_org_id,
                         "transaction_counts": transaction_counts,
                         "total_num_transactions": None,
                         "total_num_classes": None,
@@ -477,10 +481,14 @@ def fetch_transactions_with_total_volumes(
                 current_proj_id = proj_id
             transaction_counts.append((transaction_name, num_transactions))
         if not more_results:
-            if len(transaction_counts) > 0:
+            if (
+                len(transaction_counts) > 0
+                and current_proj_id is not None
+                and current_org_id is not None
+            ):
                 yield {
-                    "project_id": cast(int, current_proj_id),
-                    "org_id": cast(int, current_org_id),
+                    "project_id": current_proj_id,
+                    "org_id": current_org_id,
                     "transaction_counts": transaction_counts,
                     "total_num_transactions": None,
                     "total_num_classes": None,

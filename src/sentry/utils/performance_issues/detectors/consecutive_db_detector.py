@@ -55,7 +55,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
+    type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
@@ -266,7 +266,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
+    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
 
