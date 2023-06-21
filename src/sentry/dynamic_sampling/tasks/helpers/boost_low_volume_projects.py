@@ -1,7 +1,7 @@
 import sentry_sdk
 
-from sentry.dynamic_sampling.rules.helpers.sliding_window import was_sliding_window_org_executed
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import was_sliding_window_org_executed
 
 
 def generate_boost_low_volume_projects_cache_key(org_id: int) -> str:

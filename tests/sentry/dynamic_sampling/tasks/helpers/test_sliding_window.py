@@ -1,7 +1,7 @@
 import pytest
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.rules.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
 
 
 @freeze_time("2023-02-03 12:00:00")

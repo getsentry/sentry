@@ -1,10 +1,10 @@
 from typing import List
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, Rule, RuleType
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     get_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, Rule, RuleType
 from sentry.models import Project
 
 
