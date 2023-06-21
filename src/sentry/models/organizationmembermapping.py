@@ -45,10 +45,11 @@ class OrganizationMemberMapping(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmembermapping"
-        unique_together = (
+        unique_together = (("organization_id", "organizationmember_id"),)
+
+        index_together = (
             ("organization_id", "user"),
             ("organization_id", "email"),
-            ("organization_id", "organizationmember_id"),
         )
 
     __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")
