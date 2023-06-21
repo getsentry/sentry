@@ -7,6 +7,7 @@ from typing import Optional
 
 from django.db import IntegrityError, transaction
 
+from sentry import roles
 from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
@@ -18,6 +19,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
+from sentry.signals import member_joined
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -45,6 +47,15 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     return
                 for outbox in user.outboxes_for_update():
                     outbox.save()
+
+                if existing.role != roles.get_top_dog().id:
+                    transaction.on_commit(
+                        lambda: member_joined.send_robust(
+                            sender=None,
+                            member=existing,
+                            organization_id=existing.organization_id,
+                        )
+                    )
 
         try:
             with outbox_context(transaction.atomic()):
