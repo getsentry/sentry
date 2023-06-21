@@ -49,7 +49,7 @@ function DefaultTitle({
    * is located relative to their project root.
    */
   const stripRelativePathPrefix = (filename: string): string => {
-    return filename.replace(/^(..\/)*/, '');
+    return filename.replace(/^(\.\.\/)*/, '');
   };
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
