@@ -14,8 +14,8 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infe
 CLOCK_SKEW = 60 * 5
 
 
-# MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
-class MsTeamsAbstractClient:
+# MsTeamsClientMixin abstract client does not handle setting the base url or auth token
+class MsTeamsClientMixin:
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
@@ -70,7 +70,7 @@ class MsTeamsAbstractClient:
 
 # MsTeamsPreInstallClient is used with the access token and service url as arguments to the constructor
 # It will not handle token refreshing
-class MsTeamsPreInstallClient(ApiClient, MsTeamsAbstractClient):
+class MsTeamsPreInstallClient(ApiClient, MsTeamsClientMixin):
     def __init__(self, access_token, service_url):
         super().__init__()
         self.access_token = access_token
@@ -82,7 +82,7 @@ class MsTeamsPreInstallClient(ApiClient, MsTeamsAbstractClient):
 
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
-class MsTeamsClient(IntegrationProxyClient, MsTeamsAbstractClient):
+class MsTeamsClient(IntegrationProxyClient, MsTeamsClientMixin):
     def __init__(self, integration: Integration):
         self.integration = integration
         org_integration_id = infer_org_integration(integration_id=integration.id)
