@@ -108,7 +108,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,  # type: ignore[attr-defined]
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
             )
@@ -126,7 +126,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 top_events=top_functions,
                 organization=organization,
                 zerofill_results=zerofill_results,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,  # type: ignore[attr-defined]
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
                 # this ensures the result key is formatted as `{project.id},{fingerprint}`
                 # in order to be compatible with the trends service
                 result_key_order=["project.id", "fingerprint"],
@@ -136,7 +136,18 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
         def get_trends_data(stats_data):
             trends_request = {
-                "data": stats_data,
+                "data": {
+                    k: {
+                        "data": v["data"],
+                        # set data_* to the same as request_* for now
+                        # as we dont pass more historical data for context
+                        "data_start": v["start"],
+                        "data_end": v["end"],
+                        "request_start": v["start"],
+                        "request_end": v["end"],
+                    }
+                    for k, v in stats_data.items()
+                },
                 "sort": data["trend"].as_sort(),
                 "trendFunction": data["function"],
             }

@@ -48,6 +48,9 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsFields.SPAN_DURATION]: {
     outputType: 'duration',
   },
+  [SpanMetricsFields.SPAN_SELF_TIME]: {
+    outputType: 'duration',
+  },
 };
 
 type Props = {
@@ -57,7 +60,7 @@ type Props = {
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
-  aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
+  aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
   definedAxisTicks?: number;
@@ -150,7 +153,7 @@ function Chart({
   const router = useRouter();
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
+  const {startTime, endTime} = getDateFilters(pageFilter.selection);
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;

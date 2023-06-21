@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.sentry_metrics.indexer.postgres.models import PerfStringIndexer
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class PerfIndexerUseCaseIdBackfillTest(TestMigrations):
     migrate_from = "0445_drop_deprecated_monitor_next_last_checkin_db_op"
     migrate_to = "0446_backfill_indexer_use_case_id"

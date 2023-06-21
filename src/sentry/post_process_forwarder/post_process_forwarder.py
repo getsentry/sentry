@@ -2,7 +2,7 @@ import logging
 import signal
 import uuid
 from enum import Enum
-from typing import Any, Callable, Literal, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Literal, Mapping, Optional, Union
 
 from arroyo import configure_metrics
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -16,13 +16,12 @@ from arroyo.processing.strategies import (
     RunTaskInThreads,
 )
 from arroyo.types import Commit, Message, Partition, Topic
-from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.utils.kafka_config import get_kafka_consumer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,6 @@ class PostProcessForwarder:
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
         self.assign_transaction_partitions_randomly = True
-        self.__producers: MutableMapping[str, Producer] = {}
 
     def run(
         self,
@@ -81,8 +79,6 @@ class PostProcessForwarder:
 
         def handler(signum: int, frame: Any) -> None:
             consumer.signal_shutdown()
-            for producer in self.__producers.values():
-                producer.flush()
 
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
@@ -101,7 +97,7 @@ class PostProcessForwarder:
     ) -> StreamProcessor[KafkaPayload]:
         configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_name = get_topic_definition(topic)["cluster"]
 
         consumer = KafkaConsumer(
             build_kafka_consumer_configuration(

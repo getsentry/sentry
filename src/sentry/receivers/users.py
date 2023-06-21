@@ -1,26 +1,19 @@
 from django.db import router
 from django.db.models.signals import post_migrate
 
-from sentry.db.models import get_model_if_available
+from sentry.models.user import User
 
 
 def create_first_user(app_config, using, interactive, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    User = get_model_if_available(app_config, "User")
-    if not User:
+    if using != router.db_for_write(User):
         return
 
     if User.objects.filter(is_superuser=True).exists():
         return
 
-    if hasattr(router, "allow_migrate"):
-        if not router.allow_migrate(using, User):
-            return
-    else:
-        if not router.allow_syncdb(using, User):
-            return
     if not interactive:
         return
 

@@ -1,3 +1,4 @@
+from typing import Optional
 from unittest.mock import Mock
 
 from django.contrib.auth.models import AnonymousUser
@@ -41,7 +42,7 @@ def silo_from_user(
     )
 
 
-def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
+def silo_from_request(request, organization: Optional[Organization] = None, scopes=None) -> Access:
     rpc_user_org_context = None
     if organization:
         rpc_user_org_context = organization_service.get_organization_by_id(

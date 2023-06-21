@@ -81,6 +81,7 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
+    RuleSnooze,
     SavedSearch,
     SentryAppInstallation,
     SentryFunction,
@@ -268,9 +269,6 @@ class Factories:
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
-
-        region_outbox = Organization.outbox_for_update(org_id=org.id)
-        region_outbox.drain_shard()
         return org
 
     @staticmethod
@@ -306,7 +304,6 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if team_roles:
             for team, role in team_roles:
@@ -1422,9 +1419,9 @@ class Factories:
         group: Group,
         status: int,
         release: Optional[Release] = None,
-        actor: Actor = None,
-        prev_history: GroupHistory = None,
-        date_added: datetime = None,
+        actor: Optional[Actor] = None,
+        prev_history: Optional[GroupHistory] = None,
+        date_added: Optional[datetime] = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
@@ -1479,7 +1476,9 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_notification_action(
-        organization: Organization = None, projects: List[Project] = None, **kwargs
+        organization: Optional[Organization] = None,
+        projects: Optional[List[Project]] = None,
+        **kwargs,
     ):
         if not organization:
             organization = Factories.create_organization()
@@ -1502,3 +1501,8 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def snooze_rule(**kwargs):
+        return RuleSnooze.objects.create(**kwargs)

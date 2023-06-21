@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import hashlib
 from io import BytesIO
-from typing import List
+from typing import Any
 from zipfile import ZipFile
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
-from sentry.models import create_files_from_dif_zip
+from sentry.models.debugfile import create_files_from_dif_zip
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import FileIOMainThreadDetector
+from sentry.utils.performance_issues.detectors.io_main_thread_detector import (
+    FileIOMainThreadDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
@@ -38,17 +42,38 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
     def create_proguard(self, uuid):
         with ZipFile(BytesIO(), "w") as f:
             f.writestr(f"proguard/{uuid}.txt", PROGUARD_SOURCE)
             create_files_from_dif_zip(f, project=self.project)
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = FileIOMainThreadDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = FileIOMainThreadDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("file-io-on-main-thread")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = FileIOMainThreadDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"file_io_on_main_thread_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = FileIOMainThreadDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
     def test_detects_file_io_main_thread(self):
         event = get_event("file-io-on-main-thread")

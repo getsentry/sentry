@@ -7,7 +7,9 @@ from typing import Any, Mapping
 from django.conf import settings
 from requests import PreparedRequest
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -20,6 +22,33 @@ from sentry.silo.util import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def infer_org_integration(
+    integration_id: int, ctx_logger: logging.Logger | None = None
+) -> int | None:
+    """
+    Given an integration_id, return the first associated org_integration_id.
+    The IntegrationProxyClient requires org_integration context to proxy requests properly
+    but sometimes clients don't have context on the specific organization issuing a request.
+    In those situations, we just grab the first organization and log this assumption.
+    """
+    org_integration_id = None
+    with in_test_hide_transaction_boundary():
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration_id
+        )
+    if len(org_integrations) > 0:
+        org_integration_id = org_integrations[0].id
+        if ctx_logger:
+            ctx_logger.info(
+                "infer_organization_from_integration",
+                extra={
+                    "integration_id": integration_id,
+                    "org_integration_id": org_integration_id,
+                },
+            )
+    return org_integration_id
 
 
 class IntegrationProxyClient(ApiClient):

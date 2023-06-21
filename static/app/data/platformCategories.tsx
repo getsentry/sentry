@@ -220,6 +220,8 @@ export const profiling: PlatformKey[] = [
   // mobile
   'android',
   'apple-ios',
+  // go
+  'go',
   // nodejs
   'node',
   'node-express',
