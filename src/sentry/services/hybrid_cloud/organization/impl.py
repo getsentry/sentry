@@ -39,6 +39,9 @@ from sentry.services.hybrid_cloud.organization.serial import (
     serialize_organization_summary,
     serialize_rpc_organization,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 
@@ -300,7 +303,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
-        Organization.objects.filter(id=organization_id).update(flags=updates)
+        update_organization_with_outbox_message(
+            org_id=organization_id, update_data={"flags": updates}
+        )
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:

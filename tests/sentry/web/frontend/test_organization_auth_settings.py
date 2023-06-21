@@ -18,6 +18,9 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -101,7 +104,11 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
         TotpInterface().enroll(user)
-        organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data={"flags": models.F("flags").bitor(Organization.flags.require_2fa)},
+        )
+        organization.refresh_from_db()
         assert organization.flags.require_2fa.is_set
 
     def assert_require_2fa_disabled(self, user, organization, logger):

@@ -12,6 +12,9 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -440,7 +443,9 @@ class ClientConfigViewTest(TestCase):
         assert Organization.objects.filter(slug=self.organization.slug).count() == 1
         assert ScheduledDeletion.objects.count() == 0
 
-        self.organization.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=self.organization.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 

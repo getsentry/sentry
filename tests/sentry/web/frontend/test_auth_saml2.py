@@ -12,6 +12,9 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
@@ -208,7 +211,11 @@ class AuthSAML2Test(AuthProviderTestCase):
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
         with exempt_from_silo_limits():
-            self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+            update_organization_with_outbox_message(
+                org_id=self.org.id,
+                update_data={"flags": models.F("flags").bitor(Organization.flags.require_2fa)},
+            )
+        self.org.refresh_from_db()
         assert self.org.flags.require_2fa.is_set
 
         self.auth_provider.delete()
