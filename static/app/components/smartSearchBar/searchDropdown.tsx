@@ -70,33 +70,36 @@ function SearchDropdown({
         <SearchItemsList maxMenuHeight={maxMenuHeight}>
           {items.map(item => {
             const isEmpty = item.children && !item.children.length;
+            const Wrapper = item.childrenWrapper ?? Fragment;
 
             // Hide header if `item.children` is defined, an array, and is empty
             return (
               <Fragment key={item.title}>
                 {item.type === 'header' && <HeaderItem group={item} />}
-                {item.children &&
-                  item.children.map(child => (
-                    <DropdownItem
-                      key={getDropdownItemKey(child)}
-                      item={{
-                        ...child,
-                        ...mergeItemsWith?.[child.title!],
-                      }}
-                      searchSubstring={searchSubstring}
-                      onClick={onClick}
-                      onIconClick={onIconClick}
-                      additionalSearchConfig={{
-                        ...getSearchConfigFromCustomPerformanceMetrics(
-                          customPerformanceMetrics
-                        ),
-                        supportedTags,
-                        disallowWildcard,
-                        invalidMessages,
-                      }}
-                      customInvalidTagMessage={customInvalidTagMessage}
-                    />
-                  ))}
+                <Wrapper>
+                  {item.children &&
+                    item.children.map(child => (
+                      <DropdownItem
+                        key={getDropdownItemKey(child)}
+                        item={{
+                          ...child,
+                          ...mergeItemsWith?.[child.title!],
+                        }}
+                        searchSubstring={searchSubstring}
+                        onClick={onClick}
+                        onIconClick={onIconClick}
+                        additionalSearchConfig={{
+                          ...getSearchConfigFromCustomPerformanceMetrics(
+                            customPerformanceMetrics
+                          ),
+                          supportedTags,
+                          disallowWildcard,
+                          invalidMessages,
+                        }}
+                        customInvalidTagMessage={customInvalidTagMessage}
+                      />
+                    ))}
+                </Wrapper>
                 {isEmpty && <Info>{t('No items found')}</Info>}
               </Fragment>
             );
@@ -341,6 +344,15 @@ function DropdownItem({
           />
         )}
       </Fragment>
+    );
+  } else if (item.type === ItemType.RECOMMENDED) {
+    children = (
+      <RecommendedItem>
+        <div>{item.title}</div>
+        {item.desc && (
+          <RecommendedItemDescription>{item.desc}</RecommendedItemDescription>
+        )}
+      </RecommendedItem>
     );
   } else {
     children = (
@@ -647,4 +659,13 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 
 const IconOpenWithMargin = styled(IconOpen)`
   margin-left: ${space(1)};
+`;
+
+const RecommendedItem = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+const RecommendedItemDescription = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;

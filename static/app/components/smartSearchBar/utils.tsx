@@ -121,7 +121,7 @@ const filterSearchItems = (
   recentSearchItems?: SearchItem[],
   maxSearchItems?: number,
   queryCharsLeft?: number
-) => {
+): {recentSearchItems: SearchItem[] | undefined; searchItems: SearchItem[]} => {
   if (maxSearchItems && maxSearchItems > 0) {
     searchItems = searchItems.filter(
       (value: SearchItem, index: number) =>
@@ -152,18 +152,24 @@ const filterSearchItems = (
       return [newItem];
     });
     searchItems = searchItems.filter(
-      (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
+      value => !value.value || value.value.length <= queryCharsLeft
     );
 
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
+        value => !value.value || value.value.length <= queryCharsLeft
       );
     }
   }
 
   return {searchItems, recentSearchItems};
 };
+
+interface SearchGroups {
+  activeSearchItem: number;
+  flatSearchItems: SearchItem[];
+  searchGroups: SearchGroup[];
+}
 
 export function createSearchGroups(
   searchItems: SearchItem[],
@@ -173,9 +179,20 @@ export function createSearchGroups(
   maxSearchItems?: number,
   queryCharsLeft?: number,
   isDefaultState?: boolean,
+  defaultSearchGroup?: SearchGroup,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
-) {
+): SearchGroups {
   const fieldDefinition = fieldDefinitionGetter(tagName);
+  if (
+    fieldDefinition?.valueType === FieldValueType.DATE &&
+    type === ItemType.TAG_OPERATOR
+  ) {
+    return {
+      searchGroups: [],
+      flatSearchItems: [],
+      activeSearchItem: -1,
+    };
+  }
 
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
@@ -185,7 +202,7 @@ export function createSearchGroups(
     title: getTitleForType(type),
     type: invalidTypes.includes(type) ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
-    children: [...filteredSearchItems],
+    children: filteredSearchItems,
   };
 
   const recentSearchGroup: SearchGroup | undefined =
@@ -214,22 +231,17 @@ export function createSearchGroups(
     return [item];
   });
 
-  if (fieldDefinition?.valueType === FieldValueType.DATE) {
-    if (type === ItemType.TAG_OPERATOR) {
-      return {
-        searchGroups: [],
-        flatSearchItems: [],
-        activeSearchItem: -1,
-      };
-    }
-  }
-
   if (isDefaultState) {
     // Recent searches first in default state.
     return {
-      searchGroups: [...(recentSearchGroup ? [recentSearchGroup] : []), searchGroup],
+      searchGroups: [
+        ...(recentSearchGroup ? [recentSearchGroup] : []),
+        ...(defaultSearchGroup ? [defaultSearchGroup] : []),
+        searchGroup,
+      ],
       flatSearchItems: [
         ...(recentSearchItems ? recentSearchItems : []),
+        ...(defaultSearchGroup ? defaultSearchGroup.children : []),
         ...flatSearchItems,
       ],
       activeSearchItem: -1,
@@ -462,11 +474,11 @@ export const getSearchGroupWithItemMarkedActive = (
   searchGroups: SearchGroup[],
   currentItem: SearchItem,
   active: boolean
-) => {
+): SearchGroup[] => {
   return searchGroups.map(group => ({
     ...group,
     children: group.children?.map(item => {
-      if (item.value === currentItem.value) {
+      if (item.value === currentItem.value && item.type === currentItem.type) {
         return {
           ...item,
           active,
@@ -477,7 +489,7 @@ export const getSearchGroupWithItemMarkedActive = (
         return {
           ...item,
           children: item.children.map(child => {
-            if (child.value === currentItem.value) {
+            if (child.value === currentItem.value && item.type === currentItem.type) {
               return {
                 ...child,
                 active,

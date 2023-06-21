@@ -202,6 +202,10 @@ type Props = WithRouterProps &
      */
     customPerformanceMetrics?: CustomMeasurementCollection;
     /**
+     * The default search group to show when there is no query
+     */
+    defaultSearchGroup?: SearchGroup;
+    /**
      * Disabled control (e.g. read-only)
      */
     disabled?: boolean;
@@ -351,6 +355,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     name: 'query',
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
+    defaultSearchGroup: {},
     defaultSearchItems: [[], []],
     useFormWrapper: true,
     savedSearchType: SavedSearchType.ISSUE,
@@ -1565,8 +1570,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     tagName: string,
     type: ItemType
   ) {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
 
     const queryCharsLeft =
@@ -1580,6 +1590,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxSearchItems,
       queryCharsLeft,
       true,
+      defaultSearchGroup,
       fieldDefinitionGetter
     );
 
@@ -1592,8 +1603,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param groups Groups that will be used to populate the autocomplete dropdown
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1608,18 +1624,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           maxSearchItems,
           queryCharsLeft,
           false,
+          defaultSearchGroup,
           fieldDefinitionGetter
         )
       )
-      .reduce(
+      .reduce<ReturnType<typeof createSearchGroups>>(
         (acc, item) => ({
           searchGroups: [...acc.searchGroups, ...item.searchGroups],
           flatSearchItems: [...acc.flatSearchItems, ...item.flatSearchItems],
           activeSearchItem: -1,
         }),
         {
-          searchGroups: [] as SearchGroup[],
-          flatSearchItems: [] as SearchItem[],
+          searchGroups: [],
+          flatSearchItems: [],
           activeSearchItem: -1,
         }
       );
