@@ -1122,9 +1122,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         # before the change to me -> (me + my_teams)
         # this should return the groups directly assigned to me as well as groups assigned to teams I belong to
-        assert GroupAssignee.objects.get(group=self.group2)
-        assert GroupAssignee.objects.get(group=my_team_group)
-        results = self.make_query(search_filter_query="assigned:me", user=self.user)
+        assert GroupAssignee.objects.filter(user_id=self.user.id, group=self.group2).exists()
+        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+
+        results = self.make_query(search_filter_query="assigned_or_suggested:me", user=self.user)
         assert set(results) == {self.group2, my_team_group}
 
         # with the feature flag on where we split the behavior so 'me' only checks for groups assigned to me
@@ -1330,6 +1331,140 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             [group, group1, assigned_group, group2],
             [assigned_to_other_group],
         )
+
+    def test_assigned_or_suggested_my_teams(self):
+        Group.objects.all().delete()
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=180)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=185)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=190)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        assigned_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        assigned_to_other_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        result = self.make_query(search_filter_query="assigned_or_suggested:[me]", user=self.user)
+        assert set(result) == set()
+
+        GroupOwner.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+
+        result = self.make_query(search_filter_query="assigned_or_suggested:[me]", user=self.user)
+        assert set(result) == {group, assigned_to_other_group}
+
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
+        other_user = self.create_user("other@user.com", is_superuser=False)
+        GroupAssignee.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            user_id=other_user.id,
+        )
+
+        result = self.make_query(search_filter_query="assigned_or_suggested:[me]", user=self.user)
+        assert set(result) == {group}
+
+        result = self.make_query(
+            search_filter_query=f"assigned_or_suggested:[{other_user.email}]", user=self.user
+        )
+        assert set(result) == {assigned_to_other_group}
+
+        GroupAssignee.objects.create(
+            group=assigned_group, project=self.project, user_id=self.user.id
+        )
+        # self.run_test_query_in_syntax(
+        #     f"assigned_or_suggested:[{self.user.email}]",
+        #     [assigned_group, group],
+        # )
+        result = self.make_query(
+            search_filter_query=f"assigned_or_suggested:[{self.user.email}]", user=self.user
+        )
+        assert set(result) == {assigned_group, group}
+
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=self.team.id,
+            user_id=None,
+        )
+        result = self.make_query(
+            search_filter_query=f"assigned_or_suggested:[#{self.team.slug}]", user=self.user
+        )
+        assert set(result) == {group}
+        result = self.make_query(
+            search_filter_query="assigned_or_suggested:[me, none]", user=self.user
+        )
+        assert set(result) == {group, group1, group2, assigned_group}
+
+        not_me = self.create_user(email="notme@sentry.io")
+        GroupOwner.objects.create(
+            group=group2,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=not_me.id,
+        )
+        result = self.make_query(
+            search_filter_query="assigned_or_suggested:[me, none]", user=self.user
+        )
+        assert set(result) == {group, group1, assigned_group}
+
+        GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
+        result = self.make_query(
+            search_filter_query=f"assigned_or_suggested:[me, none, #{self.team.slug}]",
+            user=self.user,
+        )
+        assert set(result) == {group, group1, assigned_group}
+        result = self.make_query(
+            search_filter_query=f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
+            user=self.user,
+        )
+        assert set(result) == {group, group1, group2, assigned_group}
 
     def test_assigned_to_with_environment(self):
         results = self.make_query(
