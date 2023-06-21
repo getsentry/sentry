@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from datetime import timedelta
 from typing import Any, List, Mapping, Optional, Sequence
@@ -56,7 +55,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
+    type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
@@ -264,12 +263,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return (
-            self.settings["detection_rate"] > random.random()
-        )  # TODO Uncomment after detection_rate migration: self.settings["detection_enabled"]
+        return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
+    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
 

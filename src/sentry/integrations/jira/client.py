@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+from typing import Optional
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
@@ -53,8 +54,8 @@ class JiraCloudClient(IntegrationProxyClient):
         self,
         integration: RpcIntegration,
         verify_ssl: bool,
-        org_integration_id: str = None,
-        logging_context: JSONData = None,
+        org_integration_id: Optional[str] = None,
+        logging_context: Optional[JSONData] = None,
     ):
         self.base_url = integration.metadata.get("base_url")
         self.shared_secret = integration.metadata.get("shared_secret")
