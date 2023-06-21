@@ -5,13 +5,12 @@ import Avatar from 'sentry/components/avatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
-import ErrorCount from 'sentry/components/replays/header/errorCount';
 import {formatTime} from 'sentry/components/replays/utils';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete} from 'sentry/icons';
+import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -231,7 +230,14 @@ export function ErrorCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      <ErrorCount countErrors={replay.count_errors} />
+      {replay.count_errors ? (
+        <ErrorCount>
+          <IconFire />
+          {replay.count_errors}
+        </ErrorCount>
+      ) : (
+        <Count>0</Count>
+      )}
     </Item>
   );
 }
@@ -259,6 +265,17 @@ const Item = styled('div')<{isArchived?: boolean}>`
   gap: ${space(1)};
   padding: ${space(1.5)};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+`;
+
+const Count = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
+
+const ErrorCount = styled(Count)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`

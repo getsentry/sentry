@@ -4,13 +4,13 @@ export function ReplayError(
   error: Partial<TReplayError> & Pick<TReplayError, 'id' | 'issue' | 'timestamp'>
 ): TReplayError {
   return {
-    'error.type': [] as string[],
-    'error.value': [] as string[],
+    'error.type': error['error.type'] ?? ([] as string[]),
+    'error.value': error['error.value'] ?? ([] as string[]),
     id: error.id,
     issue: error.issue,
-    'issue.id': 3740335939,
-    'project.name': 'javascript',
+    'issue.id': error['issue.id'] ?? 3740335939,
+    'project.name': error['project.name'] ?? 'javascript',
     timestamp: error.id,
-    title: 'A Redirect with :orgId param on customer domain',
+    title: error.title ?? 'A Redirect with :orgId param on customer domain',
   };
 }
