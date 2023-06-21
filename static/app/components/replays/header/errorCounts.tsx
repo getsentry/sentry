@@ -1,8 +1,8 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Badge from 'sentry/components/badge';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import CountTooltipContent from 'sentry/components/replays/header/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
@@ -44,10 +44,11 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
     },
     [hasErrorTab, pathname, query]
   );
+
   const errorCountPerProject = useErrorCountPerProject({replayErrors, replayRecord});
 
   if (!errorCountPerProject.length) {
-    return <Count>0</Count>;
+    return <Count aria-label={t('number of errors')}>0</Count>;
   }
   if (errorCountPerProject.length < 3) {
     return (
@@ -66,8 +67,8 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
               }
             >
               <StyledLink to={getLink({project})}>
-                <ProjectBadge avatarSize={16} disableLink hideName project={project} />
-                <ErrorCount>{count}</ErrorCount>
+                <ProjectAvatar size={16} project={project} />
+                <ErrorCount aria-label={t('number of errors')}>{count}</ErrorCount>
               </StyledLink>
             </Tooltip>
           ) : null
@@ -96,20 +97,14 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
         <StackedProjectBadges>
           {errorCountPerProject.slice(0, 2).map(({project}) => {
             return project ? (
-              <ProjectBadge
-                avatarSize={16}
-                disableLink
-                hideName
-                key={project.slug}
-                project={project}
-              />
+              <ProjectAvatar key={project.slug} size={16} project={project} />
             ) : (
               <IconFire />
             );
           })}
-          <Badge>+{extraProjectCount}</Badge>
+          <Badge aria-label={t('hidden projects')}>+{extraProjectCount}</Badge>
         </StackedProjectBadges>
-        <ErrorCount>{totalErrors}</ErrorCount>
+        <ErrorCount aria-label={t('total errors')}>{totalErrors}</ErrorCount>
       </StyledLink>
     </Tooltip>
   );
