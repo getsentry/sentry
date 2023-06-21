@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,11 +8,30 @@ from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN
+from sentry.apidocs.parameters import GlobalParams
 from sentry.ingest import inbound_filters
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
+    public = {"PUT"}
+
+    @extend_schema(
+        operation_id="Update a Project's Filters",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.TEAM_SLUG,
+        ],
+        request=None,
+        responses={
+            200: "test",
+            403: RESPONSE_FORBIDDEN,
+            404: "test",
+        },
+        examples=None,
+    )
     def put(self, request: Request, project, filter_id) -> Response:
         """
         Update a filter
@@ -77,4 +97,5 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             data={"state": returned_state},
         )
 
+        return Response(status=201)
         return Response(status=201)

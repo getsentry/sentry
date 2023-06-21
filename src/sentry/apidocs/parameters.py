@@ -222,6 +222,19 @@ class ProjectParams:
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
     )
 
+    FILTER_ID = OpenApiParameter(
+        name="filter_id",
+        location="path",
+        required=True,
+        type=str,
+        description="""The type of filter to toggle. The supported filters are:
+- browser
+- asdf
+- asdf
+- asdf
+""",
+    )
+
     @staticmethod
     def platform(description: str) -> OpenApiParameter:
         return OpenApiParameter(
