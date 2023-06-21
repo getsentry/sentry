@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient
+from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 
 # five minutes which is industry standard clock skew tolerance
@@ -78,7 +79,7 @@ class MsTeamsPreInstallClient(MsTeamsAbstractClient):
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
 class MsTeamsClient(MsTeamsAbstractClient):
-    def __init__(self, integration):
+    def __init__(self, integration: Integration):
         super().__init__()
         self.integration = integration
 
