@@ -12,7 +12,7 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-class GithubRequestParser(BaseRequestParser):
+class GitHubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
 

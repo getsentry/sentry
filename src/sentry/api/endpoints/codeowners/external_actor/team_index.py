@@ -24,7 +24,7 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
                                           team belongs to.
         :pparam string team_slug: the slug of the team to get.
         :param required string provider: enum("github", "gitlab")
-        :param required string external_name: the associated Github/Gitlab team name.
+        :param required string external_name: the associated GitHub/Gitlab team name.
         :param optional string integration_id: the id of the integration if it exists.
         :param string external_id: the associated user ID for this provider
         :auth: required

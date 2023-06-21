@@ -7,12 +7,12 @@ from rest_framework.request import Request
 
 from sentry.models import Organization, OrganizationOption
 
-from .base import GithubWebhookBase
+from .base import GitHubWebhookBase
 
 logger = logging.getLogger("sentry.webhooks")
 
 
-class GithubWebhookEndpoint(GithubWebhookBase):
+class GitHubWebhookEndpoint(GitHubWebhookBase):
     def get_logging_data(self, organization):
         return {"organization_id": organization.id}
 

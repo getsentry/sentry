@@ -30,7 +30,7 @@ class GitHubAppsClientTest(TestCase):
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
-            name="Github Test Org",
+            name="GitHub Test Org",
             external_id="1",
             metadata={"access_token": None, "expires_at": None},
         )
@@ -346,7 +346,7 @@ secret = "hush-hush-im-invisible"
     SENTRY_SUBNET_SECRET=secret,
     SENTRY_CONTROL_ADDRESS=control_address,
 )
-class GithubProxyClientTest(TestCase):
+class GitHubProxyClientTest(TestCase):
     jwt = b"my_cool_jwt"
     access_token = "access_token"
 
@@ -394,7 +394,7 @@ class GithubProxyClientTest(TestCase):
         ).prepare()
 
         with mock.patch(
-            "sentry.integrations.github.client.GithubProxyClient._refresh_access_token",
+            "sentry.integrations.github.client.GitHubProxyClient._refresh_access_token",
             wraps=self.gh_client._refresh_access_token,
         ) as mock_refresh_token:
             # Regular API requests should use access tokens
@@ -419,7 +419,7 @@ class GithubProxyClientTest(TestCase):
             assert token == self.jwt
 
     @responses.activate
-    @mock.patch("sentry.integrations.github.client.GithubProxyClient._get_token", return_value=None)
+    @mock.patch("sentry.integrations.github.client.GitHubProxyClient._get_token", return_value=None)
     def test_authorize_request_invalid(self, mock_get_invalid_token):
         request = Request(url=f"{self.gh_client.base_url}/repos/test-repo/issues").prepare()
 
@@ -465,10 +465,10 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch(
-        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value=access_token
+        "sentry.integrations.github.client.GitHubProxyClient._get_token", return_value=access_token
     )
     def test_integration_proxy_is_active(self, mock_get_token):
-        class GithubProxyTestClient(GitHubAppsClient):
+        class GitHubProxyTestClient(GitHubAppsClient):
             _use_proxy_url_for_tests = True
 
             def assert_proxy_request(self, request, is_proxy=True):
@@ -490,7 +490,7 @@ class GithubProxyClientTest(TestCase):
         )
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = GithubProxyTestClient(integration=self.integration)
+            client = GitHubProxyTestClient(integration=self.integration)
             client.get_issues("test-repo")
             request = responses.calls[0].request
 
@@ -500,7 +500,7 @@ class GithubProxyClientTest(TestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = GithubProxyTestClient(integration=self.integration)
+            client = GitHubProxyTestClient(integration=self.integration)
             client.get_issues("test-repo")
             request = responses.calls[0].request
 
@@ -510,7 +510,7 @@ class GithubProxyClientTest(TestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
-            client = GithubProxyTestClient(integration=self.integration)
+            client = GitHubProxyTestClient(integration=self.integration)
             client.get_issues("test-repo")
             request = responses.calls[0].request
 

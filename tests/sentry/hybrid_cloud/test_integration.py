@@ -40,7 +40,7 @@ class BaseIntegrationServiceTest(TestCase):
         )
         self.integration2 = self.create_integration(
             organization=self.organization,
-            name="Github",
+            name="GitHub",
             provider="github",
             external_id="github:1",
             oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},

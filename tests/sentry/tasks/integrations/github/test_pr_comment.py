@@ -24,7 +24,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class GithubCommentTestCase(IntegrationTestCase):
+class GitHubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
     def setUp(self):
@@ -125,7 +125,7 @@ class GithubCommentTestCase(IntegrationTestCase):
         return groupowner
 
 
-class TestPrToIssueQuery(GithubCommentTestCase):
+class TestPrToIssueQuery(GitHubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -217,7 +217,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         assert len(res) == 5
 
 
-class TestCommentBuilderQueries(GithubCommentTestCase):
+class TestCommentBuilderQueries(GitHubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
             data={"message": "issue1", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -266,7 +266,7 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
-class TestCommentWorkflow(GithubCommentTestCase):
+class TestCommentWorkflow(GitHubCommentTestCase):
     base_url = "https://api.github.com"
 
     def setUp(self):

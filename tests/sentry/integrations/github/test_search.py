@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test(stable=True)
-class GithubSearchTest(APITestCase):
+class GitHubSearchTest(APITestCase):
     # There is another test case that inherits from this
     # one to ensure that github:enterprise behaves as expected.
     provider = "github"

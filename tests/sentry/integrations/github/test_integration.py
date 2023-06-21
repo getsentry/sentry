@@ -85,7 +85,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         super().tearDown()
 
     def _stub_github(self):
-        """This stubs the calls related to a Github App"""
+        """This stubs the calls related to a GitHub App"""
         self.gh_org = "Test-Organization"
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
@@ -270,9 +270,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # First installation should be successful
         self.assert_setup_flow()
 
-        # Second installation attempt for same Github account should fail
+        # Second installation attempt for same GitHub account should fail
         self.organization_2 = self.create_organization(name="petal", owner=self.user)
-        # Use the same Github installation_id
+        # Use the same GitHub installation_id
         self.init_path_2 = "{}?{}".format(
             reverse(
                 "sentry-organization-integrations-setup",
@@ -289,7 +289,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 resp, "sentry/integrations/github-integration-exists-on-another-org.html"
             )
             assert (
-                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+                b'{"success":false,"data":{"error":"GitHub installed on another Sentry organization."}}'
                 in resp.content
             )
             assert (

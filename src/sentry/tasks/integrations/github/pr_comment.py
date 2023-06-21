@@ -194,7 +194,7 @@ def comment_workflow(pullrequest_id: int, project_id: int):
         integration=integration, organization_id=org_id
     )
 
-    # GitHubAppsClient (GithubClientMixin)
+    # GitHubAppsClient (GitHubClientMixin)
     # TODO(cathy): create helper function to fetch client for repo
     client = installation.get_client()
 

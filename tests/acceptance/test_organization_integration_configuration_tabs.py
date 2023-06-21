@@ -14,7 +14,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
         self.integration = Integration.objects.create(
             provider=self.provider,
             external_id="some_github",
-            name="Github",
+            name="GitHub",
             metadata={
                 "access_token": "some_access_token",
                 "expires_at": "2021-04-16T01:08:42",

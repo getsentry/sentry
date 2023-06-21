@@ -3,12 +3,12 @@ from datetime import datetime, timedelta
 from sentry.models import Integration
 from sentry.testutils.silo import control_silo_test
 
-from ..github.test_search import GithubSearchTest
+from ..github.test_search import GitHubSearchTest
 
 
 @control_silo_test(stable=True)
-class GithubEnterpriseSearchTest(GithubSearchTest):
-    # Inherit test methods/scenarios from GithubSearchTest
+class GitHubEnterpriseSearchTest(GitHubSearchTest):
+    # Inherit test methods/scenarios from GitHubSearchTest
     # and fill out the slots that customize it to use github:enterprise
     provider = "github_enterprise"
     base_url = "https://github.example.org/api/v3"

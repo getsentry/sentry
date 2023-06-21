@@ -32,15 +32,15 @@ GITHUB_USER_DATA_URL = f"https://{GITHUB_API_DOMAIN}/user"
 GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://%s/orgs/{org}/members/{username}" % GITHUB_API_DOMAIN
 
 
-class GithubBackend(OAuthBackend):
-    """Github OAuth authentication backend"""
+class GitHubBackend(OAuthBackend):
+    """GitHub OAuth authentication backend"""
 
     name = "github"
     # Default extra data to store
     EXTRA_DATA = [("id", "id"), ("expires", "expires")]
 
     def _fetch_emails(self, access_token):
-        """Fetch private emails from Github account"""
+        """Fetch private emails from GitHub account"""
         req = Request(
             GITHUB_USER_DATA_URL + "/emails", headers={"Authorization": "token %s" % access_token}
         )
@@ -52,7 +52,7 @@ class GithubBackend(OAuthBackend):
         return data
 
     def get_user_details(self, response):
-        """Return user details from Github account"""
+        """Return user details from GitHub account"""
         name = response.get("name") or ""
         details = {"username": response.get("login")}
 
@@ -74,12 +74,12 @@ class GithubBackend(OAuthBackend):
         return details
 
 
-class GithubAuth(BaseOAuth2):
-    """Github OAuth2 mechanism"""
+class GitHubAuth(BaseOAuth2):
+    """GitHub OAuth2 mechanism"""
 
     AUTHORIZATION_URL = GITHUB_AUTHORIZATION_URL
     ACCESS_TOKEN_URL = GITHUB_ACCESS_TOKEN_URL
-    AUTH_BACKEND = GithubBackend
+    AUTH_BACKEND = GitHubBackend
     SETTINGS_KEY_NAME = "GITHUB_APP_ID"
     SETTINGS_SECRET_NAME = "GITHUB_API_SECRET"
     SCOPE_SEPARATOR = ","
@@ -120,4 +120,4 @@ class GithubAuth(BaseOAuth2):
 
 
 # Backend definition
-BACKENDS = {"github": GithubAuth}
+BACKENDS = {"github": GitHubAuth}

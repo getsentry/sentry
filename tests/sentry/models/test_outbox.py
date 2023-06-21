@@ -146,7 +146,7 @@ class ControlOutboxTest(TestCase):
         assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
         assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/?query=test"
         # Request factory expects transformed headers, but the outbox stores raw headers
-        assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
+        assert outbox.payload["headers"]["X-GitHub-Emoticon"] == ">:^]"
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
 
         # After saving, data shouldn't mutate
@@ -157,7 +157,7 @@ class ControlOutboxTest(TestCase):
         assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
         assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/?query=test"
         # Request factory expects transformed headers, but the outbox stores raw headers
-        assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
+        assert outbox.payload["headers"]["X-GitHub-Emoticon"] == ">:^]"
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
 
     @responses.activate

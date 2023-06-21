@@ -100,7 +100,7 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
-# Github App docs and list of available endpoints
+# GitHub App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
@@ -138,7 +138,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         self, query: str | None = None, fetch_max_pages: bool = False
     ) -> Sequence[Mapping[str, Any]]:
         """
-        This fetches all repositories accessible to a Github App
+        This fetches all repositories accessible to a GitHub App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
         per_page: The number of results per page (max 100; default 30).
@@ -417,7 +417,7 @@ class GitHubInstallationRedirect(PipelineView):
                         "payload": {
                             "success": False,
                             "data": {
-                                "error": _("Github installed on another Sentry organization.")
+                                "error": _("GitHub installed on another Sentry organization.")
                             },
                         },
                         "document_origin": document_origin,

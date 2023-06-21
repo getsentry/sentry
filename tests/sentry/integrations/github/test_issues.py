@@ -292,7 +292,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
+        "sentry.integrations.github.client.GitHubProxyClient._get_token", return_value="jwt_token_1"
     )
     def test_default_repo_link_fields(self, mock_get_jwt):
         responses.add(
@@ -360,7 +360,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
+        "sentry.integrations.github.client.GitHubProxyClient._get_token", return_value="jwt_token_1"
     )
     def test_default_repo_link_fields_no_repos(self, mock_get_jwt):
         responses.add(

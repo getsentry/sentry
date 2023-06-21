@@ -10,7 +10,7 @@ from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry_plugins.github.client import GithubPluginClient
+from sentry_plugins.github.client import GitHubPluginClient
 
 from . import Webhook, get_external_id, is_anonymous_email
 
@@ -71,7 +71,7 @@ class PushEventWebhook(Webhook):
                             gh_username_cache[gh_username] = author_email
                         else:
                             try:
-                                with GithubPluginClient() as client:
+                                with GitHubPluginClient() as client:
                                     gh_user = client.request_no_auth("GET", f"/users/{gh_username}")
                             except ApiError as exc:
                                 logger.exception(str(exc))

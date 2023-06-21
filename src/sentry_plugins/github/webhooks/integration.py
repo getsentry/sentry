@@ -9,11 +9,11 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.models import Organization
 
-from .base import GithubWebhookBase
+from .base import GitHubWebhookBase
 from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook
 
 
-class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
+class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     _handlers = {
         "push": PushEventWebhook,
         "installation": InstallationEventWebhook,

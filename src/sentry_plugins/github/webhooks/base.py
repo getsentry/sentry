@@ -21,7 +21,7 @@ from .events import PullRequestEventWebhook, PushEventWebhook
 logger = logging.getLogger("sentry.webhooks")
 
 
-class GithubWebhookBase(View, abc.ABC):
+class GitHubWebhookBase(View, abc.ABC):
     _handlers = {"push": PushEventWebhook, "pull_request": PullRequestEventWebhook}
 
     # https://developer.github.com/webhooks/

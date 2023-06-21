@@ -27,12 +27,12 @@ from sentry.utils.json import JSONData
 logger = logging.getLogger("sentry.integrations.github")
 
 # Some functions that require a large number of API requests can use this value
-# as the lower ceiling before hitting Github anymore, thus, leaving at least these
-# many requests left for other features that need to reach Github
+# as the lower ceiling before hitting GitHub anymore, thus, leaving at least these
+# many requests left for other features that need to reach GitHub
 MINIMUM_REQUESTS = 200
 
 
-class GithubRateLimitInfo:
+class GitHubRateLimitInfo:
     def __init__(self, info: Dict[str, int]) -> None:
         self.limit = info["limit"]
         self.remaining = info["remaining"]
@@ -43,15 +43,15 @@ class GithubRateLimitInfo:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+        return f"GitHubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
-class GithubProxyClient(IntegrationProxyClient):
+class GitHubProxyClient(IntegrationProxyClient):
     def _get_installation_id(self) -> str:
         self.integration: RpcIntegration
         """
-        Returns the Github App installation identifier.
-        This is necessary since Github and Github Enterprise integrations store the
+        Returns the GitHub App installation identifier.
+        This is necessary since GitHub and GitHub Enterprise integrations store the
         identifier in different places on their database records.
         """
         return self.integration.external_id
@@ -59,7 +59,7 @@ class GithubProxyClient(IntegrationProxyClient):
     def _get_jwt(self) -> str:
         """
         Returns the JSON Web Token for authorized GitHub requests.
-        This is necessary since Github and Github Enterprise create do not create the JWTs in the
+        This is necessary since GitHub and GitHub Enterprise create do not create the JWTs in the
         same pattern.
         """
         return get_jwt()
@@ -164,12 +164,12 @@ class GithubProxyClient(IntegrationProxyClient):
         return prepared_request
 
 
-class GitHubClientMixin(GithubProxyClient):
+class GitHubClientMixin(GitHubProxyClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
     integration_name = "github"
-    # Github gives us links to navigate, however, let's be safe in case we're fed garbage
+    # GitHub gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
     def get_last_commits(self, repo: str, end_sha: str) -> Sequence[JSONData]:
@@ -226,11 +226,11 @@ class GitHubClientMixin(GithubProxyClient):
         return repository
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
-    def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
+    def get_rate_limit(self, specific_resource: str = "core") -> GitHubRateLimitInfo:
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        return GitHubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
@@ -302,7 +302,7 @@ class GitHubClientMixin(GithubProxyClient):
         extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
         if trees:
-            logger.info("Using cached trees for Github org.", extra=extra)
+            logger.info("Using cached trees for GitHub org.", extra=extra)
 
         try:
             rate_limit = self.get_rate_limit()
@@ -349,9 +349,9 @@ class GitHubClientMixin(GithubProxyClient):
         elif txt == "Not Found":
             logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
         elif txt == "Repository access blocked":
-            logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            logger.warning(f"GitHub has blocked the repository. {msg}", extra=extra)
         elif txt == "Server Error":
-            logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            logger.warning(f"GitHub failed to respond. {msg}.", extra=extra)
             should_count_error = True
         elif txt == "Bad credentials":
             logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
@@ -365,7 +365,7 @@ class GitHubClientMixin(GithubProxyClient):
             logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
             should_count_error = True
         elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
-            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+            logger.warning("GitHub has blocked this org. We will not continue.", extra=extra)
             # Raising the error will be handled at the task level
             raise error
         else:
@@ -410,7 +410,7 @@ class GitHubClientMixin(GithubProxyClient):
                 remaining_requests -= 1
 
             try:
-                # The Github API rate limit is reset every hour
+                # The GitHub API rate limit is reset every hour
                 # Spread the expiration of the cache of each repo across the day
                 trees[repo_full_name] = self._populate_tree(
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
@@ -449,7 +449,7 @@ class GitHubClientMixin(GithubProxyClient):
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
-        This fetches all repositories accessible to the Github App
+        This fetches all repositories accessible to the GitHub App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
         It uses page_size from the base class to specify how many items per page.
@@ -491,7 +491,7 @@ class GitHubClientMixin(GithubProxyClient):
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
     ) -> Sequence[JSONData]:
         """
-        Github uses the Link header to provide pagination links. Github
+        GitHub uses the Link header to provide pagination links. GitHub
         recommends using the provided link relations and not constructing our
         own URL.
         https://docs.github.com/en/rest/guides/traversing-with-pagination

@@ -1,14 +1,14 @@
 from django.conf.urls import url
 
-from .webhooks import GithubIntegrationsWebhookEndpoint, GithubWebhookEndpoint
+from .webhooks import GitHubIntegrationsWebhookEndpoint, GitHubWebhookEndpoint
 
 urlpatterns = [
     url(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
-        GithubWebhookEndpoint.as_view(),
+        GitHubWebhookEndpoint.as_view(),
     ),
     url(
         r"^installations/webhook/$",
-        GithubIntegrationsWebhookEndpoint.as_view(),
+        GitHubIntegrationsWebhookEndpoint.as_view(),
     ),
 ]

@@ -133,7 +133,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 handler = self.get_handler(meta["HTTP_X_GITHUB_EVENT"])
             except KeyError:
                 logger.warning("github_enterprise.webhook.missing-event", extra=extra)
-                logger.exception("Missing Github event in webhook.")
+                logger.exception("Missing GitHub event in webhook.")
                 return HttpResponse(status=400)
 
             if not handler:

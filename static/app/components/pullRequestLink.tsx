@@ -1,59 +1,54 @@
-import styled from '@emotion/styled';
+import styled from "@emotion/styled";
 
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
-import {PullRequest, Repository} from 'sentry/types';
+import { Button } from "sentry/components/button";
+import ExternalLink from "sentry/components/links/externalLink";
+import { IconBitbucket, IconGitHub, IconGitlab } from "sentry/icons";
+import { space } from "sentry/styles/space";
+import { PullRequest, Repository } from "sentry/types";
 
 function renderIcon(repo: Repository) {
-  if (!repo.provider) {
-    return null;
-  }
+    if (!repo.provider) {
+        return null;
+    }
 
-  const {id} = repo.provider;
-  const providerId = id.includes(':') ? id.split(':').pop() : id;
+    const { id } = repo.provider;
+    const providerId = id.includes(":") ? id.split(":").pop() : id;
 
-  switch (providerId) {
-    case 'github':
-      return <IconGithub size="xs" data-test-id="pull-request-github" />;
-    case 'gitlab':
-      return <IconGitlab size="xs" data-test-id="pull-request-gitlab" />;
-    case 'bitbucket':
-      return <IconBitbucket size="xs" />;
-    default:
-      return null;
-  }
+    switch (providerId) {
+        case "github":
+            return <IconGitHub size="xs" data-test-id="pull-request-github" />;
+        case "gitlab":
+            return <IconGitlab size="xs" data-test-id="pull-request-gitlab" />;
+        case "bitbucket":
+            return <IconBitbucket size="xs" />;
+        default:
+            return null;
+    }
 }
 
 type Props = {
-  pullRequest: PullRequest;
-  repository: Repository;
-  inline?: boolean;
+    pullRequest: PullRequest;
+    repository: Repository;
+    inline?: boolean;
 };
 
-function PullRequestLink({pullRequest, repository, inline}: Props) {
-  const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
+function PullRequestLink({ pullRequest, repository, inline }: Props) {
+    const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
 
-  if (!pullRequest.externalUrl) {
-    return <span>{displayId}</span>;
-  }
+    if (!pullRequest.externalUrl) {
+        return <span>{displayId}</span>;
+    }
 
-  return !inline ? (
-    <Button
-      external
-      href={pullRequest.externalUrl}
-      size="sm"
-      icon={renderIcon(repository)}
-    >
-      {displayId}
-    </Button>
-  ) : (
-    <ExternalPullLink href={pullRequest.externalUrl}>
-      {renderIcon(repository)}
-      {displayId}
-    </ExternalPullLink>
-  );
+    return !inline ? (
+        <Button external href={pullRequest.externalUrl} size="sm" icon={renderIcon(repository)}>
+            {displayId}
+        </Button>
+    ) : (
+        <ExternalPullLink href={pullRequest.externalUrl}>
+            {renderIcon(repository)}
+            {displayId}
+        </ExternalPullLink>
+    );
 }
 
 const ExternalPullLink = styled(ExternalLink)`

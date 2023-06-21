@@ -7,7 +7,7 @@ from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 
-class GithubPluginClientMixin(AuthApiClient):
+class GitHubPluginClientMixin(AuthApiClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -30,7 +30,7 @@ class GithubPluginClientMixin(AuthApiClient):
         return self.get(f"/repos/{repo}/pulls/{num}/commits")
 
 
-class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
+class GitHubPluginClient(GitHubPluginClientMixin, AuthApiClient):
     def __init__(self, url=None, auth=None):
         if url is not None:
             self.base_url = url.rstrip("/")
@@ -76,7 +76,7 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
         return self._request("GET", "/user/installations", headers=headers)
 
 
-class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
+class GitHubPluginAppsClient(GitHubPluginClientMixin, ApiClient):
     def __init__(self, integration):
         self.integration = integration
         self.token = None

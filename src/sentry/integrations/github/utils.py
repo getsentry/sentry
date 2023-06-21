@@ -33,7 +33,7 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
 
 
 def get_next_link(response: Response) -> str | None:
-    """Github uses a `link` header to inform pagination.
+    """GitHub uses a `link` header to inform pagination.
     The relation parameter can be prev, next, first or last
 
     Read more here:

@@ -19,7 +19,7 @@ from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
 from social_auth.models import UserSocialAuth
 
-from .client import GithubPluginAppsClient, GithubPluginClient
+from .client import GitHubPluginAppsClient, GitHubPluginClient
 
 API_ERRORS = {
     404: "GitHub returned a 404 Not Found error. If this repository exists, ensure"
@@ -52,7 +52,7 @@ class GitHubMixin(CorePluginMixin):
         auth = self.get_auth(user=user)
         if auth is None:
             raise PluginError(API_ERRORS[401])
-        return GithubPluginClient(auth=auth)
+        return GitHubPluginClient(auth=auth)
 
 
 # TODO(dcramer): half of this plugin is for the issue tracking integration
@@ -231,8 +231,8 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
                     'new <a href="/settings/{}/integrations/github/">'
-                    "Github global integration</a>.  "
-                    "You cannot add repositories to the legacy Github integration."
+                    "GitHub global integration</a>.  "
+                    "You cannot add repositories to the legacy GitHub integration."
                 ).format(project.organization.slug),
                 "required": True,
             }
@@ -510,7 +510,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
 
-        client = GithubPluginAppsClient(Integration.objects.get(id=integration_id))
+        client = GitHubPluginAppsClient(Integration.objects.get(id=integration_id))
 
         # use config name because that is kept in sync via webhooks
         name = repo.config["name"]
@@ -539,13 +539,13 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
             self.logger.warning("get_installations.no-linked-auth")
             return []
 
-        with GithubPluginClient(auth=auth) as client:
+        with GitHubPluginClient(auth=auth) as client:
             res = client.get_installations()
 
         return [install["id"] for install in res["installations"]]
 
     def get_repositories(self, integration):
-        client = GithubPluginAppsClient(integration)
+        client = GitHubPluginAppsClient(integration)
 
         res = client.get_repositories()
         return [

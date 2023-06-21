@@ -45,7 +45,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
         logger.warning("The org has suspended the Sentry App.", extra=extra)
         return
     elif msg == "Server Error":
-        logger.warning("Github failed to respond.", extra=extra)
+        logger.warning("GitHub failed to respond.", extra=extra)
         return
     elif msg.startswith("Although you appear to have the correct authorization credentials"):
         # Although you appear to have the correct authorization credentials, the
@@ -54,7 +54,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
         logger.warning("The org has suspended the Sentry App. See code comment.", extra=extra)
         return
     elif msg.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
-        logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+        logger.warning("GitHub has blocked this org. We will not continue.", extra=extra)
         return
 
     # Logging the exception and returning is better than re-raising the error
@@ -113,7 +113,7 @@ def derive_code_mappings(
 
     try:
         with lock.acquire():
-            # This method is specific to the GithubIntegration
+            # This method is specific to the GitHubIntegration
             trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
         process_error(error, extra)

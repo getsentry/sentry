@@ -26,7 +26,7 @@ class BaseStacktraceLinkTest(APITestCase):
 
 
 @region_silo_test
-class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
+class ProjectStacktraceLinkGitHubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
         self.integration = Integration.objects.create(

@@ -60,7 +60,7 @@ class FetchUser(AuthView):
                 else:
                     user["email"] = email[0]
 
-            # A user hasn't set their name in their Github profile so it isn't
+            # A user hasn't set their name in their GitHub profile so it isn't
             # populated in the response
             if not user.get("name"):
                 user["name"] = _get_name_from_email(user["email"])

@@ -39,7 +39,7 @@ get_shell_startup_script() {
   echo "$_startup_script"
 }
 
-# The first \n is important on Github workers since it was being appended to
+# The first \n is important on GitHub workers since it was being appended to
 # the last line rather than on a new line. I never figured out why
 _append_to_startup_script() {
   if [[ -n "$SHELL" ]]; then

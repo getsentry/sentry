@@ -75,7 +75,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
             extra={"url": url, "status_code": response.status_code, "org_id": organization.id},
         )
 
-    # None of the Github Integrations had a Codecov integration
+    # None of the GitHub Integrations had a Codecov integration
     return (
         False,
         CodecovIntegrationError.MISSING_CODECOV.value,

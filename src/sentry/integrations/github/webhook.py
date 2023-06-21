@@ -247,7 +247,7 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError:
-                                logger.warning("Github user is missing.")
+                                logger.warning("GitHub user is missing.")
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -489,7 +489,7 @@ class GitHubWebhookBase(Endpoint):
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
             logger.error("github.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception("Missing Github event in webhook.")
+            logger.exception("Missing GitHub event in webhook.")
             return HttpResponse(status=400)
 
         if not handler:

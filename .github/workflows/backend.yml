@@ -491,7 +491,7 @@ jobs:
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
-  # This check is the only required Github check
+  # This check is the only required GitHub check
   backend-required-check:
     needs:
       [

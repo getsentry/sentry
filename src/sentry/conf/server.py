@@ -521,7 +521,7 @@ AUTHENTICATION_BACKENDS = (
     # The following authentication backends are used by social auth only.
     # We don't use them for user authentication.
     "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.github.GithubBackend",
+    "social_auth.backends.github.GitHubBackend",
     "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
@@ -1571,7 +1571,7 @@ SENTRY_FEATURES = {
     "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
-    # and login with Github / Azure DevOps that sentry.io provides.
+    # and login with GitHub / Azure DevOps that sentry.io provides.
     "organizations:sso-basic": True,
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
