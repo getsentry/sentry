@@ -15,7 +15,7 @@ CLOCK_SKEW = 60 * 5
 
 
 # MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
-class MsTeamsAbstractClient(ApiClient):
+class MsTeamsAbstractClient:
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
@@ -70,7 +70,7 @@ class MsTeamsAbstractClient(ApiClient):
 
 # MsTeamsPreInstallClient is used with the access token and service url as arguments to the constructor
 # It will not handle token refreshing
-class MsTeamsPreInstallClient(MsTeamsAbstractClient):
+class MsTeamsPreInstallClient(ApiClient, MsTeamsAbstractClient):
     def __init__(self, access_token, service_url):
         super().__init__()
         self.access_token = access_token
@@ -84,9 +84,9 @@ class MsTeamsPreInstallClient(MsTeamsAbstractClient):
 # MsTeamsClient is used with an existing integration object and handles token refreshing
 class MsTeamsClient(IntegrationProxyClient, MsTeamsAbstractClient):
     def __init__(self, integration: Integration):
+        self.integration = integration
         org_integration_id = infer_org_integration(integration_id=integration.id)
         super().__init__(org_integration_id=org_integration_id)
-        self.integration = integration
 
     @property
     def metadata(self):
