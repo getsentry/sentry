@@ -229,7 +229,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert self.release.count_artifacts() == 0
 
             status, details = get_assemble_status(
-                AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK
             assert details is None

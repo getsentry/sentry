@@ -269,7 +269,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
-        assert set(response.data["missingChunks"]) == set(total_checksum)
+        assert set(response.data["missingChunks"]) == {total_checksum}
 
         # We store the blobs into the database.
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
