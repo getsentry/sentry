@@ -181,25 +181,29 @@ class Tags extends Component<Props, State> {
 
     if (tags.length > 0) {
       return (
-        <Wrapper>
+        <Fragment>
           <StyledTagFacetList>
             {tags.map((tag, index) => this.renderTag(tag, index))}
           </StyledTagFacetList>
-          {hasMore && (
-            <Button
-              size="xs"
-              priority="primary"
-              disabled={loading}
-              aria-label={t('Show More')}
-              onClick={() => {
-                this.fetchData(true, nextCursor, true);
-              }}
-              style={{width: 'min-content'}}
-            >
-              {t('Show More')}
-            </Button>
-          )}
-        </Wrapper>
+          {hasMore &&
+            (loading ? (
+              this.renderPlaceholders()
+            ) : (
+              <ButtonWrapper>
+                <Button
+                  size="xs"
+                  priority="primary"
+                  disabled={loading}
+                  aria-label={t('Show More')}
+                  onClick={() => {
+                    this.fetchData(true, nextCursor, true);
+                  }}
+                >
+                  {t('Show More')}
+                </Button>
+              </ButtonWrapper>
+            ))}
+        </Fragment>
       );
     }
 
@@ -238,7 +242,7 @@ const StyledTagFacetList = styled(TagFacetsList)`
   width: 100%;
 `;
 
-const Wrapper = styled('div')`
+const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
