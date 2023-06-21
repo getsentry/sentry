@@ -17,6 +17,9 @@ from sentry.models import (
     UserRole,
 )
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -545,7 +548,9 @@ class FromRequestTest(AccessFactoryTestCase):
     def test_member_role_in_organization_closed_membership(self):
         # disable default allow_joinleave
         with exempt_from_silo_limits():
-            self.org.update(flags=0)
+            update_organization_with_outbox_message(org_id=self.org.id, update_data={"flags": 0})
+            self.org.refresh_from_db()
+
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.org, role="member", teams=[self.team1]

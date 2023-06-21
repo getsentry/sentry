@@ -21,6 +21,9 @@ from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import ApiKey, Organization, OrganizationMember
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -50,7 +53,11 @@ class OrganizationPermissionBase(TestCase):
 @region_silo_test(stable=True)
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+        )
+        self.org.refresh_from_db()
         assert self.org.flags.require_2fa.is_set is True
 
     def test_regular_user(self):

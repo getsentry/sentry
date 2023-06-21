@@ -9,6 +9,9 @@ from sentry import audit_log
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
@@ -276,7 +279,11 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.assertFalse(self.user.has_2fa())
 
     def require_2fa_for_organization(self):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+        )
+        self.organization.refresh_from_db()
         self.assertTrue(self.organization.flags.require_2fa.is_set)
 
     def _assert_pending_invite_details_in_session(self, om):

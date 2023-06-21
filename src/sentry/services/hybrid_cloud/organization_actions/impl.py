@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Union
 
 from django.db import transaction
 from django.db.models.expressions import CombinedExpression
@@ -10,7 +10,7 @@ class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
     name: str
     slug: str
     status: OrganizationStatus
-    flags: CombinedExpression
+    flags: Union[CombinedExpression, int]
     default_role: int
 
 

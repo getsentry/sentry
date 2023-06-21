@@ -26,6 +26,9 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
@@ -100,7 +103,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             widget=widget_2, order=2, name="Outgoing data"
         )
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -161,7 +166,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
                 repository_id=repo.id, organization_id=org.id, author=author, key=uuid4().hex
             )
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -181,7 +188,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         # Simulate the project being deleted but the deletion crashing.
         project.delete()
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -207,7 +216,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         # Simulate the project being deleted but the deletion crashing.
         repo.delete()
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -240,7 +251,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             status=AlertRuleStatus.SNAPSHOT.value,
         )
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -266,7 +279,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             discover_saved_query=query, project=other_project
         )
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -284,7 +299,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert Organization.objects.filter(**name_filter).count() == 1
         assert ScheduledDeletion.objects.count() == 0
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -352,7 +369,9 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             != project_rule.environment_id
         )
 
-        from_org.update(status=OrganizationStatus.PENDING_DELETION)
+        update_organization_with_outbox_message(
+            org_id=from_org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
         deletion = ScheduledDeletion.schedule(from_org, days=0)
         deletion.update(in_progress=True)
         with self.tasks():
