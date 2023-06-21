@@ -68,7 +68,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "has_stacktrace": 0,
     "relative_volume": 1,
     "event_halflife_hours": 4,
-    "issue_halflife_hours": 72,
+    "issue_halflife_hours": 12,
     "v2": True,
     "norm": False,
 }
