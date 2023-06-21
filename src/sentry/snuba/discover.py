@@ -61,7 +61,7 @@ __all__ = (
 
 logger = logging.getLogger(__name__)
 
-PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
+PreparedQuery = namedtuple("PreparedQuery", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 

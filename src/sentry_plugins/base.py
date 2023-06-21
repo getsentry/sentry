@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import sys
+from typing import Any, NoReturn
 
 import sentry_plugins
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -49,7 +52,7 @@ class CorePluginMixin:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc, identity=None):
+    def raise_error(self, exc: BaseException, identity: Any = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
