@@ -10,7 +10,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
@@ -41,13 +41,13 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
+from sentry.search.utils import get_teams_for_users
 from sentry.utils.cursors import Cursor, CursorResult
 
 
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
-    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     include_none = False
     types_to_actors = defaultdict(list)
@@ -79,24 +79,17 @@ def assigned_to_filter(
                 ).values_list("group_id", flat=True)
             }
         )
-        query |= Q(
-            **{
-                f"{field_filter}__in": GroupAssignee.objects.filter(
-                    project_id__in=[p.id for p in projects],
-                    team_id__in=list(
-                        Team.objects.filter(
-                            id__in=OrganizationMemberTeam.objects.filter(
-                                organizationmember__in=OrganizationMember.objects.filter(
-                                    user_id__in=user_ids,
-                                    organization_id=projects[0].organization_id,
-                                ),
-                                is_active=True,
-                            ).values_list("team_id", flat=True)
-                        )
-                    ),
-                ).values_list("group_id", flat=True)
-            }
-        )
+        organization = projects[0].organization
+        # Only add teams to query if assign-to-me flag is off
+        if not features.has("organizations:assign-to-me", organization, actor=None):
+            query |= Q(
+                **{
+                    f"{field_filter}__in": GroupAssignee.objects.filter(
+                        project_id__in=[p.id for p in projects],
+                        team_id__in=[team for team in get_teams_for_users(projects, user_ids)],
+                    ).values_list("group_id", flat=True)
+                }
+            )
 
     if include_none:
         query |= unassigned_filter(True, projects, field_filter=field_filter)
@@ -235,10 +228,15 @@ def assigned_or_suggested_filter(
                 ).values("team")
             ).values_list("id", flat=True)
         )
+        organization = projects[0].organization
+        query_ids = Q(user_id__in=user_ids)
+        # Only add team_ids to query if assign-to-me flag is off
+        if not features.has("organizations:assign-to-me", organization, actor=None):
+            query_ids = query_ids | Q(team_id__in=team_ids)
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
+                    query_ids,
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
