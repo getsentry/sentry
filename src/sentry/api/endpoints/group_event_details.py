@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,7 +11,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
 from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.group_index import validate_search_filter_permissions
+from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.exceptions import InvalidSearchQuery
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
@@ -38,7 +42,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
         :pparam string group_id: the ID of the issue
         """
-        environments = [e.name for e in get_environments(request, group.project.organization)]
+        environments = [e for e in get_environments(request, group.project.organization)]
+        environment_names = [e.name for e in environments]
 
         if event_id == "latest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
@@ -77,7 +82,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         data = wrap_event_response(
             request.user,
             event,
-            environments,
+            environment_names,
             include_full_release_data="fullRelease" not in collapse,
         )
         return Response(data)
