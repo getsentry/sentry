@@ -173,6 +173,7 @@
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^14.4.3",
+    "@total-typescript/ts-reset": "^0.4.2",
     "@types/node": "^18.14.0",
     "@visual-snapshot/jest": "7.0.0",
     "babel-gettext-extractor": "^4.1.3",
