@@ -92,7 +92,7 @@ jobs:
         if: |
           contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
         run: |
-          echo "SENTRY_USE_SILOS=1" >> "$GITHUB_ENV"
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -139,7 +139,7 @@ jobs:
         if: |
           contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
         run: |
-          echo "SENTRY_USE_SILOS=1" >> "$GITHUB_ENV"
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -176,7 +176,7 @@ jobs:
         if: |
           contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
         run: |
-          echo "SENTRY_USE_SILOS=1" >> "$GITHUB_ENV"
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -335,7 +335,7 @@ jobs:
         if: |
           contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
         run: |
-          echo "SENTRY_USE_SILOS=1" >> "$GITHUB_ENV"
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -413,7 +413,7 @@ jobs:
         if: |
           contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
         run: |
-          echo "SENTRY_USE_SILOS=1" >> "$GITHUB_ENV"
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
