@@ -24,6 +24,7 @@ export function DurationComparisonCell({duration, p95}: Props) {
 export const PlaintextLabel = styled('div')``;
 
 export const ComparisonLabel = styled('span')<{value: number}>`
-  color: ${p => (p.value < 0 ? p.theme.green400 : p.theme.red400)};
+  color: ${p =>
+    p.value === 0 ? p.theme.subText : p.value < 0 ? p.theme.green400 : p.theme.red400};
   text-align: right;
 `;

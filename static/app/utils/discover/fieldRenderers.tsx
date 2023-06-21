@@ -674,6 +674,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
+  http_error_count_percent_change: SpecialFunctionFieldRenderer;
   percentile_percent_change: SpecialFunctionFieldRenderer;
   sps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
@@ -758,6 +759,19 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     );
   },
   percentile_percent_change: fieldName => data => {
+    const deltaValue = data[fieldName];
+
+    const sign = deltaValue >= 0 ? '+' : '-';
+    const delta = formatPercentage(Math.abs(deltaValue), 2);
+    const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
+
+    return (
+      <PercentChangeCell
+        trendDirection={trendDirection}
+      >{`${sign}${delta}`}</PercentChangeCell>
+    );
+  },
+  http_error_count_percent_change: fieldName => data => {
     const deltaValue = data[fieldName];
 
     const sign = deltaValue >= 0 ? '+' : '-';

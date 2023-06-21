@@ -17,6 +17,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -28,6 +29,8 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
@@ -184,6 +187,10 @@ function renderBodyCell(
     return <DurationCell milliseconds={row['p95(span.self_time)']} />;
   }
 
+  if (column.key === 'http_error_count()') {
+    return <CountCell count={row['http_error_count()']} />;
+  }
+
   if (!meta || !meta?.fields) {
     return row[column.key];
   }
@@ -258,6 +265,20 @@ function getColumns(moduleName: ModuleName): Column[] {
       name: DataTitles.change,
       width: -1,
     },
+    ...(moduleName === ModuleName.HTTP
+      ? [
+          {
+            key: 'http_error_count()',
+            name: DataTitles.errorCount,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+          {
+            key: 'http_error_count_percent_change()',
+            name: DataTitles.change,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+        ]
+      : []),
     {
       key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
