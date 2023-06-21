@@ -23,14 +23,8 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
-
-DEFAULT_FACTOR_RULE = lambda factor: {
-    "condition": {"inner": [], "op": "and"},
-    "id": 1004,
-    "samplingValue": {"type": "factor", "value": factor},
-    "type": "trace",
-}
 
 
 @pytest.fixture
@@ -603,11 +597,10 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     assert rules[0]["id"] == uniform_id
 
 
-@pytest.mark.skip("Disabled rebalancing rule.")
 @pytest.mark.django_db
 @freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
+def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
     get_blended_sample_rate, default_project
 ):
     default_old_project = _apply_old_date_to_project_and_org(default_project)
@@ -627,22 +620,28 @@ def test_generate_rules_return_uniform_rules_and_rebalance_factor_rule(
         ],
     )
 
-    # Set factor
     default_factor = 0.5
     redis_client.set(
         f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
         default_factor,
     )
-    assert generate_rules(default_old_project) == [
-        DEFAULT_FACTOR_RULE(default_factor),
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": 0.1},
-            "type": "trace",
-        },
-    ]
-    _validate_rules(default_project)
+
+    with Feature("organizations:ds-org-recalibration"):
+        assert generate_rules(default_old_project) == [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
+                "type": "trace",
+            },
+        ]
+        _validate_rules(default_project)
 
 
 @pytest.mark.django_db
