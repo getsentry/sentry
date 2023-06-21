@@ -9,12 +9,12 @@ from sentry import features, quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.models import Organization, Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE}
