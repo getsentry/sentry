@@ -1,3 +1,4 @@
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import Organization
 from sentry.testutils import TestCase
 from sentry.utils.migrations import clear_flag
@@ -11,7 +12,8 @@ class ClearFlagTest(TestCase):
         org2 = self.create_organization(flags=Organization.flags.early_adopter)
         org3 = self.create_organization(flags=0)
 
-        clear_flag(Organization, "early_adopter")
+        with in_test_psql_role_override("postgres"):
+            clear_flag(Organization, "early_adopter")
 
         org1.refresh_from_db()
         assert not org1.flags.early_adopter

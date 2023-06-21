@@ -14,12 +14,13 @@ class OrganizationMappingRepairTest(TestCase):
     def test_removes_expired_unverified(self):
         self.organization = Factories.create_organization()
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.verified = False
-        mapping.date_created = expired_time
-        mapping.save()
 
         with in_test_psql_role_override("postgres"):
+            mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+            mapping.verified = False
+            mapping.date_created = expired_time
+            mapping.save()
+
             phantom_mapping = self.create_organization_mapping(
                 Organization(id=123, slug="fake-slug"), date_created=expired_time, verified=False
             )
@@ -35,11 +36,12 @@ class OrganizationMappingRepairTest(TestCase):
         self.organization = Factories.create_organization()
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
 
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.verified = False
-        mapping.date_created = expired_time
-        mapping.idempotency_key = "1234"
-        mapping.save()
+        with in_test_psql_role_override("postgres"):
+            mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+            mapping.verified = False
+            mapping.date_created = expired_time
+            mapping.idempotency_key = "1234"
+            mapping.save()
 
         repair_mappings()
 

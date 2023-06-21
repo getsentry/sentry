@@ -5,6 +5,7 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Count
 from django.utils import timezone
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo.base import SiloMode
@@ -29,8 +30,9 @@ def repair_mappings() -> None:
     metrics.incr("sentry.hybrid_cloud.tasks.organizationmapping.start", sample_rate=1.0)
     with metrics.timer("sentry.hybrid_cloud.tasks.organizationmapping.repair", sample_rate=1.0):
         expiration_threshold_time = timezone.now() - ORGANIZATION_MAPPING_EXPIRY
-        _verify_mappings(expiration_threshold_time)
-        _remove_duplicate_mappings(expiration_threshold_time)
+        with in_test_psql_role_override("postgres"):
+            _verify_mappings(expiration_threshold_time)
+            _remove_duplicate_mappings(expiration_threshold_time)
 
 
 def _verify_mappings(expiration_threshold_time: datetime) -> None:

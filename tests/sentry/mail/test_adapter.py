@@ -47,6 +47,9 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import with_feature
@@ -1549,7 +1552,11 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
         assert msg.to == [self.user.email]
 
     def test_user_feedback__enhanced_privacy(self):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.enhanced_privacy)},
+        )
+        self.organization.refresh_from_db()
         assert self.organization.flags.enhanced_privacy.is_set is True
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
