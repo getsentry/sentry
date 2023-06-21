@@ -1,6 +1,6 @@
+import secrets
 from base64 import b64decode, b64encode
 from datetime import datetime
-from uuid import uuid4
 
 from django.conf import settings
 
