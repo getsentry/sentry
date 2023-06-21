@@ -568,6 +568,7 @@ def get_facets(
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
+    fetch_projects = len(params.get("project_id", [])) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(
@@ -577,7 +578,10 @@ def get_facets(
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
             limit=per_page,
-            offset=cursor,
+            # Remove one from the cursor because if we fetch_projects then
+            # a result is popped off and replaced with projects, offsetting
+            # the pagination on subsequent pages
+            offset=cursor - 1 if fetch_projects and cursor > 0 else cursor,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -595,15 +599,12 @@ def get_facets(
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
-    fetch_projects = False
-    if len(params.get("project_id", [])) > 1:
-        # TODO(nar): Since we pop a result to fill it with project data, we need to account for this offset
-        if len(top_tags) == per_page:
-            top_tags.pop()
-        fetch_projects = True
+    if fetch_projects and len(top_tags) == per_page:
+        top_tags.pop()
 
-    results = []
-    # Only inject project data on the first page
+    top_tag_results = []
+    project_results = []
+    # Inject project data on the first page if multiple projects are selected
     if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
@@ -617,7 +618,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             project_values = project_value_builder.run_query(referrer=referrer)
-            results.extend(
+            project_results.extend(
                 [
                     FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
                     for r in project_values["data"]
@@ -656,7 +657,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             tag_values = tag_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
                     for r in tag_values["data"]
@@ -678,7 +679,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             aggregate_values = aggregate_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
                     for r in aggregate_values["data"]
@@ -687,7 +688,13 @@ def get_facets(
 
     # Need to cast tuple values to str since the value might be None
     # Reverse sort the count so the highest values show up first
-    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
+    top_tag_results = sorted(
+        top_tag_results, key=lambda result: (str(result.key), -result.count, str(result.value))
+    )
+
+    # Ensure projects are at the beginning of the results so they are not
+    # truncated by the paginator
+    return [*project_results, *top_tag_results]
 
 
 def spans_histogram_query(
