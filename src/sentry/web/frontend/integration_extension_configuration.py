@@ -52,11 +52,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
         # check if we have one org
         organization = None
-        organizations = (
-            user_service.get_organizations(user_id=request.user.id)
-            if request.user.id is not None
-            else ()
-        )
+        organizations = user_service.get_organizations(user_id=request.user.id)
         if len(organizations) == 1:
             organization = organizations[0]
         # if we have an org slug in the query param, use that org
