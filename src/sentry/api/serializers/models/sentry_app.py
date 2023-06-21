@@ -8,7 +8,8 @@ from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar, User
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @register(SentryApp)
@@ -23,11 +24,8 @@ class SentryAppSerializer(Serializer):
         app_avatar_attrs = SentryAppAvatar.objects.get_by_apps_as_dict(sentry_apps=item_list)
         organizations = {
             o.id: o
-            for o in organization_service.get_organizations(
-                user_id=None,
-                scope=None,
-                only_visible=False,
-                organization_ids=[i.owner_id for i in item_list if i.owner_id is not None],
+            for o in organization_mapping_service.get_many(
+                organization_ids=[i.owner_id for i in item_list if i.owner_id is not None]
             )
         }
         applications: Mapping[int, ApiApplication] = {
@@ -35,9 +33,7 @@ class SentryAppSerializer(Serializer):
             for app in ApiApplication.objects.filter(id__in=[i.application_id for i in item_list])
         }
 
-        user_orgs = organization_service.get_organizations(
-            user_id=user.id, scope=None, only_visible=False, organization_ids=None
-        )
+        user_orgs = user_service.get_organizations(user_id=user.id)
         user_org_ids = {uo.id for uo in user_orgs}
 
         return {

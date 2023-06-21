@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
@@ -46,6 +46,17 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         #
         # return serialize_organization_mapping(org_mapping)
         return None
+
+    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
+        try:
+            org_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+        except OrganizationMapping.DoesNotExist:
+            return None
+        return serialize_organization_mapping(org_mapping)
+
+    def get_many(self, *, organization_ids: List[int]) -> List[RpcOrganizationMapping]:
+        org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
+        return [serialize_organization_mapping(om) for om in org_mappings]
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         # TODO: REMOVE FROM GETSENTRY!

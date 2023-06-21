@@ -5,7 +5,7 @@ from typing import Any, List, MutableMapping
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryAppInstallation, User
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -18,11 +18,8 @@ class SentryAppInstallationSerializer(Serializer):
 
         organizations = {
             o.id: o
-            for o in organization_service.get_organizations(
-                organization_ids=list({i.organization_id for i in item_list}),
-                user_id=None,
-                scope=None,
-                only_visible=False,
+            for o in organization_mapping_service.get_many(
+                organization_ids=list({i.organization_id for i in item_list})
             )
         }
         for item in item_list:
