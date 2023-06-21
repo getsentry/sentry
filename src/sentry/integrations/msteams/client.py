@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from urllib.parse import urlencode
 
@@ -24,32 +26,32 @@ class MsTeamsClientMixin:
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def get_team_info(self, team_id):
+    def get_team_info(self, team_id: str):
         return self.get(self.TEAM_URL % team_id)
 
-    def get_channel_list(self, team_id):
+    def get_channel_list(self, team_id: str):
         resp = self.get(self.CHANNEL_URL % team_id)
         return resp.get("conversations")
 
-    def get_member_list(self, team_id, continuation_token=None):
+    def get_member_list(self, team_id: str, continuation_token: str | None = None):
         url = self.MEMBER_URL % team_id
         params = {"pageSize": 500}
         if continuation_token:
             params["continuationToken"] = continuation_token
         return self.get(url, params=params)
 
-    def get_user_conversation_id(self, user_id, tenant_id):
+    def get_user_conversation_id(self, user_id: str, tenant_id: str):
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
         resp = self.post(self.CONVERSATION_URL, data=data)
         return resp.get("id")
 
-    def send_message(self, conversation_id, data):
+    def send_message(self, conversation_id: str, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
-    def update_message(self, conversation_id, activity_id, data):
+    def update_message(self, conversation_id: str, activity_id: str, data):
         return self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
 
-    def send_card(self, conversation_id, card):
+    def send_card(self, conversation_id: str, card):
         payload = {
             "type": "message",
             "attachments": [
@@ -58,7 +60,7 @@ class MsTeamsClientMixin:
         }
         return self.send_message(conversation_id, payload)
 
-    def update_card(self, conversation_id, activity_id, card):
+    def update_card(self, conversation_id: str, activity_id: str, card):
         payload = {
             "type": "message",
             "attachments": [
