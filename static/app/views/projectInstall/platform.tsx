@@ -304,11 +304,13 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
 
   const showDocsWithProductSelection =
     gettingStartedDocWithProductSelection &&
-    (platform.key === 'javascript' || platform.key.match('^javascript-([A-Za-z]+)$'));
+    (platform.key === 'javascript' || !!platform.key.match('^javascript-([A-Za-z]+)$'));
 
   return (
     <Fragment>
-      <ProductUnavailableCTAHook organization={organization} />
+      {!isSelfHosted && showDocsWithProductSelection && (
+        <ProductUnavailableCTAHook organization={organization} />
+      )}
       <StyledPageHeader>
         <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>

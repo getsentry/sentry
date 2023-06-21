@@ -1,7 +1,7 @@
 import pytest
 from django.db import IntegrityError
 
-from sentry.models import Organization
+from sentry.models import Organization, outbox_context
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
@@ -17,7 +17,7 @@ from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
     def test_create_on_organization_save(self):
-        with exempt_from_silo_limits():
+        with outbox_context(flush=False), exempt_from_silo_limits():
             self.organization = Organization(
                 name="test name",
             )

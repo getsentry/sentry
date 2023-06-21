@@ -11,19 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -736,7 +724,6 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.sliding_window",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.dynamic_sampling.tasks.utils",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
@@ -1075,11 +1062,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
     },
-    "dynamic-sampling-sliding-window": {
-        "task": "sentry.dynamic_sampling.tasks.sliding_window",
-        # Run every 10 minutes
-        "schedule": crontab(minute="*/10"),
-    },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
         # Run every 10 minutes
@@ -1334,7 +1316,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable Discord integration
-    "organizations:discord-integration": False,
+    "organizations:integrations-discord": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -2652,7 +2634,9 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
+    "sentry.integrations.discord.DiscordIntegrationProvider",
 )
+
 
 SENTRY_SDK_CONFIG = {
     "release": sentry.__semantic_version__,
@@ -3028,12 +3012,8 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 }
 
 
-class TopicDefinition(TypedDict):
-    cluster: str
-
-
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3214,6 +3194,7 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 }
 
 # If this is turned on, then sentry will perform automatic grouping updates.
+# This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
 # How long is the migration phase for grouping updates?
@@ -3424,11 +3405,9 @@ if USE_SILOS:
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
 
-    # TODO(hybridcloud) Having a region connection is going to require
-    # a ton of changes to transaction.atomic(). We should use control + default
-    # instead.
-    DATABASES["region"] = DATABASES["default"].copy()
-    DATABASES["region"]["NAME"] = "region"
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    DATABASES["default"]["NAME"] = "region"
 
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.

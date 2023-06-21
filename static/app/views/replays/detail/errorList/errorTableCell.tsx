@@ -1,4 +1,5 @@
 import {ComponentProps, CSSProperties, forwardRef, useMemo} from 'react';
+import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
 import Avatar from 'sentry/components/avatar';
@@ -15,7 +16,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
@@ -131,38 +132,47 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Text>
-            <QuickContextHoverWrapper
-              dataRow={{
-                id: eventId,
-                'project.name': projectSlug,
-              }}
-              contextType={ContextType.EVENT}
-              organization={organization}
-            >
-              {title ?? EMPTY_CELL}
-            </QuickContextHoverWrapper>
+            <ClassNames>
+              {({css}) => (
+                <QuickContextHovercard
+                  dataRow={{
+                    id: eventId,
+                    'project.name': projectSlug,
+                  }}
+                  contextType={ContextType.EVENT}
+                  organization={organization}
+                  containerClassName={css`
+                    display: inline;
+                  `}
+                >
+                  {title ?? EMPTY_CELL}
+                </QuickContextHovercard>
+              )}
+            </ClassNames>
           </Text>
         </Cell>
       ),
       () => (
-        <Cell {...columnProps} gap={0.5}>
-          <AvatarWrapper>
-            <Avatar project={project} size={16} />
-          </AvatarWrapper>
-          <QuickContextHoverWrapper
-            dataRow={{
-              'issue.id': groupId,
-              issue: groupShortId,
-            }}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            {issueUrl ? (
-              <Link to={issueUrl}>{groupShortId}</Link>
-            ) : (
-              <span>{groupShortId}</span>
-            )}
-          </QuickContextHoverWrapper>
+        <Cell {...columnProps}>
+          <Text>
+            <AvatarWrapper>
+              <Avatar project={project} size={16} />
+            </AvatarWrapper>
+            <QuickContextHovercard
+              dataRow={{
+                'issue.id': groupId,
+                issue: groupShortId,
+              }}
+              contextType={ContextType.ISSUE}
+              organization={organization}
+            >
+              {issueUrl ? (
+                <Link to={issueUrl}>{groupShortId}</Link>
+              ) : (
+                <span>{groupShortId}</span>
+              )}
+            </QuickContextHovercard>
+          </Text>
         </Cell>
       ),
       () => (

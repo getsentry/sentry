@@ -1,11 +1,9 @@
 ---
-created: '2020-08-21T21:07:53.321111Z'
-creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","lib.rs"],["function","__rust_maybe_catch_panic"]],[["filename","rt.rs"],["function","std::rt::lang_start_internal::{{closure}}"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","panicking.rs"],["function","std::panicking::try"]],[["filename","lib.rs"],["function","__rust_maybe_catch_panic"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","rt.rs"],["function","std::rt::lang_start_internal::{{closure}}"]],[["function","std::rt::lang_start::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","rt.rs"],["function","std::rt::lang_start_internal::{{closure}}"]],[["function","symbolicator::main"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__libc_start_main"]],[["function","main"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_start"]],[["function","__libc_start_main"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","actix::contextimpl::ContextFut<T>::poll"]],[["function","futures::future::then::Then<T>::poll"]]]
@@ -24,7 +22,6 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::task_impl
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","futures::task_impl::std::set"]],[["function","actix::contextimpl::ContextFut<T>::poll"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","main"]],[["filename","panicking.rs"],["function","std::panicking::try"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","main"]],[["function","symbolicator::main"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start::{{closure}}"]],[["function","symbolicator::main"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::thread::local::LocalKey<T>::with"]],[["function","tokio_current_thread::Entered<T>::block_on"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolic_symcache::cache::SymCache::parse"]],[["function","symbolic_symcache::format::Header::parse"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","symbolic_symcache::format::Header::parse"]],[["function","failure::error::error_impl::ErrorImpl::from"]]]

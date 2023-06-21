@@ -17,7 +17,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options, quotas
+from sentry import quotas
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -119,7 +119,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     org_ids = list(org_ids)
     transaction_string_id = indexer.resolve_shared_org("decision")
     transaction_tag = f"tags_raw[{transaction_string_id}]"
-    sample_rate = int(options.get("dynamic-sampling.prioritise_projects.sample_rate") * 100)
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
 
     where = [
@@ -128,8 +127,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         Condition(Column("metric_id"), Op.EQ, metric_id),
         Condition(Column("org_id"), Op.IN, org_ids),
     ]
-    if sample_rate != 100:
-        where += [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate)]
 
     keep_count = Function(
         "countIf",
@@ -185,7 +182,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -231,7 +228,7 @@ def adjust_sample_rates_of_projects(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
     else:
-        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
+        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
         )

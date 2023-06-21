@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
+from typing import Callable, Iterator, List, Optional, Tuple, TypedDict
 
 from snuba_sdk import (
     AliasedExpression,
@@ -142,7 +142,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         organization = None
 
     # By default, this bias uses the blended sample rate.
-    sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
+    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
 
     # In case we have specific feature flags enabled, we will change the sample rate either basing ourselves
     # on sliding window per project or per org.
@@ -232,15 +232,6 @@ def get_orgs_with_project_counts(
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     offset = 0
 
-    # TODO remove this when we are happy with the database load
-    #   We use this mechanism to be able to adjust the db load, we can control what percentage
-    #   of organisations are retrieved from the database.
-    load_rate = int(options.get("dynamic-sampling.prioritise_transactions.load_rate") * 100)
-    if load_rate <= 99:
-        restrict_orgs = [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, load_rate)]
-    else:
-        restrict_orgs = []
-
     last_result: List[Tuple[int, int]] = []
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
@@ -261,8 +252,7 @@ def get_orgs_with_project_counts(
                     ),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
-                ]
-                + restrict_orgs,
+                ],
                 granularity=Granularity(3600),
                 orderby=[
                     OrderBy(Column("org_id"), Direction.ASC),
@@ -276,7 +266,7 @@ def get_orgs_with_project_counts(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -357,7 +347,7 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -460,7 +450,7 @@ def fetch_transactions_with_total_volumes(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -474,10 +464,14 @@ def fetch_transactions_with_total_volumes(
             transaction_name = row["transaction_name"]
             num_transactions = row["num_transactions"]
             if current_proj_id != proj_id or current_org_id != org_id:
-                if len(transaction_counts) > 0:
+                if (
+                    len(transaction_counts) > 0
+                    and current_proj_id is not None
+                    and current_org_id is not None
+                ):
                     yield {
-                        "project_id": cast(int, current_proj_id),
-                        "org_id": cast(int, current_org_id),
+                        "project_id": current_proj_id,
+                        "org_id": current_org_id,
                         "transaction_counts": transaction_counts,
                         "total_num_transactions": None,
                         "total_num_classes": None,
@@ -487,10 +481,14 @@ def fetch_transactions_with_total_volumes(
                 current_proj_id = proj_id
             transaction_counts.append((transaction_name, num_transactions))
         if not more_results:
-            if len(transaction_counts) > 0:
+            if (
+                len(transaction_counts) > 0
+                and current_proj_id is not None
+                and current_org_id is not None
+            ):
                 yield {
-                    "project_id": cast(int, current_proj_id),
-                    "org_id": cast(int, current_org_id),
+                    "project_id": current_proj_id,
+                    "org_id": current_org_id,
                     "transaction_counts": transaction_counts,
                     "total_num_transactions": None,
                     "total_num_classes": None,

@@ -6,6 +6,7 @@ import beautify from 'js-beautify';
 
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
@@ -19,18 +20,24 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
+const ProductSelectionAvailabilityHook = HookOrDefault({
+  hookName: 'component:product-selection-availability',
+});
+
 export function SetupDocsLoader({
   organization,
   location,
   project,
   platform,
   close,
+  showDocsWithProductSelection,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
+  showDocsWithProductSelection?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -133,11 +140,22 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-        lazyLoader
-        skipLazyLoader={close}
-      />
+      {showDocsWithProductSelection ? (
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      ) : (
+        <ProductSelection
+          defaultSelectedProducts={[
+            PRODUCT.PERFORMANCE_MONITORING,
+            PRODUCT.SESSION_REPLAY,
+          ]}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      )}
 
       {projectKeyUpdateError && (
         <LoadingError
