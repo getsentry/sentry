@@ -176,6 +176,7 @@ export enum AggregationKey {
   COUNT_WEB_VITALS = 'count_web_vitals',
   EPS = 'eps',
   EPM = 'epm',
+  SPS = 'sps',
   FAILURE_COUNT = 'failure_count',
   MIN = 'min',
   MAX = 'max',
@@ -192,6 +193,8 @@ export enum AggregationKey {
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
   LAST_SEEN = 'last_seen',
+  TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
+  HTTP_ERROR_COUNT = 'http_error_count',
 }
 
 export interface FieldDefinition {
@@ -248,6 +251,21 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.EPM]: {
     desc: t('Events per minute'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.SPS]: {
+    desc: t('Spans per second'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.TIME_SPENT_PERCENTAGE]: {
+    desc: t('Span time spent percentage'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.HTTP_ERROR_COUNT]: {
+    desc: t('Count of 5XX http errors'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Tooltip} from 'sentry/components/tooltip';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {getTooltip} from 'sentry/views/starfish/views/spans/types';
@@ -12,10 +14,15 @@ export function TimeSpentCell({
   const toolTip = getTooltip('timeSpent', totalSpanTime);
   const percentage = timeSpentPercentage > 1 ? 1 : timeSpentPercentage;
   return (
-    <span>
+    <Container>
       <Tooltip isHoverable title={toolTip}>
         {formatPercentage(percentage)}
       </Tooltip>
-    </span>
+    </Container>
   );
 }
+
+const Container = styled('div')`
+  width: 100%;
+  text-align: right;
+`;

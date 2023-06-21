@@ -7,7 +7,6 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -15,6 +14,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
@@ -107,7 +107,7 @@ export default function SpansTable({
           },
         ]}
         grid={{
-          renderHeadCell: column => renderHeadCell(column, sort, location),
+          renderHeadCell: column => renderHeadCell({column, sort, location}),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, location, endpoint, method),
         }}
@@ -115,26 +115,6 @@ export default function SpansTable({
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
-  );
-}
-
-function renderHeadCell(column: Column, sort: Sort, location: Location) {
-  return (
-    <SortLink
-      align="left"
-      canSort={SORTABLE_FIELDS.has(column.key)}
-      direction={sort.field === column.key ? sort.kind : undefined}
-      title={column.name}
-      generateSortLink={() => {
-        return {
-          ...location,
-          query: {
-            ...location.query,
-            [QueryParameterNames.SORT]: `-${column.key}`,
-          },
-        };
-      }}
-    />
   );
 }
 

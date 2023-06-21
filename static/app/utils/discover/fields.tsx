@@ -280,6 +280,24 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  [AggregationKey.SPS]: {
+    ...getDocsAndOutputType(AggregationKey.SPS),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.TIME_SPENT_PERCENTAGE]: {
+    ...getDocsAndOutputType(AggregationKey.TIME_SPENT_PERCENTAGE),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.HTTP_ERROR_COUNT]: {
+    ...getDocsAndOutputType(AggregationKey.HTTP_ERROR_COUNT),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
   [AggregationKey.EPM]: {
     ...getDocsAndOutputType(AggregationKey.EPM),
     parameters: [],
@@ -496,6 +514,7 @@ export const AGGREGATIONS = {
 export const ALIASES = {
   tpm: AggregationKey.EPM,
   tps: AggregationKey.EPS,
+  sps: AggregationKey.SPS,
 };
 
 assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);

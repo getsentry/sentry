@@ -15,6 +15,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
@@ -70,10 +71,6 @@ export function SpanTransactionsTable({
     };
   });
 
-  const renderHeadCell = (column: TableColumnHeader) => {
-    return <span>{column.name}</span>;
-  };
-
   const renderBodyCell = (column: TableColumnHeader, row: Row) => {
     return (
       <BodyCell
@@ -97,7 +94,7 @@ export function SpanTransactionsTable({
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
-          renderHeadCell,
+          renderHeadCell: col => renderHeadCell({column: col}),
           renderBodyCell,
         }}
         location={location}

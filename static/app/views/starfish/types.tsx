@@ -21,10 +21,10 @@ export enum SpanIndexedFields {
   MODULE = 'span.module',
   ID = 'span_id',
   DESCRIPTION = 'span.description',
-  TIMESTAMP = 'timestamp',
   ACTION = 'span.action',
   TRANSACTION_ID = 'transaction.id',
   DOMAIN = 'span.domain',
+  TIMESTAMP = 'timestamp',
   GROUP = 'span.group',
   PROJECT = 'project',
 }
