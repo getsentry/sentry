@@ -103,12 +103,7 @@ export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
-export type SlowClickFrame = Overwrite<
-  HydratedBreadcrumb<'ui.slowClickDetected'>,
-  {
-    clickCount?: number; // TODO(replay): v7.54.0 this field was missing, in SDK 7.56.0 is not optional. Should be optional.
-  }
->;
+export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 
 // This list should match each of the categories used in `HydratedBreadcrumb` above.
