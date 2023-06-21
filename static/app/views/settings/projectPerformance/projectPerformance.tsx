@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -22,6 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
+import {tenSecondInMs} from 'sentry/views/discover/table/quickContext/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -39,6 +41,16 @@ export const allowedDurationValues: number[] = [
 ]; // In milliseconds
 
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
+
+type ConfigExtremeType = {
+  default: number | boolean;
+  max: number | boolean;
+  min: number | boolean;
+};
+const configExtremes: {[key in DetectorConfig]?: ConfigExtremeType} = {
+  slow_db_query_duration_threshold: {min: 100, default: 1000, max: tenSecondInMs},
+  n_plus_one_db_duration_threshold: {min: 50, default: 100, max: tenSecondInMs},
+};
 
 enum DetectorConfig {
   SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
@@ -151,10 +163,21 @@ class ProjectPerformance extends AsyncView<Props, State> {
       loading: true,
     });
 
+    const data = {};
+    if (this.state.performance_issue_settings[DetectorConfig.N_PLUS_DB_ENABLED]) {
+      data[DetectorConfig.N_PLUS_DB_DURATION] =
+        configExtremes[DetectorConfig.N_PLUS_DB_DURATION]?.default;
+    }
+    if (this.state.performance_issue_settings[DetectorConfig.SLOW_DB_ENABLED]) {
+      data[DetectorConfig.SLOW_DB_DURATION] =
+        configExtremes[DetectorConfig.SLOW_DB_DURATION]?.default;
+    }
+
     this.api.request(
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
       {
-        method: 'DELETE',
+        method: 'PUT',
+        data,
         complete: () => this.fetchData(),
       }
     );
@@ -540,9 +563,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
                     />
                     <StyledPanelFooter>
                       <Actions>
-                        <Button onClick={() => this.handleThresholdsReset()}>
-                          {t('Reset All Thresholds')}
-                        </Button>
+                        <Confirm
+                          message={t(
+                            'Are you sure you wish to reset all detector thresholds?'
+                          )}
+                          onConfirm={() => this.handleThresholdsReset()}
+                          disabled={!hasAccess}
+                        >
+                          <Button>{t('Reset All Thresholds')}</Button>
+                        </Confirm>
                       </Actions>
                     </StyledPanelFooter>
                   </div>

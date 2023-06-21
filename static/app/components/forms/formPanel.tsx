@@ -69,7 +69,7 @@ function FormPanel({
           )}
         </PanelHeader>
       )}
-      <StyledPanelBody collapsed={collapsed}>
+      <PanelBody hidden={collapsed}>
         {typeof renderHeader === 'function' && renderHeader({title, fields})}
 
         {fields.map(field => {
@@ -99,7 +99,7 @@ function FormPanel({
           );
         })}
         {typeof renderFooter === 'function' && renderFooter({title, fields})}
-      </StyledPanelBody>
+      </PanelBody>
     </Panel>
   );
 }
@@ -108,8 +108,4 @@ export default FormPanel;
 
 const Collapse = styled('span')`
   cursor: pointer;
-`;
-
-const StyledPanelBody = styled(PanelBody)<{collapsed: boolean}>`
-  ${p => p.collapsed && `display: none;`}
 `;

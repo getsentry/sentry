@@ -1,4 +1,10 @@
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
@@ -155,7 +161,9 @@ describe('projectPerformance', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('Slow DB Queries Detection Enabled')).toBeInTheDocument();
 
-    const toggle = screen.getAllByRole('checkbox')[2];
+    const toggle = screen.getByRole('checkbox', {
+      name: 'N+1 DB Queries Detection Enabled',
+    });
     await userEvent.click(toggle);
 
     expect(performanceIssuesPutMock).toHaveBeenCalledWith(
@@ -252,9 +260,15 @@ describe('projectPerformance', function () {
   );
 
   it('test reset all detector thresholds', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'GET',
+      body: {n_plus_one_db_queries_detection_enabled: true},
+      statusCode: 200,
+    });
     const endpointMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
-      method: 'DELETE',
+      method: 'PUT',
     });
 
     render(
@@ -269,7 +283,22 @@ describe('projectPerformance', function () {
     const button = await screen.findByText('Reset All Thresholds');
     expect(button).toBeInTheDocument();
 
+    renderGlobalModal();
     await userEvent.click(button);
-    expect(endpointMock).toHaveBeenCalled();
+
+    // Ensure that confirm modal renders
+    const confirmButton = screen.getByText('Confirm');
+    expect(confirmButton).toBeInTheDocument();
+
+    await userEvent.click(confirmButton);
+
+    expect(endpointMock).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/performance-issues/configure/',
+      expect.objectContaining({
+        data: {
+          n_plus_one_db_duration_threshold: 100,
+        },
+      })
+    );
   });
 });
