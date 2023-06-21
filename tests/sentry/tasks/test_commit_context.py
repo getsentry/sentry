@@ -462,6 +462,19 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
+    def add_responses(self):
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+        )
+
     @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_not_github(self, mock_comment_workflow):
         """Non github repos shouldn't be commented on"""
@@ -535,17 +548,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request.date_added = iso_format(before_now(days=31))
         self.pull_request.save()
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
-            status=200,
-            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
-        )
+        self.add_responses()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -566,17 +569,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request_comment.group_ids.append(self.event.group_id)
         self.pull_request_comment.save()
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
-            status=200,
-            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
-        )
+        self.add_responses()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -596,17 +589,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         """Task queued if no prior comment exists"""
         self.pull_request_comment.delete()
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
-            status=200,
-            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
-        )
+        self.add_responses()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -625,17 +608,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow):
         """Task queued if new issue for prior comment"""
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
-            status=200,
-            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
-        )
+        self.add_responses()
 
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()

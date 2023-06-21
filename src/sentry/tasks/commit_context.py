@@ -46,7 +46,8 @@ def queue_comment_task_if_needed(
 
     response = installation.get_client().get_pullrequest_from_commit(repo=repo.name, sha=commit.key)
 
-    if not (response.status_code == 200 and isinstance(response, list)):
+    if not (response.status_code == 200 and isinstance(response, list) and len(response) == 1):
+        # the response should return a single PR, return if multiple
         return
 
     pr_query = PullRequest.objects.filter(
