@@ -45,7 +45,7 @@ def serialize_sentry_app_installation(
 ) -> RpcSentryAppInstallation:
     if app is None:
         app = installation.sentry_app
-        assert app  # narrow types
+        assert app is not None
 
     return RpcSentryAppInstallation(
         id=installation.id,
