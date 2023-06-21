@@ -154,11 +154,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
     if (field === 'tps_percent_change()') {
       const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue > 0 ? 'good' : deltaValue < 0 ? 'bad' : 'neutral';
 
       return (
         <NumberContainer>
-          <PercentChangeCell trendDirection={trendDirection}>
+          <PercentChangeCell trendDirection="neutral">
             {tct('[sign][delta]', {
               sign: deltaValue >= 0 ? '+' : '-',
               delta: formatPercentage(Math.abs(deltaValue), 2),

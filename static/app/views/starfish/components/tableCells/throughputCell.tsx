@@ -16,7 +16,8 @@ export default function ThroughputCell({throughputPerSecond, delta}: Props) {
     <Container>
       <span>{`${formatAbbreviatedNumber(throughput)}/${t('s')}`}</span>
       {delta ? (
-        <ComparisonLabel value={delta * -1}>
+        // Don't highlight throughput red or green, since throughput delta isn't good or bad
+        <ComparisonLabel value={0}>
           {delta > 0 ? '+' : ''}
           {formatPercentage(delta)}
         </ComparisonLabel>
