@@ -165,7 +165,7 @@ export const PanelTableHeader = styled('div')<{sticky: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  height: 45px;
+  min-height: 45px;
 
   ${p =>
     p.sticky &&
