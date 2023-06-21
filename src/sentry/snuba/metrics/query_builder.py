@@ -1234,7 +1234,7 @@ class SnubaResultConverter:
         # original groupBy column, and we need this to determine for which tag values we don't need to reverse resolve
         # in the indexer. As an example, we do not want to reverse resolve tag values for project_ids.
         # Another exception is `team_key_transaction` derived op since we don't want to reverse resolve its value as
-        # it is just a boolean. Therefore we rely on creating a mapping from the alias to the operation in this case
+        # it is just a boolean. Therefore, we rely on creating a mapping from the alias to the operation in this case
         # to determine whether we need to reverse the tag value or not.
         groupby_alias_to_groupby_column = (
             {
@@ -1247,26 +1247,7 @@ class SnubaResultConverter:
             else {}
         )
 
-        new_groups = []
-
-        for tags, data in groups.items():
-            by_dict = dict()
-            tags_to_resolve = []
-
-            for key, value in tags:
-                if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES:
-                    tags_to_resolve.append((key, value))
-                else:
-                    by_dict[key] = value
-
-            resolved_tags = batch_reverse_resolve(
-                self._use_case_id, self._organization_id, tags_to_resolve
-            )
-            by_dict.update(resolved_tags)
-
-            new_groups.append(dict(by=by_dict, **data))
-
-        groups = new_groups
+        groups = self._reverse_resolve_tags_to_groups(groupby_alias_to_groupby_column, groups)
 
         # Applying post query operations for totals and series
         for group in groups:
@@ -1316,3 +1297,24 @@ class SnubaResultConverter:
                     if series is not None:
                         del series[key]
         return groups
+
+    def _reverse_resolve_tags_to_groups(self, group_by_alias_dict: Union[Dict, Dict], groups: Dict):
+        new_groups = []
+        for tags, data in groups.items():
+            by_dict = dict()
+            tags_to_resolve = []
+
+            for key, value in tags:
+                if group_by_alias_dict.get(key) not in NON_RESOLVABLE_TAG_VALUES:
+                    tags_to_resolve.append((key, value))
+                else:
+                    by_dict[key] = value
+
+            resolved_tags = batch_reverse_resolve(
+                self._use_case_id, self._organization_id, tags_to_resolve
+            )
+            by_dict.update(resolved_tags)
+
+            new_groups.append(dict(by=by_dict, **data))
+
+        return new_groups
