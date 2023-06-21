@@ -9,7 +9,6 @@ import click
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
-from sentry.issues.run import get_occurrences_ingest_consumer
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 
@@ -568,6 +567,7 @@ def ingest_consumer(consumer_type, **options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
     from sentry.consumers import print_deprecation_warning
+    from sentry.issues.run import get_occurrences_ingest_consumer
 
     print_deprecation_warning("ingest-occurrences", options["group_id"])
     from django.conf import settings

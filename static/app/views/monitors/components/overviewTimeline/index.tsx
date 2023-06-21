@@ -1,12 +1,10 @@
 import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -71,7 +69,6 @@ export function OverviewTimeline({monitorList}: Props) {
   return (
     <MonitorListPanel>
       <ListFilters>
-        <Button size="xs" icon={<IconSort size="xs" />} aria-label={t('Reverse sort')} />
         <SegmentedControl<TimeWindow>
           value={timeWindow}
           onChange={handleResolutionChange}
@@ -104,6 +101,7 @@ export function OverviewTimeline({monitorList}: Props) {
           ) : (
             <div>
               <CheckInTimeline
+                timeWindow={timeWindow}
                 bucketedData={monitorStats[monitor.slug]}
                 end={nowRef.current}
                 start={start}

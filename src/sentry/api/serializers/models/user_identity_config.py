@@ -12,7 +12,7 @@ from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
 from sentry.models import AuthIdentity, Identity
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from social_auth.models import UserSocialAuth
 
 from . import user_social_auth
@@ -118,11 +118,8 @@ class UserIdentityConfigSerializer(Serializer):
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {
             o.id: o
-            for o in organization_service.get_organizations(
-                organization_ids=[i.organization_id for i in item_list],
-                scope=None,
-                user_id=None,
-                only_visible=False,
+            for o in organization_mapping_service.get_many(
+                organization_ids=[i.organization_id for i in item_list]
             )
         }
         for item in item_list:

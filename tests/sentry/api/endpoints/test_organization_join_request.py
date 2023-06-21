@@ -157,7 +157,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 
-        members = OrganizationMember.objects.filter(organization=self.organization)
+        with outbox_runner():
+            members = OrganizationMember.objects.filter(organization=self.organization)
         join_request = members.get(email=self.email)
         assert join_request.user_id is None
         assert join_request.role == "member"
@@ -200,7 +201,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             },
         ]
 
-        member = OrganizationMember.objects.get(email=self.email)
+        with outbox_runner():
+            member = OrganizationMember.objects.get(email=self.email)
         assert json.loads(attachment["callback_id"]) == {
             "member_id": member.id,
             "member_email": self.email,
