@@ -82,6 +82,8 @@ function getEventView(
         `p95(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',
         `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+        'http_error_count()',
+        'http_error_count_percent_change()',
       ],
       orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,

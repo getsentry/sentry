@@ -14,6 +14,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableColumnSort} from 'sentry/views/discover/table/types';
+import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -57,7 +58,8 @@ export type Keys =
   | 'p95(span.self_time)'
   | 'sps_percent_change()'
   | `sum(${typeof SPAN_SELF_TIME})`
-  | 'time_spent_percentage()';
+  | 'time_spent_percentage()'
+  | 'http_error_count()';
 export type TableColumnHeader = GridColumnHeader<Keys>;
 
 export default function SpansTable({
@@ -185,6 +187,15 @@ function renderBodyCell(
     );
   }
 
+  if (column.key === 'http_error_count()') {
+    return (
+      <CountCell
+        count={row['http_error_count()']}
+        delta={row['http_error_count_percent_change()']}
+      />
+    );
+  }
+
   return row[column.key];
 }
 
@@ -242,6 +253,15 @@ function getColumns(moduleName: ModuleName): TableColumnHeader[] {
       name: DataTitles.p95,
       width: 175,
     },
+    ...(moduleName === ModuleName.HTTP
+      ? [
+          {
+            key: 'http_error_count()',
+            name: DataTitles.errorCount,
+            width: COL_WIDTH_UNDEFINED,
+          } as TableColumnHeader,
+        ]
+      : []),
     {
       key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
