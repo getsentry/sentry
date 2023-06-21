@@ -347,7 +347,7 @@ secret = "hush-hush-im-invisible"
     SENTRY_CONTROL_ADDRESS=control_address,
 )
 class GithubProxyClientTest(TestCase):
-    jwt = b"my_cool_jwt"
+    jwt = "my_cool_jwt"
     access_token = "access_token"
 
     def setUp(self):
@@ -461,7 +461,7 @@ class GithubProxyClientTest(TestCase):
         self.gh_client.authorize_request(prepared_request=jwt_request)
         assert mock_jwt.called
         assert jwt_request.headers["Accept"] == "application/vnd.github+json"
-        assert str(self.jwt) in jwt_request.headers["Authorization"]
+        assert jwt_request.headers["Authorization"] == f"Bearer {self.jwt}"
 
     @responses.activate
     @mock.patch(

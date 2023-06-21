@@ -27,7 +27,7 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsLayerTest(BaseMetricsTestCase, cls):
+    class MetricsLayerTest(BaseMetricsTestCase, cls):  # type: ignore[valid-type]
         __doc__ = f"Repeat tests from {cls} with metrics layer"
         backend = MetricsReleaseHealthBackend()
         adjust_interval = True  # HACK interval adjustment for new MetricsLayer implementation

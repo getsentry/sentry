@@ -7,9 +7,9 @@ from tests.sentry.grouping import grouping_input as grouping_inputs
 CONFIGS = {key: get_default_grouping_config_dict(key) for key in sorted(CONFIGURATIONS.keys())}
 
 
-def benchmark_available():
+def benchmark_available() -> bool:
     try:
-        import pytest_benchmark  # NOQA
+        __import__("pytest_benchmark")
     except ModuleNotFoundError:
         return False
     else:

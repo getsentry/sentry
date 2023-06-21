@@ -68,6 +68,7 @@ from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfi
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     SelectType,
     SnubaParams,
@@ -827,7 +828,7 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.SnQLFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -1229,7 +1230,7 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def convert_aggregate_filter_to_condition(
-        self, aggregate_filter: event_filter.AggregateFilter
+        self, aggregate_filter: event_search.AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value

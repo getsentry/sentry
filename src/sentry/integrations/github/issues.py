@@ -225,7 +225,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         try:
             response = client.get_assignees(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
@@ -236,7 +236,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         try:
             response = client.get_issues(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 

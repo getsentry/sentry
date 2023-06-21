@@ -187,7 +187,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
                 errors.append(e)
 
         if errors:
-            raise self.raise_error(errors[0])
+            self.raise_error(errors[0])
 
     def get_client(self, project):
         account_sid = self.get_option("account_sid", project)

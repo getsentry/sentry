@@ -138,7 +138,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
                 repo=self.get_option("repo", group.project), data=form_data
             )
         except Exception as e:
-            raise self.raise_error(e, identity=client.auth)
+            self.raise_error(e, identity=client.auth)
 
         return response["local_id"]
 
@@ -148,14 +148,14 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         try:
             issue = client.get_issue(repo=repo, issue_id=form_data["issue_id"])
         except Exception as e:
-            raise self.raise_error(e, identity=client.auth)
+            self.raise_error(e, identity=client.auth)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(repo, issue["local_id"], {"content": comment})
             except Exception as e:
-                raise self.raise_error(e, identity=client.auth)
+                self.raise_error(e, identity=client.auth)
 
         return {"title": issue["title"]}
 

@@ -12,6 +12,7 @@ from typing import (
     FrozenSet,
     Mapping,
     MutableMapping,
+    NoReturn,
     Optional,
     Sequence,
     Type,
@@ -392,7 +393,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> None:
+    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]

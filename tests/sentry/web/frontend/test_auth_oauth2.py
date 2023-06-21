@@ -30,7 +30,7 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
 
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def build_config(self, state):
         pass

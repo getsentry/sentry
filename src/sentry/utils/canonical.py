@@ -89,7 +89,7 @@ class CanonicalKeyDict(MutableMapping):
         legacy = self.legacy
         if legacy is None:
             legacy = settings.PREFER_CANONICAL_LEGACY_KEYS
-        norm_func = legacy and get_legacy_name or get_canonical_name
+        norm_func = get_legacy_name if legacy else get_canonical_name
         self._norm_func = norm_func
         self.data = {}
         for key, value in data.items():

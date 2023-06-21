@@ -31,6 +31,8 @@ class LimiterHelper:
         if values:
             (value,) = values
             return value
+        else:
+            return None
 
     def add_values(self, values: Sequence[int]) -> Collection[int]:
         request = RequestedQuota(prefix="hello", unit_hashes=values, quota=self.quota)

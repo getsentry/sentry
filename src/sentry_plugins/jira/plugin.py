@@ -251,14 +251,14 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue = client.get_issue(form_data["issue_id"])
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(issue["key"], comment)
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
 
         return {"title": issue["fields"]["summary"]}
 
@@ -469,7 +469,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return response.get("key")
 
@@ -501,7 +501,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             client.get_projects_list()
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return config
 
