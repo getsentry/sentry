@@ -193,7 +193,7 @@ function renderBodyCell(
     return row[column.key];
   }
 
-  const renderer = getFieldRenderer(column.key, meta);
+  const renderer = getFieldRenderer(column.key, meta, false);
   const rendered = renderer(row, {location, organization});
 
   return rendered;

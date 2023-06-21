@@ -315,7 +315,6 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
-  'sps_percent_change()': SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -668,25 +667,6 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
-
-  // TODO: As soon as events endpoints `meta` give `*_percent_change` fields a
-  // type of `percentage_change` (as opposed to `percentage`, as it currently
-  // is) all this logic can move down into FIELD_RENDERERS and be consolidated
-  'sps_percent_change()': {
-    sortField: 'sps_percent_change()',
-    renderFunc: data => {
-      const deltaValue = data['sps_percent_change()'];
-
-      const sign = deltaValue >= 0 ? '+' : '-';
-      const delta = formatPercentage(Math.abs(deltaValue), 2);
-
-      return (
-        <PercentChangeCell trendDirection="neutral">
-          {`${sign}${delta}`}
-        </PercentChangeCell>
-      );
-    },
-  },
 };
 
 type SpecialFunctionFieldRenderer = (
@@ -694,6 +674,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
+  sps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -759,6 +740,20 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
+    );
+  },
+  // TODO: As soon as events endpoints `meta` give `*_percent_change` fields a
+  // type of `percentage_change` (as opposed to `percentage`, as it currently
+  // is) all this logic can move down into FIELD_RENDERERS and be consolidated
+  sps_percent_change: fieldName => data => {
+    const deltaValue = data[fieldName];
+
+    const sign = deltaValue >= 0 ? '+' : '-';
+    const delta = formatPercentage(Math.abs(deltaValue), 2);
+
+    return (
+      // N.B. For throughput, the change is neither good nor bad regardless of value! Throughput is just throughput
+      <PercentChangeCell trendDirection="neutral">{`${sign}${delta}`}</PercentChangeCell>
     );
   },
 };
