@@ -138,9 +138,7 @@ class FeatureSet:
                     if features:
                         items.append((self.aliases[label], features))
 
-        return self.index.record(
-            scope, key, items, timestamp=int(to_timestamp(event.datetime))  # pyright: ignore
-        )
+        return self.index.record(scope, key, items, timestamp=int(to_timestamp(event.datetime)))
 
     def classify(self, events, limit=None, thresholds=None):
         if not events:
@@ -187,7 +185,7 @@ class FeatureSet:
                 scope,
                 items,
                 limit=limit,
-                timestamp=int(to_timestamp(event.datetime)),  # pyright: ignore
+                timestamp=int(to_timestamp(event.datetime)),
             )
         ]
 

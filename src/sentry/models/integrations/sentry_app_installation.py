@@ -43,7 +43,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken) -> QuerySet[Project]:  # pyright: ignore
+    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
         from sentry.models import Project, SentryAppInstallationToken
 
         try:
