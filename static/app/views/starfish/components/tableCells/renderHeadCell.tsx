@@ -32,14 +32,7 @@ export const SORTABLE_FIELDS = new Set([
 // TODO use sort link and stuff
 export const renderHeadCell = ({column, location, sort}: Options) => {
   const {key, name} = column;
-  let alignment: Alignments = 'left';
-  const result = parseFunction(key);
-  if (result) {
-    const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
-    if (outputType && rightAlignedColumns.includes(outputType)) {
-      alignment = 'right';
-    }
-  }
+  const alignment = getAlignment(key);
 
   return (
     <SortLink
@@ -58,4 +51,15 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
       }}
     />
   );
+};
+
+export const getAlignment = (key: string): Alignments => {
+  const result = parseFunction(key);
+  if (result) {
+    const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
+    if (outputType && rightAlignedColumns.includes(outputType)) {
+      return 'right';
+    }
+  }
+  return 'left';
 };
