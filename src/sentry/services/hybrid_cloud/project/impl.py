@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import List
+
+from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectOption
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.project import ProjectService, RpcProject, RpcProjectOptionValue
@@ -17,6 +20,12 @@ class DatabaseBackedProjectService(ProjectService):
         if project:
             return serialize_project(project)
         return None
+
+    def get_projects(self, *, organization_id: int, only_active: bool = False) -> List[RpcProject]:
+        query = Project.objects.filter(organization_id=organization_id)
+        if only_active:
+            query = query.filter(status=ObjectStatus.ACTIVE)
+        return [serialize_project(p) for p in query]
 
     def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:
         from sentry import projectoptions
