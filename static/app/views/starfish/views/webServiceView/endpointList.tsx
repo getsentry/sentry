@@ -30,7 +30,6 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 const COLUMN_TITLES = [
   t('Endpoint'),
@@ -46,7 +45,6 @@ const COLUMN_TITLES = [
 type Props = {
   eventView: EventView;
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;

@@ -270,7 +270,7 @@ class Enhancements:
             raise InvalidEnhancerConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return EnhancmentsVisitor(bases, id).visit(tree)
+        return EnhancementsVisitor(bases, id).visit(tree)
 
 
 class Rule:
@@ -351,7 +351,7 @@ class Rule:
         )
 
 
-class EnhancmentsVisitor(NodeVisitor):
+class EnhancementsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
