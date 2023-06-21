@@ -39,6 +39,7 @@ from sentry.models import (
     OutboxFlushError,
     ScheduledDeletion,
     UserEmail,
+    outbox_context,
 )
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_actions.impl import (
@@ -416,7 +417,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     if flag_has_changed(org, f):
                         changed_data[f] = f"to {v}"
 
-        org.save()
+        with outbox_context(transaction.atomic(), flush=False):
+            org.save()
+            Organization.outbox_for_update(org.id).save()
 
         if "avatar" in data or "avatarType" in data:
             OrganizationAvatar.save_avatar(
