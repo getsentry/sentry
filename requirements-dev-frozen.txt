@@ -76,7 +76,7 @@ grpcio-status==1.48.1
 h11==0.13.0
 hiredis==0.3.1
 honcho==1.1.0
-identify==2.5.1
+identify==2.5.24
 idna==2.10
 inflection==0.5.1
 iniconfig==1.1.1
@@ -120,7 +120,7 @@ pip-tools==6.7.0
 planout==0.6.0
 platformdirs==2.5.2
 pluggy==0.13.1
-pre-commit==2.18.1
+pre-commit==3.3.2
 progressbar2==3.41.0
 proto-plus==1.22.1
 protobuf==4.21.6
@@ -185,7 +185,6 @@ stripe==2.61.0
 structlog==22.1.0
 symbolic==12.1.2
 tokenize-rt==5.0.0
-toml==0.10.2
 tomli==2.0.1
 toronado==0.1.0
 tqdm==4.64.1
