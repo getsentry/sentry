@@ -15,6 +15,9 @@ from sentry.api.endpoints.chunk import (
     MAX_REQUEST_SIZE,
 )
 from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
@@ -66,7 +69,10 @@ class ChunkUploadTest(APITestCase):
             assert "artifact_bundles" in response.data["accept"]
 
         with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
-            self.organization.update(flags=F("flags").bitor(Organization.flags.early_adopter))
+            update_organization_with_outbox_message(
+                org_id=self.organization.id,
+                update_data={"flags": F("flags").bitor(Organization.flags.early_adopter)},
+            )
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )

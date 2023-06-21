@@ -29,6 +29,9 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 from sentry.testutils.outbox import outbox_runner
@@ -765,7 +768,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert b"storeCrashReports" in resp.content
 
     def test_update_name_with_mapping(self):
-        response = self.get_success_response(self.organization.slug, name="SaNtRy")
+        with outbox_runner():
+            response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
@@ -781,7 +785,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert organization_mapping.slug == self.organization.slug
 
         desired_slug = "new-santry"
-        self.get_success_response(self.organization.slug, slug=desired_slug)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, slug=desired_slug)
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
@@ -801,9 +806,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert colliding_org_mapping.slug == desired_slug
 
         # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
-        org_with_colliding_slug.slug = "unique-slug"
         with outbox_context(flush=False):
-            org_with_colliding_slug.save()
+            update_organization_with_outbox_message(
+                org_id=org_with_colliding_slug.id, update_data={"slug": "unique-slug"}
+            )
 
         self.get_success_response(self.organization.slug, slug=desired_slug)
         self.organization.refresh_from_db()

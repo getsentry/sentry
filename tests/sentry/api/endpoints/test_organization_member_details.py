@@ -16,6 +16,9 @@ from sentry.models import (
     SentryAppInstallationToken,
     UserOption,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -854,7 +857,11 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.login_as(self.owner)
         TotpInterface().enroll(self.owner)
 
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+        )
+        self.org.refresh_from_db()
         assert self.org.flags.require_2fa.is_set is True
 
         self.assert_cannot_remove_authenticators()

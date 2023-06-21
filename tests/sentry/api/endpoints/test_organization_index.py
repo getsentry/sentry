@@ -129,6 +129,8 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
+            self.get_error_response(name="name", slug="us", status_code=400)
+            self.get_error_response(name="name", slug="li", status_code=400)
 
     def test_without_slug(self):
         data = {"name": "hello world"}

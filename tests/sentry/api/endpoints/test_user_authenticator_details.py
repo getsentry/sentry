@@ -13,6 +13,9 @@ from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models import Authenticator, Organization, User
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -106,8 +109,16 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:
-        organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        organization = self.create_organization(
+            name="test monkey",
+            owner=self.user,
+        )
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data={
+                "flags": F("flags").bitor(Organization.flags.require_2fa),
+            },
+        )
 
 
 @control_silo_test

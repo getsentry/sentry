@@ -30,6 +30,9 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -1238,7 +1241,9 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
         # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
         # copy is mutated.
-        self.project.organization.update(date_added=old_date)
+        update_organization_with_outbox_message(
+            org_id=self.project.organization.id, update_data={"date_added": old_date}
+        )
         self.project.update(date_added=old_date)
 
 

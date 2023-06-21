@@ -17,6 +17,9 @@ from sentry.models import (
     OrganizationMemberMapping,
     outbox_context,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
@@ -56,7 +59,11 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
     def _require_2fa_for_organization(self):
         with exempt_from_silo_limits():
-            self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+            update_organization_with_outbox_message(
+                org_id=self.organization.id,
+                update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+            )
+        self.organization.refresh_from_db()
         assert self.organization.flags.require_2fa.is_set
 
     def _assert_pending_invite_details_in_session(self, om):
