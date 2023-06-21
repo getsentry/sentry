@@ -7,6 +7,7 @@ from typing import Any, Callable, Generator, Iterable, Set, Tuple, Type
 from unittest import TestCase
 
 import pytest
+from django.conf import settings
 from django.db import connections, router
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
@@ -140,7 +141,7 @@ class SiloModeTest:
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
         # Only run non monolith tests when they are marked stable or we are explicitly running for that mode.
-        if not stable:
+        if not (stable or settings.FORCE_SILOED_TESTS):
             # In this case, simply force the current silo mode (monolith)
             return decorated_obj
 
