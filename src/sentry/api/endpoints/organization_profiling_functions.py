@@ -109,6 +109,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
             )
@@ -135,6 +136,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return results
 
         def get_trends_data(stats_data):
+            if not stats_data:
+                return []
+
             trends_request = {
                 "data": {
                     k: {

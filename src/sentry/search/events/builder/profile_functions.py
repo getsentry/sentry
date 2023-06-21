@@ -37,7 +37,7 @@ class ProfileFunctionsQueryBuilderMixin:
 
 
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
-    pass
+    function_alias_prefix = "sentry_"
 
 
 class ProfileFunctionsTimeseriesQueryBuilder(
