@@ -1124,7 +1124,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         # this should return the groups directly assigned to me as well as groups assigned to teams I belong to
         assert GroupAssignee.objects.get(group=self.group2)
         assert GroupAssignee.objects.get(group=my_team_group)
-        results = self.make_query(search_filter_query="assigned:definitely_me", user=self.user)
+        results = self.make_query(search_filter_query="assigned:me", user=self.user)
         assert set(results) == {self.group2, my_team_group}
 
         # with the feature flag on where we split the behavior so 'me' only checks for groups assigned to me
