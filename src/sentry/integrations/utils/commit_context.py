@@ -25,6 +25,7 @@ def find_commit_context_for_event(
     frame: Event frame
     """
     result = []
+    installation = None
     for code_mapping in code_mappings:
         if not code_mapping.organization_integration_id:
             logger.info(
@@ -77,6 +78,8 @@ def find_commit_context_for_event(
         install = integration_service.get_installation(
             integration=integration, organization_id=code_mapping.organization_id
         )
+        if installation is None and install is not None:
+            installation = install
         try:
             commit_context = install.get_commit_context(
                 code_mapping.repository, src_path, code_mapping.default_branch, frame
@@ -107,4 +110,4 @@ def find_commit_context_for_event(
         if commit_context:
             result.append((commit_context, code_mapping))
 
-    return result
+    return result, installation

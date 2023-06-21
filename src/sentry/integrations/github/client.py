@@ -217,6 +217,13 @@ class GitHubClientMixin(GithubProxyClient):
         commit: JSONData = self.get_cached(f"/repos/{repo}/commits/{sha}")
         return commit
 
+    def get_pullrequest_from_commit(self, repo: str, sha: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
+        """
+        pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
+        return pullrequest
+
     def get_repo(self, repo: str) -> JSONData:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
