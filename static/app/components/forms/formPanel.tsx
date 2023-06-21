@@ -69,39 +69,37 @@ function FormPanel({
           )}
         </PanelHeader>
       )}
-      {!collapsed && (
-        <PanelBody>
-          {typeof renderHeader === 'function' && renderHeader({title, fields})}
+      <StyledPanelBody collapsed={collapsed}>
+        {typeof renderHeader === 'function' && renderHeader({title, fields})}
 
-          {fields.map(field => {
-            if (typeof field === 'function') {
-              return field();
-            }
+        {fields.map(field => {
+          if (typeof field === 'function') {
+            return field();
+          }
 
-            const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
+          const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
 
-            // Allow the form panel disabled prop to override the fields
-            // disabled prop, with fallback to the fields disabled state.
-            if (disabled === true) {
-              fieldWithoutDefaultValue.disabled = true;
-              fieldWithoutDefaultValue.disabledReason = undefined;
-            }
+          // Allow the form panel disabled prop to override the fields
+          // disabled prop, with fallback to the fields disabled state.
+          if (disabled === true) {
+            fieldWithoutDefaultValue.disabled = true;
+            fieldWithoutDefaultValue.disabledReason = undefined;
+          }
 
-            return (
-              <FieldFromConfig
-                access={access}
-                disabled={disabled}
-                key={field.name}
-                {...otherProps}
-                {...additionalFieldProps}
-                field={fieldWithoutDefaultValue}
-                highlighted={otherProps.highlighted === `#${field.name}`}
-              />
-            );
-          })}
-          {typeof renderFooter === 'function' && renderFooter({title, fields})}
-        </PanelBody>
-      )}
+          return (
+            <FieldFromConfig
+              access={access}
+              disabled={disabled}
+              key={field.name}
+              {...otherProps}
+              {...additionalFieldProps}
+              field={fieldWithoutDefaultValue}
+              highlighted={otherProps.highlighted === `#${field.name}`}
+            />
+          );
+        })}
+        {typeof renderFooter === 'function' && renderFooter({title, fields})}
+      </StyledPanelBody>
     </Panel>
   );
 }
@@ -110,4 +108,8 @@ export default FormPanel;
 
 const Collapse = styled('span')`
   cursor: pointer;
+`;
+
+const StyledPanelBody = styled(PanelBody)<{collapsed: boolean}>`
+  ${p => p.collapsed && `display: none;`}
 `;
