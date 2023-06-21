@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -46,7 +46,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_one_project(self, mock_react_view):
-        self.projectB.delete()
+        with exempt_from_silo_limits():
+            self.projectB.delete()
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
         mock_react_view.assert_called_with(ANY, "awsLambdaCloudformation", ANY)
@@ -181,7 +182,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
+        with exempt_from_silo_limits():
+            sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
         # TODO: pass in lambdaA=false
         # having issues with reading json data
@@ -249,7 +251,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
+        with exempt_from_silo_limits():
+            sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
         resp = self.client.post(
             self.setup_path,
