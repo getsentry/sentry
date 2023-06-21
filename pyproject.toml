@@ -980,7 +980,6 @@ module = [
     "sentry.snuba.metrics_performance",
     "sentry.snuba.models",
     "sentry.snuba.outcomes",
-    "sentry.snuba.referrer",
     "sentry.snuba.sessions",
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",

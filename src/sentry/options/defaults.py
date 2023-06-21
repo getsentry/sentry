@@ -1212,6 +1212,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.slow_db_query.duration_threshold",
+    default=1000.0,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.render_blocking_assets.fcp_minimum_threshold",
     default=2000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

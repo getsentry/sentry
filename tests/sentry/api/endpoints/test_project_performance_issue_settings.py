@@ -34,6 +34,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
+        assert response.data["slow_db_query_duration_threshold"] == 1000
+        assert response.data["n_plus_one_db_duration_threshold"] == 100
         assert response.data["uncompressed_assets_detection_enabled"]
         assert response.data["consecutive_http_spans_detection_enabled"]
         assert response.data["large_http_payload_detection_enabled"]

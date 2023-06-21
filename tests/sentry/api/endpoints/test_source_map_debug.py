@@ -789,3 +789,44 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_user_agent_on_release"
         assert error["message"] == "The release is missing a user agent"
+
+    def test_not_part_of_pipeline(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.46.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "not_part_of_pipeline"
+        assert error["message"] == "Sentry is not part of your build pipeline"
