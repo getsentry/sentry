@@ -47,7 +47,6 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.api.event_search import SearchFilter
     from sentry.models import Environment, Organization, Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
@@ -242,24 +241,20 @@ def get_oldest_or_latest_event_for_environments(
 def get_helpful_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
-    search_filters: Optional[Sequence[SearchFilter]] = None,
+    conditions: Optional[Sequence[Condition]] = None,
 ) -> GroupEvent | None:
-    from sentry.api.serializers import GroupSerializerSnuba
-    from sentry.search.events.filter import (
-        convert_search_filter_to_snuba_query,
-        format_search_filter,
-    )
-
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    conditions = []
+    all_conditions = []
     if len(environments) > 0:
-        conditions.append(Condition(Column("environment"), Op.IN, [e.name for e in environments]))
-    conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
-    conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+        all_conditions.append(
+            Condition(Column("environment"), Op.IN, [e.name for e in environments])
+        )
+    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
+    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
 
     end = group.last_seen + timedelta(minutes=1)
     start = end - timedelta(days=14)
@@ -287,6 +282,8 @@ def get_helpful_event_for_environments(
 
                 if new_condition:
                     conditions.append(new_condition)
+    if conditions:
+        all_conditions.extend(conditions)
 
     events = eventstore.get_events_snql(
         organization_id=group.project.organization_id,
@@ -674,7 +671,7 @@ class Group(Model):
     def get_helpful_event_for_environments(
         self,
         environments: Sequence[Environment] = (),
-        search_filters: Optional[Sequence[SearchFilter]] = None,
+        conditions: Optional[Sequence[Condition]] = None,
     ) -> GroupEvent | None:
         maybe_event = get_helpful_event_for_environments(
             environments,

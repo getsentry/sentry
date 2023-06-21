@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Condition, Or
+from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
@@ -15,11 +17,73 @@ from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import Environment, Project, User
+from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
+
+
+def issue_search_query_to_conditions(
+    query: str, projects: Sequence[Project], user: User, environments: Sequence[Environment]
+) -> Sequence[Condition]:
+    try:
+        search_filters = convert_query_values(
+            parse_search_query(query),
+            projects,
+            user,
+            [e.name for e in environments],
+        )
+    except InvalidSearchQuery:
+        raise ParseError(detail=f"Error parsing search query: {query}")
+
+    validate_search_filter_permissions(projects[0].organization, search_filters, user)
+    legacy_conditions = []
+
+    if search_filters:
+        for search_filter in search_filters:
+            from sentry.api.serializers import GroupSerializerSnuba
+
+            if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
+                filter_keys = {
+                    "organization_id": [p.organization.id for p in projects],
+                    "project_id": [p.id for p in projects],
+                    "environment_id": [env.id for env in environments],
+                }
+                legacy_condition, projects_to_filter, group_ids = format_search_filter(
+                    search_filter, params=filter_keys
+                )
+
+                # if no re-formatted conditions, use fallback method
+                new_condition = None
+                if legacy_condition:
+                    new_condition = legacy_condition[0]
+                elif group_ids:
+                    new_condition = convert_search_filter_to_snuba_query(
+                        search_filter, params=filter_keys
+                    )
+
+                if new_condition:
+                    legacy_conditions.append(new_condition)
+
+    snql_conditions = []
+    for cond in legacy_conditions or ():
+        if not is_condition(cond):
+            # this shouldn't be possible since issue search only allows ands
+            or_conditions = []
+            for or_cond in cond:
+                or_conditions.append(parse_condition(or_cond))
+
+            if len(or_conditions) > 1:
+                snql_conditions.append(Or(or_conditions))
+            else:
+                snql_conditions.extend(or_conditions)
+        else:
+            snql_conditions.append(parse_condition(cond))
+
+    return snql_conditions
 
 
 @region_silo_endpoint
