@@ -1563,7 +1563,6 @@ module = [
     "tests.sentry.plugins.bases.test_issue2",
     "tests.sentry.plugins.bases.test_notify",
     "tests.sentry.plugins.test_config",
-    "tests.sentry.post_process_forwarder.test_post_process_forwarder",
     "tests.sentry.processing.realtime_metrics.test_redis",
     "tests.sentry.profiles.consumers.test_process",
     "tests.sentry.profiles.test_task",
