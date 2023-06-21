@@ -1,7 +1,9 @@
 from datetime import timedelta
 
-# TTL in milliseconds for values persisted in Redis by the dynamic sampling tasks.
-CACHE_KEY_TTL = 24 * 60 * 60 * 1000
+# TTL in milliseconds for values persisted by the dynamic sampling tasks.
+DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # 24 hours
+# TTL in milliseconds for the adjusted factor value persisted by the recalibrate org task.
+ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL = 10 * 60 * 1000  # 10 minutes
 
 # Parameters to bound the queries run in Snuba.
 MAX_ORGS_PER_QUERY = 100
@@ -19,3 +21,5 @@ CHUNK_SIZE = 9998
 
 # Time interval of queries for boost low volume transactions.
 BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL = timedelta(hours=1)
+# Time interval of queries for recalibrate orgs.
+RECALIBRATE_ORGS_QUERY_INTERVAL = timedelta(minutes=5)
