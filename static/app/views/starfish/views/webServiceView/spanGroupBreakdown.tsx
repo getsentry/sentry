@@ -19,6 +19,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import _ from 'lodash';
 
 type Props = {
   colorPalette: string[];
@@ -60,6 +61,19 @@ export function SpanGroupBreakdown({
   }
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
+  const dataAsPercentages = _.cloneDeep(data);
+  const numDataPoints = data[0]?.data?.length ?? 0;
+  for (let i = 0; i < numDataPoints; i++) {
+    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    dataAsPercentages.forEach(segment => {
+      const clone = {...segment.data[i]};
+      clone.value = clone.value / totalTimeAtIndex;
+      segment.data[i] = clone;
+    });
+  }
+
+  console.dir(dataAsPercentages);
+
   return (
     <FlexRowContainer>
       <ChartPadding>
@@ -71,7 +85,7 @@ export function SpanGroupBreakdown({
         <Chart
           statsPeriod="24h"
           height={210}
-          data={visibleSeries}
+          data={dataAsPercentages}
           start=""
           end=""
           errored={errored}

@@ -75,9 +75,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     location,
   });
 
-  console.dir(segments);
-  console.dir(cumulativeTime);
-
   const {
     isLoading: isTopDataLoading,
     data: topData,
