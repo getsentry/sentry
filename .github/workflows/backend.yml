@@ -16,7 +16,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   # Testing this behavior our before adding label based workflows.
-  SENTRY_USE_SILOS: 1
+  SENTRY_USE_SPLIT_DB: 1
 
 jobs:
   files-changed:

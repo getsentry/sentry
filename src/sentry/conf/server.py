@@ -3444,6 +3444,9 @@ if USE_SILOS:
             "control_silo_address": f"http://127.0.0.1:{control_port}",
         }
     )
+
+# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
+if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
     DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
