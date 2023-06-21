@@ -110,7 +110,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | RpcUser | None, group: Group
+    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
 ) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
@@ -121,10 +121,6 @@ def self_subscribe_and_assign_issue(
             user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
 
-        user_options = user_option_service.get_many(
-            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-        )
-        self_assign_issue = "0" if len(user_options) <= 0 else user_options[0].value
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
     return None
@@ -223,6 +219,13 @@ def update_groups(
     project_lookup = {p.id: p for p in projects}
 
     acting_user = user if user.is_authenticated else None
+    self_assign_issue = "0"
+    if acting_user:
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+        )
+        if user_options:
+            self_assign_issue = user_options[0].value
 
     if search_fn and not group_ids:
         try:
@@ -508,7 +511,7 @@ def update_groups(
                 )
                 result["inbox"] = None
 
-                assigned_to = self_subscribe_and_assign_issue(acting_user, group)
+                assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
                 if assigned_to is not None:
                     result["assignedTo"] = assigned_to
 

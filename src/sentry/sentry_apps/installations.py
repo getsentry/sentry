@@ -105,9 +105,10 @@ class SentryAppInstallationCreator:
         with transaction.atomic():
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
-            self._create_service_hooks(install=install)
-            install.is_new = True
             self.audit(request=request)
+
+        self._create_service_hooks(install=install)
+        install.is_new = True
 
         if self.notify:
             installation_webhook.delay(install.id, user.id)
@@ -120,17 +121,19 @@ class SentryAppInstallationCreator:
         if not self.sentry_app.verify_install:
             status = SentryAppInstallationStatus.INSTALLED
 
-        return SentryAppInstallation.objects.create(
+        return SentryAppInstallation.objects.update_or_create(
             organization_id=self.organization_id,
             sentry_app_id=self.sentry_app.id,
-            api_grant_id=api_grant.id,
-            status=status,
-        )
+            defaults=dict(
+                api_grant_id=api_grant.id,
+                status=status,
+            ),
+        )[0]
 
     def _create_api_grant(self) -> ApiGrant:
-        return ApiGrant.objects.create(
+        return ApiGrant.objects.get_or_create(
             user_id=self.sentry_app.proxy_user.id, application_id=self.api_application.id
-        )
+        )[0]
 
     def _create_service_hooks(self, install: SentryAppInstallation) -> None:
         # only make the service hook if there is a webhook url

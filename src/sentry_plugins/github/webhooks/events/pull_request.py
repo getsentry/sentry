@@ -79,6 +79,7 @@ class PullRequestEventWebhook(Webhook):
                     name=user["login"][:128],
                 )
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,
