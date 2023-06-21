@@ -205,10 +205,14 @@ export default class ReplayReader {
     this._breadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
-  getNetworkFrames = memoize(() =>
+  _getNetworkFrames = memoize(() =>
     this._spanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
     )
+  );
+
+  getSortedNetworkFrames = memoize(() =>
+    this._getNetworkFrames().sort((a, b) => a.timestampMs - b.timestampMs)
   );
 
   getDOMFrames = memoize(() =>

@@ -73,6 +73,10 @@ type HydratedStartEndDate = {
    */
   endTimestamp: Date;
   /**
+   * Alias of endTimestamp, in milliseconds
+   */
+  endTimestampMs: number;
+  /**
    * The difference in startTimestamp and replay.started_at, in millieseconds
    */
   offsetMs: number;
