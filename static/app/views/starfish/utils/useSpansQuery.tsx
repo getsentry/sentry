@@ -9,7 +9,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 // Setting return type since I'd rather not know if its discover query or not
 export type UseSpansQueryReturnType<T> = {
@@ -148,12 +148,16 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
     (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
   const firstYAxis =
     typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
-
   if (result.data) {
-    return processSingleDiscoverTimeseriesResult(
+    const timeSeriesResult: Interval[] = processSingleDiscoverTimeseriesResult(
       result,
       singleYAxis ? firstYAxis : 'count'
-    );
+    ).map(data => ({
+      interval: moment(parseInt(data.interval, 10) * 1000).format(DATE_FORMAT),
+      [firstYAxis]: data[firstYAxis],
+      group: data.group,
+    }));
+    return timeSeriesResult;
   }
   Object.keys(result).forEach(key => {
     if (result[key].data) {
