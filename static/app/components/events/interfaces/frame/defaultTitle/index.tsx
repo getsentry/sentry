@@ -42,6 +42,16 @@ function DefaultTitle({
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 
+  /**
+   * In some cases (e.g. frame file names from SvelteKit stack frames),`frame.filename` can be
+   * prefixed with parent directory hops (e.g. `../../src/routes/....`).
+   * This function strips these hops so that users can clearly see where this file
+   * is located relative to their project root.
+   */
+  const stripRelativePathPrefix = (filename: string): string => {
+    return filename.replace(/^(..\/)*/, '');
+  };
+
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
   };
@@ -78,7 +88,7 @@ function DefaultTitle({
     if (frame.filename) {
       return {
         key: 'filename',
-        value: frame.filename,
+        value: stripRelativePathPrefix(frame.filename),
         meta: meta?.filename?.[''],
       };
     }
