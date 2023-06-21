@@ -45,10 +45,7 @@ def kafka_message_payload() -> Any:
 
 class PostProcessForwarderTest(TestCase):
     def _get_producer(self, cluster_name: str) -> Producer:
-        conf = {
-            **settings.KAFKA_CLUSTERS[cluster_name]["common"],
-            "session.timeout.ms": 6000,
-        }
+        conf = settings.KAFKA_CLUSTERS[cluster_name]["common"]
         return Producer(conf)
 
     def setUp(self) -> None:
