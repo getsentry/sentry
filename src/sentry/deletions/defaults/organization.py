@@ -1,4 +1,6 @@
+from sentry.constants import SentryAppStatus
 from sentry.models import OrganizationStatus
+from sentry.models.integrations import SentryApp
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
@@ -11,6 +13,11 @@ class OrganizationDeletionTask(ModelDeletionTask):
         """
         Only delete organizations that haven't been undeleted.
         """
+        if SentryApp.objects.filter(
+            owner_id=instance.id, status=SentryAppStatus.PUBLISHED
+        ).exists():
+            return False
+
         return instance.status in {
             OrganizationStatus.PENDING_DELETION,
             OrganizationStatus.DELETION_IN_PROGRESS,
