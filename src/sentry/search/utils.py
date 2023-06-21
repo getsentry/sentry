@@ -318,8 +318,12 @@ def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: Us
     ).first() or Team(id=0)
 
 
-def get_teams_for_users(projects: Sequence[Project], user_ids: Sequence[User]) -> list[Team]:
-    user_ids = [user_ids] if not isinstance(user_ids, list) else user_ids
+def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> list[Team]:
+    user_ids = (
+        [users.id]
+        if not (users is None or isinstance(users, list))
+        else [u.id for u in users if u is not None]
+    )
     teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(

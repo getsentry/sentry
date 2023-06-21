@@ -86,7 +86,7 @@ def assigned_to_filter(
                 **{
                     f"{field_filter}__in": GroupAssignee.objects.filter(
                         project_id__in=[p.id for p in projects],
-                        team_id__in=[team for team in get_teams_for_users(projects, user_ids)],
+                        team_id__in=[team for team in get_teams_for_users(projects, users)],
                     ).values_list("group_id", flat=True)
                 }
             )
