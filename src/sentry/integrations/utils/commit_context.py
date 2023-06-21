@@ -78,7 +78,7 @@ def find_commit_context_for_event(
         install = integration_service.get_installation(
             integration=integration, organization_id=code_mapping.organization_id
         )
-        if installation is None:
+        if installation is None and install is not None:
             installation = install
         try:
             commit_context = install.get_commit_context(
