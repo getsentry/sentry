@@ -1,6 +1,6 @@
 import random
 from datetime import datetime, timedelta
-from typing import Sequence
+from typing import Optional, Sequence
 
 from django.utils import timezone
 
@@ -13,8 +13,8 @@ class PerfIssueTransactionTestMixin:
         project_id: int,
         user_id: str,
         fingerprint: Sequence[str],
-        environment: str = None,
-        timestamp: datetime = None,
+        environment: Optional[str] = None,
+        timestamp: Optional[datetime] = None,
     ):
         from sentry.utils import snuba
 

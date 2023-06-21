@@ -68,7 +68,9 @@ class CreateAuditEntryTest(TestCase):
         )
 
         assert entry.actor == self.user
-        assert entry.actor_label == username[:64]  # needs trimming
+        assert (
+            entry.actor_label is None
+        )  # you won't get this back since it only expands on the control silo
         assert entry.target_object == self.org.id
         assert entry.event == audit_log.get_event_id("ORG_REMOVE")
 

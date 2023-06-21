@@ -144,6 +144,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
         bottom: '0',
       }}
       definedAxisTicks={4}
+      aggregateOutputFormat="rate"
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}

@@ -33,6 +33,9 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       project_platform: project.platform!,
       replay_errors: 0,
       total_errors: allErrors.length,
+      started_at_delta: replay.timestampDeltas.startedAtDelta,
+      finished_at_delta: replay.timestampDeltas.finishedAtDelta,
+      replay_id: replay.getReplay().id,
     });
   }, [organization, project, fetchError, fetching, projectSlug, replay]);
 }

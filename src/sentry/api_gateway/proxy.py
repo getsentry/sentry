@@ -1,6 +1,7 @@
 """
 Utilities related to proxying a request to a region silo
 """
+import logging
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
@@ -8,6 +9,7 @@ from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from requests import request as external_request
 from requests.exceptions import Timeout
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
 from sentry.api.exceptions import RequestTimeout
@@ -16,6 +18,9 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
+from sentry.types.region import RegionResolutionError
+
+logger = logging.getLogger(__name__)
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
@@ -47,7 +52,13 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a remote location given an org_slug"""
     from sentry.types.region import get_region_for_organization
 
-    target_url = get_region_for_organization(None).to_url(request.path)
+    try:
+        region = get_region_for_organization(org_slug)
+    except RegionResolutionError:
+        logger.info("region_resolution_error", extra={"org_slug": org_slug})
+        raise NotFound
+
+    target_url = region.to_url(request.path)
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
     query_params = getattr(request, request.method, None)
