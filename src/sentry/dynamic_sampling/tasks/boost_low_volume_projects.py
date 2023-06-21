@@ -23,13 +23,6 @@ from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import (
-    get_sliding_window_org_sample_rate,
-    get_sliding_window_size,
-)
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -39,20 +32,20 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.dynamic_sampling.tasks.common import (
     are_equal_with_epsilon,
-    compute_guarded_sliding_window_sample_rate,
     get_active_orgs_with_projects_counts,
+    get_adjusted_base_rate_from_cache_or_compute,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
-    CACHE_KEY_TTL,
     CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
-from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
-from sentry.dynamic_sampling.tasks.sliding_window_org import (
-    fetch_orgs_with_total_root_transactions_count,
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    generate_boost_low_volume_projects_cache_key,
 )
+from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
@@ -287,7 +280,7 @@ def adjust_sample_rates_of_projects(
                 rebalanced_project.id,
                 rebalanced_project.new_sample_rate,  # redis stores is as string
             )
-            pipeline.pexpire(cache_key, CACHE_KEY_TTL)
+            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
 
             # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
             # system with project config invalidations, especially for projects with no volume.
@@ -298,29 +291,3 @@ def adjust_sample_rates_of_projects(
                 )
 
         pipeline.execute()
-
-
-def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
-    """
-    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
-    it synchronously.
-    """
-    # We first try to get from cache the sliding window org sample rate.
-    sample_rate = get_sliding_window_org_sample_rate(org_id)
-    if sample_rate is not None:
-        return sample_rate
-
-    # In case we didn't find the value in cache, we want to compute it synchronously.
-    window_size = get_sliding_window_size()
-    # In case the size is None it means that we disabled the sliding window entirely.
-    if window_size is not None:
-        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
-        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
-            org_ids=[org_id], window_size=window_size
-        )
-        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            return compute_guarded_sliding_window_sample_rate(
-                org_id, None, org_total_root_count, window_size
-            )
-
-    return None

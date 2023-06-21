@@ -33,6 +33,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -105,9 +106,9 @@ class OrganizationMixin:
             organization_slug, request
         )
         backup_organization: RpcOrganizationSummary | None = None
-        if active_organization is None:
-            organizations = organization_service.get_organizations(
-                user_id=request.user.id, scope=None, only_visible=True
+        if active_organization is None and request.user.id is not None:
+            organizations = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
             )
 
             if organizations:
