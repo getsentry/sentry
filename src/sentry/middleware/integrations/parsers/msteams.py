@@ -21,7 +21,7 @@ class MsTeamsRequestParser(BaseRequestParser):
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         request = self.request
-        data = request.data
+        data = request.data  # type:ignore
         integration = None
         try:
             payload = data["value"]["payload"]
