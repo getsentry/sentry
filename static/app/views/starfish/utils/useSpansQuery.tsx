@@ -9,7 +9,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
+const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 // Setting return type since I'd rather not know if its discover query or not
 export type UseSpansQueryReturnType<T> = {
