@@ -20,9 +20,8 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         :auth: required
         """
         provider_list = []
-
         for k, v in manager:
-            if v.is_partner is False:
+            if not v.is_partner:
                 provider_list.append(
                     {"key": k, "name": v.name, "requiredFeature": v.required_feature}
                 )

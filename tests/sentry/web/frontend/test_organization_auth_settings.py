@@ -4,9 +4,10 @@ import pytest
 from django.db import models
 from django.urls import reverse
 
-from sentry import audit_log
+from sentry import audit_log, auth
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models import (
     AuditLogEntry,
     AuthIdentity,
@@ -146,12 +147,16 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
-    def create_org_and_auth_provider(self):
+    def create_org_and_auth_provider(self, provider_name="dummy"):
+        if provider_name == "Fly.io":
+            auth.register("Fly.io", FlyOAuth2Provider)
+            self.addCleanup(auth.unregister, "Fly.io", FlyOAuth2Provider)
+
         self.user.update(is_managed=True)
         organization = self.create_organization(name="foo", owner=self.user)
 
         auth_provider = AuthProvider.objects.create(
-            organization_id=organization.id, provider="dummy"
+            organization_id=organization.id, provider=provider_name
         )
 
         AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
@@ -263,6 +268,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not User.objects.get(id=om.user_id).is_managed
 
         assert email_unlink_notifications.delay.called
+
+    @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
+    @with_feature("organizations:sso-basic")
+    def test_disable_partner_provider(self, email_unlink_notifications):
+        organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
+        self.create_om_and_link_sso(organization)
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+
+        self.login_as(self.user, organization_id=organization.id)
+
+        resp = self.client.post(path, {"op": "disable"})
+        assert resp.status_code == 405
 
     @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
     def test_superuser_disable_provider(self, email_unlink_notifications):
