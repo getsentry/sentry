@@ -63,7 +63,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       [projects, projectSlug]
     );
 
-    const issueUrl =
+    const eventUrl =
       groupId && eventId
         ? {
             pathname: normalizeUrl(
@@ -120,8 +120,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
     const renderFns = [
       () => (
         <Cell {...columnProps} numeric align="flex-start">
-          {issueUrl ? (
-            <Link to={issueUrl}>
+          {eventUrl ? (
+            <Link to={eventUrl}>
               <Text>{getShortEventId(eventId || '')}</Text>
             </Link>
           ) : (
@@ -166,11 +166,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
               contextType={ContextType.ISSUE}
               organization={organization}
             >
-              {issueUrl ? (
-                <Link to={issueUrl}>{groupShortId}</Link>
-              ) : (
-                <span>{groupShortId}</span>
-              )}
+              <span>{groupShortId}</span>
             </QuickContextHovercard>
           </Text>
         </Cell>
