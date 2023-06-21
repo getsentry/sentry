@@ -11,6 +11,7 @@ from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
+from sentry.silo.base import SiloMode
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
@@ -103,20 +104,22 @@ class MsTeamsClient(IntegrationProxyClient, MsTeamsClientMixin):
         access_token = self.metadata.get("access_token")
         expires_at = self.metadata.get("expires_at")
 
-        # if the token is expired, refresh it and save  it
-        if expires_at <= int(time.time()):
-            from copy import deepcopy
+        # We don't refresh the access token in region silos.
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            # if the token is expired, refresh it and save  it
+            if expires_at <= int(time.time()):
+                from copy import deepcopy
 
-            new_metadata = deepcopy(self.integration.metadata)
+                new_metadata = deepcopy(self.integration.metadata)
 
-            token_data = get_token_data()
-            access_token = token_data["access_token"]
-            new_metadata.update(token_data)
+                token_data = get_token_data()
+                access_token = token_data["access_token"]
+                new_metadata.update(token_data)
 
-            self.integration = integration_service.update_integration(
-                integration_id=self.integration.id,
-                metadata=new_metadata,
-            )
+                self.integration = integration_service.update_integration(
+                    integration_id=self.integration.id,
+                    metadata=new_metadata,
+                )
         return access_token
 
     @control_silo_function
