@@ -80,9 +80,8 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
     def get_client(self):
         return BitbucketApiClient(
-            self.model.metadata["base_url"],
-            self.model.metadata["shared_secret"],
-            self.model.external_id,
+            integration=self.model,
+            org_integration_id=self.org_integration.id,
         )
 
     @property
