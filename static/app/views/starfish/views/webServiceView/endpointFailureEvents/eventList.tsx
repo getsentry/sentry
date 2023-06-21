@@ -19,7 +19,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
 
 type Props = {
   httpOp: string;
@@ -62,8 +61,7 @@ export default function EventList({
   function renderBodyCell(
     tableData: TableData | null,
     column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow,
-    _onSelect?: (row: EndpointDataRow) => void
+    dataRow: TableDataRow
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
