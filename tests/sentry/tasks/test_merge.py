@@ -1,7 +1,11 @@
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
-from sentry.issues.escalating import ParsedGroupsCount
+from sentry.issues.escalating import (
+    ParsedGroupsCount,
+    get_group_hourly_count,
+    query_groups_past_counts,
+)
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, GroupStatus, UserReport
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
@@ -232,19 +236,20 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             project_id=project.id,
         )
         target = event1.group
-        other = event2.group
+        child = event2.group
 
         target.status, target.substatus = GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING
         target.save()
         record_group_history(target, GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING)
-        record_group_history(other, GroupHistoryStatus.ONGOING)
+        record_group_history(child, GroupHistoryStatus.ONGOING)
         add_group_to_inbox(target, GroupInboxReason.NEW)
-        add_group_to_inbox(other, GroupInboxReason.ONGOING)
+        add_group_to_inbox(child, GroupInboxReason.ONGOING)
 
         with self.tasks():
-            merge_groups([other.id], target.id)
+            merge_groups([child.id], target.id)
 
-        assert not Group.objects.filter(id=other.id).exists()
+        assert not Group.objects.filter(id=child.id).exists()
+        assert Group.objects.filter(id=target.id).exists()
         merged_group = Group.objects.filter(id=target.id)[0]
         assert merged_group.status == GroupStatus.IGNORED
         assert merged_group.substatus == GroupSubStatus.UNTIL_ESCALATING
@@ -253,10 +258,69 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             GroupHistory.objects.filter(group=merged_group)[0].status
             == GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING
         )
-        assert not GroupHistory.objects.filter(group=other)
+        assert not GroupHistory.objects.filter(group=child)
 
         assert GroupInbox.objects.filter(group=merged_group)[0].reason == GroupInboxReason.NEW.value
-        assert not GroupHistory.objects.filter(group=other)
+        assert not GroupHistory.objects.filter(group=child)
+
+    def test_merge_query_event_counts(self):
+        """
+        Test that after merge, events that occur for child group are included in the primary group
+        count query response
+        """
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+
+        target = event1.group
+        child = event2.group
+
+        target.status, target.substatus = GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING
+        target.save()
+
+        with self.tasks():
+            eventstream_state = eventstream.start_merge(project.id, [child.id], target.id)
+            merge_groups([child.id], target.id, handle_forecasts_groups=[child, target])
+            eventstream.end_merge(eventstream_state)
+
+        assert not Group.objects.filter(id=child.id).exists()
+        assert Group.objects.filter(id=target.id).exists()
+
+        # Add another event for child group fingerprint, group-2
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
+            },
+            project_id=project.id,
+        )
+
+        # Check that the queried target group count includes the child events
+        target_hour_count = get_group_hourly_count(target)
+        target_past_count = query_groups_past_counts([target])
+        assert target_hour_count == 3
+        assert target_past_count[0]["count()"] == 3
 
     def test_merge_and_parse_past_counts(self):
         """
