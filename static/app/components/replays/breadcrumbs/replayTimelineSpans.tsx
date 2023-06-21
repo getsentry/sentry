@@ -51,7 +51,7 @@ function ReplayTimelineEvents({className, durationMs, frames, startTimestampMs}:
                 <dt>{t('Network Requests:')}</dt>
                 <dd>{span.frameCount}</dd>
                 <dt>{t('Duration:')}</dt>
-                <dd>{span.duration.toFixed(2)}ms</dd>
+                <dd>{span.duration.toLocaleString()}ms</dd>
               </CountTooltipContent>
             }
             skipWrapper
