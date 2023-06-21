@@ -34,6 +34,11 @@ type Props = {
   transaction?: string;
 };
 
+export enum DataDisplayType {
+  CUMULATIVE_DURATION,
+  PERCENTAGE,
+}
+
 export function SpanGroupBreakdown({
   tableData: transformedData,
   totalCumulativeTime: totalValues,
@@ -46,6 +51,9 @@ export function SpanGroupBreakdown({
   const {selection} = usePageFilters();
   const theme = useTheme();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
+  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
+    DataDisplayType.CUMULATIVE_DURATION
+  );
 
   useEffect(() => {
     setShowSeriesArray(initialShowSeries);
@@ -61,7 +69,7 @@ export function SpanGroupBreakdown({
   }
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
-  const dataAsPercentages = cloneDeep(data);
+  const dataAsPercentages = cloneDeep(visibleSeries);
   const numDataPoints = data[0]?.data?.length ?? 0;
   for (let i = 0; i < numDataPoints; i++) {
     const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
