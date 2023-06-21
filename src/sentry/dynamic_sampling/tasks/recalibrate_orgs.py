@@ -172,7 +172,7 @@ def get_active_orgs(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS.value,
         )["data"]
         count = len(data)
         more_results = count > max_orgs
@@ -241,7 +241,7 @@ def fetch_org_volumes(
     )
     data = raw_snql_query(
         request,
-        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,  # type:ignore
+        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
     )["data"]
 
     for row in data:

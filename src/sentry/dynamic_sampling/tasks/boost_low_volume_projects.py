@@ -175,7 +175,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -221,7 +221,7 @@ def adjust_sample_rates_of_projects(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
     else:
-        sample_rate = quotas.get_blended_sample_rate(organization_id=org_id)  # type:ignore
+        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
         )

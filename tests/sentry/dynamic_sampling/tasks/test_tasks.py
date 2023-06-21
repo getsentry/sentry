@@ -127,7 +127,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     def forecasted_volume_side_effect(*args, **kwargs):
         return kwargs["volume"]
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_projects_simple(
         self,
         get_blended_sample_rate,
@@ -162,7 +162,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_projects_simple_with_empty_project(
         self,
         get_blended_sample_rate,
@@ -199,8 +199,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
         assert generate_rules(proj_e)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_boost_low_volume_projects_simple_with_sliding_window_org_from_cache(
         self,
@@ -241,8 +241,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_boost_low_volume_projects_simple_with_sliding_window_org_from_sync(
         self,
@@ -287,8 +287,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_change(
         self,
@@ -319,8 +319,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_do_not_change(
         self,
@@ -457,7 +457,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             )
         )
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_blended_sample_rate(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
@@ -482,7 +482,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                     )  # check we have some rate calculated for each transaction
                 assert global_rate == BLENDED_RATE
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
@@ -514,7 +514,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                         )  # check we have some rate calculated for each transaction
                     assert global_rate == used_sample_rate
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window_org(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
@@ -563,7 +563,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
                         assert global_rate == used_sample_rate
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_partial(self, get_blended_sample_rate):
         """
         Test the V2 algorithm is used, only specified projects are balanced and the
@@ -676,8 +676,8 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             lambda org_id: self.set_sliding_window_org_sample_rate(org_id, sample_rate)
         )
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_recalibrate_orgs(self, get_blended_sample_rate):
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_rebalance_orgs(self, get_blended_sample_rate):
         """
         Test that the org are going to be rebalanced at 20%
 
@@ -815,8 +815,8 @@ class TestSlidingWindowTasks(TasksTestCase):
             is not None
         )
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_multiple_projects(
         self,
@@ -871,8 +871,8 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 1.0,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_none_sampling_tier(
         self,
@@ -905,7 +905,7 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 0.5,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_forecasting_error(
         self, extrapolate_monthly_volume, get_blended_sample_rate
@@ -928,7 +928,7 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 0.9,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.dynamic_sampling.tasks.common.compute_sliding_window_sample_rate")
     def test_sliding_window_with_sample_rate_computation_error(
         self, compute_sliding_window_sample_rate, get_blended_sample_rate
@@ -951,8 +951,8 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 0.9,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_project_without_metrics(
         self,
@@ -984,8 +984,8 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 1.0,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_sliding_window_with_all_projects_without_metrics(
         self,
@@ -1015,7 +1015,7 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 1.0,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_sliding_window_with_none_window_size(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.5
 
@@ -1036,8 +1036,8 @@ class TestSlidingWindowTasks(TasksTestCase):
                 }
 
     @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_change(
         self,
@@ -1069,8 +1069,8 @@ class TestSlidingWindowTasks(TasksTestCase):
         assert schedule_invalidate_project_config.call_count == 2
 
     @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_do_not_change(
         self,
@@ -1102,8 +1102,8 @@ class TestSlidingWindowTasks(TasksTestCase):
         schedule_invalidate_project_config.assert_not_called()
 
     @patch("sentry.dynamic_sampling.tasks.sliding_window.schedule_invalidate_project_config")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_transaction_sampling_tier_for_volume")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
     def test_cache_deletion_when_project_has_no_more_metrics(
         self,
@@ -1153,7 +1153,7 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 1.0,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_sliding_window_with_new_project(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.5
 
@@ -1173,7 +1173,7 @@ class TestSlidingWindowTasks(TasksTestCase):
                 "value": 1.0,
             }
 
-    @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_sliding_window_with_new_org(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.5
 

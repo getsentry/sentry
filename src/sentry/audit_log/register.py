@@ -374,3 +374,19 @@ default_manager.add(
         template="created team {team_slug} and added user as Team Admin while creating project {project_slug}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=176,
+        name="ORGAUTHTOKEN_ADD",
+        api_name="org-auth-token.create",
+        template="added org auth token {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=177,
+        name="ORGAUTHTOKEN_REMOVE",
+        api_name="org-auth-token.remove",
+        template="removed org auth token {name}",
+    )
+)

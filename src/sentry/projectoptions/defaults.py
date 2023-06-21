@@ -1,6 +1,7 @@
 from sentry.projectoptions import register
 
-# latest epoch
+# This controls what sentry:option-epoch value is given to a project when it is created
+# The epoch of a project will determine what options are valid options for that specific project
 LATEST_EPOCH = 11
 
 # grouping related configs
@@ -13,10 +14,11 @@ LATEST_EPOCH = 11
 # TODO: we might instead want to fall back to the latest of the project's
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
-DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
+DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
 # NOTE: this is empty for now to migrate projects off the deprecated
 # `mobile` strategy via grouping auto-updates.
 BETA_GROUPING_CONFIG = ""
+# This registers the option as a valid project option
 register(
     key="sentry:grouping_config",
     epoch_defaults={

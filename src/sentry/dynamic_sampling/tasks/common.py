@@ -84,7 +84,7 @@ def get_active_orgs_with_projects_counts(
         )
         data = raw_snql_query(
             request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,  # type:ignore
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
