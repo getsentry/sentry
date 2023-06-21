@@ -91,14 +91,14 @@ class MsTeamsRequestParserTest(TestCase):
     def test_get_integration_from_request(self):
         team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
-        different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
+        different_member_removed["membersRemoved"][0]["id"] = "28:another-id"  # type:ignore
         expected_integration = Integration.objects.create(external_id=team_id, provider="msteams")
         request = self.factory.post(
             self.path,
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
-        request.data = different_member_removed
+        request.data = different_member_removed  # type:ignore
         parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()
         assert integration == expected_integration
