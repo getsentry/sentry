@@ -23,27 +23,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        # migrations.RunSQL(
-        #     sql='\n            ALTER TABLE "sentry_organizationmember" DROP CONSTRAINT IF EXISTS\n                "sentry_organizationmember_user_id_d514d1bb_fk_auth_user_id";\n            ',
-        #     reverse_sql="",
-        #     hints={"tables": ["sentry_organizationmember"]},
-        # ),
-        # migrations.SeparateDatabaseAndState(state_operations=[
-        #     migrations.AlterUniqueTogether(
-        #         name='organizationmembermapping',
-        #         unique_together={('organization_id', 'organizationmember_id')},
-        #     ),
-        #     migrations.AlterIndexTogether(
-        #         name='organizationmembermapping',
-        #         index_together={('organization_id', 'email'), ('organization_id', 'user')},
-        #     ),
-        # ])
-        migrations.AlterUniqueTogether(
-            name="organizationmembermapping",
-            unique_together={("organization_id", "organizationmember_id")},
+        migrations.RunSQL(
+            sql="""
+            ALTER TABLE "sentry_organizationmembermapping" DROP CONSTRAINT "sentry_organizationmembe_organization_id_email_66a560fc_uniq";
+            ALTER TABLE "sentry_organizationmembermapping" DROP CONSTRAINT "sentry_organizationmembe_organization_id_user_id_feb6bdf0_uniq";
+            """,
+            reverse_sql="",
+            hints={"tables": ["sentry_organizationmembermapping"]},
         ),
-        migrations.AlterIndexTogether(
-            name="organizationmembermapping",
-            index_together={("organization_id", "email"), ("organization_id", "user")},
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name="organizationmembermapping",
+                    unique_together={("organization_id", "organizationmember_id")},
+                ),
+                migrations.AlterIndexTogether(
+                    name="organizationmembermapping",
+                    index_together={("organization_id", "email"), ("organization_id", "user")},
+                ),
+            ]
         ),
     ]
