@@ -599,7 +599,7 @@ def get_facets(
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
-    if fetch_projects and len(top_tags) == per_page:
+    if fetch_projects and len(top_tags) == per_page and cursor == 0:
         top_tags.pop()
 
     top_tag_results = []
