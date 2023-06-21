@@ -156,9 +156,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const data = Object.values(seriesByDomain);
 
-  const initialShowSeries = transformedData.map(
-    segment => segment.group['span.category'] !== OTHER_SPAN_GROUP_MODULE
-  );
+  const initialShowSeries = transformedData.map(_ => true);
 
   return (
     <StyledPanel>
