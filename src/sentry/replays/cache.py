@@ -22,11 +22,10 @@ class RecordingSegmentCache:
         result = replay_cache.get(self.__key(index), raw=True)
         if result is None:
             raise ValueError(f"Missing data for chunk with id {self.__key(index)}.")
+        elif isinstance(result, str):
+            return result.encode()
         else:
-            if type(result) is str:
-                return result.encode("utf-8")
-            else:
-                return result
+            return result
 
     @metrics.wraps("replays.cache.set_recording_segment")
     def __setitem__(self, index: int, value: bytes) -> None:
