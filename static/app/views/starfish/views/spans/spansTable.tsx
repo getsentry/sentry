@@ -54,8 +54,8 @@ type Props = {
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const SORTABLE_FIELDS = new Set([
-  'p95(span.self_time)',
-  'percentile_percent_change(span.self_time, 0.95)',
+  `p95(${SPAN_SELF_TIME})`,
+  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
   'sps()',
   'sps_percent_change()',
   'time_spent_percentage()',
