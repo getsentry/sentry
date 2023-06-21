@@ -419,7 +419,6 @@ function Chart({
       </ChartZoom>
     );
   }
-
   return (
     <TransitionChart
       loading={loading}
