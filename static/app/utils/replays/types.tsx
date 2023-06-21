@@ -12,7 +12,7 @@ import type {
   OptionFrameEvent as TOptionFrameEvent,
   SpanFrame as TRawSpanFrame,
   SpanFrameEvent as TSpanFrameEvent,
-} from './replayFrame';
+} from '@sentry/replay';
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
