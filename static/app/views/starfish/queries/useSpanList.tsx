@@ -39,7 +39,7 @@ export const useSpanList = (
 
   const eventView = getEventView(moduleName, location, transaction, spanCategory, sorts);
 
-  const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, meta, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     limit,
@@ -47,7 +47,7 @@ export const useSpanList = (
     cursor,
   });
 
-  return {isLoading, data, pageLinks};
+  return {isLoading, data, meta, pageLinks};
 };
 
 function getEventView(
