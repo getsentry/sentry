@@ -1,14 +1,16 @@
 import logging
 
 from django.contrib import messages
-from django.db import transaction
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import audit_log
 from sentry.api import client
-from sentry.models import Organization, OrganizationStatus, outbox_context
+from sentry.models import Organization, OrganizationStatus
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    unmark_organization_as_pending_deletion_with_outbox_message,
+)
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -66,11 +68,9 @@ class RestoreOrganizationView(OrganizationView):
             messages.add_message(request, messages.ERROR, ERR_MESSAGES[organization.status])
             return self.redirect(reverse("sentry"))
 
-        with outbox_context(transaction.atomic(), flush=False):
-            updated = Organization.objects.filter(
-                id=organization.id, status__in=deletion_statuses
-            ).update(status=OrganizationStatus.ACTIVE)
-            Organization.outbox_for_update(org_id=organization.id).save()
+        updated = unmark_organization_as_pending_deletion_with_outbox_message(
+            org_id=organization.id
+        )
         if updated:
             client.put(
                 f"/organizations/{organization.slug}/",

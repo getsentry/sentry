@@ -1,6 +1,9 @@
 from django.db.models import F
 
 from sentry.models import AuthProvider, Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -35,13 +38,19 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         assert self.browser.element_exists('[data-test-id="create-account"]')
 
     def test_invite_2fa_enforced_org(self):
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+        )
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert not self.browser.element_exists_by_test_id("2fa-warning")
 
         self.login_as(self.user)
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+        )
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists_by_test_id("2fa-warning")
