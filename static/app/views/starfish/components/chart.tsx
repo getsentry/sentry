@@ -191,8 +191,6 @@ function Chart({
     }
   }
 
-  durationUnit = durationUnit ?? getDurationUnit(data);
-
   let transformedThroughput: LineSeriesOption[] | undefined = undefined;
   const additionalAxis: YAXisOption[] = [];
 
@@ -209,7 +207,7 @@ function Chart({
       }),
     ];
     additionalAxis.push({
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: 'value',
@@ -225,7 +223,7 @@ function Chart({
 
   const yAxes = [
     {
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: log ? 'log' : 'value',
@@ -236,7 +234,7 @@ function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
-            durationUnit
+            durationUnit ?? getDurationUnit(data)
           );
         },
       },

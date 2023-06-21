@@ -6,6 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import * as qs from 'query-string';
 
 import Checkbox from 'sentry/components/checkbox';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -35,8 +36,8 @@ type Props = {
 };
 
 export enum DataDisplayType {
-  CUMULATIVE_DURATION,
-  PERCENTAGE,
+  CUMULATIVE_DURATION = 'cumulative_duration',
+  PERCENTAGE = 'percentage',
 }
 
 export function SpanGroupBreakdown({
@@ -51,7 +52,11 @@ export function SpanGroupBreakdown({
   const {selection} = usePageFilters();
   const theme = useTheme();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
-  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
+  const options: SelectOption<string>[] = [
+    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
+  ];
+  const [dataDisplayType, setDataDisplayType] = useState<string>(
     DataDisplayType.CUMULATIVE_DURATION
   );
 
@@ -80,6 +85,8 @@ export function SpanGroupBreakdown({
     });
   }
 
+  const handleChange = (option: SelectOption<string>) => setDataDisplayType(option.value);
+
   return (
     <FlexRowContainer>
       <ChartPadding>
@@ -87,13 +94,22 @@ export function SpanGroupBreakdown({
           <ChartLabel>
             {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
           </ChartLabel>
+          <CompactSelect
+            options={options}
+            value={dataDisplayType}
+            onChange={handleChange}
+          />
         </Header>
         <Chart
           statsPeriod="24h"
           height={210}
-          data={dataAsPercentages}
-          dataMax={1}
-          durationUnit={0.25}
+          data={
+            dataDisplayType === DataDisplayType.PERCENTAGE
+              ? dataAsPercentages
+              : visibleSeries
+          }
+          dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
+          durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
           start=""
           end=""
           errored={errored}
@@ -107,7 +123,9 @@ export function SpanGroupBreakdown({
           }}
           definedAxisTicks={6}
           stacked
-          aggregateOutputFormat="percentage"
+          aggregateOutputFormat={
+            dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
+          }
           tooltipFormatterOptions={{
             valueFormatter: value =>
               tooltipFormatterUsingAggregateOutputType(value, 'duration'),
