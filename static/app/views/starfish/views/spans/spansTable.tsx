@@ -248,22 +248,22 @@ function getColumns(moduleName: ModuleName): Column[] {
     {
       key: 'sps()',
       name: 'Throughput',
-      width: 175,
+      width: COL_WIDTH_UNDEFINED,
     },
     {
       key: 'sps_percent_change()',
       name: DataTitles.change,
-      width: -1,
+      width: COL_WIDTH_UNDEFINED,
     },
     {
       key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
-      width: 175,
+      width: COL_WIDTH_UNDEFINED,
     },
     {
       key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
       name: DataTitles.change,
-      width: -1,
+      width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName === ModuleName.HTTP
       ? [
