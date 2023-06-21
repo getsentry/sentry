@@ -31,15 +31,15 @@ class Migration(CheckedMigration):
             reverse_sql="",
             hints={"tables": ["sentry_organizationmembermapping"]},
         ),
+        migrations.AlterIndexTogether(
+            name="organizationmembermapping",
+            index_together={("organization_id", "email"), ("organization_id", "user")},
+        ),
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterUniqueTogether(
                     name="organizationmembermapping",
                     unique_together={("organization_id", "organizationmember_id")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="organizationmembermapping",
-                    index_together={("organization_id", "email"), ("organization_id", "user")},
                 ),
             ]
         ),
