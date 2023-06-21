@@ -1086,6 +1086,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         results = self.make_query(search_filter_query="assigned:%s" % other_user.username)
         assert set(results) == set()
 
+        # test comment
         owner = self.create_user()
         self.create_member(
             organization=self.project.organization, user=owner, role="owner", teams=[]
