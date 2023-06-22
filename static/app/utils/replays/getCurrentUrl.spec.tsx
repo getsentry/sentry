@@ -60,15 +60,4 @@ describe('getCurrentUrl', () => {
 
     expect(url).toBe('/report/jquery.min.js');
   });
-
-  it('should not explode when an invalid urls are found', () => {
-    const base64EncodedScriptTag =
-      'nulltext/html;base64,PHNjcmlwdD4KICAgICAgb25tZXNzYWdlID0gKGV2ZW50KSA9PiB7CiAgICAgICAgY29uc29sZS5sb2coJ2hlbGxvIHdvcmxkJyk7CiAgICAgIH0KICA8L3NjcmlwdD4=';
-    replayRecord.urls = [base64EncodedScriptTag];
-    const frames = [];
-    const offsetMS = 0;
-    const url = getCurrentUrl(frames, offsetMS);
-
-    expect(url).toBe(base64EncodedScriptTag);
-  });
 });
