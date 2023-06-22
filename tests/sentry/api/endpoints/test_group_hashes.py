@@ -78,9 +78,9 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         # Merge the events
         eventstream = SnubaEventStream()
-        state = eventstream.backend.start_merge(self.project.id, [event2.group_id], event1.group_id)
+        state = eventstream.start_merge(self.project.id, [event2.group_id], event1.group_id)
 
-        eventstream.backend.end_merge(state)
+        eventstream.end_merge(state)
 
         url = f"/api/0/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
