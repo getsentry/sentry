@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import os
 import zlib
@@ -113,8 +115,13 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules = [rule for rule in self.iter_rules() if rule.is_modifier]
-        self._updater_rules = [rule for rule in self.iter_rules() if rule.is_updater]
+        self._modifier_rules = []
+        self._updater_rules = []
+        for rule in self.iter_rules():
+            if modifier_rule := rule._as_modifier_rule():
+                self._modifier_rules.append(modifier_rule)
+            if updater_rule := rule._as_updater_rule():
+                self._updater_rules.append(updater_rule)
 
     def apply_modifications_to_frame(self, frames, platform, exception_data):
         """This applies the frame modifications to the frames itself.  This
@@ -296,15 +303,15 @@ class Rule:
             rv = f"{rv} {action}"
         return rv
 
-    @property
-    def is_modifier(self):
-        """Does this rule modify the frame?"""
-        return self._is_modifier
+    def _as_modifier_rule(self) -> Rule | None:
+        actions = [action for action in self.actions if action.is_modifier]
+        if actions:
+            return Rule(self.matchers, actions)
 
-    @property
-    def is_updater(self):
-        """Does this rule update grouping components?"""
-        return self._is_updater
+    def _as_updater_rule(self) -> Rule | None:
+        actions = [action for action in self.actions if action.is_updater]
+        if actions:
+            return Rule(self.matchers, actions)
 
     def as_dict(self):
         matchers = {}
