@@ -32,7 +32,8 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
-DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"process-commit-context-{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,9 @@ def queue_comment_task_if_needed(
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
-        lock = locks.get(f"queue_comment_task:{pr.id}", duration=10, name="queue_comment_task")
+        lock = locks.get(
+            DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"
+        )
         with lock.acquire():
             cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
             if cache.get(cache_key) is not None:
