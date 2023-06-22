@@ -3057,7 +3057,6 @@ class Migration(CheckedMigration):
                         default=0,
                     ),
                 ),
-                ("default_teams", models.ManyToManyField(blank=True, to="sentry.Team")),
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
@@ -8560,28 +8559,6 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.CreateModel(
-                    name="AuthProviderDefaultTeams",
-                    fields=[
-                        (
-                            "id",
-                            sentry.db.models.fields.bounded.BoundedBigAutoField(
-                                primary_key=True, serialize=False
-                            ),
-                        ),
-                        (
-                            "team_id",
-                            sentry.db.models.fields.bounded.BoundedBigIntegerField(),
-                        ),
-                        (
-                            "authprovider_id",
-                            sentry.db.models.fields.bounded.BoundedBigIntegerField(),
-                        ),
-                    ],
-                    options={
-                        "db_table": "sentry_authprovider_default_teams",
-                    },
-                ),
-                migrations.CreateModel(
                     name="DashboardProject",
                     fields=[
                         (
@@ -8622,20 +8599,27 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.RunSQL(
-            sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN id TYPE bigint",
-            reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN id TYPE int",
-            hints={"tables": ["sentry_authprovider_default_teams"]},
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN authprovider_id TYPE bigint",
-            reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN authprovider_id TYPE int",
-            hints={"tables": ["sentry_authprovider_default_teams"]},
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN team_id TYPE bigint",
-            reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN team_id TYPE int",
-            hints={"tables": ["sentry_authprovider_default_teams"]},
+        migrations.CreateModel(
+            name="AuthProviderDefaultTeams",
+            fields=[
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "team_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+                ),
+                (
+                    "authprovider_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+                ),
+            ],
+            options={
+                "db_table": "sentry_authprovider_default_teams",
+            },
         ),
         migrations.RunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
@@ -10110,14 +10094,6 @@ class Migration(CheckedMigration):
                 ("organization_id", "email"),
                 ("organization_id", "organizationmember_id"),
             },
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="authprovider",
-                    name="default_teams",
-                ),
-            ],
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
