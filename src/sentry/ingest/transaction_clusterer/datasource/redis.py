@@ -12,7 +12,6 @@ from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
-    TRANSACTION_SOURCE_UNKNOWN,
     TRANSACTION_SOURCE_URL,
 )
 from sentry.models import Project
@@ -135,7 +134,12 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> Optional[st
     # Disadvantage: the load on redis does not decrease over time.
     #
     source_matches = source in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED) or (
-        source == TRANSACTION_SOURCE_UNKNOWN and transaction_name.contains("/")
+        # Relay leaves source None if it expects it to be high cardinality, (otherwise it sets it to "unknown")
+        # (see https://github.com/getsentry/relay/blob/2d07bef86415cc0ae8af01d16baecde10cdb23a6/relay-general/src/store/transactions/processor.rs#L369-L373).
+        #
+        # Our data show that a majority of these `None` source transactions contain slashes, so treat them as URL transactions:
+        source is None
+        and "/" in transaction_name
     )
 
     if not source_matches:
