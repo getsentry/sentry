@@ -5,15 +5,13 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, OrgAuthToken, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {tokenPreview, TokenWip} from 'sentry/views/settings/organizationAuthTokens';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 function LastUsed({
   organization,
@@ -27,7 +25,7 @@ function LastUsed({
   if (dateLastUsed && projectLastUsed) {
     return (
       <Fragment>
-        {tct('Last used [date] in [project]', {
+        {tct('[date] in project [project]', {
           date: (
             <TimeSince
               date={getDynamicText({
@@ -49,16 +47,12 @@ function LastUsed({
   if (dateLastUsed) {
     return (
       <Fragment>
-        {tct('Last used [date]', {
-          date: (
-            <TimeSince
-              date={getDynamicText({
-                value: dateLastUsed,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-            />
-          ),
-        })}
+        <TimeSince
+          date={getDynamicText({
+            value: dateLastUsed,
+            fixed: new Date(1508208080000), // National Pasta Day
+          })}
+        />
       </Fragment>
     );
   }
@@ -66,7 +60,7 @@ function LastUsed({
   if (projectLastUsed) {
     return (
       <Fragment>
-        {tct('Last used in [project]', {
+        {tct('in project [project]', {
           project: (
             <Link to={`/settings/${organization.slug}/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
@@ -77,7 +71,7 @@ function LastUsed({
     );
   }
 
-  return <Fragment>{t('Never used')}</Fragment>;
+  return <NeverUsed>{t('never used')}</NeverUsed>;
 }
 
 export function OrganizationAuthTokensAuthTokenRow({
@@ -85,59 +79,25 @@ export function OrganizationAuthTokensAuthTokenRow({
   isRevoking,
   token,
   revokeToken,
-  canRevoke,
+  projectLastUsed,
 }: {
-  canRevoke: boolean;
   isRevoking: boolean;
   organization: Organization;
-  revokeToken: (token: TokenWip) => void;
-  token: TokenWip;
+  token: OrgAuthToken;
+  projectLastUsed?: Project;
+  revokeToken?: (token: OrgAuthToken) => void;
 }) {
   return (
-    <StyledPanelItem>
-      <StyledPanelHeader>
+    <Fragment>
+      <div>
         <Label>
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}
           </Link>
         </Label>
 
-        <Actions>
-          <Tooltip
-            title={t(
-              'You must be an organization owner, manager or admin to revoke a token.'
-            )}
-            disabled={canRevoke}
-          >
-            <Confirm
-              disabled={!canRevoke || isRevoking}
-              onConfirm={() => revokeToken(token)}
-              message={t(
-                'Are you sure you want to revoke this token? The token will not be usable anymore, and this cannot be undone.'
-              )}
-            >
-              <Button
-                size="sm"
-                onClick={() => revokeToken(token)}
-                disabled={isRevoking || !canRevoke}
-                icon={
-                  isRevoking ? (
-                    <LoadingIndicator mini />
-                  ) : (
-                    <IconSubtract isCircled size="xs" />
-                  )
-                }
-              >
-                {t('Revoke')}
-              </Button>
-            </Confirm>
-          </Tooltip>
-        </Actions>
-      </StyledPanelHeader>
-
-      <StyledPanelBody>
         {token.tokenLastCharacters && (
-          <TokenPreview>
+          <TokenPreview aria-label={t('Token preview')}>
             {tokenPreview(
               getDynamicText({
                 value: token.tokenLastCharacters,
@@ -146,48 +106,67 @@ export function OrganizationAuthTokensAuthTokenRow({
             )}
           </TokenPreview>
         )}
+      </div>
 
-        <LastUsedDate>
-          <LastUsed
-            dateLastUsed={token.dateLastUsed}
-            projectLastUsed={token.projectLastUsed}
-            organization={organization}
-          />
-        </LastUsedDate>
-      </StyledPanelBody>
-    </StyledPanelItem>
+      <LastUsedDate>
+        <LastUsed
+          dateLastUsed={token.dateLastUsed}
+          projectLastUsed={projectLastUsed}
+          organization={organization}
+        />
+      </LastUsedDate>
+
+      <Actions>
+        <Tooltip
+          title={t(
+            'You must be an organization owner, manager or admin to revoke a token.'
+          )}
+          disabled={!!revokeToken}
+        >
+          <Confirm
+            disabled={!revokeToken || isRevoking}
+            onConfirm={revokeToken ? () => revokeToken(token) : undefined}
+            message={t(
+              'Are you sure you want to revoke this token? The token will not be usable anymore, and this cannot be undone.'
+            )}
+          >
+            <Button
+              size="sm"
+              disabled={isRevoking || !revokeToken}
+              aria-label={t('Revoke %s', token.name)}
+              icon={
+                isRevoking ? (
+                  <LoadingIndicator mini />
+                ) : (
+                  <IconSubtract isCircled size="xs" />
+                )
+              }
+            >
+              {t('Revoke')}
+            </Button>
+          </Confirm>
+        </Tooltip>
+      </Actions>
+    </Fragment>
   );
 }
-
-const StyledPanelItem = styled(PanelItem)`
-  flex-direction: column;
-  padding: ${space(2)};
-  gap: ${space(1)};
-`;
-
-const StyledPanelHeader = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${space(0.25)} ${space(1)};
-`;
 
 const Label = styled('div')``;
 
 const Actions = styled('div')`
-  margin-left: auto;
+  display: flex;
+  justify-content: flex-end;
 `;
 
-const StyledPanelBody = styled('div')`
+const LastUsedDate = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const LastUsedDate = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  margin-left: auto;
+const NeverUsed = styled('div')`
+  color: ${p => p.theme.gray300};
 `;
 
 const TokenPreview = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.gray300};
 `;

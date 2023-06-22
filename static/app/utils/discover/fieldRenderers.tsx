@@ -46,6 +46,9 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -102,6 +105,7 @@ type FieldFormatters = {
   duration: FieldFormatter;
   integer: FieldFormatter;
   number: FieldFormatter;
+  percent_change: FieldFormatter;
   percentage: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
@@ -288,6 +292,22 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       const value = toArray(data[field]);
       return <ArrayValue value={value} />;
+    },
+  },
+  percent_change: {
+    isSortable: true,
+    renderFunc: (fieldName, data) => {
+      const deltaValue = data[fieldName];
+
+      const sign = deltaValue >= 0 ? '+' : '-';
+      const delta = formatPercentage(Math.abs(deltaValue), 2);
+      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
+
+      return (
+        <PercentChangeCell
+          trendDirection={trendDirection}
+        >{`${sign}${delta}`}</PercentChangeCell>
+      );
     },
   },
 };
@@ -673,6 +693,8 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
+  sps_percent_change: SpecialFunctionFieldRenderer;
+  time_spent_percentage: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -738,6 +760,25 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
+    );
+  },
+  sps_percent_change: fieldName => data => {
+    const deltaValue = data[fieldName];
+
+    const sign = deltaValue >= 0 ? '+' : '-';
+    const delta = formatPercentage(Math.abs(deltaValue), 2);
+
+    return (
+      // N.B. For throughput, the change is neither good nor bad regardless of value! Throughput is just throughput
+      <PercentChangeCell trendDirection="neutral">{`${sign}${delta}`}</PercentChangeCell>
+    );
+  },
+  time_spent_percentage: fieldName => data => {
+    return (
+      <TimeSpentCell
+        timeSpentPercentage={data[fieldName]}
+        totalSpanTime={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+      />
     );
   },
 };

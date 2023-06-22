@@ -1,4 +1,5 @@
 import {captureMessage} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
@@ -172,7 +173,12 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
         range.min = min;
       }
       if (min < 0) {
-        captureMessage('Found negative min value in multiseries');
+        Sentry.withScope(scope => {
+          scope.setTag('seriesName', seriesName);
+          scope.setExtra('min', min);
+          scope.setExtra('max', min);
+          captureMessage('Found negative min value in multiseries');
+        });
       }
     }
   }

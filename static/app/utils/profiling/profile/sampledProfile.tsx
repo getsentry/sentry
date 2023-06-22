@@ -27,11 +27,12 @@ function sortStacks(
 
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = []
+  profileIds: Readonly<string[][]> = [],
+  frameFilter?: (i: number) => boolean
 ) {
   return profile.samples.map((stack, index) => {
     return {
-      stack,
+      stack: frameFilter ? stack.filter(frameFilter) : stack,
       weight: profile.weights[index],
       profileIds: profileIds[index],
     };
@@ -40,9 +41,10 @@ function stacksWithWeights(
 
 function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = []
+  profileIds: Readonly<string[][]> = [],
+  frameFilter?: (i: number) => boolean
 ): {stack: number[]; weight: number}[] {
-  return stacksWithWeights(profile, profileIds).sort(sortStacks);
+  return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
 }
 
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
@@ -84,9 +86,21 @@ export class SampledProfile extends Profile {
       );
     }
 
+    function resolveFrame(index) {
+      const resolvedFrame = frameIndex[index];
+      if (!resolvedFrame) {
+        throw new Error(`Could not resolve frame ${index} in frame index`);
+      }
+      return resolvedFrame;
+    }
+
     const samples =
       options.type === 'flamegraph'
-        ? sortSamples(sampledProfile, resolvedProfileIds)
+        ? sortSamples(
+            sampledProfile,
+            resolvedProfileIds,
+            options.frameFilter ? i => options.frameFilter!(resolveFrame(i)) : undefined
+          )
         : stacksWithWeights(sampledProfile);
 
     // We process each sample in the profile while maintaining a resolved stack of frames.
@@ -100,17 +114,6 @@ export class SampledProfile extends Profile {
     // After we resolve the stack, we call appendSampleWithWeight with the stack buffer, weight
     // and size of the stack to process. The size indicates how many items from the buffer we want
     // to process.
-
-    function resolveFrame(index) {
-      const resolvedFrame = frameIndex[index];
-      if (!resolvedFrame) {
-        throw new Error(`Could not resolve frame ${index} in frame index`);
-      }
-      if (options.frameFilter && !options.frameFilter(resolvedFrame)) {
-        return null;
-      }
-      return resolvedFrame;
-    }
 
     const resolvedStack: Frame[] = new Array(256); // stack size limit
     let size = 0;

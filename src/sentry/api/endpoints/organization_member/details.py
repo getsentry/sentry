@@ -216,13 +216,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
-            if getattr(member.flags, "idp:role-restricted"):
-                return Response(
-                    {
-                        "role": "This user's org-role is managed through your organization's identity provider."
-                    },
-                    status=403,
-                )
+            # TODO(adas): Reenable idp lockout once all scim role bugs are resolved.
 
             allowed_role_ids = {r.id for r in allowed_roles}
 

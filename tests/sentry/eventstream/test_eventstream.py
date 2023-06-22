@@ -98,7 +98,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert):
         now = datetime.utcnow()
 
@@ -135,7 +135,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             == 1
         )
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
@@ -163,7 +163,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         assert len(result["data"]) == 1
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
@@ -220,7 +220,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             exc_info=True,
         )
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
 
         now = datetime.utcnow()
@@ -279,7 +279,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["group_id"] == self.group.id
         assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
         now = datetime.utcnow()
 
@@ -310,7 +310,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_errors"
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_transaction_queue(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
         event.group_id = None
@@ -336,7 +336,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_transactions"
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issue_platform_queue(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
         event.group_id = None
