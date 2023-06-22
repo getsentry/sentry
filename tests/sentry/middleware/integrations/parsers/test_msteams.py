@@ -15,7 +15,11 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 from tests.sentry.integrations.msteams.test_helpers import (
+    EXAMPLE_MENTIONED,
+    EXAMPLE_PERSONAL_MEMBER_ADDED,
+    EXAMPLE_TEAM_MEMBER_ADDED,
     EXAMPLE_TEAM_MEMBER_REMOVED,
+    EXAMPLE_UNLINK_COMMAND,
     GENERIC_EVENT,
     TOKEN,
 )
@@ -96,7 +100,24 @@ class MsTeamsRequestParserTest(TestCase):
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
-        request.data = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)  # type:ignore
-        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
-        integration = parser.get_integration_from_request()
-        assert integration == expected_integration
+
+        region_silo_payloads = [
+            EXAMPLE_TEAM_MEMBER_REMOVED,
+            EXAMPLE_TEAM_MEMBER_ADDED,
+            EXAMPLE_MENTIONED,
+        ]
+
+        for payload in region_silo_payloads:
+            request.data = payload  # type:ignore
+            parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+            integration = parser.get_integration_from_request()
+            assert integration == expected_integration
+
+        help_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
+        help_command["text"] = "Help"
+        control_silo_payloads = [GENERIC_EVENT, help_command, EXAMPLE_PERSONAL_MEMBER_ADDED]
+        for payload in control_silo_payloads:
+            request.data = payload  # type:ignore
+            parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+            integration = parser.get_integration_from_request()
+            assert integration is None
