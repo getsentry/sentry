@@ -236,6 +236,8 @@ def get_stream_processor(
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     logical_topic = consumer_definition["topic"]
+    if not isinstance(logical_topic, str):
+        logical_topic = logical_topic()
 
     if topic is None:
         topic = logical_topic

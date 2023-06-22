@@ -1,4 +1,6 @@
-from typing import Any, Mapping, Sequence, TypedDict
+from __future__ import annotations
+
+from typing import Any, Callable, Mapping, Sequence, TypedDict
 
 import click
 from typing_extensions import Required
@@ -13,7 +15,7 @@ class TopicDefinition(TypedDict):
 
 class ConsumerDefinition(TypedDict, total=False):
     # Which logical topic from settings to use.
-    topic: Required[str]
+    topic: Required[str | Callable[[], str]]
 
     strategy_factory: Required[str]
 
