@@ -25,7 +25,7 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     location
   );
 
-  const enabled = eventIDs.length > 0;
+  const enabled = Boolean(eventIDs.length);
 
   const response = useDiscoverQuery({
     eventView,

@@ -81,7 +81,7 @@ function SpanSummaryPage({params, location}: Props) {
       {group: groupId},
       queryFilter,
       [`p95(${SPAN_SELF_TIME})`, 'sps()'],
-      'sidebar-span-metrics'
+      'span-summary-page-metrics'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
@@ -184,6 +184,7 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[THROUGHPUT_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
+                        aggregateOutputFormat="rate"
                         tooltipFormatterOptions={{
                           valueFormatter: value => formatThroughput(value),
                         }}

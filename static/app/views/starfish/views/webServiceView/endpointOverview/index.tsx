@@ -145,6 +145,7 @@ export default function EndpointOverview() {
                 definedAxisTicks={2}
                 disableXAxis
                 chartColors={[THROUGHPUT_COLOR]}
+                aggregateOutputFormat="rate"
                 grid={{
                   left: '8px',
                   right: '0',
@@ -344,8 +345,10 @@ function SpanMetricsTable({
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
-      orderBy="-time_spent_percentage"
-      onSetOrderBy={() => undefined}
+      sort={{
+        field: 'time_spent_percentage()',
+        kind: 'desc',
+      }}
       endpoint={transaction}
       method={method}
       limit={SPANS_TABLE_LIMIT}

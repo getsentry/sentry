@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
@@ -29,20 +28,21 @@ function DurationChart({groupId, transactionName, transactionMethod}: Props) {
     'sidebar-span-metrics'
   );
 
-  const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
+  const {
+    data: spans,
+    isLoading: areSpanSamplesLoading,
+    isRefetching: areSpanSamplesRefetching,
+  } = useSpanSamples({
     groupId,
     transactionName,
     transactionMethod,
-    undefined,
-    '-duration',
-    'span-summary-panel-samples-table-spans'
-  );
+  });
 
   const sampledSpanDataSeries: Series[] = spans.map(
-    ({timestamp, 'span.self_time': duration, transaction_id}) => ({
+    ({timestamp, 'span.self_time': duration, 'transaction.id': transaction_id}) => ({
       data: [
         {
-          name: moment(timestamp).unix(),
+          name: timestamp,
           value: duration,
         },
       ],
@@ -63,7 +63,11 @@ function DurationChart({groupId, transactionName, transactionMethod}: Props) {
         start=""
         end=""
         loading={isLoading}
-        scatterPlot={areSpanSamplesLoading ? undefined : sampledSpanDataSeries}
+        scatterPlot={
+          areSpanSamplesLoading || areSpanSamplesRefetching
+            ? undefined
+            : sampledSpanDataSeries
+        }
         utc={false}
         chartColors={[P95_COLOR]}
         isLineChart

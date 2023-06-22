@@ -268,9 +268,7 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_delete_issue_alert_rule_mute_myself(self):
         """Test that a user can unsnooze a rule they've snoozed for just themselves"""
-        RuleSnooze.objects.create(
-            user_id=self.user.id, rule=self.issue_alert_rule, owner_id=self.user.id
-        )
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.issue_alert_rule)
         data = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
@@ -285,7 +283,7 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_delete_issue_alert_rule_mute_everyone(self):
         """Test that a user can unsnooze a rule they've snoozed for everyone"""
-        RuleSnooze.objects.create(rule=self.issue_alert_rule, owner_id=self.user.id)
+        self.snooze_rule(owner_id=self.user.id, rule=self.issue_alert_rule)
         data = {"target": "everyone"}
         response = self.get_response(
             self.organization.slug,
@@ -300,9 +298,7 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_delete_issue_alert_rule_without_alert_write(self):
         """Test that a user without alerts:write access cannot unmute an issue alert rule"""
-        RuleSnooze.objects.create(
-            user_id=self.user.id, rule=self.issue_alert_rule, owner_id=self.user.id
-        )
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.issue_alert_rule)
 
         member_user = self.create_user()
         self.create_member(
@@ -558,8 +554,8 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_delete_metric_alert_rule_mute_myself(self):
         """Test that a user can unsnooze a metric alert rule they've snoozed for just themselves"""
-        RuleSnooze.objects.create(
-            user_id=self.user.id, alert_rule=self.metric_alert_rule, owner_id=self.user.id
+        self.snooze_rule(
+            user_id=self.user.id, owner_id=self.user.id, alert_rule=self.metric_alert_rule
         )
         response = self.get_response(
             self.organization.slug, self.project.slug, self.metric_alert_rule.id
@@ -571,7 +567,7 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_delete_metric_alert_rule_mute_everyone(self):
         """Test that a user can unsnooze a metric rule they've snoozed for everyone"""
-        RuleSnooze.objects.create(alert_rule=self.metric_alert_rule, owner_id=self.user.id)
+        self.snooze_rule(owner_id=self.user.id, alert_rule=self.metric_alert_rule)
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
@@ -584,8 +580,8 @@ class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_delete_metric_alert_rule_without_alert_write(self):
         """Test that a user without alerts:write access cannot unmute a metric alert rule"""
-        RuleSnooze.objects.create(
-            user_id=self.user.id, alert_rule=self.metric_alert_rule, owner_id=self.user.id
+        self.snooze_rule(
+            user_id=self.user.id, owner_id=self.user.id, alert_rule=self.metric_alert_rule
         )
 
         member_user = self.create_user()
