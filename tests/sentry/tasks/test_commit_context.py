@@ -509,7 +509,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_api(self, get_jwt, mock_comment_workflow):
-        """No comments on suspect commit with no pr"""
+        """No comments on suspect commit with no pr returned from API response"""
         self.pull_request.delete()
 
         responses.add(
@@ -568,7 +568,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_query(self, get_jwt, mock_comment_workflow):
-        """No comments on suspect commit with no pr"""
+        """No comments on suspect commit with no pr row in table"""
         self.pull_request.delete()
 
         self.add_responses()

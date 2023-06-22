@@ -48,7 +48,7 @@ def queue_comment_task_if_needed(
     # client will raise ApiError if the request is not successful
     response = installation.get_client().get_pullrequest_from_commit(repo=repo.name, sha=commit.key)
 
-    if not (isinstance(response, list) and len(response) == 1):
+    if not isinstance(response, list) or len(response) != 1:
         # the response should return a single PR, return if multiple
         if len(response) > 1:
             logger.info(
@@ -82,12 +82,11 @@ def queue_comment_task_if_needed(
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
-        # create PR commit row for suspect commit and PR
-        pr_commit_query = PullRequestCommit.objects.filter(commit=commit, pull_request=pr)
-        if not pr_commit_query.exists():
-            PullRequestCommit.objects.create(commit=commit, pull_request=pr)
-
         # TODO: Debouncing Logic
+
+        # create PR commit row for suspect commit and PR
+        PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
+
         logger.info(
             "github.pr_comment.queue_comment_workflow",
             extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
