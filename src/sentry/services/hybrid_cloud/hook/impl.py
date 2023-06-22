@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.hook import HookService, RpcServiceHook
 from sentry.services.hybrid_cloud.hook.serial import serialize_service_hook
 
 
-class DatabaseBackedAppService(HookService):
+class DatabaseBackedHookService(HookService):
     def update_webhook_and_events(
         self,
         *,
@@ -60,6 +60,3 @@ class DatabaseBackedAppService(HookService):
                     hook.add_project(project_id)
 
             return serialize_service_hook(hook)
-
-    def close(self) -> None:
-        pass

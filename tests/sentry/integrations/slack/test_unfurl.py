@@ -210,6 +210,22 @@ class UnfurlTest(TestCase):
             == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
         )
 
+    def test_escape_issue(self):
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+        )
+
+        links = [
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group.id}/",
+                args={"issue_id": group.id, "event_id": None},
+            ),
+        ]
+
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        assert unfurls[links[0].url]["text"] == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+
     def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()
 
@@ -245,7 +261,7 @@ class UnfurlTest(TestCase):
             == SlackMetricAlertMessageBuilder(incident.alert_rule, incident).build()
         )
 
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart(self, mock_generate_chart):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
@@ -301,7 +317,7 @@ class UnfurlTest(TestCase):
         assert type(series_data[0]["value"]) is float
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_transaction(self, mock_generate_chart):
         # Using the transactions dataset
         alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
@@ -353,7 +369,7 @@ class UnfurlTest(TestCase):
         assert type(series_data[0]["value"]) is float
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
         alert_rule = self.create_alert_rule(
             query="",
@@ -409,7 +425,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -446,7 +462,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_previous_period(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=previous&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -492,7 +508,7 @@ class UnfurlTest(TestCase):
             },
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_multi_y_axis(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
         link_type, args = match_link(url)
@@ -529,7 +545,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_html_escaped(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={self.project.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
         link_type, args = match_link(url)
@@ -574,7 +590,7 @@ class UnfurlTest(TestCase):
             },
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url(self, mock_generate_chart, _):
         query = {
             "fields": ["message", "event.type", "project", "user.display", "count_unique(user)"],
@@ -636,7 +652,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_correct_y_axis_for_saved_query(self, mock_generate_chart, _):
         query = {
             "fields": [
@@ -706,7 +722,7 @@ class UnfurlTest(TestCase):
             },
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_top_events_url_param(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=top5&topEvents=2"
         link_type, args = match_link(url)
@@ -761,7 +777,7 @@ class UnfurlTest(TestCase):
             },
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart, _):
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
@@ -817,7 +833,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart, _):
         query = {
             "fields": ["title", "event.type", "project", "user.display", "timestamp"],
@@ -873,7 +889,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_without_project_ids(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -930,7 +946,7 @@ class UnfurlTest(TestCase):
             },
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_world_map(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
         link_type, args = match_link(url)
@@ -979,7 +995,7 @@ class UnfurlTest(TestCase):
             },
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_bar_chart_display_renders_bar_chart(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&event.type%3Aerror&sort=-count&statsPeriod=24h&yAxis=count%28%29"
 
@@ -1011,7 +1027,7 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_DAILY
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_bar_chart_interval_with_absolute_date(self, mock_generate_chart, api_mock):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&end=2022-09-16T23%3A59%3A59&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&start=2022-09-09T00%3A00%3A00&utc=true&yAxis=count%28%29"
 
@@ -1046,7 +1062,7 @@ class UnfurlTest(TestCase):
         assert api_mock.call_args[1]["params"]["interval"] == "1h"
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_bar_chart_interval_with_periodic_date(self, mock_generate_chart, api_mock):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=90d&utc=true&yAxis=count%28%29"
 
@@ -1081,7 +1097,7 @@ class UnfurlTest(TestCase):
         assert api_mock.call_args[1]["params"]["interval"] == "1d"
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_saved_query_with_interval(self, mock_generate_chart, api_mock):
         query = {
             "fields": ["title", "event.type", "project", "user.display", "timestamp"],
@@ -1140,7 +1156,7 @@ class UnfurlTest(TestCase):
             "start": 1652817000,
         },
     )
-    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_homepage(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)

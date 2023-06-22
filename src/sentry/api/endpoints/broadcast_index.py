@@ -2,7 +2,7 @@ import logging
 from functools import reduce
 from operator import or_
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -134,7 +134,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
             for broadcast in unseen_queryset:
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
                         BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
                 except IntegrityError:
                     pass
@@ -151,7 +151,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(Broadcast)):
             broadcast = Broadcast.objects.create(
                 title=result["title"],
                 message=result["message"],
@@ -171,7 +171,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         if result.get("hasSeen"):
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
                     BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
                 pass

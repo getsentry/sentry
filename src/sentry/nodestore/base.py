@@ -20,7 +20,7 @@ json_dumps = json.JSONEncoder(
     default=None,
 ).encode
 
-json_loads = json._default_decoder.decode
+json_loads = json.loads
 
 
 class NodeStorage(local, Service):

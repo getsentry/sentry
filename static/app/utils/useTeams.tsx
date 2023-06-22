@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
@@ -24,6 +24,8 @@ type State = {
   /**
    * Indicates that Team results (from API) are paginated and there are more
    * Teams that are not in the initial response.
+   *
+   * A null value indicates that we don't know if there are more values.
    */
   hasMore: null | boolean;
   /**
@@ -177,13 +179,12 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     [ids, storeIds]
   );
 
-  const shouldLoadSlugs = slugsToLoad.length > 0;
-  const shouldLoadIds = idsToLoad.length > 0;
-  const shouldLoadTeams = provideUserTeams && !store.loadedUserTeams;
+  const shouldLoadByQuery = slugsToLoad.length > 0 || idsToLoad.length > 0;
+  const shouldLoadUserTeams = provideUserTeams && !store.loadedUserTeams;
 
   // If we don't need to make a request either for slugs or user teams, set
   // initiallyLoaded to true
-  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams && !shouldLoadIds;
+  const initiallyLoaded = !shouldLoadUserTeams && !shouldLoadByQuery;
 
   const [state, setState] = useState<State>({
     initiallyLoaded,
@@ -193,24 +194,6 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     nextCursor: store.cursor,
     fetchError: null,
   });
-
-  const slugOrIdRef = useRef<Set<string> | null>(null);
-
-  // Only initialize slugOrIdRef.current once and modify it when we receive new
-  // slugs or ids determined through set equality
-  if (slugs !== undefined || ids !== undefined) {
-    const slugsOrIds = (slugs || ids) ?? [];
-    if (slugOrIdRef.current === null) {
-      slugOrIdRef.current = new Set(slugsOrIds);
-    }
-
-    if (
-      slugsOrIds.length !== slugOrIdRef.current.size ||
-      slugsOrIds.some(slugOrId => !slugOrIdRef.current?.has(slugOrId))
-    ) {
-      slugOrIdRef.current = new Set(slugsOrIds);
-    }
-  }
 
   const loadUserTeams = useCallback(
     async function () {
@@ -237,7 +220,7 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     [api, orgId]
   );
 
-  const loadTeamsBySlugOrId = useCallback(
+  const loadTeamsByQuery = useCallback(
     async function () {
       if (orgId === undefined) {
         return;
@@ -365,16 +348,16 @@ export function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
   // Load specified team slugs
   useEffect(() => {
-    if (shouldLoadSlugs || shouldLoadIds) {
-      loadTeamsBySlugOrId();
+    if (shouldLoadByQuery) {
+      loadTeamsByQuery();
     }
-  }, [shouldLoadSlugs, shouldLoadIds, loadTeamsBySlugOrId]);
+  }, [shouldLoadByQuery, loadTeamsByQuery]);
 
   useEffect(() => {
-    if (shouldLoadTeams) {
+    if (shouldLoadUserTeams) {
       loadUserTeams();
     }
-  }, [shouldLoadTeams, loadUserTeams]);
+  }, [shouldLoadUserTeams, loadUserTeams]);
 
   const isSuperuser = isActiveSuperuser();
 

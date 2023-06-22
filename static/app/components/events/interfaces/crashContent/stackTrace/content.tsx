@@ -29,11 +29,13 @@ type Props = {
   debugFrames?: StacktraceFilenameQuery[];
   hideIcon?: boolean;
   isHoverPreviewed?: boolean;
+  lockAddress?: string;
   maxDepth?: number;
   mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
+  threadId?: number;
 } & Partial<DefaultProps>;
 
 type State = {
@@ -147,6 +149,8 @@ class Content extends Component<Props, State> {
       meta,
       debugFrames,
       hideIcon,
+      threadId,
+      lockAddress,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -198,6 +202,9 @@ class Content extends Component<Props, State> {
     );
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
+    const mechanism =
+      platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
+    const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
@@ -242,6 +249,9 @@ class Content extends Component<Props, State> {
             frameMeta={meta?.frames?.[frameIdx]}
             registersMeta={meta?.registers}
             debugFrames={debugFrames}
+            isANR={isANR}
+            threadId={threadId}
+            lockAddress={lockAddress}
           />
         );
       }

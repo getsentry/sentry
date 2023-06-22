@@ -1,6 +1,6 @@
 import logging
 import posixpath
-from typing import Any, Callable, Set
+from typing import Any, Callable, Optional, Set
 
 from symbolic import ParseDebugIdError, normalize_debug_id
 
@@ -195,7 +195,8 @@ def _merge_system_info(data, system_info):
 
 def _merge_full_response(data, response):
     data["platform"] = "native"
-    if response.get("crashed") is not None:
+    # Specifically for Unreal events: Do not overwrite the level as it has already been set in Relay when merging the context.
+    if response.get("crashed") is not None and data.get("level") is None:
         data["level"] = "fatal" if response["crashed"] else "info"
 
     if response.get("system_info"):
@@ -446,13 +447,15 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_native_symbolication_function(data) -> Callable[[Symbolicator, Any], Any]:
+def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, Any], Any]]:
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
     elif is_native_event(data):
         return process_native_stacktraces
+    else:
+        return None
 
 
 def get_required_attachment_types(data) -> Set[str]:

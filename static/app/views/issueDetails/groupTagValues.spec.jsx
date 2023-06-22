@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
@@ -8,9 +8,6 @@ const tags = TestStubs.Tags();
 
 function init(tagKey) {
   return initializeOrg({
-    organization: {},
-    project: undefined,
-    projects: undefined,
     router: {
       location: {
         query: {},
@@ -44,8 +41,12 @@ describe('GroupTagValues', () => {
       context: routerContext,
     });
 
-    await userEvent.click(screen.getByLabelText('Show more'));
-    await userEvent.click(screen.getByText('Search All Issues with Tag Value'));
+    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(
+      within(
+        screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
+      ).getByRole('link')
+    );
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',

@@ -26,13 +26,14 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {
@@ -90,7 +91,7 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            title={getTermHelp(organization, PerformanceTerm.APDEX)}
             size="sm"
           />
         </ChartTitle>
@@ -107,7 +108,7 @@ function SidebarCharts({
           {t('Failure Rate')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
+            title={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
             size="sm"
           />
         </ChartTitle>
@@ -222,7 +223,12 @@ function SidebarChartsContainer({
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const mepSetting = useMEPSettingContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
+  const mepCardinalityContext = useMetricsCardinalityContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   const axisLineConfig = {
     scale: true,

@@ -3,14 +3,17 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from pydantic import Field
 
-from sentry.constants import ObjectStatus
+from sentry.db.models import ValidateFunction, Value
+from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
 class _DefaultEnumHelpers:
@@ -20,19 +23,19 @@ class _DefaultEnumHelpers:
     def get_default_team_status_value() -> int:
         from sentry.models import TeamStatus
 
-        return TeamStatus.ACTIVE.value  # type: ignore[no-any-return]
+        return TeamStatus.ACTIVE
 
     @staticmethod
     def get_default_invite_status_value() -> int:
         from sentry.models import InviteStatus
 
-        return InviteStatus.APPROVED.value  # type: ignore[no-any-return]
+        return InviteStatus.APPROVED.value
 
     @staticmethod
     def get_default_organization_status_value() -> int:
         from sentry.models import OrganizationStatus
 
-        return OrganizationStatus.ACTIVE.value  # type: ignore[no-any-return]
+        return OrganizationStatus.ACTIVE.value
 
 
 class RpcTeam(RpcModel):
@@ -61,18 +64,6 @@ class RpcTeamMember(RpcModel):
         return team_roles.get(self.role_id) if self.role_id else None
 
 
-def project_status_visible() -> int:
-    return int(ObjectStatus.ACTIVE)
-
-
-class RpcProject(RpcModel):
-    id: int = -1
-    slug: str = ""
-    name: str = ""
-    organization_id: int = -1
-    status: int = Field(default_factory=project_status_visible)
-
-
 class RpcOrganizationMemberFlags(RpcModel):
     sso__linked: bool = False
     sso__invalid: bool = False
@@ -83,6 +74,12 @@ class RpcOrganizationMemberFlags(RpcModel):
 
         item = escape_flag_name(item)
         return bool(getattr(self, item))
+
+    def __setattr__(self, item: str, value: bool) -> None:
+        from sentry.services.hybrid_cloud.organization.serial import escape_flag_name
+
+        item = escape_flag_name(item)
+        super().__setattr__(item, value)
 
     def __getitem__(self, item: str) -> bool:
         return bool(getattr(self, item))
@@ -102,6 +99,11 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
+    token: str = ""
+    is_pending: bool = False
+    invite_approved: bool = False
+    token_expired: bool = False
+    legacy_token: str = ""
     email: str = ""
 
     def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
@@ -134,13 +136,17 @@ class RpcOrganizationFlags(RpcModel):
     require_email_verification: bool = False
 
 
+class RpcOrganizationFlagsUpdate(TypedDict):
+    require_2fa: bool
+
+
 class RpcOrganizationInvite(RpcModel):
     id: int = -1
     token: str = ""
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -153,6 +159,23 @@ class RpcOrganizationSummary(RpcModel):
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
         # serializers, as this organization summary object is often used for that.
         return hash((self.id, self.slug))
+
+    def get_option(
+        self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None
+    ) -> Value:
+        from sentry.services.hybrid_cloud.organization import organization_service
+
+        return organization_service.get_option(organization_id=self.id, key=key)
+
+    def update_option(self, key: str, value: Value) -> bool:
+        from sentry.services.hybrid_cloud.organization import organization_service
+
+        return organization_service.update_option(organization_id=self.id, key=key, value=value)
+
+    def delete_option(self, key: str) -> None:
+        from sentry.services.hybrid_cloud.organization import organization_service
+
+        organization_service.delete_option(organization_id=self.id, key=key)
 
 
 class RpcOrganization(RpcOrganizationSummary):
@@ -188,3 +211,24 @@ class RpcUserOrganizationContext(RpcModel):
         # Ensures that outer user_id always agrees with the inner member object.
         if self.user_id is not None and self.member is not None:
             assert self.user_id == self.member.user_id
+
+
+class RpcUserInviteContext(RpcUserOrganizationContext):
+    """
+    A context containing an intended organization member object as a potential invite, and the true
+    inner organization member state as found for a given user_id if it exists, or just the organization
+    member state of the invite if none such exists.
+    """
+
+    invite_organization_member_id: Optional[int] = 0
+
+
+class RpcRegionUser(RpcModel):
+    """
+    Represents user information that may be propagated to each region that a user belongs to, often to make
+    more performant queries on organization member information.
+    """
+
+    id: int = -1
+    is_active: bool = True
+    email: Optional[str] = None

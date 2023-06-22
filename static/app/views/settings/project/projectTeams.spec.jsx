@@ -15,21 +15,34 @@ describe('ProjectTeams', function () {
   let project;
   let routerContext;
 
-  const team1 = TestStubs.Team();
-  const team2 = TestStubs.Team({
+  const team1WithAdmin = TestStubs.Team({
+    access: ['team:read', 'team:write', 'team:admin'],
+  });
+  const team2WithAdmin = TestStubs.Team({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
     hasAccess: true,
+    access: ['team:read', 'team:write', 'team:admin'],
+  });
+  const team3NoAdmin = TestStubs.Team({
+    id: '3',
+    slug: 'team-slug-3',
+    name: 'Team Name 3',
+    hasAccess: true,
+    access: ['team:read'],
   });
 
   beforeEach(function () {
     const initialData = initializeOrg();
     org = initialData.organization;
-    project = initialData.project;
+    project = {
+      ...initialData.project,
+      access: ['project:admin', 'project:write', 'project:admin'],
+    };
     routerContext = initialData.routerContext;
 
-    TeamStore.loadInitialData([team1, team2]);
+    TeamStore.loadInitialData([team1WithAdmin, team2WithAdmin]);
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -39,12 +52,12 @@ describe('ProjectTeams', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
-      body: [team1],
+      body: [team1WithAdmin],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
-      body: [team1, team2],
+      body: [team1WithAdmin, team2WithAdmin],
     });
   });
 
@@ -68,17 +81,17 @@ describe('ProjectTeams', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
-      body: [team1, team2],
+      body: [team1WithAdmin, team2WithAdmin],
     });
 
-    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team1.slug}/`;
-    const mock = MockApiClient.addMockResponse({
-      url: endpoint,
+    const endpoint1 = `/projects/${org.slug}/${project.slug}/teams/${team1WithAdmin.slug}/`;
+    const mock1 = MockApiClient.addMockResponse({
+      url: endpoint1,
       method: 'DELETE',
       statusCode: 200,
     });
 
-    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2WithAdmin.slug}/`;
     const mock2 = MockApiClient.addMockResponse({
       url: endpoint2,
       method: 'DELETE',
@@ -93,18 +106,15 @@ describe('ProjectTeams', function () {
       />
     );
 
-    expect(mock).not.toHaveBeenCalled();
+    expect(mock1).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
-
-    expect(mock).toHaveBeenCalledWith(
-      endpoint,
+    expect(mock1).toHaveBeenCalledWith(
+      endpoint1,
       expect.objectContaining({
         method: 'DELETE',
       })
     );
-
-    // Row should be removed
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
@@ -124,37 +134,25 @@ describe('ProjectTeams', function () {
     );
   });
 
-  it('removes team from project when project team is not in org list', async function () {
-    MockApiClient.clearMockResponses();
+  it('cannot remove a team without admin scopes', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
-      body: [team1, team2],
+      body: [team1WithAdmin, team2WithAdmin, team3NoAdmin],
     });
 
-    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team1.slug}/`;
-    const mock = MockApiClient.addMockResponse({
-      url: endpoint,
+    const endpoint1 = `/projects/${org.slug}/${project.slug}/teams/${team1WithAdmin.slug}/`;
+    const mock1 = MockApiClient.addMockResponse({
+      url: endpoint1,
       method: 'DELETE',
+      statusCode: 200,
     });
 
-    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-    const mock2 = MockApiClient.addMockResponse({
-      url: endpoint2,
+    const endpoint3 = `/projects/${org.slug}/${project.slug}/teams/${team3NoAdmin.slug}/`;
+    const mock3 = MockApiClient.addMockResponse({
+      url: endpoint3,
       method: 'DELETE',
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/teams/`,
-      method: 'GET',
-      body: [
-        TestStubs.Team({
-          id: '3',
-          slug: 'team-slug-3',
-          name: 'Team Name 3',
-          hasAccess: true,
-        }),
-      ],
+      statusCode: 200,
     });
 
     render(
@@ -165,18 +163,64 @@ describe('ProjectTeams', function () {
       />
     );
 
-    expect(mock).not.toHaveBeenCalled();
-
-    // Click "Remove"
+    // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
-
-    expect(mock).toHaveBeenCalledWith(
-      endpoint,
+    expect(mock1).toHaveBeenCalledWith(
+      endpoint1,
       expect.objectContaining({
         method: 'DELETE',
       })
     );
+    expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
+    // Remove third team, but button should be disabled
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[1]);
+    expect(mock3).not.toHaveBeenCalled();
+  });
+
+  it('removes team from project when project team is not in org list', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/teams/`,
+      method: 'GET',
+      body: [team1WithAdmin, team2WithAdmin],
+    });
+
+    const endpoint1 = `/projects/${org.slug}/${project.slug}/teams/${team1WithAdmin.slug}/`;
+    const mock1 = MockApiClient.addMockResponse({
+      url: endpoint1,
+      method: 'DELETE',
+    });
+
+    const endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2WithAdmin.slug}/`;
+    const mock2 = MockApiClient.addMockResponse({
+      url: endpoint2,
+      method: 'DELETE',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: [team3NoAdmin],
+    });
+
+    render(
+      <ProjectTeams
+        params={{projectId: project.slug}}
+        organization={org}
+        project={project}
+      />
+    );
+
+    expect(mock1).not.toHaveBeenCalled();
+
+    // Remove first team
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    expect(mock1).toHaveBeenCalledWith(
+      endpoint1,
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
@@ -198,7 +242,7 @@ describe('ProjectTeams', function () {
   });
 
   it('can associate a team with project', async function () {
-    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2WithAdmin.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',

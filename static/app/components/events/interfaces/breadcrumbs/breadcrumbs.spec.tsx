@@ -10,6 +10,7 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import useProjects from 'sentry/utils/useProjects';
 
 const mockReplay = ReplayReader.factory({
   replayRecord: TestStubs.ReplayRecord({}),
@@ -17,6 +18,7 @@ const mockReplay = ReplayReader.factory({
   attachments: TestStubs.ReplaySegmentInit({}),
 });
 
+jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 
 jest.mock('screenfull', () => ({
@@ -43,6 +45,8 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
+  const MockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
+
   const MockUseReplayOnboardingSidebarPanel =
     useReplayOnboardingSidebarPanel as jest.MockedFunction<
       typeof useReplayOnboardingSidebarPanel
@@ -54,6 +58,17 @@ describe('Breadcrumbs', () => {
     >;
 
   beforeEach(() => {
+    const project = TestStubs.Project({platform: 'javascript'});
+
+    MockUseProjects.mockReturnValue({
+      fetchError: null,
+      fetching: false,
+      hasMore: false,
+      initiallyLoaded: false,
+      onSearch: () => Promise.resolve(),
+      placeholders: [],
+      projects: [project],
+    });
     MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
       hasOrgSentReplays: false,
       fetching: false,
@@ -61,11 +76,12 @@ describe('Breadcrumbs', () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
+
     props = {
       organization: TestStubs.Organization(),
       projectSlug: 'project-slug',
       isShare: false,
-      event: TestStubs.Event({entries: []}),
+      event: TestStubs.Event({entries: [], projectID: project.id}),
       data: {
         values: [
           {
@@ -113,6 +129,21 @@ describe('Breadcrumbs', () => {
         ],
       },
     };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            title: '/settings/',
+            'project.name': 'javascript',
+            id: 'abcdabcdabcdabcdabcdabcdabcdabcd',
+          },
+        ],
+        meta: {},
+      },
+    });
   });
 
   describe('filterCrumbs', function () {
@@ -202,6 +233,42 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
+    });
+
+    it('should render Sentry Transactions crumb', async function () {
+      props.data.values = [
+        {
+          message: '12345678123456781234567812345678',
+          category: 'sentry.transaction',
+          level: BreadcrumbLevelType.INFO,
+          type: BreadcrumbType.TRANSACTION,
+        },
+        {
+          message: 'abcdabcdabcdabcdabcdabcdabcdabcd',
+          category: 'sentry.transaction',
+          level: BreadcrumbLevelType.INFO,
+          type: BreadcrumbType.TRANSACTION,
+        },
+      ];
+
+      render(<Breadcrumbs {...props} />);
+
+      // Transaction not in response should show as non-clickable id
+      expect(
+        await screen.findByText('12345678123456781234567812345678')
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('12345678123456781234567812345678')).not.toHaveAttribute(
+        'href'
+      );
+
+      // Transaction in response should show as clickable title
+      expect(await screen.findByRole('link', {name: '/settings/'})).toBeInTheDocument();
+
+      expect(screen.getByText('/settings/')).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
+      );
     });
   });
 
@@ -345,7 +412,6 @@ describe('Breadcrumbs', () => {
           }}
         />
       );
-
       const breadcrumbsBefore = screen.getAllByTestId(/crumb/i);
       expect(breadcrumbsBefore).toHaveLength(4); // Virtual exception crumb added to 3 in props
 

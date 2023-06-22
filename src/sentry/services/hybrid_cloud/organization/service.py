@@ -4,21 +4,28 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Iterable, List, Optional, cast
+from typing import Any, Iterable, List, Optional, cast
 
+from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSummary,
+    RpcRegionUser,
+    RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
+    ByRegionName,
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -31,6 +38,24 @@ class OrganizationService(RpcService):
         from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 
         return DatabaseBackedOrganizationService()
+
+    def get(self, id: int) -> Optional[RpcOrganization]:
+        org_context = self.get_organization_by_id(id=id)
+        return org_context.organization if org_context else None
+
+    @regional_rpc_method(resolve=ByOrganizationId("id"))
+    @abstractmethod
+    def serialize_organization(
+        self,
+        *,
+        id: int,
+        as_user: Optional[RpcUser] = None,
+    ) -> Optional[Any]:
+        """
+        Attempts to serialize a given organization.  Note that this can be None if the organization is already deleted
+        in the corresponding region silo.
+        """
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
@@ -87,6 +112,11 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def check_membership_by_email(
         self, *, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
@@ -105,6 +135,54 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_invite_by_id(
+        self,
+        *,
+        organization_id: int,
+        organization_member_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @abstractmethod
+    def get_invite_by_slug(
+        self,
+        *,
+        slug: str,
+        organization_member_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
+    ) -> Optional[RpcUserInviteContext]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def delete_organization_member(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> bool:
+        """
+        Delete an organization member by its id.
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def set_user_for_organization_member(
+        self,
+        *,
+        organization_member_id: int,
+        organization_id: int,
+        user_id: int,
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Set the user id for an organization member.
+        """
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationSlug())
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
@@ -114,16 +192,25 @@ class OrganizationService(RpcService):
         pass
 
     def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool
+        self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
     ) -> Optional[RpcUserOrganizationContext]:
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
+        from sentry.models import OrganizationStatus
+
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:
             return None
 
-        return self.get_organization_by_id(id=org_id, user_id=user_id)
+        org_context = self.get_organization_by_id(id=org_id, user_id=user_id)
+        if (
+            only_visible
+            and org_context
+            and org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
+            return None
+        return org_context
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -156,6 +243,11 @@ class OrganizationService(RpcService):
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
     @abstractmethod
     def get_all_org_roles(
@@ -173,12 +265,39 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def update_default_role(
+        self, *, organization_id: int, default_role: str
+    ) -> RpcOrganizationMember:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def reset_idp_flags(self, *, organization_id: int) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_option(self, *, organization_id: int, key: str) -> OptionValue:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def delete_option(self, *, organization_id: int, key: str) -> None:
         pass
 
 

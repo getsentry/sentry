@@ -4,6 +4,7 @@ from sentry.models import (
     Commit,
     CommitFileChange,
     File,
+    ProjectArtifactBundle,
     Release,
     ReleaseArtifactBundle,
     ReleaseCommit,
@@ -137,6 +138,9 @@ class ReleaseMetaTest(APITestCase):
         self.login_as(user=user)
 
         bundle = self.create_artifact_bundle(org=org, artifact_count=10)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle
+        )
         ReleaseArtifactBundle.objects.create(
             organization_id=org.id, release_name=release.version, artifact_bundle=bundle
         )
@@ -172,12 +176,24 @@ class ReleaseMetaTest(APITestCase):
         self.login_as(user=user)
 
         bundle_1 = self.create_artifact_bundle(org=org, artifact_count=10)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle_1
+        )
         ReleaseArtifactBundle.objects.create(
             organization_id=org.id, release_name=release.version, artifact_bundle=bundle_1
         )
         bundle_2 = self.create_artifact_bundle(org=org, artifact_count=30)
+        ProjectArtifactBundle.objects.create(
+            organization_id=org.id, project_id=project.id, artifact_bundle=bundle_2
+        )
         ReleaseArtifactBundle.objects.create(
             organization_id=org.id, release_name=release.version, artifact_bundle=bundle_2
+        )
+        # We create a bundle associated with the same release but not connected to the project to make sure it is not
+        # counted.
+        bundle_3 = self.create_artifact_bundle(org=org, artifact_count=50)
+        ReleaseArtifactBundle.objects.create(
+            organization_id=org.id, release_name=release.version, artifact_bundle=bundle_3
         )
 
         url = reverse(

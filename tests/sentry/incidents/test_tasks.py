@@ -180,14 +180,18 @@ class HandleTriggerActionTest(TestCase):
 
     def test_missing_trigger_action(self):
         with self.tasks():
-            handle_trigger_action.delay(1000, 1001, self.project.id, "hello")
+            handle_trigger_action.delay(
+                1000, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
+            )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.action.skipping_missing_action"
         )
 
     def test_missing_incident(self):
         with self.tasks():
-            handle_trigger_action.delay(self.action.id, 1001, self.project.id, "hello")
+            handle_trigger_action.delay(
+                self.action.id, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
+            )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.action.skipping_missing_incident"
         )
@@ -195,7 +199,9 @@ class HandleTriggerActionTest(TestCase):
     def test_missing_project(self):
         incident = self.create_incident()
         with self.tasks():
-            handle_trigger_action.delay(self.action.id, incident.id, 1002, "hello")
+            handle_trigger_action.delay(
+                self.action.id, incident.id, 1002, "hello", IncidentStatus.CRITICAL.value
+            )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.action.skipping_missing_project"
         )
@@ -210,7 +216,12 @@ class HandleTriggerActionTest(TestCase):
             metric_value = 1234
             with self.tasks():
                 handle_trigger_action.delay(
-                    self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
+                    self.action.id,
+                    incident.id,
+                    self.project.id,
+                    "fire",
+                    IncidentStatus.CRITICAL.value,
+                    metric_value=metric_value,
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with(

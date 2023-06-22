@@ -130,7 +130,12 @@ class SlackRequest:
                 provider_type="slack", provider_ext_id=self.team_id
             )
             self._identity = (
-                identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
+                identity_service.get_identity(
+                    filter={
+                        "provider_id": provider.id,
+                        "identity_ext_id": self.user_id,
+                    }
+                )
                 if provider
                 else None
             )

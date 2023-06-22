@@ -3,7 +3,8 @@ from datetime import timedelta
 import pytz
 from freezegun import freeze_time
 
-from sentry.models import Rule, RuleFireHistory
+from sentry.models import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils import TestCase

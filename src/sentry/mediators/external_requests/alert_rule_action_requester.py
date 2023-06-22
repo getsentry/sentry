@@ -6,8 +6,9 @@ from uuid import uuid4
 from requests import RequestException
 from rest_framework.response import Response
 
-from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.utils import json
 from sentry.utils.cache import memoize
 

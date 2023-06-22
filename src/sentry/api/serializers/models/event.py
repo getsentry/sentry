@@ -12,6 +12,7 @@ from sentry_relay import meta_with_chunks
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -181,20 +182,6 @@ class EventSerializer(Serializer):
             msg_meta = None
 
         return (message, meta_with_chunks(message, msg_meta))
-
-    def _get_release_info(self, user, event):
-        version = event.get_tag("sentry:release")
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                projects=event.project,
-                organization_id=event.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {"version": version}
-        return serialize(release, user)
 
     def _get_user_report(self, user, event):
         try:
@@ -444,7 +431,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     """
 
     def get_attrs(
-        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False
+        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False, **kwargs
     ):
         results = super().get_attrs(item_list, user, is_public)
         # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
@@ -454,6 +441,23 @@ class IssueEventSerializer(SqlFormatEventSerializer):
             if event_problem:
                 results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
         return results
+
+    def _get_release_info(self, user, event, include_full_release_data: bool):
+        version = event.get_tag("sentry:release")
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                projects=event.project,
+                organization_id=event.project.organization_id,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {"version": version}
+        if include_full_release_data:
+            return serialize(release, user)
+        else:
+            return serialize(release, user, GroupEventReleaseSerializer())
 
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
@@ -469,9 +473,9 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         return converted_problem
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
-        result["release"] = self._get_release_info(user, obj)
+        result["release"] = self._get_release_info(user, obj, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["perfProblem"] = self._get_perf_problem(attrs)

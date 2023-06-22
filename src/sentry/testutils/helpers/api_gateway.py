@@ -9,14 +9,15 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Region, RegionCategory, clear_global_regions
 from sentry.utils import json
 
 SENTRY_REGION_CONFIG = [
     Region(
         name="region1",
-        id=1,
+        snowflake_id=1,
         address="http://region1.testserver",
         category=RegionCategory.MULTI_TENANT,
     ),
@@ -116,6 +117,7 @@ def provision_middleware():
 class ApiGatewayTestCase(APITestCase):
     def setUp(self):
         super().setUp()
+        clear_global_regions()
         responses.add(
             responses.GET,
             "http://region1.testserver/get",
@@ -130,6 +132,9 @@ class ApiGatewayTestCase(APITestCase):
             status=400,
             content_type="application/json",
             adding_headers={"test": "header"},
+        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
+            region_name="region1"
         )
 
         # Echos the request body and header back for verification

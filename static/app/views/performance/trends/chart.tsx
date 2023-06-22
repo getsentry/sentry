@@ -1,17 +1,12 @@
 import {browserHistory} from 'react-router';
-import {Theme, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {
-  LineChart,
-  LineChartProps,
-  LineChartSeries,
-} from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {t} from 'sentry/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
@@ -25,6 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {getIntervalLine} from 'sentry/views/performance/utils';
 
 import {ViewProps} from '../types';
 
@@ -57,18 +53,6 @@ type Props = ViewProps & {
   trendFunctionField?: TrendFunctionField;
 };
 
-function transformTransaction(
-  transaction: NormalizedTrendsTransaction
-): NormalizedTrendsTransaction {
-  if (transaction && transaction.breakpoint) {
-    return {
-      ...transaction,
-      breakpoint: transaction.breakpoint * 1000,
-    };
-  }
-  return transaction;
-}
-
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
   return [
     {
@@ -100,147 +84,6 @@ function getLegend(trendFunction: string): LegendComponentOption {
       },
     ],
   };
-}
-
-function getIntervalLine(
-  theme: Theme,
-  series: Series[],
-  intervalRatio: number,
-  transaction?: NormalizedTrendsTransaction
-): LineChartSeries[] {
-  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
-    return [];
-  }
-
-  const transformedTransaction = transformTransaction(transaction);
-
-  const seriesStart = parseInt(series[0].data[0].name as string, 10);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
-
-  if (seriesEnd < seriesStart) {
-    return [];
-  }
-
-  const periodLine: LineChartSeries = {
-    data: [],
-    color: theme.textColor,
-    markLine: {
-      data: [],
-      label: {},
-      lineStyle: {
-        color: theme.textColor,
-        type: 'dashed',
-        width: 1,
-      },
-      symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
-    },
-    seriesName: 'Baseline',
-  };
-
-  const periodLineLabel = {
-    fontSize: 11,
-    show: true,
-    color: theme.textColor,
-    silent: true,
-  };
-
-  const previousPeriod = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-  const currentPeriod = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-  const periodDividingLine = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Period split',
-  };
-
-  const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * intervalRatio + seriesStart;
-  const {breakpoint} = transformedTransaction;
-
-  const divider = breakpoint || seriesLine;
-
-  previousPeriod.markLine.data = [
-    [
-      {value: 'Past', coord: [seriesStart, transformedTransaction.aggregate_range_1]},
-      {coord: [divider, transformedTransaction.aggregate_range_1]},
-    ],
-  ];
-  previousPeriod.markLine.tooltip = {
-    formatter: () => {
-      return [
-        '<div class="tooltip-series tooltip-series-solo">',
-        '<div>',
-        `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
-        // p50() coerces the axis to be time based
-        tooltipFormatter(transformedTransaction.aggregate_range_1, 'duration'),
-        '</div>',
-        '</div>',
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    },
-  };
-  currentPeriod.markLine.data = [
-    [
-      {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
-      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
-    ],
-  ];
-  currentPeriod.markLine.tooltip = {
-    formatter: () => {
-      return [
-        '<div class="tooltip-series tooltip-series-solo">',
-        '<div>',
-        `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
-        // p50() coerces the axis to be time based
-        tooltipFormatter(transformedTransaction.aggregate_range_2, 'duration'),
-        '</div>',
-        '</div>',
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    },
-  };
-  periodDividingLine.markLine = {
-    data: [
-      {
-        xAxis: divider,
-      },
-    ],
-    label: {show: false},
-    lineStyle: {
-      color: theme.textColor,
-      type: 'solid',
-      width: 2,
-    },
-    symbol: ['none', 'none'],
-    tooltip: {
-      show: false,
-    },
-    silent: true,
-  };
-
-  previousPeriod.markLine.label = {
-    ...periodLineLabel,
-    formatter: 'Past',
-    position: 'insideStartBottom',
-  };
-  currentPeriod.markLine.label = {
-    ...periodLineLabel,
-    formatter: 'Present',
-    position: 'insideEndBottom',
-  };
-
-  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
-  return additionalLineSeries;
 }
 
 export function Chart({
@@ -344,7 +187,14 @@ export function Chart({
       })
     : [];
 
-  const intervalSeries = getIntervalLine(theme, smoothedResults || [], 0.5, transaction);
+  const needsLabel = true;
+  const intervalSeries = getIntervalLine(
+    theme,
+    smoothedResults || [],
+    0.5,
+    needsLabel,
+    transaction
+  );
 
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;

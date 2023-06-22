@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -18,9 +18,10 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconDelete, IconWarning} from 'sentry/icons';
+import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
@@ -31,16 +32,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
 import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
-enum SORT_BY {
+enum SortBy {
   ASC = 'date_added',
   DESC = '-date_added',
 }
 
 enum SourceMapsBundleType {
-  Release,
-  DebugId,
+  RELEASE,
+  DEBUG_ID,
 }
 
 function SourceMapsTableRow({
@@ -61,7 +63,7 @@ function SourceMapsTableRow({
   idColumnDetails?: React.ReactNode;
 }) {
   const isEmptyReleaseBundle =
-    bundleType === SourceMapsBundleType.Release && fileCount === -1;
+    bundleType === SourceMapsBundleType.RELEASE && fileCount === -1;
 
   return (
     <Fragment>
@@ -71,11 +73,14 @@ function SourceMapsTableRow({
       </IDColumn>
       <ArtifactsTotalColumn>
         {isEmptyReleaseBundle ? (
-          <Tooltip title={t('No bundle connected to this release')}>
-            <IconWrapper>
-              <IconWarning color="warning" size="sm" />
-            </IconWrapper>
-          </Tooltip>
+          <NoArtifactsUploadedWrapper>
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t('A Release was created, but no artifacts were uploaded')}
+            />
+            {'0'}
+          </NoArtifactsUploadedWrapper>
         ) : (
           <Count value={fileCount} />
         )}
@@ -133,7 +138,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
 
   // query params
   const query = decodeScalar(location.query.query);
-  const sortBy = location.query.sort ?? SORT_BY.DESC;
+  const sortBy = location.query.sort ?? SortBy.DESC;
   const cursor = location.query.cursor ?? '';
 
   // endpoints
@@ -148,7 +153,17 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
   );
 
+  const sourceMapsUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/`
+  );
+
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
+
+  useEffect(() => {
+    if (location.pathname === sourceMapsUrl) {
+      router.replace(debugIdsUrl);
+    }
+  }, [location.pathname, sourceMapsUrl, debugIdsUrl, router]);
 
   const {
     data: archivesData,
@@ -204,7 +219,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       query: {
         ...location.query,
         cursor: undefined,
-        sort: sortBy === SORT_BY.ASC ? SORT_BY.DESC : SORT_BY.ASC,
+        sort: sortBy === SortBy.ASC ? SortBy.DESC : SortBy.ASC,
       },
     });
   }, [location, router, sortBy]);
@@ -250,11 +265,11 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
-          {t('Release Bundles')}
-        </ListLink>
-        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
+        <ListLink to={debugIdsUrl} index isActive={() => tabDebugIdBundlesActive}>
           {t('Artifact Bundles')}
+        </ListLink>
+        <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
+          {t('Release Bundles')}
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
@@ -275,13 +290,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
             <Tooltip
               containerDisplayMode="inline-flex"
               title={
-                sortBy === SORT_BY.DESC
+                sortBy === SortBy.DESC
                   ? t('Switch to ascending order')
                   : t('Switch to descending order')
               }
             >
               <IconArrow
-                direction={sortBy === SORT_BY.DESC ? 'down' : 'up'}
+                direction={sortBy === SortBy.DESC ? 'down' : 'up'}
                 data-test-id="icon-arrow"
               />
             </Tooltip>
@@ -292,12 +307,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           query
             ? tct('No [tabName] match your search query.', {
                 tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
+                  ? t('artifact bundles')
                   : t('release bundles'),
               })
             : tct('No [tabName] found for this project.', {
                 tabName: tabDebugIdBundlesActive
-                  ? t('debug ID bundles')
+                  ? t('artifact bundles')
                   : t('release bundles'),
               })
         }
@@ -311,7 +326,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
           ? debugIdBundlesData?.map(data => (
               <SourceMapsTableRow
                 key={data.bundleId}
-                bundleType={SourceMapsBundleType.DebugId}
+                bundleType={SourceMapsBundleType.DEBUG_ID}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.bundleId}
@@ -320,14 +335,20 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   project.slug
                 }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
-                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                  // TODO(Pri): Move the loading to the component once fully transitioned to associations.
+                  !debugIdBundlesLoading &&
+                  (data.associations ? (
+                    <Associations associations={data.associations} />
+                  ) : (
+                    <DebugIdBundlesTags dist={data.dist} release={data.release} />
+                  ))
                 }
               />
             ))
           : archivesData?.map(data => (
               <SourceMapsTableRow
                 key={data.name}
-                bundleType={SourceMapsBundleType.Release}
+                bundleType={SourceMapsBundleType.RELEASE}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.name}
@@ -399,6 +420,8 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
-const IconWrapper = styled('div')`
+const NoArtifactsUploadedWrapper = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

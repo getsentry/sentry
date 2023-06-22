@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useContext, useEffect, useMemo} from 'react';
 
 import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
@@ -6,12 +6,13 @@ import {Project} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
+import FormContext from '../formContext';
+
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
-import SelectField from './selectField';
+import SelectField, {SelectFieldProps} from './selectField';
 
 // projects can be passed as a direct prop as well
-export interface RenderFieldProps extends InputFieldProps {
+export interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
   projects?: Project[];
   /**
@@ -26,6 +27,17 @@ function SentryMemberTeamSelectorField({
   placeholder = t('Choose Teams and Members'),
   ...props
 }: RenderFieldProps) {
+  const {form} = useContext(FormContext);
+  const currentItems = form?.getValue<string[]>(props.name, []);
+
+  // Ensure the current value of the fields members is loaded
+  const ensureUserIds = useMemo(
+    () =>
+      currentItems?.filter(item => item.startsWith('member:')).map(user => user.slice(7)),
+    [currentItems]
+  );
+  useMembers({ids: ensureUserIds});
+
   const {
     members,
     fetching: fetchingMembers,
@@ -41,6 +53,14 @@ function SentryMemberTeamSelectorField({
     label: member.name,
     leadingItems: <Avatar user={member} size={avatarSize} />,
   }));
+
+  // Ensure the current value of the fields teams is loaded
+  const ensureTeamIds = useMemo(
+    () =>
+      currentItems?.filter(item => item.startsWith('team:')).map(user => user.slice(5)),
+    [currentItems]
+  );
+  useTeams({ids: ensureTeamIds});
 
   const {
     teams,

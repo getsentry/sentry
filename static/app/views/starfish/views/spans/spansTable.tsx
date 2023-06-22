@@ -1,278 +1,294 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
+import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
-import moment from 'moment';
 
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Series} from 'sentry/types/echarts';
-import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import Sparkline from 'sentry/views/starfish/components/sparkline';
-import {DataRow} from 'sentry/views/starfish/modules/databaseModule/databaseTableView';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Organization} from 'sentry/types';
+import {MetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+
+type Row = {
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
+  'span.description': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  'sps()': number;
+  'sps_percent_change()': number;
+  'time_spent_percentage()': number;
+};
+
+type Column = GridColumnHeader<keyof Row>;
+
+type ValidSort = Sort & {
+  field: keyof Row;
+};
 
 type Props = {
-  isLoading: boolean;
-  location: Location;
-  onSelect: (row: SpanDataRow) => void;
-  onSetOrderBy: (orderBy: string) => void;
-  orderBy: string;
-  queryConditions: string[];
-  spansData: SpanDataRow[];
-  spansTrendsData: SpanTrendDataRow[];
+  moduleName: ModuleName;
+  sort: ValidSort;
+  columnOrder?: Column[];
+  endpoint?: string;
+  limit?: number;
+  method?: string;
+  spanCategory?: string;
 };
 
-export type SpanDataRow = {
-  count: number;
-  description: string;
-  domain: string;
-  group_id: string;
-  p50: number;
-  p95: number;
-  span_operation: string;
-  total_exclusive_time: number;
-};
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
-export type SpanTrendDataRow = {
-  group_id: string;
-  interval: string;
-  percentile_value: string;
-  span_operation: string;
-};
+export const SORTABLE_FIELDS = new Set([
+  `p95(${SPAN_SELF_TIME})`,
+  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+  'sps()',
+  'sps_percent_change()',
+  'time_spent_percentage()',
+]);
 
 export default function SpansTable({
-  location,
-  spansData,
-  orderBy,
-  onSetOrderBy,
-  queryConditions,
-  spansTrendsData,
-  isLoading,
-  onSelect,
+  moduleName,
+  sort,
+  columnOrder,
+  spanCategory,
+  endpoint,
+  method,
+  limit = 25,
 }: Props) {
-  const spansTrendsGrouped = {};
+  const location = useLocation();
+  const organization = useOrganization();
 
-  spansTrendsData?.forEach(({group_id, span_operation, interval, percentile_value}) => {
-    if (span_operation in spansTrendsGrouped) {
-      if (group_id in spansTrendsGrouped[span_operation]) {
-        return spansTrendsGrouped[span_operation][group_id].push({
-          name: interval,
-          value: percentile_value,
-        });
-      }
-      return (spansTrendsGrouped[span_operation][group_id] = [
-        {name: interval, value: percentile_value},
-      ]);
-    }
-    return (spansTrendsGrouped[span_operation] = {
-      [group_id]: [{name: interval, value: percentile_value}],
+  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
+
+  const {isLoading, data, meta, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    undefined,
+    spanCategory,
+    [sort],
+    limit,
+    'use-span-list',
+    spansCursor
+  );
+
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.CURSOR]: cursor},
     });
-  });
-
-  const combinedSpansData = spansData?.map(spanData => {
-    const {group_id, span_operation} = spanData;
-    if (spansTrendsGrouped[span_operation] === undefined) {
-      return spanData;
-    }
-    const percentile_trend: Series = {
-      seriesName: 'percentile_trend',
-      data: spansTrendsGrouped[span_operation][group_id],
-    };
-
-    const zeroFilled = zeroFillSeries(percentile_trend, moment.duration(1, 'day'));
-    return {...spanData, percentile_trend: zeroFilled};
-  });
+  };
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={combinedSpansData}
-      columnOrder={getColumns(queryConditions)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<string>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) => renderBodyCell(column, row, onSelect),
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        data={data as Row[]}
+        columnOrder={columnOrder ?? getColumns(moduleName)}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
+        grid={{
+          renderHeadCell: column => renderHeadCell(column, sort, location),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, meta, location, organization, endpoint, method),
+        }}
+        location={location}
+      />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+    </Fragment>
+  );
+}
+
+function renderHeadCell(column: Column, sort: Sort, location: Location) {
+  return (
+    <SortLink
+      align="left"
+      canSort={SORTABLE_FIELDS.has(column.key)}
+      direction={sort.field === column.key ? sort.kind : undefined}
+      title={column.name}
+      generateSortLink={() => {
+        return {
+          ...location,
+          query: {
+            ...location.query,
+            [QueryParameterNames.SORT]: `-${column.key}`,
+          },
+        };
       }}
-      location={location}
     />
   );
 }
 
-function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => void) {
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return (
-      <SortLink
-        align="left"
-        canSort={column.key !== 'percentile_trend'}
-        direction={orderBy === column.key ? 'desc' : undefined}
-        onClick={() => {
-          onSetOrderBy(`${column.key}`);
-        }}
-        title={column.name}
-        generateSortLink={() => {
-          return {
-            ...location,
-          };
-        }}
-      />
-    );
-  }
-
-  return renderHeadCell;
-}
-
-const SPAN_OPS_WITH_DETAIL = ['http.client', 'db'];
-
 function renderBodyCell(
-  column: GridColumnHeader,
-  row: SpanDataRow,
-  onSelect?: (row: SpanDataRow) => void
+  column: Column,
+  row: Row,
+  meta: MetaType | undefined,
+  location: Location,
+  organization: Organization,
+  endpoint?: string,
+  method?: string
 ): React.ReactNode {
-  if (column.key === 'percentile_trend' && row[column.key]) {
-    return (
-      <Sparkline
-        color={CHART_PALETTE[3][0]}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-      />
-    );
-  }
-
-  if (column.key === 'description') {
-    const formattedRow = mapRowKeys(row, row.span_operation);
+  if (column.key === 'span.description') {
     return (
       <OverflowEllipsisTextContainer>
-        <Link
-          onClick={() => onSelect?.(formattedRow)}
-          to={
-            SPAN_OPS_WITH_DETAIL.includes(row.span_operation)
-              ? ''
-              : `/starfish/span/${encodeURIComponent(row.group_id)}`
-          }
-        >
-          {row.span_operation === 'db' ? (
-            <StyledFormattedCode>
-              {(row as unknown as DataRow).formatted_desc}
-            </StyledFormattedCode>
-          ) : (
-            row.description
-          )}
-        </Link>
+        {row['span.group'] ? (
+          <Link
+            to={`/starfish/${extractRoute(location)}/span/${row['span.group']}${
+              endpoint && method ? `?${urlEncode({endpoint, method})}` : ''
+            }`}
+          >
+            {row['span.description'] || '<null>'}
+          </Link>
+        ) : (
+          row['span.description'] || '<null>'
+        )}
       </OverflowEllipsisTextContainer>
     );
   }
 
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
+  if (column.key === 'time_spent_percentage()') {
+    return (
+      <TimeSpentCell
+        timeSpentPercentage={row['time_spent_percentage()']}
+        totalSpanTime={row[`sum(${SPAN_SELF_TIME})`]}
+      />
+    );
   }
 
-  return row[column.key];
+  if (column.key === 'sps()') {
+    return <ThroughputCell throughputPerSecond={row['sps()']} />;
+  }
+
+  if (column.key === 'p95(span.self_time)') {
+    return <DurationCell milliseconds={row['p95(span.self_time)']} />;
+  }
+
+  if (column.key === 'http_error_count()') {
+    return <CountCell count={row['http_error_count()']} />;
+  }
+
+  if (!meta || !meta?.fields) {
+    return row[column.key];
+  }
+
+  const renderer = getFieldRenderer(column.key, meta, false);
+  const rendered = renderer(row, {location, organization});
+
+  return rendered;
 }
 
-// We use different named column keys for the same columns in db and api module
-// So we need to map them to the appropriate keys for the module details drawer
-// Not ideal, but this is a temporary fix until we match the column keys.
-// Also the type for this is not very consistent. We should fix that too.
-const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
-  switch (spanOperation) {
-    case 'http.client':
-      return {
-        ...row,
-        'p50(span.self_time)': row.p50,
-        'p95(span.self_time)': row.p95,
-      };
-    case 'db':
-      return {
-        ...row,
-        total_time: row.total_exclusive_time,
-      };
-
-    default:
-      return row;
-  }
-};
-
-function getDomainHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Table';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDomainHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'Host';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Table';
   }
   return 'Domain';
 }
-function getDescriptionHeader(queryConditions: string[]) {
-  if (queryConditions.includes("span_operation = 'db'")) {
-    return 'Query';
-  }
-  if (queryConditions.includes("span_operation = 'http.client'")) {
+function getDescriptionHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
     return 'URL';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Query';
   }
   return 'Description';
 }
 
-function getColumns(queryConditions: string[]): GridColumnOrder[] {
-  const description = getDescriptionHeader(queryConditions);
+function getColumns(moduleName: ModuleName): Column[] {
+  const description = getDescriptionHeader(moduleName);
 
-  const domain = getDomainHeader(queryConditions);
+  const domain = getDomainHeader(moduleName);
 
-  const order: Array<GridColumnOrder | false> = [
+  const order: Column[] = [
     {
-      key: 'span_operation',
+      key: 'span.op',
       name: 'Operation',
-      width: COL_WIDTH_UNDEFINED,
+      width: 120,
     },
     {
-      key: 'description',
+      key: 'span.description',
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
+    ...(moduleName !== ModuleName.ALL
+      ? [
+          {
+            key: 'span.domain',
+            name: domain,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+        ]
+      : []),
     {
-      key: 'domain',
-      name: domain,
+      key: 'sps()',
+      name: 'Throughput',
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'total_exclusive_time',
-      name: 'Total Time',
-      width: 250,
-    },
-    {
-      key: 'transactions',
-      name: 'Transactions',
+      key: 'sps_percent_change()',
+      name: DataTitles.change,
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'p50',
-      name: 'p50',
+      key: `p95(${SPAN_SELF_TIME})`,
+      name: DataTitles.p95,
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'percentile_trend',
-      name: 'p50 Trend',
-      width: 250,
+      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+      name: DataTitles.change,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    ...(moduleName === ModuleName.HTTP
+      ? [
+          {
+            key: 'http_error_count()',
+            name: DataTitles.errorCount,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+          {
+            key: 'http_error_count_percent_change()',
+            name: DataTitles.change,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+        ]
+      : []),
+    {
+      key: 'time_spent_percentage()',
+      name: DataTitles.timeSpent,
+      width: COL_WIDTH_UNDEFINED,
     },
   ];
 
-  return order.filter((x): x is GridColumnOrder => Boolean(x));
+  return order;
 }
 
-const StyledFormattedCode = styled(FormattedCode)`
-  background: none;
-  text-overflow: ellipsis;
-`;
-
-export const OverflowEllipsisTextContainer = styled('span')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.has(sort.field);
+}
