@@ -11,7 +11,19 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
@@ -3299,7 +3311,7 @@ SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
-SENTRY_EXTRA_WORKERS = None
+SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
 
@@ -3545,3 +3557,7 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 # Additional consumer definitions beyond the ones defined in sentry.consumers.
 # Necessary for getsentry to define custom consumers.
 SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
+
+# sentry devserver should _always_ start the following consumers, identified by
+# key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
+DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
