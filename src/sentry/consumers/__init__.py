@@ -1,35 +1,17 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Mapping, Optional, Sequence, TypedDict
+from typing import Mapping, Optional, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
-from typing_extensions import Required
 
+from sentry.conf.types import ConsumerDefinition
 from sentry.utils.imports import import_string
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
-
-
-class ConsumerDefinition(TypedDict, total=False):
-    # Which logical topic from settings to use.
-    topic: Required[str]
-
-    strategy_factory: Required[str]
-
-    # Additional CLI options the consumer should accept. These arguments are
-    # passed as kwargs to the strategy_factory.
-    click_options: Sequence[click.Option]
-
-    # Hardcoded additional kwargs for strategy_factory
-    static_args: Mapping[str, Any]
-
-    require_synchronization: bool
-    synchronize_commit_group_default: str
-    synchronize_commit_log_topic_default: str
 
 
 def convert_max_batch_time(ctx, param, value):
