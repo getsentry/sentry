@@ -374,8 +374,10 @@ describe('SampledProfile', () => {
       trace,
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
       {
-        type: 'flamechart',
-        frameFilter: frame => frame.name === 'f0',
+        type: 'flamegraph',
+        frameFilter: frame => {
+          return frame.name === 'f0';
+        },
       }
     );
 
