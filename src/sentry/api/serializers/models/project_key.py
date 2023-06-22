@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -55,7 +55,9 @@ class ProjectKeySerializerResponse(TypedDict):
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
-    def serialize(self, obj: ProjectKey, attrs: Any, user: Any) -> ProjectKeySerializerResponse:
+    def serialize(
+        self, obj: ProjectKey, attrs: Mapping[Any, Any], user: Any
+    ) -> ProjectKeySerializerResponse:
         # obj.public_key should always be set but it isn't required in the ProjectKey model.
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
         # must be Optional[str] instead of str. By setting else to "" we getaround this
