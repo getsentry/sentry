@@ -264,7 +264,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         return event.group
 
-    def run_test_query_in_syntax(
+    def run_test_query(
         self, query, expected_groups, expected_negative_groups=None, environments=None
     ):
         results = self.make_query(search_filter_query=query, environments=environments)
@@ -431,12 +431,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group_3.substatus = None
         group_3.save()
 
-        self.run_test_query_in_syntax(
-            "status:[unresolved, resolved]", [self.group1, self.group2], [group_3]
-        )
-        self.run_test_query_in_syntax(
-            "status:[resolved, muted]", [self.group2, group_3], [self.group1]
-        )
+        self.run_test_query("status:[unresolved, resolved]", [self.group1, self.group2], [group_3])
+        self.run_test_query("status:[resolved, muted]", [self.group2, group_3], [self.group1])
 
     def test_substatus(self):
         with Feature("organizations:escalating-issues"):
@@ -599,14 +595,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == {self.group2}
 
     def test_bookmarked_by_in_syntax(self):
-        self.run_test_query_in_syntax(
-            f"bookmarks:[{self.user.username}]", [self.group2], [self.group1]
-        )
+        self.run_test_query(f"bookmarks:[{self.user.username}]", [self.group2], [self.group1])
         user_2 = self.create_user()
         GroupBookmark.objects.create(
             user_id=user_2.id, group=self.group1, project=self.group2.project
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"bookmarks:[{self.user.username}, {user_2.username}]", [self.group2, self.group1], []
         )
 
@@ -1152,20 +1146,20 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group_3.substatus = None
         group_3.save()
         other_user = self.create_user()
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2],
             [self.group1, group_3],
         )
 
         GroupAssignee.objects.create(project=self.project, group=group_3, user_id=other_user.id)
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2, group_3],
             [self.group1],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[#{self.team.slug}, {other_user.username}]",
             [group_3],
             [self.group1, self.group2],
@@ -1175,18 +1169,18 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=self.user.id, group=self.group2, project=self.group2.project
         )
         ga_2.update(team=self.team, user_id=None)
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2, group_3],
             [self.group1],
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[#{self.team.slug}, {other_user.username}]",
             [self.group2, group_3],
             [self.group1],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[me, none, {other_user.username}]",
             [self.group1, self.group2, group_3],
             [],
@@ -1232,7 +1226,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me]",
             [],
             [group, group1, group2, assigned_group, assigned_to_other_group],
@@ -1254,7 +1248,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=None,
             user_id=self.user.id,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me]",
             [group, assigned_to_other_group],
             [group1, group2, assigned_group],
@@ -1267,13 +1261,13 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project=self.project,
             user_id=other_user.id,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me]",
             [group],
             [group1, group2, assigned_group, assigned_to_other_group],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[{other_user.email}]",
             [assigned_to_other_group],
             [group, group1, group2, assigned_group],
@@ -1282,7 +1276,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         GroupAssignee.objects.create(
             group=assigned_group, project=self.project, user_id=self.user.id
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[{self.user.email}]",
             [assigned_group, group],
         )
@@ -1295,12 +1289,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=self.team.id,
             user_id=None,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[#{self.team.slug}]",
             [group],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me, none]",
             [group, group1, group2, assigned_group],
             [assigned_to_other_group],
@@ -1315,18 +1309,18 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=None,
             user_id=not_me.id,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me, none]",
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
         GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[me, none, #{self.team.slug}]",
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
             [group, group1, assigned_group, group2],
             [assigned_to_other_group],
@@ -1568,14 +1562,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == {self.group1}
 
     def test_subscribed_by_in_syntax(self):
-        self.run_test_query_in_syntax(
-            f"subscribed:[{self.user.username}]", [self.group1], [self.group2]
-        )
+        self.run_test_query(f"subscribed:[{self.user.username}]", [self.group1], [self.group2])
         user_2 = self.create_user()
         GroupSubscription.objects.create(
             user_id=user_2.id, group=self.group2, project=self.project, is_active=True
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"subscribed:[{self.user.username}, {user_2.username}]", [self.group1, self.group2], []
         )
 
@@ -1760,16 +1752,14 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
     def test_first_release_in_syntax(self):
         # expect no groups within the results since there are no releases
-        self.run_test_query_in_syntax("first_release:[fake, fake2]", [])
+        self.run_test_query("first_release:[fake, fake2]", [])
 
         # expect no groups even though there is a release; since no group
         # is attached to a release
         release_1 = self.create_release(self.project)
         release_2 = self.create_release(self.project)
 
-        self.run_test_query_in_syntax(
-            f"first_release:[{release_1.version}, {release_2.version}]", []
-        )
+        self.run_test_query(f"first_release:[{release_1.version}, {release_2.version}]", [])
 
         # Create a new event so that we get a group in this release
         group = self.store_event(
@@ -1785,7 +1775,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release_1.version}, {release_2.version}]",
             [group],
             [self.group1, self.group2],
@@ -1805,7 +1795,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release_1.version}, {release_2.version}]",
             [group, group_2],
         )
@@ -1838,7 +1828,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == {self.group1}
 
     def test_first_release_environments_in_syntax(self):
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "first_release:[fake, fake2]",
             [],
             [self.group1, self.group2],
@@ -1851,7 +1841,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_1_env.update(first_release=release)
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1],
             [self.group2],
@@ -1862,7 +1852,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             group_id=self.group2.id, environment_id=self.environments["staging"].id
         )
         group_2_env.update(first_release=release)
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1, self.group2],
             [],
@@ -1875,7 +1865,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             environment_id=self.environments["staging"].id,
             first_release=release,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1, self.group2],
             [],
