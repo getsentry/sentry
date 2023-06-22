@@ -1090,7 +1090,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == set()
 
     def test_assigned_to_me_my_teams(self):
-        my_team_event = self.store_event(
+        my_team_group = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group-my-teams"],
                 "event_id": "f" * 32,
@@ -1105,27 +1105,20 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "level": "error",
             },
             project_id=self.project.id,
-        )
+        ).group
 
-        my_team_group = Group.objects.get(id=my_team_event.group.id)
-        assert my_team_group.id == my_team_event.group.id
         # assign the issue to my team instead of me
         GroupAssignee.objects.create(
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
 
-        # before the change to me -> (me + my_teams)
-        # this should return the groups directly assigned to me as well as groups assigned to teams I belong to
-        assert GroupAssignee.objects.filter(user_id=self.user.id, group=self.group2).exists()
-        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
-
         self.run_test_query(
             "assigned:me",
-            [self.group2, my_team_group],
+            [my_team_group, self.group2],
             user=self.user,
         )
+        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
 
-        # with the feature flag on where we split the behavior so 'me' only checks for groups assigned to me
         with self.feature("organizations:assign-to-me"):
             self.run_test_query(
                 "assigned:me",
@@ -1134,6 +1127,48 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             )
             self.run_test_query(
                 "assigned:my_teams",
+                [my_team_group],
+                user=self.user,
+            )
+
+    def test_assigned_to_me_my_teams_in_syntax(self):
+        my_team_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group-my-teams"],
+                "event_id": "f" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "message": "baz",
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        ).group
+
+        # assign the issue to my team instead of me
+        GroupAssignee.objects.create(
+            user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
+        )
+
+        self.run_test_query(
+            "assigned:[me]",
+            [my_team_group, self.group2],
+            user=self.user,
+        )
+        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+
+        with self.feature("organizations:assign-to-me"):
+            self.run_test_query(
+                "assigned:[me]",
+                [self.group2],
+                user=self.user,
+            )
+            self.run_test_query(
+                "assigned:[my_teams]",
                 [my_team_group],
                 user=self.user,
             )
