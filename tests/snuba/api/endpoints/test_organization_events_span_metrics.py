@@ -256,20 +256,33 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["http_error_count()"] == "integer"
         assert meta["fields"]["http_error_rate()"] == "percentage"
 
-    def percentile_percent_change(self):
+    def test_percentile_percent_change(self):
         self.store_span_metric(
             5,
+            tags={"description": "foo_description"},
             timestamp=self.six_min_ago,
         )
         self.store_span_metric(
             10,
+            tags={"description": "foo_description"},
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            10,
+            tags={"description": "bar_description"},
+            timestamp=self.six_min_ago,
+        )
+        self.store_span_metric(
+            5,
+            tags={"description": "bar_description"},
             timestamp=self.min_ago,
         )
         response = self.do_request(
             {
-                "field": ["percentile_percent_change(span.duration)"],
+                "field": ["description", "percentile_percent_change(span.duration, 0.95)"],
                 "query": "",
-                "orderby": ["-percentile_percent_change()"],
+                "orderby": ["-percentile_percent_change(span.duration, 0.95)"],
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "statsPeriod": "10m",
@@ -278,10 +291,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["percentile_percent_change()"] == 1
+        assert len(data) == 2
+        assert data[0]["description"] == "foo_description"
+        assert data[0]["percentile_percent_change(span.duration, 0.95)"] > 0
+        assert data[1]["description"] == "bar_description"
+        assert data[1]["percentile_percent_change(span.duration, 0.95)"] < 0
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["percentile_percent_change()"] == "percentage"
+        assert meta["fields"]["percentile_percent_change(span.duration, 0.95)"] == "percentage"
 
     def test_http_error_count_percent_change(self):
         for _ in range(4):
