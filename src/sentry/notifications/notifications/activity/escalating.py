@@ -11,14 +11,13 @@ from .base import GroupActivityNotification
 class EscalatingActivityNotification(GroupActivityNotification):
     message_builder = "SlackNotificationsMessageBuilder"
     metrics_key = "escalating_activity"
-    title = "Escalating"
-    template_path = "sentry/emails/activity/note"
+    title = "Issue marked as escalating"
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
 
-        return "Issue marked as escalating"
+        return self.title
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         forecast = int(self.activity.data["forecast"])
