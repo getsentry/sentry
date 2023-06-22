@@ -1,20 +1,19 @@
 from __future__ import annotations
 
+import enum
 import functools
 import logging
 import sys
-from typing import Any, Callable, List, Tuple, Type, Union
+from typing import Any, Callable, List, Tuple, Union
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 
 Receiver = Callable[[], Any]
 
-
-class _AllReceivers:
-    pass
+_AllReceivers = enum.Enum("_AllReceivers", "ALL")
 
 
-_receivers_that_raise: Type[_AllReceivers] | List[Receiver] = []
+_receivers_that_raise: _AllReceivers | List[Receiver] = []
 
 
 class receivers_raise_on_send:
@@ -27,14 +26,14 @@ class receivers_raise_on_send:
 
     receivers: Any
 
-    def __init__(self, receivers: Type[_AllReceivers] | Receiver | List[Receiver] = _AllReceivers):
+    def __init__(self, receivers: _AllReceivers | Receiver | List[Receiver] = _AllReceivers.ALL):
         self.receivers = receivers
 
     def __enter__(self) -> None:
         global _receivers_that_raise
         self.old = _receivers_that_raise
 
-        if self.receivers is _AllReceivers:
+        if isinstance(self.receivers, _AllReceivers):
             _receivers_that_raise = self.receivers
         else:
             _receivers_that_raise += self.receivers
@@ -93,7 +92,10 @@ class BetterSignal(Signal):
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
                 if "pytest" in sys.modules:
-                    if _receivers_that_raise is _AllReceivers or receiver in _receivers_that_raise:  # type: ignore[operator]
+                    if (
+                        isinstance(_receivers_that_raise, _AllReceivers)
+                        or receiver in _receivers_that_raise
+                    ):
                         raise
 
                 logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
