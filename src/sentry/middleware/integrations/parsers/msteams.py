@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
-from django.urls import resolve
 
-from sentry.integrations.msteams.webhook import MsTeamsWebhookMixin
+from sentry.integrations.msteams.webhook import MsTeamsWebhookEndpoint, MsTeamsWebhookMixin
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -19,6 +18,8 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.MSTEAMS]
     webhook_identifier = WebhookProviderIdentifier.MSTEAMS
 
+    region_view_classes = [MsTeamsWebhookEndpoint]
+
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         integration = self.get_integration_from_payload(self.request)
@@ -29,8 +30,8 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         return None
 
     def get_response(self) -> HttpResponse:
-        result = resolve(self.request.path)
-        if result.url_name != "sentry-integration-msteams-webhooks":
+        view_class = self.match.func.view_class
+        if view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
