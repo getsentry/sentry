@@ -205,11 +205,10 @@ export default class ReplayReader {
     this._breadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
-  _getNetworkFrames = memoize(() =>
+  private _getNetworkFrames = () =>
     this._spanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
-    )
-  );
+    );
 
   getSortedNetworkFrames = memoize(() =>
     this._getNetworkFrames().sort((a, b) => a.timestampMs - b.timestampMs)
@@ -223,7 +222,7 @@ export default class ReplayReader {
     this._spanFrames.filter(frame => frame.op === 'memory')
   );
 
-  _getChapters = () => [
+  private _getChapters = () => [
     ...this._breadcrumbFrames.filter(
       frame =>
         ['replay.init', 'ui.click', 'replay.mutations', 'ui.slowClickDetected'].includes(
