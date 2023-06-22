@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from typing_extensions import TypedDict
 
@@ -49,13 +49,13 @@ class ProjectKeySerializerResponse(TypedDict):
     dsn: DSN
     browserSdkVersion: str
     browserSdk: Dict[str, List[List[str]]]
-    dateCreated: datetime
+    dateCreated: Optional[datetime]
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
 
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
-    def serialize(self, obj: ProjectKey, attrs, user) -> ProjectKeySerializerResponse:
+    def serialize(self, obj: ProjectKey, attrs: Any, user: Any) -> ProjectKeySerializerResponse:
         name = obj.label or obj.public_key[:14]
         data: ProjectKeySerializerResponse = {
             "id": obj.public_key,
