@@ -183,7 +183,8 @@ and run `sentry devservices up kafka zookeeper`.
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
     has_https = shutil.which("https") is not None
 
-    control_silo_port = port + 10
+    control_silo_port = port
+    region_silo_port = port + 10
 
     if needs_https and not has_https:
         from sentry.runner.initializer import show_big_error
@@ -236,6 +237,7 @@ and run `sentry devservices up kafka zookeeper`.
         proxy_port = port
         port = port + 1
         control_silo_port = control_silo_port + 1
+        region_silo_port = region_silo_port + 1
 
         uwsgi_overrides["protocol"] = "http"
 
@@ -269,6 +271,8 @@ and run `sentry devservices up kafka zookeeper`.
     if settings.USE_SILOS:
         os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
+        os.environ["SENTRY_DEVSERVER_BIND"] = f"localhost:{region_silo_port}"
+        # Override variable set by SentryHTTPServer.prepare_environment()
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
@@ -385,8 +389,9 @@ and run `sentry devservices up kafka zookeeper`.
     else:
         uwsgi_overrides["log-format"] = "[%(ltime)] %(method) %(status) %(uri) %(proto) %(size)"
 
+    server_port = port if settings.USE_SILOS else region_silo_port
     server = SentryHTTPServer(
-        host=host, port=port, workers=1, extra_options=uwsgi_overrides, debug=debug_server
+        host=host, port=server_port, workers=1, extra_options=uwsgi_overrides, debug=debug_server
     )
 
     # If we don't need any other daemons, just launch a normal uwsgi webserver
@@ -408,6 +413,8 @@ and run `sentry devservices up kafka zookeeper`.
         # Make sure that the environment is prepared before honcho takes over
         # This sets all the appropriate uwsgi env vars, etc
         server.prepare_environment()
+        if settings.USE_SILOS:
+            os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{region_silo_port}"
         daemons += [_get_daemon("server")]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))

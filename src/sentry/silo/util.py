@@ -12,7 +12,7 @@ PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 
-INVALID_PROXY_HEADERS = {"Host", "Content-Length", "Content-Encoding"}
+INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER}
 
 DEFAULT_REQUEST_BODY = b""
