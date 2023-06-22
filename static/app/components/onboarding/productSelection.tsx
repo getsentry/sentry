@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -44,7 +45,8 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
     <ProductWrapper
       onClick={onClick}
       disabled={onClick ?? permanentDisabled ? false : disabled}
-      priority={permanentDisabled ? 'primary' : disabled ? 'default' : 'primary'}
+      priority={permanentDisabled || checked ? 'primary' : 'default'}
+      aria-label={label}
     >
       <ProductButtonInner>
         <Checkbox
@@ -61,7 +63,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
   );
 }
 
-type ProductSelectionProps = {
+export type ProductSelectionProps = {
   defaultSelectedProducts?: PRODUCT[];
   disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
@@ -209,11 +211,15 @@ const Products = styled('div')`
 `;
 
 const ProductButtonWrapper = styled(Button)`
-  &,
-  :hover {
-    background: ${p => p.theme.purple100};
-    color: ${p => p.theme.purple300};
-  }
+  ${p =>
+    p.priority === 'primary' &&
+    css`
+      &,
+      :hover {
+        background: ${p.theme.purple100};
+        color: ${p.theme.purple300};
+      }
+    `}
 `;
 
 const DisabledProductWrapper = styled(Button)`

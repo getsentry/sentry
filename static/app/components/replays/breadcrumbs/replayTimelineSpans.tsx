@@ -1,13 +1,14 @@
-import {Fragment, memo} from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import {divide, flattenSpans} from 'sentry/components/replays/utils';
+import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {divide, flattenFrames} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import {tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type {ReplaySpan} from 'sentry/views/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 
 type Props = {
   /**
@@ -18,7 +19,7 @@ type Props = {
   /**
    * The spans to render into the timeline
    */
-  spans: ReplaySpan[];
+  frames: SpanFrame[];
 
   /**
    * Timestamp when the timeline begins, in milliseconds
@@ -31,31 +32,27 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: Props) {
-  const flattenedSpans = flattenSpans(spans);
+function ReplayTimelineEvents({className, durationMs, frames, startTimestampMs}: Props) {
+  const flattened = flattenFrames(frames);
   const {setActiveTab} = useActiveReplayTab();
 
   return (
     <Spans className={className}>
-      {flattenedSpans.map((span, i) => {
+      {flattened.map((span, i) => {
         const sinceStart = span.startTimestamp - startTimestampMs;
         const startPct = divide(sinceStart, durationMs);
         const widthPct = divide(span.duration, durationMs);
 
-        const requestsCount = tn(
-          '%s network request',
-          '%s network requests',
-          span.spanCount
-        );
         return (
           <Tooltip
             key={i}
             title={
-              <Fragment>
-                {requestsCount}
-                <br />
-                {span.duration.toFixed(2)}ms
-              </Fragment>
+              <CountTooltipContent>
+                <dt>{t('Network Requests:')}</dt>
+                <dd>{span.frameCount}</dd>
+                <dt>{t('Duration:')}</dt>
+                <dd>{span.duration.toLocaleString()}ms</dd>
+              </CountTooltipContent>
             }
             skipWrapper
             disableForVisualTest

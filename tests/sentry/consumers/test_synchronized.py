@@ -3,7 +3,7 @@ import time
 from contextlib import closing, contextmanager
 from datetime import datetime
 from threading import Event
-from typing import Any, Callable, Iterator, Mapping, Optional, TypeVar, cast
+from typing import Callable, Iterator, Mapping, Optional, TypeVar
 
 import pytest
 from arroyo.backends.abstract import Consumer
@@ -13,19 +13,19 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.commit import Commit
 from arroyo.types import BrokerValue, Partition, Topic
 
-from sentry.post_process_forwarder.synchronized import SynchronizedConsumer, commit_codec
+from sentry.consumers.synchronized import SynchronizedConsumer, commit_codec
 
 T = TypeVar("T")
 
 
 @contextmanager
 def assert_changes(
-    callable: Callable[[], Any],
-    before: T,
-    after: T,
-    operator: Callable[[T, T], bool] = operator.eq,
+    callable: Callable[[], object],
+    before: object,
+    after: object,
+    operator: Callable[[object, object], bool] = operator.eq,
 ) -> Iterator[None]:
-    actual = cast(T, callable())
+    actual = callable()
     assert operator(
         actual, before
     ), f"precondition ({operator}) on {callable} failed: expected: {before!r}, actual: {actual!r}"
@@ -40,11 +40,11 @@ def assert_changes(
 
 @contextmanager
 def assert_does_not_change(
-    callable: Callable[[], Any],
-    value: T,
-    operator: Callable[[T, T], bool] = operator.eq,
+    callable: Callable[[], object],
+    value: object,
+    operator: Callable[[object, object], bool] = operator.eq,
 ) -> Iterator[None]:
-    actual = cast(T, callable())
+    actual = callable()
     assert operator(
         actual, value
     ), f"precondition ({operator}) on {callable} failed: expected: {value!r}, actual: {actual!r}"

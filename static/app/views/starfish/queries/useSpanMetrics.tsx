@@ -7,7 +7,11 @@ import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
-  [metric: string]: number;
+  [metric: string]: number | string;
+  'p95(span.self_time)': number;
+  'span.op': string;
+  'sps()': number;
+  'time_spent_percentage()': number;
 };
 
 export const useSpanMetrics = (

@@ -136,7 +136,7 @@ describe('ReplayReader', () => {
         expected: [expect.objectContaining({category: 'console'})],
       },
       {
-        method: 'getNetworkFrames',
+        method: 'getSortedNetworkFrames',
         expected: [expect.objectContaining({op: 'navigation.navigate'})],
       },
       {

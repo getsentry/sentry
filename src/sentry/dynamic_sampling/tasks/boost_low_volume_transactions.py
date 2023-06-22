@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
+from typing import Callable, Iterator, List, Optional, Tuple, TypedDict
 
 from snuba_sdk import (
     AliasedExpression,
@@ -26,21 +26,21 @@ from sentry.dynamic_sampling.rules.base import (
     is_sliding_window_enabled,
     is_sliding_window_org_enabled,
 )
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
-    set_transactions_resampling_rates,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-    CACHE_KEY_TTL,
     CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_ORGS_PER_QUERY,
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
 )
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
+    set_transactions_resampling_rates,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models import Organization
@@ -197,7 +197,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         proj_id=project_id,
         named_rates=named_rates,
         default_rate=implicit_rate,
-        ttl_ms=CACHE_KEY_TTL,
+        ttl_ms=DEFAULT_REDIS_CACHE_KEY_TTL,
     )
 
     schedule_invalidate_project_config(
@@ -464,10 +464,14 @@ def fetch_transactions_with_total_volumes(
             transaction_name = row["transaction_name"]
             num_transactions = row["num_transactions"]
             if current_proj_id != proj_id or current_org_id != org_id:
-                if len(transaction_counts) > 0:
+                if (
+                    len(transaction_counts) > 0
+                    and current_proj_id is not None
+                    and current_org_id is not None
+                ):
                     yield {
-                        "project_id": cast(int, current_proj_id),
-                        "org_id": cast(int, current_org_id),
+                        "project_id": current_proj_id,
+                        "org_id": current_org_id,
                         "transaction_counts": transaction_counts,
                         "total_num_transactions": None,
                         "total_num_classes": None,
@@ -477,10 +481,14 @@ def fetch_transactions_with_total_volumes(
                 current_proj_id = proj_id
             transaction_counts.append((transaction_name, num_transactions))
         if not more_results:
-            if len(transaction_counts) > 0:
+            if (
+                len(transaction_counts) > 0
+                and current_proj_id is not None
+                and current_org_id is not None
+            ):
                 yield {
-                    "project_id": cast(int, current_proj_id),
-                    "org_id": cast(int, current_org_id),
+                    "project_id": current_proj_id,
+                    "org_id": current_org_id,
                     "transaction_counts": transaction_counts,
                     "total_num_transactions": None,
                     "total_num_classes": None,
