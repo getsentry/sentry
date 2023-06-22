@@ -22,13 +22,13 @@ export type SpanTransactionMetrics = {
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
+  span: Pick<IndexedSpan, 'group'>,
   transactions?: string[],
   _referrer = 'span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
+  const eventView = getEventView(span, location, transactions ?? []);
 
   const {isLoading, data, pageLinks} = useSpansQuery<SpanTransactionMetrics[]>({
     eventView,
