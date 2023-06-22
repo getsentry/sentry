@@ -65,8 +65,8 @@ def pr_to_issue_query(pr_id: int):
                 pr.organization_id org_id,
                 array_agg(go.group_id ORDER BY go.date_added) issues
             FROM sentry_groupowner go
-            JOIN sentry_commit c ON c.id = (go.context::jsonb->>'commitId')::int
-            JOIN sentry_pull_request pr ON c.key = pr.merge_commit_sha
+            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::int
+            JOIN sentry_pull_request pr ON c.pull_request_id = pr.id
             WHERE go.type=0
             AND pr.id={pr_id}
             GROUP BY repo_id,

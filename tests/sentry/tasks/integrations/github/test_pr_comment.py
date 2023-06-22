@@ -9,7 +9,7 @@ from freezegun import freeze_time
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequestComment
+from sentry.models.pullrequest import PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
@@ -103,7 +103,12 @@ class GithubCommentTestCase(IntegrationTestCase):
             date_added=date_added,
         )
         self.pr_key += 1
+        self.add_branch_commit_to_pr(commit, pr)
         return pr
+
+    def add_branch_commit_to_pr(self, commit: Commit, pr: PullRequest):
+        pr_commit = PullRequestCommit.objects.create(pull_request=pr, commit=commit)
+        return pr_commit
 
     def add_groupowner_to_commit(self, commit: Commit, project, user):
         event = self.store_event(
@@ -154,7 +159,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         )
 
     def test_multiple_prs(self):
-        """multiple elligible PRs with one issue each"""
+        """multiple eligible PRs with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr_1 = self.add_pr_to_commit(commit_1)
@@ -176,6 +181,22 @@ class TestPrToIssueQuery(GithubCommentTestCase):
             pr_2.key,
             self.organization.id,
             [groupowner_2.group_id],
+        )
+
+    def test_multiple_commits(self):
+        """Multiple eligible commits with one issue each"""
+        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
+        commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
+        pr = self.add_pr_to_commit(commit_1)
+        self.add_branch_commit_to_pr(commit_2, pr)
+        groupowner_1 = self.add_groupowner_to_commit(commit_1, self.project, self.user)
+        groupowner_2 = self.add_groupowner_to_commit(commit_2, self.project, self.user)
+        results = pr_comment.pr_to_issue_query(pr.id)
+        assert results[0] == (
+            self.gh_repo.id,
+            pr.key,
+            self.organization.id,
+            [groupowner_1.group_id, groupowner_2.group_id],
         )
 
 
