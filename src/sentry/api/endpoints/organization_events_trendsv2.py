@@ -308,13 +308,20 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if request.GET.get("withTimeseries", False):
                 trending_transaction_names_stats = stats_data
             else:
-                # TODO remove extra data when stats period is from 14d to 30d
                 for t in results["data"]:
                     transaction_name = t["transaction"]
                     project = t["project"]
                     t_p_key = project + "," + transaction_name
                     if t_p_key in stats_data:
-                        trending_transaction_names_stats[t_p_key] = stats_data[t_p_key]
+                        selected_stats_data = stats_data[t_p_key]
+                        idx = next(
+                            i
+                            for i, data in enumerate(selected_stats_data["data"])
+                            if data[0] >= params["start"].timestamp()
+                        )
+                        parsed_stats_data = selected_stats_data["data"][idx:]
+                        selected_stats_data["data"] = parsed_stats_data
+                        trending_transaction_names_stats[t_p_key] = selected_stats_data
                     else:
                         logger.warning(
                             "trends.trends-request.timeseries.key-mismatch",
