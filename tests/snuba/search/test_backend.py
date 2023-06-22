@@ -265,14 +265,14 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         return event.group
 
     def run_test_query(
-        self, query, expected_groups, expected_negative_groups=None, environments=None
+        self, query, expected_groups, expected_negative_groups=None, environments=None, user=None
     ):
-        results = self.make_query(search_filter_query=query, environments=environments)
+        results = self.make_query(search_filter_query=query, environments=environments, user=user)
         sort_key = lambda result: result.id
         assert sorted(results, key=sort_key) == sorted(expected_groups, key=sort_key)
 
         if expected_negative_groups is not None:
-            results = self.make_query(search_filter_query=f"!{query}")
+            results = self.make_query(search_filter_query=f"!{query}", user=user)
             assert sorted(results, key=sort_key) == sorted(expected_negative_groups, key=sort_key)
 
     def test_query(self):
@@ -1119,11 +1119,32 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert GroupAssignee.objects.filter(user_id=self.user.id, group=self.group2).exists()
         assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
 
-        results = self.make_query(search_filter_query="assigned_or_suggested:me", user=self.user)
-        assert set(results) == {self.group2, my_team_group}
+        self.run_test_query(
+            "assigned:me",
+            [self.group2, my_team_group],
+            user=self.user,
+        )
 
         # with the feature flag on where we split the behavior so 'me' only checks for groups assigned to me
         with self.feature("organizations:assign-to-me"):
+            self.run_test_query(
+                "assigned:me",
+                [self.group2],
+                user=self.user,
+            )
+
+            self.run_test_query(
+                "assigned:my_teams",
+                [my_team_group],
+                user=self.user,
+            )
+
+            self.run_test_query(
+                "assigned:[me, my_teams]",
+                [self.group2, my_team_group],
+                user=self.user,
+            )
+
             results1 = self.make_query(search_filter_query="assigned:me", user=self.user)
             assert set(results1) == {self.group2}
 
