@@ -52,11 +52,11 @@ export function SpanGroupBreakdown({
   const {selection} = usePageFilters();
   const theme = useTheme();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
-  const options: SelectOption<string>[] = [
+  const options: SelectOption<DataDisplayType>[] = [
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
     {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
   ];
-  const [dataDisplayType, setDataDisplayType] = useState<string>(
+  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
     DataDisplayType.CUMULATIVE_DURATION
   );
 
@@ -85,7 +85,8 @@ export function SpanGroupBreakdown({
     });
   }
 
-  const handleChange = (option: SelectOption<string>) => setDataDisplayType(option.value);
+  const handleChange = (option: SelectOption<DataDisplayType>) =>
+    setDataDisplayType(option.value);
 
   return (
     <FlexRowContainer>
