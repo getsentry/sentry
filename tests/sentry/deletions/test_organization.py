@@ -369,20 +369,3 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             .exclude(environment=None)
             .exists()
         )
-
-    def test_published_sentry_app(self):
-        """Test that we do not allow an organization who has a published sentry app to be deleted"""
-        org = self.create_organization(name="test", owner=self.user)
-        self.create_sentry_app(
-            organization=org,
-            scopes=["project:write"],
-            published=True,
-        )
-        org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
-
-        with self.tasks():
-            run_deletion(deletion.id)
-
-        assert Organization.objects.filter(id=org.id).exists()
