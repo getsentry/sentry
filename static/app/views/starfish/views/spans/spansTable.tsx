@@ -11,7 +11,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
-import {MetaType} from 'sentry/utils/discover/eventView';
+import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -146,7 +146,7 @@ function renderHeadCell(column: Column, sort: Sort, location: Location) {
 function renderBodyCell(
   column: Column,
   row: Row,
-  meta: MetaType | undefined,
+  meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
   endpoint?: string,
@@ -195,7 +195,7 @@ function renderBodyCell(
     return row[column.key];
   }
 
-  const renderer = getFieldRenderer(column.key, meta, false);
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
   const rendered = renderer(row, {location, organization});
 
   return rendered;
