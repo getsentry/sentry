@@ -137,7 +137,7 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> Optional[st
         # Relay leaves source None if it expects it to be high cardinality, (otherwise it sets it to "unknown")
         # (see https://github.com/getsentry/relay/blob/2d07bef86415cc0ae8af01d16baecde10cdb23a6/relay-general/src/store/transactions/processor.rs#L369-L373).
         #
-        # Our data show that a majority of these `None` source transactions contain slashes, so treat them as URL transactions:
+        # Our data shows that a majority of these `None` source transactions contain slashes, so treat them as URL transactions:
         source is None
         and "/" in transaction_name
     )
