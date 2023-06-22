@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, List, Mapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -28,7 +28,7 @@ class DSN(TypedDict):
 
 
 class BrowserSDK(TypedDict):
-    choices: Tuple[List[str]]
+    choices: List[List[str]]
 
 
 class DynamicSDKLoaderOptions(TypedDict):
