@@ -45,6 +45,8 @@ SCIM_400_UNSUPPORTED_ATTRIBUTE = {
 
 SCIM_400_INVALID_PATCH = "Invalid Patch Operation."
 
+SCIM_403_FORBIDDEN_UPDATE = "Organization owners cannot be modified."
+
 
 class TeamPatchOps(str, Enum):
     ADD = "add"
