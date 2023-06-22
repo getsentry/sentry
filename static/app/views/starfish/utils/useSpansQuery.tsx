@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
+import EventView, {encodeSort, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -15,6 +15,7 @@ export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 export type UseSpansQueryReturnType<T> = {
   data: T;
   isLoading: boolean;
+  meta?: MetaType;
   pageLinks?: string;
 };
 
@@ -37,8 +38,18 @@ export function useSpansQuery<T = any[]>({
     isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
   });
   if (eventView) {
-    return queryFunction({eventView, initialData, limit, enabled, referrer, cursor});
+    const response = queryFunction({
+      eventView,
+      initialData,
+      limit,
+      enabled,
+      referrer,
+      cursor,
+    });
+
+    return response;
   }
+
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
@@ -60,6 +71,7 @@ export function useWrappedDiscoverTimeseriesQuery({
   const {isLoading, data} = useGenericDiscoverQuery<
     {
       data: any[];
+      meta: MetaType;
     },
     DiscoverQueryProps
   >({
@@ -83,12 +95,14 @@ export function useWrappedDiscoverTimeseriesQuery({
     },
     referrer,
   });
+
   return {
     isLoading,
     data:
       isLoading && initialData
         ? initialData
         : processDiscoverTimeseriesResult(data, eventView),
+    meta: data?.meta,
   };
 }
 
@@ -121,6 +135,7 @@ export function useWrappedDiscoverQuery({
       refetchOnWindowFocus: false,
     },
   });
+
   return {
     isLoading,
     data: isLoading && initialData ? initialData : data?.data,
