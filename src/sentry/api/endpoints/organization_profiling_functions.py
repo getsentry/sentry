@@ -109,6 +109,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
             )
@@ -135,6 +136,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return results
 
         def get_trends_data(stats_data):
+            if not stats_data:
+                return []
+
             trends_request = {
                 "data": {
                     k: {
@@ -166,6 +170,20 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
         trending_functions = get_trends_data(stats_data)
 
+        # Profiling functions have a resolution of ~10ms. To increase the confidence
+        # of the results, ensure there's an minimum difference of 20ms. Otherwise,
+        # the result can easily be contributed to just noise.
+        trending_functions = [
+            data for data in trending_functions if abs(data["trend_difference"]) >= 20 * 1e6
+        ]
+
+        # Make sure to sort the results so that it's in order of largest change
+        # to smallest change (ASC/DESC depends on the trend type)
+        trending_functions.sort(
+            key=lambda function: function["trend_percentage"],
+            reverse=data["trend"] is TrendType.REGRESSION,
+        )
+
         def paginate_trending_events(offset, limit):
             return {"data": trending_functions[offset : limit + offset]}
 
@@ -193,7 +211,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                             "trend_difference",
                             "trend_percentage",
                             "unweighted_p_value",
-                            "unweighted_t_value",
+                            # "unweighted_t_value",  # unneeded, but also can error because of infs
                         ]
                     }
                 )

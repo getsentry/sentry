@@ -14,6 +14,8 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
 
 export type SpanMetrics = {
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
@@ -39,7 +41,7 @@ export const useSpanList = (
 
   const eventView = getEventView(moduleName, location, transaction, spanCategory, sorts);
 
-  const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, meta, pageLinks} = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     limit,
@@ -47,7 +49,7 @@ export const useSpanList = (
     cursor,
   });
 
-  return {isLoading, data, pageLinks};
+  return {isLoading, data, meta, pageLinks};
 };
 
 function getEventView(
@@ -76,6 +78,8 @@ function getEventView(
         `p95(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',
         `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+        'http_error_count()',
+        'http_error_count_percent_change()',
       ],
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
