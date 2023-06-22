@@ -220,6 +220,8 @@ class GitHubClientMixin(GithubProxyClient):
     def get_pullrequest_from_commit(self, repo: str, sha: str) -> JSONData:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
+
+        Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
         pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
         return pullrequest
