@@ -5,6 +5,7 @@ import logging
 from django.http import HttpResponse
 from django.urls import resolve
 
+from sentry.integrations.msteams.webhook import MsTeamsWebhookMixin
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -14,34 +15,18 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 logger = logging.getLogger(__name__)
 
 
-class MsTeamsRequestParser(BaseRequestParser):
+class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.MSTEAMS]
     webhook_identifier = WebhookProviderIdentifier.MSTEAMS
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        request = self.request
-        data = request.data  # type:ignore
-        integration = None
-        try:
-            payload = data["value"]["payload"]
-            integration_id = payload["integrationId"]
-            integration = Integration.objects.filter(id=integration_id).first()
-        except Exception:
-            pass
-
+        integration = self.get_integration_from_payload(self.request)
+        if integration is None:
+            integration = self.get_integration_from_channel_data(self.request)
         if integration:
-            return integration
-
-        try:
-            channel_data = data["channelData"]
-            team_id = channel_data["team"]["id"]
-            integration = Integration.objects.filter(
-                provider=self.provider, external_id=team_id
-            ).first()
-        except Exception:
-            pass
-        return integration
+            return Integration.objects.filter(id=integration.id).first()
+        return None
 
     def get_response(self) -> HttpResponse:
         result = resolve(self.request.path)
