@@ -46,9 +46,9 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {PercentChangeCell} from 'sentry/views/starfish/views/webServiceView/endpointList';
 
 import {decodeScalar} from '../queryString';
 
