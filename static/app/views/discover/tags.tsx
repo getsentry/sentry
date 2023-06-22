@@ -49,7 +49,6 @@ class Tags extends Component<Props, State> {
     totalValues: null,
     error: '',
     hasMore: false,
-    nextCursor: '0:0:0',
     hasLoaded: false,
   };
 
