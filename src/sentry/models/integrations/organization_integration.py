@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List
 
 from django.db import models, transaction
@@ -43,6 +45,19 @@ class OrganizationIntegration(DefaultFieldsModel):
                 object_identifier=self.id,
                 category=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
                 region_name=region_name,
+            )
+            for region_name in find_regions_for_orgs([self.organization_id])
+        ]
+
+    def outboxes_for_add(self, user_id: int | None) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=self.organization_id,
+                object_identifier=self.integration_id,
+                category=OutboxCategory.ORGANIZATION_INTEGRATION_ADDED,
+                region_name=region_name,
+                payload=dict(user_id=user_id),
             )
             for region_name in find_regions_for_orgs([self.organization_id])
         ]

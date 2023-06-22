@@ -186,7 +186,7 @@ inbox_out = BetterSignal(
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])
-integration_added = BetterSignal(providing_args=["integration", "organization", "user"])
+integration_added = BetterSignal(providing_args=["integration_id", "organization_id", "user_id"])
 integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
 

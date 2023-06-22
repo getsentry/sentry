@@ -41,6 +41,7 @@ from sentry.services.hybrid_cloud.organization.serial import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
+from sentry.signals import integration_added
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -485,3 +486,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def record_integration_added(
+        self, *, organization_id: int, integration_id: int, user_id: int | None
+    ) -> None:
+        integration_added.send_robust(
+            None, integration_id=integration_id, organization_id=organization_id, user_id=user_id
+        )

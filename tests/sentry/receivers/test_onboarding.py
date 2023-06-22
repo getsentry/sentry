@@ -344,10 +344,10 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_integration_added(self):
         integration_added.send(
-            integration=self.create_integration("slack", 1234),
-            organization=self.organization,
-            user=self.user,
-            sender=type(self.organization),
+            integration_id=self.create_integration("slack", 1234).id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -359,10 +359,10 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Adding a second integration
         integration_added.send(
-            integration=self.create_integration("github", 4567),
-            organization=self.organization,
-            user=self.user,
-            sender=type(self.organization),
+            integration_id=self.create_integration("github", 4567).id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -376,10 +376,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         # Installing an integration a second time doesn't produce
         # duplicated providers in the list
         integration_added.send(
-            integration=self.create_integration("slack", 4747),
-            organization=self.organization,
-            user=self.user,
-            sender=type(self.organization),
+            integration_id=self.create_integration("slack", 4747).id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -482,10 +482,10 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=type(IssueTrackingPlugin),
         )
         integration_added.send(
-            integration=self.create_integration("slack"),
-            organization=self.organization,
-            user=user,
-            sender=type(project),
+            integration_id=self.create_integration("slack").id,
+            organization_id=self.organization.id,
+            user_id=user.id,
+            sender=None,
         )
         alert_rule_created.send(
             rule=Rule(id=1),

@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
@@ -13,6 +15,7 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
+from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
@@ -27,6 +30,12 @@ plugins.register(ExamplePlugin)
 
 def naive_build_integration(data):
     return data
+
+
+@pytest.fixture(autouse=True)
+def raise_on_signal_failures():
+    with receivers_raise_on_send():
+        yield
 
 
 @patch(

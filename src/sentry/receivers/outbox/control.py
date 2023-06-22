@@ -103,3 +103,14 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
                 "request_method": webhook_payload.method,
             },
         )
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_INTEGRATION_ADDED)
+def process_organization_added(
+    payload: Mapping[str, Any], object_identifier: int, shard_identifier: int, **kwds: Any
+):
+    organization_service.record_integration_added(
+        organization_id=shard_identifier,
+        integration_id=object_identifier,
+        user_id=payload.get("user_id"),
+    )

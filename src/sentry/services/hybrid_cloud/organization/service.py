@@ -2,6 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+from __future__ import annotations
 
 from abc import abstractmethod
 from typing import Any, Iterable, List, Optional, cast
@@ -272,6 +273,13 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_option(self, *, organization_id: int, key: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def record_integration_added(
+        self, *, organization_id: int, integration_id: int, user_id: int | None
+    ) -> None:
         pass
 
 

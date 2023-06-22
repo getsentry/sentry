@@ -74,6 +74,7 @@ class OutboxCategory(IntEnum):
     TEAM_UPDATE = 11
     ORGANIZATION_INTEGRATION_UPDATE = 12
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
+    ORGANIZATION_INTEGRATION_ADDED = 14
 
     @classmethod
     def as_choices(cls):
