@@ -18,7 +18,7 @@ from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
