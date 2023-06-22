@@ -70,11 +70,11 @@ export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
   const {cursorLabelFormat} = timeWindowData[timeWindow];
 
   const makeCursorText = useCallback(
-    (position: number) => {
+    (percentPosition: number) => {
       const start = getStartFromTimeWindow(end, timeWindow);
-      const timePosition = (end.getTime() - start.getTime()) * position;
+      const timeOffset = (end.getTime() - start.getTime()) * percentPosition;
 
-      return moment(start.getTime() + timePosition).format(cursorLabelFormat);
+      return moment(start.getTime() + timeOffset).format(cursorLabelFormat);
     },
     [cursorLabelFormat, end, timeWindow]
   );
