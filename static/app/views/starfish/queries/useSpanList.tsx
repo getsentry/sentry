@@ -7,7 +7,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
@@ -41,7 +41,7 @@ export const useSpanList = (
 
   const eventView = getEventView(moduleName, location, transaction, spanCategory, sorts);
 
-  const {isLoading, data, meta, pageLinks} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, meta, pageLinks} = useWrappedDiscoverQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     limit,
