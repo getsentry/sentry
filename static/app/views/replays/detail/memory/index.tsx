@@ -16,11 +16,11 @@ import {space} from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
+import type {MemoryFrame} from 'sentry/utils/replays/types';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import type {MemorySpan} from 'sentry/views/replays/types';
 
 interface Props {
-  memorySpans: undefined | MemorySpan[];
+  memoryFrames: undefined | MemoryFrame[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestampMs: undefined | number;
@@ -35,14 +35,14 @@ const formatTimestamp = timestamp =>
 
 function MemoryChart({
   forwardedRef,
-  memorySpans,
+  memoryFrames,
   startTimestampMs = 0,
   setCurrentTime,
   setCurrentHoverTime,
 }: MemoryChartProps) {
   const theme = useTheme();
 
-  if (!memorySpans) {
+  if (!memoryFrames) {
     return (
       <MemoryChartWrapper>
         <Placeholder height="100%" />
@@ -50,7 +50,7 @@ function MemoryChart({
     );
   }
 
-  if (memorySpans.length <= 0) {
+  if (!memoryFrames.length) {
     return (
       <EmptyMessage
         title={t('No memory metrics found')}
@@ -156,9 +156,9 @@ function MemoryChart({
   const series: Series[] = [
     {
       seriesName: t('Used Heap Memory'),
-      data: memorySpans.map(span => ({
-        value: span.data.memory.usedJSHeapSize,
-        name: span.endTimestamp,
+      data: memoryFrames.map(frame => ({
+        value: frame.data.memory.usedJSHeapSize,
+        name: frame.endTimestampMs,
       })),
       stack: 'heap-memory',
       lineStyle: {
@@ -168,9 +168,9 @@ function MemoryChart({
     },
     {
       seriesName: t('Free Heap Memory'),
-      data: memorySpans.map(span => ({
-        value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
-        name: span.endTimestamp,
+      data: memoryFrames.map(frame => ({
+        value: frame.data.memory.totalJSHeapSize - frame.data.memory.usedJSHeapSize,
+        name: frame.endTimestampMs,
       })),
       stack: 'heap-memory',
       lineStyle: {

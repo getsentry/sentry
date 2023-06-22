@@ -6,7 +6,7 @@ import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import IssueList from 'sentry/views/replays/detail/issueList';
-import MemoryChart from 'sentry/views/replays/detail/memoryChart';
+import MemoryChart from 'sentry/views/replays/detail/memory/index';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
@@ -59,7 +59,7 @@ function FocusArea({}: Props) {
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay?.getMemorySpans()}
+          memoryFrames={replay?.getMemoryFrames()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
