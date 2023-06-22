@@ -123,7 +123,7 @@ function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const step = 10 ** Math.floor(power) * scale;
-  return Math.round(Math.ceil(maxValue / step) * step);
+  return Math.ceil(Math.ceil(maxValue / step) * step);
 }
 
 function Chart({
