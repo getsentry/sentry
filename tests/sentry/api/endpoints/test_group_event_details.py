@@ -8,17 +8,16 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
-class GroupEventDetailsEndpointTest(APITestCase, SnubaTestCase):
+class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.login_as(user=self.user)
         self.project_1 = self.create_project()
 
-        release_version = uuid4().hex
+        self.release_version = uuid4().hex
         release = Release.objects.create(
-            organization_id=self.project_1.organization_id, version=release_version
+            organization_id=self.project_1.organization_id, version=self.release_version
         )
         release.add_project(self.project_1)
 
@@ -28,7 +27,7 @@ class GroupEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "environment": "development",
                 "timestamp": iso_format(before_now(days=1)),
                 "fingerprint": ["group-1"],
-                "release": release_version,
+                "release": self.release_version,
             },
             project_id=self.project_1.id,
         )
@@ -38,7 +37,7 @@ class GroupEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "environment": "production",
                 "timestamp": iso_format(before_now(minutes=5)),
                 "fingerprint": ["group-1"],
-                "release": release_version,
+                "release": self.release_version,
             },
             project_id=self.project_1.id,
         )
@@ -48,11 +47,14 @@ class GroupEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "environment": "staging",
                 "timestamp": iso_format(before_now(minutes=1)),
                 "fingerprint": ["group-1"],
-                "release": release_version,
+                "release": self.release_version,
             },
             project_id=self.project_1.id,
         )
 
+
+@region_silo_test(stable=True)
+class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
     def test_get_simple_latest(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json")
@@ -132,6 +134,11 @@ class GroupEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             response_with_collapse.data["release"]
         )
 
+
+@region_silo_test(stable=True)
+class GroupEventDetailsHelpfulEndpointTest(
+    GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase
+):
     def test_get_helpful_feature_off(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
         response = self.client.get(url, format="json")
@@ -164,4 +171,44 @@ class GroupEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.event_d.event_id)
         assert response.data["previousEventID"] == self.event_c.event_id
+        assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_with_empty_query(self):
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": ""}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert response.data["previousEventID"] == str(self.event_b.event_id)
+        assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_issue_filter_query_ignored(self):
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": "is:unresolved"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert response.data["previousEventID"] == str(self.event_b.event_id)
+        assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_event_release_query(self):
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": f"release:{self.release_version}"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert response.data["previousEventID"] == str(self.event_b.event_id)
+        assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_has_environment(self):
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": "has:environment"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
