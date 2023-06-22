@@ -94,7 +94,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def _get_headers_for_insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -129,7 +129,7 @@ class SnubaProtocolEventStream(EventStream):
             return
         project = event.project
         set_current_event_project(project.id)
-        retention_days = quotas.get_event_retention(organization=project.organization)
+        retention_days = quotas.backend.get_event_retention(organization=project.organization)
 
         event_data = event.get_raw_data(for_stream=True)
 

@@ -107,7 +107,7 @@ class EventPerformanceProblem:
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
+def detect_performance_problems(data: dict[str, Any], project: Project) -> List[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
@@ -132,6 +132,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
         "n_plus_one_db_duration_threshold": options.get(
             "performance.issues.n_plus_one_db.duration_threshold"
+        ),
+        "slow_db_query_duration_threshold": options.get(
+            "performance.issues.slow_db_query.duration_threshold"
         ),
         "render_blocking_fcp_min": options.get(
             "performance.issues.render_blocking_assets.fcp_minimum_threshold"
@@ -186,7 +189,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     return {
         DetectorType.SLOW_DB_QUERY: [
             {
-                "duration_threshold": 1000.0,  # ms
+                "duration_threshold": settings["slow_db_query_duration_threshold"],  # ms
                 "allowed_span_ops": ["db"],
                 "detection_enabled": settings["slow_db_queries_detection_enabled"],
             },
@@ -268,7 +271,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
 
 
 def _detect_performance_problems(
-    data: Event, sdk_span: Any, project: Project
+    data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
     project_id = cast(int, project.id)

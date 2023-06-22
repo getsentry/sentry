@@ -15,6 +15,7 @@ from sentry.models import (
     OrganizationMapping,
     OrganizationMember,
     OrganizationMemberMapping,
+    outbox_context,
 )
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
@@ -167,16 +168,17 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self.login_as(self.user)
 
-            with exempt_from_silo_limits():
+            with exempt_from_silo_limits(), outbox_context(flush=False):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            OrganizationMemberMapping.objects.create(
-                organization_id=101010, organizationmember_id=om.id
-            )
-            OrganizationMemberMapping.objects.create(
-                organization_id=self.organization.id, organizationmember_id=om.id
-            )
+            with in_test_psql_role_override("postgres"):
+                OrganizationMemberMapping.objects.create(
+                    organization_id=101010, organizationmember_id=om.id
+                )
+                OrganizationMemberMapping.objects.create(
+                    organization_id=self.organization.id, organizationmember_id=om.id
+                )
 
             for path in self._get_paths([om.id, om.token]):
                 resp = self.client.get(path)
@@ -192,13 +194,14 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
         self.login_as(self.user)
 
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), outbox_context(flush=False):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        OrganizationMemberMapping.objects.create(
-            organization_id=self.organization.id, organizationmember_id=om.id
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id, organizationmember_id=om.id
+            )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
             resp = self.client.get(

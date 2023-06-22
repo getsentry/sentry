@@ -5,7 +5,8 @@ from django.db.models.signals import post_save
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
 from sentry.signals import (
@@ -156,12 +157,10 @@ def record_project_created(project, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(member, organization_id: int, **kwargs):
-    if FeatureAdoption.objects.record(
+    FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
-    ):
-        analytics.record(
-            "organization.joined", user_id=member.user_id, organization_id=organization_id
-        )
+    )
+    analytics.record("organization.joined", user_id=member.user_id, organization_id=organization_id)
 
 
 @issue_assigned.connect(weak=False)

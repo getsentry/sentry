@@ -118,11 +118,10 @@ def get_query_subscription_consumer(
     output_block_size: int,
     multi_proc: bool = False,
 ) -> StreamProcessor[KafkaPayload]:
-    from django.conf import settings
 
     from sentry.utils import kafka_config
 
-    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_name = kafka_config.get_topic_definition(topic)["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
 
     initialize_metrics(group_id=group_id)

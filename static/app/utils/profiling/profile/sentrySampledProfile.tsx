@@ -95,7 +95,10 @@ export class SentrySampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SentrySampledProfile,
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'}
+    options: {
+      type: 'flamechart' | 'flamegraph';
+      frameFilter?: (frame: Frame) => boolean;
+    }
   ): Profile {
     const weightedSamples: WeightedSample[] = sampledProfile.profile.samples.map(
       (sample, i) => {
@@ -135,18 +138,20 @@ export class SentrySampledProfile extends Profile {
 
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
-      const stack = stacks[sample.stack_id];
+      let stack = stacks[sample.stack_id].map(fid => {
+        const frame = frameIndex[fid];
+        if (!frame) {
+          throw new Error(`Could not resolve frame ${fid} in frame index`);
+        }
 
-      profile.appendSampleWithWeight(
-        stack.map(n => {
-          if (!frameIndex[n]) {
-            throw new Error(`Could not resolve frame ${n} in frame index`);
-          }
+        return frame;
+      });
 
-          return frameIndex[n];
-        }),
-        sample.weight
-      );
+      if (options.frameFilter) {
+        stack = stack.filter(frame => options.frameFilter!(frame));
+      }
+
+      profile.appendSampleWithWeight(stack, sample.weight);
     }
 
     return profile.build();

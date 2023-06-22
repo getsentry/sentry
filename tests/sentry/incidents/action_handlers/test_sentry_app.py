@@ -3,7 +3,6 @@ from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -60,7 +59,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
     def test_rule_snoozed(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
-        RuleSnooze.objects.create(alert_rule=alert_rule)
+        self.snooze_rule(alert_rule=alert_rule)
 
         responses.add(
             method=responses.POST,

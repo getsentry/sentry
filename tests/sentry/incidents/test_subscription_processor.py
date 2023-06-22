@@ -1528,7 +1528,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_slack_calls(["Warning"])
         self.assert_active_incident(rule)
 
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_slack_metric_alert_chart(self, mock_generate_chart):
         from sentry.incidents.action_handlers import SlackActionHandler
 
