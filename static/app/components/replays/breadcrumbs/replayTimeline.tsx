@@ -30,7 +30,7 @@ function ReplayTimeline({}: Props) {
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getReplay().started_at.getTime();
   const userCrumbs = replay.getUserActionCrumbs();
-  const networkFrames = replay.getSortedNetworkFrames();
+  const networkFrames = replay.getNetworkFrames();
 
   return (
     <Panel ref={elem} {...mouseTrackingProps}>
