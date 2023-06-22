@@ -305,12 +305,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const performanceSettings: ProjectPerformanceSettings =
       this.state.performance_issue_settings;
     const supportMail = ConfigStore.get('supportEmail');
-    const disabledReason = tct(
-      'Detection of this issue has been disabled. Contact our support team at [link:support@sentry.io].',
-      {
-        link: <ExternalLink href={'mailto:' + supportMail} />,
-      }
-    );
+    const disabledReason = hasAccess
+      ? tct(
+          'Detection of this issue has been disabled. Contact our support team at [link:support@sentry.io].',
+          {
+            link: <ExternalLink href={'mailto:' + supportMail} />,
+          }
+        )
+      : null;
 
     const formatDuration = (value: number | ''): string => {
       return value && value < 1000 ? `${value}ms` : `${(value as number) / 1000}s`;
