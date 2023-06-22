@@ -1,3 +1,8 @@
+from datetime import datetime
+from typing import Dict, List, Optional
+
+from typing_extensions import TypedDict
+
 from sentry.api.serializers import Serializer, register
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
@@ -7,11 +12,52 @@ from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynami
 from sentry.models import ProjectKey
 
 
+class RateLimit(TypedDict):
+    window: int
+    count: int
+
+
+class DSN(TypedDict):
+    secret: str
+    public: str
+    csp: str
+    security: str
+    minidump: str
+    unreal: str
+    cdn: str
+
+
+class DynamicSDKLoaderOptions(TypedDict):
+    hasReplay: bool
+    hasPerformance: bool
+    hasDebug: bool
+
+
+class ProjectKeySerializerResponse(TypedDict):
+    """
+    This represents a Sentry Project Client Key.
+    """
+
+    id: str
+    name: str
+    label: str
+    public: str
+    secret: str
+    projectId: int
+    isActive: bool
+    rateLimit: Optional[RateLimit]
+    dsn: DSN
+    browserSdkVersion: str
+    browserSdk: Dict[str, List[List[str]]]
+    dateCreated: datetime
+    dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
+
+
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj: ProjectKey) -> ProjectKeySerializerResponse:
         name = obj.label or obj.public_key[:14]
-        d = {
+        data: ProjectKeySerializerResponse = {
             "id": obj.public_key,
             "name": name,
             # label is here for compatibility
@@ -43,4 +89,4 @@ class ProjectKeySerializer(Serializer):
                 "hasDebug": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_DEBUG),
             },
         }
-        return d
+        return data
