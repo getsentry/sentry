@@ -38,7 +38,7 @@ class ProjectKeySerializerResponse(TypedDict):
     This represents a Sentry Project Client Key.
     """
 
-    id: Optional[str]
+    id: str
     name: str
     label: str
     public: Optional[str]
@@ -56,7 +56,10 @@ class ProjectKeySerializerResponse(TypedDict):
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj: ProjectKey, attrs: Any, user: Any) -> ProjectKeySerializerResponse:
-        name = obj.label or obj.public_key[:14]
+        # obj.public_key should always be set but it isn't required in the ProjectKey model.
+        # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
+        # must be Optional[str] instead of str. By setting else to "" we getaround this
+        name = obj.label or (obj.public_key[:14] if obj.public_key else "")
         data: ProjectKeySerializerResponse = {
             "id": obj.public_key,
             "name": name,
