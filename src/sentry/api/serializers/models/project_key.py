@@ -56,7 +56,7 @@ class ProjectKeySerializerResponse(TypedDict):
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj: ProjectKey, attrs: Any, user: Any) -> ProjectKeySerializerResponse:
-        name = getattr(obj, "label", None) or obj.public_key[:14]
+        name = obj.label or (obj.public_key[:14] if obj.public_key else None)
         data: ProjectKeySerializerResponse = {
             "id": obj.public_key,
             "name": name,
