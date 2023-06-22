@@ -5,6 +5,7 @@ import os
 import zlib
 
 import msgpack
+import sentry_sdk
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
@@ -136,7 +137,10 @@ class Enhancements:
             for idx, action in rule.get_matching_frame_actions(
                 match_frames, platform, exception_data, cache
             ):
-                action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+                with sentry_sdk.start_span(
+                    op="stacktrace_processing", name="apply_modifications_to_frame"
+                ):
+                    action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
 
