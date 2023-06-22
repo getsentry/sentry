@@ -391,7 +391,7 @@ class MonitorCheckIn(Model):
     # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
     timeout_at = models.DateTimeField(null=True)
     monitor_config = JSONField(null=True)
-    trace_id = models.CharField(max_length=32, null=True)
+    trace_id = UUIDField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
 
