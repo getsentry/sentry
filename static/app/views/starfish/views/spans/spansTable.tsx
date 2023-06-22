@@ -18,7 +18,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
@@ -181,10 +180,6 @@ function renderBodyCell(
 
   if (column.key === 'sps()') {
     return <ThroughputCell throughputPerSecond={row['sps()']} />;
-  }
-
-  if (column.key === 'p95(span.self_time)') {
-    return <DurationCell milliseconds={row['p95(span.self_time)']} />;
   }
 
   if (column.key === 'http_error_count()') {
