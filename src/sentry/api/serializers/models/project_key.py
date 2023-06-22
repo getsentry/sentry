@@ -56,7 +56,7 @@ class ProjectKeySerializerResponse(TypedDict):
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer):
     def serialize(
-        self, obj: ProjectKey, attrs: Mapping[Any, Any], user: Any
+        self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ProjectKeySerializerResponse:
         # obj.public_key should always be set but it isn't required in the ProjectKey model.
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
