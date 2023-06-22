@@ -598,7 +598,7 @@ def post_process_group(
                 # TODO: Name?
                 "events.time-to-post-process",
                 time() - start_time,
-                instance=data["platform"],
+                instance=event.data["platform"],
                 tags={
                     "is_reprocessing2": "true" if is_reprocessed else "false",
                 },
