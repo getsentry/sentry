@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -54,14 +54,12 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
     expect(screen.getByLabelText('Generated token')).toHaveValue('sntrys_XXXXXXX');
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {name: 'My Token'},
-        })
-      );
-    });
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        data: {name: 'My Token'},
+      })
+    );
   });
 
   it('handles API errors when creating token', async function () {
@@ -89,13 +87,11 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
       'Failed to create a new auth token.'
     );
 
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {name: 'My Token'},
-        })
-      );
-    });
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        data: {name: 'My Token'},
+      })
+    );
   });
 });

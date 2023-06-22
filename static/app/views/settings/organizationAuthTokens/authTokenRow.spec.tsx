@@ -45,10 +45,10 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows token without last used information', async function () {
+  it('shows token without last used information', function () {
     render(<OrganizationAuthTokensAuthTokenRow {...defaultProps} />);
 
-    expect(await screen.findByLabelText('Token preview')).toHaveTextContent(
+    expect(screen.getByLabelText('Token preview')).toHaveTextContent(
       'sntrys_************XYZ1'
     );
     expect(screen.getByText('never used')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
   });
 
   describe('last used info', function () {
-    it('shows full last used info', async function () {
+    it('shows full last used info', function () {
       const props = {
         ...defaultProps,
         projectLastUsed: TestStubs.Project(),
@@ -68,7 +68,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
 
       render(<OrganizationAuthTokensAuthTokenRow {...props} />);
 
-      expect(await screen.findByLabelText('Token preview')).toHaveTextContent(
+      expect(screen.getByLabelText('Token preview')).toHaveTextContent(
         'sntrys_************XYZ1'
       );
       expect(
@@ -79,7 +79,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
       expect(screen.getByText('My Token')).toBeInTheDocument();
     });
 
-    it('shows last used project only', async function () {
+    it('shows last used project only', function () {
       const props = {
         ...defaultProps,
         projectLastUsed: TestStubs.Project(),
@@ -94,12 +94,12 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
         'sntrys_************XYZ1'
       );
       expect(
-        await screen.findByText(textWithMarkupMatcher('in project Project Name'))
+        screen.getByText(textWithMarkupMatcher('in project Project Name'))
       ).toBeInTheDocument();
       expect(screen.getByText('My Token')).toBeInTheDocument();
     });
 
-    it('shows last used date only', async function () {
+    it('shows last used date only', function () {
       const props = {
         ...defaultProps,
         token: {
@@ -110,7 +110,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
 
       render(<OrganizationAuthTokensAuthTokenRow {...props} />);
 
-      expect(await screen.findByLabelText('Token preview')).toHaveTextContent(
+      expect(screen.getByLabelText('Token preview')).toHaveTextContent(
         'sntrys_************XYZ1'
       );
       expect(
@@ -121,7 +121,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
   });
 
   describe('revoking', function () {
-    it('does not allow to revoke without access', async function () {
+    it('does not allow to revoke without access', function () {
       const props = {
         ...defaultProps,
         revokeToken: undefined,
@@ -129,14 +129,14 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
 
       render(<OrganizationAuthTokensAuthTokenRow {...props} />);
 
-      expect(await screen.findByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
     });
 
     it('allows to revoke', async function () {
       render(<OrganizationAuthTokensAuthTokenRow {...defaultProps} />);
       renderGlobalModal();
 
-      expect(await screen.findByRole('button', {name: 'Revoke My Token'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeEnabled();
 
       await userEvent.click(screen.getByRole('button', {name: 'Revoke My Token'}));
       // Confirm modal
@@ -145,7 +145,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
       expect(revokeToken).toHaveBeenCalledWith(token);
     });
 
-    it('does not allow to revoke while revoking in progress', async function () {
+    it('does not allow to revoke while revoking in progress', function () {
       const props = {
         ...defaultProps,
         isRevoking: true,
@@ -153,7 +153,7 @@ describe('OrganizationAuthTokensAuthTokenRow', function () {
 
       render(<OrganizationAuthTokensAuthTokenRow {...props} />);
 
-      expect(await screen.findByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
     });
   });
 });

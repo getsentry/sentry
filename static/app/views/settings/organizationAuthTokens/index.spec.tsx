@@ -75,7 +75,7 @@ describe('OrganizationAuthTokensIndex', function () {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Then list
-    expect(await screen.findByText('My Token 1')).toBeInTheDocument();
+    expect(screen.getByText('My Token 1')).toBeInTheDocument();
     expect(screen.getByText('My Token 2')).toBeInTheDocument();
     expect(screen.getByText('never used')).toBeInTheDocument();
     expect(
@@ -127,7 +127,7 @@ describe('OrganizationAuthTokensIndex', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
     expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
@@ -184,7 +184,7 @@ describe('OrganizationAuthTokensIndex', function () {
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-      expect(await screen.findByText('My Token 1')).toBeInTheDocument();
+      expect(screen.getByText('My Token 1')).toBeInTheDocument();
       expect(screen.queryByText('My Token 2')).not.toBeInTheDocument();
       expect(screen.getByText('My Token 3')).toBeInTheDocument();
 
@@ -231,7 +231,7 @@ describe('OrganizationAuthTokensIndex', function () {
       // Confirm modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-      expect(await screen.findByText('My Token 1')).toBeInTheDocument();
+      expect(screen.getByText('My Token 1')).toBeInTheDocument();
 
       expect(indicators.addErrorMessage).toHaveBeenCalledWith(
         'Failed to revoke the auth token for the organization.'
