@@ -64,7 +64,7 @@ class TrimTest(unittest.TestCase):
 class SafeExecuteTest(TestCase):
     def test_with_nameless_function(self):
         assert safe_execute(lambda a: a, 1) == 1
-        assert safe_execute(lambda: a) is None  # NOQA
+        assert safe_execute(lambda: eval("a")) is None
 
     def test_with_simple_function(self):
         def simple(a):

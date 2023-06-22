@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import sys
+from typing import Any, NoReturn
 
 import sentry_plugins
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -16,9 +19,9 @@ from sentry.shared_integrations.exceptions import (
 
 
 class CorePluginMixin:
-    author = "Sentry Team"
-    author_url = "https://github.com/getsentry/sentry"
-    version = sentry_plugins.VERSION
+    author: str | None = "Sentry Team"
+    author_url: str | None = "https://github.com/getsentry/sentry"
+    version: str | None = sentry_plugins.VERSION
     resource_links = [
         ("Report Issue", "https://github.com/getsentry/sentry/issues"),
         ("View Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
@@ -49,7 +52,7 @@ class CorePluginMixin:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc, identity=None):
+    def raise_error(self, exc: BaseException, identity: Any = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
