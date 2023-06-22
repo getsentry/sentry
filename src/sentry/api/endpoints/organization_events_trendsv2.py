@@ -147,7 +147,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
             return f"transaction:[{top_transaction_as_str}]"
 
-        def get_timeseries(top_events, params, rollup, zerofill_results):
+        def get_timeseries(top_events, _, rollup, zerofill_results):
             # Split top events into multiple queries for bulk timeseries query
             data = top_events["data"]
             split_top_events = [
@@ -162,7 +162,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                params,
+                modified_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
@@ -199,7 +199,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
-                            item["data"], params["start"], params["end"], rollup, "time"
+                            item["data"],
+                            modified_params["start"],
+                            modified_params["end"],
+                            rollup,
+                            "time",
                         )
                         if zerofill_results
                         else item["data"],
@@ -208,8 +212,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "order": item["order"],
                         "meta": result["meta"],
                     },
-                    params["start"],
-                    params["end"],
+                    modified_params["start"],
+                    modified_params["end"],
                     rollup,
                 )
             return formatted_results
@@ -321,7 +325,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "events": self.handle_results_with_meta(
                     request,
                     organization,
-                    params["project_id"],
+                    modified_params["project_id"],
                     {"data": results["data"], "meta": {"isMetricsData": True}},
                     True,
                 ),
@@ -356,7 +360,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "events": self.handle_results_with_meta(
                             request,
                             organization,
-                            params["project_id"],
+                            modified_params["project_id"],
                             {"data": [], "meta": {"isMetricsData": True}},
                             True,
                         ),

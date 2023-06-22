@@ -926,7 +926,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
-                if granularity < interval:
+                if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
 
