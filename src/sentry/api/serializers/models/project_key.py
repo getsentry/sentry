@@ -38,11 +38,11 @@ class ProjectKeySerializerResponse(TypedDict):
     This represents a Sentry Project Client Key.
     """
 
-    id: str
+    id: Optional[str]
     name: str
     label: str
-    public: str
-    secret: str
+    public: Optional[str]
+    secret: Optional[str]
     projectId: int
     isActive: bool
     rateLimit: Optional[RateLimit]
