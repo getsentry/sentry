@@ -95,7 +95,7 @@ FUNCTION_PATTERN = re.compile(
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
-RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "percent_change", "date"}
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
