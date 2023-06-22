@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import enum
 import functools
 import logging
 import sys
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Tuple, Union
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 
-_all = object()
-_receivers_that_raise = []
+Receiver = Callable[[], Any]
+
+_AllReceivers = enum.Enum("_AllReceivers", "ALL")
+
+
+_receivers_that_raise: _AllReceivers | List[Receiver] = []
 
 
 class receivers_raise_on_send:
@@ -21,14 +26,14 @@ class receivers_raise_on_send:
 
     receivers: Any
 
-    def __init__(self, receivers: Any | List[Any] = _all):
+    def __init__(self, receivers: _AllReceivers | Receiver | List[Receiver] = _AllReceivers.ALL):
         self.receivers = receivers
 
     def __enter__(self) -> None:
         global _receivers_that_raise
         self.old = _receivers_that_raise
 
-        if self.receivers is _all:
+        if self.receivers is _AllReceivers.ALL:
             _receivers_that_raise = self.receivers
         else:
             _receivers_that_raise += self.receivers
@@ -72,22 +77,25 @@ class BetterSignal(Signal):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
-    def send_robust(self, sender, **named):
+    def send_robust(self, sender, **named) -> List[Tuple[Receiver, Union[Exception, Any]]]:
         """
         A reimplementation of send_robust which logs failures, thus recovering stacktraces.
         """
-        responses = []
+        responses: List[Tuple[Receiver, Union[Exception, Any]]] = []
         if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
             return responses
 
         # Call each receiver with whatever arguments it can accept.
         # Return a list of tuple pairs [(receiver, response), ... ].
-        for receiver in self._live_receivers(sender):
+        for receiver in self._live_receivers(sender):  # type: ignore[attr-defined]
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
                 if "pytest" in sys.modules:
-                    if _receivers_that_raise is _all or receiver in _receivers_that_raise:
+                    if (
+                        _receivers_that_raise is _AllReceivers.ALL
+                        or receiver in _receivers_that_raise
+                    ):
                         raise
 
                 logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
