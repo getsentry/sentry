@@ -13,6 +13,9 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import region_silo_test
@@ -62,8 +65,9 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         This only tests 'GET' since members aren't granted project:write scopes so they 403 before
         reaching any endpoint logic (for PUT/DELETE)
         """
-        self.organization.flags = 0
-        self.organization.save()
+        update_organization_with_outbox_message(
+            org_id=self.organization.id, update_data={"flags": 0}
+        )
         action = self.create_notification_action(
             organization=self.organization,
             projects=[self.create_project(organization=self.organization)],

@@ -170,8 +170,9 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         assert_outbox_update_message_exists(self.org, 1)
 
     def test_mark_for_deletion_on_already_deleted_org(self):
-        self.org.status = OrganizationStatus.PENDING_DELETION
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
+        )
 
         org_before_update = Organization.objects.get(id=self.org.id)
 
@@ -213,8 +214,9 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
         assert_outbox_update_message_exists(self.org, 1)
 
     def test_unmark_for_deletion_in_progress_and_outbox_generation(self):
-        self.org.status = OrganizationStatus.DELETION_IN_PROGRESS
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id, update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS}
+        )
 
         with outbox_context(flush=False):
             updated_org = unmark_organization_as_pending_deletion_with_outbox_message(
@@ -231,8 +233,10 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
         assert_outbox_update_message_exists(self.org, 1)
 
     def test_unmark_org_when_already_active(self):
-        self.org.status = OrganizationStatus.ACTIVE
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id, update_data={"status": OrganizationStatus.ACTIVE}
+        )
+
         org_before_update = Organization.objects.get(id=self.org.id)
 
         with outbox_context(flush=False):
