@@ -45,7 +45,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
     <ProductWrapper
       onClick={onClick}
       disabled={onClick ?? permanentDisabled ? false : disabled}
-      priority={permanentDisabled ? 'primary' : checked ? 'primary' : 'default'}
+      priority={permanentDisabled || checked ? 'primary' : 'default'}
       aria-label={label}
     >
       <ProductButtonInner>
