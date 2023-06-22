@@ -917,6 +917,17 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         self.get_error_response("nonexistent-slug", status_code=404)
 
+    def test_published_sentry_app(self):
+        """Test that we do not allow an organization who has a published sentry app to be deleted"""
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_sentry_app(
+            organization=org,
+            scopes=["project:write"],
+            published=True,
+        )
+        self.login_as(self.user)
+        self.get_error_response(org.slug, status_code=400)
+
 
 @region_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
