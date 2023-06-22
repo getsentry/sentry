@@ -27,8 +27,12 @@ class DSN(TypedDict):
     cdn: str
 
 
+class VersionList(List[str]):
+    pass
+
+
 class BrowserSDK(TypedDict):
-    choices: List[List[str]]
+    choices: VersionList
 
 
 class DynamicSDKLoaderOptions(TypedDict):
