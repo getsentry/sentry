@@ -101,7 +101,7 @@ class TwilioConfigurationForm(forms.Form):
 class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     version = sentry.VERSION
     description = DESCRIPTION
-    resource_links = (
+    resource_links = [
         (
             "Documentation",
             "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/twilio/Twilio_Instructions.md",
@@ -112,7 +112,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
             "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio",
         ),
         ("Twilio", "https://www.twilio.com/"),
-    )
+    ]
 
     slug = "twilio"
     title = _("Twilio (SMS)")

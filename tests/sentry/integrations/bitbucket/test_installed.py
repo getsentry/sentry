@@ -4,7 +4,7 @@ from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
 from sentry.models import Integration, Project, Repository
 from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils import APITestCase
 
 

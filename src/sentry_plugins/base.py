@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from typing import Any, NoReturn
 
@@ -28,7 +29,7 @@ class CorePluginMixin:
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass
-    logger = None
+    logger: logging.Logger | None = None
 
     # TODO(dcramer): The following is a possible "better implementation" of the
     # core issue implementation, though it would need a compat layer to push

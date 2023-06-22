@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 class PluginMount(type):
     def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
+        new_cls: type[IPlugin] = type.__new__(cls, name, bases, attrs)  # type: ignore[assignment]
         if IPlugin in bases:
             return new_cls
         if not hasattr(new_cls, "title"):
@@ -65,7 +65,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     version: str | None = None
     author: str | None = None
     author_url: str | None = None
-    resource_links: list[tuple[str, str]] = ()
+    resource_links: list[tuple[str, str]] = []
     feature_descriptions: Sequence[Any] = []
 
     # Configuration specifics
@@ -276,7 +276,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     # The following methods are specific to web requests
 
-    def get_title(self) -> str:
+    def get_title(self) -> str | _StrPromise:
         """
         Returns the general title for this plugin.
 
