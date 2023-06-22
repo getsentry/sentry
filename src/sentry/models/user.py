@@ -28,7 +28,6 @@ from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
@@ -294,7 +293,6 @@ class User(BaseModel, AbstractBaseUser):
             Authenticator,
             AuthIdentity,
             Identity,
-            OrganizationMember,
             OrganizationMemberMapping,
             UserAvatar,
             UserEmail,
@@ -306,14 +304,9 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         organization_ids: List[int]
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            organization_ids = OrganizationMember.objects.filter(user_id=from_user.id).values_list(
-                "organization_id", flat=True
-            )
-        else:
-            organization_ids = OrganizationMemberMapping.objects.filter(
-                user_id=from_user.id
-            ).values_list("organization_id", flat=True)
+        organization_ids = OrganizationMemberMapping.objects.filter(
+            user_id=from_user.id
+        ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             organization_service.merge_users(
