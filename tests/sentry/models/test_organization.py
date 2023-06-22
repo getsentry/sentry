@@ -14,6 +14,7 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
@@ -42,6 +43,13 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils.audit import create_system_audit_entry
+
+
+@pytest.fixture(autouse=True)
+def allow_edits():
+    # Wrapping this in an outbox_context allows tests to safely write to the org mapping
+    with in_test_psql_role_override("postgres"):
+        yield
 
 
 @region_silo_test
@@ -547,7 +555,10 @@ class OrganizationDeletionTest(TestCase):
     def test_cannot_delete_with_queryset(self):
         org = self.create_organization()
         assert Organization.objects.exists()
-        with pytest.raises(ProgrammingError), transaction.atomic():
+        # Revert the role to be unprivileged to ensure that deletions will fail in testing
+        with pytest.raises(ProgrammingError), transaction.atomic(), in_test_psql_role_override(
+            "postgres_unprivileged"
+        ):
             Organization.objects.filter(id=org.id).delete()
         assert Organization.objects.exists()
 

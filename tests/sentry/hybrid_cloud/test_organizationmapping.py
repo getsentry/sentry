@@ -8,7 +8,6 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     organization_mapping_service,
 )
 from sentry.testutils import TransactionTestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
@@ -47,8 +46,6 @@ class OrganizationMappingTest(TransactionTestCase):
                 slug="foobar",
             )
 
-            self.organization.save()
-
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         organization_mapping_service.upsert(
@@ -64,7 +61,7 @@ class OrganizationMappingTest(TransactionTestCase):
         assert fixture_org_mapping.status == OrganizationStatus.PENDING_DELETION
 
     def test_upsert__duplicate_slug(self):
-        self.organization = Factories.create_organization(slug="alreadytaken")
+        self.organization = self.create_organization(slug="alreadytaken")
 
         with pytest.raises(IntegrityError):
             organization_mapping_service.upsert(

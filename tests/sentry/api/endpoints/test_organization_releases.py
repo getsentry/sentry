@@ -5,6 +5,7 @@ from functools import cached_property
 from unittest.mock import patch
 
 import pytz
+from django.db.models import F
 from django.urls import reverse
 from django.utils import timezone
 
@@ -23,6 +24,7 @@ from sentry.models import (
     CommitAuthor,
     CommitFileChange,
     Environment,
+    Organization,
     Release,
     ReleaseCommit,
     ReleaseHeadCommit,
@@ -39,6 +41,9 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import (
     APITestCase,
     ReleaseCommitPatchTest,
@@ -48,6 +53,18 @@ from sentry.testutils import (
 )
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
+
+
+def set_joinleave_for_org(*, org: Organization, enabled=True):
+    flags = F("flags").bitor(Organization.flags.allow_joinleave)
+
+    if not enabled:
+        flags = F("flags").bitand(~Organization.flags.allow_joinleave)
+
+    update_organization_with_outbox_message(
+        org_id=org.id,
+        update_data={"flags": flags},
+    )
 
 
 @region_silo_test(stable=True)
@@ -61,8 +78,8 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -109,8 +126,8 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         """
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
 
@@ -270,8 +287,9 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_query_filter(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
 
@@ -304,8 +322,8 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_release_filter(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
 
@@ -349,8 +367,9 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_query_filter_suffix(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
 
@@ -601,8 +620,9 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -642,8 +662,9 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_project_permissions_open_access(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = True
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=True)
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -683,8 +704,9 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_all_projects_parameter(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = True
-        org.save()
+
+        set_joinleave_for_org(org=org)
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -815,8 +837,9 @@ class OrganizationReleasesStatsTest(APITestCase):
         """
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
 
@@ -865,7 +888,6 @@ class OrganizationReleasesStatsTest(APITestCase):
     def test_with_adoption_stages(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.save()
         team1 = self.create_team(organization=org)
         project1 = self.create_project(teams=[team1], organization=org)
         self.create_member(teams=[team1], user=user, organization=org)
@@ -1093,8 +1115,9 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_empty_release_version(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1113,8 +1136,9 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_minimal(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1144,8 +1168,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_duplicate(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
         repo = Repository.objects.create(
             provider="dummy", name="my-org/my-repository", organization_id=org.id
         )
@@ -1235,8 +1259,9 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_activity(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1271,8 +1296,9 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_activity_with_long_release(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1307,8 +1333,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_version_whitespace(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1343,8 +1369,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_features(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1367,8 +1393,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_commits(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1404,8 +1430,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_commits_from_provider(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         repo = Repository.objects.create(
             organization_id=org.id, name="example/example", provider="dummy"
@@ -1461,8 +1487,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_commits_from_provider_deprecated_head_commits(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         repo = Repository.objects.create(
             organization_id=org.id, name="example/example", provider="dummy"
@@ -1518,8 +1544,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_commits_lock_conflict(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1548,8 +1574,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_bad_project_slug(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])
@@ -1567,8 +1593,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -1611,8 +1637,8 @@ class OrganizationReleaseCreateTest(APITestCase):
 
     def test_api_key(self):
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         org2 = self.create_organization()
 
@@ -1663,8 +1689,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_api_token(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         repo = Repository.objects.create(
             organization_id=org.id, name="getsentry/sentry", provider="dummy"
@@ -1716,8 +1742,8 @@ class OrganizationReleaseCreateTest(APITestCase):
     def test_bad_repo_name(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
+        org.refresh_from_db()
 
         team = self.create_team(organization=org)
         project = self.create_project(name="foo", organization=org, teams=[team])

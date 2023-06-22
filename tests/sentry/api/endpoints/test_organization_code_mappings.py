@@ -1,7 +1,11 @@
+from django.db.models import F
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
-from sentry.models import Repository
+from sentry.models import Organization, Repository
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -190,8 +194,12 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_basic_get_with_projectId_minus_1(self):
         self.login_as(user=self.user2)
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data={"flags": F("flags").bitand(~Organization.flags.allow_joinleave)},
+        )
+        self.organization.refresh_from_db()
+        assert not self.organization.flags.allow_joinleave
         self.create_code_mapping(
             project=self.project1,
             repo=self.repo1,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import responses
 import sentry_kafka_schemas
+from django.db.models import F
 
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils.dates import to_timestamp
@@ -156,6 +157,9 @@ from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.actor import RpcActor
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from ..services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -683,8 +687,10 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        organization.flags.require_2fa = True
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data={"flags": F("flags").bitor(Organization.flags.require_2fa)},
+        )
 
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
@@ -1980,7 +1986,6 @@ class ReleaseCommitPatchTest(APITestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
-        self.org.save()
 
         team = self.create_team(organization=self.org)
         self.project = self.create_project(name="foo", organization=self.org, teams=[team])

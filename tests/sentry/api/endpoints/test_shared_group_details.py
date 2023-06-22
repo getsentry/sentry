@@ -1,7 +1,24 @@
-from sentry.models import GroupShare
+from django.db.models import F
+
+from sentry.models import GroupShare, Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+
+
+def set_disable_shared_issues_for_org(*, org: Organization, enabled=True):
+    flags = F("flags").bitor(Organization.flags.disable_shared_issues)
+
+    if not enabled:
+        flags = F("flags").bitand(~Organization.flags.disable_shared_issues)
+
+    update_organization_with_outbox_message(
+        org_id=org.id,
+        update_data={"flags": flags},
+    )
 
 
 @region_silo_test(stable=True)
@@ -46,8 +63,8 @@ class SharedGroupDetailsTest(APITestCase):
 
         group = self.create_group()
         org = group.organization
-        org.flags.disable_shared_issues = True
-        org.save()
+        set_disable_shared_issues_for_org(org=org)
+        org.refresh_from_db()
 
         share_id = group.get_share_id()
         assert share_id is None
