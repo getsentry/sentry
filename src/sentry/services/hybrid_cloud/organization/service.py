@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Iterable, List, Optional, cast
+from typing import Any, Iterable, List, Mapping, Optional, cast
+
+from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
@@ -13,6 +15,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
     RpcUserInviteContext,
@@ -28,6 +31,7 @@ from sentry.services.hybrid_cloud.region import (
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
+from sentry.types.region import find_regions_for_orgs
 
 
 class OrganizationService(RpcService):
@@ -277,10 +281,36 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def record_integration_added(
-        self, *, organization_id: int, integration_id: int, user_id: int | None
+    def send_signal(
+        self, *, organization_id: int, signal: RpcOrganizationSignal, args: Mapping[str, int | None]
     ) -> None:
         pass
+
+    def schedule_signal(
+        self,
+        signal: Signal,
+        organization_id: int,
+        args: Mapping[str, int | None],
+    ) -> None:
+        from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            self.send_signal(
+                organization_id=organization_id,
+                signal=RpcOrganizationSignal.from_signal(signal),
+                args=args,
+            )
+        else:
+            with outbox_context(flush=False):
+                for region_name in find_regions_for_orgs([organization_id]):
+                    ControlOutbox(
+                        shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                        shard_identifier=organization_id,
+                        region_name=region_name,
+                        category=OutboxCategory.SEND_SIGNAL,
+                        object_identifier=ControlOutbox.next_object_identifier(),
+                        payload=args,
+                    ).save()
 
 
 organization_service = cast(OrganizationService, OrganizationService.create_delegation())

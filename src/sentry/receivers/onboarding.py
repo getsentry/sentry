@@ -297,19 +297,19 @@ def record_member_invited(member, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization_id: int, **kwargs):
+def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=member.organization_id,
+        organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
             "date_completed": timezone.now(),
-            "data": {"invited_member_id": member.id},
+            "data": {"invited_member_id": organization_member_id},
         },
     )
     if created or rows_affected:
-        try_mark_onboarding_complete(member.organization_id)
+        try_mark_onboarding_complete(organization_id)
 
 
 def record_release_received(project, event, **kwargs):

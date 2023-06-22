@@ -17,6 +17,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     OutboxCategory,
+    OutboxScope,
     SentryAppInstallation,
     User,
     process_control_outbox,
@@ -105,12 +106,12 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
         )
 
 
-@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_INTEGRATION_ADDED)
-def process_organization_added(
-    payload: Mapping[str, Any], object_identifier: int, shard_identifier: int, **kwds: Any
+@receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
+def process_send_signal(
+    payload: Mapping[str, Any], shard_identifier: int, shard_scope: OutboxScope, **kwds: Any
 ):
-    organization_service.record_integration_added(
-        organization_id=shard_identifier,
-        integration_id=object_identifier,
-        user_id=payload.get("user_id"),
-    )
+    if shard_scope == OutboxScope.ORGANIZATION_SCOPE:
+        organization_service.send_signal(
+            organization_id=shard_identifier,
+            args=payload,
+        )

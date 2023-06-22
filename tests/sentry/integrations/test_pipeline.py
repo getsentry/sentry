@@ -18,6 +18,7 @@ from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
@@ -34,7 +35,7 @@ def naive_build_integration(data):
 
 @pytest.fixture(autouse=True)
 def raise_on_signal_failures():
-    with receivers_raise_on_send():
+    with receivers_raise_on_send(), outbox_runner():
         yield
 
 

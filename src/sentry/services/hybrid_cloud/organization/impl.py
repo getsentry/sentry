@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional, Set, cast
+from typing import Any, Iterable, List, Mapping, Optional, Set, cast
 
 from django.db import IntegrityError, models, transaction
 
@@ -29,6 +29,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
     RpcUserInviteContext,
@@ -41,7 +42,6 @@ from sentry.services.hybrid_cloud.organization.serial import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
-from sentry.signals import integration_added
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -487,9 +487,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
 
-    def record_integration_added(
-        self, *, organization_id: int, integration_id: int, user_id: int | None
+    def send_signal(
+        self, *, organization_id: int, signal: RpcOrganizationSignal, args: Mapping[str, int | None]
     ) -> None:
-        integration_added.send_robust(
-            None, integration_id=integration_id, organization_id=organization_id, user_id=user_id
-        )
+        signal.signal.send_robust(None, organization_id=organization_id, **args)

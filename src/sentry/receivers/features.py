@@ -159,11 +159,11 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization_id: int, **kwargs):
+def record_member_joined(organization_id: int, user_id: int, **kwargs):
     FeatureAdoption.objects.record(
-        organization_id=member.organization_id, feature_slug="invite_team", complete=True
+        organization_id=organization_id, feature_slug="invite_team", complete=True
     )
-    analytics.record("organization.joined", user_id=member.user_id, organization_id=organization_id)
+    analytics.record("organization.joined", user_id=user_id, organization_id=organization_id)
 
 
 @issue_assigned.connect(weak=False)

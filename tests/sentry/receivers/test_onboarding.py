@@ -14,7 +14,6 @@ from sentry.models import (
     Rule,
 )
 from sentry.plugins.bases import IssueTrackingPlugin
-from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -465,9 +464,10 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=second_project, event=second_event, sender=type(second_project)
         )
         member_joined.send(
-            member=serialize_member(member),
+            organization_member_id=member.id,
             organization_id=self.organization.id,
-            sender=type(member),
+            user_id=member.user_id,
+            sender=None,
         )
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
