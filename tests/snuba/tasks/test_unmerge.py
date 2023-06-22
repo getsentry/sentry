@@ -257,9 +257,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
         with self.tasks():
-            eventstream_state = eventstream.start_merge(project.id, [merge_source.id], source.id)
+            eventstream_state = eventstream.backend.start_merge(
+                project.id, [merge_source.id], source.id
+            )
             merge_groups.delay([merge_source.id], source.id)
-            eventstream.end_merge(eventstream_state)
+            eventstream.backend.end_merge(eventstream_state)
 
         assert {
             (gtv.value, gtv.times_seen)

@@ -190,7 +190,7 @@ def merge_groups(
         )
     elif eventstream_state:
         # All `from_object_ids` have been merged!
-        eventstream.end_merge(eventstream_state)
+        eventstream.backend.end_merge(eventstream_state)
 
 
 def _get_event_environment(event, project, cache):

@@ -87,8 +87,8 @@ class EventDataDeletionTask(BaseDeletionTask):
         if not events:
             # Remove all group events now that their node data has been removed.
             for project_id, group_ids in project_groups.items():
-                eventstream_state = eventstream.start_delete_groups(project_id, group_ids)
-                eventstream.end_delete_groups(eventstream_state)
+                eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
+                eventstream.backend.end_delete_groups(eventstream_state)
             return False
 
         self.last_event = events[-1]

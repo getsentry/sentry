@@ -45,7 +45,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
 
 @region_silo_test
 class ProjectTagKeyDeleteTest(APITestCase):
-    @mock.patch("sentry.eventstream")
+    @mock.patch("sentry.eventstream.backend")
     def test_simple(self, mock_eventstream):
         key = "foo"
         val = "bar"
