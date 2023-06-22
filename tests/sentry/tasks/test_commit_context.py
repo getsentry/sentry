@@ -13,7 +13,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
-from sentry.tasks.commit_context import process_commit_context, queue_comment_task_if_needed
+from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import with_feature
@@ -725,21 +725,27 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    def test_gh_comment_debounces(self, mock_comment_workflow):
-        owner = GroupOwner.objects.create(
-            group=self.event.group,
-            user_id=self.user.id,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            date_added=timezone.now() - timedelta(days=8),
-        )
-        commit = Commit.objects.get(
-            repository_id=self.repo.id,
-            key=self.commit.key,
-        )
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow):
+        self.add_responses()
 
         with self.tasks():
-            queue_comment_task_if_needed(commit, owner)
-            queue_comment_task_if_needed(commit, owner)
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
             assert mock_comment_workflow.call_count == 1
