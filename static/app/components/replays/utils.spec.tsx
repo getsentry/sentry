@@ -161,7 +161,7 @@ describe('flattenFrames', () => {
       {
         duration: 20000,
         endTimestamp: 30000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 10000,
       },
     ]);
@@ -185,13 +185,13 @@ describe('flattenFrames', () => {
       {
         duration: 20000,
         endTimestamp: 30000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 10000,
       },
       {
         duration: 30000,
         endTimestamp: 90000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 60000,
       },
     ]);
@@ -215,7 +215,7 @@ describe('flattenFrames', () => {
       {
         duration: 30000,
         endTimestamp: 40000,
-        spanCount: 2,
+        frameCount: 2,
         startTimestamp: 10000,
       },
     ]);
@@ -244,13 +244,13 @@ describe('flattenFrames', () => {
       {
         duration: 1000,
         endTimestamp: 1000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 0,
       },
       {
         duration: 30000,
         endTimestamp: 40000,
-        spanCount: 2,
+        frameCount: 2,
         startTimestamp: 10000,
       },
     ]);
