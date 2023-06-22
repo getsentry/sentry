@@ -5,7 +5,7 @@ from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
-from sentry.integrations.request_buffer import IntegrationErrorLogBuffer
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Integration, OrganizationIntegration, User
 from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,
@@ -66,7 +66,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
     ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
 
-        buffer = IntegrationErrorLogBuffer(obj)
+        buffer = IntegrationRequestBuffer(obj)
         broken = buffer.is_integration_broken()
         data.update({"broken": broken})
 

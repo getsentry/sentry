@@ -13,10 +13,10 @@ IS_BROKEN_RANGE = 7  # 7 days
 logger = logging.getLogger(__name__)
 
 
-class IntegrationErrorLogBuffer:
+class IntegrationRequestBuffer:
     """
-    Create a data structure to store daily error counts for each installed integration in Redis
-    This should store the aggregate counts for last 30 days for each integration
+    Create a data structure to store daily successful and failed request counts for each installed integration in Redis
+    This should store the aggregate counts of each type for last 30 days for each integration
     """
 
     def __init__(self, integration):
@@ -60,7 +60,9 @@ class IntegrationErrorLogBuffer:
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in self._get()
-            if item.get("count", 0) > 0 and item.get("date")
+            if item.get("error_count", 0) > 0
+            and item.get("success_count", 0) == 0
+            and item.get("date")
         ][0:IS_BROKEN_RANGE]
 
         if not len(data):
@@ -72,7 +74,12 @@ class IntegrationErrorLogBuffer:
             return False
         return True
 
-    def add(self):
+    def add(self, key: str):
+        VALID_KEYS = ["success", "error"]
+        if key not in VALID_KEYS:
+            raise Exception("Requires a valid key param.")
+
+        other_key = list(set(VALID_KEYS).difference([key]))[0]
         buffer_key = self._get_redis_key()
         now = datetime.now().strftime("%Y-%m-%d")
 
@@ -83,21 +90,21 @@ class IntegrationErrorLogBuffer:
         if len(recent_item_array):
             recent_item = json.loads(recent_item_array[0])
             if recent_item.get("date") == now:
-                recent_item["count"] += 1
+                recent_item[f"{key}_count"] += 1
                 pipe.lset(buffer_key, 0, json.dumps(recent_item))
             else:
-                data = {
-                    "date": now,
-                    "count": 1,
-                }
+                data = {"date": now, f"{key}_count": 1, f"{other_key}_count": 0}
                 pipe.lpush(buffer_key, json.dumps(data))
 
         else:
-            data = {
-                "date": now,
-                "count": 1,
-            }
+            data = {"date": now, f"{key}_count": 1, f"{other_key}_count": 0}
             pipe.lpush(buffer_key, json.dumps(data))
 
         pipe.expire(buffer_key, KEY_EXPIRY)
         pipe.execute()
+
+    def record_error(self):
+        return self.add("error")
+
+    def record_success(self):
+        return self.add("success")

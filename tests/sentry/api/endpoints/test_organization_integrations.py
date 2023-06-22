@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from freezegun import freeze_time
 
-from sentry.integrations.request_buffer import IntegrationErrorLogBuffer
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -36,7 +36,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert "configOrganization" not in response.data[0]
 
     def test_integration_is_broken(self):
-        buffer = IntegrationErrorLogBuffer(self.integration)
+        buffer = IntegrationRequestBuffer(self.integration)
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
