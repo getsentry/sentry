@@ -33,7 +33,7 @@ class receivers_raise_on_send:
         global _receivers_that_raise
         self.old = _receivers_that_raise
 
-        if isinstance(self.receivers, _AllReceivers):
+        if self.receivers is _AllReceivers.ALL:
             _receivers_that_raise = self.receivers
         else:
             _receivers_that_raise += self.receivers
@@ -93,7 +93,7 @@ class BetterSignal(Signal):
             except Exception as err:
                 if "pytest" in sys.modules:
                     if (
-                        isinstance(_receivers_that_raise, _AllReceivers)
+                        _receivers_that_raise is _AllReceivers.ALL
                         or receiver in _receivers_that_raise
                     ):
                         raise
