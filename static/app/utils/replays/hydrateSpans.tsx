@@ -25,6 +25,7 @@ export default function hydrateSpans(
         return {
           ...frame,
           endTimestamp: end,
+          endTimestampMs: end.getTime(),
           offsetMs: Math.abs(start.getTime() - startTimestampMs),
           startTimestamp: start,
           timestampMs: start.getTime(),

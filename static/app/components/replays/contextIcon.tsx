@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import LoadingMask from 'sentry/components/loadingMask';
-import CountTooltipContent from 'sentry/components/replays/header/countTooltipContent';
+import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
