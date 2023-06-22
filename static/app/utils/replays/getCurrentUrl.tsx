@@ -3,7 +3,6 @@ import last from 'lodash/last';
 
 import type {
   BreadcrumbFrame,
-  HistoryFrame,
   NavigationFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
@@ -26,19 +25,18 @@ function getCurrentUrl(
     return stripOrigin(mostRecentFrame.message ?? '');
   }
 
-  if ('op' in mostRecentFrame) {
-    if (
-      ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
-        mostRecentFrame.op
-      )
-    ) {
-      // TODO(replay): `to` is not part of the type, but should it be?
-      // @ts-expect-error
-      return stripOrigin((mostRecentFrame as NavigationFrame).data.to);
-    }
-    if (mostRecentFrame.op === 'navigation.push') {
-      return stripOrigin((mostRecentFrame as HistoryFrame).data.previous);
-    }
+  if (
+    'op' in mostRecentFrame &&
+    [
+      'navigation.navigate',
+      'navigation.reload',
+      'navigation.back_forward',
+      'navigation.push',
+    ].includes(mostRecentFrame.op)
+  ) {
+    // `navigation.push` will probably have just the pathname
+    // while the other `navigate.*`  operations will have a full url
+    return stripOrigin((mostRecentFrame as NavigationFrame).description);
   }
 
   throw new Error('Unknown frame type in getCurrentUrl');
