@@ -60,13 +60,13 @@ class ProjectKeySerializer(Serializer):
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
         # must be Optional[str] instead of str. By setting else to "" we getaround this
         name = obj.label or (obj.public_key[:14] if obj.public_key else "")
+        public_key = obj.public_key or ""
         data: ProjectKeySerializerResponse = {
-            # same fix as above
-            "id": obj.public_key or "",
+            "id": public_key,
             "name": name,
             # label is here for compatibility
             "label": name,
-            "public": obj.public_key,
+            "public": public_key,
             "secret": obj.secret_key,
             "projectId": obj.project_id,
             "isActive": obj.is_active,
