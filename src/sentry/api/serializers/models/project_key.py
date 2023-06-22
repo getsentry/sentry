@@ -61,7 +61,8 @@ class ProjectKeySerializer(Serializer):
         # must be Optional[str] instead of str. By setting else to "" we getaround this
         name = obj.label or (obj.public_key[:14] if obj.public_key else "")
         data: ProjectKeySerializerResponse = {
-            "id": obj.public_key,
+            # same fix as above
+            "id": obj.public_key or "",
             "name": name,
             # label is here for compatibility
             "label": name,
