@@ -6,7 +6,7 @@ import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import IssueList from 'sentry/views/replays/detail/issueList';
-import MemoryChart from 'sentry/views/replays/detail/memory/index';
+import MemoryChart from 'sentry/views/replays/detail/memory';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
