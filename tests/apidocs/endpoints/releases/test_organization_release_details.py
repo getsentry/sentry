@@ -1,10 +1,28 @@
 from datetime import datetime
 
+from django.db.models import F
 from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils.silo import region_silo_test
+
+
+def set_joinleave_for_org(*, org: Organization, enabled=True):
+    flags = F("flags").bitor(Organization.flags.allow_joinleave)
+
+    if not enabled:
+        flags = F("flags").bitand(~Organization.flags.allow_joinleave)
+
+    update_organization_with_outbox_message(
+        org_id=org.id,
+        update_data={"flags": flags},
+    )
+    org.refresh_from_db()
 
 
 @region_silo_test
@@ -13,8 +31,7 @@ class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        set_joinleave_for_org(org=org, enabled=False)
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
