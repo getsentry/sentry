@@ -12,7 +12,8 @@ type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & 
 function sortSentrySampledProfileSamples(
   samples: Readonly<WeightedSample[]>,
   stacks: Profiling.SentrySampledProfile['profile']['stacks'],
-  frames: Profiling.SentrySampledProfile['profile']['frames']
+  frames: Profiling.SentrySampledProfile['profile']['frames'],
+  frameFilter?: (i: number) => boolean
 ) {
   const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
     const frameA = frames[a];
@@ -60,8 +61,13 @@ function sortSentrySampledProfileSamples(
       return 0;
     }
 
-    const stackA = stacks[a.stack_id];
-    const stackB = stacks[b.stack_id];
+    const stackA = frameFilter
+      ? stacks[a.stack_id].filter(frameFilter)
+      : stacks[a.stack_id];
+    const stackB = frameFilter
+      ? stacks[b.stack_id].filter(frameFilter)
+      : stacks[b.stack_id];
+
     const minDepth = Math.min(stackA.length, stackB.length);
 
     for (let i = 0; i < minDepth; i++) {
@@ -112,10 +118,23 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
+    function resolveFrame(index) {
+      const resolvedFrame = frameIndex[index];
+      if (!resolvedFrame) {
+        throw new Error(`Could not resolve frame ${index} in frame index`);
+      }
+      return resolvedFrame;
+    }
+
     const {frames, stacks} = sampledProfile.profile;
     const samples =
       options.type === 'flamegraph'
-        ? sortSentrySampledProfileSamples(weightedSamples, stacks, frames)
+        ? sortSentrySampledProfileSamples(
+            weightedSamples,
+            stacks,
+            frames,
+            options.frameFilter ? i => options.frameFilter!(resolveFrame(i)) : undefined
+          )
         : weightedSamples;
 
     const startedAt = samples[0].elapsed_since_start_ns;
@@ -138,14 +157,7 @@ export class SentrySampledProfile extends Profile {
 
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
-      let stack = stacks[sample.stack_id].map(fid => {
-        const frame = frameIndex[fid];
-        if (!frame) {
-          throw new Error(`Could not resolve frame ${fid} in frame index`);
-        }
-
-        return frame;
-      });
+      let stack = stacks[sample.stack_id].map(resolveFrame);
 
       if (options.frameFilter) {
         stack = stack.filter(frame => options.frameFilter!(frame));
