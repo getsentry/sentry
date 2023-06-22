@@ -1355,7 +1355,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             },
             project_id=self.project.id,
         ).group
-
         assigned_group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=195)),
@@ -1363,7 +1362,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             },
             project_id=self.project.id,
         ).group
-
         assigned_to_other_group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=195)),
@@ -1372,8 +1370,16 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
+        # before the change to me -> (me + my_teams)
         result = self.make_query(search_filter_query="assigned_or_suggested:[me]", user=self.user)
         assert set(result) == set()
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query="assigned_or_suggested:[me]", user=self.user
+            )
+            assert set(result) == set()
 
         GroupOwner.objects.create(
             group=assigned_to_other_group,
@@ -1392,8 +1398,16 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=self.user.id,
         )
 
+        # before the change to me -> (me + my_teams)
         result = self.make_query(search_filter_query="assigned_or_suggested:[me]", user=self.user)
         assert set(result) == {group, assigned_to_other_group}
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query="assigned_or_suggested:[me]", user=self.user
+            )
+            assert set(result) == {group, assigned_to_other_group}
 
         # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
         other_user = self.create_user("other@user.com", is_superuser=False)
@@ -1403,25 +1417,46 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=other_user.id,
         )
 
+        # before the change to me -> (me + my_teams)
         result = self.make_query(search_filter_query="assigned_or_suggested:[me]", user=self.user)
         assert set(result) == {group}
 
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query="assigned_or_suggested:[me]", user=self.user
+            )
+            assert set(result) == {group}
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query=f"assigned_or_suggested:[{other_user.email}]", user=self.user
         )
         assert set(result) == {assigned_to_other_group}
 
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query=f"assigned_or_suggested:[{other_user.email}]", user=self.user
+            )
+            assert set(result) == {assigned_to_other_group}
+
         GroupAssignee.objects.create(
             group=assigned_group, project=self.project, user_id=self.user.id
         )
-        # self.run_test_query_in_syntax(
-        #     f"assigned_or_suggested:[{self.user.email}]",
-        #     [assigned_group, group],
-        # )
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query=f"assigned_or_suggested:[{self.user.email}]", user=self.user
         )
         assert set(result) == {assigned_group, group}
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query=f"assigned_or_suggested:[{self.user.email}]", user=self.user
+            )
+            assert set(result) == {assigned_group, group}
 
         GroupOwner.objects.create(
             group=group,
@@ -1431,14 +1466,32 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=self.team.id,
             user_id=None,
         )
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query=f"assigned_or_suggested:[#{self.team.slug}]", user=self.user
         )
         assert set(result) == {group}
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query=f"assigned_or_suggested:[#{self.team.slug}]", user=self.user
+            )
+            assert set(result) == {group}
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query="assigned_or_suggested:[me, none]", user=self.user
         )
         assert set(result) == {group, group1, group2, assigned_group}
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query="assigned_or_suggested:[me, none]", user=self.user
+            )
+            assert set(result) == {group, group1, group2, assigned_group}
 
         not_me = self.create_user(email="notme@sentry.io")
         GroupOwner.objects.create(
@@ -1449,22 +1502,51 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=None,
             user_id=not_me.id,
         )
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query="assigned_or_suggested:[me, none]", user=self.user
         )
         assert set(result) == {group, group1, assigned_group}
 
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query="assigned_or_suggested:[me, none]", user=self.user
+            )
+            assert set(result) == {group, group1, assigned_group}
+
         GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query=f"assigned_or_suggested:[me, none, #{self.team.slug}]",
             user=self.user,
         )
         assert set(result) == {group, group1, assigned_group}
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query=f"assigned_or_suggested:[me, none, #{self.team.slug}]",
+                user=self.user,
+            )
+            assert set(result) == {group, group1, assigned_group}
+
+        # before the change to me -> (me + my_teams)
         result = self.make_query(
             search_filter_query=f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
             user=self.user,
         )
         assert set(result) == {group, group1, group2, assigned_group}
+
+        # after the change to me -> (me + my_teams)
+        with self.feature("organizations:assign-to-me"):
+            result = self.make_query(
+                search_filter_query=f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
+                user=self.user,
+            )
+            assert set(result) == {group, group1, group2, assigned_group}
 
     def test_assigned_to_with_environment(self):
         results = self.make_query(
