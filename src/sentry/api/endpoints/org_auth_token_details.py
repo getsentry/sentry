@@ -2,7 +2,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import analytics, audit_log
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -58,6 +58,12 @@ class OrgAuthTokenDetailsEndpoint(OrganizationEndpoint):
             target_object=instance.id,
             event=audit_log.get_event_id("ORGAUTHTOKEN_REMOVE"),
             data=instance.get_audit_log_data(),
+        )
+
+        analytics.record(
+            "org_auth_token.deleted",
+            user_id=request.user.id,
+            organization_id=organization.id,
         )
 
         return Response(status=204)

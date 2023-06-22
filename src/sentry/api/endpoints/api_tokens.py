@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.base import Endpoint, SessionAuthentication, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
@@ -59,6 +60,8 @@ class ApiTokensEndpoint(Endpoint):
                 send_email=True,
             )
 
+            analytics.record("api_token.created", user_id=request.user.id)
+
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
 
@@ -72,5 +75,7 @@ class ApiTokensEndpoint(Endpoint):
             return Response({"token": ""}, status=400)
 
         ApiToken.objects.filter(user_id=user_id, token=token, application__isnull=True).delete()
+
+        analytics.record("api_token.deleted", user_id=request.user.id)
 
         return Response(status=204)
