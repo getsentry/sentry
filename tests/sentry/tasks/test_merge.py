@@ -298,7 +298,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         with self.tasks():
             eventstream_state = eventstream.start_merge(project.id, [child.id], target.id)
-            merge_groups([child.id], target.id, handle_forecasts_groups=[child, target])
+            merge_groups([child.id], target.id, handle_forecasts_ids=[target.id, child.id])
             eventstream.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=child.id).exists()

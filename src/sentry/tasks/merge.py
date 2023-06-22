@@ -37,7 +37,7 @@ def merge_groups(
     transaction_id=None,
     recursed=False,
     eventstream_state=None,
-    handle_forecasts_groups: List[Group] = None,
+    handle_forecasts_ids: List[int] = None,
     delete_forecasts: bool = False,
     **kwargs,
 ):
@@ -45,7 +45,7 @@ def merge_groups(
     Recursively merge groups by deleting group models and groups, and merging times_seen,
     num_comments, and the group forecast if applicable.
 
-    `handle_forecasts_groups`: Groups whose forecasts need to be merged or deleted, ordered by
+    `handle_forecasts_ids`: Group ids whose forecasts need to be merged or deleted, ordered by
         desc times seen; None if the forecasts do not need to be handled
     `delete_forecasts`: Boolean if the forecasts should be deleted instead of merged
     """
@@ -69,6 +69,21 @@ def merge_groups(
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
         return False
+
+    # Delete or merge the forecasts if needed once before recursion
+    if delete_forecasts:
+        handle_forecasts_groups = Group.objects.filter(id__in=handle_forecasts_ids)
+        delete_outdated_forecasts(handle_forecasts_groups)
+    elif handle_forecasts_ids:
+        handle_forecasts_groups = Group.objects.filter(id__in=handle_forecasts_ids)
+        primary_group, groups_to_merge = (
+            handle_forecasts_groups[0],
+            handle_forecasts_groups[1:],
+        )
+        past_counts = query_groups_past_counts(handle_forecasts_groups)
+        merged_past_counts = merge_and_parse_past_counts(past_counts, primary_group.id)
+        save_forecast_per_group([primary_group], merged_past_counts)
+        delete_outdated_forecasts(groups_to_merge)
 
     # Operate on one "from" group per task iteration. The task is recursed
     # until each group has been merged.
@@ -209,23 +224,8 @@ def merge_groups(
             transaction_id=transaction_id,
             recursed=True,
             eventstream_state=eventstream_state,
-            handle_forecasts_groups=handle_forecasts_groups,
-            delete_forecasts=delete_forecasts,
         )
     elif eventstream_state:
-        # Delete or merge the forecasts if needed
-        if delete_forecasts:
-            delete_outdated_forecasts(handle_forecasts_groups)
-        elif handle_forecasts_groups:
-            primary_group, groups_to_merge = (
-                handle_forecasts_groups[0],
-                handle_forecasts_groups[1:],
-            )
-            past_counts = query_groups_past_counts(handle_forecasts_groups)
-            merged_past_counts = merge_and_parse_past_counts(past_counts, primary_group.id)
-            save_forecast_per_group([primary_group], merged_past_counts)
-            delete_outdated_forecasts(groups_to_merge)
-
         # All `from_object_ids` have been merged!
         eventstream.end_merge(eventstream_state)
 

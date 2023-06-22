@@ -3178,7 +3178,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             to_object_id=group2.id,
             transaction_id="abc123",
             eventstream_state=eventstream_state,
-            handle_forecasts_groups=None,
+            handle_forecasts_ids=None,
             delete_forecasts=False,
         )
 

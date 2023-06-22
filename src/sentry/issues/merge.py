@@ -37,6 +37,7 @@ def handle_merge(
     primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
+    group_ids_by_times_seen = [g.id for g in group_list_by_times_seen]
     eventstream_state = eventstream.start_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
@@ -59,7 +60,7 @@ def handle_merge(
         to_object_id=primary_group.id,
         transaction_id=transaction_id,
         eventstream_state=eventstream_state,
-        handle_forecasts_groups=group_list_by_times_seen
+        handle_forecasts_ids=group_ids_by_times_seen
         if merge_forecasts or delete_forecasts
         else None,
         delete_forecasts=delete_forecasts,
