@@ -5,7 +5,8 @@ from django.db.models.signals import post_save
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
 from sentry.signals import (

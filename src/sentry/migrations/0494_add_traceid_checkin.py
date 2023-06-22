@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0491_remove_orgmemmap_unique_constraints"),
+        ("sentry", "0493_pickle_to_json_sentry_activity"),
     ]
 
     operations = [
