@@ -21,6 +21,7 @@ import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -37,12 +38,7 @@ type Props = {
   openSidebar?: boolean;
 };
 
-export type Keys =
-  | 'transaction'
-  | 'p95(transaction.duration)'
-  | 'time_spent_percentage(local)'
-  | 'sps()';
-export type TableColumnHeader = GridColumnHeader<Keys>;
+export type TableColumnHeader = GridColumnHeader<keyof Row['metrics']>;
 
 export function SpanTransactionsTable({
   span,
@@ -93,7 +89,7 @@ export function SpanTransactionsTable({
     }
 
     const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(row, {
+    const rendered = renderer(row.metrics, {
       location,
       organization,
       unit: meta.units?.[column.key],
@@ -170,12 +166,22 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'sps()',
     name: DataTitles.throughput,
-    width: 175,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(transaction.duration)',
+    key: 'sps_percent_change()',
+    name: DataTitles.change,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
     name: DataTitles.p95,
-    width: 175,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
+    name: DataTitles.change,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'time_spent_percentage(local)',
