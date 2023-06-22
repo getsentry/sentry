@@ -9,6 +9,7 @@ import pytz
 from sentry import features
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
+from sentry.mail.notifications import get_unsubscribe_link
 from sentry.models import Group, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
@@ -96,10 +97,16 @@ class AlertRuleNotification(ProjectNotification):
     def reference(self) -> Model | None:
         return self.group
 
+    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
+        return "issue", self.group.id, None
+
     def get_recipient_context(
         self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
+
+        unsubscribe_key = self.get_unsubscribe_key()
+        unsubscribe_link = None
 
         if recipient.actor_type == ActorType.USER:
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
@@ -107,9 +114,14 @@ class AlertRuleNotification(ProjectNotification):
                 timezone = pytz.timezone(user_tz)
             except pytz.UnknownTimeZoneError:
                 pass
+            if unsubscribe_key:
+                key, resource_id, referrer = unsubscribe_key
+                unsubscribe_link = get_unsubscribe_link(recipient.id, resource_id, key, referrer)
+
         return {
             **super().get_recipient_context(recipient, extra_context),
             "timezone": timezone,
+            "unsubscribe_link": unsubscribe_link,
         }
 
     def get_context(self) -> MutableMapping[str, Any]:

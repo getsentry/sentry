@@ -429,6 +429,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             RpcActor.from_orm_user(self.user), {}
         )
         assert recipient_context["timezone"] == pytz.timezone("Europe/Vienna")
+        assert recipient_context["unsubscribe_link"]
 
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)

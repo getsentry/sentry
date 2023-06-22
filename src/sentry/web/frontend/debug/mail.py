@@ -31,7 +31,7 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.mail.notifications import get_builder_args
+from sentry.mail.notifications import get_builder_args, get_unsubscribe_link
 from sentry.models import (
     Activity,
     Group,
@@ -249,6 +249,7 @@ def get_shared_context(rule, org, project, group, event):
         "tags": event.tags,
         "snooze_alert": snooze_alert,
         "snooze_alert_url": absolute_uri(snooze_alert_url),
+        "unsubscribe_link": get_unsubscribe_link(1, group.id, "issue", None),
     }
 
 
