@@ -44,6 +44,7 @@ type OverviewTab = {
  */
 export function getTabs(organization: Organization) {
   const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
+  const hasAssignToMe = organization.features.includes('assign-to-me');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -55,7 +56,7 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.FOR_REVIEW,
+      hasAssignToMe ? Query.FOR_REVIEW : Query.FOR_REVIEW_OLD,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
