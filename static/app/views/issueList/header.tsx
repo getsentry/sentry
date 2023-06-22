@@ -92,7 +92,7 @@ function IssueListHeader({
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
-
+  const forReviewQueries: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
@@ -133,8 +133,9 @@ function IssueListHeader({
                   query: {
                     ...queryParms,
                     query: tabQuery,
-                    sort:
-                      tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
+                    sort: forReviewQueries.includes(tabQuery || '')
+                      ? IssueSortOptions.INBOX
+                      : sortParam,
                   },
                   pathname: `/organizations/${organization.slug}/issues/`,
                 });

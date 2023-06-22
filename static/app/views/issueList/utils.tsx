@@ -4,7 +4,8 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW_OLD = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -51,6 +52,22 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
+      },
+    ],
+    [
+      Query.FOR_REVIEW_OLD,
+      {
+        name: t('For Review'),
+        analyticsName: 'needs_review',
+        count: true,
+        enabled: true,
+        tooltipTitle: hasEscalatingIssuesUi
+          ? t(
+              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+            )
+          : t(`Issues are marked for review when they are created, unresolved, or unignored.
+          Mark an issue reviewed to move it out of this list.
+          Issues are automatically marked reviewed in 7 days.`),
       },
     ],
     [

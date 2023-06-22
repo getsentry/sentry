@@ -138,6 +138,7 @@ class NoGroupsHandler extends Component<Props, State> {
   render() {
     const {fetchingSentFirstEvent, sentFirstEvent, firstEventProjects} = this.state;
     const {query} = this.props;
+    const forReviewQueries: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
 
     if (fetchingSentFirstEvent) {
       return this.renderLoading();
@@ -154,7 +155,7 @@ class NoGroupsHandler extends Component<Props, State> {
       );
     }
 
-    if (query === Query.FOR_REVIEW) {
+    if (forReviewQueries.includes(query || '')) {
       return (
         <NoUnresolvedIssues
           title={t('Well, would you look at that.')}

@@ -921,8 +921,11 @@ class IssueListOverview extends Component<Props, State> {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
-    // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
+    const forReviewQueries: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
+    if (
+      query.sort === IssueSortOptions.INBOX &&
+      !forReviewQueries.includes(query.query || '')
+    ) {
       delete query.sort;
     }
 

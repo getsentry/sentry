@@ -35,10 +35,11 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   const hasBetterPrioritySort = organization.features.includes(
     'issue-list-better-priority-sort'
   );
+  const forReviewQueries: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
-    ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
+    ...(forReviewQueries.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs

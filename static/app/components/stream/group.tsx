@@ -133,7 +133,8 @@ function BaseGroupRow({
   }, [organization, group.id, group.owners, query]);
 
   const trackClick = useCallback(() => {
-    if (query === Query.FOR_REVIEW) {
+    const forReviewQueries: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
+    if (forReviewQueries.includes(query || '')) {
       trackAnalytics('inbox_tab.issue_clicked', {
         organization,
         group_id: group.id,
