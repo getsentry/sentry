@@ -15,7 +15,8 @@ from sentry.models import (
     Project,
 )
 from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (

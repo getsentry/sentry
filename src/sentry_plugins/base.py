@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from typing import Any, NoReturn
 
@@ -19,16 +20,16 @@ from sentry.shared_integrations.exceptions import (
 
 
 class CorePluginMixin:
-    author = "Sentry Team"
-    author_url = "https://github.com/getsentry/sentry"
-    version = sentry_plugins.VERSION
+    author: str | None = "Sentry Team"
+    author_url: str | None = "https://github.com/getsentry/sentry"
+    version: str | None = sentry_plugins.VERSION
     resource_links = [
         ("Report Issue", "https://github.com/getsentry/sentry/issues"),
         ("View Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass
-    logger = None
+    logger: logging.Logger | None = None
 
     # TODO(dcramer): The following is a possible "better implementation" of the
     # core issue implementation, though it would need a compat layer to push
