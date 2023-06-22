@@ -69,6 +69,8 @@ type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
+const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+
 export default class ReplayReader {
   static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
@@ -124,16 +126,27 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this.replayRecord = replayRecord;
+    // Errors don't need to be sorted here, they will be merged with breadcrumbs
+    // and spans in the getter and then sorted together.
     this._errors = hydrateErrors(replayRecord, errors);
-    this._rrwebEvents = rrwebFrames;
-    this._breadcrumbFrames = hydrateBreadcrumbs(replayRecord, breadcrumbFrames);
-    this._spanFrames = hydrateSpans(replayRecord, spanFrames);
+    // RRWeb Events are not sorted here, they are fetched in sorted order.
+    this._sortedRRWebEvents = rrwebFrames;
+    // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
+    // have the same timestamp as the click breadcrumb, but will be emitted a
+    // few seconds later.
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
+      replayRecord,
+      breadcrumbFrames
+    ).sort(sortFrames);
+    // Spans must be sorted so components like the Timeline and Network Chart
+    // can have an easier time to render.
+    this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._breadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
-    this._rrwebEvents.unshift(recordingStartFrame(replayRecord));
-    this._rrwebEvents.push(recordingEndFrame(replayRecord));
+    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
     /*********************/
     /** OLD STUFF BELOW **/
@@ -176,11 +189,11 @@ export default class ReplayReader {
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
-  private _breadcrumbFrames: BreadcrumbFrame[];
   private _errors: ErrorFrame[];
   private _optionFrame: undefined | OptionFrame;
-  private _rrwebEvents: RecordingFrame[];
-  private _spanFrames: SpanFrame[];
+  private _sortedBreadcrumbFrames: BreadcrumbFrame[];
+  private _sortedRRWebEvents: RecordingFrame[];
+  private _sortedSpanFrames: SpanFrame[];
 
   private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
@@ -199,58 +212,57 @@ export default class ReplayReader {
     return this.replayRecord;
   };
 
-  getRRWebFrames = () => this._rrwebEvents;
+  getRRWebFrames = () => this._sortedRRWebEvents;
 
   getConsoleFrames = memoize(() =>
-    this._breadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
-  private _getNetworkFrames = () =>
-    this._spanFrames.filter(
+  getNetworkFrames = memoize(() =>
+    this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
-    );
-
-  getSortedNetworkFrames = memoize(() =>
-    this._getNetworkFrames().sort((a, b) => a.timestampMs - b.timestampMs)
+    )
   );
 
   getDOMFrames = memoize(() =>
-    this._breadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {}))
+    this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {}))
   );
 
   getMemoryFrames = memoize(() =>
-    this._spanFrames.filter(frame => frame.op === 'memory')
+    this._sortedSpanFrames.filter(frame => frame.op === 'memory')
   );
 
-  private _getChapters = () => [
-    ...this._breadcrumbFrames.filter(
-      frame =>
-        ['replay.init', 'ui.click', 'replay.mutations', 'ui.slowClickDetected'].includes(
-          frame.category
-        ) || !BreadcrumbCategories.includes(frame.category)
-    ),
-    ...this._spanFrames.filter(frame =>
-      ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
-        frame.op
-      )
-    ),
-    ...this._errors,
-  ];
-
-  // Sort and memoize the chapters, so the Breadcrumbs UI Component has an easier time
-  getSortedChapters = memoize(() =>
-    this._getChapters().sort((a, b) => a.timestampMs - b.timestampMs)
+  getChapterFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(
+        frame =>
+          [
+            'replay.init',
+            'ui.click',
+            'replay.mutations',
+            'ui.slowClickDetected',
+          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
+      ),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+          frame.op
+        )
+      ),
+      ...this._errors,
+    ].sort(sortFrames)
   );
 
-  getTimelineEvents = memoize(() => [
-    ...this._breadcrumbFrames.filter(frame =>
-      ['replay.init', 'ui.click'].includes(frame.category)
-    ),
-    ...this._spanFrames.filter(frame =>
-      ['navigation.navigate', 'navigation.reload'].includes(frame.op)
-    ),
-    ...this._errors,
-  ]);
+  getTimelineFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'ui.click'].includes(frame.category)
+      ),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
+      ),
+      ...this._errors,
+    ].sort(sortFrames)
+  );
 
   getSDKOptions = () => this._optionFrame;
 
