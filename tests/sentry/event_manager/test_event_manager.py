@@ -139,7 +139,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.platform == "python"
         assert event.platform == "python"
 
-    @mock.patch("sentry.event_manager.eventstream.insert")
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_dupe_message_id(self, eventstream_insert):
         # Saves the latest event to nodestore and eventstream
         project_id = 1
@@ -1380,7 +1380,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert 42 not in event.tags
         assert None not in event.tags
 
-    @mock.patch("sentry.event_manager.eventstream.insert")
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_group_environment(self, eventstream_insert):
         release_version = "1.0"
 
