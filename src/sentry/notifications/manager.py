@@ -13,7 +13,6 @@ from typing import (
     Union,
 )
 
-import sentry_sdk
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
@@ -222,14 +221,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_ids: Iterable[int] | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates types to actual attributes to column types."""
-
-        try:
-            assert (user_ids and not team_ids) or (
-                team_ids and not user_ids
-            ), "Must have user_id or team_id when reading settings"
-        except AssertionError as err:
-            sentry_sdk.capture_exception(err)
-
         query = Q()
         if provider:
             query = query & Q(provider=provider.value)
