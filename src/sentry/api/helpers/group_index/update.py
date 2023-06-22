@@ -25,6 +25,7 @@ from sentry.issues.update_inbox import update_inbox
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
+    Actor,
     ActorTuple,
     Group,
     GroupAssignee,
@@ -615,7 +616,7 @@ def update_groups(
         pass
 
     if "assignedTo" in result:
-        handle_assigned_to(
+        result["assignedTo"] = handle_assigned_to(
             result["assignedTo"],
             data.get("assignedBy"),
             data.get("integration"),
@@ -797,7 +798,7 @@ def handle_assigned_to(
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
-):
+) -> Actor:
     """
     Handle the assignedTo field on a group update.
 
