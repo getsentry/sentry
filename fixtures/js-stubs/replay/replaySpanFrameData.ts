@@ -56,7 +56,6 @@ export function NavigationFrame(
   return BaseFrame(fields.op ?? 'navigation.navigate', {
     ...fields,
     data: {
-      ...fields.data,
       decodedBodySize: fields.data?.decodedBodySize,
       domComplete: fields.data?.domComplete,
       domContentLoadedEventEnd: fields.data?.domContentLoadedEventEnd,

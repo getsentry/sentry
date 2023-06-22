@@ -34,8 +34,8 @@ function getCurrentUrl(
       'navigation.push',
     ].includes(mostRecentFrame.op)
   ) {
-    // `navigation.push` will probably have just the pathname
-    // while the other `navigate.*`  operations will have a full url
+    // navigation.push will have the pathname while the other `navigate.*`
+    // operations will have a full url.
     return stripOrigin((mostRecentFrame as NavigationFrame).description);
   }
 
