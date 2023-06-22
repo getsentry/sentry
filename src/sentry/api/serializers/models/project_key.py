@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Tuple
 
 from typing_extensions import TypedDict
 
@@ -27,6 +27,10 @@ class DSN(TypedDict):
     cdn: str
 
 
+class BrowserSDK(TypedDict):
+    choices: Tuple[List[str]]
+
+
 class DynamicSDKLoaderOptions(TypedDict):
     hasReplay: bool
     hasPerformance: bool
@@ -48,7 +52,7 @@ class ProjectKeySerializerResponse(TypedDict):
     rateLimit: Optional[RateLimit]
     dsn: DSN
     browserSdkVersion: str
-    browserSdk: Dict[str, List[List[str]]]
+    browserSdk: BrowserSDK
     dateCreated: Optional[datetime]
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
 
