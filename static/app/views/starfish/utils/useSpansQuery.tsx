@@ -34,9 +34,11 @@ export function useSpansQuery<T = any[]>({
   limit?: number;
   referrer?: string;
 }): UseSpansQueryReturnType<T> {
-  const queryFunction = getQueryFunction({
-    isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
-  });
+  const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
+  const queryFunction = isTimeseriesQuery
+    ? useWrappedDiscoverTimeseriesQuery
+    : useWrappedDiscoverQuery;
+
   if (eventView) {
     const response = queryFunction({
       eventView,
@@ -142,14 +144,6 @@ export function useWrappedDiscoverQuery({
     meta: data?.meta ?? {},
     pageLinks,
   };
-}
-
-function getQueryFunction({isTimeseriesQuery}: {isTimeseriesQuery?: boolean}) {
-  if (isTimeseriesQuery) {
-    return useWrappedDiscoverTimeseriesQuery;
-  }
-
-  return useWrappedDiscoverQuery;
 }
 
 type Interval = {[key: string]: any; interval: string; group?: string};
