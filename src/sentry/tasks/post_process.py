@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
@@ -590,6 +591,18 @@ def post_process_group(
 
         for job in group_jobs:
             run_post_process_job(job)
+
+        # TODO: Should we even emit this for reprocessing?
+        if start_time := event.data.get("received"):
+            metrics.timing(
+                # TODO: Name?
+                "events.time-to-post-process",
+                time() - start_time,
+                instance=data["platform"],
+                tags={
+                    "is_reprocessing2": "true" if is_reprocessed else "false",
+                },
+            )
 
 
 def run_post_process_job(job: PostProcessJob):
