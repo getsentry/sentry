@@ -17,6 +17,7 @@ from sentry.models.activity import ActivityIntegration
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
@@ -134,8 +135,32 @@ def verify_signature(request):
     return True
 
 
+class MsTeamsWebhookMixin:
+    provider = "msteams"
+
+    def get_integration_from_channel_data(self, request: Request) -> RpcIntegration | None:
+        try:
+            data = request.data
+            channel_data = data["channelData"]
+            team_id = channel_data["team"]["id"]
+            return integration_service.get_integration(provider=self.provider, external_id=team_id)
+        except Exception:
+            pass
+        return None
+
+    def get_integration_from_payload(self, request: Request) -> RpcIntegration | None:
+        try:
+            data = request.data
+            payload = data["value"]["payload"]
+            integration_id = payload["integrationId"]
+            return integration_service.get_integration(integration_id=integration_id)
+        except Exception:
+            pass
+        return None
+
+
 @region_silo_endpoint
-class MsTeamsWebhookEndpoint(Endpoint):
+class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     authentication_classes = ()
     permission_classes = ()
     provider = "msteams"
@@ -246,9 +271,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         team_id = channel_data["team"]["id"]
 
-        integration = integration_service.get_integration(
-            provider=self.provider, external_id=team_id
-        )
+        integration = self.get_integration_from_channel_data(request)
         if integration is None:
             logger.info(
                 "msteams.uninstall.missing-integration",
@@ -362,7 +385,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = self.get_integration_from_payload(request)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
