@@ -71,7 +71,9 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            GlobalParams.name("The name of the key"),
+            GlobalParams.name(
+                "The optional name of the key. If not provided a name will be automatically generated"
+            ),
         ],
         request=None,
         responses={
