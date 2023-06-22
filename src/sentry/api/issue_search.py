@@ -25,6 +25,7 @@ from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERAT
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
+    get_teams_for_users,
     parse_actor_or_none_value,
     parse_release,
     parse_status_value,
@@ -81,14 +82,20 @@ ValueConverter = Callable[
 
 
 def convert_actor_or_none_value(
-    value: Iterable[Union[User, Team]],
+    value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
 ) -> List[Optional[Union[User, Team]]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
-    return [parse_actor_or_none_value(projects, actor, user) for actor in value]
+    actors_or_none = []
+    for actor in value:
+        if actor == "my_teams":
+            actors_or_none.extend(get_teams_for_users(projects, [user]))
+        else:
+            actors_or_none.append(parse_actor_or_none_value(projects, actor, user))
+    return actors_or_none
 
 
 def convert_user_value(
