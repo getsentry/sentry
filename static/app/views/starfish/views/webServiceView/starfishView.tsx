@@ -12,7 +12,6 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
@@ -80,7 +79,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           };
 
           return (
-            <Fragment>
+            <ChartGrid>
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
@@ -127,7 +126,30 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   chartColors={theme.charts.getColorPalette(2)}
                 />
               </MiniChartPanel>
-            </Fragment>
+
+              <WideChart>
+                <MiniChartPanel title={DataTitles.errorCount}>
+                  <Chart
+                    statsPeriod={eventView.statsPeriod}
+                    height={80}
+                    data={[errorsData]}
+                    start={eventView.start as string}
+                    end={eventView.end as string}
+                    loading={loading}
+                    utc={false}
+                    grid={{
+                      left: '0',
+                      right: '0',
+                      top: '8px',
+                      bottom: '0',
+                    }}
+                    definedAxisTicks={2}
+                    isLineChart
+                    chartColors={theme.charts.getColorPalette(2)}
+                  />
+                </MiniChartPanel>
+              </WideChart>
+            </ChartGrid>
           );
         }}
       </EventsRequest>
@@ -169,4 +191,14 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
+`;
+
+const ChartGrid = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: ${space(2)};
+`;
+
+const WideChart = styled('div')`
+  grid-column: 1 / 3;
 `;
