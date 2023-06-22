@@ -1415,6 +1415,7 @@ class Factories:
             user_id=user.id,
             status=IdentityStatus.VALID,
             scopes=[],
+            **kwargs,
         )
 
     @staticmethod

@@ -1,18 +1,40 @@
 import pytest
 from django.db import IntegrityError
 
-from sentry.models.organization import OrganizationStatus
+from sentry.models import outbox_context
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
+    def test_create_on_organization_save(self):
+        with outbox_context(flush=False), exempt_from_silo_limits():
+            organization = Organization(
+                name="test name",
+            )
+            organization.save()
+
+        # Validate that organization mapping has not been created
+        with pytest.raises(OrganizationMapping.DoesNotExist):
+            OrganizationMapping.objects.get(organization_id=organization.id)
+
+        # Drain outbox to ensure mapping is created
+        with outbox_runner():
+            pass
+
+        org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+        assert organization.id == org_mapping.organization_id
+        assert organization.slug == org_mapping.slug
+        assert organization.name == org_mapping.name
+
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(
             name="test name",

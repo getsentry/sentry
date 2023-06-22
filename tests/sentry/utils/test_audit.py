@@ -2,7 +2,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import audit_log
 from sentry.models import (
-    ApiKey,
+    AuditLogEntry,
     DeletedOrganization,
     DeletedProject,
     DeletedTeam,
@@ -11,8 +11,15 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.utils.audit import create_audit_entry, create_system_audit_entry
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.utils.audit import (
+    create_audit_entry,
+    create_audit_entry_from_user,
+    create_system_audit_entry,
+)
 
 username = "hello" * 20
 
@@ -23,6 +30,7 @@ class FakeHttpRequest:
         self.META = {"REMOTE_ADDR": "127.0.0.1"}
 
 
+@all_silo_test(stable=True)
 class CreateAuditEntryTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username=username)
@@ -32,13 +40,14 @@ class CreateAuditEntryTest(TestCase):
         self.project = self.create_project(teams=[self.team], platform="java")
 
     def assert_no_delete_log_created(self):
-        assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
-        assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
-        assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
+        with exempt_from_silo_limits():
+            assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
+            assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
+            assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
 
     def test_audit_entry_api(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        apikey = self.create_api_key(org, allowed_origins="*")
 
         req = FakeHttpRequest(AnonymousUser())
         req.auth = apikey
@@ -61,6 +70,9 @@ class CreateAuditEntryTest(TestCase):
         self.assert_no_delete_log_created()
 
     def test_audit_entry_org_delete_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -80,18 +92,20 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        org = update_organization_with_outbox_message(
-            org_id=self.organization.id, update_data={"status": OrganizationStatus.PENDING_DELETION}
-        )
+        with exempt_from_silo_limits():
+            org = update_organization_with_outbox_message(
+                org_id=self.organization.id,
+                update_data={"status": OrganizationStatus.PENDING_DELETION},
+            )
 
-        org2 = update_organization_with_outbox_message(
-            org_id=self.organization.id,
-            update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
-        )
+            org2 = update_organization_with_outbox_message(
+                org_id=self.organization.id,
+                update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
+            )
 
-        org3 = update_organization_with_outbox_message(
-            org_id=self.organization.id, update_data={"status": OrganizationStatus.ACTIVE}
-        )
+            org3 = update_organization_with_outbox_message(
+                org_id=self.organization.id, update_data={"status": OrganizationStatus.ACTIVE}
+            )
 
         orgs = [org, org2, org3]
 
@@ -131,6 +145,9 @@ class CreateAuditEntryTest(TestCase):
                 assert entry2.event == audit_log.get_event_id("ORG_EDIT")
 
     def test_audit_entry_team_delete_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -146,7 +163,31 @@ class CreateAuditEntryTest(TestCase):
         deleted_team = DeletedTeam.objects.get(slug=self.team.slug)
         self.assert_valid_deleted_log(deleted_team, self.team)
 
+    def test_audit_entry_api_key(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
+        key = self.create_api_key(self.organization)
+
+        with outbox_runner():
+            create_audit_entry_from_user(
+                None,
+                api_key=key,
+                organization=self.organization,
+                target_object=self.project.id,
+                event=audit_log.get_event_id("PROJECT_ADD"),
+            )
+
+        with exempt_from_silo_limits():
+            assert (
+                AuditLogEntry.objects.get(event=audit_log.get_event_id("PROJECT_ADD")).actor_label
+                == key.key
+            )
+
     def test_audit_entry_project_delete_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -166,6 +207,9 @@ class CreateAuditEntryTest(TestCase):
         assert deleted_project.platform == self.project.platform
 
     def test_audit_entry_project_delete_with_origin_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,

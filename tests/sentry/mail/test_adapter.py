@@ -1014,16 +1014,15 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             email="user_username_star@example.com", is_active=True
         )
         users = [user, user_star, user_username, user_username_star]
-        [self.create_member(user=u, organization=organization, teams=[team]) for u in users]
-        [
+        for u in users:
+            self.create_member(user=u, organization=organization, teams=[team])
+        for u in users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
                 user=u,
             )
-            for u in users
-        ]
 
         """
             tags.user.username:someemail@example.com sentryuser@example.com

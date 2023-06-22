@@ -25,6 +25,7 @@ export interface RangeFieldProps
       | 'formatMessageValue'
     > {
   disabled?: boolean | DisabledFunction;
+  disabledReason?: React.ReactNode;
   formatMessageValue?: false | Function;
   placeholder?: string | PlaceholderFunction;
 }

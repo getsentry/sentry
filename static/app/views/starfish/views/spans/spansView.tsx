@@ -68,15 +68,15 @@ export default function SpansView(props: Props) {
           spanCategory={props.spanCategory}
         />
 
-        <DomainSelector
-          moduleName={props.moduleName}
-          value={appliedFilters['span.domain'] || ''}
-          spanCategory={props.spanCategory}
-        />
-
         <ActionSelector
           moduleName={props.moduleName}
           value={appliedFilters['span.action'] || ''}
+          spanCategory={props.spanCategory}
+        />
+
+        <DomainSelector
+          moduleName={props.moduleName}
+          value={appliedFilters['span.domain'] || ''}
           spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>

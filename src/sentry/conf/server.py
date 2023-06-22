@@ -3479,6 +3479,9 @@ SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
 # decorator.
 SINGLE_SERVER_SILO_MODE = False
 
+# Used by silo tests -- activate all silo mode test decorators even if not marked stable
+FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
+
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
 
@@ -3502,7 +3505,7 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.5
 
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
@@ -3538,3 +3541,7 @@ SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
 #     See sentry.db.models.manager.base_query_set how qs.using_replica() works for more details db
 #     router implementation.
 SENTRY_MODEL_CACHE_USE_REPLICA = False
+
+# Additional consumer definitions beyond the ones defined in sentry.consumers.
+# Necessary for getsentry to define custom consumers.
+SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
