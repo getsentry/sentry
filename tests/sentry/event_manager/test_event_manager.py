@@ -86,6 +86,7 @@ from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
@@ -1245,14 +1246,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 **kwargs,
             )[key]
 
-        assert query(tsdb.models.project, project.id) == 1
-        assert query(tsdb.models.group, event.group.id) == 1
+        assert query(TSDBModel.project, project.id) == 1
+        assert query(TSDBModel.group, event.group.id) == 1
 
         environment_id = Environment.get_for_organization_id(
             event.project.organization_id, "totally unique super duper environment"
         ).id
-        assert query(tsdb.models.project, project.id, environment_id=environment_id) == 1
-        assert query(tsdb.models.group, event.group.id, environment_id=environment_id) == 1
+        assert query(TSDBModel.project, project.id, environment_id=environment_id) == 1
+        assert query(TSDBModel.group, event.group.id, environment_id=environment_id) == 1
 
     @pytest.mark.xfail
     def test_record_frequencies(self):
@@ -1261,7 +1262,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(project.id)
 
         assert tsdb.get_most_frequent(
-            tsdb.models.frequent_issues_by_project, (event.project.id,), event.datetime
+            TSDBModel.frequent_issues_by_project, (event.project.id,), event.datetime
         ) == {event.project.id: [(event.group_id, 1.0)]}
 
     def test_event_user(self):
@@ -1279,7 +1280,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ).id
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group,
+            TSDBModel.users_affected_by_group,
             (event.group.id,),
             event.datetime,
             event.datetime,
@@ -1287,7 +1288,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_project,
+            TSDBModel.users_affected_by_project,
             (event.project.id,),
             event.datetime,
             event.datetime,
@@ -1295,7 +1296,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.project.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group,
+            TSDBModel.users_affected_by_group,
             (event.group.id,),
             event.datetime,
             event.datetime,
@@ -1304,7 +1305,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.group.id: 1}
 
         assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_project,
+            TSDBModel.users_affected_by_project,
             (event.project.id,),
             event.datetime,
             event.datetime,
@@ -2027,7 +2028,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is None
         assert (
             tsdb.get_sums(
-                tsdb.models.project,
+                TSDBModel.project,
                 [self.project.id],
                 event.datetime,
                 event.datetime,
@@ -2067,7 +2068,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event2.group is None
         assert (
             tsdb.get_sums(
-                tsdb.models.project,
+                TSDBModel.project,
                 [self.project.id],
                 event1.datetime,
                 event1.datetime,
@@ -2078,7 +2079,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert (
             tsdb.get_sums(
-                tsdb.models.group,
+                TSDBModel.group,
                 [event1.group.id],
                 event1.datetime,
                 event1.datetime,

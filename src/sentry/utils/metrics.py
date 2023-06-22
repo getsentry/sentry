@@ -72,6 +72,7 @@ class InternalMetrics:
 
         def worker() -> None:
             from sentry import tsdb
+            from sentry.tsdb.base import TSDBModel
 
             while True:
                 key, instance, tags, amount, sample_rate = q.get()
@@ -81,7 +82,7 @@ class InternalMetrics:
                 else:
                     full_key = key
                 try:
-                    tsdb.incr(tsdb.models.internal, full_key, count=amount)
+                    tsdb.incr(TSDBModel.internal, full_key, count=amount)
                 except Exception:
                     logger = logging.getLogger("sentry.errors")
                     logger.exception("Unable to incr internal metric")

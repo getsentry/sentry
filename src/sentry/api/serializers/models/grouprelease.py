@@ -6,6 +6,7 @@ from django.utils import timezone
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import GroupRelease, Project, Release
+from sentry.tsdb.base import TSDBModel
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
@@ -64,7 +65,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
 
             try:
                 stats = tsdb.get_frequency_series(
-                    model=tsdb.models.frequent_releases_by_group,
+                    model=TSDBModel.frequent_releases_by_group,
                     items=items,
                     start=since,
                     end=until,

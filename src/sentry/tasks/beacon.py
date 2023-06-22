@@ -14,6 +14,7 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.locks import locks
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 
 BEACON_URL = "https://sentry.io/remote/beacon/"
@@ -65,7 +66,7 @@ def send_beacon():
 
     end = timezone.now()
     events_24h = tsdb.get_sums(
-        model=tsdb.models.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
+        model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
     )["events.total"]
 
     # we need this to be explicitly configured and it defaults to None,

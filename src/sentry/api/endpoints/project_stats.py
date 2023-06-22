@@ -7,6 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models import Environment
+from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
@@ -40,13 +41,13 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         stat = request.GET.get("stat", "received")
         query_kwargs = {}
         if stat == "received":
-            stat_model = tsdb.models.project_total_received
+            stat_model = TSDBModel.project_total_received
         elif stat == "rejected":
-            stat_model = tsdb.models.project_total_rejected
+            stat_model = TSDBModel.project_total_rejected
         elif stat == "blacklisted":
-            stat_model = tsdb.models.project_total_blacklisted
+            stat_model = TSDBModel.project_total_blacklisted
         elif stat == "generated":
-            stat_model = tsdb.models.project
+            stat_model = TSDBModel.project
             try:
                 query_kwargs["environment_id"] = self._get_environment_id_from_request(
                     request, project.organization_id
@@ -54,7 +55,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
         elif stat == "forwarded":
-            stat_model = tsdb.models.project_total_forwarded
+            stat_model = TSDBModel.project_total_forwarded
         else:
             try:
                 stat_model = FILTER_STAT_KEYS_TO_VALUES[stat]
