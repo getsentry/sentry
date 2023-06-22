@@ -664,6 +664,7 @@ const IconOpenWithMargin = styled(IconOpen)`
 const RecommendedItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
+
 const RecommendedItemDescription = styled('div')`
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeSmall};
