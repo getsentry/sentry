@@ -353,14 +353,14 @@ class Migration(CheckedMigration):
         migrations.CreateModel(
             name="User",
             fields=[
-                ("password", models.CharField(max_length=128)),
-                ("last_login", models.DateTimeField(blank=True, null=True)),
                 (
                     "id",
                     sentry.db.models.fields.bounded.BoundedBigAutoField(
                         primary_key=True, serialize=False
                     ),
                 ),
+                ("password", models.CharField(max_length=128)),
+                ("last_login", models.DateTimeField(blank=True, null=True)),
                 ("username", models.CharField(max_length=128, unique=True)),
                 ("name", models.CharField(blank=True, db_column="first_name", max_length=200)),
                 ("email", models.EmailField(blank=True, max_length=75)),
@@ -10366,5 +10366,15 @@ class Migration(CheckedMigration):
                     field=models.CharField(blank=True, max_length=75, null=True),
                 ),
             ],
+        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="user",
+                    name="id",
+                    field=sentry.db.models.fields.bounded.BoundedAutoField(primary_key=True),
+                ),
+            ],
+            database_operations=[],
         ),
     ]
