@@ -20,10 +20,14 @@ from sentry.models import (
     Deploy,
     Environment,
     EnvironmentProject,
+    Organization,
     Project,
     Release,
     ReleaseProjectEnvironment,
     UserReport,
+)
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -33,6 +37,19 @@ from sentry.utils.samples import load_data
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
+
+
+def set_joinleave_for_org(*, org: Organization, enabled=True):
+    flags = F("flags").bitor(Organization.flags.allow_joinleave)
+
+    if not enabled:
+        flags = F("flags").bitand(~Organization.flags.allow_joinleave)
+
+    update_organization_with_outbox_message(
+        org_id=org.id,
+        update_data={"flags": flags},
+    )
+    org.refresh_from_db()
 
 
 @region_silo_test
@@ -58,8 +75,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == set()
@@ -82,8 +99,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == set()
@@ -105,8 +122,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == set()
@@ -128,8 +145,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -151,8 +168,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -178,8 +195,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -202,8 +219,8 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
+
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]

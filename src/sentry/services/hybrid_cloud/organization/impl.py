@@ -25,6 +25,7 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
@@ -406,12 +407,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
         )
 
-    def update_default_role(
-        self, *, organization_id: int, default_role: str
-    ) -> RpcOrganizationMember:
-        org = Organization.objects.get(id=organization_id)
-        org.default_role = default_role
-        org.save()
+    def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
+        org = update_organization_with_outbox_message(
+            org_id=organization_id, update_data={"default_role": default_role}
+        )
         return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:

@@ -1,7 +1,25 @@
+from django.db.models import F
+
 from sentry.api.bases.team import TeamPermission
+from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
+
+
+def set_joinleave_for_org(*, org: Organization, enabled=True):
+    flags = F("flags").bitor(Organization.flags.allow_joinleave)
+
+    if not enabled:
+        flags = F("flags").bitand(~Organization.flags.allow_joinleave)
+
+    update_organization_with_outbox_message(
+        org_id=org.id,
+        update_data={"flags": flags},
+    )
 
 
 class TeamPermissionBase(TestCase):
@@ -151,8 +169,8 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization()
-        self.org.flags.allow_joinleave = False
-        self.org.save()
+        set_joinleave_for_org(org=self.org, enabled=False)
+        self.org.refresh_from_db()
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org)
 

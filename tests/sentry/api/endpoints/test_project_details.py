@@ -4,6 +4,7 @@ from time import time
 from unittest import mock
 
 import pytz
+from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
@@ -18,6 +19,7 @@ from sentry.models import (
     EnvironmentProject,
     Integration,
     NotificationSetting,
+    Organization,
     OrganizationMember,
     OrganizationOption,
     Project,
@@ -38,6 +40,19 @@ from sentry.testutils.helpers import Feature, faux, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+
+def set_joinleave_for_org(*, org: Organization, enabled=True):
+    flags = F("flags").bitor(Organization.flags.allow_joinleave)
+
+    if not enabled:
+        flags = F("flags").bitand(~Organization.flags.allow_joinleave)
+
+    update_organization_with_outbox_message(
+        org_id=org.id,
+        update_data={"flags": flags},
+    )
+    org.refresh_from_db()
 
 
 def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
@@ -1119,8 +1134,7 @@ class CopyProjectSettingsTest(APITestCase):
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
         resp = self.get_error_response(
             project.organization.slug,
             project.slug,
@@ -1151,8 +1165,7 @@ class CopyProjectSettingsTest(APITestCase):
         # adding team user lacks write access to
         self.other_project.add_team(self.create_team())
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        set_joinleave_for_org(org=self.organization, enabled=False)
 
         resp = self.get_error_response(
             project.organization.slug,
@@ -1312,7 +1325,6 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
     def test_non_superuser_user_trying_to_access_dynamic_sampling_rules(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
-        self.org.save()
 
         team = self.create_team(organization=self.org)
         self.project = self.create_project(name="foo", organization=self.org, teams=[team])

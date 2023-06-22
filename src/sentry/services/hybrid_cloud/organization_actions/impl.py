@@ -11,7 +11,7 @@ class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
     slug: str
     status: OrganizationStatus
     flags: Union[CombinedExpression, int]
-    default_role: int
+    default_role: str
 
 
 def create_organization_with_outbox_message(

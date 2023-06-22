@@ -10,10 +10,10 @@ from sentry.testutils.silo import region_silo_test
 
 
 def set_joinleave_for_org(*, org: Organization, enabled=True):
-    flags = F("flags").bitor(Organization.flags.allow_joinleave)
+    flags = F("flags").bitor(Organization.flags.allow_joinleave)  # type: ignore
 
     if not enabled:
-        flags = F("flags").bitand(~Organization.flags.allow_joinleave)
+        flags = F("flags").bitand(~Organization.flags.allow_joinleave)  # type: ignore
 
     update_organization_with_outbox_message(
         org_id=org.id,

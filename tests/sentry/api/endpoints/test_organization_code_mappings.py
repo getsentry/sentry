@@ -196,7 +196,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         self.login_as(user=self.user2)
         update_organization_with_outbox_message(
             org_id=self.organization.id,
-            update_data={"flags": F("flags").bitand(~Organization.flags.allow_joinleave)},
+            update_data={"flags": F("flags").bitand(~Organization.flags.allow_joinleave)},  # type: ignore
         )
         self.organization.refresh_from_db()
         assert not self.organization.flags.allow_joinleave
