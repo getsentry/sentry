@@ -3538,3 +3538,7 @@ SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
 #     See sentry.db.models.manager.base_query_set how qs.using_replica() works for more details db
 #     router implementation.
 SENTRY_MODEL_CACHE_USE_REPLICA = False
+
+# Additional consumer definitions beyond the ones defined in sentry.consumers.
+# Necessary for getsentry to define custom consumers.
+SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
