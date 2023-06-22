@@ -15,10 +15,13 @@ from django.test import override_settings
 
 from sentry import deletions
 from sentry.db.models.base import ModelSiloLimit
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.base import BaseDeletionTask
+from sentry.models import Actor, NotificationSetting
 from sentry.silo import SiloMode
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 TestMethod = Callable[..., None]
 
@@ -283,6 +286,22 @@ def validate_relation_does_not_cross_silo_foreign_keys(
             )
 
 
+def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
+    # HybridCloudForeignKey can point to region models if they have snowflake ids
+    if issubclass(related_model, SnowflakeIdMixin):
+        return
+
+    # This particular relation is being removed before we go multi region.
+    if related_model is Actor and model is NotificationSetting:
+        return
+
+    # but they cannot point to region models otherwise.
+    if SiloMode.REGION in _model_silo_limit(related_model).modes:
+        raise ValueError(
+            f"{related_model!r} runs in {SiloMode.REGION}, but is related to {model!r} via a HybridCloudForeignKey! Region model ids are not global, unless you use a snowflake id."
+        )
+
+
 def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
@@ -301,4 +320,6 @@ def validate_model_no_cross_silo_foreign_keys(
 
             validate_relation_does_not_cross_silo_foreign_keys(model, field.related_model)
             validate_relation_does_not_cross_silo_foreign_keys(field.related_model, model)
+        if isinstance(field, HybridCloudForeignKey):
+            validate_hcfk_has_global_id(model, field.foreign_model)
     return seen
