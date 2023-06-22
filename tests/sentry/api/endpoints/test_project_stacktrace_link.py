@@ -4,11 +4,15 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.db.models import F
 
 from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, Organization, OrganizationIntegration
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -339,13 +343,15 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             source_root="",
         )
         self.filepath = "src/path/to/file.py"
-        self.organization.flags.codecov_access = True
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data=dict(flags=F("flags").bitor(Organization.flags.codecov_access)),
+        )
 
         self.expected_codecov_url = (
             "https://app.codecov.io/gh/getsentry/sentry/commit/master/blob/src/path/to/file.py"
         )
         self.expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
-        self.organization.save()
 
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):

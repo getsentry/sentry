@@ -1,4 +1,10 @@
+from django.db.models import F
+
 from sentry.api.bases.project import ProjectPermission
+from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -219,8 +225,10 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization()
-        self.org.flags.allow_joinleave = False
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org)
 

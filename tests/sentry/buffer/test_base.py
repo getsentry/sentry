@@ -4,7 +4,10 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer
-from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
+from sentry.models import Group, Project, Release, ReleaseProject, Team
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_with_outbox_message,
+)
 from sentry.testutils import TestCase
 
 
@@ -45,7 +48,7 @@ class BufferTest(TestCase):
         assert group_.last_seen == the_date
 
     def test_increments_when_null(self):
-        org = Organization.objects.create(slug="test-org")
+        org = create_organization_with_outbox_message(create_options=dict(slug="test-org"))
         team = Team.objects.create(organization=org, slug="test-team")
         project = Project.objects.create(organization=org, slug="test-project")
         project.add_team(team)

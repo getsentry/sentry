@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytz
+from django.db.models import F
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
@@ -12,6 +13,7 @@ from sentry.models import (
     Activity,
     Environment,
     File,
+    Organization,
     Release,
     ReleaseCommit,
     ReleaseFile,
@@ -19,6 +21,9 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     ReleaseStatus,
     Repository,
+)
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -31,8 +36,10 @@ class ReleaseDetailsTest(APITestCase):
         super().setUp()
         self.user1 = self.create_user(is_staff=False, is_superuser=False)
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
 
         self.team1 = self.create_team(organization=self.organization)
         self.project1 = self.create_project(teams=[self.team1], organization=self.organization)
@@ -599,7 +606,6 @@ class ReleaseDetailsTest(APITestCase):
     def test_with_adoption_stages(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.save()
         team1 = self.create_team(organization=org)
         project1 = self.create_project(teams=[team1], organization=org)
         self.create_member(teams=[team1], user=user, organization=org)
@@ -631,7 +637,9 @@ class UpdateReleaseDetailsTest(APITestCase):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id, update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave)
+        )
 
         repo = Repository.objects.create(
             organization_id=org.id, name="example/example", provider="dummy"
