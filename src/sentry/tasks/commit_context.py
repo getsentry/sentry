@@ -91,17 +91,17 @@ def queue_comment_task_if_needed(
             if cache.get(cache_key) is not None:
                 return
 
-        # create PR commit row for suspect commit and PR
-        PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
+            # create PR commit row for suspect commit and PR
+            PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
 
-        logger.info(
-            "github.pr_comment.queue_comment_workflow",
-            extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
-        )
+            logger.info(
+                "github.pr_comment.queue_comment_workflow",
+                extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+            )
 
-        cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
+            cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
 
-        comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
+            comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(
