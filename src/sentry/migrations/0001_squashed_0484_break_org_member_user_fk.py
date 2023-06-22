@@ -357,7 +357,7 @@ class Migration(CheckedMigration):
                 ("last_login", models.DateTimeField(blank=True, null=True)),
                 (
                     "id",
-                    sentry.db.models.fields.bounded.BoundedAutoField(
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
                         primary_key=True, serialize=False
                     ),
                 ),
@@ -1108,7 +1108,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("name", models.CharField(max_length=128)),
                 ("slug", models.SlugField()),
@@ -2017,7 +2017,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 (
                     "organization_id",
@@ -2599,7 +2599,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("group_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 (
@@ -2798,7 +2798,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("hash", models.CharField(max_length=32)),
                 ("ident", models.CharField(max_length=128, null=True)),
@@ -3335,7 +3335,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 (
                     "service_hook",
@@ -3513,7 +3513,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
                 ),
                 ("first_seen", models.DateTimeField(default=django.utils.timezone.now)),
                 (
@@ -3565,7 +3565,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
                 ),
                 ("order", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 (
@@ -3666,7 +3666,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("feature", models.CharField(max_length=64)),
                 ("data", sentry.db.models.fields.jsonfield.JSONField(default={})),
