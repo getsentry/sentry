@@ -1106,7 +1106,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             },
             project_id=self.project.id,
         ).group
-        
+
         # assign the issue to my team instead of me
         GroupAssignee.objects.create(
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
@@ -1177,7 +1177,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 [self.group2, my_team_group],
                 user=self.user,
             )
-
 
     def test_assigned_to_in_syntax(self):
         group_3 = self.store_event(
