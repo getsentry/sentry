@@ -190,7 +190,7 @@ and run `sentry devservices up kafka zookeeper`.
         uwsgi_overrides["py-autoreload"] = 1
 
     daemons = []
-    kafka_consumers = []
+    kafka_consumers = set(settings.DEVSERVER_START_KAFKA_CONSUMERS)
     needs_kafka = False
 
     if experimental_spa:
@@ -255,10 +255,10 @@ and run `sentry devservices up kafka zookeeper`.
 
         from sentry import eventstream
 
-        if eventstream.requires_post_process_forwarder():
-            kafka_consumers.append("post-process-forwarder-errors")
-            kafka_consumers.append("post-process-forwarder-transactions")
-            kafka_consumers.append("post-process-forwarder-issue-platform")
+        if eventstream.backend.requires_post_process_forwarder():
+            kafka_consumers.add("post-process-forwarder-errors")
+            kafka_consumers.add("post-process-forwarder-transactions")
+            kafka_consumers.add("post-process-forwarder-issue-platform")
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -269,7 +269,7 @@ and run `sentry devservices up kafka zookeeper`.
                     "`SENTRY_DEV_PROCESS_SUBSCRIPTIONS` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            kafka_consumers.extend(_SUBSCRIPTION_RESULTS_CONSUMERS)
+            kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
 
         if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
             if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
@@ -279,22 +279,22 @@ and run `sentry devservices up kafka zookeeper`.
                     "`SENTRY_USE_METRICS_DEV` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            kafka_consumers.append("ingest-metrics")
-            kafka_consumers.append("ingest-generic-metrics")
-            kafka_consumers.append("billing-metrics-consumer")
+            kafka_consumers.add("ingest-metrics")
+            kafka_consumers.add("ingest-generic-metrics")
+            kafka_consumers.add("billing-metrics-consumer")
             needs_kafka = True
 
     if settings.SENTRY_USE_RELAY:
-        kafka_consumers.append("ingest-events")
-        kafka_consumers.append("ingest-attachments")
-        kafka_consumers.append("ingest-transactions")
-        kafka_consumers.append("ingest-monitors")
+        kafka_consumers.add("ingest-events")
+        kafka_consumers.add("ingest-attachments")
+        kafka_consumers.add("ingest-transactions")
+        kafka_consumers.add("ingest-monitors")
 
         if settings.SENTRY_USE_PROFILING:
-            kafka_consumers.append("ingest-profiles")
+            kafka_consumers.add("ingest-profiles")
 
     if occurrence_ingest:
-        kafka_consumers.append("ingest-occurrences")
+        kafka_consumers.add("ingest-occurrences")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
@@ -328,7 +328,9 @@ and run `sentry devservices up kafka zookeeper`.
 
     if kafka_consumers:
         if dev_consumer:
-            daemons.append(("dev-consumer", ["sentry", "run", "dev-consumer"] + kafka_consumers))
+            daemons.append(
+                ("dev-consumer", ["sentry", "run", "dev-consumer"] + list(kafka_consumers))
+            )
         else:
             for name in kafka_consumers:
                 daemons.append(
