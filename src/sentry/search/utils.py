@@ -27,6 +27,8 @@ from sentry.models import (
     KEYWORD_MAP,
     Environment,
     EventUser,
+    OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     Release,
     Team,
@@ -314,6 +316,19 @@ def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: Us
     return Team.objects.filter(
         slug__iexact=value[1:], projectteam__project__in=projects
     ).first() or Team(id=0)
+
+
+def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> list[Team]:
+    user_ids = [u.id for u in users if u is not None]
+    teams = Team.objects.filter(
+        id__in=OrganizationMemberTeam.objects.filter(
+            organizationmember__in=OrganizationMember.objects.filter(
+                user_id__in=user_ids, organization_id=projects[0].organization_id
+            ),
+            is_active=True,
+        ).values("team")
+    )
+    return list(teams)
 
 
 def parse_actor_value(projects: Sequence[Project], value: str, user: User) -> Union[User, Team]:
