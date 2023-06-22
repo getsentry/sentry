@@ -200,21 +200,21 @@ def get_release_data(status, status_details, projects, user):
 
 
 def handle_resolved(
-    release,
-    res_type,
-    res_type_str,
-    res_status,
+    release: Release,
+    res_type: GroupResolution.Type,
+    res_type_str: str,
+    res_status: GroupResolution.Status,
     commit,
-    activity_type,
-    activity_data,
-    organization_id,
-    group_list,
-    projects,
-    project_lookup,
-    user,
+    activity_type: str | None,
+    activity_data: dict[str, Any],
+    organization_id: int,
+    group_list: list[Group],
+    projects: list[Project],
+    project_lookup: Dict[int, Project],
+    user: User,
     acting_user,
-    is_bulk,
-    update_groups,
+    is_bulk: bool,
+    update_groups: Any,
 ):
     now = timezone.now()
     result = {}
@@ -223,8 +223,14 @@ def handle_resolved(
             resolution = None
             created = None
             if release:
-                handle_resolution_with_release(
-                    release, res_type, res_status, group, projects, activity_data, user
+                activity_data = handle_resolution_with_release(
+                    release,
+                    res_type,
+                    res_status,
+                    group,
+                    projects,
+                    activity_data,
+                    user,
                 )
 
             if commit:
@@ -293,7 +299,13 @@ def handle_resolved(
 
 
 def handle_resolution_with_release(
-    release, res_type, res_status, group, projects, activity_data, user
+    release: Release,
+    res_type: GroupResolution.Type,
+    res_status: GroupResolution.Status,
+    group: Group,
+    projects: list[Project],
+    activity_data,
+    user: User,
 ):
     resolution_params = {
         "release": release,
@@ -392,6 +404,8 @@ def handle_resolution_with_release(
     if not created:
         resolution.update(datetime=timezone.now(), **resolution_params)
 
+    return activity_data
+
 
 def get_current_release_version_of_group(
     group: Group, follows_semver: bool = False
@@ -459,7 +473,7 @@ def self_subscribe_and_assign_issue(
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     new_status: GroupStatus,
     new_substatus: GroupSubStatus | None,
     is_bulk: bool,
