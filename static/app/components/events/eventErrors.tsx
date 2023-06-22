@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 import uniq from 'lodash/uniq';
 import uniqWith from 'lodash/uniqWith';
 
+import {semverCompare} from 'sentry/utils/versions';
 import {Alert} from 'sentry/components/alert';
 import {ErrorItem, EventErrorData} from 'sentry/components/events/errorItem';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
@@ -28,10 +29,7 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 
 import {DataSection} from './styles';
 
-const ERRORS_TO_HIDE = [
-  JavascriptProcessingErrors.JS_MISSING_SOURCE,
-  CocoaProcessingErrors.COCOA_INVALID_DATA,
-];
+const ERRORS_TO_HIDE = [JavascriptProcessingErrors.JS_MISSING_SOURCE];
 
 const MAX_ERRORS = 100;
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -49,6 +47,19 @@ function isDataMinified(str: string | null) {
   }
 
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
+}
+
+function shouldErrorBeShown(error: EventErrorData, event: Event) {
+  if (ERRORS_TO_HIDE.includes(error.type as JavascriptProcessingErrors)) {
+    return false;
+  }
+  if (
+    error.type === CocoaProcessingErrors.COCOA_INVALID_DATA &&
+    semverCompare(event.sdk?.version || '', '8.7.4') === -1
+  ) {
+    return false;
+  }
+  return true;
 }
 
 const hasThreadOrExceptionMinifiedFrameData = (
@@ -246,8 +257,8 @@ export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-  const errors = [...otherErrors, ...proguardErrors].filter(
-    error => !ERRORS_TO_HIDE.includes(error.type as JavascriptProcessingErrors)
+  const errors = [...otherErrors, ...proguardErrors].filter(e =>
+    shouldErrorBeShown(e, event)
   );
 
   if (proguardErrorsLoading) {

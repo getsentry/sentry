@@ -1,6 +1,6 @@
 /* global process */
 
-import {t} from 'sentry/locale';
+import { t } from 'sentry/locale';
 import {
   DataCategoryExact,
   DataCategoryInfo,
@@ -126,28 +126,28 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
     resource: 'Project',
     help: 'Projects, Tags, Debug Files, and Feedback',
     choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['project:read']},
-      write: {label: 'Read & Write', scopes: ['project:read', 'project:write']},
-      admin: {label: 'Admin', scopes: ['project:read', 'project:write', 'project:admin']},
+      'no-access': { label: 'No Access', scopes: [] },
+      read: { label: 'Read', scopes: ['project:read'] },
+      write: { label: 'Read & Write', scopes: ['project:read', 'project:write'] },
+      admin: { label: 'Admin', scopes: ['project:read', 'project:write', 'project:admin'] },
     },
   },
   {
     resource: 'Team',
     help: 'Teams of members',
     choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['team:read']},
-      write: {label: 'Read & Write', scopes: ['team:read', 'team:write']},
-      admin: {label: 'Admin', scopes: ['team:read', 'team:write', 'team:admin']},
+      'no-access': { label: 'No Access', scopes: [] },
+      read: { label: 'Read', scopes: ['team:read'] },
+      write: { label: 'Read & Write', scopes: ['team:read', 'team:write'] },
+      admin: { label: 'Admin', scopes: ['team:read', 'team:write', 'team:admin'] },
     },
   },
   {
     resource: 'Release',
     help: 'Releases, Commits, and related Files',
     choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      admin: {label: 'Admin', scopes: ['project:releases']},
+      'no-access': { label: 'No Access', scopes: [] },
+      admin: { label: 'Admin', scopes: ['project:releases'] },
     },
   },
   {
@@ -155,30 +155,30 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
     label: 'Issue & Event',
     help: 'Issues, Events, and workflow statuses',
     choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['event:read']},
-      write: {label: 'Read & Write', scopes: ['event:read', 'event:write']},
-      admin: {label: 'Admin', scopes: ['event:read', 'event:write', 'event:admin']},
+      'no-access': { label: 'No Access', scopes: [] },
+      read: { label: 'Read', scopes: ['event:read'] },
+      write: { label: 'Read & Write', scopes: ['event:read', 'event:write'] },
+      admin: { label: 'Admin', scopes: ['event:read', 'event:write', 'event:admin'] },
     },
   },
   {
     resource: 'Organization',
     help: 'Manage Organizations, resolve IDs, retrieve Repositories and Commits',
     choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['org:read']},
-      write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
-      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+      'no-access': { label: 'No Access', scopes: [] },
+      read: { label: 'Read', scopes: ['org:read'] },
+      write: { label: 'Read & Write', scopes: ['org:read', 'org:write'] },
+      admin: { label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin'] },
     },
   },
   {
     resource: 'Member',
     help: 'Manage Members within Teams',
     choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['member:read']},
-      write: {label: 'Read & Write', scopes: ['member:read', 'member:write']},
-      admin: {label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin']},
+      'no-access': { label: 'No Access', scopes: [] },
+      read: { label: 'Read', scopes: ['member:read'] },
+      write: { label: 'Read & Write', scopes: ['member:read', 'member:write'] },
+      admin: { label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin'] },
     },
   },
 ];
@@ -306,11 +306,11 @@ export const MAX_QUERY_LENGTH = 400;
 export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG as unknown as
   | undefined
   | {
-      branch: string;
-      commitSha: string;
-      githubOrg: string;
-      githubRepo: string;
-    };
+    branch: string;
+    commitSha: string;
+    githubOrg: string;
+    githubRepo: string;
+  };
 
 // Webpack configures EXPERIMENTAL_SPA.
 export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA as unknown as
