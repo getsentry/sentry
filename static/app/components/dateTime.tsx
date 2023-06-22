@@ -14,6 +14,10 @@ interface Props extends React.HTMLAttributes<HTMLTimeElement> {
    */
   dateOnly?: boolean;
   /**
+   * When set, will force the date time display to be in the specified timezone
+   */
+  forcedTimezone?: string;
+  /**
    * Formatting string. If specified, this formatting string will override all
    * other formatting props (dateOnly, timeOnly, year).
    */
@@ -53,6 +57,7 @@ function DateTime({
   year,
   timeZone,
   seconds = false,
+  forcedTimezone,
   ...props
 }: Props) {
   const user = ConfigStore.get('user');
@@ -77,7 +82,9 @@ function DateTime({
     <time {...props}>
       {utc
         ? moment.utc(date as moment.MomentInput).format(formatString)
-        : momentTimezone.tz(date, options?.timezone ?? '').format(formatString)}
+        : momentTimezone
+            .tz(date, forcedTimezone ?? options?.timezone ?? '')
+            .format(formatString)}
     </time>
   );
 }
