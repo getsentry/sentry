@@ -2452,24 +2452,6 @@ class Migration(CheckedMigration):
                 "unique_together": {("organization_integration_id", "external_id")},
             },
         ),
-        migrations.AddField(
-            model_name="integration",
-            name="organizations",
-            field=models.ManyToManyField(
-                related_name="integrations",
-                through="sentry.OrganizationIntegration",
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.AddField(
-            model_name="integration",
-            name="projects",
-            field=models.ManyToManyField(
-                related_name="integrations",
-                through="sentry.ProjectIntegration",
-                to="sentry.Project",
-            ),
-        ),
         migrations.CreateModel(
             name="IdentityProvider",
             fields=[
@@ -2781,7 +2763,12 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("organization_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        "sentry.Organization", db_constraint=False
+                    ),
+                ),
                 (
                     "integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
@@ -2797,7 +2784,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_externalissue",
-                "unique_together": {("organization_id", "integration_id", "key")},
+                "unique_together": {("organization", "integration_id", "key")},
             },
         ),
         migrations.CreateModel(
@@ -3871,7 +3858,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -5317,7 +5304,7 @@ class Migration(CheckedMigration):
                 (
                     "sentry_app_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Integration",
+                        "sentry.SentryApp",
                         blank=True,
                         null=True,
                         on_delete="CASCADE",
@@ -5808,7 +5795,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -5848,7 +5835,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -6855,7 +6842,6 @@ class Migration(CheckedMigration):
                     "integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Integration",
-                        null=True,
                         on_delete="CASCADE",
                     ),
                 ),
@@ -7989,24 +7975,6 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AddField(
-                    model_name="externalissue",
-                    name="integration",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Integration",
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="externalissue",
-                    name="organization",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Organization",
-                    ),
-                ),
-                migrations.AddField(
                     model_name="grouplink",
                     name="group",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -8025,20 +7993,8 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 migrations.AlterUniqueTogether(
-                    name="externalissue",
-                    unique_together={("organization", "integration", "key")},
-                ),
-                migrations.AlterUniqueTogether(
                     name="grouplink",
                     unique_together={("group", "linked_type", "linked_id")},
-                ),
-                migrations.RemoveField(
-                    model_name="externalissue",
-                    name="integration_id",
-                ),
-                migrations.RemoveField(
-                    model_name="externalissue",
-                    name="organization_id",
                 ),
                 migrations.RemoveField(
                     model_name="grouplink",
