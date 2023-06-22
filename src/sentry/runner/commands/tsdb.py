@@ -64,6 +64,7 @@ def organizations(metrics, since, until):
 
     from sentry import tsdb
     from sentry.models import Organization
+    from sentry.tsdb.base import TSDBModel
 
     stdout = click.get_text_stream("stdout")
     stderr = click.get_text_stream("stderr")
@@ -71,7 +72,7 @@ def organizations(metrics, since, until):
     def aggregate(series):
         return sum(value for timestamp, value in series)
 
-    metrics = {name: getattr(tsdb.models, name) for name in metrics}
+    metrics = {name: getattr(TSDBModel, name) for name in metrics}
     if not metrics:
         return
 

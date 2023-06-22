@@ -47,25 +47,28 @@ type ConfigExtremeType = {
   max: number | boolean;
   min: number | boolean;
 };
-const configExtremes: {[key in DetectorConfig]?: ConfigExtremeType} = {
+
+const configExtremes: {[key in DetectorConfigCustomer]?: ConfigExtremeType} = {
   slow_db_query_duration_threshold: {min: 100, default: 1000, max: tenSecondInMs},
   n_plus_one_db_duration_threshold: {min: 50, default: 100, max: tenSecondInMs},
 };
 
-enum DetectorConfig {
-  SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
-  N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
-  UNCOMPRESSED_ASSET_ENABLED = 'uncompressed_assets_detection_enabled',
-  CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
-  LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
+enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
-  N_PLUS_API_ENABLED = 'n_plus_one_api_calls_detection_enabled',
-  DB_MAIN_THREAD_ENABLED = 'db_on_main_thread_detection_enabled',
-  FILE_IO_ENABLED = 'file_io_on_main_thread_detection_enabled',
-  CONSECUTIVE_DB_ENABLED = 'consecutive_db_queries_detection_enabled',
-  RENDER_BLOCK_ASSET_ENABLED = 'large_render_blocking_asset_detection_enabled',
   SLOW_DB_ENABLED = 'slow_db_queries_detection_enabled',
 }
+
+enum DetectorConfigCustomer {
+  SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
+  N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+}
+
+const mapThresholdToDetectionEnabled: {
+  [key in DetectorConfigCustomer]: DetectorConfigAdmin;
+} = {
+  slow_db_query_duration_threshold: DetectorConfigAdmin.SLOW_DB_ENABLED,
+  n_plus_one_db_duration_threshold: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
+};
 
 type RouteParams = {orgId: string; projectId: string};
 
@@ -164,14 +167,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
     });
 
     const data = {};
-    if (this.state.performance_issue_settings[DetectorConfig.N_PLUS_DB_ENABLED]) {
-      data[DetectorConfig.N_PLUS_DB_DURATION] =
-        configExtremes[DetectorConfig.N_PLUS_DB_DURATION]?.default;
-    }
-    if (this.state.performance_issue_settings[DetectorConfig.SLOW_DB_ENABLED]) {
-      data[DetectorConfig.SLOW_DB_DURATION] =
-        configExtremes[DetectorConfig.SLOW_DB_DURATION]?.default;
-    }
+    Object.values(DetectorConfigCustomer).forEach(threshold => {
+      if (
+        this.state.performance_issue_settings[mapThresholdToDetectionEnabled[threshold]]
+      ) {
+        data[threshold] = configExtremes[threshold]?.default;
+      }
+    });
 
     this.api.request(
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
@@ -235,6 +237,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return fields;
   }
 
+  get areAllConfigurationsDisabled(): boolean {
+    let result = true;
+    Object.values(DetectorConfigAdmin).forEach(threshold => {
+      result = result && !this.state.performance_issue_settings[threshold];
+    });
+    return result;
+  }
+
   get performanceIssueFormFields(): Field[] {
     return [
       {
@@ -273,7 +283,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
   get performanceIssueDetectorAdminFields(): Field[] {
     return [
       {
-        name: DetectorConfig.N_PLUS_DB_ENABLED,
+        name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
         type: 'boolean',
         label: t('N+1 DB Queries Detection Enabled'),
         defaultValue: true,
@@ -286,7 +296,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
           }),
       },
       {
-        name: DetectorConfig.SLOW_DB_ENABLED,
+        name: DetectorConfigAdmin.SLOW_DB_ENABLED,
         type: 'boolean',
         label: t('Slow DB Queries Detection Enabled'),
         defaultValue: true,
@@ -323,7 +333,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
         title: t('N+1 DB Queries'),
         fields: [
           {
-            name: DetectorConfig.N_PLUS_DB_DURATION,
+            name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
             type: 'range',
             label: t('Duration'),
             defaultValue: 100, // ms
@@ -332,7 +342,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             ),
             allowedValues: allowedDurationValues,
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfig.N_PLUS_DB_ENABLED]
+              hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -343,15 +353,17 @@ class ProjectPerformance extends AsyncView<Props, State> {
         title: t('Slow DB Queries'),
         fields: [
           {
-            name: DetectorConfig.SLOW_DB_DURATION,
+            name: DetectorConfigCustomer.SLOW_DB_DURATION,
             type: 'range',
             label: t('Duration'),
             defaultValue: 1000, // ms
             help: t(
-              'Setting the value to 2s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved span exceeds 2s. [docsLink: Learn more]'
+              'Setting the value to 2s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved span exceeds 2s.'
             ),
-            allowedValues: allowedDurationValues,
-            disabled: !(hasAccess && performanceSettings[DetectorConfig.SLOW_DB_ENABLED]),
+            allowedValues: allowedDurationValues.slice(1),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+            ),
             formatLabel: formatDuration,
             disabledReason,
           },
@@ -570,7 +582,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
                             'Are you sure you wish to reset all detector thresholds?'
                           )}
                           onConfirm={() => this.handleThresholdsReset()}
-                          disabled={!hasAccess}
+                          disabled={!hasAccess || this.areAllConfigurationsDisabled}
                         >
                           <Button>{t('Reset All Thresholds')}</Button>
                         </Confirm>
