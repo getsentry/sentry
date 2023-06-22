@@ -12,6 +12,7 @@ from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
+    TRANSACTION_SOURCE_UNKNOWN,
     TRANSACTION_SOURCE_URL,
 )
 from sentry.models import Project
@@ -101,9 +102,7 @@ def clear_samples(namespace: ClustererNamespace, project: Project) -> None:
 
 
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
-    transaction_name = event_data.get("transaction")
-
-    if transaction_name and _should_store_transaction_name(event_data):
+    if transaction_name := _should_store_transaction_name(event_data):
         safe_execute(
             _record_sample,
             ClustererNamespace.TRANSACTIONS,
@@ -116,14 +115,18 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
-def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
+def _should_store_transaction_name(event_data: Mapping[str, Any]) -> Optional[str]:
     """Returns whether the given event must be stored as input for the
     transaction clusterer."""
-    tags = event_data.get("tags")
+    transaction_name = event_data.get("transaction")
+    if not transaction_name:
+        return None
+
+    tags = event_data.get("tags") or {}
     transaction_info = event_data.get("transaction_info") or {}
     source = transaction_info.get("source")
 
-    # For now, we also feed back transactions into the clustering algorithm
+    # We also feed back transactions into the clustering algorithm
     # that have already been sanitized, so we have a chance to discover
     # more high cardinality segments after partial sanitation.
     # For example, we may have sanitized `/orgs/*/projects/foo`,
@@ -131,13 +134,17 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
     #
     # Disadvantage: the load on redis does not decrease over time.
     #
-    if source not in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
-        return False
+    source_matches = source in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED) or (
+        source == TRANSACTION_SOURCE_UNKNOWN and transaction_name.contains("/")
+    )
+
+    if not source_matches:
+        return None
 
     if tags and HTTP_404_TAG in tags:
-        return False
+        return None
 
-    return True
+    return transaction_name
 
 
 def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
