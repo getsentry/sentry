@@ -1280,7 +1280,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
-        eventstream.insert(
+        eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,
