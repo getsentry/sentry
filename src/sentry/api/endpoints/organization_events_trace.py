@@ -158,7 +158,7 @@ class TraceEvent:
         parent: Optional[str],
         generation: Optional[int],
         light: bool = False,
-        snuba_params: ParamsType = None,
+        snuba_params: Optional[ParamsType] = None,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []

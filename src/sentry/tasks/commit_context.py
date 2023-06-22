@@ -7,6 +7,7 @@ from sentry_sdk import set_tag
 
 from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
 from sentry.models import (
@@ -18,6 +19,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
 )
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
@@ -33,20 +35,62 @@ DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 logger = logging.getLogger(__name__)
 
 
-def queue_comment_task_if_needed(commit: Commit, group_owner: GroupOwner):
+def queue_comment_task_if_needed(
+    commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
+):
     from sentry.tasks.integrations.github.pr_comment import comment_workflow
 
+    logger.info(
+        "github.pr_comment.queue_comment_check",
+        extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
+    )
+
+    # client will raise ApiError if the request is not successful
+    response = installation.get_client().get_pullrequest_from_commit(repo=repo.name, sha=commit.key)
+
+    if not isinstance(response, list) or len(response) != 1:
+        # the response should return a single PR, return if multiple
+        if len(response) > 1:
+            logger.info(
+                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
+                extra={
+                    "organization_id": commit.organization_id,
+                    "repository_id": repo.id,
+                    "commit_sha": commit.key,
+                },
+            )
+        return
+
+    merge_commit_sha = response[0]["merge_commit_sha"]
+
     pr_query = PullRequest.objects.filter(
-        organization_id=commit.organization_id, merge_commit_sha=commit.key
+        organization_id=commit.organization_id, merge_commit_sha=merge_commit_sha
     )
     if not pr_query.exists():
+        logger.info(
+            "github.pr_comment.queue_comment_check.missing_pr",
+            extra={
+                "organization_id": commit.organization_id,
+                "repository_id": repo.id,
+                "commit_sha": commit.key,
+            },
+        )
         return
+
     pr = pr_query.get()
     if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30) and (
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
         # TODO: Debouncing Logic
+
+        # create PR commit row for suspect commit and PR
+        PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
+
+        logger.info(
+            "github.pr_comment.queue_comment_workflow",
+            extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+        )
         comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
@@ -171,7 +215,7 @@ def process_commit_context(
                 )
                 return
 
-            found_contexts = find_commit_context_for_event(
+            found_contexts, installation = find_commit_context_for_event(
                 code_mappings=code_mappings,
                 frame=frame,
                 extra={
@@ -296,9 +340,22 @@ def process_commit_context(
             )
 
             if features.has("organizations:pr-comment-bot", project.organization):
+                logger.info(
+                    "github.pr_comment",
+                    extra={"organization_id": project.organization_id},
+                )
                 repo = Repository.objects.filter(id=commit.repository_id)
-                if repo.exists() and repo.get().provider == "integrations:github":
-                    queue_comment_task_if_needed(commit, group_owner)
+                if (
+                    installation is not None
+                    and repo.exists()
+                    and repo.get().provider == "integrations:github"
+                ):
+                    queue_comment_task_if_needed(commit, group_owner, repo.get(), installation)
+                else:
+                    logger.info(
+                        "github.pr_comment.incorrect_repo_config",
+                        extra={"organization_id": project.organization_id},
+                    )
 
             if created:
                 # If owners exceeds the limit, delete the oldest one.
@@ -347,7 +404,7 @@ def process_commit_context(
         logger.info(
             "process_commit_context.max_retries_exceeded",
             extra={
-                **basic_logging_details,  # pyright: ignore
+                **basic_logging_details,
                 "reason": "max_retries_exceeded",
             },
         )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import uuid
@@ -165,7 +167,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         )
     finally:
         if delete_file:
-            file.delete()  # pyright: ignore
+            file.delete()
 
 
 class AssembleArtifactsError(Exception):
@@ -297,7 +299,7 @@ def _remove_duplicate_artifact_bundles(org_id: int, ids: List[int]):
 
 
 def _bind_or_create_artifact_bundle(
-    bundle_id: uuid,
+    bundle_id: str | None,
     date_added: datetime,
     org_id: int,
     archive_file: File,

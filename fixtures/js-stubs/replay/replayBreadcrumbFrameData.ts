@@ -1,5 +1,5 @@
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {BreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {RawBreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -86,9 +86,18 @@ export function SlowClickFrame(
 ): MockFrame<'ui.slowClickDetected'> {
   return {
     category: 'ui.slowClickDetected',
+    /*
+     * TODO(replay): Remove this @ts-expected-error` when we upgrade the SDK past 7.56.0
+     *
+     * In 7.56.0 we added `clickCount: number;` to the type, but `ui.slowClickDetected`
+     * was an existing type. To keep things backwards compatible it should've been
+     * created as `clickCount?: number;`
+     */
+    // @ts-expect-error: clickCount should be optional.
     data: fields.data ?? {
+      clickCount: undefined,
       endReason: '',
-      timeAfterClickFs: 5,
+      timeAfterClickMs: 5,
       url: '/',
     },
     message: fields.message,

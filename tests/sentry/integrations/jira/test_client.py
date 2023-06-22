@@ -126,14 +126,13 @@ class JiraClientTest(TestCase):
                 assert (PROXY_BASE_PATH in request.url) == is_proxy
                 assert (PROXY_OI_HEADER in request.headers) == is_proxy
                 assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
-                # The following GitHub headers don't appear in proxied requests
                 assert ("Authorization" in request.headers) != is_proxy
                 if is_proxy:
                     assert request.headers[PROXY_OI_HEADER] is not None
 
         responses.add(
             method=responses.GET,
-            # Use regex to create responses both from proxy and GitHub
+            # Use regex to create responses both from proxy and integration
             url=re.compile(rf"\S+{self.client.SERVER_INFO_URL}$"),
             json={"ok": True},
             status=200,

@@ -1,7 +1,7 @@
 import itertools
 from typing import Iterable, Optional
 
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -112,7 +112,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request: Request, user, category, identity_id) -> Response:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(Identity)):
             identity = self._get_identity(user, category, identity_id)
             if not identity:
                 # Returns 404 even if the ID exists but belongs to

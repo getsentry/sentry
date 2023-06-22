@@ -15,7 +15,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.project import Project
 
 
 def validate_scope_list(value):
@@ -33,7 +32,7 @@ class OrgAuthToken(Model):
     token_hashed = models.TextField(unique=True, null=False)
     # An optional representation of the last characters of the original token, to be shown to the user
     token_last_characters = models.CharField(max_length=4, null=True)
-    name = models.CharField(max_length=255, null=False)
+    name = models.CharField(max_length=255, null=False, blank=False)
     scope_list = ArrayField(
         models.TextField(),
         validators=[validate_scope_list],
@@ -59,19 +58,13 @@ class OrgAuthToken(Model):
         return force_text(self.token_hashed)
 
     def get_audit_log_data(self):
-        return {"scopes": self.get_scopes()}
+        return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_scopes(self):
         return self.scope_list
 
     def has_scope(self, scope):
         return scope in self.get_scopes()
-
-    def project_last_used(self) -> Project | None:
-        if self.project_last_used_id is None:
-            return None
-
-        return Project.objects.get(id=self.project_last_used_id)
 
     def is_active(self) -> bool:
         return self.date_deactivated is None

@@ -124,7 +124,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
   /**
    * Similar to `href`, but for internal links within the app.
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   to?: string | object;
 }
@@ -419,30 +419,6 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   return {...formStyles, ...buttonPadding, ...borderStyles};
 };
 
-const getButtonStyles = (props: StyledButtonProps) => {
-  return css`
-    position: relative;
-    display: inline-block;
-    border-radius: ${props.theme.borderRadius};
-    text-transform: none;
-    font-weight: 600;
-    ${getColors(props)};
-    ${getSizeStyles(props)};
-    ${getBoxShadow(props)};
-    cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
-    opacity: ${(props.busy || props.disabled) && '0.65'};
-    transition: background 0.1s, border 0.1s, box-shadow 0.1s;
-
-    ${props.priority === 'link' &&
-    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
-    ${props.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
-
-  &:focus {
-      outline: none;
-    }
-  `;
-};
-
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
@@ -492,7 +468,26 @@ const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  ${getButtonStyles};
+  position: relative;
+  display: inline-block;
+  border-radius: ${p => p.theme.borderRadius};
+  text-transform: none;
+  font-weight: 600;
+  ${getColors};
+  ${getSizeStyles};
+  ${getBoxShadow};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+
+  ${p =>
+    p.priority === 'link' &&
+    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
+  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 const buttonLabelPropKeys = ['size', 'borderless'];
@@ -547,10 +542,4 @@ export {
   // Also export these styled components so we can use them as selectors
   StyledButton,
   ButtonLabel,
-
-  /**
-   * @deprecated This is only being used in one small component elsewhere. We
-   * should probably remove this export
-   */
-  getButtonStyles,
 };

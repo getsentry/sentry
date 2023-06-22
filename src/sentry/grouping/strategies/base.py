@@ -282,7 +282,7 @@ class Strategy(Generic[ConcreteInterface]):
 
 
 class StrategyConfiguration:
-    id: Optional[str] = None
+    id: str
     base: Optional[Type["StrategyConfiguration"]] = None
     config_class = None
     strategies: Dict[str, Strategy[Any]] = {}

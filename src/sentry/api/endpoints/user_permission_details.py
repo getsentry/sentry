@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,7 +38,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
             )
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(UserPermission)):
                 UserPermission.objects.create(user=user, permission=permission_name)
                 audit_logger.info(
                     "user.add-permission",
@@ -59,7 +59,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserPermission)):
             deleted, _ = UserPermission.objects.filter(
                 user=user, permission=permission_name
             ).delete()
