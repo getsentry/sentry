@@ -440,6 +440,11 @@ register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFI
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
+# Discord Integration
+register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1212,6 +1217,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.slow_db_query.duration_threshold",
+    default=1000.0,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.render_blocking_assets.fcp_minimum_threshold",
     default=2000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1252,48 +1262,39 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 
-# Dynamic Sampling system wide options
-# Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
+# Dynamic Sampling system-wide options
+# Kill-switch to disable new dynamic sampling behavior specifically new dynamic sampling biases.
 register("dynamic-sampling:enabled-biases", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "dynamic-sampling.prioritise_projects.sample_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# controls how many orgs will be queried by the prioritise by transaction task
-# 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
-register(
-    "dynamic-sampling.prioritise_transactions.load_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# the number of large transactions to retrieve from Snuba for transaction re-balancing
+# Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions",
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# the number of large transactions to retrieve from Snuba for transaction re-balancing
+# Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
     0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
+# Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
 # to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
-# transactions to be rebalance (both small and large) to 0
+# transactions to be rebalance (both small and large) to 0.
 register(
     "dynamic-sampling.prioritise_transactions.rebalance_intensity",
     default=0.8,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# controls whether we allow people to upload artifact bundles instead of release bundles
+# Controls whether we allow people to upload artifact bundles instead of release bundles.
 register("sourcemaps.enable-artifact-bundles", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1320,18 +1321,28 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
-# If this option is being modified downstream, and a new default setting
-# may be added, it has to be updated downstream as well, otherwise the
-# code will throw. This is intentional. We want to throw fast and loud on
-# misconfiguration.
 register(
-    "backpressure.high_watermarks",
-    default={
-        "celery": 0.5,
-        "attachments-store": 0.5,
-        "processing-store": 0.5,
-        "processing-locks": 0.5,
-        "post-process-locks": 0.5,
-    },
+    "backpressure.high_watermarks.celery",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.attachments-store",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.processing-store",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.processing-locks",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.post-process-locks",
+    default=0.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

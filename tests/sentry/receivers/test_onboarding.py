@@ -261,12 +261,26 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_member_joined(self):
         user = self.create_user(email="test@example.org")
-        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
-        member_joined.send(
-            member=serialize_member(member),
-            organization_id=self.organization.id,
-            sender=type(member),
+
+        with pytest.raises(OrganizationOnboardingTask.DoesNotExist):
+            OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.INVITE_MEMBER,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+
+        self.create_member(
+            organization=self.organization, teams=[self.team], email="someemail@example.com"
         )
+
+        with pytest.raises(OrganizationOnboardingTask.DoesNotExist):
+            OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.INVITE_MEMBER,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+
+        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -276,12 +290,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
         user2 = self.create_user(email="test@example.com")
-        member2 = self.create_member(organization=self.organization, teams=[self.team], user=user2)
-        member_joined.send(
-            member=serialize_member(member2),
-            organization_id=self.organization.id,
-            sender=type(member2),
-        )
+        self.create_member(organization=self.organization, teams=[self.team], user=user2)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
