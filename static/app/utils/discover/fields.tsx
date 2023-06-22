@@ -8,6 +8,7 @@ import {
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/starfish/types';
 
 import {
   AGGREGATION_FIELDS,
@@ -280,24 +281,6 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.SPS]: {
-    ...getDocsAndOutputType(AggregationKey.SPS),
-    parameters: [],
-    isSortable: true,
-    multiPlotType: 'area',
-  },
-  [AggregationKey.TIME_SPENT_PERCENTAGE]: {
-    ...getDocsAndOutputType(AggregationKey.TIME_SPENT_PERCENTAGE),
-    parameters: [],
-    isSortable: true,
-    multiPlotType: 'area',
-  },
-  [AggregationKey.HTTP_ERROR_COUNT]: {
-    ...getDocsAndOutputType(AggregationKey.HTTP_ERROR_COUNT),
-    parameters: [],
-    isSortable: true,
-    multiPlotType: 'area',
-  },
   [AggregationKey.EPM]: {
     ...getDocsAndOutputType(AggregationKey.EPM),
     parameters: [],
@@ -514,7 +497,6 @@ export const AGGREGATIONS = {
 export const ALIASES = {
   tpm: AggregationKey.EPM,
   tps: AggregationKey.EPS,
-  sps: AggregationKey.SPS,
 };
 
 assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
@@ -1048,6 +1030,10 @@ export function aggregateFunctionOutputType(
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
     return STARFISH_FIELDS[firstArg].outputType;
+  }
+
+  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+    return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
   // If the function is an inherit type it will have a field as

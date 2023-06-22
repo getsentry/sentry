@@ -1,4 +1,7 @@
+import {t} from 'sentry/locale';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 export enum ModuleName {
   HTTP = 'http',
@@ -29,6 +32,13 @@ export enum SpanIndexedFields {
   PROJECT = 'project',
 }
 
+export enum StarfishFunctions {
+  SPS = 'sps',
+  SPS_PERCENENT_CHANGE = 'sps_percent_change',
+  TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
+  HTTP_ERROR_COUNT = 'http_error_count',
+}
+
 export type SpanIndexedFieldTypes = {
   [SpanIndexedFields.SPAN_SELF_TIME]: number;
   [SpanIndexedFields.TIMESTAMP]: string;
@@ -42,4 +52,34 @@ export type SpanIndexedFieldTypes = {
 export const StarfishDatasetFields = {
   [DiscoverDatasets.SPANS_METRICS]: SpanIndexedFields,
   [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedFields,
+};
+
+export const STARFISH_AGGREGATION_FIELDS: Record<
+  StarfishFunctions,
+  FieldDefinition & {defaultOutputType: AggregationOutputType}
+> = {
+  [StarfishFunctions.SPS]: {
+    desc: t('Spans per second'),
+    kind: FieldKind.FUNCTION,
+    defaultOutputType: 'number',
+    valueType: FieldValueType.NUMBER,
+  },
+  [StarfishFunctions.TIME_SPENT_PERCENTAGE]: {
+    desc: t('Span time spent percentage'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [StarfishFunctions.HTTP_ERROR_COUNT]: {
+    desc: t('Count of 5XX http errors'),
+    defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [StarfishFunctions.SPS_PERCENENT_CHANGE]: {
+    desc: t('Spans per second percentage change'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
 };

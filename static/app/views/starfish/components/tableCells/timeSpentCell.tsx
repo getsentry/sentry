@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Tooltip} from 'sentry/components/tooltip';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';

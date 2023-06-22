@@ -4,14 +4,12 @@ import {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import {
   aggregateFunctionOutputType,
-  AggregationOutputType,
+  fieldAlignment,
   parseFunction,
   Sort,
 } from 'sentry/utils/discover/fields';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-
-const rightAlignedColumns: AggregationOutputType[] = ['duration', 'integer', 'number'];
 
 type Options = {
   column: GridColumnHeader<string>;
@@ -57,8 +55,8 @@ export const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
-    if (outputType && rightAlignedColumns.includes(outputType)) {
-      return 'right';
+    if (outputType) {
+      return fieldAlignment(key, outputType);
     }
   }
   return 'left';

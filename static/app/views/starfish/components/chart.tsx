@@ -51,6 +51,10 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsFields.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
+  // local is only used with `time_spent_percentage` function
+  local: {
+    outputType: 'duration',
+  },
 };
 
 type Props = {
@@ -119,7 +123,7 @@ function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const step = 10 ** Math.floor(power) * scale;
-  return Math.ceil(Math.ceil(maxValue / step) * step);
+  return Math.round(Math.ceil(maxValue / step) * step);
 }
 
 function Chart({
